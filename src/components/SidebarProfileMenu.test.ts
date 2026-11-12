@@ -101,7 +101,7 @@ describe("platformLabel", () => {
 describe("outward links", () => {
   it("sends Help Center to the docs the website also links to", () => {
     expect(HELP_CENTER_URL).toBe(DOCS_URL);
-    expect(DOCS_URL).toBe("https://github.com/goatedgrokbotalternative/duskbot/tree/custom/docs");
+    expect(DOCS_URL).toBe("https://dusk.bot/docs");
   });
 
   it("sends Send Feedback to the Discord community", () => {

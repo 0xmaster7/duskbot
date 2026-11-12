@@ -2,11 +2,10 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
-  APP_NAME,
-  APP_REPOSITORY,
   DOCS_URL,
   LICENSE_URL,
   RELEASES_URL,
+  THIRD_PARTY_NOTICES_URL,
   appVersion,
   openExternalLink,
   platformLabel,
@@ -65,13 +64,13 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
         <p className="m-0 mt-1 text-[12px] leading-4 tracking-[0.01em] text-ink">{version}</p>
         {connected && <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/68">{connected}</p>}
         <p className={cn(rowHintCls, "m-0 mt-2 text-[11px] leading-4 text-pretty")}>
-          Built on {APP_NAME}: open source, Apache 2.0 licensed.
+          source-available. free for personal use.
         </p>
         <div className="mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[12px] leading-4">
-          <AboutLink href={APP_REPOSITORY} label="GitHub" />
           <AboutLink href={DOCS_URL} label="Docs" />
           <AboutLink href={RELEASES_URL} label="Releases" />
           <AboutLink href={LICENSE_URL} label="License" />
+          <a href={THIRD_PARTY_NOTICES_URL} target="_blank" rel="license noopener noreferrer" className={aboutLinkCls}>Third-party notices</a>
         </div>
         <button type="button" data-autofocus onClick={copy} className={cn(mdSecondaryCls, "mt-4")}>
           {copied ? t("about.copied") : t("about.copyVersion")}
@@ -82,12 +81,14 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+const aboutLinkCls = "rounded-sm text-ink/68 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
 function AboutLink({ href, label }: { href: string; label: string }) {
   return (
     <button
       type="button"
       onClick={() => void openExternalLink(href)}
-      className="rounded-sm text-ink/68 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      className={aboutLinkCls}
     >
       {label}
     </button>
