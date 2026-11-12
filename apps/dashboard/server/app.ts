@@ -661,6 +661,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     billing,
     slackEdge: edgeHost,
     analytics,
+    usage,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       const requestId = random(9);
       res.setHeader("x-request-id", requestId);

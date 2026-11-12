@@ -14,7 +14,8 @@ export const latencyBucket = (ms: number) => LATENCY_EDGES.findIndex(edge => ms 
 
 type Kind = "turn" | "run" | "frustration" | "digest";
 export interface UsageRecord { id: string; kind: Kind; at: number; accountId: string; workspaceId: string; data: UsageTurn | UsageRun | UsageFrustration | UsageDigest }
-export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number }
+/** `appTurns`: turns that used a connected app, so the adoption view can count people who use one */
+export interface PersonDay { day: string; accountId: string; turns: number; failed: number; runs: number; frustrations: number; appTurns: number }
 export interface SnapshotRow { workspaceId: string; accountId: string; at: number; snapshot: UsageSnapshot }
 
 export interface UsageStore {
@@ -47,7 +48,7 @@ export function memoryUsageStore(now: () => number = Date.now): UsageStore {
     async bump(day, inc) { const row = daily.get(day) ?? {}; for (const [key, by] of Object.entries(inc)) row[key] = (row[key] ?? 0) + by; daily.set(day, row); },
     async person(day, accountId, inc) {
       const key = `${day}|${accountId}`, row = people.get(key), first = !row;
-      const next = row ?? { day, accountId, turns: 0, failed: 0, runs: 0, frustrations: 0 };
+      const next = row ?? { day, accountId, turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0 };
       for (const [field, by] of Object.entries(inc)) (next as unknown as Record<string, number>)[field]! += by ?? 0;
       people.set(key, next);
       return first;
@@ -74,7 +75,7 @@ type RecordDoc = { _id: string; kind: Kind; at: Date; accountId: string; workspa
 /** usage_events (TTL on `at`), usage_daily (kept), usage_people (TTL on `at`), usage_snapshots (one per workspace) */
 export async function mongoUsageStore(db: Db): Promise<UsageStore> {
   const events = db.collection<RecordDoc>("usage_events"), daily = db.collection<{ _id: string; day: string; c: Record<string, number> }>("usage_daily");
-  const people = db.collection<{ _id: string; day: string; accountId: string; at: Date; turns: number; failed: number; runs: number; frustrations: number }>("usage_people");
+  const people = db.collection<{ _id: string; day: string; accountId: string; at: Date; turns: number; failed: number; runs: number; frustrations: number; appTurns: number }>("usage_people");
   const snaps = db.collection<{ _id: string; accountId: string; at: Date; snapshot: UsageSnapshot }>("usage_snapshots"), marks = db.collection<{ _id: string }>("usage_marks");
   await Promise.all([
     events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: USAGE_RETENTION_DAYS * 86_400 }, { key: { kind: 1, at: -1 } }, { key: { accountId: 1 } }, { key: { workspaceId: 1 } }]),
@@ -97,7 +98,7 @@ export async function mongoUsageStore(db: Db): Promise<UsageStore> {
     },
     async bump(day, inc) { await daily.updateOne({ _id: day }, { $setOnInsert: { day }, $inc: Object.fromEntries(Object.entries(inc).map(([key, by]) => [`c.${key}`, by])) }, { upsert: true }); },
     async person(day, accountId, inc) {
-      const result = await people.updateOne({ _id: `${day}|${accountId}` }, { $setOnInsert: { day, accountId, at: new Date(`${day}T12:00:00Z`) }, $inc: { turns: 0, failed: 0, runs: 0, frustrations: 0, ...inc } }, { upsert: true });
+      const result = await people.updateOne({ _id: `${day}|${accountId}` }, { $setOnInsert: { day, accountId, at: new Date(`${day}T12:00:00Z`) }, $inc: { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0, ...inc } }, { upsert: true });
       return result.upsertedCount === 1;
     },
     async snapshot(row) { await snaps.replaceOne({ _id: row.workspaceId }, { accountId: row.accountId, at: new Date(row.at), snapshot: row.snapshot }, { upsert: true }); },
@@ -172,10 +173,10 @@ export function createUsage(options: {
       const fresh = await store.insert(records);
       const writes: Array<Promise<unknown>> = [];
       for (const [day, inc] of rollup(fresh)) writes.push(store.bump(day, inc));
-      const perDay = new Map<string, { turns: number; failed: number; runs: number; frustrations: number }>();
+      const perDay = new Map<string, { turns: number; failed: number; runs: number; frustrations: number; appTurns: number }>();
       for (const record of fresh) {
-        const day = dayOf(record.at), row = perDay.get(day) ?? { turns: 0, failed: 0, runs: 0, frustrations: 0 };
-        if (record.kind === "turn") { row.turns++; if ((record.data as UsageTurn).outcome === "failed") row.failed++; }
+        const day = dayOf(record.at), row = perDay.get(day) ?? { turns: 0, failed: 0, runs: 0, frustrations: 0, appTurns: 0 };
+        if (record.kind === "turn") { row.turns++; if ((record.data as UsageTurn).outcome === "failed") row.failed++; if ((record.data as UsageTurn).apps.length) row.appTurns++; }
         if (record.kind === "run") row.runs++;
         if (record.kind === "frustration") row.frustrations++;
         perDay.set(day, row);

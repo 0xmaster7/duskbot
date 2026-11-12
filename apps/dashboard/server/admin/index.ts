@@ -111,13 +111,14 @@ export function createAdmin(options: AdminOptions) {
     const days = dayRange(to, span), previousDays = dayRange(Date.parse(`${days[0]}T00:00:00Z`) - 1, span);
     const start = Date.parse(`${days[0]}T00:00:00Z`), end = Date.parse(`${days.at(-1)}T00:00:00Z`) + DAY;
     const store = options.usage.store;
-    const [daily, previousDaily, people, previousPeople, snapshots, frustrations, digests] = await Promise.all([
+    const [daily, previousDaily, people, previousPeople, snapshots, frustrations, digests, recentPeople] = await Promise.all([
       store.daily(days[0]!, days.at(-1)!), store.daily(previousDays[0]!, previousDays.at(-1)!), store.people(days[0]!, days.at(-1)!),
       store.people(previousDays[0]!, previousDays.at(-1)!), store.snapshots(), store.records("frustration", start, end, 500), store.records("digest", start, end, 500),
+      store.people(dayKey(now() - 90 * DAY), dayKey(now())),
     ]);
-    return summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots) });
+    return summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots, recentPeople) });
   }
-  function adoption(snapshots: Awaited<ReturnType<Usage["store"]["snapshots"]>>): AdoptionInput {
+  function adoption(snapshots: Awaited<ReturnType<Usage["store"]["snapshots"]>>, recent: Awaited<ReturnType<Usage["store"]["people"]>>): AdoptionInput {
     const { accounts, sessions } = directory();
     const bot = new Set<string>(), routine = new Set<string>(), connector = new Set<string>(), phone = new Set<string>(), cloud = new Set<string>();
     for (const row of snapshots) {
@@ -133,6 +134,7 @@ export function createAdmin(options: AdminOptions) {
       if (ws.report?.devices?.phones.length) phone.add(id);
     }
     for (const session of sessions) if (session.kind === "mobile") phone.add(session.accountId);
+    for (const row of recent) if (row.appTurns > 0) connector.add(row.accountId);
     for (const c of allClouds()) if (!c.ended) cloud.add(c.accountId);
     const known = new Set(accounts.map(account => account.id)), count = (set: Set<string>) => [...set].filter(id => known.has(id)).length;
     return { accounts: accounts.length, bot: count(bot), routine: count(routine), connector: count(connector), phone: count(phone), cloud: count(cloud) };

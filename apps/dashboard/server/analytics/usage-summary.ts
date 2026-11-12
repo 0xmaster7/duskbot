@@ -202,13 +202,12 @@ export function focusRules(a: UsageAnswer): FocusItem[] {
     if (twice < 0.6) out.push({ id: "routines", target: "routines", weight: 65 + (0.6 - twice) * 50, text: `people make routines, but only ${pct(twice)} of them had one run twice: look at routine reliability.` });
   }
   if (r.runs >= 20 && r.failed / r.runs >= 0.15) out.push({ id: "routine-fails", target: "routines", weight: 60, text: `${pct(r.failed / r.runs)} of routine runs fail: routines are a trust feature, fix this.` });
-  const steps = a.adoption.slice(1);
-  let worst: { from: string; to: string; drop: number } | null = null;
-  for (let i = 1; i < steps.length - 1; i++) {
-    const before = steps[i - 1]!, after = steps[i]!;
-    if (before.count >= 5) { const drop = 1 - after.count / before.count; if (!worst || drop > worst.drop) worst = { from: before.label, to: after.label, drop }; }
-  }
-  if (worst && worst.drop >= 0.5) out.push({ id: "adoption", target: "adoption", weight: 55 + worst.drop * 20, text: `${pct(worst.drop)} of people who reach "${worst.from}" never get to "${worst.to}": make that next step easier to find.` });
+  // the steps are not nested (a phone can come before a routine), so each is weighed against the people with a bot
+  const bots = a.adoption.find(step => step.id === "bot")?.count ?? 0;
+  const NEXT: Record<string, string> = { routine: "make a routine", connector: "connect an app", phone: "use it on their phone" };
+  const gap = a.adoption.filter(step => step.id in NEXT).map(step => ({ step, share: bots ? step.count / bots : 1 })).sort((x, y) => x.share - y.share)[0];
+  if (gap && bots >= 5 && gap.share < 0.5) out.push({ id: "adoption", target: "adoption", weight: 55 + (0.5 - gap.share) * 40,
+    text: `only ${pct(gap.share)} of people with a bot ${NEXT[gap.step.id]}: make that easier to find.` });
   const cat = a.categories[0];
   if (cat && a.totals.turns >= 30) {
     const growth = cat.previous ? (cat.turns - cat.previous) / cat.previous : null;

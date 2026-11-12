@@ -27,7 +27,7 @@ describe("usage rollups", () => {
     const [row] = await store.daily(dayOf(NOW), dayOf(NOW));
     expect(row!.c).toMatchObject({ turns: 2, ok: 1, failed: 1, "engine:claude": 2, "engine_fail:claude": 1, "category:email": 1, "category:research": 1, "app:gmail": 1, "app_fail:gmail": 1,
       "reason_app:gmail:auth": 1, "tool:browser": 1, runs: 1, "run:schedule": 1, people: 1 });
-    expect(await store.people(dayOf(NOW), dayOf(NOW))).toEqual([{ day: dayOf(NOW), accountId: "acct_a", turns: 2, failed: 1, runs: 1, frustrations: 0 }]);
+    expect(await store.people(dayOf(NOW), dayOf(NOW))).toEqual([{ day: dayOf(NOW), accountId: "acct_a", turns: 2, failed: 1, runs: 1, frustrations: 0, appTurns: 1 }]);
   });
 
   it("counts a second workspace's record with the same id on its own", async () => {
@@ -101,7 +101,7 @@ describe("usage answer and focus", () => {
     expect(a.routines).toMatchObject({ peopleWithRoutines: 5, peopleRan: 1, peopleRanTwice: 1 });
     const texts = a.focus.map(item => item.text);
     expect(texts).toContain("people make routines, but only 20% of them had one run twice: look at routine reliability.");
-    expect(texts.some(text => text.includes('never get to "first routine"'))).toBe(true);
+    expect(texts).toContain("only 13% of people with a bot use it on their phone: make that easier to find.");
   });
 
   it("groups frustrations by problem and digests by theme, and feeds focus", async () => {
