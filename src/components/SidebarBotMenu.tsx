@@ -91,8 +91,8 @@ export function BotContextMenu({
       await markBotRead(owner, api, (updated) => dispatch({ type: "botPatched", bot: updated }));
       if (latestMenu.current === openedMenu) onClose();
     } catch (error) {
-      const guidance = t("sidebar.bot.markAllReadFailed");
-      setReadError({ botId: owner.id, message: error instanceof Error ? `${guidance} ${error.message}` : guidance });
+      console.warn("[mark read]", error);
+      setReadError({ botId: owner.id, message: t("sidebar.bot.markAllReadFailed") });
     } finally {
       readInFlight.current = false;
       setReadingBotId(null);

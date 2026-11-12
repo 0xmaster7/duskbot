@@ -2,8 +2,8 @@
 // Cloudflare Access does. An admin pastes the `claude mcp add` command into Add MCP server and fills in the two values
 // its variables stood for; the server is added for the whole team through the panel's own routes. A member's turn on
 // the synthetic Claude CLI then lists and calls its tool, and neither value reaches the engine's environment, the logs or
-// anything a route answers. The bot box is Linux-only, so here the engine is the MCP client and its MCP config holds
-// the headers, as Claude Code's own `claude mcp add --header` keeps them.
+// anything a route answers. The bot box is Linux-only, so here the engine's MCP config holds the headers, inside the env
+// of dusk bot's own proxy that is the gateway's client.
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -95,6 +95,13 @@ it("adds the pasted command for the whole team, tests it through the gateway and
 
 type Engine = { env: Record<string, string>; argv: string[]; mcpConfig: { mcpServers: Record<string, unknown> } };
 
+/** A remote server reaches the engine as dusk bot's own proxy, the upstream (headers and all) in its env in the 0600 MCP config. */
+function upstream(engine: Engine, name: string): unknown {
+  const entry = engine.mcpConfig.mcpServers[name] as { args?: string[]; env?: Record<string, string> };
+  expect(entry.args?.join(" ")).toContain("mcp-remote-proxy");
+  return JSON.parse(entry.env!.DUSK_REMOTE_MCP_SERVER!);
+}
+
 /** One turn in `token`'s own chat with Scout, with these scripted tool calls; what the engine was launched with. */
 async function turn(token: string, text: string, calls: unknown[], until: string): Promise<Engine> {
   const thread = await as(token, "POST", `/api/bots/${bot.id}/tasks`, { title: text });
@@ -116,7 +123,7 @@ it("lets a member's turn list and call the gateway's tool, with both values sent
 
   expect(gateway.calls.slice(calledBefore)).toEqual([{ name: "lookup_order", arguments: { id: "1042" } }]);
   expect(gateway.toolsLists).toBeGreaterThan(0);
-  expect(engine.mcpConfig.mcpServers.orders).toEqual({ type: "http", url: gateway.url, headers: { "CF-Access-Client-Id": CLIENT_ID, "CF-Access-Client-Secret": CLIENT_SECRET } });
+  expect(upstream(engine, "orders")).toEqual({ type: "http", url: gateway.url, headers: { "CF-Access-Client-Id": CLIENT_ID, "CF-Access-Client-Secret": CLIENT_SECRET } });
 
   for (const secret of [CLIENT_ID, CLIENT_SECRET]) {
     expect(JSON.stringify(engine.env), "the engine's environment").not.toContain(secret);
@@ -214,7 +221,7 @@ it("keeps a one-key server Only for me: the admin's own chat gets it with their 
     expect(saved().mcpServers.mail.headers).toEqual({ Authorization: "" });
 
     const bens = await turn(admin, "Check my inbox.", [{ name: "read_inbox", server: "mail", input: {} }], "remote execution recorded");
-    expect(bens.mcpConfig.mcpServers.mail).toMatchObject({ url: mail.url, headers: { Authorization: own } });
+    expect(upstream(bens, "mail")).toMatchObject({ url: mail.url, headers: { Authorization: own } });
     expect(mail.calls).toHaveLength(1);
     const adas = await turn(ada, "Check the inbox.", [{ name: "read_inbox", server: "mail", input: {} }], "no mail MCP server was launched for this turn");
     expect(Object.keys(adas.mcpConfig.mcpServers)).not.toContain("mail");

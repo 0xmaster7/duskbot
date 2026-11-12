@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Repeat } from "../../icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { fetchBattery, sharePercent, useLoaded, type BatteryRow } from "@/lib/spend";
+import { fetchBattery, sharePercent, useLoadedState, type BatteryRow } from "@/lib/spend";
 import { formatTokens } from "@/lib/usage";
 import { formatCost } from "@/lib/usage-trace";
 import { MASCOT_INK } from "@/lib/mascot";
@@ -10,6 +10,7 @@ import { useStore } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { Card as RowsCard, NavRow, NoteRow, rowCls } from "../ListRows";
 import { SpendCap } from "./SpendCap";
+import { LoadFailedRow } from "./LoadFailedRow";
 
 const SHOWN = 6;
 
@@ -19,7 +20,7 @@ export function BatteryCard({ version }: { version: number }) {
   const [saved, setSaved] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
   const [all, setAll] = useState(false);
-  const report = useLoaded(fetchBattery, `${version}:${saved}`);
+  const { value: report, failed, retry } = useLoadedState(fetchBattery, `${version}:${saved}`);
   const bots = report?.rows.filter((row) => row.kind === "bot") ?? [];
   const routinesOf = (botId: string) => report?.rows.filter((row) => row.kind === "routine" && row.botId === botId) ?? [];
   const amount = (row: BatteryRow) => (report?.basis === "usd" ? formatCost(row.usd) : formatTokens(row.tokens));
@@ -57,7 +58,8 @@ export function BatteryCard({ version }: { version: number }) {
 
   return (
     <RowsCard label={t("usage.battery.title")} footnote={report?.basis === "tokens" && report.rows.length ? t("usage.battery.tokensNote") : undefined} data-settings-block="battery">
-      {!report ? <NoteRow>{t("common.checking")}</NoteRow> : !bots.length ? <NoteRow>{t("usage.battery.empty")}</NoteRow> : (
+      {!report && failed ? <LoadFailedRow text={t("usage.battery.failed")} onRetry={retry} />
+        : !report ? <NoteRow>{t("common.checking")}</NoteRow> : !bots.length ? <NoteRow>{t("usage.battery.empty")}</NoteRow> : (
         <ul className="contents">
           {(all ? bots : bots.slice(0, SHOWN)).flatMap((bot) => [line(bot, false), ...routinesOf(bot.id).map((routine) => line(routine, true))])}
         </ul>

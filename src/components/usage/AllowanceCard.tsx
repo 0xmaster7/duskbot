@@ -2,7 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import {
-  addForWeek, dismissAllowance, fetchAllowance, resetIn, resetWhen, saveAllowance, saveAutoTopUp, setSaver, sharePercent, topUpOffer, useLoaded,
+  addForWeek, dismissAllowance, fetchAllowance, resetIn, resetWhen, saveAllowance, saveAutoTopUp, setSaver, sharePercent, topUpOffer, useLoadedState,
   type AllowanceReport,
 } from "@/lib/spend";
 import { useServerHas, whenServerHas } from "@/lib/server-compat";
@@ -11,6 +11,7 @@ import { api } from "@/state/store";
 import { buttonCls, fieldCls } from "../bot-panel/rows";
 import { Card as RowsCard, NoteRow, rowCls, SwitchRow } from "../ListRows";
 import { Art } from "../ui/Art";
+import { LoadFailedRow } from "./LoadFailedRow";
 
 const amountOf = (text: string) => { const value = Number(text); return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null; };
 
@@ -46,7 +47,7 @@ const loadAllowance = () => whenServerHas("allowance", fetchAllowance);
 export function AllowanceCard() {
   const [version, setVersion] = useState(0);
   const supported = useServerHas("allowance");
-  const loaded = useLoaded(loadAllowance, version);
+  const { value: loaded, failed, retry } = useLoadedState(loadAllowance, version);
   const [report, setReport] = useState<AllowanceReport | null>(null);
   const [editing, setEditing] = useState<"weekly" | "auto" | null>(null);
   const [percent, setPercent] = useState(false);
@@ -63,6 +64,7 @@ export function AllowanceCard() {
   };
 
   if (supported === false) return null;
+  if (!shown && failed) return <RowsCard label={t("usage.allowance.title")} data-settings-block="allowance"><LoadFailedRow text={t("usage.allowance.failed")} onRetry={retry} /></RowsCard>;
   if (!shown) return <RowsCard label={t("usage.allowance.title")} data-settings-block="allowance"><NoteRow>{t("common.checking")}</NoteRow></RowsCard>;
   const set = shown.limitUsd !== null;
   const over = shown.level === "over", near = shown.level === "near";

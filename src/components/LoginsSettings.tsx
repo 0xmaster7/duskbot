@@ -253,7 +253,12 @@ export function LoginsSettings() {
           </div>
           <p data-settings-footnote="" className="-mt-2 px-2 text-[12px] leading-4 text-ink/[0.56]">{t("settings.vault.footnote")}</p>
         </>}
-        {(error ?? saved_secrets.error) && <p role="alert" className="px-3 text-[12px] leading-4 text-danger">{error ?? saved_secrets.error}</p>}
+        {(error ?? saved_secrets.error) && (
+          <div className="flex items-center justify-between gap-2 px-3">
+            <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error ?? saved_secrets.error}</p>
+            {logins === null && error && <button type="button" className="ui-button shrink-0" onClick={() => void load()}>{t("common.tryAgain")}</button>}
+          </div>
+        )}
       </section>
       {openSecret && <SavedSecretDialog secret={openSecret} hint={secretHint(openSecret)} onClose={() => setOpenSecret(null)}
         onRemove={async () => { await saved_secrets.remove(openSecret); setOpenSecret(null); }} />}

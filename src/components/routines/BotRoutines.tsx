@@ -229,7 +229,7 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
             {forecast.warnings.map((warning) => <span key={warning} className="block text-[12px] leading-4 text-warning">{t(warning === "frequent" ? "routines.cost.frequent" : "routines.cost.costly")}</span>)}
           </Fact>
         )}
-        {routine && <Fact term={t("usage.cap.label")}><SpendCap kind="routine" id={routine.id} capUsd={forecast?.capUsd} onSaved={() => setCapSaved((n) => n + 1)} className="mt-0.5" /></Fact>}
+        {routine && <Fact term={t("usage.cap.label")}><SpendCap kind="routine" id={routine.id} capUsd={forecast?.capUsd} onSaved={() => setCapSaved((n) => n + 1)} className="mt-0.5" sentence /></Fact>}
         {(looksAt?.length || automation.readsAndDrafts) && (
           <Fact term={t("routines.inline.uses")}>{[looksAt?.join(", "), automation.readsAndDrafts ? t("automations.readsAndDrafts") : null].filter(Boolean).join(" · ")}</Fact>
         )}

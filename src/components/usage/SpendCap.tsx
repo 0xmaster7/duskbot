@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { upperFirst } from "@/lib/lower-first";
 import { saveCap } from "@/lib/spend";
 import { formatCost } from "@/lib/usage-trace";
 import { buttonCls, fieldCls } from "../bot-panel/rows";
 
 /** A weekly cap in dollars for one bot or routine: shown, set, changed or removed in place. */
-export function SpendCap({ kind, id, capUsd, onSaved, className }: {
+export function SpendCap({ kind, id, capUsd, onSaved, className, sentence = false }: {
   kind: "bot" | "routine";
   id: string;
   capUsd?: number;
   onSaved: () => void;
   className?: string;
+  /** inside the bot panel, which reads in sentence case */
+  sentence?: boolean;
 }) {
+  const cased = (text: string) => (sentence ? upperFirst(text) : text);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(capUsd ? String(capUsd) : "");
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +38,9 @@ export function SpendCap({ kind, id, capUsd, onSaved, className }: {
   if (!editing) {
     return (
       <div className={cn("flex flex-wrap items-center gap-1.5", className)} data-spend-cap={id}>
-        <span className="text-[13px] leading-[18px] text-ink">{capUsd ? t("usage.cap.amount", { amount: formatCost(capUsd) }) : t("usage.cap.none")}</span>
+        <span className="text-[13px] leading-[18px] text-ink">{cased(capUsd ? t("usage.cap.amount", { amount: formatCost(capUsd) }) : t("usage.cap.none"))}</span>
         <button type="button" className={buttonCls} onClick={() => { setText(capUsd ? String(capUsd) : ""); setEditing(true); }}>
-          {capUsd ? t("usage.cap.change") : t("usage.cap.set")}
+          {cased(capUsd ? t("usage.cap.change") : t("usage.cap.set"))}
         </button>
       </div>
     );
@@ -48,9 +52,9 @@ export function SpendCap({ kind, id, capUsd, onSaved, className }: {
         <input autoFocus inputMode="decimal" aria-label={t("usage.cap.label")} value={text} onChange={(event) => setText(event.target.value.replace(/[^\d.]/g, ""))}
           className={cn(fieldCls, "max-w-24 flex-none tabular-nums")} placeholder="5" />
         <span className="text-[13px] text-ink-secondary">{t("usage.cap.perWeek")}</span>
-        <button type="submit" disabled={busy} className={buttonCls}>{t("usage.cap.save")}</button>
-        {capUsd ? <button type="button" disabled={busy} onClick={() => void save(null)} className={buttonCls}>{t("usage.cap.remove")}</button> : null}
-        <button type="button" onClick={() => setEditing(false)} className={buttonCls}>{t("common.cancel")}</button>
+        <button type="submit" disabled={busy} className={buttonCls}>{cased(t("usage.cap.save"))}</button>
+        {capUsd ? <button type="button" disabled={busy} onClick={() => void save(null)} className={buttonCls}>{cased(t("usage.cap.remove"))}</button> : null}
+        <button type="button" onClick={() => setEditing(false)} className={buttonCls}>{cased(t("common.cancel"))}</button>
       </div>
       <p className="m-0 text-[12px] leading-4 text-ink-secondary">{t(kind === "bot" ? "usage.cap.botHint" : "usage.cap.routineHint")}</p>
       {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}

@@ -54,7 +54,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
       <div className="px-3 pb-1 text-[12px] font-medium leading-4 text-ink-secondary">
         {t("search.messages")}{hits ? ` · ${hits.length}${hits.length === 40 ? "+" : ""}` : ""}
       </div>
-      {error && <div role="alert" className="px-3 py-2 text-[13px] leading-[18px] text-danger">{t("search.failed", { error })}</div>}
+      {error && <div role="alert" className="px-3 py-2 text-[13px] leading-[18px] text-danger">{t("search.unavailable")}</div>}
       {hits && hits.length === 0 && !error && <div role="status" data-search-empty="" className="px-3 py-3 text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{t("search.none", { query: q })}</div>}
       {hits?.map((hit) => {
         const bot = hit.botId ? state.bots.find((b) => b.id === hit.botId) : undefined;

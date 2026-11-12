@@ -41,15 +41,23 @@ export function sharePercent(share: number): string {
 
 /** Loads again whenever `version` changes; null until the first answer, and on a failure. */
 export function useLoaded<T>(load: () => Promise<T>, version: unknown): T | null {
+  return useLoadedState(load, version).value;
+}
+
+/** `useLoaded` that also says when the load failed, so a card can offer try again instead of checking forever */
+export function useLoadedState<T>(load: () => Promise<T>, version: unknown): { value: T | null; failed: boolean; retry: () => void } {
   const [value, setValue] = useState<T | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const loader = useRef(load);
   useEffect(() => { loader.current = load; });
   useEffect(() => {
     let current = true;
-    void loader.current().then((next) => { if (current) setValue(next); }).catch(() => { if (current) setValue(null); });
+    setFailed(false);
+    void loader.current().then((next) => { if (current) setValue(next); }).catch(() => { if (current) { setValue(null); setFailed(true); } });
     return () => { current = false; };
-  }, [version]);
-  return value;
+  }, [version, attempt]);
+  return { value, failed, retry: () => setAttempt((n) => n + 1) };
 }
 
 /** "About 168 runs a week · about $3.20 a week · 12% of your week", saying only what is known. */

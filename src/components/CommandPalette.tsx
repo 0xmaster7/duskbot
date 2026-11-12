@@ -69,6 +69,8 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [messageHits, setMessageHits] = useState<SearchHit[]>([]);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [searchAttempt, setSearchAttempt] = useState(0);
   const [cursor, setCursor] = useState(0);
   const selectedRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -124,17 +126,18 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
     setMessageHits([]);
+    setSearchFailed(false);
     let alive = true;
     const timer = setTimeout(() => {
       api(`/api/search?q=${encodeURIComponent(q)}&limit=12`)
         .then((result: { hits?: SearchHit[] }) => alive && setMessageHits(result.hits ?? []))
-        .catch(() => alive && setMessageHits([]));
+        .catch(() => { if (alive) { setMessageHits([]); setSearchFailed(true); } });
     }, 150);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [open, q]);
+  }, [open, q, searchAttempt]);
 
   useEffect(() => setCursor(0), [q]);
 
@@ -283,8 +286,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
           />
         </div>
         {entries.length === 0 ? (
-          <div role="status" className="flex min-h-0 flex-1 items-center justify-center px-4 text-center">
-            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">no results</span>
+          <div role="status" className="flex min-h-0 flex-1 items-center justify-center gap-2 px-4 text-center">
+            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{searchFailed ? t("search.unavailable") : "no results"}</span>
+            {searchFailed && <button type="button" className="ui-button" onClick={() => setSearchAttempt((n) => n + 1)}>{t("common.tryAgain")}</button>}
           </div>
         ) : (
           <div

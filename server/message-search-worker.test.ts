@@ -65,3 +65,10 @@ it("bounds a stuck worker's lifetime and rejects all waiting requests", async ()
     expect(results.every(result => result.status === "rejected" && result.reason.status === 503)).toBe(true);
   } finally { await worker.close(); }
 });
+
+it("shows a snippet as words, without the markdown around them", () => {
+  insertMessage("c", { id: "m3", at: 3, role: "bot", kind: "text", text: "## Mug prices\n\n| Shop | Price |\n| --- | --- |\n| Ours | **28** |" });
+  const [hit] = searchMessages("ours", 1, "c");
+  expect(hit?.snippet).toBe("Mug prices Shop Price Ours 28");
+  expect(hit?.snippet.slice(hit.matchStart, hit.matchStart + hit.matchLength)).toBe("Ours");
+});

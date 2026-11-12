@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { plainPreviewText } from "../src/lib/plain-preview.ts";
 
 export interface SearchHit {
   threadId: string;
@@ -36,7 +37,10 @@ export function searchMessagesInDatabase(database: DatabaseSync, query: string, 
     from_name: string | null;
   }>;
   return rows.map((row) => {
-    const haystack = row.kind === "activity" ? (row.tool_name ?? "") : (row.text ?? "");
+    const raw = row.kind === "activity" ? (row.tool_name ?? "") : (row.text ?? "");
+    // a person reads the words, not the markdown around them; the raw text stays when flattening hides the match
+    const plain = row.kind === "activity" ? raw : plainPreviewText(raw);
+    const haystack = plain.toLowerCase().includes(needle) ? plain : raw;
     const hitAt = Math.max(0, haystack.toLowerCase().indexOf(needle));
     const start = Math.max(0, hitAt - 60);
     const end = Math.min(haystack.length, hitAt + needle.length + 90);

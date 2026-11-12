@@ -3,6 +3,7 @@ import { Component, createElement, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { t } from "../lib/i18n";
 
 import {
   api,
@@ -60,9 +61,10 @@ describe("api refusals", () => {
     await expect(api("/api/bots/fixture/data/run")).rejects.toMatchObject({ message: refusal.error.message, status: 400, body: refusal });
   });
 
-  it.each([null, {}, { error: { code: "unavailable" } }, { error: 123 }])("falls back to the HTTP status for a malformed error body: %j", async body => {
+  it.each([null, {}, { error: { code: "unavailable" } }, { error: 123 }])("falls back to plain words for the HTTP status of a malformed error body: %j", async body => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 503, statusText: "Service Unavailable" })));
-    await expect(api("/api/bots/fixture/data")).rejects.toThrow("503 Service Unavailable");
+    await expect(api("/api/bots/fixture/data")).rejects.toMatchObject({ message: t("error.plain.busy"), status: 503, detail: "503 Service Unavailable" });
   });
 });
 
