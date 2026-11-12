@@ -460,7 +460,7 @@ function hermesJobs(reader: Reader, dir: string, now: number): GrokRoutine[] {
 // dusk bot's own earlier builds: ~/.openmausbot and ~/.opengrokbot, the same layout as dusk bot's folder (bots.json,
 // workspaces/<id>/ with MEMORY.md, memory/ and skills/, routines.json). A first start moves an old folder in; one is
 // left behind only when the new folder already had bots.
-const OWN_OLD_HOMES = [{ dir: ".openmausbot", app: "OpenMausBot" }, { dir: ".opengrokbot", app: "OpenGrokBot" }] as const;
+const OWN_OLD_HOMES = [{ dir: ".openmausbot", app: "your earlier dusk bot" }, { dir: ".opengrokbot", app: "your earlier dusk bot" }] as const;
 
 function readOwnOld(machine: SetupMachine, dataDir: string | undefined): FoundApp[] {
   const current = dataDir ? machine.fs.realpath(dataDir) ?? dataDir : null;

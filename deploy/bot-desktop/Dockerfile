@@ -110,7 +110,7 @@ ARG BOT_DESKTOP_VERSION=4
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
       org.opencontainers.image.title="omb-bot-desktop" \
-      org.opencontainers.image.description="Dusk bot computer: a sandboxed dark Linux desktop" \
+      org.opencontainers.image.description="dusk bot computer: a sandboxed dark Linux desktop" \
       org.opencontainers.image.source="https://github.com/DuskBotAI/duskbot"
 
 ENV HOME=/home/cua USER=cua DISPLAY=:1 XDG_RUNTIME_DIR=/run/user/1000 XDG_CONFIG_HOME=/home/cua/.config \

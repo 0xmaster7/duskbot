@@ -7,7 +7,7 @@ export type BotMoveSource = "openclaw" | "hermes" | "openmausbot";
 
 export interface FoundApp {
   source: BotMoveSource;
-  /** The name it was installed under: OpenClaw, Clawdbot, Moltbot, Hermes Agent, OpenMausBot, OpenGrokBot. */
+  /** The name it was installed under (OpenClaw, Clawdbot, Moltbot, Hermes Agent), or "your earlier dusk bot" for dusk bot's own old data folders. */
   app: string;
   /** The folder it was read from, written with ~. */
   where: string;

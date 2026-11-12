@@ -175,7 +175,7 @@ describe("dusk bot's older builds", () => {
     const secrets = plantOpenMausBot(home);
     const machine = machineAt(home);
     const app = lookForBots(machine, { dataDir: join(home, ".duskbot") }).apps[0]!;
-    expect(app).toMatchObject({ source: "openmausbot", app: "OpenMausBot", where: "~/.openmausbot" });
+    expect(app).toMatchObject({ source: "openmausbot", app: "your earlier dusk bot", where: "~/.openmausbot" });
     expect(app.bots).toHaveLength(1);
     expect(app.bots[0]).toMatchObject({ name: "Ledger", title: "Bookkeeper", color: "teal", instructions: "You track every expense and flag anything odd." });
     expect(Object.keys(app.bots[0]!.memoryFiles!)).toEqual(["MEMORY.md", "memory/vendors.md"]);

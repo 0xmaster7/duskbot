@@ -6295,7 +6295,7 @@
   "templates.tryDifferentSearch": "Try a different search.",
   "templates.bringYourOwn": "bring your own team",
   "templates.chooseFile": "choose a backup or team file",
-  "templates.dropFile": "Drop a .mausbackup.json, BotMRR .md or legacy .mausteam.json here. You’ll preview it before anything is added.",
+  "templates.dropFile": "Drop a team file, an older backup or a BotMRR .md here. You’ll preview it before anything is added.",
   "templates.loadGithub": "load from GitHub",
   "templates.githubHint": "Paste a public repo or a direct team JSON link.",
   "templates.githubPlaceholder": "github.com/owner/repo",

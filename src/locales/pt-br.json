@@ -5014,7 +5014,7 @@
   "templates.tryDifferentSearch": "Tente outra pesquisa.",
   "templates.bringYourOwn": "Traga sua própria equipe",
   "templates.chooseFile": "Escolha um arquivo de backup ou de equipe",
-  "templates.dropFile": "Solte aqui um .mausbackup.json, BotMRR .md ou o antigo .mausteam.json. Você verá uma prévia antes de qualquer coisa ser adicionada.",
+  "templates.dropFile": "Solte aqui um arquivo de equipe, um backup antigo ou um BotMRR .md. Você verá uma prévia antes de qualquer coisa ser adicionada.",
   "templates.loadGithub": "Carregar do GitHub",
   "templates.githubHint": "Cole um repositório público ou um link direto para o JSON da equipe.",
   "templates.githubPlaceholder": "github.com/dono/repositorio",
