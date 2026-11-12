@@ -44,7 +44,7 @@ beforeEach(() => {
 describe("the sidebar dusk cloud card", () => {
   it("says the plain 24/7 line, with no nap in it", async () => {
     const html = await launch();
-    expect(html).toContain("dusk cloud keeps your bots working 24/7, even when your Mac is off.");
+    expect(html).toContain("dusk cloud keeps your bots working, even when your Mac is off.");
     expect(html).not.toMatch(/\bnap/i);
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
   });
@@ -54,7 +54,7 @@ describe("the sidebar dusk cloud card", () => {
     const html = await launch();
     expect(html).toContain("data-invested");
     expect(html).toContain("good crew of bots");
-    expect(html).toContain("dusk cloud keeps them working 24/7, even when your Mac is off.");
+    expect(html).toContain("dusk cloud keeps them working, even when your Mac is off.");
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
     expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
     expect(f.state.config.onboarding.hintsSeen).toContain("cloud-invested-v1");

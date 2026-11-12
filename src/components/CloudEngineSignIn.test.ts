@@ -62,7 +62,7 @@ it("offers the three ways in and says plainly whose plan limits apply", () => {
   const { html } = render();
   expect(html).toContain("data-cloud-sign-in");
   for (const label of ["Claude", "Use your Claude subscription.", "ChatGPT", "Use your ChatGPT plan with Codex.", "use an API key"]) expect(html).toContain(label);
-  expect(html).toContain("plan&#x27;s limits apply to bots that work around the clock");
+  expect(html).toContain("plan&#x27;s limits apply to your bots in the cloud too");
   expect(html).toContain("Anthropic&#x27;s Claude max plan or an API key works best");
   expect(html).not.toMatch(/included/i);
   expect(html).not.toContain("data-engine-setup");

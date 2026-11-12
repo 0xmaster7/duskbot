@@ -72,7 +72,7 @@ afterEach(() => {
 it("asks in one line with Move and Later, then the same sheet follows the bots hopping across, and ends with All moved and Open dusk cloud", async () => {
   await render(createElement(CloudMoveOffer));
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("ask");
-  expect(sheet()?.textContent).toBe("Move your bots to dusk cloud? They'll keep working 24/7.latermove");
+  expect(sheet()?.textContent).toBe("Move your bots to dusk cloud? They'll keep working when this computer is off.latermove");
   expect(across()).toBe(0);
   expect(fixture.tracked).toEqual([["cloud_move_prompt", { action: "shown" }]]);
   await press("move");
@@ -87,7 +87,7 @@ it("asks in one line with Move and Later, then the same sheet follows the bots h
   expect(across(), "the bots never hop back").toBe(2);
   await push(DONE);
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("done");
-  expect(sheet()?.textContent).toBe("all movedYour bots are working 24/7 on dusk cloud.open dusk cloud");
+  expect(sheet()?.textContent).toBe("all movedYour bots are working on dusk cloud.open dusk cloud");
   expect(across()).toBe(3);
   await press("open dusk cloud");
   expect(calls).toEqual(["accept:prompt", "open"]);
@@ -159,7 +159,7 @@ it("a move stuck on its way is the same friendly line, and Try again runs the mo
 it("on My Cloud's page, when the window got there first, says All moved and Open dusk cloud closes it", async () => {
   current = DONE;
   await render(createElement(CloudMoveOffer, { cloudHome: true }));
-  expect(sheet()?.textContent).toBe("all movedYour bots are working 24/7 on dusk cloud.open dusk cloud");
+  expect(sheet()?.textContent).toBe("all movedYour bots are working on dusk cloud.open dusk cloud");
   await press("open dusk cloud");
   expect(calls).toEqual(["dismiss:one-home"]);
   expect(sheet()).toBeNull();

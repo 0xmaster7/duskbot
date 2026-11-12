@@ -158,7 +158,7 @@ describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
     returning();
     const html = await launch();
-    const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always on.", "routines run on time, day and night",
+    const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always available.", "routines run on time, day and night",
       "reach your bots from your phone, even with this computer off", "Then from $15/month + tax. Cancel any time.",
       "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
@@ -186,7 +186,7 @@ describe("the card after the update", () => {
     offer = null; expect(await relaunch()).not.toContain(INTRO);
     offer = { ...TRIAL_OFFER, refundDays: undefined };
     html = await relaunch();
-    expect(html).toContain(INTRO); expect(html).toContain("dusk cloud runs your bots for you in the cloud, always on.");
+    expect(html).toContain(INTRO); expect(html).toContain("dusk cloud runs your bots for you in the cloud, always available.");
     expect(html).not.toContain("money-back"); expect(html).not.toContain("Claude credit");
   });
 

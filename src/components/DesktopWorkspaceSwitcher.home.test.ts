@@ -37,12 +37,12 @@ it("anywhere else keeps the switcher as it was", async () => {
   expect(host.querySelector("button")?.textContent).toContain("This computer");
 });
 
-it("says always on only when My Cloud's verified plan never sleeps, on its pages and its pair page alike", async () => {
+it("says always available only when My Cloud's verified plan never sleeps, on its pages and its pair page alike", async () => {
   const home = { local: false, name: "My Cloud", origin: "https://dusk-u-1a2b3c4d5e6f.fly.dev", home: true };
   const label = () => host.querySelector("[data-cloud-home-indicator]")?.textContent ?? "";
   for (const props of [{ cloudHome: true }, {}]) {
     await show(home, props, { status: "paid", tier: "pro" });
-    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("my cloud · always on"));
+    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("my cloud · always available"));
     await show(home, props, { status: "paid", tier: "starter", sleeps: true });
     await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("my cloud · sleeps when idle"));
     for (const plan of [{ status: "checking", tier: "pro" }, { status: "signin" }, { status: "none" }]) {

@@ -130,7 +130,7 @@ describe("the phone entries", () => {
   it("on this computer with a paid Cloud that is Ready: both, the Cloud first", () => {
     for (const tier of ["personal", "pro", "max"]) {
       expect(shown("computer", null, paid(tier, ready))).toEqual([
-        ["connect your phone", "to the cloud (always on)"],
+        ["connect your phone", "to the cloud (always available)"],
         ["connect your phone", "to this computer"],
       ]);
     }
@@ -247,7 +247,7 @@ describe("phone pairing", () => {
   });
 
   it("offers every destination the menu does, in the same order", () => {
-    const html = render([to("cloud", "to the cloud (always on)"), to("here", "to this computer")]);
+    const html = render([to("cloud", "to the cloud (always available)"), to("here", "to this computer")]);
     expect(html.indexOf('data-phone-app-connect="cloud"')).toBeGreaterThan(-1);
     expect(html.indexOf('data-phone-app-connect="cloud"')).toBeLessThan(html.indexOf('data-phone-app-connect="here"'));
   });
@@ -455,8 +455,8 @@ describe("Simple mode's account menu", () => {
 
   it("names My Cloud and opens its settings when it is the window's only place, and offers nothing without either", () => {
     const onCloudSettings = vi.fn();
-    const home = placeMenuItems(place({ switchable: false, cloudHome: true, onLine: "always on" }), { owner: "ada@example.test", onCloudSettings });
-    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["my cloud", "always on · ada@example.test’s cloud"]]);
+    const home = placeMenuItems(place({ switchable: false, cloudHome: true, onLine: "always available" }), { owner: "ada@example.test", onCloudSettings });
+    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["my cloud", "always available · ada@example.test’s cloud"]]);
     home[0]!.onSelect();
     expect(onCloudSettings).toHaveBeenCalledOnce();
     expect(placeMenuItems(place({ bridge: undefined, switchable: false }), { owner: null, onCloudSettings })).toEqual([]);

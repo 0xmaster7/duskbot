@@ -215,7 +215,7 @@ describe("the person's Cloud as a destination on this computer", () => {
   it("joins this computer's line, first, and only on this computer", () => {
     const here = connectPhoneEntry("computer", null);
     expect(phoneDestinations(here, "ready").map((d) => [d.id, d.target, t(d.subtitleKey)])).toEqual([
-      ["cloud", "cloud", "to the cloud (always on)"],
+      ["cloud", "cloud", "to the cloud (always available)"],
       ["here", "computer", "to this computer"],
     ]);
     expect(phoneDestinations(here, "not-ready").map((d) => [d.id, d.noteKey && t(d.noteKey)])).toEqual([["here", "The cloud shows here once it's ready."]]);

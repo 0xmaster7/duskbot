@@ -752,7 +752,7 @@ describe("the Computer tab", () => {
     const card = cta(cloudBot(), null);
     expect(card.html).toContain('data-cloud-cta="get"');
     expect(card.html).toContain('data-cloud-hop="laptop"');
-    expect(card.html).toContain(">Keep Scout working 24/7<");
+    expect(card.html).toContain(">Keep Scout working<");
     expect(card.html).toContain(">Get dusk cloud<");
     click(find(card, "data-panel-action", "move-cloud"));
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
@@ -763,7 +763,7 @@ describe("the Computer tab", () => {
     const group = [cloudBot(), { ...cloudBot(), id: "nova", name: "Nova" }];
     const card = capture(() => CloudCtaCard({ bot: group[0]!, group, stage: null, cloudDesktop: null }));
     expect(card.html).toContain('data-cloud-group=""');
-    expect(card.html).toContain(">Keep this group working 24/7<");
+    expect(card.html).toContain(">Keep this group working<");
     expect(card.html).not.toContain("Scout");
     expect(card.html.match(/data-bot-at=/g)).toHaveLength(2);
   });

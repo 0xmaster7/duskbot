@@ -1,6 +1,6 @@
 {
  "/": {
-  "hash": "8717f7796bbc4c99",
+  "hash": "18fcca6a37f83103",
   "lastmod": "2026-11-13"
  },
  "/download": {
@@ -12,8 +12,8 @@
   "lastmod": "2026-11-12"
  },
  "/pricing": {
-  "hash": "e2beca30ed0eeee2",
-  "lastmod": "2026-11-12"
+  "hash": "d5b7219b0fdff3a9",
+  "lastmod": "2026-11-13"
  },
  "/about": {
   "hash": "0b2f12b9131c9f9a",
@@ -44,8 +44,8 @@
   "lastmod": "2026-11-12"
  },
  "/refunds": {
-  "hash": "2777b46dff7bbd44",
-  "lastmod": "2026-11-12"
+  "hash": "5fece10f5e735c1b",
+  "lastmod": "2026-11-13"
  },
  "/acceptable-use": {
   "hash": "41bc5c5e6c48a9ba",
@@ -56,8 +56,8 @@
   "lastmod": "2026-11-12"
  },
  "/license": {
-  "hash": "cd40c2aa31d27cc9",
-  "lastmod": "2026-11-12"
+  "hash": "726e068d0244d338",
+  "lastmod": "2026-11-13"
  },
  "/security": {
   "hash": "e947c1f8a16c79be",
@@ -68,7 +68,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/dusk-cloud": {
-  "hash": "58ab7110b274a3a9",
+  "hash": "6d57d759fc68049e",
   "lastmod": "2026-11-13"
  },
  "/docs/phone": {
@@ -80,8 +80,8 @@
   "lastmod": "2026-11-12"
  },
  "/docs/tips": {
-  "hash": "c399ea1fc2b02a03",
-  "lastmod": "2026-11-12"
+  "hash": "6e2258e773711fe3",
+  "lastmod": "2026-11-13"
  },
  "/docs/bots": {
   "hash": "2ea235ec7a3261fd",
@@ -108,8 +108,8 @@
   "lastmod": "2026-11-12"
  },
  "/docs/account-and-billing": {
-  "hash": "332168cc3b706baf",
-  "lastmod": "2026-11-12"
+  "hash": "e4a42ba0682f1fe6",
+  "lastmod": "2026-11-13"
  },
  "/docs/privacy-and-data": {
   "hash": "3e82be7ff975a41e",
@@ -120,8 +120,8 @@
   "lastmod": "2026-11-12"
  },
  "/docs/faq": {
-  "hash": "89e4736b07931591",
-  "lastmod": "2026-11-12"
+  "hash": "e0f140f3e40013f6",
+  "lastmod": "2026-11-13"
  },
  "/docs": {
   "hash": "dbdb89858b859687",

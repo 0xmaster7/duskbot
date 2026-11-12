@@ -112,7 +112,7 @@ describe("CloudWelcome", () => {
     expect(host.querySelector("[data-cloud-move-scene]")).not.toBeNull();
     expect(host.querySelector("h1")?.textContent).toBe("welcome to dusk cloud");
     expect([...host.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
-      "your bots work 24/7, even while your computer sleeps", "your phone reaches them from anywhere", "routines run on time, every time"]);
+      "your bots keep working, even while your computer sleeps", "your phone reaches them from anywhere", "routines run on time, every time"]);
     expect(host.querySelector("[data-welcome-rail]")).toBeNull();
     expect(host.querySelector('[data-welcome-step="files"]')).toBeNull();
     expect([...host.querySelectorAll("[data-welcome-action]")].map((node) => node.textContent)).toEqual(["connect your AI", "not now"]);

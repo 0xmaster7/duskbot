@@ -133,7 +133,7 @@ describe("what is for sale, as the Admin says", () => {
     expect(planCards(OFFER).map(({ rows: _rows, ...card }) => card)).toEqual([
       { tier: "starter", name: "Starter", price: "$15", popular: false, current: false, promise: "Your bots keep working with your laptop closed, at the lowest price.",
         action: "start free trial", terms: "free for 7 days, then $15/month + tax" },
-      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "Your bots keep working 24/7, even when your laptop is closed.",
+      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "A bigger machine with priority wake, and a work license for one person.",
         action: "start free trial", terms: "free for 7 days, then $49/month + tax" },
       { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "The biggest cloud machine, for bots that use computers all day.",
         action: "start free trial", terms: "free for 7 days, then $99/month + tax" },
@@ -154,7 +154,7 @@ describe("what is for sale, as the Admin says", () => {
     const mine = planCards(OFFER, { current: "personal", own: personal });
     expect(mine.map(card => [card.name, card.price, card.current, card.action])).toEqual([["Starter", "$15", false, "start free trial"], ["Personal", "$29", true, null],
       ["Pro", "$49", false, "start free trial"], ["Max", "$99", false, "start free trial"]]);
-    expect(mine[1]!.rows.map(row => row.text)).toContain("100 cloud desktop hours a month");
+    expect(mine[1]!.rows.map(row => row.text)).toContain("10 GB disk, grows to 20 GB");
     expect(planCards(OFFER, { own: personal }).map(card => card.tier), "nobody else sees Personal").toEqual(["starter", "pro", "max"]);
     expect(planCards(OFFER, { current: "max", own: personal }).map(card => card.tier), "nor a subscriber on another plan").toEqual(["starter", "pro", "max"]);
     expect(planCards(OFFER, { current: "personal" }).map(card => card.tier), "with no plan to show, no card").toEqual(["starter", "pro", "max"]);
@@ -167,27 +167,20 @@ describe("what is for sale, as the Admin says", () => {
       voiceCharacters: 30_000 } };
     const max = { tier: "max", label: "Max", amount: 9900, allowances: { ...pro.allowances, cpus: 8, memoryMb: 8192, computerHours: 800, voiceCharacters: 180_000 } };
     const cards = planCards({ plans: [starter, pro, max], recommended: "pro" });
-    expect(cards.map(card => card.rows.map(row => row.key))).toEqual(Array(3).fill(["power", "desktops", "hours", "machine", "storage", "voice", "backups"]));
+    expect(cards.map(card => card.rows.map(row => row.key))).toEqual(Array(3).fill(["power", "machine", "storage", "backups"]));
     expect(cards[0]!.rows).toEqual([
-      { key: "power", text: "always on, around the clock" },
-      { key: "desktops", text: "cloud desktops: as many as your bots need", note: "fair use: up to 15 at once" },
-      { key: "hours", text: "100 cloud desktop hours a month" },
-      { key: "machine", text: "2 shared CPUs · 2 GB memory", note: "plus 3 GB of swap" },
-      { key: "storage", text: "10 GB storage, grows to 20 GB" },
-      { key: "voice", text: "voice replies: about 30 minutes of speech a month" },
+      { key: "power", text: "always available, priority wake" },
+      { key: "machine", text: "2 vCPU · 2 GB RAM", note: "plus 3 GB of swap" },
+      { key: "storage", text: "10 GB disk, grows to 20 GB" },
       { key: "backups", text: "daily backups, kept 14 days" },
     ]);
-    expect(cards.map(card => card.rows[2]!.text)).toEqual(["100 cloud desktop hours a month", "300 cloud desktop hours a month", "800 cloud desktop hours a month"]);
-    expect(cards.map(card => card.rows[5]!.text)).toEqual(["voice replies: about 30 minutes of speech a month", "voice replies: about an hour of speech a month",
-      "voice replies: about 3 hours of speech a month"]);
-    // Another catalog's numbers show as such; an older Admin without swap, backup days or the CPU kind leaves them unsaid, and a plan it says sleeps says so.
-    expect(planCardRows({ ...pro.allowances, computers: 6, computerHours: 450 }).slice(1, 3)).toEqual([
-      { key: "desktops", text: "cloud desktops: as many as your bots need", note: "fair use: up to 6 at once" }, { key: "hours", text: "450 cloud desktop hours a month" }]);
+    expect(cards.map(card => card.rows[1]!.text)).toEqual(["2 vCPU · 2 GB RAM", "4 vCPU · 4 GB RAM", "8 vCPU · 8 GB RAM"]);
+    // Another catalog's numbers show as such; an older Admin without swap or backup days leaves them unsaid, and a plan it says sleeps says so.
     expect(planCardRows({ cpus: 8, memoryMb: 8192, diskGb: 10, maxDiskGb: 10, computers: 4, computerHours: 500, voiceCharacters: 90_000 }).map(row => row.text)).toEqual([
-      "always on, around the clock", "cloud desktops: as many as your bots need", "500 cloud desktop hours a month", "8 CPUs · 8 GB memory", "10 GB storage",
-      "voice replies: about 1.5 hours of speech a month"]);
-    expect(planCardRows(SLEEPS.allowances!)[0]!.text).toBe("sleeps when idle, wakes in about a second");
-    expect(JSON.stringify(cards)).not.toMatch(/a day|credit|Everything in/);
+      "always available, priority wake", "8 vCPU · 8 GB RAM", "10 GB disk"]);
+    expect(planCardRows(SLEEPS.allowances!)[0]!.text).toBe("always available, wakes in seconds");
+    // a plan reads by its machine: never a count of bots or desktops, hours, a usage allowance or "shared"
+    expect(JSON.stringify(cards)).not.toMatch(/a day|credit|Everything in|desktop|hours|at once|shared|24\/7|always on|unlimited/i);
   });
 
   it("a card shows the numbers a person weighs up, and sleeping only where the plans differ; Compare plans keeps the rest of its rows", () => {
@@ -198,28 +191,28 @@ describe("what is for sale, as the Admin says", () => {
     const keys = (rows: Array<{ key: string }>) => rows.map(row => row.key);
     const cards = planCards({ plans: [starter, pro, max], recommended: "pro" });
     const split = cardRows(cards);
-    expect(split.map(card => keys(card.shown))).toEqual(Array(3).fill(["hours", "storage", "voice"]));
-    expect(split.map(card => keys(card.details))).toEqual(Array(3).fill(["power", "desktops", "machine", "backups"]));
+    expect(split.map(card => keys(card.shown))).toEqual(Array(3).fill(["machine", "storage"]));
+    expect(split.map(card => keys(card.details))).toEqual(Array(3).fill(["power", "backups"]));
     expect(split.map(card => [...card.shown, ...card.details].length), "no row is dropped").toEqual(cards.map(card => card.rows.length));
     const asleep = (plan: typeof pro) => ({ ...plan, allowances: { ...plan.allowances, sleeps: true as const } });
     const one = cardRows(planCards({ plans: [asleep(starter), pro, max], recommended: "pro" }));
     expect(one.map(card => card.shown[0]!.text), "one plan sleeps: every card says how it runs")
-      .toEqual(["sleeps when idle, wakes in about a second", "always on, around the clock", "always on, around the clock"]);
-    expect(one.map(card => keys(card.details))).toEqual(Array(3).fill(["desktops", "machine", "backups"]));
+      .toEqual(["always available, wakes in seconds", "always available, priority wake", "always available, priority wake"]);
+    expect(one.map(card => keys(card.details))).toEqual(Array(3).fill(["backups"]));
     const all = cardRows(planCards({ plans: [starter, pro, max].map(asleep), recommended: "pro" }));
-    expect(all.map(card => keys(card.shown)), "every plan sleeps: nothing sets them apart there").toEqual(Array(3).fill(["hours", "storage", "voice"]));
+    expect(all.map(card => keys(card.shown)), "every plan sleeps: nothing sets them apart there").toEqual(Array(3).fill(["machine", "storage"]));
     const bare = cardRows(planCards({ plans: [{ tier: "team", label: "Team", amount: 19900 }, pro], recommended: "pro" }));
-    expect(bare.map(card => keys(card.shown)), "a plan without allowances sets nothing apart").toEqual([[], ["hours", "storage", "voice"]]);
+    expect(bare.map(card => keys(card.shown)), "a plan without allowances sets nothing apart").toEqual([[], ["machine", "storage"]]);
   });
 
   it("says who a team plan is for, from the most people the Admin allows it, and nothing it can't back", () => {
     const allowances = { cpus: 4, cpuKind: "shared" as const, memoryMb: 4096, diskGb: 10, maxDiskGb: 100, computers: 4, computerHours: 300, voiceCharacters: 180_000 };
     const promise = (seats?: number) => planCards({ plans: [{ tier: "team", amount: 16900, allowances: { ...allowances, ...(seats ? { seats } : {}) } }], recommended: "team" })[0]!.promise;
-    expect(promise(5)).toBe("One shared cloud for up to 5 people: bots, group chats and roles your whole team uses.");
+    expect(promise(5)).toBe("One cloud for up to 5 people: bots, group chats and roles your whole team uses.");
     expect(promise(20)).toContain("up to 20 people");
     expect(promise()).toBeNull();
     const pro = planCards({ plans: [{ tier: "pro", amount: 4900, allowances: { ...allowances, seats: 5 } }], recommended: "pro" })[0]!.promise;
-    expect(pro, "a plan with its own words keeps them").toBe("Your bots keep working 24/7, even when your laptop is closed.");
+    expect(pro, "a plan with its own words keeps them").toBe("A bigger machine with priority wake, and a work license for one person.");
   });
 
   it("says a 1-day trial in the singular, in English and every language, and leaves other lengths as they read", () => {
@@ -240,8 +233,8 @@ describe("what is for sale, as the Admin says", () => {
     setLocale("de");
     const [card] = planCards({ plans: [{ tier: "max", amount: 9900, trialDays: 3, allowances: { cpus: 8, cpuKind: "shared", memoryMb: 8192, diskGb: 10, maxDiskGb: 100, computers: 15,
       computerHours: 800, voiceCharacters: 90_000, snapshotDays: 14 } }], recommended: "max" });
-    expect(card!.rows.map(row => row.text)).toEqual(["Immer an, rund um die Uhr", "Cloud-Desktops: so viele, wie deine Bots brauchen", "800 Cloud-Desktop-Stunden im Monat",
-      "8 geteilte CPUs · 8 GB Arbeitsspeicher", "10 GB Speicher, wächst bis 100 GB", "Sprachantworten: etwa 1,5 Stunden Sprache im Monat", "Tägliche Backups, 14 Tage aufbewahrt"]);
+    expect(card!.rows.map(row => row.text)).toEqual(["Immer verfügbar, bevorzugtes Aufwachen", "8 vCPU · 8 GB RAM", "10 GB Festplatte, wächst bis 100 GB",
+      "Tägliche Backups, 14 Tage aufbewahrt"]);
     expect([card!.action, card!.terms]).toEqual(["Kostenlos testen", "3 Tage kostenlos, dann $99/Monat zzgl. Steuern"]);
   });
 

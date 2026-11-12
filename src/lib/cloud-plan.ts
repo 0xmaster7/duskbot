@@ -157,7 +157,7 @@ export function moneyBackShort(offer: CloudOffer): string | null {
 }
 
 /** One line of a plan card; `note` is small print under it. */
-export interface CloudPlanCardRow { key: "power" | "desktops" | "hours" | "machine" | "storage" | "voice" | "backups"; text: string; note?: string }
+export interface CloudPlanCardRow { key: "power" | "machine" | "storage" | "backups"; text: string; note?: string }
 /** A plan card. `action` is its buy button, null on the person's own plan (`current`); `terms` is the money in one line under it. */
 export interface CloudPlanCard {
   tier: string; name: string; price: string; popular: boolean; current: boolean; promise: string | null;
@@ -166,23 +166,14 @@ export interface CloudPlanCard {
 const PROMISE: Record<string, LocaleKey> = { starter: "cloudBuy.promise.starter", pro: "cloudBuy.promise.pro", max: "cloudBuy.promise.max" };
 const amount = (value: number) => new Intl.NumberFormat(activeLocale(), { maximumFractionDigits: 1 }).format(value);
 const gb = (mb: number) => amount(Math.round(mb / 102.4) / 10);
-/** About a thousand characters of speech a minute. */
-function voiceLine(characters: number): string {
-  const minutes = Math.max(1, Math.round(characters / 1000));
-  if (minutes < 60) return t("cloudBuy.plan.voiceMinutes", { minutes: amount(minutes) });
-  const hours = Math.round(minutes / 6) / 10;
-  return hours === 1 ? t("cloudBuy.plan.voiceHour") : t("cloudBuy.plan.voiceHours", { hours: amount(hours) });
-}
-/** The same rows in the same order on every card, every number from the Admin's allowances. */
+/** The same rows in the same order on every card, every number from the Admin's allowances: a plan reads by its machine,
+ * how it wakes and its disk, never by a count of bots, desktops or hours. */
 export function planCardRows(a: CloudPlanAllowances): CloudPlanCardRow[] {
-  const cpus = a.cpuKind === "shared" ? t("cloudBuy.plan.cpusShared", { count: a.cpus }) : t("cloudBuy.plan.cpus", { count: a.cpus });
+  const cpus = t("cloudBuy.plan.cpus", { count: a.cpus });
   return [
     { key: "power", text: a.sleeps ? t("cloudBuy.sleeps") : t("cloudBuy.row.alwaysOn") },
-    { key: "desktops", text: t("cloudBuy.row.desktops"), note: t("cloudBuy.plan.limit", { count: a.computers }) },
-    { key: "hours", text: t("cloudAdd.hours", { hours: amount(a.computerHours) }) },
     { key: "machine", text: t("cloudBuy.row.machine", { cpus, memory: gb(a.memoryMb) }), ...(a.swapMb ? { note: t("cloudBuy.row.swap", { swap: gb(a.swapMb) }) } : {}) },
     { key: "storage", text: a.maxDiskGb > a.diskGb ? t("cloudBuy.row.storageGrows", { gb: a.diskGb, max: a.maxDiskGb }) : t("cloudBuy.row.storage", { gb: a.diskGb }) },
-    { key: "voice", text: voiceLine(a.voiceCharacters) },
     ...(a.snapshotDays ? [{ key: "backups" as const, text: t("cloudBuy.row.backups", { days: a.snapshotDays }) }] : []),
   ];
 }
@@ -209,7 +200,7 @@ export function planCards(offer: CloudOffer, { current = null, own = null }: { c
   return plans.map(plan => planCard(plan, offer.recommended, current));
 }
 
-const WEIGHED: ReadonlySet<CloudPlanCardRow["key"]> = new Set(["hours", "storage", "voice"]);
+const WEIGHED: ReadonlySet<CloudPlanCardRow["key"]> = new Set(["machine", "storage"]);
 /** What each card shows itself: the numbers a person weighs up, and whether it sleeps when the plans differ there. The
  * rest of its rows are its details, for Compare plans. */
 export function cardRows(cards: readonly CloudPlanCard[]): Array<{ shown: CloudPlanCardRow[]; details: CloudPlanCardRow[] }> {

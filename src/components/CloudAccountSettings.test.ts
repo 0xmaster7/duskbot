@@ -548,7 +548,7 @@ it("a Team plan has no Cloud of its own: the team's Cloud under its name, Open {
   bridge.openTeam = vi.fn().mockResolvedValue(undefined);
   await ready(onTeam({ status: "ready", origin: "https://dusk-t-2.fly.dev" }));
   let html = render().html;
-  all(html, ['data-cloud-team="true"', "Acme is ready. It keeps your team&#x27;s bots running 24/7", "open Acme"]);
+  all(html, ['data-cloud-team="true"', "Acme is ready. It keeps your team&#x27;s bots running, even", "open Acme"]);
   none(html, ["setting up", "reserving your machine", "open the cloud", PHONE, "is not ready yet"]);
   click("open Acme"); await flush();
   expect(bridge.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme"); expect(bridge.connectHome).not.toHaveBeenCalled();
