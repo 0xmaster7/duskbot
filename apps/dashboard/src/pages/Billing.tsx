@@ -17,7 +17,7 @@ import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
 import { AnimatePresence } from "../ui/motion";
 import { CancelFlow, CONTACT } from "./cancel-flow";
-import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
+import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, TeamSheet, useInterval, type PaidPlan } from "./plan-sheet";
 
 export { IntervalToggle, useInterval };
 
@@ -157,11 +157,12 @@ function YourBilling({ catalog, onLicense, onManage }: { catalog: PlanCatalog; o
 }
 
 export function BillingPage() {
-  const { catalog, billing, error, refresh } = useCloud();
+  const { catalog, billing, clouds, error, refresh } = useCloud();
   const { query } = useLocation();
   const [interval, setIv] = useInterval();
   const owned = billing?.subscription?.selection ?? null;
   const [planSheet, setPlanSheet] = useState<PaidPlan | null>(null);
+  const [teamSheet, setTeamSheet] = useState(false);
   const [licenseSheet, setLicenseSheet] = useState<{ license: LicenseId; members: number } | null>(null);
   const [managing, setManaging] = useState(0);
   const [flowOpen, setFlowOpen] = useState(false);
@@ -198,10 +199,12 @@ export function BillingPage() {
   const free = catalog.workFreeUntil && catalog.workFreeUntil > Date.now() ? catalog.workFreeUntil : null;
   const openLicense = (license: LicenseId = owned && owned.license !== "personal" ? owned.license : "starter", n = owned?.members ?? 1) => setLicenseSheet({ license, members: n });
   const onCloud = ownDesk !== "none";
+  const movable = Boolean(clouds?.length && clouds.every((c) => c.provider === "managed"));
   const card = (id: Tier, i: number) => {
     const name = bundleOf(catalog, id)?.name ?? id;
     if (id === "free") return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action="your plan" onChoose={null} disabled={false} />;
-    // a cloud plan moves to team's dedicated machine by hand: the checkout cannot change placement
+    // only a managed cloud can move to a dedicated machine on its own; any other moves by hand
+    if (id === "team" && !current(id) && movable) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action={`switch to ${name}`} onChoose={() => setTeamSheet(true)} disabled={false} />;
     if (id === "team" && !current(id)) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action="talk to us" href={`${CONTACT}?subject=${encodeURIComponent("move to team")}`} onChoose={null} disabled={false} />;
     const label = current(id) ? "your plan" : `${onCloud ? "switch to" : "get"} ${name}`;
     return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action={label} onChoose={id === "team" ? null : () => setPlanSheet(id)} disabled={current(id)} />;
@@ -230,6 +233,7 @@ export function BillingPage() {
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onManage={manage} />
 
       <AnimatePresence>{planSheet && <PlanSheet key="plan" source="dash_billing" start={planSheet} work={ownsLicense} onClose={() => setPlanSheet(null)} />}</AnimatePresence>
+      <AnimatePresence>{teamSheet && <TeamSheet key="team" onClose={() => setTeamSheet(false)} />}</AnimatePresence>
       <AnimatePresence>{licenseSheet && <LicenseSheet key="license" source="dash_license" start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={manage} />}</AnimatePresence>
       <CancelFlow key={managing} open={flowOpen} onClose={() => setFlowOpen(false)} catalog={catalog} />
     </div>

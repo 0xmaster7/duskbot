@@ -172,6 +172,51 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   );
 }
 
+/** a cloud plan moved to team: a dedicated machine and a team license, on the same billing period */
+export function TeamSheet({ onClose }: { onClose(): void }) {
+  const { catalog, billing } = useCloud();
+  const { toast } = useSession();
+  const owned = billing?.subscription?.selection ?? null;
+  const team = catalog ? bundleOf(catalog, "team") : null;
+  const sel: Selection | null = owned && team ? { license: "team", members: Math.max(team.members, owned.members), desktop: team.desktop, size: null, region: owned.region, interval: owned.interval } : null;
+  const { cart, ready, error: quoteError } = useCart(sel, catalog);
+  const { charge, apply } = useChangeCharge(sel);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!catalog || !sel || !team) return <Sheet open onClose={onClose} title="switch to team"><Skeleton className="mt-4 h-40" /></Sheet>;
+  const desk = desktopOf(catalog, team.desktop);
+  const go = async () => {
+    setBusy(true); setError(null);
+    try { if (await apply(sel)) { toast(`you are on ${team.name}. your dusk cloud moves to its own machine.`); onClose(); } }
+    catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  };
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={`switch to ${team.name}`}
+      footer={
+        <div>
+          <div className="mt-1 flex items-baseline justify-between gap-4">
+            <span className="text-14 text-ink-3">total</span>
+            <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>
+          </div>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{sel.interval === "year" ? "billed yearly" : "billed monthly"}</p>
+          {charge !== null && <ChargeLine charge={charge} cart={cart} interval={sel.interval} from={billing?.subscription?.currentPeriodEnd} />}
+          {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
+          <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready}>{busy ? "switching" : charge !== null ? `pay ${money(charge)} and switch` : "switch plan"}</Button>
+        </div>
+      }
+    >
+      <p className="text-14 leading-[1.55] text-ink-3">your dusk cloud moves to a machine of its own, with its files. your bots pause for a minute or two while it moves.</p>
+      <ul className="mt-5 flex flex-col gap-2 text-14 text-ink-2">
+        {desk && <li>{planSpecLine(desk)}, dedicated</li>}
+        <li>team license, {sel.members} members</li>
+      </ul>
+    </Sheet>
+  );
+}
+
 function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange(v: number): void }) {
   return (
     <div className="flex items-center justify-between gap-4 px-3 py-2">
