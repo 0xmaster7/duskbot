@@ -104,6 +104,10 @@ const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+)$/;
 const PANEL_KEYS = /^(botPanel|room\.(panel|jev|folder)|runsOn|cloudMove|vpsMove|place\.cloudDesktop)\./;
 const PANEL_LOWER = /^runsOn\.(status|hint)\./;
 
+/** the bots' own lines (server.*) are chat-window lines and read in sentence case, short status rows included; these are the
+ * pieces the server fills into the middle of another line, so they stay lowercase */
+const SERVER_FRAGMENTS = /^server\.(runs\.state|incidents\.where|reports\.(when|why))\.|^server\.(connect\.thisApp|rooms\.sameName\.chief|teammates\.(room|handedWork)|mcp\.card\.(newKey|newClientSecret))$/;
+
 /** single labels outside the panel that read in sentence case too */
 const SENTENCE_LABELS: ReadonlySet<string> = new Set(["sidebar.connectApps"]);
 
@@ -124,11 +128,11 @@ export function isChatEntry(key: string): boolean {
 export function isSentenceEntry(key: string, value: string): boolean {
   if (EXEMPT_KEYS.some((pattern) => pattern.test(key)) || PROMPT_KEYS.some((pattern) => pattern.test(key))) return false;
   if (isChatEntry(key) || isPanelEntry(key)) return true;
+  if (key.startsWith("server.")) return !SERVER_FRAGMENTS.test(key);
   const leaf = key.split(".").pop() ?? key;
   if (LABEL_LEAF.test(leaf) || LABEL_PATH.test(key)) return false;
   const words = wordCount(value);
   if (MESSAGE_KEY.test(key) && words >= 3) return true;
-  if (key.startsWith("server.") && words >= 5) return true;
   if (/^[^.!?]+\?$/.test(value.trim()) && words <= 6) return false; // a short question is a heading ("send on your behalf?")
   return words >= 3 && /[.!?]["”’)]*$/.test(value.trim());
 }

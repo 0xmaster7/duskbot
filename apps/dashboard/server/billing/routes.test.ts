@@ -255,7 +255,7 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   const origin = await listen(createServer(async (req, res) => { if (!await billing.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
   expect((await fetch(`${origin}/v1/billing/catalog`)).status).toBe(200);
   // no regional provider attached: only the managed backend's real region is on offer
-  expect((await (await fetch(`${origin}/v1/billing/catalog`)).json()).regions.map((region: { id: string }) => region.id)).toEqual(["us-west-2"]);
+  expect(((await (await fetch(`${origin}/v1/billing/catalog`)).json()) as { regions: { id: string }[] }).regions.map((region: { id: string }) => region.id)).toEqual(["us-west-2"]);
   expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: bundle("starter") }) })).status).toBe(400);
   expect((await fetch(`${origin}/v1/billing/quote`, { method: "POST", body: JSON.stringify({ cart: { ...bundle("starter"), desktop: { kind: "shared_s", region: "us-west-2" } } }) })).status).toBe(200);
   expect((await fetch(`${origin}/v1/billing/overview`)).status).toBe(503);

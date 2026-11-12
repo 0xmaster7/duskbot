@@ -22,7 +22,7 @@ function fixture(options: { dataDir?: string; sections?: string[]; outcomes?: Se
   profileEmail?: string; automated?: boolean; lineLanguage?: DevsReportsDeps["lineLanguage"]; appVersion?: string; clock?: number;
   /** The conversations, kept across a restart (another fixture on the same data). */
   threads?: Map<string, Message[]>;
-  /** The Dusk team's answer to each question about this app's reports; none: no answer (offline). */
+  /** The dusk team's answer to each question about this app's reports; none: no answer (offline). */
   answer?: (question: ReportStatusQuestion) => ReportStatusAnswer | null } = {}) {
   const dataDir = options.dataDir ?? mkdtempSync(join(tmpdir(), "dusk-devs-reports-"));
   if (!options.dataDir) dirs.push(dataDir);
@@ -257,7 +257,7 @@ describe("a report that cannot go yet", () => {
     fx.person("scout-main", "@devs offline");
     fx.advance(NO_ANSWER_MS);
     await fx.settle();
-    expect(fx.notices("scout-main")).toEqual(["notice: Not sent yet: the Dusk team's server could not be reached. The report is saved and goes on its own as soon as it can, so there is no need to send it again."]);
+    expect(fx.notices("scout-main")).toEqual(["notice: Not sent yet: the dusk team's server could not be reached. The report is saved and goes on its own as soon as it can, so there is no need to send it again."]);
     const saved = JSON.parse(readFileSync(join(fx.dataDir, DEVS_REPORTS_FILE), "utf8"));
     expect(saved.outbox).toHaveLength(1);
     expect(saved.outbox[0].payload.description).toContain("offline");
@@ -272,7 +272,7 @@ describe("a report that cannot go yet", () => {
     await fx.settle();
     expect(fx.sent).toHaveLength(3);
     expect(fx.sent[2]).toEqual(fx.sent[0]);
-    expect(fx.notices("scout-main").at(-1)).toBe("notice: Sent to the Dusk team (report report-3) after an earlier try did not go through. Milind and Omkar get it by email.");
+    expect(fx.notices("scout-main").at(-1)).toBe("notice: Sent to the dusk team (report report-3) after an earlier try did not go through. Milind and Omkar get it by email.");
     expect(JSON.parse(readFileSync(join(fx.dataDir, DEVS_REPORTS_FILE), "utf8")).outbox).toEqual([]);
     fx.stop();
   });
@@ -282,7 +282,7 @@ describe("a report that cannot go yet", () => {
     fx.person("scout-main", "@devs refused");
     fx.advance(NO_ANSWER_MS);
     await fx.settle();
-    expect(fx.notices("scout-main")).toEqual(["notice: The Dusk team's server refused this bug report, so nothing was sent: description must be 1 to 10,000 characters of text."]);
+    expect(fx.notices("scout-main")).toEqual(["notice: The dusk team's server refused this bug report, so nothing was sent: description must be 1 to 10,000 characters of text."]);
     fx.advance(RETRY_MS.at(-1)! * 2);
     await fx.settle();
     expect(fx.sent).toHaveLength(1);
@@ -360,7 +360,7 @@ describe("a group chat", () => {
 });
 
 describe("closing the loop on a report", () => {
-  /** Every report asked about, answered as the Dusk team would: `fixedIn` for all of them, `notify` as given. */
+  /** Every report asked about, answered as the dusk team would: `fixedIn` for all of them, `notify` as given. */
   const team = (state: { status: "received" | "fixed"; fixedIn: string | null; notify: boolean }) => (question: ReportStatusQuestion): ReportStatusAnswer =>
     ({ reports: question.ids.map((id) => ({ id, status: state.status, fixedIn: state.fixedIn })), notify: state.notify });
   /** A report sent from Scout's chat by Bob, with Scout's summary; the person's message. */

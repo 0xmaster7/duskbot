@@ -412,22 +412,8 @@ it("the root supervisor runs and trusts only root's code, never the volume's or 
   expect(codeTrustProblem(files, "/data", () => { throw new Error("ENOENT"); })).toBe("/usr/local/bin/node cannot be checked");
 });
 
-it("ships an edge and a Fly template that keep the server private", () => {
-  const caddy = readFileSync(join(import.meta.dirname, "../deploy/fly/Caddyfile"), "utf8");
-  expect(caddy).toMatch(/^:8080 \{/m);
-  const upstreams = [...caddy.matchAll(/reverse_proxy (\S+)/g)].map(match => match[1]);
-  expect(new Set(upstreams)).toEqual(new Set(["127.0.0.1:8799", "127.0.0.1:8800"]));
-  expect(caddy).toMatch(/handle \/hooks\/\* \{\s*reverse_proxy 127\.0\.0\.1:8800 \{/);
-  expect(caddy.match(/127\.0\.0\.1:8800/g)).toHaveLength(1);
-  const homeStart = caddy.indexOf("handle @home {");
-  let homeEnd = homeStart + "handle @home {".length;
-  for (let depth = 1; depth > 0; homeEnd++) depth += caddy[homeEnd] === "{" ? 1 : caddy[homeEnd] === "}" ? -1 : 0;
-  expect(caddy.slice(homeStart, homeEnd)).toContain("handle /hooks/* {");
-  expect(caddy.match(/header_up X-Forwarded-For \{client_ip\}/g)).toHaveLength(upstreams.length);
-  expect(caddy.match(/lb_try_interval 50ms/g)).toHaveLength(upstreams.length);
-  // Who may name the client, and in which header, is the launcher's to say (edgeClientAddress); the file names neither.
-  expect(caddy).toMatch(/^\t\ttrusted_proxies static \{\$DUSK_CLOUD_EDGE_TRUSTED_PROXIES\}\r?\n\t\ttrusted_proxies_strict\r?\n\t\tclient_ip_headers \{\$DUSK_CLOUD_EDGE_CLIENT_IP_HEADER\}\r?\n/m);
-  expect(caddy.match(/^\s*(?:trusted_proxies|client_ip_headers)\b/gm)).toHaveLength(2);
+// the Fly kit (deploy/fly) was removed with the other self-hosting kits; the image checks stay
+it("ships a cloud home image whose code is root's and has what bots need", () => {
   // The root supervisor's code is root's, maus owns only the volume; the image's last step refuses to build otherwise.
   const dockerfile = readFileSync(join(import.meta.dirname, "../deploy/docker/Dockerfile"), "utf8");
   const image = dockerfile.slice(dockerfile.indexOf("FROM runtime AS cloud-home"), dockerfile.indexOf("FROM runtime AS server"));
@@ -435,7 +421,6 @@ it("ships an edge and a Fly template that keep the server private", () => {
   expect(image.slice(check)).toMatch(/^untrusted=.*\n && if \[ -n "\$untrusted" \]; then .*exit 1; fi \\\n/);
   expect(check).toBeGreaterThan(image.lastIndexOf("COPY "));
   expect(check).toBeLessThan(image.indexOf("CMD ["));
-  expect(image).toContain("COPY deploy/fly/Caddyfile /app/cloud/Caddyfile");
   // The bot box (server/bot-box) needs bubblewrap and socat in the image; pnpm is what bots' projects ask for.
   expect(image).toMatch(/apt-get install -y --no-install-recommends [^\n]*\bbubblewrap\b[^\n]*\bsocat\b/);
   expect(image).toMatch(/npm install -g pnpm@10\.33\.0/);
@@ -444,13 +429,6 @@ it("ships an edge and a Fly template that keep the server private", () => {
   expect(image).toMatch(/ARG UV_VERSION=\d+\.\d+\.\d+/);
   expect(image).toContain("install -m 0755 /tmp/uv-install/uv /tmp/uv-install/uvx /usr/local/bin/");
   expect(image).toContain('uv --version | grep -qF "uv ${UV_VERSION}"');
-  const fly = readFileSync(join(import.meta.dirname, "../deploy/fly/fly.toml"), "utf8");
-  expect(fly).toMatch(/internal_port = 8080/);
-  expect(fly).toMatch(/destination = "\/data"/);
-  expect(fly).toMatch(/path = "\/api\/health"/);
-  const env = /\[env\]([\s\S]*?)\n\[/.exec(fly)![1];
-  for (const secretKey of ["DUSK_CLOUD_BOOTSTRAP_SECRET", "DUSK_CLOUD_ADMIN_URL"]) expect(env).not.toMatch(new RegExp(`^\\s*${secretKey}\\s*=`, "m"));
-  expect(fly).not.toContain("DUSK_HOSTED_");
 });
 
 it("the Cloud launcher starts the server again only when it asks to after a restore, and only a few times in a row", () => {

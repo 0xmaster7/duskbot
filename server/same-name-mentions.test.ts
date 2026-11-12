@@ -11,14 +11,14 @@ const room = [analyst, chief, scout];
 describe("a person's room line that tags a name two bots share", () => {
   it("is refused in plain words that name each bot by its role", () => {
     expect(sameNameRefusal("@Quill can you check this?", room, undefined, undefined)).toBe(
-      'Two bots here are named "Quill": Quill, Analyst and Quill, Chief of Staff. Pick the one you mean from the @ list.',
+      'Two bots here are named "Quill": Quill, Analyst and Quill, chief of staff. Pick the one you mean from the @ list.',
     );
   });
 
   it("names three or more, and a bot with no role by its name alone", () => {
     const plain = { id: "quill-plain", name: "QUILL", title: "  " };
     expect(sameNameRefusal("hey @quill", [...room, plain], [], "en")).toBe(
-      '3 bots here are named "Quill": Quill, Analyst; Quill, Chief of Staff; QUILL. Pick the one you mean from the @ list.',
+      '3 bots here are named "Quill": Quill, Analyst; Quill, chief of staff; QUILL. Pick the one you mean from the @ list.',
     );
   });
 

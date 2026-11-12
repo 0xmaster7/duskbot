@@ -14,7 +14,7 @@ import { hostTimeout } from "./testing/host-timeout.ts";
 
 const OLIVE = { email: "olive@acme.test", role: "owner" as const };
 const ENGINE = `process.env.FAKE_CLAUDE_ROOM_PLAN = process.env.FAKE_CLAUDE_FIXTURE_DIR + "/plan.json";`;
-const REFUSED = 'Two bots here are named "Marlowe": Marlowe, Analyst and Marlowe, Chief of Staff. Pick the one you mean from the @ list.';
+const REFUSED = 'Two bots here are named "Marlowe": Marlowe, Analyst and Marlowe, chief of staff. Pick the one you mean from the @ list.';
 const HOLD = "hold the room for a moment";
 const POST = "post the launch update";
 const ASK = "ask the Marlowes about the numbers";
