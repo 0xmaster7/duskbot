@@ -1,0 +1,1964 @@
+{
+  "toolkit": "canva",
+  "name": "Canva",
+  "version": "20261101_00",
+  "description": "Canva offers a drag-and-drop design suite for creating social media graphics, presentations, and marketing materials with prebuilt templates and a vast element library",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 53,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Access user specific brand templates list",
+      "slug": "CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST",
+      "kind": "write",
+      "description": "Lists brand templates available to users on plans with brand-template access, such as Canva Pro, Canva Teams, or Canva Enterprise. Returns one page of template metadata, including IDs and titles. Follow the response's continuation token to retrieve additional pages. Dataset definitions are available from CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION.",
+      "inputs": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "The number of brand templates to return (1-100, default 25)."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Lets you search the brand templates available to the user using a search term or terms. "
+        },
+        {
+          "name": "dataset",
+          "type": "string",
+          "required": false,
+          "about": "Filter the list of brand templates based on the brand templates' dataset definitions. Brand templates with dataset definitions are mainly used with the Autofill APIs. This can be one of the following: - `any`: (Default) Brand templates with and without dataset definitions. - `non_empty`: Brand templ"
+        },
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false,
+          "about": "Sort the list of brand templates. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending orde"
+        },
+        {
+          "name": "ownership",
+          "type": "string",
+          "required": false,
+          "about": "Filter the list of brand templates based on the user\"s ownership of the brand templates. This can be one of the following: - `any`: (Default) Brand templates owned by and shared with the user. - `owned`: Brand templates owned by the user. - `shared`: Brand templates shared with the user. "
+        },
+        {
+          "name": "continuation",
+          "type": "string",
+          "required": false,
+          "about": "If the success response contains a continuation token, the user has access to more brand templates you can list. You can use this token as a query parameter and retrieve more templates from the list, for example `/v1/brand-templates?continuation={continuation}`. To retrieve all the brand templates a"
+        }
+      ],
+      "scopes": [
+        "brandtemplate:meta:read"
+      ],
+      "tags": [
+        "brand_template",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create Asset Upload Job",
+      "slug": "CANVA_CREATE_ASSET_UPLOAD_JOB",
+      "kind": "write",
+      "description": "Uploads an asset file to the user's Canva content library. This endpoint initiates an asynchronous upload job for images or videos. Returns a job ID to track the upload progress. Once complete, the asset can be used in designs, referenced by its asset ID, and managed through other asset endpoints. IMPORTANT: This is an async operation. Use CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS to poll the job status until it reaches 'success' or 'failed' status.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "object",
+          "required": true,
+          "about": "Image or video file to upload directly to Canva. Direct upload is the path for large files and for videos larger than the URL-upload limit. No duplicate detection: uploading the same file creates a new asset."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Display name for the asset (maximum 50 characters). The name can be changed later with the Update asset API."
+        }
+      ],
+      "scopes": [
+        "asset:write"
+      ],
+      "tags": [
+        "asset",
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create Canva Design Export Job (Deprecated)",
+      "slug": "CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB",
+      "kind": "write",
+      "description": "Starts a deprecated asynchronous Canva design export job in PNG, JPG, GIF, PDF, PPTX, MP4, HTML bundle, standalone HTML, or CSV format. Export options vary by format; poll the job for completion and download URLs.",
+      "inputs": [
+        {
+          "name": "format",
+          "type": "",
+          "required": true,
+          "about": "Export format configuration. Set 'type' to one of: 'png', 'jpg', 'pdf', 'gif', 'mp4', 'pptx', 'html_bundle', 'html_standalone', or 'csv'."
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": true,
+          "about": "The design ID to export"
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "export",
+        "openWorldHint",
+        "important",
+        "deprecated",
+        "readOnlyHint"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create canva design with optional asset (Deprecated)",
+      "slug": "CANVA_CREATE_CANVA_DESIGN_WITH_OPTIONAL_ASSET",
+      "kind": "write",
+      "description": "DEPRECATED: Use CANVA_POST_DESIGNS instead. Creates a new Canva design with specified dimensions or from an asset. This endpoint creates a design using either a preset type (doc, email, presentation, whiteboard), custom dimensions, or by importing an image asset. Returns the design ID, URLs for editing and viewing, owner info, and metadata. The design can be immediately accessed and edited.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "Design title (1-255 chars). Appears in Canva UI and design lists."
+        },
+        {
+          "name": "asset_id",
+          "type": "string",
+          "required": false,
+          "about": "Image asset ID to create design from. Optional if design_type provided. IMPORTANT: Only image assets are supported - video and PDF assets will be rejected by the API with error 'asset_id must belong to an image asset'. Asset IDs are opaque strings with no guaranteed format. To verify an asset is an "
+        },
+        {
+          "name": "design_type",
+          "type": "object",
+          "required": false,
+          "about": "Design dimensions configuration. Optional if asset_id provided. Must be a dictionary with 'type' field.\n\nTwo options:\n1. Preset: {'type': 'preset', 'name': 'doc'|'email'|'whiteboard'|'presentation'}\n2. Custom: {'type': 'custom', 'width': 1080, 'height': 1920}\n\nType must be either 'preset' or 'custom"
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "design",
+        "openWorldHint",
+        "important",
+        "deprecated",
+        "createHint"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create comment reply in design (Deprecated)",
+      "slug": "CANVA_CREATE_COMMENT_REPLY_IN_DESIGN",
+      "kind": "send",
+      "description": "DEPRECATED: Use CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES instead. This preview API allows replying to comments within a design on Canva, with a limit of 100 replies per comment. Users should note potential unannounced changes, and that preview APIs are not eligible for public integrations.",
+      "inputs": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "about": "Deprecated alias for message_plaintext."
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": false,
+          "about": "The design ID. Must match pattern ^[a-zA-Z0-9_-]{1,50}$."
+        },
+        {
+          "name": "comment_id",
+          "type": "string",
+          "required": false,
+          "about": "The thread ID. Must match pattern ^[a-zA-Z0-9_-]{1,50}$."
+        },
+        {
+          "name": "attached_to",
+          "type": "object",
+          "required": false,
+          "about": "The object the comment is attached to."
+        },
+        {
+          "name": "message_plaintext",
+          "type": "string",
+          "required": false,
+          "about": "The reply comment message. This is the reply comment body shown in the Canva UI. You can also mention users in your message by specifying their User ID and Team ID using the format `[user_id:team_id]`."
+        }
+      ],
+      "scopes": [
+        "comment:write"
+      ],
+      "tags": [
+        "comment",
+        "openWorldHint",
+        "createHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create design comment in preview api (Deprecated)",
+      "slug": "CANVA_CREATE_DESIGN_COMMENT_IN_PREVIEW_API",
+      "kind": "send",
+      "description": "DEPRECATED: Use CANVA_POST_DESIGNS_DESIGNID_COMMENTS instead. Creates a new comment thread on a Canva design using Canva's deprecated Create comment API. This preview API allows adding text comments to designs for collaboration and feedback. Returns the created comment with ID, author info, and timestamp. Comments can be replied to using the comment reply endpoint.",
+      "inputs": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "about": "Comment text (1-2048 chars). Mention users with [user_id:team_id]. No markdown support. Comments appear unpinned - users must view 'All pages' to see them."
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": false,
+          "about": "Design ID to attach comment to"
+        },
+        {
+          "name": "assignee_id",
+          "type": "string",
+          "required": false,
+          "about": "User ID to assign this comment to. If provided, you must also mention this user in the message text using format [user_id:team_id]."
+        },
+        {
+          "name": "attached_to",
+          "type": "object",
+          "required": false,
+          "about": "Target reference for comment attachment"
+        }
+      ],
+      "scopes": [
+        "comment:write"
+      ],
+      "tags": [
+        "comment",
+        "openWorldHint",
+        "important",
+        "createHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create Design Import Job",
+      "slug": "CANVA_CREATE_DESIGN_IMPORT_JOB",
+      "kind": "write",
+      "description": "Starts an asynchronous import of an external document or design file into Canva designs, including PDF, Word, PowerPoint, Excel, PSD, and AI files. Returns a job ID for tracking the import; an import can produce multiple designs.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "object",
+          "required": true,
+          "about": "Document or design file to import. Supported formats: AI, PSD, Affinity (.af, .afdesign, .afphoto, .afpub), Keynote, Numbers, Pages, XLS/XLSX, PPT/PPTX, DOC/DOCX, ODG, ODP, ODS, ODT, and PDF."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "Title for the imported design (maximum 50 characters). Shows in Canva UI and design lists."
+        },
+        {
+          "name": "mime_type",
+          "type": "string",
+          "required": false,
+          "about": "Optional MIME type override. It is normalized to a lowercase media type without parameters. If omitted, Canva attempts to detect the file type automatically."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "design_import",
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create design merge job",
+      "slug": "CANVA_CREATE_DESIGN_MERGE_JOB",
+      "kind": "write",
+      "description": "Start a preview job that creates or modifies a design using page operations. New designs support page insertion. Existing designs support insert, move, and delete operations. Poll the returned ID with CANVA_GET_DESIGN_MERGE_JOB.",
+      "inputs": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "about": "Whether to create a new design or modify an existing design."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "Title for a new design (required) or optional replacement title for a modified design."
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of the target design. Required only when modifying a design."
+        },
+        {
+          "name": "operations",
+          "type": "array",
+          "required": true,
+          "about": "Ordered page operations. Canva supports one operation by default; apps can request enablement for up to 500 operations."
+        }
+      ],
+      "scopes": [
+        "design:content:write",
+        "design:meta:read"
+      ],
+      "tags": [
+        "merges",
+        "openWorldHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create Design Resize Job",
+      "slug": "CANVA_CREATE_DESIGN_RESIZE_JOB",
+      "kind": "write",
+      "description": "Creates a resized copy of an existing design (Canva Pro/Enterprise only). This endpoint creates a new design with different dimensions from an existing one. The resize operation runs asynchronously and preserves content where possible. Returns a job ID to track progress and retrieve the new design once complete. IMPORTANT: This is an async operation. Use CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS to poll the job status until completion to get the resized design ID and access URLs.",
+      "inputs": [
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": true,
+          "about": "The source design ID"
+        },
+        {
+          "name": "design_type",
+          "type": "",
+          "required": true,
+          "about": "Target design type configuration"
+        }
+      ],
+      "scopes": [
+        "design:content:read",
+        "design:content:write"
+      ],
+      "tags": [
+        "resizes",
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create URL Asset Upload Job",
+      "slug": "CANVA_CREATE_URL_ASSET_UPLOAD_JOB",
+      "kind": "write",
+      "description": "Tool to create an asynchronous Canva asset import job from a public URL. Use when you need to import an asset into Canva directly from a publicly accessible URL without S3 choreography.",
+      "inputs": [
+        {
+          "name": "url",
+          "type": "string",
+          "required": true,
+          "about": "Publicly accessible HTTPS URL of the file to import (8-2048 characters). Canva rejects non-HTTPS URLs."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Asset name (1-255 characters)."
+        }
+      ],
+      "scopes": [
+        "asset:write"
+      ],
+      "tags": [
+        "asset",
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Delete asset by id",
+      "slug": "CANVA_DELETE_ASSET_BY_ID",
+      "kind": "write",
+      "description": "You can delete an asset by specifying its `assetId`. This operation mirrors the behavior in the Canva UI. Deleting an item moves it to the trash. Deleting an asset doesn't remove it from designs that already use it.",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the asset."
+        }
+      ],
+      "scopes": [
+        "asset:write"
+      ],
+      "tags": [
+        "asset",
+        "destructiveHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Exchange oauth 2 0 access or refresh token",
+      "slug": "CANVA_EXCHANGE_OAUTH20_ACCESS_OR_REFRESH_TOKEN",
+      "kind": "write",
+      "description": "The OAuth 2.0 endpoint issues time-limited (4-hour) access tokens of up to 4KB for user authorization via codes or refresh tokens. It requires client ID/secret for authentication.",
+      "inputs": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": false,
+          "about": "Authorization code received after the user authorizes the integration."
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "about": "Optional space-separated subset of previously granted scopes."
+        },
+        {
+          "name": "client_id",
+          "type": "string",
+          "required": false,
+          "about": "Integration client ID when credentials are supplied in the request body."
+        },
+        {
+          "name": "grant_type",
+          "type": "string",
+          "required": true,
+          "about": "OAuth grant type: authorization_code or refresh_token."
+        },
+        {
+          "name": "redirect_uri",
+          "type": "string",
+          "required": false,
+          "about": "Redirect URI used for the authorization request, when applicable."
+        },
+        {
+          "name": "client_secret",
+          "type": "string",
+          "required": false,
+          "about": "Integration client secret when credentials are supplied in the request body."
+        },
+        {
+          "name": "code_verifier",
+          "type": "string",
+          "required": false,
+          "about": "PKCE code verifier used for an authorization-code exchange."
+        },
+        {
+          "name": "refresh_token",
+          "type": "string",
+          "required": false,
+          "about": "Refresh token to exchange when grant_type is refresh_token."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "oauth",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Fetch asset upload job status",
+      "slug": "CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS",
+      "kind": "read",
+      "description": "Retrieves the status of a direct asset file upload job. Poll until it succeeds or fails; a successful job can return asset ID and metadata, while a failed job can return error details.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The asset upload job ID returned by CANVA_CREATE_ASSET_UPLOAD_JOB or CANVA_POST_ASSET_UPLOADS. This is the 'id' field from the job object in the response. IMPORTANT: This tool does NOT work for job IDs from CANVA_CREATE_URL_ASSET_UPLOAD_JOB (URL import jobs use a different endpoint - use CANVA_GET_U"
+        }
+      ],
+      "scopes": [
+        "asset:read"
+      ],
+      "tags": [
+        "asset",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Fetch canva connect signing public keys",
+      "slug": "CANVA_FETCH_CANVA_CONNECT_SIGNING_PUBLIC_KEYS",
+      "kind": "read",
+      "description": "The API for verifying Canva webhooks, 'connect/keys,' is in preview, meaning unstable, not for public integrations, and provides a rotating JWK for signature verification to prevent replay attacks. Cache keys for efficiency.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "connect",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Fetch current user details",
+      "slug": "CANVA_FETCH_CURRENT_USER_DETAILS",
+      "kind": "read",
+      "description": "Returns the User ID and Team ID associated with the provided access token. Use CANVA_RETRIEVE_USER_PROFILE_DATA to retrieve the user's display name.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "user",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Fetch design metadata and access information",
+      "slug": "CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION",
+      "kind": "read",
+      "description": "Gets the metadata for a design. This includes owner information, URLs for editing and viewing, and thumbnail information.",
+      "inputs": [
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design ID (1-50 letters, numbers, underscores, or hyphens), for example DAFVztcvd9z."
+        }
+      ],
+      "scopes": [
+        "design:meta:read"
+      ],
+      "tags": [
+        "design",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design comment thread replies",
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLIES",
+      "kind": "read",
+      "description": "Retrieves a page of replies for a comment or suggestion thread on a design. Returns up to limit replies (default 50, maximum 100); follow the continuation token to retrieve the rest. This is a preview API. Public integrations that use it cannot pass Canva's review process.",
+      "inputs": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "The number of replies to return. Default is 50. Minimum value: 1, Maximum value: 100."
+        },
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design ID."
+        },
+        {
+          "name": "threadId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the thread."
+        },
+        {
+          "name": "continuation",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination to retrieve more items from the list. If the response contains a continuation token, use it to retrieve more replies."
+        }
+      ],
+      "scopes": [
+        "comment:read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "collaboration_and_permissions"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get specific design comment reply",
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLY",
+      "kind": "read",
+      "description": "Retrieves a specific reply to a comment or suggestion thread on a design. Use when you need to view details of a particular reply. This is a preview API. Public integrations that use it cannot pass Canva's review process.",
+      "inputs": [
+        {
+          "name": "replyId",
+          "type": "string",
+          "required": true,
+          "about": "The reply identifier. Must match pattern ^[a-zA-Z0-9_-]{1,50}$."
+        },
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design identifier."
+        },
+        {
+          "name": "threadId",
+          "type": "string",
+          "required": true,
+          "about": "The comment thread identifier. Must match pattern ^[a-zA-Z0-9_-]{1,50}$."
+        }
+      ],
+      "scopes": [
+        "comment:read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "collaboration_and_permissions"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design dataset",
+      "slug": "CANVA_GET_DESIGN_DATASET",
+      "kind": "read",
+      "description": "Get a design's autofill dataset definition and accepted field types.",
+      "inputs": [
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The Canva design ID."
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "design",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design export job result",
+      "slug": "CANVA_GET_DESIGN_EXPORT_JOB_RESULT",
+      "kind": "read",
+      "description": "Retrieves a design export job's status and result. Poll until the job succeeds or fails; successful jobs can provide download URLs for exported pages, which expire after 24 hours.",
+      "inputs": [
+        {
+          "name": "exportId",
+          "type": "string",
+          "required": true,
+          "about": "The export job ID."
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "export",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design generation job",
+      "slug": "CANVA_GET_DESIGN_GENERATION_JOB",
+      "kind": "read",
+      "description": "Retrieve a design generation job created by the same user and integration. Call repeatedly until the returned status reaches `success` or `failed`. The user must have Canva's `design_generation` capability. Jobs expire 24 hours after creation, and only the creating user, integration, and team can retrieve them.",
+      "inputs": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "required": true,
+          "about": "Public design-generation job ID returned when the job was created."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "design_generation",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design merge job",
+      "slug": "CANVA_GET_DESIGN_MERGE_JOB",
+      "kind": "read",
+      "description": "Return a design merge job's current status and result. Call this action repeatedly until the returned status is `success` or `failed`.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The design merge job ID."
+        }
+      ],
+      "scopes": [
+        "design:meta:read"
+      ],
+      "tags": [
+        "merges",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get designs designid comments threadid",
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_COMMENTS_THREADID",
+      "kind": "read",
+      "description": "Retrieves metadata for a comment or suggestion thread on a design. Use when you need to get details about a specific thread including content, author, timestamps, and status. This is a preview API. Public integrations that use it cannot pass Canva's review process.",
+      "inputs": [
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design identifier."
+        },
+        {
+          "name": "threadId",
+          "type": "string",
+          "required": true,
+          "about": "The thread identifier."
+        }
+      ],
+      "scopes": [
+        "comment:read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "collaboration_and_permissions"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get design export formats",
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS",
+      "kind": "read",
+      "description": "Lists available file formats for exporting a design. Use this to check which export formats (PDF, JPG, PNG, SVG, PPTX, GIF, MP4, HTML bundle, standalone HTML, and CSV) are supported for a specific design.",
+      "inputs": [
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design ID."
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "exports_and_formats"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get URL asset upload job status",
+      "slug": "CANVA_GET_URL_ASSET_UPLOADS_JOBID",
+      "kind": "read",
+      "description": "Tool to retrieve the status and result of a URL-based asset upload job. Use this after creating a URL asset upload job to check progress and retrieve the uploaded asset ID when successful.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The asset upload job identifier."
+        }
+      ],
+      "scopes": [
+        "asset:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "media_ingestion_uploads_and_imports"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get URL import job status",
+      "slug": "CANVA_GET_URL_IMPORTS_JOBID",
+      "kind": "read",
+      "description": "Retrieves the status and result of a URL import job. Repeatedly check until it succeeds or fails; a successful result contains imported designs and their metadata, while a failed job returns an error.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The URL import job ID."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "media_ingestion_uploads_and_imports"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get user capabilities",
+      "slug": "CANVA_GET_USERS_ME_CAPABILITIES",
+      "kind": "read",
+      "description": "Lists the API capabilities for the user account associated with the provided access token. Use when you need to check what features are available based on the user's Canva plan.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "profile:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "collaboration_and_permissions"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Initiate canva design autofill job",
+      "slug": "CANVA_INITIATE_CANVA_DESIGN_AUTOFILL_JOB",
+      "kind": "write",
+      "description": "Creates an asynchronous autofill job from a brand template or existing design, or updates an existing design in place. Canva Enterprise users are eligible; paid-plan users can use a limited development trial. Poll the returned job ID with CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS.",
+      "inputs": [
+        {
+          "name": "data",
+          "type": "object",
+          "required": true,
+          "about": "Data object containing the data fields and values to autofill. Keys are field names from the brand template. Values can be text, image, video, chart, or sheet data fields."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "about": "Autofill source and behavior. Defaults to create_from_brand_template."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "Title to use for the autofilled design. Must be less than 256 characters. If no design title is provided, the autofilled design will have the same title as the brand template. "
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": false,
+          "about": "Source or target design ID for create_from_design or update_design."
+        },
+        {
+          "name": "brand_template_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of the input brand template."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "autofill",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List design pages with pagination",
+      "slug": "CANVA_LIST_DESIGN_PAGES_WITH_PAGINATION",
+      "kind": "read",
+      "description": "Preview API for Canva: subject to unannounced changes and not for public integrations. Lists metadata for design pages with optional `offset` and `limit`; not applicable to all design types.",
+      "inputs": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "The number of pages to return, starting at the page index specified using the `offset` parameter. Default is `50` pages. Minimum: 1, Maximum: 200."
+        },
+        {
+          "name": "offset",
+          "type": "integer",
+          "required": false,
+          "about": "The page index to start the range of pages to return. Default is `1`. Pages are indexed using one-based numbering, so the first page in a design has the index value `1`. Minimum: 1, Maximum: 500."
+        },
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design ID."
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "design",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List folder items by type with sorting",
+      "slug": "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING",
+      "kind": "read",
+      "description": "Lists folder items, including folders, designs, image assets, and brand templates. Brand templates are returned only when explicitly requested in `item_types` and the user's plan supports them. Video assets are currently not returned.",
+      "inputs": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "The number of folder items to return (1-100, default 50)."
+        },
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false,
+          "about": "Sort the list of folder items. This can be one of the following: - `created_ascending`: Sort results by creation date, in ascending order. - `created_descending`: Sort results by creation date, in descending order. - `modified_ascending`: Sort results by the last modified date, in ascending order. -"
+        },
+        {
+          "name": "folderId",
+          "type": "string",
+          "required": true,
+          "about": "The folder ID. Must be a non-empty string. Use 'root' to list items in the root folder."
+        },
+        {
+          "name": "item_types",
+          "type": "array",
+          "required": false,
+          "about": "Filter the folder items to only return specified types. The available types are: `brand_template`, `design`, `folder`, and `image`. To filter for more than one item type, provide a comma- delimited list. "
+        },
+        {
+          "name": "pin_status",
+          "type": "string",
+          "required": false,
+          "about": "Filter by pinned status: 'any' returns all items and 'pinned' returns only pinned items."
+        },
+        {
+          "name": "continuation",
+          "type": "string",
+          "required": false,
+          "about": "If the success response contains a continuation token, the folder contains more items you can list. You can use this token as a query parameter and retrieve more items from the list, for example `/v1/folders/{folderId}/items?continuation={continuation}`. To retrieve all the items in a folder, you mi"
+        }
+      ],
+      "scopes": [
+        "folder:read"
+      ],
+      "tags": [
+        "folder",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List User Designs",
+      "slug": "CANVA_LIST_USER_DESIGNS",
+      "kind": "read",
+      "description": "Lists one page of Canva user design metadata, with search, ownership filtering for owned and shared designs, and sorting options. Use the response continuation token to retrieve further pages.",
+      "inputs": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "The number of designs to return. Minimum 1, maximum 100, default 25."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Lets you search the user\"s designs, and designs shared with the user, using a search term or terms. "
+        },
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false,
+          "about": "Sort the list of designs. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending order. - `ti"
+        },
+        {
+          "name": "ownership",
+          "type": "string",
+          "required": false,
+          "about": "Filter the list of designs based on the user\"s ownership of the designs. This can be one of the following: - `owned`: Designs owned by the user. - `shared`: Designs shared with the user. - `any`: Designs owned by and shared with the user. "
+        },
+        {
+          "name": "continuation",
+          "type": "string",
+          "required": false,
+          "about": "If the success response contains a continuation token, the list contains more designs you can list. You can use this token as a query parameter and retrieve more designs from the list, for example `/v1/designs?continuation={continuation}`. To retrieve all of a user\"s designs, you might need to make "
+        }
+      ],
+      "scopes": [
+        "design:meta:read"
+      ],
+      "tags": [
+        "design",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Move item to specified folder",
+      "slug": "CANVA_MOVE_ITEM_TO_SPECIFIED_FOLDER",
+      "kind": "write",
+      "description": "Transfers an item to a different folder by specifying both the destination folder's ID and the item's ID. If the item is in various folders, an error occurs; manual relocation via Canva UI is required.",
+      "inputs": [
+        {
+          "name": "item_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the item you want to move. Item IDs are alphanumeric strings, 1-50 characters. Design IDs have format like 'DAFVztcvd9z', folder IDs like 'FAF2lZtloor', and asset IDs like 'Msd59349ff'. Obtain item IDs from the List designs, List folder items, or other Canva API endpoints. Note: Video asse"
+        },
+        {
+          "name": "to_folder_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the folder you want to move the item to (the destination folder). Folder IDs are alphanumeric strings (e.g., 'FAF2lZtloor'), 1-50 characters. Use the special ID 'root' to move the item to the top level of a Canva user's projects, or 'uploads' for the Uploads folder. Obtain folder IDs from "
+        }
+      ],
+      "scopes": [
+        "folder:write"
+      ],
+      "tags": [
+        "folder",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create new Canva design",
+      "slug": "CANVA_POST_DESIGNS",
+      "kind": "send",
+      "description": "Creates a Canva design from a preset type, custom dimensions, an image asset, an existing design, or a brand template; an image asset can also be inserted with a preset or custom type. Copying designs and using brand templates are preview features; returns design ID, edit/view URLs, and metadata.",
+      "inputs": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "about": "Creation mode. Omit or use 'type_and_asset' for a preset/custom design or asset; use 'design' to copy a design; use 'brand_template' to copy a brand template. The copy modes are Canva preview features."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "Design name (1-255 characters). Appears in Canva UI and design lists."
+        },
+        {
+          "name": "asset_id",
+          "type": "string",
+          "required": false,
+          "about": "Image asset ID to insert into the design. Currently supports image assets only. Must be a valid asset ID from a previously uploaded asset."
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of the existing Canva design to copy when type is 'design'"
+        },
+        {
+          "name": "design_type",
+          "type": "",
+          "required": false,
+          "about": "Design type configuration. Can be a preset name string ('doc', 'email', 'whiteboard', 'presentation') which will be auto-converted to the required format, or a nested object for preset (e.g., {'type': 'preset', 'name': 'presentation'}) or custom dimensions (e.g., {'type': 'custom', 'width': 1080, 'h"
+        },
+        {
+          "name": "page_numbers",
+          "type": "array",
+          "required": false,
+          "about": "One-based page numbers to copy from a design or brand template. If omitted, all pages are copied."
+        },
+        {
+          "name": "brand_template_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of the Canva brand template to copy when type is 'brand_template'"
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "design_creation_and_organization",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Post designs designid comments",
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS",
+      "kind": "send",
+      "description": "Creates a comment thread on a Canva design. Use when you need to add feedback or collaboration comments to a specific design. Rate limited to 100 requests per minute per user. This is a preview API. Public integrations that use it cannot pass Canva's review process.",
+      "inputs": [
+        {
+          "name": "designId",
+          "type": "string",
+          "required": true,
+          "about": "The design ID where the comment will be created. Must match pattern ^[a-zA-Z0-9_-]{1,50}$"
+        },
+        {
+          "name": "assignee_id",
+          "type": "string",
+          "required": false,
+          "about": "Optional user ID for assignment. If specified, the assignee must be mentioned in the message using [user_id:team_id] format."
+        },
+        {
+          "name": "message_plaintext",
+          "type": "string",
+          "required": true,
+          "about": "The comment message in plaintext shown in Canva UI. Must be between 1 and 2048 characters. User mentions use format [user_id:team_id]."
+        }
+      ],
+      "scopes": [
+        "comment:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "collaboration_and_permissions",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create reply to comment thread",
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES",
+      "kind": "send",
+      "description": "Tool to create a reply to a comment or suggestion thread on a Canva design. Use when you need to respond to existing comments or suggestions. Maximum 100 replies per thread allowed. This is a preview API. Public integrations that use it cannot pass Canva's review process.",
+      "inputs": [
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": true,
+          "about": "The design identifier. Must match pattern ^[a-zA-Z0-9_-]{1,50}$"
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "The identifier of the thread to reply to. Must match pattern ^[a-zA-Z0-9_-]{1,50}$"
+        },
+        {
+          "name": "message_plaintext",
+          "type": "string",
+          "required": true,
+          "about": "The reply text content. Must be between 1 and 2048 characters. Users can be mentioned using the format [user_id:team_id]."
+        }
+      ],
+      "scopes": [
+        "comment:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "collaboration_and_permissions",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Start design export job",
+      "slug": "CANVA_POST_EXPORTS",
+      "kind": "send",
+      "description": "Starts a new asynchronous job to export a Canva design file. Use when exporting designs to various formats (PDF, JPG, PNG, GIF, PPTX, MP4, CSV, and HTML). Returns a job ID that can be used to poll for completion status and download URLs. IMPORTANT: Format compatibility varies by design type. Before exporting, use the CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS action to check which formats are supported for the specific design. Attempting to export in an unsupported format will result in a 400 error (e.g., 'png export not supported for this design type').",
+      "inputs": [
+        {
+          "name": "format",
+          "type": "",
+          "required": true,
+          "about": "Export format configuration. Specify the format type and format-specific options. Exported files remain available for download for 24 hours. IMPORTANT: Not all formats are supported for all design types. Use GET /v1/designs/{designId}/export-formats to check which formats are supported for a specifi"
+        },
+        {
+          "name": "design_id",
+          "type": "string",
+          "required": true,
+          "about": "The identifier of the design to export (e.g., 'DAGz4y3LDFI')"
+        }
+      ],
+      "scopes": [
+        "design:content:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "exports_and_formats",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create folder",
+      "slug": "CANVA_POST_FOLDERS",
+      "kind": "send",
+      "description": "Tool to create a folder in Canva. Use when you need to organize designs, assets, or create nested folder structures in a user's projects or uploads folder.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The display name for the new folder. Must be 1-255 characters. Duplicate names are allowed."
+        },
+        {
+          "name": "parent_folder_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the destination location. Use 'root' for top-level projects, 'uploads' for the uploads folder, or a specific folder ID to nest within another folder. Must be 1-50 characters."
+        }
+      ],
+      "scopes": [
+        "folder:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "design_creation_and_organization",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create URL Import Job",
+      "slug": "CANVA_POST_URL_IMPORTS",
+      "kind": "send",
+      "description": "Tool to start an asynchronous job to import an external file from a URL as a new design in Canva. Use when you need to import a design from a publicly accessible URL. This is an async operation; poll the job status using the job ID until it reaches 'success' or 'failed'.",
+      "inputs": [
+        {
+          "name": "url",
+          "type": "string",
+          "required": true,
+          "about": "The URL of the file to import. This URL must be accessible from the internet and be publicly available (1-2048 characters)."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "Name assigned to the imported design (1-255 characters)."
+        },
+        {
+          "name": "mime_type",
+          "type": "string",
+          "required": false,
+          "about": "Supported design-import MIME type (for example, 'application/pdf' or 'application/vnd.apple.keynote'). It is normalized to a lowercase media type without parameters. Canva attempts automatic detection if omitted or empty (1-100 characters when provided)."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "media_ingestion_uploads_and_imports",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Remove folder and move contents to trash",
+      "slug": "CANVA_REMOVE_FOLDER_AND_MOVE_CONTENTS_TO_TRASH",
+      "kind": "write",
+      "description": "Deletes a folder by moving the user's content to Trash and reassigning other users' content to their top-level projects.",
+      "inputs": [
+        {
+          "name": "folderId",
+          "type": "string",
+          "required": true,
+          "about": "The folder ID."
+        }
+      ],
+      "scopes": [
+        "folder:write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "folder",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve app public key set",
+      "slug": "CANVA_RETRIEVE_APP_PUBLIC_KEY_SET",
+      "kind": "read",
+      "description": "Returns the Json Web Key Set (public keys) of an app. These keys are used to verify JWTs sent to app backends.",
+      "inputs": [
+        {
+          "name": "appId",
+          "type": "string",
+          "required": true,
+          "about": "The app ID. Must be 1-50 alphanumeric characters, underscores, or hyphens."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "app",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve asset metadata by id",
+      "slug": "CANVA_RETRIEVE_ASSET_METADATA_BY_ID",
+      "kind": "read",
+      "description": "You can retrieve the metadata of an asset by specifying its `assetId`.",
+      "inputs": [
+        {
+          "name": "assetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the asset."
+        }
+      ],
+      "scopes": [
+        "asset:read"
+      ],
+      "tags": [
+        "asset",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve brand template dataset definition",
+      "slug": "CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION",
+      "kind": "read",
+      "description": "Gets the dataset definition for a brand template. Available to users on plans with brand-template access, such as Canva Pro, Canva Teams, or Canva Enterprise. Data fields can contain images, text, and charts; chart data is a preview feature.",
+      "inputs": [
+        {
+          "name": "brandTemplateId",
+          "type": "string",
+          "required": true,
+          "about": "The brand template ID."
+        }
+      ],
+      "scopes": [
+        "brandtemplate:content:read"
+      ],
+      "tags": [
+        "brand_template",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve brand template metadata",
+      "slug": "CANVA_RETRIEVE_CANVA_ENTERPRISE_BRAND_TEMPLATE_METADATA",
+      "kind": "read",
+      "description": "Retrieves metadata for a brand template. Available to users on plans with brand-template access, such as Canva Pro, Canva Teams, or Canva Enterprise.",
+      "inputs": [
+        {
+          "name": "brandTemplateId",
+          "type": "string",
+          "required": true,
+          "about": "The brand template ID."
+        }
+      ],
+      "scopes": [
+        "brandtemplate:meta:read"
+      ],
+      "tags": [
+        "brand_template",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve design autofill job status",
+      "slug": "CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS",
+      "kind": "read",
+      "description": "Retrieves a design autofill job result. Canva Enterprise users are eligible, while paid-plan users can use a limited development trial. Poll until the status is `success` or `failed`.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The design autofill job ID."
+        }
+      ],
+      "scopes": [
+        "design:meta:read"
+      ],
+      "tags": [
+        "autofill",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve design import job status",
+      "slug": "CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS",
+      "kind": "read",
+      "description": "Retrieves a design import job's status and result. Poll until success or failure; a successful import returns a list of imported designs and their metadata.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "The design import job ID."
+        }
+      ],
+      "scopes": [
+        "design:content:write"
+      ],
+      "tags": [
+        "design_import",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve Design Resize Job Status",
+      "slug": "CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS",
+      "kind": "read",
+      "description": "Retrieves the status and results of a design resize job. Polls for design resize job completion status. Use this after CANVA_CREATE_DESIGN_RESIZE_JOB to check the resize progress. Keep polling until status is 'success' or 'failed'. Successful jobs include the new design ID and temporary access URLs.",
+      "inputs": [
+        {
+          "name": "job_id",
+          "type": "string",
+          "required": true,
+          "about": "The resize job ID returned from create resize job endpoint"
+        }
+      ],
+      "scopes": [
+        "design:content:read",
+        "design:content:write"
+      ],
+      "tags": [
+        "resizes",
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieve folder details by id",
+      "slug": "CANVA_RETRIEVE_FOLDER_DETAILS_BY_ID",
+      "kind": "read",
+      "description": "Gets the name and other details of a folder using a folder's `folderID`.",
+      "inputs": [
+        {
+          "name": "folderId",
+          "type": "string",
+          "required": true,
+          "about": "The folder ID."
+        }
+      ],
+      "scopes": [
+        "folder:read"
+      ],
+      "tags": [
+        "folder",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Retrieveuserprofiledata",
+      "slug": "CANVA_RETRIEVE_USER_PROFILE_DATA",
+      "kind": "read",
+      "description": "Currently, this returns the display name of the user account associated with the provided access token. More user information is expected to be included in the future.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "profile:read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "user"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Revoke oauth tokens",
+      "slug": "CANVA_REVOKE_OAUTH_TOKENS",
+      "kind": "write",
+      "description": "Revoke an access token or refresh token. Revoking a refresh token also revokes its lineage and user consent, requiring re-authentication. Authenticate using either basic access with Base64-encoded credentials or body parameters with client ID and secret.",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "about": "The token to revoke."
+        },
+        {
+          "name": "client_id",
+          "type": "string",
+          "required": false,
+          "about": "Your integration\"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.  "
+        },
+        {
+          "name": "client_secret",
+          "type": "string",
+          "required": false,
+          "about": "Your integration\"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.  "
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "updateHint",
+        "oauth",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update asset s name and tags by id",
+      "slug": "CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID",
+      "kind": "write",
+      "description": "You can update the name and tags of an asset by specifying its `assetId`. Updating the tags replaces all existing tags of the asset.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "The name of the asset. This is shown in the Canva UI. When this field is undefined or empty, nothing is updated. Maximum length 50 characters. "
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "about": "The replacement tags for the asset. When this field is undefined, nothing is updated. Maximum length 50 tags. Each tag has a maximum length of 50 characters. "
+        },
+        {
+          "name": "assetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the asset."
+        }
+      ],
+      "scopes": [
+        "asset:write"
+      ],
+      "tags": [
+        "asset",
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update folder details by id",
+      "slug": "CANVA_UPDATE_FOLDER_DETAILS_BY_ID",
+      "kind": "write",
+      "description": "Updates a folder's details using its `folderID`. Currently, you can only update a folder's name.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The folder name, as shown in the Canva UI (1-255 characters)."
+        },
+        {
+          "name": "folderId",
+          "type": "string",
+          "required": true,
+          "about": "The folder ID."
+        }
+      ],
+      "scopes": [
+        "folder:write"
+      ],
+      "tags": [
+        "folder",
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Validate oauth token properties",
+      "slug": "CANVA_VALIDATE_OAUTH_TOKEN_PROPERTIES",
+      "kind": "write",
+      "description": "Check an access token's validity and properties via introspection, requiring authentication. Use Basic access (Base64 encoded `client_id:client_secret`) or body parameters for credentialing.",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "about": "The token to introspect."
+        },
+        {
+          "name": "client_id",
+          "type": "string",
+          "required": false,
+          "about": "Your integration\"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.  "
+        },
+        {
+          "name": "client_secret",
+          "type": "string",
+          "required": false,
+          "about": "Your integration\"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.  "
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "oauth",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Who Am I",
+      "slug": "CANVA_WHO_AM_I",
+      "kind": "write",
+      "description": "Returns the connected Canva account's user and team IDs and, when available, its profile display name. The top-level display name falls back to the user ID if the profile name is unavailable.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "auth"
+      ],
+      "deprecated": false
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/canva",
+  "fetched_at": "2026-11-12"
+}

@@ -1,0 +1,120 @@
+{
+  "path": "/integrations/outlook/download-outlook-attachment",
+  "type": "action",
+  "title": "Download an Outlook attachment with AI from its message",
+  "nav": "download an attachment",
+  "h1": "retrieve the actual file attached to an outlook email",
+  "description": "Ask a bot to retrieve a specific Outlook email attachment and name the downloaded copy. See which attachments work and which don't.",
+  "keyword": "download outlook attachment with ai",
+  "keywords": [
+    "outlook retrieve email attachment with ai",
+    "chatgpt download outlook attachments",
+    "claude get outlook attached file"
+  ],
+  "answer": "**get the delivery note out of the email before the van arrives.** a bot can find an outlook message, list its attachments and download the file you name. give the copy a filename you will recognise next week. read-only outlook access is enough. this action needs an actual attached file; cloud links and embedded items need a different route.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook",
+    "attachments",
+    "file retrieval"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-email-draft",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-parcel",
+      "s-mailbox"
+    ],
+    "bubble": "the actual attached file"
+  },
+  "og_line": "retrieve the attachment, not its link.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT"
+  },
+  "what": "**you name the email and file. the bot finds the rest.** describe the sender, subject and attachment you want.\n\nit finds the message, lists what's attached and saves the chosen file under a name you'll recognise. if two files look alike, ask it to show the choices before downloading.",
+  "uses": [
+    "**delivery paperwork:** get the supplier's attached note before a shipment arrives.",
+    "**a print proof:** retrieve the image attached to the customer's email.",
+    "**signed forms:** collect the file without forwarding the conversation."
+  ],
+  "routine": {
+    "message": "each friday at 13:15, search outlook for this week's delivery-note emails from beth at coldbrook fittings. list each message's attachments. download only actual pdf files and name the copies with their delivery references. return the files and subjects here. report links and embedded items as unsupported. never forward mail or move it to another folder.",
+    "when": "fridays at 13:15",
+    "needs": "outlook read only for finding messages, listing attachments and downloading files",
+    "output": "coldbrook fittings\n- email: delivery cb-217 paperwork, from beth\n- file: coldbrook-cb-217-note.pdf\n\ncloud link skipped: not an attached file."
+  },
+  "steps": [
+    "**connect read only.** that covers this outlook collection job.",
+    "**describe one file.** give the sender or subject. ask the bot to find the email and list its attachments.",
+    "**resolve lookalikes.** choose the right attachment and a useful filename.",
+    "**open the download.** open one copy before scheduling collections. pause if unsupported items keep appearing."
+  ],
+  "watch": [
+    "**a cloud link isn't a file attachment.** links and embedded items can't download through this action.",
+    "**similar names can hide different files.** match the filename to its sender and subject before downloading."
+  ],
+  "faq": [
+    {
+      "q": "can it download a cloud link attached to an email?",
+      "a": "**not through this action.** it needs the attached file itself. a link or embedded item won't do."
+    },
+    {
+      "q": "why does it need to list attachments first?",
+      "a": "**so it chooses the right file.** listing shows what the message actually carries, instead of guessing from a filename."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name one email and the attachment you want",
+      "ask the bot to list its attachments",
+      "choose the file and a useful saved name",
+      "open the downloaded copy"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to download a cloud link",
+      "fix": "list the attachments and look for a file, rather than a link."
+    },
+    {
+      "mistake": "trusting \"final.pdf\"",
+      "fix": "match it to the email, sender and other attachments first."
+    }
+  ],
+  "tip": {
+    "text": "the sender and subject often matter more than \"final.pdf\"."
+  },
+  "worked": {
+    "before": "delivery cb-217 paperwork\nbeth attached a pdf and included a separate cloud link.",
+    "after": "coldbrook-cb-217-note.pdf downloaded.\ncloud link skipped. original email stays where it was."
+  },
+  "voice": 2
+}

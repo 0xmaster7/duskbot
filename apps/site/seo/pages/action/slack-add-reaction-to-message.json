@@ -1,0 +1,126 @@
+{
+  "path": "/integrations/slack/add-reaction-to-message",
+  "type": "action",
+  "title": "Add Slack emoji reactions with AI under clear rules",
+  "nav": "add reaction to message",
+  "h1": "let a bot acknowledge a slack message with a reaction",
+  "description": "Have a bot add a specific Slack reaction to qualifying messages. Set the meaning of the emoji and learn why reaction changes do not ask first.",
+  "keyword": "slack add reaction with ai",
+  "keywords": [
+    "chatgpt react to slack message",
+    "claude add slack emoji reaction",
+    "ai slack message acknowledgement"
+  ],
+  "answer": "**acknowledge the handoff without adding another reply to the channel.** a bot can put an existing workspace emoji on the exact slack message you name. agree that eyes means received for review, so nobody mistakes it for approval. reactions count as writes and bypass sending approval. tell the bot to ask before reacting if you want each one reviewed.",
+  "tags": [
+    "slack",
+    "emoji",
+    "acknowledgement"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/search-messages"
+  ],
+  "og_line": "an acknowledgement with an agreed meaning.",
+  "what": "**the reaction belongs on one exact message.** the bot finds it through search or channel history before adding the emoji.\n\ngive the workspace emoji's name without colons. it must already exist. if the connected account already added that reaction, slack reports success. the same account cannot stack copies of its reaction.",
+  "uses": [
+    "**stock handoffs:** mark a count received when it includes a location and date.",
+    "**shift reports:** acknowledge one after checking its required details.",
+    "**expense requests:** use eyes to mean seen, rather than approved.",
+    "**delivery updates:** add the agreed receipt marker to the exact message."
+  ],
+  "routine": {
+    "message": "when a message arrives in #stock-handoffs, look for a completed count report with a location and count date. add eyes only to complete reports. it means received for review, not approved. tell me here which report you acknowledged. leave incomplete reports alone. never use a check mark, post a message or claim the figures are correct.",
+    "when": "when a message arrives in #stock-handoffs",
+    "needs": "slack read and write for reading messages and adding reactions",
+    "output": "conor: east loft count report, dated today\n- eyes added to the report\n- quantities still need review"
+  },
+  "steps": [
+    "**connect the workspace.** allow read and write for this bot's reaction job.",
+    "**agree on the meaning.** choose an existing emoji and explain what it signals.",
+    "**try one message.** open the message the bot found before it reacts.",
+    "**watch early runs.** inspect automations. pause if incomplete reports get acknowledgements."
+  ],
+  "watch": [
+    "**two similar posts?** the bot should ask which one you mean.",
+    "**custom emoji must already exist.** a new name won't create one.",
+    "**an existing reaction counts as success.** the same account will not add a second copy.",
+    "**slack events arrive at once.** your local bot still needs an awake computer and an open dusk app."
+  ],
+  "faq": [
+    {
+      "q": "does adding a reaction use the message sending approval?",
+      "a": "**no. it counts as a write.** tell the bot to ask before each reaction if you want that checkpoint."
+    },
+    {
+      "q": "can i use our custom handoff emoji?",
+      "a": "**yes, if the workspace has it.** give the exact name without the outer colons."
+    },
+    {
+      "q": "will it keep stacking the same emoji on a message?",
+      "a": "**no. the same account cannot stack copies.** slack treats an existing reaction as success."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "slack"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-button",
+      "p-bubbles"
+    ],
+    "bubble": "mark the handoff received"
+  },
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_ADD_REACTION_TO_AN_ITEM"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "pick one handoff message",
+      "choose an existing emoji and explain its meaning",
+      "ask for the reaction on that exact message",
+      "open the message in slack and look for the emoji"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using a check mark for \"received\"",
+      "fix": "choose an emoji your team won't mistake for approval."
+    },
+    {
+      "mistake": "assuming success means a new reaction",
+      "fix": "look at who already added that emoji."
+    }
+  ],
+  "tip": {
+    "text": "agree on what the emoji means before letting a bot use it."
+  },
+  "worked": {
+    "before": "conor posts an east loft count with a date. nobody knows if it reached the reviewer.",
+    "after": "eyes appears on that report.\nmeaning: received for review. figures still need review."
+  },
+  "voice": 2
+}

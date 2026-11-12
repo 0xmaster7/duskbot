@@ -1,0 +1,78 @@
+<header class="phead wrap dl-hero">
+  <div class="dl-lead">
+    <h1>download dusk bot</h1>
+    <p class="lede">open it, sign in to the ai you already use, and your first bot is working a couple of minutes later. free for personal use, no account needed.</p>
+    <div class="dl-main" data-dl-page>
+{{#released}}
+      <a class="btn dark" href="{{dl mac-arm64}}" data-os-link data-windows="{{dl windows}}" data-linux="{{dl linux-deb}}"><span class="dl-os">{{os apple}}</span><span data-os-label>download for mac</span></a>
+      <p class="dl-note" data-os-note>for apple silicon. on an intel mac, <a href="{{dl mac-x64}}">get the intel build</a>.</p>
+      <template data-for="windows">for windows 10 and 11. the installer needs no admin rights.</template>
+      <template data-for="linux">a .deb for ubuntu 24.04. rather have an appimage? <a href="{{dl linux-appimage}}">it's here</a>.</template>
+      <template data-for="phone">the desktop app is where your bots run. on your phone, you text them with <a href="#phone">the phone app</a>.</template>
+      <p class="dl-also">also for <a href="#mac">mac</a><a href="#windows">windows</a><a href="#linux">linux</a><a href="#phone">iphone and android</a></p>
+      <p class="dl-ver">{{#version}}version {{version}} · {{/version}}<a href="/changelog">what's new</a></p>
+{{/released}}
+{{^released}}
+      <a class="btn dark" href="/waitlist?source=download">join the waitlist</a>
+      <p class="notice">downloads open with the first public release. join the waitlist and we'll let you in early, or write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+{{/released}}
+    </div>
+  </div>
+</header>
+
+{{strip falls | hex orange, heart pink, star green}}
+
+<section class="wrap sec" id="all">
+  <div class="head"><h2>every platform.</h2></div>
+  <ul class="dl-rows">
+    <li id="mac" data-os="mac">
+      <span class="dl-ico">{{os apple}}</span>
+      <div><h3>mac<span class="yours" hidden>your system</span></h3><p>macos 12 or later. signed and notarized.</p></div>
+      <div class="dl-acts">{{#released}}<a class="btn" href="{{dl mac-arm64}}">apple silicon</a><a class="btn" href="{{dl mac-x64}}">intel</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
+    </li>
+    <li id="windows" data-os="windows">
+      <span class="dl-ico">{{os windows}}</span>
+      <div><h3>windows<span class="yours" hidden>your system</span></h3><p>windows 10 or 11, 64-bit. no admin rights needed.</p></div>
+      <div class="dl-acts">{{#released}}<a class="btn" href="{{dl windows}}">installer (.exe)</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
+    </li>
+    <li id="linux" data-os="linux">
+      <span class="dl-ico">{{os linux}}</span>
+      <div><h3>linux<span class="yours" hidden>your system</span></h3><p>ubuntu 24.04, 64-bit. in beta.</p></div>
+      <div class="dl-acts">{{#released}}<a class="btn" href="{{dl linux-deb}}">.deb</a><a class="btn" href="{{dl linux-appimage}}">appimage</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}</div>
+    </li>
+  </ul>
+
+  <div class="dl-phones" id="phone">
+    <div class="dl-phones-text">
+      <h3>text your bots from your phone</h3>
+      <p>the phone app pairs with your computer or your cloud by scanning a code. answer questions, approve things and get told when a bot is done.</p>
+      <a class="go" href="/docs/phone">how pairing works{{i arrow-right}}</a>
+    </div>
+    <ul class="dl-phone-list">
+      <li id="iphone" data-os="ios"><span class="dl-ico">{{os apple}}</span><b>iphone<span class="yours" hidden>your phone</span></b>{{#ios}}<a class="btn" href="{{ios-link}}">app store</a>{{/ios}}{{^ios}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/ios}}</li>
+      <li id="android" data-os="android"><span class="dl-ico">{{os android}}</span><b>android<span class="yours" hidden>your phone</span></b>{{#android}}<a class="btn" href="{{android-link}}">google play</a>{{/android}}{{^android}}{{#released}}<a class="btn" href="/docs/phone">use it in the browser</a>{{/released}}{{^released}}<span class="soon">soon</span>{{/released}}{{/android}}</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap sec dl-small" id="requirements">
+  <div>
+    <h2>what you need.</h2>
+    <dl class="specs one">
+      <div><dt>a computer</dt><dd>mac (macos 12+), windows 10 or 11, or ubuntu 24.04.</dd></div>
+      <div><dt>an ai</dt><dd>claude, chatgpt, gemini, grok or another ai you use. an api key or a local model works too.</dd></div>
+      <div><dt>a phone</dt><dd>optional. iphone or android.</dd></div>
+    </dl>
+    <p class="dl-fine">first time? <a href="/docs/getting-started">the two minute guide</a>. comfortable with servers? <a href="/docs/your-own-server">run it on your own</a>.</p>
+  </div>
+  <div id="verify">
+    <h2>check a download.</h2>
+    <p>every release lists each installer's sha-256 fingerprint in <code>SHA256SUMS</code>{{#released}} (<a href="{{sums}}">open it</a>){{/released}}. yours should match exactly.</p>
+    <p class="code-label">mac</p>
+    <div class="code"><pre><code>shasum -a 256 ~/Downloads/{{file mac-arm64}}</code></pre><button class="copy" type="button" data-copy>copy</button></div>
+    <p class="code-label">windows (powershell)</p>
+    <div class="code"><pre><code>Get-FileHash $HOME\Downloads\{{file windows}} -Algorithm SHA256</code></pre><button class="copy" type="button" data-copy>copy</button></div>
+    <p class="code-label">linux</p>
+    <div class="code"><pre><code>sha256sum ~/Downloads/{{file linux-deb}}</code></pre><button class="copy" type="button" data-copy>copy</button></div>
+  </div>
+</section>

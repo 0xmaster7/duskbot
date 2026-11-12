@@ -1,0 +1,127 @@
+{
+  "path": "/integrations/asana/get-a-task",
+  "type": "action",
+  "title": "Read an Asana task with AI: owner, date and instructions",
+  "nav": "read a task",
+  "h1": "ask what an asana task actually says",
+  "description": "Read the owner, due date and notes of a named Asana task with an AI bot. Know which details need to be requested and why comments are a separate lookup.",
+  "keyword": "read asana task with ai",
+  "keywords": [
+    "asana task details with ai",
+    "chatgpt read asana task",
+    "claude get asana task details",
+    "ask ai about asana task"
+  ],
+  "answer": "**start your shift knowing who owns the work and when it's due.** name the asana task and project. a bot reads its owner, due date and instructions into a short brief. ask for those details by name; the default view can leave them out. your account controls which tasks it can open. comments need their own lookup.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "asana",
+    "task-details",
+    "instructions"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/asana",
+    "/integrations/asana/create-task-comment"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "s-notebook",
+      "p-magnifier"
+    ],
+    "bubble": "read the task notes"
+  },
+  "og_line": "the task details before you begin.",
+  "action": {
+    "toolkit": "asana",
+    "slug": "ASANA_GET_A_TASK"
+  },
+  "what": "**chase the right person with the current instructions in hand.** the bot finds the task in the project's list, then opens it. ask for owner, due date and notes by name.\n\nit returns the supported details you request. add a separate read of comments when you need the discussion behind the task.",
+  "uses": [
+    "**start your shift with the current instructions.** read the task from your phone.",
+    "**find the owner before chasing an update.** don't guess from an old planning note.",
+    "**settle a date mismatch.** compare the task's deadline with your planning notes.",
+    "**turn instructions into a checklist.** keep the original notes untouched."
+  ],
+  "routine": {
+    "message": "every weekday at 8:30, read the dispatch instructions task in the warehouse operations project in asana. ask for its current notes, owner and due date. give me a short shift brief here. flag missing details. never edit the task or mark it complete. never treat a blank date as today's deadline.",
+    "when": "weekdays at 8:30",
+    "needs": "asana connected with read only access for this bot",
+    "output": "dispatch instructions\nowner: farah. due: 19 november.\npack the fernwell order separately. check the delivery address before labelling.\ncollection time: missing."
+  },
+  "steps": [
+    "connect asana in **connected apps**. give this bot read only access.",
+    "name the project and task. ask it to show the match first.",
+    "ask for notes, owner and due date. tell it to flag blanks.",
+    "read the first shift brief. use **edit** on the routine card to change it."
+  ],
+  "watch": [
+    "**your account sets the boundary.** the bot cannot open a task you cannot read.",
+    "**put the details you need in the request.** owner, due date and notes can be absent from the short view.",
+    "**notes aren't the discussion.** ask for task comments and history as a separate read."
+  ],
+  "faq": [
+    {
+      "q": "can it read a task from just its name?",
+      "a": "**yes, with the project name too.** the bot searches that project's task list, then opens the match. repeated titles need a closer look before it answers."
+    },
+    {
+      "q": "why did the bot miss the owner or due date?",
+      "a": "**ask for them by name.** they might not come back in the short view. they might also be blank. ask the bot to tell you which happened."
+    },
+    {
+      "q": "will reading the task mark it complete?",
+      "a": "**no. this action only reads.** read only access also blocks the bot from editing or completing tasks."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect asana as read only",
+      "name one project and task",
+      "ask for its owner, due date and notes",
+      "open the task and compare the answer"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking 'what's happening with dispatch?'",
+      "fix": "give the project and task title. broad questions invite the wrong match."
+    },
+    {
+      "mistake": "treating a blank deadline as overdue",
+      "fix": "ask it to say 'no due date', then ask the owner."
+    }
+  ],
+  "tip": {
+    "text": "the task tells you what to do. the comments often tell you why it changed."
+  },
+  "checklist": {
+    "h": "before you rely on the brief",
+    "items": [
+      "the task sits in the right project",
+      "the bot asked for owner, date and notes",
+      "missing details stay visibly missing",
+      "comments have their own read when needed"
+    ]
+  },
+  "voice": 2
+}

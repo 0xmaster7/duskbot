@@ -1,0 +1,136 @@
+{
+  "path": "/use-cases/newsletter",
+  "type": "use-case",
+  "title": "AI newsletter agent: a weekly draft you still want to edit",
+  "nav": "newsletter",
+  "h1": "a weekly newsletter draft from the sources you choose",
+  "description": "Draft a weekly newsletter from your chosen sources and past issues. Keep links, flag thin material and leave the final editorial and sending decisions to you.",
+  "keyword": "ai agent newsletter",
+  "keywords": [
+    "ai newsletter generator",
+    "ai agent content repurposing"
+  ],
+  "answer": "**get thursday's first draft without losing thursday afternoon.** give the bot your audience brief, source links and past issues. it picks fresh material, drafts the issue and keeps links beside the claims.\n\nyou get something to edit in dusk chat. the routine stops there; you choose what deserves a place in readers' inboxes.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "newsletter",
+    "writing",
+    "editorial",
+    "weekly"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/social-media-posting",
+    "/use-cases/competitor-monitoring"
+  ],
+  "art": {
+    "props": [
+      "p-newspaper",
+      "s-notebook"
+    ],
+    "bubble": "issue ready to review"
+  },
+  "og_line": "your sources, a draft, your final say.",
+  "routine": {
+    "intro": "**put the ingredients where the bot can find them next week.** keep your audience brief, source links and past issues in a newsletter folder. it reads those files each run. you need no mailing-platform connection.",
+    "message": "every thursday at 3pm, read the audience brief and source list in my newsletter folder. read the past-issues folder to see what we covered. open the listed sources and draft next week's issue here for independent workshop owners.\n\nuse material published since the latest issue. mark older material as background. choose one main item and two short notes only if the sources justify them.\n\nfor each item, say what happened, why workshop owners might care and where to read the source. keep the source link beside it. write original summaries, not copied articles.\n\ninclude a subject, opening and closing question. finish with editorial notes: missing dates, unavailable sources and claims needing your review. skip the issue if nothing merits it. never invent quotes, results or personal experiences. never send or publish.",
+    "when": "thursdays at 15:00, with time to review before next week",
+    "needs": "a readable newsletter folder with audience brief, source links and past issues; a bot able to open web pages",
+    "output": "draft for the fenrith field letter\n\nsubject: what the next person needs to know\nopening: a handover is easier when the next question has somewhere to go.\nmain item: sonia's workshop notes describe a handover card with space for that question. source: handover-card notes in the newsletter folder.\nshort notes: held back; no other dated source fits.\nclosing: what information is usually missing when a job reaches you?\neditorial note: ask sonia before quoting the private notes."
+  },
+  "sections": [
+    {
+      "h": "the source list decides what belongs",
+      "md": "**a thin week should produce a thin draft.** give each source a reason to be there: original reporting, product updates or a trusted reference. say which topics to exclude. don't fill space with nearby news.\n\nkeep past issues in the folder too. an updated article can repeat an old announcement. the bot should compare against what you already covered.\n\nneed new sources? run a focused [market research brief](/use-cases/market-research) before expanding the list."
+    },
+    {
+      "h": "draft here, publish from your editor",
+      "md": "**arrive in your editor with the writing already started.** copy the edited draft into your newsletter tool. open the links and read the subject and recipient list there. publishing stays with you.[^3]\n\nwant another format from approved notes? try [social posting](/use-cases/social-media-posting). read that version in its own context before sharing."
+    },
+    {
+      "h": "skipping an issue is a valid result",
+      "md": "**send the good issue, skip the filler.** sources can be inaccessible, undated or thin. ask for an editorial question when the material won't carry an issue. read the original before putting your name on its claim.\n\nfor letters about product changes, [competitor monitoring](/use-cases/competitor-monitoring) can help keep a dated change list.\n\nlocal drafting needs an awake machine and dusk running. [dusk cloud](/docs/dusk-cloud) keeps the job available while your computer is off."
+    }
+  ],
+  "safeguards": [
+    "**keep the issue in draft.** this routine ends in dusk chat; publish from your editor.",
+    "**get permission for private notes.** ask before quoting, and keep quotations brief.",
+    "**open the links in your editor.** make sure each leads to the source you used.",
+    "**cut unsupported claims.** a stronger subject line is no reason to invent a result."
+  ],
+  "faq": [
+    {
+      "q": "what is an ai newsletter agent useful for?",
+      "a": "**selection and a first draft from sources you maintain.** use it when the material exists but needs a shape. editorial judgment stays with you."
+    },
+    {
+      "q": "can it write my personal opening?",
+      "a": "**give it your real experience in a note.** otherwise ask for a neutral opening. it should not invent what happened to you."
+    },
+    {
+      "q": "will the weekly issue send while i sleep?",
+      "a": "**this routine only drafts.** you publish the finished issue yourself. local drafting stops while the computer sleeps."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "make a folder with an audience brief and source links",
+      "add your latest issue so it can avoid repeats",
+      "ask for one main item with its source link",
+      "read the source before setting the weekly schedule"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "forcing three items from one useful source",
+      "fix": "let the bot hold the short notes back or skip an issue."
+    },
+    {
+      "mistake": "asking it to sound personal without giving an experience",
+      "fix": "write the real note first, or choose a neutral opening."
+    },
+    {
+      "mistake": "mistaking an updated article for new news",
+      "fix": "compare against past issues, including the original announcement date."
+    }
+  ],
+  "worked": {
+    "intro": "invented editorial example with a made-up editor",
+    "before": "francesca has one useful source and a brief asking for three items. two dated sources could not be opened.",
+    "after": "one main item drafted. short notes held back. editorial note names both unavailable sources.\n\nfrancesca can edit the useful item instead of cutting two invented ones."
+  },
+  "checklist": {
+    "h": "before the issue leaves your editor",
+    "items": [
+      "every claim has a source you can open",
+      "old material is clearly marked as background",
+      "personal experience comes from your own notes",
+      "private quotations have permission",
+      "the subject and recipient list match this issue"
+    ]
+  },
+  "tip": {
+    "text": "a short issue worth opening beats a long one you padded to hit a quota."
+  },
+  "voice": 2
+}

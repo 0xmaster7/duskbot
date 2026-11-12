@@ -1,0 +1,5 @@
+[
+  { "id": "start", "title": "start here", "art": "s-map", "bot": "circle blue" },
+  { "id": "using", "title": "using bots well", "art": "s-notebook", "bot": "heart pink" },
+  { "id": "help", "title": "account and help", "art": "s-books", "bot": "drop yellow" }
+]

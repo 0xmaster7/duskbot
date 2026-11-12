@@ -1,0 +1,116 @@
+{
+  "path": "/integrations/notion/insert-row-database",
+  "type": "action",
+  "title": "Add Notion database rows with AI from your approved notes",
+  "nav": "add database row",
+  "h1": "turn a clear request into a notion database row",
+  "description": "Turn an approved decision into a Notion database row with matching columns and a short page body. See how to keep missing fields and duplicate rows out.",
+  "keyword": "notion add database row with ai",
+  "keywords": [
+    "chatgpt insert notion database row",
+    "claude create notion database entry",
+    "ai turn notes into notion rows"
+  ],
+  "answer": "**get the approved purchase out of your notes and into the tracker.** a bot adds a notion database row with table properties and a short page body. missing fields can stay empty. share the database with the connection first, and use a database with one data source. put any approval step in the request.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion",
+    "add database row"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/move-page"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "s-button"
+    ],
+    "bubble": "add the approved entry"
+  },
+  "og_line": "your notes, in the right database fields.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_INSERT_ROW_DATABASE"
+  },
+  "what": "**put the headline in the table and the detail inside the row.** properties fill the columns; content blocks hold the longer note. paste the database link and have the bot read its columns first.\n\nkeep entries short. long text can lose its ending, and extra blocks arrive after the page exists. open the body to see the whole note. this inserts a new row rather than updating an old one.",
+  "uses": [
+    "record a confirmed equipment purchase in your purchasing database",
+    "add an accepted research proposal with its short brief inside",
+    "log a workshop booking after the date and organiser agree",
+    "save an idea with its source and leave undecided fields empty"
+  ],
+  "routine": {
+    "message": "every thursday at 12:35, read new approval files added this week to the 'approved purchases' google drive folder for thistledown theatre. look for existing entries in the linked notion purchasing database. show proposed rows here with the source file and matching columns. ask me before you change anything. create only the rows i confirm, with short source notes. never guess costs or update old rows. if an insert result is uncertain, look for the row before trying again.",
+    "when": "thursdays at 12:35",
+    "needs": "google drive read only; notion read and write; a single-source database shared with the connection",
+    "output": "thistledown theatre purchase preview\nitem: portable lectern\nsource: approved purchases / lectern-approval.pdf\ncost: missing, left empty\nconfirm this preview to create the row."
+  },
+  "steps": [
+    "connect notion and share the intended database with the connection",
+    "allow **read and write**, limited to inspection and insertion",
+    "match one short entry to the actual columns before inserting",
+    "open the saved row and its body; pause if anything went missing"
+  ],
+  "watch": [
+    "**choose a database with one data source.** this action cannot insert into a multi-source database.",
+    "**a row can exist before its whole body arrives.** inspect long notes and extra blocks.",
+    "**inserts do not ask first by default.** put the review instruction in your message."
+  ],
+  "faq": [
+    {
+      "q": "is a database row different from a notion page?",
+      "a": "**the row is a page inside the database.** its properties fill the table. its content blocks form the page body."
+    },
+    {
+      "q": "will it replace a row with the same title?",
+      "a": "**each insert adds a fresh row.** look for an existing entry before retrying an uncertain result, even when the title is the same."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "share one notion database with the connection",
+      "ask the bot to read its columns",
+      "preview one short row with missing fields empty",
+      "confirm, then inspect the row and body"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "retrying because the body looks unfinished",
+      "fix": "look for the row first. its body can still be arriving."
+    },
+    {
+      "mistake": "feeding the routine approvals buried in chat",
+      "fix": "point it at new approval files in a connected folder."
+    }
+  ],
+  "tip": {
+    "text": "an empty cost is more useful than a confident guess."
+  },
+  "voice": 2
+}

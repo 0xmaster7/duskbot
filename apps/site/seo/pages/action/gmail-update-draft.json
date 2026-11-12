@@ -1,0 +1,122 @@
+{
+  "path": "/integrations/gmail/update-draft",
+  "type": "action",
+  "title": "Edit an existing Gmail draft with AI without sending it",
+  "nav": "update a draft",
+  "h1": "revise a gmail draft without starting over",
+  "description": "Tell your bot “shorter” and get a better Gmail draft. Keep the recipients and subject, with every attachment added again when the message is rebuilt.",
+  "keyword": "edit gmail draft with ai",
+  "keywords": [
+    "gmail update draft with ai",
+    "chatgpt edit gmail draft",
+    "claude revise gmail email draft"
+  ],
+  "answer": "**say \"shorter\" instead of rewriting the email yourself.** a bot can revise a saved gmail draft's wording, subject or recipients. it updates the draft without sending it.\n\nevery edit rebuilds the message, so attachments need adding again. ask for a proposed revision if you want to read it before the saved draft changes.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "drafts",
+    "editing"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/list-drafts",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-notebook",
+      "s-parcel"
+    ],
+    "bubble": "keep the attachment"
+  },
+  "og_line": "shorter draft, same files attached.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_UPDATE_DRAFT"
+  },
+  "what": "**keep the proposal attached while you cut the waffle.** the bot replaces the draft's message. recipients, subject and body stay as they were unless you ask to change them. files need adding again, even for a one-word edit.\n\nhave it retrieve the existing attachments first and stop if one is missing. a shorter email still needs the proposal it promises.",
+  "uses": [
+    "**cut a long proposal.** keep the pricing pdf attached while shortening the wording.",
+    "**fix the introduction before sending.** correct its recipient and subject on the saved draft.",
+    "**use the confirmed delivery date.** replace the tentative one without rewriting everything.",
+    "**finish the sign-off.** ask it to add your configured gmail signature."
+  ],
+  "routine": {
+    "message": "each wednesday at 3, find gmail drafts about kiln deliveries created or changed during the past week. show each recipient and subject, then propose a shorter body here. ask me before updating any draft.\n\nkeep its recipients and subject. retrieve and reattach every existing file; stop if one is unavailable. skip drafts that need no change. never send or edit unrelated drafts.",
+    "when": "wednesdays at 15:00",
+    "needs": "gmail read and write, limited to draft listing, updating and required file retrieval",
+    "output": "proposed revision for noor at willowquay ceramics\n\nsubject: kiln delivery\nbody: delivery is confirmed for thursday. handling notes attached.\nfile to keep: kiln-handling.pdf\n\nread this version before it replaces the saved draft."
+  },
+  "steps": [
+    "**allow draft edits.** connect gmail with read and write, restricted to the needed actions.",
+    "**find the saved message.** list drafts with full details, including recipient, subject and files.",
+    "**ask for the revision first.** say which parts stay, and require every attachment again.",
+    "**open the saved result in gmail.** look at the recipients and attachments, then try recurring edits. pause if it picks the wrong draft."
+  ],
+  "watch": [
+    "**the files must go back in.** keeping the recipient or subject does not preserve attachments.",
+    "**show everyone on the email.** ask for the full recipient list after the edit, including copies."
+  ],
+  "faq": [
+    {
+      "q": "will old attachments survive a wording change?",
+      "a": "**only if the bot adds them again.** tell it to stop if a file is missing."
+    },
+    {
+      "q": "can it change the draft without asking?",
+      "a": "**yes, if you allow draft updates.** put a review step in the request; draft edits do not ask automatically."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose one saved draft with an attachment",
+      "ask for a shorter version, without saving",
+      "require the same recipient, subject and files",
+      "allow the edit, then inspect the attachment"
+    ]
+  },
+  "worked": {
+    "intro": "invented draft, with a made-up sender and customer",
+    "before": "noor writes to willowquay ceramics: please see the attached delivery notes. i am writing to confirm that the delivery date is thursday.\nfile: delivery-notes.pdf",
+    "after": "proposed body: delivery is confirmed for thursday. notes attached.\n\nsame recipients and subject. delivery-notes.pdf added again. ready to read in gmail."
+  },
+  "mistakes": [
+    {
+      "mistake": "checking only the new wording",
+      "fix": "open the attachments too. replacing a draft does not keep them automatically."
+    },
+    {
+      "mistake": "editing the same old proposal every week",
+      "fix": "review new or changed drafts. skip anything that needs no revision."
+    }
+  ],
+  "tip": {
+    "text": "open the file before admiring the shorter sentence."
+  },
+  "voice": 2
+}

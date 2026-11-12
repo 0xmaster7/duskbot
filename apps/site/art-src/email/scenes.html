@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>dusk email art</title>
+<style>
+  @font-face { font-family: 'General Sans'; src: url(../../public/landing/fonts/general-sans.woff2) format('woff2'); font-weight: 200 700; }
+  @font-face { font-family: 'Pixelify Sans'; src: url(../../public/landing/fonts/pixelify-sans.woff2) format('woff2'); font-weight: 400 700; }
+  html, body { margin: 0; background: #fff; }
+  canvas { display: block; image-rendering: pixelated; }
+</style></head>
+<body>
+<script>
+// the email art: the waitlist's world (sky, lilac line, lime meadow, a mascot on its hill), one tiny scene per email
+// with the mascot acting out the news. ?scene=<name>, drawn at the 2x size.
+// served from ~/Desktop/code so the sprites in omb-ref load; render.mjs screenshots every pair
+const SPRITES = '/omb-ref/brand/x-banners/lib/sprites/';
+const W_ = { white: '#fdfdfd', pink: '#ffc4dd', lemon: '#fff3a0', lemonDeep: '#ffe25c', ink: '#212121', sky: '#c2ecfc', lilac: '#d0cefb', grey: '#9a9aa6' };
+// the sky tells the news: day for hello and done, gold for paid, rain for card trouble, sunset for a nap or a warning,
+// night for gone. each scene names its sky
+const day = [W_.white, W_.pink, W_.lemon], dim = ['#c9cbe6', '#d99ab8', '#d8cf7e'];
+const SKIES = {
+  day: { sky1: '#3cd0fd', sky4: '#90e4fc', sky5: '#c2ecfc', line: '#d0cefb', ground: '#c9f63f', fleck: '#c0ee36', stars: false, flowers: day },
+  gold: { sky1: '#3cd0fd', sky4: '#90e4fc', sky5: '#fff3a0', line: '#ffe25c', ground: '#c9f63f', fleck: '#c0ee36', stars: false, flowers: day },
+  rain: { sky1: '#8fa6c0', sky4: '#aebfd2', sky5: '#c8d5e2', line: '#c9c6e6', ground: '#b6d548', fleck: '#a8c83f', stars: false, flowers: day },
+  dusk: { sky1: '#6c3fa3', sky4: '#d9649b', sky5: '#ffb08f', line: '#f7b6c8', ground: '#bcd93c', fleck: '#aecb33', stars: false, flowers: day },
+  late: { sky1: '#2a2266', sky4: '#8a4aa6', sky5: '#e0739a', line: '#b58ad0', ground: '#9cc232', fleck: '#8fb52b', stars: true, flowers: dim },
+  night: { sky1: '#111d4f', sky4: '#1b2c6b', sky5: '#2a3f86', line: '#5b54b8', ground: '#86b02a', fleck: '#7ca424', stars: true, flowers: dim },
+};
+const SKY_OF = { code: 'day', welcome: 'day', 'cloud-ready': 'day', receipt: 'gold', payment: 'rain', napping: 'dusk', 'heads-up': 'dusk', 'cloud-gone': 'night', bye: 'late', promo: 'day' };
+const T = SKIES[SKY_OF[new URLSearchParams(location.search).get('scene')] ?? 'day'];
+let seed = 7;
+const rnd = () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const load = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('load ' + src)); i.src = src; });
+const COLOURS = {};
+const bot = async (name) => { const img = await load(SPRITES + 'bot-' + name + '.png'); COLOURS[name] = bodyColour(img); return img; };
+
+let ctx, W, H; const B = 10, S = 5;
+function canvas(w, h) { const cv = document.createElement('canvas'); cv.width = W = w; cv.height = H = h; document.body.append(cv); ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; }
+const snap = (v, b = B) => Math.round(v / b) * b;
+const rect = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+
+function bodyColour(img) {
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height).data, count = {};
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && !(d[i] > 230 && d[i + 1] > 230 && d[i + 2] > 230)) { const k = `rgb(${d[i]},${d[i + 1]},${d[i + 2]})`; count[k] = (count[k] || 0) + 1; }
+  return Object.entries(count).sort((a, b) => b[1] - a[1])[0][0];
+}
+// closed eyes: each tall white eye becomes one white line at its bottom
+function sleepy(img) {
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+  const id = x.getImageData(0, 0, c.width, c.height), d = id.data, body = bodyColour(img).match(/\d+/g).map(Number);
+  const white = (i) => d[i + 3] > 200 && d[i] > 230 && d[i + 1] > 230 && d[i + 2] > 230;
+  const bottom = {};
+  for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) if (white((y * c.width + xx) * 4)) bottom[xx] = y;
+  for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) {
+    const i = (y * c.width + xx) * 4;
+    if (white(i) && bottom[xx] !== y) { d[i] = body[0]; d[i + 1] = body[1]; d[i + 2] = body[2]; }
+  }
+  x.putImageData(id, 0, 0); return c;
+}
+
+// the waitlist sky: banded, the edges scattered into the next band. bands: [[colour, y]]
+function bands(list, s0 = 11) {
+  list.forEach(([c, y], i) => rect(c, 0, y, W, (list[i + 1]?.[1] ?? H) - y));
+  seed = s0;
+  for (let i = 1; i < list.length; i++) {
+    const [c, y] = list[i], [cp] = list[i - 1];
+    [0.42, 0.16, 0.05].forEach((p, k) => { for (let x = 0; x < W; x += B) {
+      if (rnd() < p && y - (k + 1) * B >= 20) rect(c, x, y - (k + 1) * B, B, B);
+      if (k === 0 && rnd() < 0.1) rect(cp, x, y, B, B);
+    } });
+  }
+}
+function stars(top, bottom, n, s0 = 9) {
+  seed = s0;
+  for (let i = 0; i < n; i++) {
+    const x = snap(rnd() * W, S), y = snap(top + rnd() * (bottom - top), S);
+    ctx.fillStyle = rnd() < 0.3 ? '#fff3a0' : '#fdfdfd';
+    if (rnd() < 0.2) { ctx.fillRect(x, y - S, S, 3 * S); ctx.fillRect(x - S, y, 3 * S, S); } else ctx.fillRect(x, y, S, S);
+  }
+}
+// the world under the email's title: sky down to the lilac line, the meadow with a hill, grass and flowers
+function world(G, hill, s0 = 11) {
+  bands([[T.sky1, 0], [T.sky4, snap(G * 0.6)], [T.sky5, snap(G * 0.8)]], s0);
+  if (T.stars) stars(30, G * 0.55, 26, s0);
+  const [hx, half, rise] = hill;
+  const top = (x) => { const d = Math.abs(x - hx) / half; return d < 1 ? snap(G - rise * (1 - d * d) ** 0.7) : G; };
+  for (let x = 0; x < W; x += B) { const y = top(x + B / 2); rect(T.line, x, y - B, B, B); rect(T.ground, x, y, B, H - y); }
+  seed = 4; ctx.fillStyle = T.fleck;
+  for (let i = 0; i < W / 14; i++) ctx.fillRect(snap(rnd() * W, S), snap(G + B + rnd() * (H - G - 4 * B), S), S * (rnd() < 0.5 ? 2 : 1), S);
+  seed = 2;
+  for (let i = 0; i < 9; i++) {
+    const x = snap(rnd() * W, S), y = snap(G + 3 * B + rnd() * (H - G - 7 * B), S);
+    if (Math.abs(x - hx) < half) continue;
+    rect(T.flowers[i % 3], x, y - S, S, S); rect(T.flowers[i % 3], x - S, y, S, S); rect(T.flowers[i % 3], x + S, y, S, S); rect(T.flowers[i % 3], x, y + S, S, S);
+    rect(i % 3 === 2 ? '#ffb020' : W_.lemonDeep, x, y, S, S);
+  }
+  return top;
+}
+function sprite(img, cx, footY, s, flip = false) {
+  const w = img.width * s, h = img.height * s, x = Math.round((cx - w / 2) / s) * s, y = footY - h;
+  ctx.save(); if (flip) { ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0, w, h); } else ctx.drawImage(img, x, y, w, h); ctx.restore();
+  return { x, y, w, h, s };
+}
+function shape(x0, y0, w, h, test, colour, b = S) { ctx.fillStyle = colour; for (let y = 0; y < h; y += b) for (let x = 0; x < w; x += b) if (test(x + b / 2, y + b / 2)) ctx.fillRect(x0 + x, y0 + y, b, b); }
+// the waitlist's chat bubble: white, stepped corners, a tinted underside and a stepped tail toward the speaker
+function bubble(text, x, y, under, tail = 'r') {
+  ctx.font = '500 34px "General Sans"';
+  const w = Math.ceil((ctx.measureText(text).width + 52) / S) * S, h = 70;
+  x = snap(x, S); y = snap(y, S);
+  const body = (px, py) => { const cx = Math.min(px, w - px), cy = Math.min(py, h - py); return !(cx < S && cy < S); };
+  shape(x, y + S, w, h, body, under); shape(x, y, w, h, body, W_.white);
+  const tx = tail === 'r' ? x + w - 9 * S : x + 5 * S;
+  for (let i = 0; i < 4; i++) { const xx = tail === 'r' ? tx + i * S : tx - i * S + 3 * S; rect(under, xx, y + h + i * S + S, (4 - i) * S, S); rect(W_.white, xx, y + h + i * S, (4 - i) * S, S); }
+  ctx.fillStyle = W_.ink; ctx.textBaseline = 'middle'; ctx.fillText(text, x + 26, y + h / 2 + 1);
+}
+// one block of the mascot's own colour, held up at its side
+const paw = (who, sp, side, lift = 2) => { const u = sp.s; rect(COLOURS[who], side === 'r' ? sp.x + sp.w : sp.x - 2 * u, sp.y + 3 * u - lift * u, 2 * u, 3 * u); };
+// a raised arm, stepping up and out from the side: a wave
+const wave = (who, sp, side) => { const u = sp.s, d = side === 'r' ? 1 : -1, x0 = side === 'r' ? sp.x + sp.w : sp.x - 2 * u;
+  for (let i = 0; i < 3; i++) rect(COLOURS[who], x0 + d * i * u, sp.y + (5 - 2 * i) * u, 2 * u, 3 * u); };
+
+// the one pixel object each mascot holds, in units of u
+const objects = {
+  key(x, y, u) { rect(W_.lemonDeep, x, y, 4 * u, 4 * u); rect(T.sky1 === '#3cd0fd' ? W_.lemon : W_.lemon, x + u, y + u, 2 * u, 2 * u); rect(W_.lemonDeep, x + 4 * u, y + 1.5 * u, 6 * u, u); rect(W_.lemonDeep, x + 8 * u, y + 2.5 * u, u, 1.5 * u); rect(W_.lemonDeep, x + 6 * u, y + 2.5 * u, u, u); },
+  cloud(x, y, u) { const body = [[2, 0, 6], [1, 1, 9], [0, 2, 12], [0, 3, 12]]; for (const [dx, dy, n] of body) rect(W_.white, x + dx * u, y + dy * u, n * u, u); rect(W_.lemon, x + u, y + 4 * u, 10 * u, u); rect(W_.white, x + 5 * u, y - u, 3 * u, u); },
+  receipt(x, y, u) { rect(W_.white, x, y, 7 * u, 9 * u); for (let i = 0; i < 7; i += 2) rect(W_.white, x + i * u, y + 9 * u, u, u); for (const r of [2, 4, 6]) rect('#c9c9d2', x + u, y + r * u, (r === 6 ? 3 : 5) * u, u / 2); rect(W_.ink, x + u, y + u, 2 * u, u / 2); },
+  card(x, y, u) { rect('#ff9cc6', x, y, 10 * u, 6 * u); rect(W_.ink, x, y + u, 10 * u, u); rect(W_.lemon, x + u, y + 3 * u, 2 * u, 1.5 * u); },
+  hourglass(x, y, u) { rect('#7a5a2a', x, y, 6 * u, u); rect('#7a5a2a', x, y + 8 * u, 6 * u, u); rect(W_.white, x + u, y + u, 4 * u, 3 * u); rect(W_.white, x + 2 * u, y + 4 * u, 2 * u, u); rect(W_.white, x + u, y + 5 * u, 4 * u, 3 * u); rect(W_.lemonDeep, x + 2 * u, y + 2 * u, 2 * u, 2 * u); rect(W_.lemonDeep, x + u, y + 7 * u, 4 * u, u); },
+  suitcase(x, y, u) { rect('#7a5a2a', x + 2 * u, y, 3 * u, u); rect('#c98a3c', x, y + u, 7 * u, 5 * u); rect('#7a5a2a', x, y + 3 * u, 7 * u, u / 2); },
+  sparkle(x, y, u) { rect(W_.lemon, x + 2 * u, y, u, 5 * u); rect(W_.lemon, x, y + 2 * u, 5 * u, u); rect(W_.white, x + 2 * u, y + 2 * u, u, u); },
+  zzz(x, y, u) { ctx.fillStyle = W_.lemon; ctx.textBaseline = 'alphabetic'; ctx.font = '700 44px "Pixelify Sans"'; ctx.fillText('z', x, y + 60); ctx.font = '700 58px "Pixelify Sans"'; ctx.fillText('z', x + 40, y + 20); ctx.font = '700 72px "Pixelify Sans"'; ctx.fillText('z', x + 92, y - 30); },
+};
+
+const G = 290, HILL = [870, 230, 40], U = 8;
+const scenes = {
+  async code() {
+    canvas(1200, 400); const top = world(G, HILL, 13);
+    const sp = sprite(await bot('kit'), 870, top(870) + 5, U);
+    paw('kit', sp, 'l', 3); objects.key(sp.x - 12 * U, sp.y - 2 * U, U);
+    bubble("psst, it's a secret code.", 230, 70, W_.lemon);
+  },
+  async welcome() {
+    canvas(1200, 400); const top = world(G, HILL, 11);
+    for (const [n, x, flip] of [['pip', 150], ['mochi', 270], ['loaf', 390, true]]) sprite(await bot(n), x, G + 5, 5, flip);
+    const sp = sprite(await bot('kit'), 870, top(870) + 5, U);
+    wave('kit', sp, 'r');
+    bubble('hi! welcome!', 470, 70, W_.pink);
+  },
+  async 'cloud-ready'() {
+    canvas(1200, 400); const top = world(G, HILL, 17);
+    const sp = sprite(await bot('pip'), 870, top(870) + 5, U);
+    rect(COLOURS.pip, sp.x - U, sp.y - 3 * U, 2 * U, 4 * U); rect(COLOURS.pip, sp.x + sp.w - U, sp.y - 3 * U, 2 * U, 4 * U);
+    objects.cloud(sp.x - 3 * U, sp.y - 9 * U, U * 1.67);
+    bubble('special delivery!', 330, 90, W_.lemon);
+  },
+  async receipt() {
+    canvas(1200, 400); const top = world(G, HILL, 19);
+    const sp = sprite(await bot('loaf'), 870, top(870) + 5, U, true);
+    objects.receipt(sp.x - 9 * U, sp.y - 2 * U, U); paw('loaf', sp, 'l', -2);
+    bubble('paid. thank you!', 330, 80, W_.lemon);
+  },
+  async payment() {
+    canvas(1200, 400); const top = world(G, HILL, 23);
+    const sp = sprite(await bot('pip'), 900, top(900) + 5, U);
+    objects.card(sp.x - 14 * U, top(sp.x - 9 * U) - 6 * U + B, U);
+    seed = 4; for (let i = 0; i < 26; i++) { const x = snap(rnd() * W, S), y = snap(20 + rnd() * 200, S); if (x > sp.x - 2 * S && x < sp.x + sp.w + S && y + 3 * S > sp.y) continue; rect('#5f86c9', x, y, S, 3 * S); }
+    bubble('uh oh, card trouble.', 300, 80, W_.pink);
+  },
+  async napping() {
+    canvas(1200, 400); const top = world(G, HILL, 29);
+    const img = await bot('mochi'); const sp = sprite(sleepy(img), 870, top(870) + 5, U);
+    objects.zzz(sp.x + sp.w - 10, sp.y - 20, U);
+  },
+  async 'heads-up'() {
+    canvas(1200, 400); const top = world(G, HILL, 43);
+    const sp = sprite(await bot('cheep'), 870, top(870) + 5, U);
+    objects.hourglass(sp.x - 8 * U, sp.y - U, U); paw('cheep', sp, 'l', -1);
+    bubble('heads up!', 470, 80, W_.lemon);
+  },
+  async 'cloud-gone'() {
+    canvas(1200, 400); const top = world(G, HILL, 31);
+    const sp = sprite(await bot('wisp'), 870, top(870) + 5, U);
+    wave('wisp', sp, 'l');
+    objects.cloud(560, 40, U);
+    bubble('bye, little cloud!', 150, 110, W_.sky, 'r');
+  },
+  async bye() {
+    canvas(1200, 400); const top = world(G, [1010, 230, 40], 37);
+    const sp = sprite(await bot('kit'), 1000, top(1000) + 5, U, true);
+    objects.suitcase(sp.x + sp.w - U, sp.y + 7 * U, U);
+    bubble('bye for now!', 520, 80, W_.pink);
+  },
+  async promo() {
+    canvas(1200, 400); const top = world(G, HILL, 47);
+    for (const [n, x, flip] of [['pip', 170], ['mochi', 300, true]]) sprite(await bot(n), x, G + 5, 5, flip);
+    const sp = sprite(await bot('kit'), 870, top(870) + 5, U);
+    objects.sparkle(sp.x + sp.w / 2 - 2.5 * U * 1.6, sp.y - 10 * U, U * 1.6);
+    bubble('something new!', 430, 80, W_.lilac);
+  },
+};
+(async () => {
+  await document.fonts.load('500 34px "General Sans"'); await document.fonts.load('700 44px "Pixelify Sans"');
+  await scenes[new URLSearchParams(location.search).get('scene')]();
+  window.READY = true;
+})();
+</script></body></html>

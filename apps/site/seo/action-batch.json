@@ -1,0 +1,922 @@
+[
+ {
+  "path": "/integrations/gmail/fetch-emails",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_FETCH_EMAILS",
+  "name": "Fetch emails",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/reply-to-email-thread",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_REPLY_TO_THREAD",
+  "name": "Reply to email thread",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/send-email",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_SEND_EMAIL",
+  "name": "Send Email",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/get-gmail-attachment",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_GET_ATTACHMENT",
+  "name": "Get Gmail attachment",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/batch-modify-gmail-messages",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_BATCH_MODIFY_MESSAGES",
+  "name": "Batch modify Gmail messages",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/move-to-trash",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_MOVE_TO_TRASH",
+  "name": "Move to Trash",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/send-draft",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_SEND_DRAFT",
+  "name": "Send Draft",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/update-draft",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_UPDATE_DRAFT",
+  "name": "Update draft",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/search-people",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_SEARCH_PEOPLE",
+  "name": "Search People",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/untrash-message",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_UNTRASH_MESSAGE",
+  "name": "Untrash Message",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/delete-thread",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_DELETE_THREAD",
+  "name": "Delete thread",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/gmail/list-drafts",
+  "toolkit": "gmail",
+  "app": "Gmail",
+  "slug": "GMAIL_LIST_DRAFTS",
+  "name": "List Drafts",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/create-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_CREATE_EVENT",
+  "name": "Create Event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/find-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_FIND_EVENT",
+  "name": "Find event",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/query-calendar-availability",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_FREE_BUSY_QUERY",
+  "name": "Query Calendar Availability",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/list-events-from-all-calendars",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS",
+  "name": "List Events from All Calendars",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/patch-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_PATCH_EVENT",
+  "name": "Patch Event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/delete-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_DELETE_EVENT",
+  "name": "Delete event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/get-event-instances",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
+  "name": "Get Event Instances",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/create-a-new-calendar",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_CREATE_CALENDAR",
+  "name": "Create a new calendar",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/update-google-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_UPDATE_EVENT",
+  "name": "Update Google event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-calendar/get-event",
+  "toolkit": "googlecalendar",
+  "app": "Google Calendar",
+  "slug": "GOOGLECALENDAR_EVENTS_GET",
+  "name": "Get Event",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/send-message",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_SEND_MESSAGE",
+  "name": "Send message",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/fetch-conversation-history",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_FETCH_CONVERSATION_HISTORY",
+  "name": "Fetch conversation history",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/search-messages",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_SEARCH_MESSAGES",
+  "name": "Search messages",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/schedule-message",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_SCHEDULE_MESSAGE",
+  "name": "Schedule message",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/list-unread-channel-messages",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_LIST_UNREAD_CHANNEL_MESSAGES",
+  "name": "List unread channel messages",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/create-a-reminder",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_CREATE_A_REMINDER",
+  "name": "Create a reminder",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/add-reaction-to-message",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_ADD_REACTION_TO_AN_ITEM",
+  "name": "Add reaction to message",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/find-users",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_FIND_USERS",
+  "name": "Find users",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/create-slack-canvas",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_CREATE_CANVAS",
+  "name": "Create Slack Canvas",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/update-a-slack-message",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_UPDATES_A_SLACK_MESSAGE",
+  "name": "Update a Slack message",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/download-slack-file",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_DOWNLOAD_SLACK_FILE",
+  "name": "Download Slack file",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/slack/create-slack-list-item",
+  "toolkit": "slack",
+  "app": "Slack",
+  "slug": "SLACK_CREATE_SLACK_LIST_ITEM",
+  "name": "Create Slack List item",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/search-notion-pages-and-databases",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_SEARCH_NOTION_PAGE",
+  "name": "Search Notion pages and databases",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/create-notion-page",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_CREATE_NOTION_PAGE",
+  "name": "Create Notion page",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/query-database-with-filter",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_QUERY_DATABASE_WITH_FILTER",
+  "name": "Query database with filter",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/insert-row-database",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_INSERT_ROW_DATABASE",
+  "name": "Insert row database",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/get-page-markdown",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_GET_PAGE_MARKDOWN",
+  "name": "Get page markdown",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/add-multiple-content-blocks",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT",
+  "name": "Add multiple content blocks (bulk, user-friendly)",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/update-page",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_UPDATE_PAGE",
+  "name": "Update Page",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/create-comment",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_CREATE_COMMENT",
+  "name": "Create comment",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/fetch-comments",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_FETCH_COMMENTS",
+  "name": "Fetch comments",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/replace-page-content",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_REPLACE_PAGE_CONTENT",
+  "name": "Replace page content (with backup)",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/upsert-database-rows",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_UPSERT_ROW_DATABASE",
+  "name": "Upsert database rows",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/notion/move-page",
+  "toolkit": "notion",
+  "app": "Notion",
+  "slug": "NOTION_MOVE_PAGE",
+  "name": "Move Page",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/create-an-issue",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_CREATE_AN_ISSUE",
+  "name": "Create an issue",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/search-issues-and-pull-requests",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_SEARCH_ISSUES",
+  "name": "Search issues and pull requests",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/list-pull-requests",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_LIST_PULL_REQUESTS",
+  "name": "List pull requests",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/get-a-pull-request",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_GET_A_PULL_REQUEST",
+  "name": "Get a pull request",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/close-an-issue",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_CLOSE_ISSUE",
+  "name": "Close an issue",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/create-a-release",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_CREATE_A_RELEASE",
+  "name": "Create a release",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/compare-two-commits",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_COMPARE_TWO_COMMITS",
+  "name": "Compare two commits",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/list-releases",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_LIST_RELEASES",
+  "name": "List releases",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/add-labels-to-an-issue",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_ADD_LABELS_TO_AN_ISSUE",
+  "name": "Add labels to an issue",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/create-an-issue-comment",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_CREATE_AN_ISSUE_COMMENT",
+  "name": "Create an issue comment",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/list-notifications-for-authenticated-user",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_LIST_NOTIFICATIONS",
+  "name": "List notifications for authenticated user",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/github/list-repository-issues",
+  "toolkit": "github",
+  "app": "GitHub",
+  "slug": "GITHUB_LIST_REPOSITORY_ISSUES",
+  "name": "List repository issues",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/append-values-to-spreadsheet",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+  "name": "Append Values to Spreadsheet",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/get-spreadsheet-values",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_VALUES_GET",
+  "name": "Get spreadsheet values",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/create-a-google-sheet",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+  "name": "Create a Google Sheet",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/search-spreadsheets",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
+  "name": "Search Spreadsheets",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/update-spreadsheet-values",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_VALUES_UPDATE",
+  "name": "Update spreadsheet values",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/sort-range",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SORT_RANGE",
+  "name": "Sort Range",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/set-data-validation-rule",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SET_DATA_VALIDATION_RULE",
+  "name": "Set Data Validation Rule",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/export-sheet-as-pdf",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_EXPORT_SHEET_AS_PDF",
+  "name": "Export Sheet as PDF",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/upsert-rows",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_UPSERT_ROWS",
+  "name": "Upsert Rows (Smart Update/Insert)",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/set-basic-filter",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SET_BASIC_FILTER",
+  "name": "Set Basic Filter",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-sheets/copy-sheet-to-another-spreadsheet",
+  "toolkit": "googlesheets",
+  "app": "Google Sheets",
+  "slug": "GOOGLESHEETS_SPREADSHEETS_SHEETS_COPY_TO",
+  "name": "Copy Sheet to Another Spreadsheet",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/send-email",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_SEND_EMAIL",
+  "name": "Send email",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/reply-to-email",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_REPLY_EMAIL",
+  "name": "Reply to Email",
+  "kind": "send",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/create-email-draft",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_CREATE_DRAFT",
+  "name": "Create email draft",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/query-emails",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_QUERY_EMAILS",
+  "name": "Query Emails",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/move-message-to-folder",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_MOVE_MESSAGE",
+  "name": "Move message to folder",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/create-calendar-event",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_CALENDAR_CREATE_EVENT",
+  "name": "Create Calendar Event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/find-meeting-times",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_FIND_MEETING_TIMES",
+  "name": "Find Meeting Times",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/decline-calendar-event",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_DECLINE_EVENT",
+  "name": "Decline calendar event",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/create-to-do-task",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_CREATE_TASK",
+  "name": "Create To Do task",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/list-tasks-from-a-to-do-list",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_LIST_TODO_TASKS",
+  "name": "List tasks from a To Do list",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/download-outlook-attachment",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT",
+  "name": "Download Outlook attachment",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/outlook/search-calendar-events",
+  "toolkit": "outlook",
+  "app": "Outlook",
+  "slug": "OUTLOOK_SEARCH_EVENTS",
+  "name": "Search calendar events",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/excel/add-table",
+  "toolkit": "excel",
+  "app": "Excel",
+  "slug": "EXCEL_ADD_TABLE",
+  "name": "Add Table",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/excel/insert-range",
+  "toolkit": "excel",
+  "app": "Excel",
+  "slug": "EXCEL_INSERT_RANGE",
+  "name": "Insert Range",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/excel/search-drive-files",
+  "toolkit": "excel",
+  "app": "Excel",
+  "slug": "EXCEL_SEARCH_FILES",
+  "name": "Search Drive Files",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/excel/create-comment",
+  "toolkit": "excel",
+  "app": "Excel",
+  "slug": "EXCEL_CREATE_COMMENT",
+  "name": "Create Comment",
+  "kind": "send",
+  "important": false,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/find-file",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_FIND_FILE",
+  "name": "Find file",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/upload-file",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_UPLOAD_FILE",
+  "name": "Upload File",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/create-a-folder",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_CREATE_FOLDER",
+  "name": "Create a folder",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/move-file",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_MOVE_FILE",
+  "name": "Move File",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/export-google-workspace-file",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE",
+  "name": "Export Google Workspace file",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/create-permission",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_CREATE_PERMISSION",
+  "name": "Create Permission",
+  "kind": "write",
+  "important": true,
+  "drafted": false
+ },
+ {
+  "path": "/integrations/google-drive/list-file-revisions",
+  "toolkit": "googledrive",
+  "app": "Google Drive",
+  "slug": "GOOGLEDRIVE_LIST_REVISIONS",
+  "name": "List File Revisions",
+  "kind": "read",
+  "important": true,
+  "drafted": false
+ }
+]

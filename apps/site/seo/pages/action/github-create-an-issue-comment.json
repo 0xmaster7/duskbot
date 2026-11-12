@@ -1,0 +1,118 @@
+{
+  "path": "/integrations/github/create-an-issue-comment",
+  "type": "action",
+  "title": "Comment on GitHub issues with AI after reviewing the text",
+  "nav": "add an issue comment",
+  "h1": "write the github issue comment that moves things along",
+  "description": "Turn a GitHub issue discussion into a useful follow-up question or workaround. Read the proposed comment, then allow the bot to post it for you.",
+  "keyword": "comment github issue with ai",
+  "keywords": [
+    "github issue comment with ai",
+    "chatgpt post github comment",
+    "claude comment on github pull request"
+  ],
+  "answer": "**get the missing detail without writing another follow-up yourself.** the bot reads a github issue or pull request and drafts a markdown comment. paste the discussion link so it lands in the right repository.\n\ncomments count as sends. they ask by default, and you can set a daily amount for the bot.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "github",
+    "issue comments",
+    "sending"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/search-issues-and-pull-requests",
+    "/routines/github-issue-triage"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-bubbles",
+      "s-key"
+    ],
+    "bubble": "review before commenting"
+  },
+  "og_line": "the right comment on the right issue.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CREATE_AN_ISSUE_COMMENT"
+  },
+  "what": "**a good question gets the reporter unstuck.** paste the issue or pull request link. it gives the bot the account, repository and number. have it read the discussion so it asks for what's still missing.\n\nthis adds a new discussion comment. editing an old comment and reviewing specific code lines need other actions.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+  "uses": [
+    "**ask for the missing step.** review the question before the reporter sees it.",
+    "**share a confirmed workaround.** help people waiting on the issue without promising a release.",
+    "**follow up on a pull request.** leave a general comment when a line-by-line review is unnecessary."
+  ],
+  "routine": {
+    "message": "when a new issue opens in fernwharf-labs/relay, read it and its discussion. if the device model is missing, draft a short question asking for it. show the issue link and question here. post only after i allow it, then confirm here.\n\nnever promise a fix date or close the issue. if the reporter already gave the model, stay quiet.",
+    "when": "when a new issue opens in fernwharf-labs/relay",
+    "needs": "github read and write for reading and commenting; sending set to **Ask every time**",
+    "output": "fernwharf-labs/relay #68\n\nquestion for lior: which device model has the connection drop?\n\nopen the linked issue, read the question, then choose **Allow** or **Deny**."
+  },
+  "steps": [
+    "**allow only the work it needs.** connect github with reading and commenting actions for this bot.",
+    "**set the send rule.** choose **Ask every time**.",
+    "**start with one issue link.** ask for a comment based on the discussion, with no extra promises.",
+    "**read it where it will land.** confirm the repository and question, then choose **Allow**. early event runs appear in **automations**."
+  ],
+  "watch": [
+    "**issue numbers repeat across repositories.** use the full link with the owner, repository and issue number.",
+    "**people can read what you post.** remove private customer details even if they helped the investigation.",
+    "**use a general comment for discussion.** a fix still needs code, and a formal code review needs its own action.",
+    "**events arrive at once; sleeping bots cannot act.** local work needs the computer awake and the app open. dusk cloud stays on."
+  ],
+  "faq": [
+    {
+      "q": "can it comment on a pull request too?",
+      "a": "**yes.** paste its link and ask for a general discussion comment."
+    },
+    {
+      "q": "can every comment wait for me?",
+      "a": "**yes. set sending to Ask every time.** each comment then comes to you with an approval card."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste one github issue link",
+      "ask it to read the thread",
+      "ask for a question in your dusk chat",
+      "confirm the repository before allowing the post"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to comment on just #68",
+      "fix": "paste the full link. issue numbers repeat in other repositories."
+    },
+    {
+      "mistake": "turning a guess into a release promise",
+      "fix": "ask only for missing facts. keep dates out until someone confirms them."
+    }
+  ],
+  "tip": {
+    "text": "read the last reply before posting. somebody may have answered while you were drafting."
+  },
+  "voice": 2
+}

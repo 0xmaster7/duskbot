@@ -1,0 +1,185 @@
+{
+  "path": "/integrations/google-calendar",
+  "type": "integration",
+  "title": "Google Calendar AI assistant for gaps and meeting plans",
+  "nav": "google calendar",
+  "h1": "a calendar bot that finds you room to think",
+  "description": "Find room for focused work and spot tomorrow’s back-to-back meetings with a Google Calendar bot. Copy routines that bring the options to your chat.",
+  "keyword": "claude google calendar",
+  "keywords": [
+    "google calendar mcp",
+    "ai to manage my calendar",
+    "ai agent to manage my calendar"
+  ],
+  "answer": "**tomorrow is wall-to-wall meetings. find that out before tomorrow.** connect google calendar and have a dusk bot bring you the busy stretches, free slots and options for the week. choose the ai behind it. start with suggestions in chat and read-only access, so you can decide where to make room before touching anyone’s appointment.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "calendar",
+    "availability",
+    "focus time",
+    "planning"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/routines/weekly-calendar-preview",
+    "/routines/meeting-prep-brief",
+    "/integrations/outlook"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "s-notebook"
+    ],
+    "bubble": "room for focused work"
+  },
+  "og_line": "see the gaps before changing the week.",
+  "app": {
+    "name": "Google Calendar",
+    "toolkit": "googlecalendar",
+    "intro": "**find space for the work that meetings keep pushing out.**\n\nname your calendars, working hours and time zone. the bot reads events and suggests gaps in chat. tell it which breaks and travel time to protect; an empty slot is not always time you want to give away.",
+    "highlight": [
+      {
+        "slug": "GOOGLECALENDAR_LIST_CALENDARS",
+        "use": "**choose the calendars.** list those the connected account can access."
+      },
+      {
+        "slug": "GOOGLECALENDAR_GET_CALENDAR",
+        "use": "**plan from the right diary.** read its calendar details before looking for gaps."
+      },
+      {
+        "slug": "GOOGLECALENDAR_GET_CURRENT_DATE_TIME",
+        "use": "**pin down tomorrow.** get the current date and time before interpreting relative dates."
+      },
+      {
+        "slug": "GOOGLECALENDAR_FIND_EVENT",
+        "use": "**recover the meeting you half remember.** search by a person, topic or date."
+      },
+      {
+        "slug": "GOOGLECALENDAR_FIND_FREE_SLOTS",
+        "use": "**make room for focused work.** find uninterrupted space between commitments."
+      },
+      {
+        "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
+        "use": "**list the dates in a repeating series.** dusk treats this action as a change; read-only bots use find event instead."
+      },
+      {
+        "slug": "GOOGLECALENDAR_CREATE_EVENT",
+        "use": "**add an agreed block.** creating it needs write access."
+      },
+      {
+        "slug": "GOOGLECALENDAR_UPDATE_EVENT",
+        "use": "**move the appointment you chose.** make only the edit you asked for."
+      }
+    ],
+    "setup": "**connect the calendar you actually work from.**\n\nsign in through connected apps and enable it for your planning bot. say which calendar counts as work and which time zone to use.\n\ncommitments across accounts? connect each account separately. label them clearly so the bot can tell work from personal."
+  },
+  "routines_intro": "**get the calendar review before the week gets away from you.** copy a job and change its working hours. all three return suggestions in chat and leave events alone.",
+  "routines": [
+    {
+      "name": "focus block shortlist",
+      "message": "every sunday at 6 in the evening, read next week’s work google calendar. find two uninterrupted 90-minute slots between 9 and 5. avoid lunchtime. show the dates and explain the options here. never create or change events.",
+      "when": "sundays at 18:00",
+      "output": "two possible focus blocks, with dates and times"
+    },
+    {
+      "name": "tomorrow’s breathing room",
+      "message": "every weekday at 4:30, read tomorrow’s work google calendar. flag back-to-back meetings and gaps shorter than 15 minutes. suggest where i could request breathing room. return the suggestions here and leave all events unchanged.",
+      "when": "weekdays at 16:30",
+      "output": "a short warning about tomorrow’s busiest stretches"
+    },
+    {
+      "name": "recurring meeting review",
+      "message": "on the last friday of each month at 11, read the recurring-meeting list in your memory notes. find next month’s occurrences on my work google calendar. list their dates and the calendar space they occupy here. ask which series i want to keep reviewing. never cancel or change any.",
+      "when": "last friday of the month at 11:00",
+      "output": "an inventory of next month’s recurring meetings"
+    }
+  ],
+  "asks": "**keep control of the week by starting read only.** you can limit the bot to the app actions it needs. allow focus-block creation later without opening every calendar change.\n\ncreating, moving and deleting events are app edits. they do not wait on the sending rule. before allowing writes, say \"ask me before you change anything\" and name the exact calendar and event.",
+  "cannot": [
+    "**a suggestion reserves nothing.** read-only bots cannot move or create events.",
+    "**missing calendars mean missing commitments.** the bot cannot include accounts you never connected.",
+    "**run the review on a machine that will be awake.** local runs missed by less than 12 hours run once when you return. older runs skip; dusk cloud runs on time."
+  ],
+  "sections": [
+    {
+      "h": "say what free time means",
+      "md": "**protect lunch before asking for free time.** include working hours, breaks and travel time. if dates look wrong, ask which time zone the routine uses.\n\nthe [weekly calendar preview](/routines/weekly-calendar-preview) brings you the broader week before you choose what to move."
+    },
+    {
+      "h": "walk into the meeting with the background too",
+      "md": "**once you have the date, get the context.** a [meeting prep routine](/routines/meeting-prep-brief) uses the background material that a calendar slot cannot give you.\n\nif the appointments live in microsoft, use [outlook](/integrations/outlook). connect that calendar separately from google."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can ai help without moving meetings?",
+      "a": "**yes, keep it read only.** ask for events, gaps and suggestions in chat. leave event-changing actions disabled."
+    },
+    {
+      "q": "will it ask before rescheduling?",
+      "a": "**put the pause in the request before allowing writes.** say \"show the proposed time and wait for my go-ahead\". rescheduling is an app edit, so send approval does not cover it."
+    },
+    {
+      "q": "why did the routine run at the wrong time?",
+      "a": "**ask which time zone the routine uses.** give it yours and your working hours, then look at the next runs on its card."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: connected calendars",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: schedules and time zones",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: troubleshooting",
+      "url": "/docs/troubleshooting"
+    },
+    {
+      "label": "dusk bot docs: permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect your work calendar with read only",
+      "give your working hours and time zone",
+      "ask for one free 90-minute slot next week",
+      "compare the proposed gap with your breaks and travel time"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "letting the bot call lunchtime free",
+      "fix": "put lunch and travel boundaries in the request."
+    },
+    {
+      "mistake": "connecting only half your commitments",
+      "fix": "include the relevant calendars before trusting a free-slot suggestion."
+    }
+  ],
+  "checklist": {
+    "h": "before asking it to change a meeting",
+    "items": [
+      "the bot found the right calendar and event",
+      "the proposed date and time zone match what you want",
+      "the request says ask before changing anything",
+      "the bot has only the change actions the job needs"
+    ]
+  },
+  "tip": {
+    "text": "ask for two options. the first free gap is not always the one you want."
+  },
+  "voice": 2
+}

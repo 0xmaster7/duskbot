@@ -1,0 +1,151 @@
+{
+  "path": "/guides/claude-code-routines",
+  "type": "guide",
+  "title": "Claude Code routines are now scheduled tasks: a guide",
+  "nav": "claude code scheduled tasks",
+  "h1": "claude code routines are now called scheduled tasks",
+  "description": "Understand Claude Code cloud scheduled tasks, local tasks and /loop, including what runs with your laptop closed and how dusk bot routines differ.",
+  "keyword": "claude code routines",
+  "keywords": [
+    "claude code schedule tasks",
+    "claude code cron",
+    "claude code loop"
+  ],
+  "answer": "**your code review can run while the laptop is shut.** claude code routines are now called cloud scheduled tasks. save a prompt, repositories and connectors once, then trigger it by schedule, api call or github event. as of 12 november 2026, anthropic hosts them in research preview. local desktop tasks and /loop still need an awake computer.[^1][^2][^3]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude-code",
+    "scheduling",
+    "routines",
+    "cloud"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-scheduled-tasks",
+    "/scheduled-ai-tasks",
+    "/agents-when-laptop-closed"
+  ],
+  "art": {
+    "label": "Claude Code",
+    "props": [
+      "s-clock",
+      "s-cloud"
+    ],
+    "bubble": "which computer runs it?"
+  },
+  "og_line": "three ways to repeat, with different homes.",
+  "sections": [
+    {
+      "h": "save the setup, not just the words",
+      "md": "**save the project context once instead of pasting it every morning.** a cloud task keeps three choices together:[^1]\n\n- prompt: what to do\n- repositories: the project files\n- connectors: the systems it can reach\n\nthat suits a recurring code review. a household reminder probably needs less setup. pick the job before learning another scheduler."
+    },
+    {
+      "h": "choose a frequency the scheduler can keep",
+      "md": "**the fastest recurring cloud task runs hourly.** as of 12 november 2026, the shortest recurring interval is one hour.[^1]\n\n- create one at **claude.ai/code/routines** or with **/schedule**\n- available on pro, max, ultra, team and enterprise\n- research preview; runs use your plan allowance\n- account ceiling: 100 scheduled runs per hour\n- run now, api fires and rerunning one-off tasks: 30 per hour per task\n\nthose ceilings count different things. 100 account runs does not give one recurring task a one-minute interval. the old name survives in the setup address."
+    },
+    {
+      "h": "three timers, three different homes",
+      "md": "**the machine matters more than the timer.** choose where the source files and tools live.\n\n- **cloud scheduled tasks:** anthropic runs them, including with your laptop closed.[^1]\n- **local tasks in the desktop app:** use your machine's files and tools. the app must stay open and the computer awake.[^2]\n- **/loop:** repeats inside an open claude code session. its minimum interval is one minute; the machine stays on.[^3]\n\na local folder and a cloud repository are different inputs. the [laptop-closed guide](/agents-when-laptop-closed) explains that boundary. before following a tutorial, find out which timer it means, or if it covers claude's main app instead."
+    },
+    {
+      "h": "cowork has its own scheduled tasks",
+      "md": "**cowork can work through the night too.** cowork and the new claude experience run saved prompts remotely, even while your computer sleeps.\n\nolder tasks created before 6 october 2026 that ran on your computer stay local.[^4] the [claude scheduled tasks guide](/guides/claude-scheduled-tasks) covers that split. open an older task and see where it runs before closing the laptop."
+    },
+    {
+      "h": "dusk routines start with a message",
+      "md": "**tell the bot what should repeat and read its card.** dusk returns the schedule and next runs. edit, pause or undo it there. automations shows a calendar and run history.[^5]\n\na connected-app event can start a routine too. local dusk routines stop while the app closes or the computer sleeps. missed by less than 12 hours? they run once when you return. older runs skip. dusk cloud runs them on time.[^5]\n\n[scheduled ai tasks](/scheduled-ai-tasks) compares those homes. decide whether a delayed result is still useful before paying for an always-on machine."
+    },
+    {
+      "h": "fix the job before repeating it",
+      "md": "**a schedule repeats mistakes just as faithfully as useful work.** name the input, result destination and reason to stay quiet. run the underlying job once. open its source references, then fill in missing context.\n\nin dusk, begin reading jobs with read-only app access.[^6] for later edits, include \"ask me before you change anything\". ordinary app edits do not automatically wait for approval.[^7]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "will claude code routines work with my laptop closed?",
+      "a": "**cloud tasks do. local ones need the machine.** desktop tasks need an open app and awake computer. /loop needs the open local session too.[^1][^2][^3]"
+    },
+    {
+      "q": "can i run a cloud scheduled task every minute?",
+      "a": "**not a recurring cloud task.** its minimum is one hour. /loop can repeat every minute inside an open local session.[^1][^3]"
+    },
+    {
+      "q": "do i need cron to make a dusk routine?",
+      "a": "**no. say the job and timing.** read the schedule card, then edit or pause it if needed.[^5]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "claude code: cloud scheduled tasks, formerly routines",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude code: desktop scheduled tasks",
+      "url": "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude code: scheduled tasks and loop",
+      "url": "https://code.claude.com/docs/en/scheduled-tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cowork scheduled tasks",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose a project and one reading job",
+      "write the source and the result you want",
+      "try it once without changes",
+      "choose cloud or local before adding the schedule"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "following an old routines tutorial blindly",
+      "fix": "look for cloud tasks, desktop tasks or /loop in its setup steps."
+    },
+    {
+      "mistake": "reading the account ceiling as a task frequency",
+      "fix": "cloud tasks still have a one-hour minimum."
+    },
+    {
+      "mistake": "scheduling a job that cannot find its files",
+      "fix": "test the source access once before repeating it."
+    }
+  ],
+  "tip": {
+    "text": "if the tutorial says \"leave the session open\", it is not describing a cloud task."
+  },
+  "checklist": {
+    "items": [
+      "i know which machine runs the job",
+      "the files and tools are available there",
+      "the frequency fits this scheduler's limits",
+      "one trial returned a result i could trace to the source",
+      "the job says when to stay quiet"
+    ]
+  },
+  "voice": 2
+}

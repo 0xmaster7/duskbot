@@ -1,0 +1,180 @@
+{
+  "path": "/integrations/linkedin",
+  "type": "integration",
+  "title": "LinkedIn AI assistant for post reviews, not inbox outreach",
+  "nav": "linkedin",
+  "h1": "a linkedin assistant for posts worth reading",
+  "description": "See what a dusk bot can do in LinkedIn: draft and publish posts, read page stats and company details. No inbox messages or connection requests.",
+  "answer": "**turn a useful customer question into your next linkedin post.** a dusk bot can draft in chat, publish posts and read named posts, company details and selected statistics. as of 12 november 2026, the toolkit has 29 actions. it has no inbox messaging, connection requests or general people search. give it the source posts and choose the ai you already sign in to.",
+  "tags": [
+    "professional-social",
+    "publishing",
+    "page-review"
+  ],
+  "connectors": [
+    "linkedin"
+  ],
+  "related": [
+    "/use-cases/social-media-posting",
+    "/integrations/twitter",
+    "/use-cases/lead-research"
+  ],
+  "art": {
+    "label": "LinkedIn",
+    "props": [
+      "p-briefcase",
+      "p-newspaper"
+    ],
+    "bubble": "review before you publish"
+  },
+  "og_line": "a content assistant with clear boundaries.",
+  "app": {
+    "name": "LinkedIn",
+    "toolkit": "linkedin",
+    "intro": "**give it the post that deserves a follow-up.** it can read that post, look up a profile or company, and gather available statistics. bring the links you want reviewed; the connection has no general people search.",
+    "highlight": [
+      {
+        "slug": "LINKEDIN_GET_MY_INFO",
+        "use": "show which account your post would appear under"
+      },
+      {
+        "slug": "LINKEDIN_GET_COMPANY_INFO",
+        "use": "pull the company description before drafting a post about it"
+      },
+      {
+        "slug": "LINKEDIN_GET_POST_CONTENT",
+        "use": "read the post you linked before writing a follow-up"
+      },
+      {
+        "slug": "LINKEDIN_GET_SHARE_STATS",
+        "use": "bring the share statistics into your monday review"
+      },
+      {
+        "slug": "LINKEDIN_GET_ORG_PAGE_STATS",
+        "use": "pull your organisation page statistics for the team meeting"
+      },
+      {
+        "slug": "LINKEDIN_LIST_REACTIONS",
+        "use": "show who reacted to the post you named"
+      },
+      {
+        "slug": "LINKEDIN_CREATE_LINKED_IN_POST",
+        "use": "publish the post you approved"
+      },
+      {
+        "slug": "LINKEDIN_CREATE_COMMENT_ON_POST",
+        "use": "add the comment you read and approved"
+      }
+    ],
+    "setup": "**start by asking which account is connected.** connect linkedin, confirm the identity and give the bot reading access. add the post links or company you want reviewed. private company stats still depend on what your linkedin account can see."
+  },
+  "routines_intro": "**get the page review before the meeting and the draft before you need to post.** these jobs work from named posts and companies, with proposed copy kept in dusk. they need no feed reader or inbox watcher.",
+  "routines": [
+    {
+      "name": "page review before the team meeting",
+      "message": "every monday at 11, read available linkedin page statistics for the organisation named in your memory notes. show each returned measure with its reporting period. flag missing data. don't claim a campaign caused a change without evidence. return the note here. never change or publish anything.",
+      "when": "mondays at 11:00",
+      "output": "a page review with reporting periods and visible gaps"
+    },
+    {
+      "name": "follow-up from a post you pick",
+      "message": "every wednesday at 2, read the linkedin post links added this week to the content review file in our project folder. pick one with a useful unanswered question. show its source, the question and proposed follow-up wording here. if there are no new links, say so briefly. never publish or comment.",
+      "when": "wednesdays at 14:00",
+      "output": "one follow-up proposal tied to a named source post"
+    },
+    {
+      "name": "company wording check",
+      "message": "on the first day each month at 10, read linkedin company information for the company named in your memory notes. compare its returned description with the approved company description file in our project folder. list wording differences here. never edit the company page or claim you can.",
+      "when": "first day monthly at 10:00",
+      "output": "a comparison with the approved company description"
+    }
+  ],
+  "asks": "**read the public words while they're still a private draft.** posts and comments ask first by default. a daily amount lets them go out within that limit.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.\n\nread only blocks uploads, publication and deletion. if you enable changes, allow the exact actions needed. for changes beyond sending, add 'ask me before changing anything'.",
+  "cannot": [
+    "**no inbox outreach.** none of the 29 actions reads or sends linkedin direct messages.",
+    "**no connection requests or general people search.** ad targeting search doesn't replace either one.",
+    "**no full feed or comment-inbox digest.** you can read named posts and reactions, and create comments. there's no general feed reader or comment list.",
+    "**no linkedin event triggers.** use scheduled reads rather than promising instant alerts.",
+    "**no local review while your computer sleeps.** dusk cloud keeps schedules running with your desktop off."
+  ],
+  "sections": [
+    {
+      "h": "give the writer facts it can point to",
+      "md": "**give the writer a fact worth saying in public.** keep approved wording and source post links in a file. tell the bot which facts it may use.\n\nfor [social posting](/use-cases/social-media-posting), decide who reviews before enabling publication. for [lead research](/use-cases/lead-research), use a separate workflow. this connection can't find people, email addresses or phone numbers."
+    },
+    {
+      "h": "keep the statistics brief small",
+      "md": "**put the measure and reporting period where the team can see them.** choose measures your team already uses. a reaction increase says people reacted; sales need their own evidence.\n\nhave the report name unavailable statistics so the team knows which questions remain open."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a linkedin ai agent send connection requests and messages?",
+      "a": "**not through this toolkit.** neither appears among its 29 actions. it supports posts and comments, with sending approval by default."
+    },
+    {
+      "q": "can claude write my linkedin posts?",
+      "a": "**yes. ask a dusk bot to draft in chat.** choose the ai and provide approved facts and source posts. publishing uses a separate action if you allow it later."
+    },
+    {
+      "q": "can it monitor every new comment automatically?",
+      "a": "**no. there are no event triggers or comment-listing action.** ask for a scheduled review of specific posts instead."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude linkedin",
+  "keywords": [
+    "linkedin mcp",
+    "linkedin ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect linkedin as read only",
+      "ask the bot to confirm the account",
+      "give it one post to review",
+      "ask for a follow-up draft in dusk chat only"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "planning a direct-message campaign here",
+      "fix": "the toolkit has no inbox messaging or connection requests."
+    },
+    {
+      "mistake": "calling a reaction increase a sales result",
+      "fix": "report the measure and period. keep causal guesses out."
+    }
+  ],
+  "checklist": {
+    "h": "before any public post",
+    "items": [
+      "the connected account is right",
+      "every company claim has a source",
+      "the wording has a human reviewer",
+      "sending is set to ask every time"
+    ]
+  },
+  "tip": {
+    "text": "one post worth answering beats a calendar full of copy with nothing to say."
+  },
+  "voice": 2
+}

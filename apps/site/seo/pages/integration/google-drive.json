@@ -1,0 +1,177 @@
+{
+  "path": "/integrations/google-drive",
+  "type": "integration",
+  "title": "Google Drive AI assistant for file finding and tidy reviews",
+  "nav": "google drive",
+  "h1": "a google drive assistant that finds the right file",
+  "description": "Find files, inspect sharing and plan folder moves with dusk bot and Google Drive. Copy three routines that keep the first review read only.",
+  "answer": "**walk into the meeting with the approved packet, not the newer notes beside it.** a google drive bot finds files, reads their details and inspects sharing. connect drive, choose its ai and start read only. it can hand you candidates and filing proposals. folder creation and moves need write access and an ask-first instruction if you want review.",
+  "tags": [
+    "files",
+    "google",
+    "sharing",
+    "organisation"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/use-cases/file-organizer",
+    "/integrations/google-sheets",
+    "/integrations/gmail"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "p-folder",
+      "p-magnifier"
+    ],
+    "bubble": "find the current copy"
+  },
+  "og_line": "find the file, then decide what moves.",
+  "app": {
+    "name": "Google Drive",
+    "toolkit": "googledrive",
+    "intro": "**find the copy your team actually approved.** give the bot a folder or file description and your approval rule. ask for the name, folder and last-changed date beside each candidate. a newer notes file can sit right next to the signed-off packet.",
+    "highlight": [
+      {
+        "slug": "GOOGLEDRIVE_FIND_FILE",
+        "use": "find this week's meeting packet in the folder you name"
+      },
+      {
+        "slug": "GOOGLEDRIVE_GET_FILE_METADATA",
+        "use": "put the folder and last-changed date beside each matching copy"
+      },
+      {
+        "slug": "GOOGLEDRIVE_LIST_PERMISSIONS",
+        "use": "show who has access to the handover file"
+      },
+      {
+        "slug": "GOOGLEDRIVE_LIST_COMMENTS",
+        "use": "pull the open questions from comments on the brief"
+      },
+      {
+        "slug": "GOOGLEDRIVE_LIST_REVISIONS",
+        "use": "trace the revisions when you have competing copies"
+      },
+      {
+        "slug": "GOOGLEDRIVE_DOWNLOAD_FILE",
+        "use": "download the file your connected account can access"
+      },
+      {
+        "slug": "GOOGLEDRIVE_CREATE_FOLDER",
+        "use": "make a destination folder after you agree on its purpose"
+      },
+      {
+        "slug": "GOOGLEDRIVE_MOVE_FILE",
+        "use": "put the signed agreement in its project folder under your filing rules"
+      }
+    ],
+    "setup": "**keep the search in the right account.**\n\nconnect the google account holding the files. name the folder or file to start from, and begin with read-only permission.\n\nlabel work and personal accounts separately. you can connect up to five accounts per app. use the label in your request."
+  },
+  "routines_intro": "**give the search a home and a rule.** name the folder and explain how you mark approved files. each run should find current work, not rearrange drive behind your back.",
+  "routines": [
+    {
+      "name": "find the meeting packet",
+      "message": "every monday at 8, search my steering meeting folder in google drive for this week's packet. list candidate names and available last-changed dates here. use the approved-file naming rule in your memory notes. if several fit, show the choices. never move or rename files.",
+      "when": "mondays at 8:00",
+      "output": "this week's packet candidates, with unclear versions flagged"
+    },
+    {
+      "name": "sharing review for handover",
+      "message": "each thursday at 11, inspect files currently in my google drive handover folder. read the access checklist file in that folder and compare it with the permissions returned for each file. list differences and failed lookups here. never change permissions or create sharing links.",
+      "when": "thursdays at 11:00",
+      "output": "sharing differences for the handover owner to review"
+    },
+    {
+      "name": "folder move proposal",
+      "message": "every friday at 2, inspect files currently in our google drive intake folder. match them to destination folders using the naming rules in your memory notes. show a filing proposal here and hold unclear matches for me. never create folders or move files.",
+      "when": "fridays at 14:00",
+      "output": "a filing proposal, with ambiguous destinations left open"
+    }
+  ],
+  "asks": "**plan the tidy-up with read-only access.** dusk blocks folder creation, moves and sharing changes before they reach drive. a filing proposal needs none of them.\n\nif you later allow moves, write \"ask me before you change anything\". moves and sharing changes skip sending approval.[^3]\n\n- allow only the lookups, move file and create folder actions the job needs\n- broad write access can also allow deletion, emptying trash and public sharing without asking\n- comments and replies count as sends; those ask unless you allow a daily amount\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+  "cannot": [
+    "**move files while read only.** the same limit blocks renaming and sharing changes. a filing proposal needs none of them.",
+    "**export a google doc, sheet or slide while read only.** dusk counts that export as a change. allow only that action if needed.",
+    "**choose the approved copy without your rule.** give a naming rule or reference list. if several files fit, the bot should show the choices.",
+    "**run while its local host sleeps.** dusk cloud keeps scheduled reviews running when your computer is off."
+  ],
+  "sections": [
+    {
+      "h": "get the list right before organising",
+      "md": "**moving the wrong file makes a tidy mess.** start with candidates and proposed destinations. use plain rules, such as where signed documents belong. unclear cases stay for review. [file organisation](/use-cases/file-organizer) has a broader routine.\n\nfor rows and formulas, use [google sheets](/integrations/google-sheets). drive also has spreadsheet-value actions. keep them outside a filing bot's allowance."
+    },
+    {
+      "h": "tell it how your team marks approval",
+      "md": "**the packet you need can be older than yesterday's notes.** tell the bot what marks a file ready: an approved folder, a naming rule or a reference list.\n\nuse revisions and last-changed dates to trace the candidates. choose by your team's approval rule, then take the packet into the meeting."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt find a file in my google drive?",
+      "a": "**yes, after you connect drive.** choose your bot's ai and give it a folder, subject or naming rule. ask for candidates when the match is unclear."
+    },
+    {
+      "q": "will it reorganise drive without asking?",
+      "a": "**keep it read only for proposals.** with write access, moves need no automatic approval. include the ask-first step when you allow them."
+    },
+    {
+      "q": "can i keep work and personal drive separate?",
+      "a": "**yes. label each account and name the label in the routine.** dusk supports up to five usable accounts per app. choose app access separately for each bot."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude google drive",
+  "keywords": [
+    "chatgpt google drive",
+    "google drive mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect the right google account with read only access",
+      "give the folder link and your approved-file naming rule",
+      "ask for matching candidates with their last-changed dates",
+      "choose the file before discussing moves"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling the newest file the approved copy",
+      "fix": "use the team's actual approval rule."
+    },
+    {
+      "mistake": "giving a filing bot every write action",
+      "fix": "allow only the lookups and specific folder actions the job needs."
+    }
+  ],
+  "tip": {
+    "text": "the filename final-final is a question, not an approval rule."
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "graham needs the meeting packet.\npacket-approved.pdf sits beside packet-notes.pdf.\nthe notes have the newer date.",
+    "after": "packet for graham\n- packet-approved.pdf: matches the approved-file rule\n- packet-notes.pdf: newer, still notes\nuse the approved packet for the meeting."
+  },
+  "voice": 2
+}

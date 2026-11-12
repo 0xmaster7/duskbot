@@ -1,0 +1,121 @@
+{
+  "path": "/integrations/notion/query-database-with-filter",
+  "type": "action",
+  "title": "Filter Notion database rows with AI by status or date",
+  "nav": "query database with filter",
+  "h1": "ask for the notion records that match your conditions",
+  "description": "Have a bot retrieve a filtered, sorted subset of a Notion database. Identify the database correctly and carry the query through every result page.",
+  "keyword": "notion filter database with ai",
+  "keywords": [
+    "chatgpt query notion database",
+    "claude filter notion rows by status",
+    "ai notion database search by date"
+  ],
+  "answer": "**stop scanning the whole tracker for a handful of rows.** name the status, date or other condition you need. the bot asks notion for matches and sorts the results. give the database's own link. dusk counts this query as a change, so allow read and write for this exact action and its lookups.",
+  "tags": [
+    "notion",
+    "database filters",
+    "queries"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/upsert-database-rows"
+  ],
+  "og_line": "the matching rows, with their criteria clear.",
+  "what": "**get next week's confirmed bookings in one dated list.** paste the database's own link, or ask the bot to find it. a page containing a tracker is a different thing.\n\nthe bot reads the field names and types, applies your conditions and sorts by session date. for a large list, tell it to keep going until notion has no more matches.",
+  "uses": [
+    "list confirmed studio bookings in the next fortnight",
+    "find equipment loans still out after their due date",
+    "sort approved grant applications by decision date",
+    "pull records from an archived year for a historical report"
+  ],
+  "routine": {
+    "message": "at 17:05 each sunday, read the fields in my linked studio bookings database. find confirmed bookings with session dates in the coming week. sort by session date and keep going until notion has no more matches. put the dated list here. report missing dates or failed reads without guessing. never edit bookings, assign owners or change the database.",
+    "when": "sundays at 17:05",
+    "needs": "notion with read and write, limited to the query and its database lookups",
+    "output": "confirmed studio bookings\n- monday: emma, portrait room\n- thursday: noah, recording booth\nsorted by session date. the week's matches are all here."
+  },
+  "steps": [
+    "connect notion. allow read and write for this query and the database lookups it needs.",
+    "paste the database link. ask the bot to read field names and types first.",
+    "try a filter with matches you already know. compare their dates and order.",
+    "schedule the weekly query. **Edit** shows its next run. leave row-edit actions out."
+  ],
+  "watch": [
+    "**use the database link.** the surrounding page's link can point the query at the wrong thing.",
+    "**100 rows is one batch.** ask the bot to keep reading until it has every match.",
+    "**sort by the date you plan around.** created date and your booking-date column can give very different lists.",
+    "**allow this query without handing over row edits.** dusk classes it as a write, so read only blocks it. limit access to the query and its lookups."
+  ],
+  "faq": [
+    {
+      "q": "why does a database query need read and write access?",
+      "a": "**dusk counts this action as a change.** narrow the allowance to the query and its database lookups. you do not need general page edits."
+    },
+    {
+      "q": "can it combine a status with a date condition?",
+      "a": "**yes.** the bot reads the real field names and types, then sends the combined conditions to notion."
+    },
+    {
+      "q": "does sorting the query rearrange my notion database?",
+      "a": "**no.** sorting controls the returned list. it does not rearrange the database itself."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-magnifier",
+      "s-notebook"
+    ],
+    "bubble": "show confirmed bookings only"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_QUERY_DATABASE_WITH_FILTER"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "copy the database's own link into your request",
+      "ask for confirmed rows due next week, sorted by the due-date column",
+      "compare the matches with a filter you know"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "pasting the page around an inline database",
+      "fix": "open the database and copy its own link."
+    },
+    {
+      "mistake": "sorting by row creation instead of the booking date",
+      "fix": "name the date column you actually plan around."
+    }
+  ],
+  "tip": {
+    "text": "an empty list is lovely until you discover it filtered the wrong date column."
+  },
+  "voice": 2
+}

@@ -1,0 +1,182 @@
+{
+  "path": "/integrations/slack",
+  "type": "integration",
+  "title": "Slack AI assistant: find decisions without rereading it all",
+  "nav": "slack",
+  "h1": "a slack assistant that finds the decision in the thread",
+  "description": "Use dusk bot to read Slack threads, find decisions and draft replies in chat. Try three routines with source links and clear posting limits.",
+  "keyword": "claude slack",
+  "keywords": [
+    "claude slack integration",
+    "slack ai bot",
+    "slack ai agent",
+    "slack mcp"
+  ],
+  "answer": "**get yesterday's decision without spending the morning in slack.** a dusk bot searches channels, reads the replies and brings you the outcome with a source link. you choose the ai behind it.\n\nkeep a catch-up private in dusk chat, or let it propose a reply for you to post. read-only slack access is enough for both.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "team chat",
+    "threads",
+    "decisions",
+    "catch-up"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/routines/slack-channel-digest",
+    "/integrations/github",
+    "/integrations/notion"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-bubbles",
+      "p-newspaper"
+    ],
+    "bubble": "here is the decision"
+  },
+  "og_line": "catch up without losing the thread.",
+  "app": {
+    "name": "Slack",
+    "toolkit": "slack",
+    "intro": "**get the answer at the end of the thread.** the opening message might suggest friday; ten replies later, everyone agreed thursday. give the bot a channel and question so it reads the conversation around each match.",
+    "highlight": [
+      {
+        "slug": "SLACK_SEARCH_MESSAGES",
+        "use": "find discussion of a launch date across the messages you can access"
+      },
+      {
+        "slug": "SLACK_FETCH_CONVERSATION_HISTORY",
+        "use": "collect the recent conversation in one named project channel"
+      },
+      {
+        "slug": "SLACK_FETCH_MESSAGE_THREAD_FROM_A_CONVERSATION",
+        "use": "read replies before deciding whether a question is still unanswered"
+      },
+      {
+        "slug": "SLACK_RETRIEVE_MESSAGE_PERMALINK_URL",
+        "use": "include a link back to the message behind a summary"
+      },
+      {
+        "slug": "SLACK_LIST_PINNED_ITEMS",
+        "use": "read the pinned instructions before drafting a channel update"
+      },
+      {
+        "slug": "SLACK_FIND_USER_BY_EMAIL_ADDRESS",
+        "use": "identify the teammate you mean before addressing a message"
+      },
+      {
+        "slug": "SLACK_SEARCH_FILES",
+        "use": "locate the file shared during a discussion"
+      },
+      {
+        "slug": "SLACK_SEND_MESSAGE",
+        "use": "post the wording you requested, subject to the bot's send controls"
+      }
+    ],
+    "setup": "**start with a channel and reading access.**\n\nconnect slack from **connected apps** and select the bot that may read it. slack handles sign-in; the bot never sees your password.\n\nname the channel and any threads to exclude before scheduling a catch-up."
+  },
+  "routines_intro": "**pick the moment you keep losing time to.** these routines cover catching up, spotting support questions and preparing handovers. send one to your bot and name the channel.",
+  "routines": [
+    {
+      "name": "yesterday's decisions",
+      "message": "every weekday at 11, read yesterday's #cresselwick-launch messages and their replies. list decisions, open questions and proposed dates here, with a message link for each. keep proposals separate from agreements. never post or change slack.",
+      "when": "weekdays at 11:00",
+      "output": "a private catch-up with source links and proposals clearly separated"
+    },
+    {
+      "name": "questions that still need a reply",
+      "message": "when a new message arrives in #cresselwick-help, see whether it asks a product question. read the thread before deciding whether it still needs a reply. if it does, show the question and suggested wording here. never post or react.",
+      "when": "when a new message arrives in the named help channel",
+      "output": "a suggested reply in dusk chat, after reading the thread"
+    },
+    {
+      "name": "friday handover",
+      "message": "every friday at noon, read this week's #cresselwick-operations discussion and pinned instructions. draft a handover here with unfinished work and people named for it. mark missing owners unknown. never assign work or post the draft.",
+      "when": "fridays at 12:00",
+      "output": "a handover draft with unfinished work and named owners"
+    }
+  ],
+  "asks": "**a private catch-up only needs reading access.** the bot can draft in dusk chat while posting, reactions and channel changes stay blocked.\n\nwant it to post? allow the send action and choose **Ask every time** for an **Allow** or **Deny** card. you can grant a daily amount instead.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.\n\nscheduling a message and editing a posted one count as writes, not sends. exclude them, or put \"ask me before you change anything\" in the routine. channel settings and other writes need that review rule too.",
+  "cannot": [
+    "**find conversations the account cannot access.** a workspace search does not reveal every company discussion.",
+    "**post with reading access alone.** it can propose text in dusk chat. posting needs the allowed action and follows sending rules.",
+    "**work overnight on a sleeping desktop.** slack events arrive at once, but the bot needs a running machine. dusk cloud keeps routines running."
+  ],
+  "sections": [
+    {
+      "h": "keep the source beside the claim",
+      "md": "**a useful summary lets you open the discussion.** ask for message links. keep decisions apart from ideas that nobody confirmed.\n\nthe [channel digest routine](/routines/slack-channel-digest) gives you a recurring version. exclude sensitive channels unless the brief actually needs them."
+    },
+    {
+      "h": "follow the link to the work",
+      "md": "**keep the reference beside the decision.** the work may live in [github](/integrations/github), or the agreed plan in [notion](/integrations/notion). include those links in the summary.\n\nif the bot needs to open that workspace, connect the app separately. slack access covers the discussion; the linked work has its own access."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a slack ai bot summarise a whole thread?",
+      "a": "**yes.** the thread action reads replies. ask for those before summarising, especially when the opening message only proposes an idea."
+    },
+    {
+      "q": "will it talk in my channels on its own?",
+      "a": "**read-only access blocks posting.** if you allow sends, choose **Ask every time** to read each post before it goes out."
+    },
+    {
+      "q": "can i read the catch-up from my phone?",
+      "a": "**yes, after pairing to the bots' home.** a paired computer must stay awake with dusk open. dusk cloud works with your computer off."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: connected apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled work",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending controls",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: phone access",
+      "url": "/docs/phone"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect slack for reading",
+      "name one project channel",
+      "ask for yesterday's confirmed decisions with links",
+      "open the confirming reply behind one decision"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "summarising only the parent message",
+      "fix": "read the replies. they may reverse the original proposal."
+    },
+    {
+      "mistake": "granting posting access for a private brief",
+      "fix": "keep it read only. drafts can stay in dusk chat."
+    }
+  ],
+  "worked": {
+    "intro": "invented launch discussion with made-up teammates",
+    "before": "beatrice: could we move the demo to friday?\nmarco: thursday works better.\nbeatrice: agreed, thursday it is.",
+    "after": "decision: demo moves to thursday.\n\nthe confirming reply stays beside the decision, so you can open it before changing your plans."
+  },
+  "tip": {
+    "text": "the last reply can matter more than the first message. ask the bot to read both."
+  },
+  "voice": 2
+}

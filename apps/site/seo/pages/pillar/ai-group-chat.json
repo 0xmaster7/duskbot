@@ -1,0 +1,180 @@
+{
+  "path": "/ai-group-chat",
+  "type": "pillar",
+  "title": "AI group chat: three useful rooms to set up",
+  "nav": "ai group chat",
+  "h1": "ai group chat with a job for everyone",
+  "description": "Set up three practical AI group chats in dusk bot. Choose who answers, hand work over with mentions, and keep each bot's memory and permissions clear.",
+  "keyword": "ai group chat",
+  "keywords": [
+    "chatgpt group chat",
+    "multi agent chat",
+    "multi agent chatbot",
+    "ai agents team",
+    "group chat with ai bots"
+  ],
+  "answer": "**get a draft and a second pair of eyes in the same thread.** dusk puts several bots in one group, each with its own job, ai and permissions. they hand work over with @mentions. choose everyone, mentioned bots only, or a leader. give the room a clear finish: a draft, a decision list or a reviewed handoff.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "groups",
+    "mentions",
+    "collaboration",
+    "memory"
+  ],
+  "connectors": [],
+  "related": [
+    "/ai-chief-of-staff",
+    "/ai-teammates",
+    "/vs/ai-agent-vs-chatbot"
+  ],
+  "art": {
+    "props": [
+      "p-bubbles",
+      "s-notebook"
+    ],
+    "bubble": "your turn now"
+  },
+  "og_line": "three rooms, with a reason to talk.",
+  "table": {
+    "h": "choose who answers before the first brief",
+    "intro": "**choose who answers before the room gets noisy.** use the setting that fits the work. every bot commenting on everything rarely makes the brief clearer.",
+    "cols": [
+      "setting",
+      "how it works",
+      "when to try it"
+    ],
+    "rows": [
+      {
+        "label": "**everyone responds**",
+        "cells": [
+          "the bots all respond",
+          "separate first reactions to a short question"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "**only when mentioned**",
+        "cells": [
+          "bots answer when mentioned",
+          "you choose the order of a review"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "**leader**",
+        "cells": [
+          "one lead bot hands out tasks",
+          "a shared brief needs several contributions"
+        ],
+        "src": [
+          1
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "give the room an ending",
+      "md": "**give the room something to finish.** ask for a revised paragraph, open questions or a plan you can decide on.\n\nmake each distinct job through **new bot**, then add the bots to a group. each keeps its own ai and permissions. mentions hand work between them.[^1]\n\n**a few focused bots beat a crowd.** if one has nothing distinct to add, leave it out."
+    },
+    {
+      "h": "room one: a writing desk",
+      "md": "**keep the writer and editor from talking over each other.** choose **only when mentioned**. this room shapes text you bring, without publishing it.\n\ngroup instructions: \"the writer proposes wording. the editor checks clarity and support. use my brief. flag claims that need sources. don't publish or change files.\"\n\nstart with: \"@writer, shorten this introduction for a new reader. keep the claims. @editor, wait for my review request.\" then ask the editor to compare it with the original.\n\npin the agreed brief. the room can pin one thing, so make it the constraints rather than another draft."
+    },
+    {
+      "h": "room two: a decision workshop",
+      "md": "**ask for different questions, not matching confidence.** make a planner and a questioner. choose **everyone responds** for separate first reactions to one bounded choice. give them the same attachment.\n\ngroup instructions: \"the planner compares options in the attachment. the questioner identifies missing facts and assumptions. don't decide for me. stay with your own job.\"\n\ntry: \"compare these workshop outlines. planner: what does each ask of the audience? questioner: what must we learn before choosing? don't invent attendance or costs.\"\n\nread both against the attachment. if they repeat each other, switch to **only when mentioned** and call on the contribution you need."
+    },
+    {
+      "h": "room three: a project handoff",
+      "md": "**put someone in charge of the handoff.** choose **leader** and let the coordinator hand out narrow tasks with mentions. a drafter prepares the handoff; a reviewer compares it with your files.\n\ngroup instructions: \"the coordinator assigns tasks. the drafter names the current draft, supporting files and open questions. the reviewer compares those with the originals. bring missing owners to me; don't invent them. ask before changing anything.\"\n\nthe lead keeps its own permissions. the [chief of staff setup](/ai-chief-of-staff) covers ongoing coordination with scheduled briefs."
+    },
+    {
+      "h": "shared instructions are different from memory",
+      "md": "**a room rule applies now. memory is a separate thing.** group instructions apply to every participant. bots don't learn from group chats; what they remember comes from your own messages to them.[^2]\n\nfor a decision worth keeping, tell the bot directly or put it in the group instructions. a correction in the group doesn't become anyone's lasting note.\n\nput preferences such as your time zone and writing style in settings, **about me**. keep the room instructions focused on this job."
+    },
+    {
+      "h": "give each participant only the access it needs",
+      "md": "**give the reviewer just the files it needs.** attached files can be enough. choose app access per bot: off, read only, read and write, or an exact action list.\n\nordinary app changes, such as labels or page edits, don't ask first. keep access read only or write \"ask me before you change anything\".\n\nyou still decide whether the result is usable. the [ai teammates guide](/ai-teammates) covers fitting the room into a team's work."
+    }
+  ],
+  "faq": [
+    {
+      "q": "did anyone create a group chat of agents?",
+      "a": "**yes, that's what this is.** put a few bots in one thread and they pass work with @mentions."
+    },
+    {
+      "q": "how do i stop every bot answering every message?",
+      "a": "**choose only when mentioned.** then address the bot you need. choose leader when you want a lead bot to hand out tasks."
+    },
+    {
+      "q": "can bots with different ai models share a room?",
+      "a": "**yes, each keeps its own ai.** permissions stay separate too. joining the room does not give everyone the same access."
+    },
+    {
+      "q": "will all the bots remember what we decided?",
+      "a": "**not from the group chat itself.** group instructions carry the rules everyone should follow now. for lasting memory, tell each bot directly."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: groups, answer settings and mentions",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot docs: learning from groups and about me",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: per-bot app access",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: creating bots",
+      "url": "/docs/bots"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "bring a writer and an editor into a group",
+      "choose only when mentioned",
+      "pin one short brief",
+      "ask the writer for a draft, then mention the editor"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "every participant has a different job",
+      "the room has one clear result to produce",
+      "you chose who answers",
+      "you know group chats don't feed any bot's memory"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "making every bot answer every message",
+      "fix": "use mentions for a review sequence. the next useful reply should have a clear job."
+    },
+    {
+      "mistake": "assuming a group correction becomes shared memory",
+      "fix": "tell the bot that should keep it directly, or add it to the group instructions."
+    },
+    {
+      "mistake": "treating the lead as a permission shortcut",
+      "fix": "each bot keeps its own limits. give access only where the job needs it."
+    }
+  ],
+  "tip": {
+    "text": "if you cannot explain why a bot is in the room, take it out and see whether the work gets clearer."
+  },
+  "voice": 2
+}

@@ -1,0 +1,125 @@
+{
+  "path": "/integrations/slack/schedule-message",
+  "type": "action",
+  "title": "Schedule Slack messages with AI for the right local time",
+  "nav": "schedule message",
+  "h1": "queue a slack message for later",
+  "description": "Queue a Slack message for the start of someone else’s day. Choose the channel, thread and local delivery time before the bot schedules it.",
+  "keyword": "slack schedule message with ai",
+  "keywords": [
+    "chatgpt schedule slack message",
+    "claude slack scheduled message",
+    "ai queue slack reminder"
+  ],
+  "answer": "**write it on friday. let slack deliver it when the monday shift starts.** a bot can queue a channel message, direct message or thread reply for a future time. give the destination, wording, time and time zone. once queued, slack posts it later without another yes, so review the note before scheduling.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "slack",
+    "schedule message"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/routines/slack-channel-digest"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-clock",
+      "p-bubbles"
+    ],
+    "bubble": "send it after breakfast"
+  },
+  "og_line": "choose the time before it is queued.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SCHEDULE_MESSAGE"
+  },
+  "what": "**your working day need not become someone else’s notification.** slack accepts future messages up to 120 days ahead. give your local time zone; the bot handles the conversion. delivery must still be in the future when it queues.\n\nthe connected account must belong to the destination channel. for a thread, link the original message. layout attachments mean formatting here; document uploads need another action.",
+  "uses": [
+    "**respect a later shift.** queue a reminder for when colleagues start.",
+    "**prepare workshop instructions.** schedule the reviewed text in the session thread.",
+    "**time an office closure notice.** write it during your working day for delivery later."
+  ],
+  "routine": {
+    "message": "every friday at 14:40, prepare this note for #larkvale-studio: \"please put monday’s equipment requests in the booking list\".\n\n- show the text and channel here\n- propose delivery next monday at 08:45 europe/london\n- wait for my agreement before scheduling\n\nafter queueing, report the confirmed delivery time here. if the result is unclear, look for the queued note before trying again. never queue a second copy blindly.",
+    "when": "fridays at 14:40; monday delivery follows your review",
+    "needs": "slack connected with read and write; membership in #larkvale-studio",
+    "output": "larkvale studio reminder\nchannel: #larkvale-studio\ndelivery: monday, 08:45 europe/london\npreview ready: the booking-list reminder will enter the queue after your agreement."
+  },
+  "steps": [
+    "**allow scheduling deliberately.** connect slack with read and write for this bot.",
+    "**name the destination.** give the channel and local time zone. link the parent message for a thread reply.",
+    "**require a pause.** say \"wait for my agreement before scheduling\"; send approval does not cover queueing.",
+    "**open the queued note.** confirm its delivery time before setting a weekly reminder."
+  ],
+  "watch": [
+    "**past times fail.** so do dates beyond 120 days ahead.",
+    "**private channels still need membership.** a name does not grant access.",
+    "**link previews may still appear.** avoid links whose preview could reveal private details."
+  ],
+  "faq": [
+    {
+      "q": "will send approval stop it from scheduling?",
+      "a": "**no, scheduling counts as a write.** tell the bot to wait for your agreement before it queues anything."
+    },
+    {
+      "q": "can it attach a document to the scheduled note?",
+      "a": "**not through this action.** it schedules message content and layout. uploading a file takes a separate action."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose one channel you belong to",
+      "write a short note and tomorrow’s local delivery time",
+      "ask the bot to preview it without queueing",
+      "read the text, channel and time zone before allowing it"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting \"ask every time\" for scheduled notes",
+      "fix": "add a wait-for-agreement instruction. scheduling does not use send approval."
+    },
+    {
+      "mistake": "saying \"9 tomorrow\" across time zones",
+      "fix": "state the time zone and compare it with the confirmed delivery time."
+    }
+  ],
+  "checklist": {
+    "h": "before the note enters the queue",
+    "items": [
+      "the destination is the right channel or thread",
+      "the text is ready for other people to read",
+      "the local time and time zone are explicit",
+      "the bot will look for a queued note after an unclear result before retrying"
+    ]
+  },
+  "tip": {
+    "text": "review the note before queueing. slack will not ask you again when delivery time arrives.",
+    "careful": true
+  },
+  "voice": 2
+}

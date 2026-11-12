@@ -1,0 +1,122 @@
+{
+  "path": "/integrations/jira/assign-issue",
+  "type": "action",
+  "title": "Assign Jira issues with AI by a teammate’s name",
+  "nav": "assign an issue",
+  "h1": "give a jira issue to the teammate you name",
+  "description": "Ask an AI bot to assign a Jira issue by name or email, use the project default or clear an owner. Handle ambiguous matches before any assignment changes.",
+  "keyword": "assign jira issue with ai",
+  "keywords": [
+    "jira assign ticket with ai",
+    "chatgpt assign jira issue",
+    "claude change jira assignee",
+    "jira ai route unassigned issues"
+  ],
+  "answer": "**give the issue an owner before it spends another week in limbo.** a bot can find a jira issue, look up the teammate you name and assign it. you can also choose the project default or clear the owner. put a confirmation step in the routing routine; assignments don't wait for sending approval.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "jira",
+    "assignment",
+    "routing"
+  ],
+  "connectors": [
+    "jira"
+  ],
+  "related": [
+    "/integrations/jira",
+    "/integrations/jira/add-comment"
+  ],
+  "art": {
+    "label": "Jira",
+    "props": [
+      "s-signpost",
+      "p-briefcase"
+    ],
+    "bubble": "route to the owner"
+  },
+  "og_line": "an owner chosen by your routing rule.",
+  "action": {
+    "toolkit": "jira",
+    "slug": "JIRA_ASSIGN_ISSUE"
+  },
+  "what": "**one vague name can send work to the wrong desk.** give the bot the issue and a teammate's name or email. when several people match, have it show who it found before choosing. a separate user search can help.\n\nproject default and unassigned mean different things. leaving the person out can clear the owner. if the lookup fails, the bot should stop rather than quietly unassign the issue.",
+  "uses": [
+    "route a new billing bug to the person covering that queue",
+    "hand an issue to a new owner after matching the right person",
+    "return a misrouted issue to the project default",
+    "clear an owner only when the team wants the issue back in the unassigned queue"
+  ],
+  "routine": {
+    "message": "each weekday at 10, find unassigned invoicing issues mentioning 'tax receipt'. propose devin rowe as owner. show the issue titles and the person you found here. if several people match, show them and ask which one i mean. ask me before you change anything. assign only the issues i confirm, then report the result. never clear an owner or substitute another person after a failed lookup.",
+    "when": "weekdays at 10",
+    "needs": "jira connected with read and write",
+    "output": "routing result\ninv-51: tax receipt missing for larkspire co.\nnew owner: devin rowe.\ninv-58 remains unassigned; no approval to change it."
+  },
+  "steps": [
+    "connect jira with **read and write** for this bot",
+    "name the project, issue rule and teammate; read the matched person’s details",
+    "allow only issue search, user lookup and assignment; include the ask-first instruction",
+    "open the first issue in jira and read its owner; pause the routine when cover changes"
+  ],
+  "watch": [
+    "**privacy settings can block name or email searches.** report the missing match instead of choosing someone else.",
+    "**missing person is not permission to clear the owner.** stop after a failed lookup.",
+    "**keep approval in the routing instruction.** the sending setting covers sends, not jira assignments.",
+    "**display names can repeat.** compare the matches before routing work."
+  ],
+  "faq": [
+    {
+      "q": "can i assign a jira ticket using just an email address?",
+      "a": "**yes, the lookup accepts email or display name.** privacy settings can block it. have the bot show the person it finds."
+    },
+    {
+      "q": "is the default assignee the same as unassigned?",
+      "a": "**no, they lead to different queues.** default chooses the project’s default owner. unassigned removes the current one."
+    },
+    {
+      "q": "will it ask me before reassigning tickets?",
+      "a": "**only if you tell it to ask.** jira assignments are app changes. the sending setting does not hold them."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect jira with read and write",
+      "name one issue and its intended owner",
+      "ask to see the person found before any change",
+      "confirm, then read the saved owner in jira"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "routing by first name alone",
+      "fix": "ask to see the matched person when names overlap."
+    },
+    {
+      "mistake": "relying on sending approval",
+      "fix": "include a confirmation step before assignments in the routine."
+    }
+  ],
+  "tip": {
+    "text": "if the person search fails, leave the issue with its current owner."
+  },
+  "voice": 2
+}

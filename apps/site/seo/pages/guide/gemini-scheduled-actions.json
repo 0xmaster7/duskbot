@@ -1,0 +1,141 @@
+{
+  "path": "/guides/gemini-scheduled-actions",
+  "type": "guide",
+  "title": "Gemini scheduled actions: eligibility, timing and limits",
+  "nav": "gemini scheduled actions",
+  "h1": "gemini scheduled actions: what to expect at delivery",
+  "description": "Learn who can get Gemini schedules, the ten-active-schedule limit, delivery timing and why Gemini Apps and CLI automation have different rules.",
+  "keyword": "gemini scheduled actions",
+  "keywords": [
+    "gemini agent mode",
+    "gemini cli automation"
+  ],
+  "answer": "**get a regular brief in gemini without asking the same question again.** as of 12 november 2026, schedules are rolling out to personal and qualifying work or school accounts. keep activity must be on. you get ten active schedules, with content prepared in the hour before delivery. that suits a reading digest better than breaking news. cli automation has separate rules.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gemini",
+    "schedules",
+    "google",
+    "timing"
+  ],
+  "connectors": [],
+  "related": [
+    "/scheduled-ai-tasks",
+    "/guides/chatgpt-scheduled-tasks",
+    "/guides/apps-that-use-your-ai-subscription"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "p-newspaper"
+    ],
+    "bubble": "ready for your read"
+  },
+  "og_line": "a digest with a delivery window.",
+  "sections": [
+    {
+      "h": "look for rollout before reaching for your card",
+      "md": "**keep your card away until you know your account has access.** as of 12 november 2026, google lists personal accounts and qualifying workspace work or school accounts. keep activity must be on. personal rollout is gradual.[^1]\n\nthe help article states no paid google ai plan requirement. look for schedule access on your account and turn on keep activity before spending money. work and personal accounts can have different access.\n\nrephrasing the same chat request won't make a rollout arrive. confirm the feature exists for your account, then save one useful job."
+    },
+    {
+      "h": "delivery time is not the reading time",
+      "md": "**an 8am digest can spare you the morning tab hunt.** as of 12 november 2026, gemini prepares content within the hour before delivery. schedules support daily, weekly and monthly routines. notifications appear in the web sidebar and on mobile.[^1]\n\nask for source dates, a reporting period and missing sources. \"the past week\" beats \"recently\". if the 7:59 news matters, the preparation window makes this the wrong tool."
+    },
+    {
+      "h": "give each schedule a reason to exist",
+      "md": "**a schedule slot should earn its place.** try the underlying question first. each example reads changing public material.\n\n- **daily topic brief:** \"each morning, give me three developments in urban transport policy. include dates and links. separate proposals from rules already in force.\"\n- **weekly research question:** \"every friday, review new public material on battery recycling. explain one disagreement and what evidence would resolve it.\"\n- **monthly reading plan:** \"on the first of the month, suggest a small architectural history reading list. give the level and reason for each choice. skip earlier recommendations.\"\n\nnarrow a repetitive brief or run it less often. ten active slots are a ceiling, not a target."
+    },
+    {
+      "h": "apps schedules do not settle cli rules",
+      "md": "**use direct scripting when that is the job, and read its own terms.** google's transition notice says gemini cli stopped serving google ai pro, ultra and free individual accounts on 18 june 2026. individuals move to antigravity cli.[^2]\n\nas of 12 november 2026, antigravity's faq describes headless `agy -p` for direct scripting and ci. it does not support wrapping it inside third-party agents or apps under consumer plans.[^3]\n\nthe additional terms call third-party software access a breach that can lead to suspension or termination.[^4] read google's current terms for your access method. the [sign-in terms guide](/guides/apps-that-use-your-ai-subscription) follows those distinctions."
+    },
+    {
+      "h": "choose the place you want the result",
+      "md": "**stay in gemini if a regular brief there does the job.** first confirm account access. compare [chatgpt tasks](/guides/chatgpt-scheduled-tasks) if active limits or event triggers matter. [scheduled ai tasks](/scheduled-ai-tasks) gathers those differences.\n\ndusk routines belong to named bots with their own jobs, chats and memory.[^6] describe the repeat job and review the schedule card. local routines stop during sleep or when dusk closes. dusk cloud runs them on time.[^5]\n\na different scheduler doesn't change google's sign-in rules. choose the ai connection after checking its current terms."
+    }
+  ],
+  "faq": [
+    {
+      "q": "do gemini scheduled actions need google ai pro?",
+      "a": "**google's help article states no paid plan requirement.** as of 12 november 2026, it lists personal and qualifying workspace accounts, keep activity and gradual rollout. confirm your account has access before upgrading.[^1]"
+    },
+    {
+      "q": "how many gemini scheduled actions can i have?",
+      "a": "**up to ten active schedules.** that is google's limit as of 12 november 2026. keep one version of each useful job.[^1]"
+    },
+    {
+      "q": "does a scheduled digest use information from the delivery second?",
+      "a": "**no. allow for an earlier read.** as of 12 november 2026, google says preparation happens within the hour before delivery. ask for source dates when freshness matters.[^1]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "google: recurring actions in gemini apps",
+      "url": "https://support.google.com/gemini/answer/16316416?hl=en",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: gemini cli transition",
+      "url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity faq",
+      "url": "https://antigravity.google/docs/faq",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity additional terms",
+      "url": "https://antigravity.google/terms",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "look for schedule access and turn on keep activity",
+      "try one short topic brief with dated sources",
+      "ask to repeat it only if schedules are available",
+      "read the source dates in the first delivery"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "buying an upgrade to fix rollout",
+      "fix": "look at current account eligibility first; the help article states no paid plan requirement."
+    },
+    {
+      "mistake": "using the digest for minute-by-minute changes",
+      "fix": "choose a job that tolerates the preparation window."
+    },
+    {
+      "mistake": "treating app schedules as permission to wrap the cli",
+      "fix": "read the terms for the exact product and access method."
+    }
+  ],
+  "tip": {
+    "text": "an 8am delivery can contain 7am reading. ask for source dates."
+  },
+  "checklist": {
+    "items": [
+      "my account has access to schedules",
+      "keep activity is on",
+      "the brief can tolerate reading within the prior hour",
+      "the prompt asks for source dates and gaps",
+      "i have room within ten active schedules"
+    ]
+  },
+  "voice": 2
+}

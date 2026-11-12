@@ -1,0 +1,117 @@
+{
+  "path": "/integrations/google-drive/create-a-folder",
+  "type": "action",
+  "title": "Create Google Drive folders with AI in the right parent",
+  "nav": "create a folder",
+  "h1": "put a new google drive folder in the right place",
+  "description": "Put each new project in the right Google Drive folder. Give a bot the parent link, preview the name and get the new folder link back.",
+  "keyword": "create google drive folder with ai",
+  "keywords": [
+    "google drive make folder with ai",
+    "chatgpt create google drive folders",
+    "claude create folder in google drive"
+  ],
+  "answer": "**put the new project where you'll actually find it.** your bot can create a google drive folder inside an existing parent. paste the parent link when names repeat; a name alone picks the first match. missing parents need separate creation. ask for a name and location preview before this write, then get the new folder link back.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "google drive",
+    "folders",
+    "project setup"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/use-cases/file-organizer",
+    "/integrations/google-drive/list-file-revisions"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "p-folder",
+      "s-signpost"
+    ],
+    "bubble": "under the confirmed parent"
+  },
+  "og_line": "a new folder with a known parent.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_CREATE_FOLDER"
+  },
+  "what": "**start the filing structure from the top.** give the folder a name and an existing parent by exact name or link. the bot finds the parent, then creates the child inside it.\n\na nested structure takes separate steps: locate or create each parent before its child. missing parents won't appear automatically. the new folder starts empty; moving documents and changing sharing are separate jobs.",
+  "uses": [
+    "**start a client project.** prepare an empty destination under the confirmed client folder.",
+    "**keep deliveries apart.** add a dated folder beneath the production folder you already use.",
+    "**make room for approved photos.** create the child folder while leaving originals alone."
+  ],
+  "routine": {
+    "message": "on the first monday of each month at 9, read new project briefs added last month to the shorelark commissions intake folder. use only confirmed projects that don't yet list a project folder.\n\nopen the commissions parent from its saved link. show proposed child names here and ask me before creating them. return links to the folders you make. if a brief already lists a folder, skip it. never choose a parent by name alone, move files or change sharing.",
+    "when": "first monday of the month at 9:00",
+    "needs": "access to project briefs; google drive read and write for finding and creating folders",
+    "output": "shorelark commissions\nparent: commissions, found from its link\nproposed child: matilde garden commission\n\nfolder preview ready for review."
+  },
+  "steps": [
+    "**keep the action list small.** connect drive with read and write for finding and creating folders.",
+    "**give the parent link.** ask the bot to show where it leads before creation.",
+    "**preview spelling and location.** name each child and say to wait before creating it.",
+    "**open the child in drive.** look at its parent folder. pause the routine when project intake ends."
+  ],
+  "watch": [
+    "**repeated names choose the first match.** use a parent link when the location matters.",
+    "**parents must exist first.** a nested path takes separate lookups or creation, top level first.",
+    "**a new destination stays empty.** leave moves and sharing outside this setup bot's actions."
+  ],
+  "faq": [
+    {
+      "q": "can it create a whole nested folder path at once?",
+      "a": "**not in one go.** each parent must exist before its child. the bot works down the structure one level at a time."
+    },
+    {
+      "q": "what if two folders have the same parent name?",
+      "a": "**a name alone picks the first match.** paste the right parent link and ask the bot to show that location before creation."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste the parent folder link",
+      "name the child folder you need",
+      "ask for its location before creation",
+      "open the new folder and look at its parent"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting the name \"projects\"",
+      "fix": "many folders share that name. a link tells the bot which parent you mean."
+    },
+    {
+      "mistake": "asking for a deep path in one jump",
+      "fix": "create the top parent first, then its child. missing parents stop the job."
+    }
+  ],
+  "tip": {
+    "text": "send the parent link with the folder name. two small details prevent a long hunt later."
+  },
+  "voice": 2
+}

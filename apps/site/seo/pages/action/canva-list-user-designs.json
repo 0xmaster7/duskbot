@@ -1,0 +1,118 @@
+{
+  "path": "/integrations/canva/list-user-designs",
+  "type": "action",
+  "title": "Find Canva designs with AI, including files shared with you",
+  "nav": "find designs",
+  "h1": "find the canva design someone shared with you",
+  "description": "Find the Canva deck someone shared with you. Search owned and shared designs, put recent edits first and keep going beyond the first results.",
+  "keyword": "find canva designs with ai",
+  "keywords": [
+    "canva search designs with ai",
+    "chatgpt find canva design",
+    "claude list canva designs",
+    "find shared canva designs ai"
+  ],
+  "answer": "**find the deck without asking everyone to resend it.** a bot searches canva designs you own, designs people shared with you, or both. put recent edits first and get matching titles here. you get a shortlist to open, instead of another round of 'can you send that link again?'",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "canva",
+    "design-search",
+    "shared-designs"
+  ],
+  "connectors": [
+    "canva"
+  ],
+  "related": [
+    "/integrations/canva",
+    "/integrations/canva/get-design-export-formats"
+  ],
+  "art": {
+    "label": "Canva",
+    "props": [
+      "p-magnifier",
+      "s-palette"
+    ],
+    "bubble": "find the shared deck"
+  },
+  "og_line": "the shared design you were trying to find.",
+  "action": {
+    "toolkit": "canva",
+    "slug": "CANVA_LIST_USER_DESIGNS"
+  },
+  "what": "**the deck is in there somewhere. get the titles in front of you.** name a phrase and choose owned designs, shared designs or both. ask for recent changes first when several versions look alike.\n\ncanva normally returns 25 designs per batch, with a maximum of 100. if more remain, tell the bot to keep going until it has them all.",
+  "uses": [
+    "find the reseller deck someone shared before your partner call",
+    "recover an old campaign design when you forget its folder",
+    "separate your designs from files other people shared",
+    "bring recent matches to the designer so they can choose the approved version"
+  ],
+  "routine": {
+    "message": "every friday at 3, find shared canva designs matching 'reseller training'. sort by most recently changed. read further batches yourself until you cover the matches. list the titles here and flag designs changed this week. if nothing changed, say so in one line. ask me to choose between similar titles. never export, rename, move or edit designs. don't claim you read the slides.",
+    "when": "fridays at 3",
+    "needs": "canva connected; read only is enough",
+    "output": "shared reseller training designs\n\n1. reseller training: november refresh, from lunecrest learning.\n2. reseller training: field guide.\n\nmost recently changed first. open either to see the slides."
+  },
+  "steps": [
+    "connect canva under **connected apps**; give this bot read only",
+    "name the phrase and say whether to include shared designs",
+    "ask it to finish all batches and list matching titles",
+    "open a matching title, then schedule the search while the campaign keeps changing"
+  ],
+  "watch": [
+    "**the first batch can hide the file you need.** have the bot keep reading until canva has no more matches.",
+    "**owned only misses shared work.** include both when you cannot remember who made it.",
+    "**open the design to see the artwork.** the list gives you file details, not slide contents.",
+    "**let the designer choose the final version.** newest only tells you when someone last edited it."
+  ],
+  "faq": [
+    {
+      "q": "can it find designs other people shared with me?",
+      "a": "**yes, within your connected account.** include shared designs, owned designs or both in the request."
+    },
+    {
+      "q": "can it tell which deck has the correct slides?",
+      "a": "**open the shortlisted decks to choose.** the list finds likely files and sorts them; it cannot judge the slides."
+    },
+    {
+      "q": "does finding a design download it?",
+      "a": "**finding a design gives you its details.** export formats and downloads take separate actions."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect canva with read only",
+      "ask for shared designs matching a phrase",
+      "request recent edits first",
+      "open the title that matches your deck"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching only your own designs",
+      "fix": "include shared designs when a colleague made the deck."
+    },
+    {
+      "mistake": "calling the latest edit final",
+      "fix": "ask the designer which version is approved before presenting it."
+    }
+  ],
+  "tip": {
+    "text": "ask for design titles first; include links only when canva returns them."
+  },
+  "voice": 2
+}

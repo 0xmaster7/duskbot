@@ -1,0 +1,131 @@
+{
+  "path": "/integrations/gmail/send-email",
+  "type": "action",
+  "title": "Send Gmail emails with AI: review the message first",
+  "nav": "send email",
+  "h1": "send a gmail email by telling your bot what to say",
+  "description": "Tell a bot what to email, who gets it and which files belong with it. Review recipients and the 20 MB attachment total before you tap Allow.",
+  "keyword": "send gmail email with ai",
+  "keywords": [
+    "chatgpt send gmail email",
+    "claude send gmail email",
+    "ai gmail send email with attachments"
+  ],
+  "answer": "**get the payroll email ready without assembling it again every friday.** a bot can send through your connected gmail, with cc, bcc, attachments and your signature. give at least one address and a subject or body. sends ask first by default unless you set a daily amount. review the recipients as carefully as the words before tapping allow.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "outgoing email",
+    "attachments"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/send-draft",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "s-parcel"
+    ],
+    "bubble": "payroll email ready"
+  },
+  "og_line": "your words, checked before sending.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_SEND_EMAIL"
+  },
+  "what": "**this writes and sends in one step.** give the bot at least one email address, plus a subject or body. a first name alone isn't an address.\n\n- plain text or formatted email\n- extra recipients, cc and bcc if you name them\n- your gmail signature, when the connection can read it\n- attachments totalling no more than 20 mb\n\nstill choosing the words? ask to see them in chat first.",
+  "uses": [
+    "**supplier details:** send the delivery address you just confirmed.",
+    "**signed paperwork:** send your attached order form, copying only the buyer you name.",
+    "**an announcement:** send the text you approved to your chosen list.",
+    "**travel notes:** email yourself the instructions you gave the bot."
+  ],
+  "routine": {
+    "message": "every friday at 4, read this week's entries in the hours tab of my payroll sheet. add the hours from monday onwards. show me an email to payroll@harlow.example with the daily figures and total. wait for my allow before sending from work gmail. if the sheet has no entries, stay quiet. never add recipients or guess missing hours.",
+    "when": "fridays at 16:00",
+    "needs": "work gmail read and write; google sheets access for reading the hours tab; sending set to ask every time",
+    "output": "ready for your allow\n\nto: payroll@harlow.example\nsubject: hours, week of 9 november\n\n31.5 hours this week\n- monday: 7.5\n- tuesday: 8\n- wednesday: 8\n- thursday: 8"
+  },
+  "steps": [
+    "**choose the account.** connect gmail with read and write; read only cannot send.",
+    "**set the sending rule.** choose ask every time. give the exact addresses and source material.",
+    "**send yourself a test.** read to, cc and bcc, then the wording and file list before allow.",
+    "**then repeat it.** add the friday instruction and read the time on the schedule card."
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**the from address must be yours.** use the connected address or an alias already set up under gmail's send mail as.",
+    "**your signature might be missing.** it needs a saved signature and permission to read it. inspect the sign-off.",
+    "**20 mb is the total attachment limit.** add the file sizes together, rather than judging each alone."
+  ],
+  "faq": [
+    {
+      "q": "can i send to more than one person?",
+      "a": "**yes. name each group.** give the main recipient, extra recipients, cc and bcc. ask to see them separately before allow."
+    },
+    {
+      "q": "will this keep an email waiting in drafts?",
+      "a": "**no. it sends now.** use create email draft if you want to finish and send it in gmail yourself."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "set gmail sending to ask every time",
+      "ask for a two-line test email to yourself",
+      "read the address and attached filenames",
+      "tap allow and open the email in your inbox"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying \"send it to alex\"",
+      "fix": "give the exact email address, especially when names overlap."
+    },
+    {
+      "mistake": "forgetting the saved signature",
+      "fix": "ask to see the sign-off with the body; the connection needs permission to read it."
+    },
+    {
+      "mistake": "reading the body but skipping cc",
+      "fix": "read to, cc and bcc separately before allow."
+    }
+  ],
+  "tip": {
+    "text": "a good email to the wrong person is still a bad send."
+  },
+  "checklist": {
+    "items": [
+      "the outgoing account is right",
+      "to, cc and bcc contain only the intended people",
+      "attachments are correct and within 20 mb",
+      "the signature looks right"
+    ]
+  },
+  "voice": 2
+}

@@ -1,0 +1,120 @@
+{
+  "path": "/integrations/notion/add-multiple-content-blocks",
+  "type": "action",
+  "title": "Add blocks to a Notion page with AI in the right place",
+  "nav": "add content blocks",
+  "h1": "add a batch of notes to an existing notion page",
+  "description": "Have a bot add paragraphs, headings and lists to a Notion page. Choose the parent and insertion point, and check long text for truncation.",
+  "keyword": "add notion blocks with ai",
+  "keywords": [
+    "notion append content with ai",
+    "chatgpt add blocks to notion page",
+    "claude insert notion page content"
+  ],
+  "answer": "**get the latest test notes under the heading where people will read them.** a bot can add paragraphs, headings and lists to an existing notion page. append them at the bottom or insert them after a chosen block. keep long notes in shorter blocks: text can cut off, so open the saved section and read its final line.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion",
+    "blocks",
+    "append notes"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/create-notion-page",
+    "/integrations/notion/replace-page-content"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-books",
+      "s-notebook"
+    ],
+    "bubble": "below the test heading"
+  },
+  "og_line": "add the notes where they belong.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT"
+  },
+  "what": "**keep the structure you already have.** give the bot short notes with headings and bullets. it can add several supported block types together.\n\nname the page and insertion point. the bot reads the page to find them. without a chosen position, notes go at the bottom. adding after a heading and nesting inside a block are different placements.",
+  "uses": [
+    "**test results:** add a short summary after the existing heading.",
+    "**interview notes:** append observations as a heading and bullets.",
+    "**workshop planning:** insert a section between two existing parts of the plan."
+  ],
+  "routine": {
+    "message": "every thursday at 12:15, read new glaze test files from the glaze tests folder in my project folder. prepare a short heading and bullets for the marlowfen pottery notion page. skip notes already on the page. read the page and show where the batch will go after test results. ask me before you change anything. after i agree, add the notes and read back the saved text, including its ending. never replace blocks or guess missing measurements.",
+    "when": "thursdays at 12:15",
+    "needs": "access to the glaze tests project folder; notion read and write for page reads and additions",
+    "output": "marlowfen glaze tests\n- position: after test results on the existing page\n- celeste found pinholes on the blue sample.\n- firing temperature: not available\n\nproposed placement: directly after test results."
+  },
+  "steps": [
+    "**connect the writer.** allow notion read and write, limited to reading and adding blocks.",
+    "**choose the spot.** link the page and name the heading the notes should follow.",
+    "**read the preview.** ask for short notes and their position before any addition.",
+    "**read the saved ending.** open notion and read the end of each paragraph. pause if repeated runs add the same notes."
+  ],
+  "watch": [
+    "**100 blocks fit in one request.** split larger additions into separate batches and confirm each lands once.",
+    "**choose after or inside.** adding after a heading and nesting inside a block put the notes in different places."
+  ],
+  "faq": [
+    {
+      "q": "can it insert text after a heading instead of at the bottom?",
+      "a": "**yes. name the heading.** the bot reads the page, finds that spot and adds the notes after it."
+    },
+    {
+      "q": "does adding blocks erase the rest of the page?",
+      "a": "**it adds content rather than replacing it.** name the position so the notes reach the people reading that section."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "link a notion page",
+      "give it a heading and two short notes",
+      "ask where it would insert them before writing",
+      "open the saved section and read its last line"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying \"add this to the page\"",
+      "fix": "name the heading it should follow."
+    },
+    {
+      "mistake": "pasting one enormous paragraph",
+      "fix": "split the text into shorter blocks, then read the saved ending."
+    }
+  ],
+  "tip": {
+    "text": "read the last line. cut-off text often looks fine at the top."
+  },
+  "worked": {
+    "before": "test results\nold notes only; celeste's new findings sit in a file.",
+    "after": "test results\nnew glaze test\n- blue sample: pinholes\n- firing temperature: not available\n\nolder notes remain."
+  },
+  "voice": 2
+}

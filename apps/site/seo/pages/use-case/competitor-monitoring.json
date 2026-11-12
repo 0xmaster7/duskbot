@@ -1,0 +1,147 @@
+{
+  "path": "/use-cases/competitor-monitoring",
+  "type": "use-case",
+  "title": "Monitor competitors with AI: hear only about changes",
+  "nav": "competitor monitoring",
+  "h1": "hear about the competitor changes worth your monday",
+  "description": "Copy a routine that compares competitors’ pricing pages and changelogs against a dated baseline, with evidence of what changed.",
+  "keyword": "monitor competitors with ai",
+  "keywords": [
+    "ai competitor monitoring"
+  ],
+  "answer": "**find the price change before your next sales call.** give a bot exact pricing pages and changelogs to compare with dated notes each week. get old wording, new wording and the source in a short report. unchanged pages stay quiet. failed loads get their own note, so you can tell a real change from a page the bot couldn't read.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "competitors",
+    "monitoring",
+    "pricing",
+    "changes"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/web-scraping",
+    "/use-cases/newsletter"
+  ],
+  "art": {
+    "props": [
+      "p-binoculars",
+      "s-clock"
+    ],
+    "bubble": "only if something changed"
+  },
+  "og_line": "old wording, new wording, a source.",
+  "routine": {
+    "intro": "**save the first baseline and every later comparison has a starting point.** give the bot exact pricing and changelog links. compare the first note with those pages, then keep it in your project folder.",
+    "message": "every monday at 4pm, read the competitor page list in our project folder using your own browser. compare with the dated baseline there. on the first run, save visible wording, source link, date, currency, billing interval and region where shown. tell me the baseline is ready to review.\n\non later runs, report only changed prices, included limits, availability or new changelog entries. show old and new wording, source and reading date. keep interpretation separate. ignore navigation, footer and displayed-date changes. save dated records of successful reads.\n\nif a page is blocked or unreadable, say 'read incomplete' and name it. never count missing content as removal or replace the last good baseline. never sign up, buy a plan or contact a competitor.",
+    "when": "mondays at 16:00, after you review the first baseline",
+    "needs": "a bot with its own browser, a page list file and a project folder for dated notes; no connector",
+    "output": "fictional competitor: orinth desk\nprevious: 'team plan includes 3 workspaces', read 5 november 2026.\ncurrent: 'team plan includes 5 workspaces', read 12 november 2026.\nsource: orinth desk pricing page.\nthe displayed allowance changed. existing customers may have older terms.\nread incomplete: the studio changelog wouldn't load. last good baseline kept.\nthe other pages read successfully had no reportable changes."
+  },
+  "sections": [
+    {
+      "h": "save the qualifications with the price",
+      "md": "**save the terms that make the price mean something.** monthly and annual billing can show different amounts. region and currency can change the display too. save those details alongside the wording.\n\nkeep the original baseline and later dated notes in the project folder.[^2] compare the first note with the source yourself, then let unchanged pages stay quiet."
+    },
+    {
+      "h": "decide what earns an interruption",
+      "md": "**a moved footer isn't a business event.** name the changes you care about: prices, included limits, availability or release notes. require old and new wording before drawing conclusions.\n\nuse [market research](/use-cases/market-research) for a broader question. use [web scraping](/use-cases/web-scraping) for repeated fields. a [newsletter](/use-cases/newsletter) can draw on reviewed notes later, once you've checked the change."
+    },
+    {
+      "h": "keep failed reads in the report",
+      "md": "**know which pages the bot actually read.** private discounts, sales calls and changes between weekly visits sit outside the report. a page that wouldn't load belongs in a separate failure note.\n\nmissing monday's run? open **automations** and look at run history. local routines need the computer awake and dusk open. [dusk cloud](/docs/dusk-cloud) runs them on time, though a blocked competitor page can still fail to load."
+    }
+  ],
+  "safeguards": [
+    "**approve the first baseline.** keep dated notes so you can retrace the comparison.",
+    "**match the terms.** compare the same currency, region and billing interval.",
+    "**name failed reads.** preserve the last usable wording when a page won't load.",
+    "**read without engaging.** exclude sign-ups, purchases and contact with the companies."
+  ],
+  "faq": [
+    {
+      "q": "can i have an agent only tell me if something changed?",
+      "a": "**yes. name the changes you want to hear about.** the routine also reports failed reads so a blocked page never looks unchanged."
+    },
+    {
+      "q": "will it catch every competitor price change?",
+      "a": "**it covers the named public pages at the scheduled time.** short-lived changes, private quotes and unreadable pages can escape it."
+    },
+    {
+      "q": "where does the bot run when my laptop is closed?",
+      "a": "**use dusk cloud or your own server to keep the weekly read going.** on your laptop, it needs dusk open and the computer awake."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "put two competitor links in a project file",
+      "ask the bot to save a dated baseline",
+      "match currency and billing interval against the sources",
+      "schedule comparisons only after that record looks right"
+    ]
+  },
+  "worked": {
+    "intro": "a fictional allowance change, with dates beside both versions.",
+    "before": "orinth desk: team plan includes 3 workspaces.\nbaseline read 5 november 2026.",
+    "after": "orinth desk: team plan includes 5 workspaces.\nread 12 november 2026.\nreport the allowance change. don't assume existing customer terms changed."
+  },
+  "mistakes": [
+    {
+      "mistake": "calling annual pricing a monthly price cut",
+      "fix": "compare the same billing interval, currency and region."
+    },
+    {
+      "mistake": "replacing the baseline after a failed load",
+      "fix": "keep the last good baseline. mark this read incomplete."
+    },
+    {
+      "mistake": "asking for a report even when nothing changed",
+      "fix": "name the changes that matter, then let unchanged pages stay quiet."
+    }
+  ],
+  "checklist": {
+    "h": "is this a real change?",
+    "items": [
+      "old and new wording are visible",
+      "currency, region and billing interval match",
+      "the source loaded successfully",
+      "interpretation stays separate from the wording"
+    ]
+  },
+  "saves": {
+    "estimate": "roughly 20 minutes a week under these assumptions",
+    "formula": "5 pages x 5 minutes checking by hand = 25 minutes\n25 minutes - 5 minutes reviewing the change note\n= 20 minutes a week",
+    "assumptions": [
+      "you review five pages weekly and each takes about five minutes",
+      "the bot's complete change note takes five minutes to review",
+      "this is a rough estimate, not a measured result; failed reads and initial setup take extra time"
+    ]
+  },
+  "tip": {
+    "text": "'read incomplete' tells you where to look. keep that line in the report."
+  },
+  "voice": 2
+}

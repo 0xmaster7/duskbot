@@ -1,0 +1,177 @@
+{
+  "path": "/for/students",
+  "type": "role",
+  "title": "AI assistant for students: study routines you control",
+  "nav": "students",
+  "h1": "an ai assistant for students who want to learn",
+  "description": "Build reading lists, draft flashcards from your own notes and check deadlines. Three study routines, with clear limits on handing in AI work.",
+  "keyword": "ai assistant for students",
+  "keywords": [
+    "ai agent for students",
+    "best ai agent for students"
+  ],
+  "answer": "**turn the notes you keep rereading into questions you can actually answer.** give the bot your reading list, lecture notes and current deadlines. get short reading sessions, flashcard drafts and a view of what's due next. dusk is free for personal use on your computer; ai costs stay separate. follow your course rules and keep assessed work yours.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "students",
+    "role",
+    "study",
+    "notes",
+    "deadlines"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/personal-ai-agent",
+    "/routines/weekly-calendar-preview",
+    "/scheduled-ai-tasks"
+  ],
+  "art": {
+    "props": [
+      "p-cap",
+      "s-books"
+    ],
+    "bubble": "try explaining it"
+  },
+  "og_line": "study help that leaves the learning to you.",
+  "day_h": "small study jobs through the day",
+  "day": [
+    {
+      "when": "before class",
+      "what": "**know what to read.** get today's items from your attached reading list, with chapter references beside them."
+    },
+    {
+      "when": "after a lecture",
+      "what": "**turn notes into practice.** attach the lecture notes and ask for flashcard drafts, with unclear answers flagged."
+    },
+    {
+      "when": "study break",
+      "what": "**try before seeing the answer.** ask for a quiz on one topic, with a hint only after you respond."
+    },
+    {
+      "when": "evening",
+      "what": "**see what's due tomorrow before bed.** read the named study calendar and list deadlines that need attention."
+    },
+    {
+      "when": "sunday",
+      "what": "**spot the crowded week.** use a [calendar preview](/routines/weekly-calendar-preview) before an assignment and exam compete for the same afternoon."
+    }
+  ],
+  "pack": [
+    {
+      "name": "the reading planner",
+      "message": "every sunday at 5pm, read the reading list and progress file in my study folder. split unread items into short sessions for the coming week. keep chapter and page references. count an item as finished only when the progress file says so. never add reading. show the plan here and ask which sessions fit.",
+      "note": "keep the reading list and progress file current; a changed syllabus needs a changed source"
+    },
+    {
+      "name": "the flashcard drafter",
+      "message": "every wednesday at 6pm, read lecture-note files dated this week in my study folder. draft question-and-answer flashcards using only those files. put a note reference beside each answer. list gaps separately instead of filling them from memory. leave the cards here for me to check.",
+      "note": "compare draft cards with the original notes before studying them"
+    },
+    {
+      "name": "the deadline lookout",
+      "message": "every evening at 7, read my study calendar for deadlines in the next three days. list each assignment, its due time and how soon it is due here. ask about unclear deadlines. never move events or mark work complete. if none are due, stay quiet.",
+      "note": "google calendar needs only read access; [scheduled tasks](/scheduled-ai-tasks) explains when routines run"
+    }
+  ],
+  "sections": [
+    {
+      "h": "start with the paragraph that lost you",
+      "md": "**get an explanation, then find out if it stuck.** attach the notes that made no sense in class. ask for an explanation followed by a question, and steer the reply while it works.\n\nkeep the reading list and deadline source current. the bot won't know your lecturer changed the syllabus until you give it the update. the [personal agent setup](/personal-ai-agent) covers broader planning."
+    },
+    {
+      "h": "keep the hard part yours",
+      "md": "**close the answer and explain it yourself.** recognising the words is easier than recalling the idea. ask the bot for practice, questions and gaps to work on. keep assessed work yours and follow the course's ai and disclosure rules.\n\nif its answer conflicts with your notes, ask your lecturer or tutor. references and reasoning still need your judgment before you hand anything in."
+    },
+    {
+      "h": "the app and ai have separate costs",
+      "md": "**the app costs nothing for personal use; budget for the ai separately.** every feature is included on your computer, without an account or card. your provider bills ai on your plan. you can also choose a local model through ollama or lm studio.\n\nleave dusk open and the laptop awake for evening routines. use automations to see run history, and keep the course's own deadline system as your reference."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are useful ai agent routines for student life?",
+      "a": "**get a reading plan, a practice set or the next deadlines.** use your own notes and calendar so every answer has somewhere to point back to."
+    },
+    {
+      "q": "can i text the study bot from my phone?",
+      "a": "**yes, through a paired phone browser.** add it to your home screen if useful. it sends no notifications. bots on your computer answer only while it stays on with dusk running."
+    },
+    {
+      "q": "will it know all my assignment deadlines?",
+      "a": "**give it the official dates in your calendar or files.** include the due time and time zone. it can only report dates you let it read."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot docs: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "composio: google calendar actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "attach one page of lecture notes",
+      "ask for three practice questions with note references",
+      "answer one before asking for a hint",
+      "compare the answer with your notes"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "studying unchecked flashcards",
+      "fix": "compare each answer with its note reference first."
+    },
+    {
+      "mistake": "updating the calendar but not its time zone",
+      "fix": "enter the official due time and zone together."
+    },
+    {
+      "mistake": "asking the bot to infer finished reading",
+      "fix": "keep a progress file that names the items you finished."
+    }
+  ],
+  "tip": {
+    "text": "if the card feels obvious, close it and explain the answer without looking."
+  },
+  "checklist": {
+    "items": [
+      "the reading list matches the current syllabus",
+      "every draft answer points back to my notes",
+      "official deadlines and time zones match the course source",
+      "the course allows this kind of ai help"
+    ]
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "oliver has lecture notes but no practice questions.\none definition has a gap in the notes.",
+    "after": "practice set for oliver\n- questions use the attached notes\n- answers include note references\n- incomplete definition stays under \"ask the tutor\"\nstart with the questions the notes can answer."
+  },
+  "voice": 2
+}

@@ -1,0 +1,127 @@
+{
+  "path": "/integrations/slack/send-message",
+  "type": "action",
+  "title": "Send Slack messages with AI to the right conversation",
+  "nav": "send message",
+  "h1": "send a slack message or thread reply with ai",
+  "description": "Post a Slack notice or reply through AI, with the wording and destination ready for your Allow. Keep thread replies under the original message.",
+  "keyword": "send slack message with ai",
+  "keywords": [
+    "chatgpt send slack message",
+    "claude post slack thread reply",
+    "ai slack channel message"
+  ],
+  "answer": "**turn the maintenance calendar into a notice the team can use.** a bot can post to an accessible slack channel, direct message or private group, and reply in a thread. show it the destination and the wording to send. sends ask first by default unless you allow a daily amount. after an uncertain result, open slack before retrying to avoid a duplicate.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "slack",
+    "outgoing messages",
+    "thread replies"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/list-unread-channel-messages",
+    "/integrations/slack/create-slack-canvas"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-bubbles",
+      "s-signpost"
+    ],
+    "bubble": "post in this thread"
+  },
+  "og_line": "the right words in the right channel.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SEND_MESSAGE"
+  },
+  "what": "**choose the destination before the wording.** name the channel or person and say what to send. ordinary notes use markdown; structured layouts use slack blocks instead.\n\nfor a reply, the bot finds the original message. for a direct message, it opens that conversation first. say \"keep it in the thread\" if you don't want a broadcast to the main channel.",
+  "uses": [
+    "**maintenance notices:** post approved wording to operations.",
+    "**delivery questions:** reply under the original message.",
+    "**a teammate's request:** send the address you checked by direct message.",
+    "**working sessions:** put the agreed agenda in the project channel."
+  ],
+  "routine": {
+    "message": "every wednesday at 16:10, read this week's confirmed maintenance windows on the maintenance calendar. prepare a notice for kilnworks-maintenance in slack. show the exact wording and channel here, then wait for my allow. if there is no confirmed window, stay quiet. report the posting result here. never mention people, broadcast elsewhere or retry an uncertain send without checking if it appeared.",
+    "when": "wednesdays at 16:10",
+    "needs": "google calendar access for reading maintenance windows; slack read and write with channel access; sending set to ask every time",
+    "output": "ready for your allow: kilnworks-maintenance\n\nerin confirmed the loading bay maintenance window on the calendar. please use the side entrance during that time.\n\ndestination: kilnworks-maintenance, with no mentions."
+  },
+  "steps": [
+    "**choose the workspace.** connect slack and allow read and write for posting.",
+    "**set ask every time.** read the channel or person on the first sending card.",
+    "**keep replies where they belong.** have the bot read the original and avoid a channel broadcast.",
+    "**inspect one post.** open the posted message before setting a repeat schedule."
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**a familiar name doesn't grant access.** missing, archived or inaccessible channels can block a post.",
+    "**retries can duplicate messages.** look for the message in the conversation before sending again.",
+    "**if slack asks it to slow down, it waits.** repeated sends aren't the fix."
+  ],
+  "faq": [
+    {
+      "q": "can it reply without alerting the whole channel?",
+      "a": "**yes. keep it in the thread.** ask the bot to reply beneath the original without broadcasting to the main channel."
+    },
+    {
+      "q": "can it message a person by name alone?",
+      "a": "**yes, if it can find the person.** it looks them up and opens the direct message. read the person's profile before posting."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "set sending to ask every time",
+      "name one channel and ask for a short test note",
+      "read the workspace and destination before allow",
+      "open slack and inspect the posted message"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying \"reply\" without naming the thread",
+      "fix": "link the original and ask to keep the reply there."
+    },
+    {
+      "mistake": "retrying after a timeout",
+      "fix": "open slack first. the first post may already be there."
+    }
+  ],
+  "tip": {
+    "text": "after an uncertain send, look before you retry."
+  },
+  "checklist": {
+    "items": [
+      "the workspace and channel or person are right",
+      "the reply stays in the intended thread",
+      "mentions and broadcasts are deliberate",
+      "an earlier attempt did not already post"
+    ]
+  },
+  "voice": 2
+}

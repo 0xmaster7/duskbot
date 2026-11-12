@@ -1,0 +1,125 @@
+{
+  "path": "/integrations/notion/replace-page-content",
+  "type": "action",
+  "title": "Replace Notion page content with AI and preview it first",
+  "nav": "replace page content",
+  "h1": "review a notion rewrite before replacing its blocks",
+  "description": "Turn an old Notion checklist into the current version with AI. Preview the removals and additions, then decide whether the backup covers what matters.",
+  "keyword": "replace notion page content with ai",
+  "keywords": [
+    "notion rewrite page with ai",
+    "chatgpt replace notion page content",
+    "claude rewrite notion page with backup"
+  ],
+  "answer": "**see the whole rewrite before the old checklist goes.** this action replaces a notion page's child blocks and offers a dry run first. it can also make a backup. some blocks and nested content stay out of that backup, and a staged replacement can fail halfway. use the preview to decide whether a full rewrite is worth it.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion",
+    "rewrites",
+    "backups"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/add-multiple-content-blocks",
+    "/integrations/notion/create-notion-page"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-shield"
+    ],
+    "bubble": "preview before replacing"
+  },
+  "og_line": "a rewrite needs more than a backup.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_REPLACE_PAGE_CONTENT"
+  },
+  "what": "**use replacement when the old body really should go.** give the bot the page and new text. a dry run shows what it would remove and add without doing it.\n\nit normally archives the old children, then adds the new ones in batches. an optional backup isn't a complete copy of every page structure. inspect complex pages before trusting this route.",
+  "uses": [
+    "**equipment checks:** replace a flat checklist with the new version you approved.",
+    "**event instructions:** update a simple page after the venue agrees to the procedure.",
+    "**a rewrite decision:** preview the full replacement and decide if small additions would do."
+  ],
+  "routine": {
+    "message": "on the last wednesday of each month at 14:35, read the cinderbrook equipment checklist in notion. compare it with the latest file in the approved checklists project folder. if the contents match, stay quiet. otherwise run a dry preview and report the blocks affected here. ask me before you change anything. stop if nested content, toggles or sub-pages make the backup incomplete. after i approve, make a backup and replace only that page. report partial failures and never retry blindly.",
+    "when": "last wednesday of the month at 14:35",
+    "needs": "access to the approved checklists project folder; notion read and write for inspecting, previewing and replacing the chosen page",
+    "output": "cinderbrook checklist preview\n- current body: flat checklist blocks\n- proposed body: new opening and closing checks\n- backup: required before an approved replacement\n\ndry run only. existing page unchanged."
+  },
+  "steps": [
+    "**limit the access.** allow notion read and write for this replacement job.",
+    "**read before rewriting.** link the page and have the bot inspect its current contents.",
+    "**require a dry run.** read the proposed removals and additions. tell it to wait before making a backup or replacement.",
+    "**inspect both copies.** after an approved run, read the new page and backup side by side. pause at any partial failure."
+  ],
+  "watch": [
+    "**a half-finished rewrite needs inspection.** old text can go before all the new text arrives. stop, look at what remains and avoid a blind retry.",
+    "**keeping old children adds alongside them.** turn off archiving only when that is the result you want."
+  ],
+  "faq": [
+    {
+      "q": "can i see what would change without rewriting the page?",
+      "a": "**yes. ask for a dry run.** it previews removals and additions while leaving the page alone."
+    },
+    {
+      "q": "does a backup guarantee a full restore?",
+      "a": "**a backup covers only the content this action can copy.** unsupported blocks and nested content need another plan. leave a complex page alone if losing those parts would break it."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "link one simple notion page",
+      "give the replacement text from a file",
+      "request a dry run only",
+      "read the proposed removals and what the backup leaves out"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating backup as a full restore",
+      "fix": "inspect nested content and unsupported blocks first."
+    },
+    {
+      "mistake": "retrying a half-finished replacement",
+      "fix": "open the page and identify what remains before another write."
+    }
+  ],
+  "tip": {
+    "text": "a dry run costs a moment. rebuilding a lost page costs more."
+  },
+  "checklist": {
+    "items": [
+      "the right page is open",
+      "the preview shows the intended removals and additions",
+      "nested content will not disappear unnoticed",
+      "i understand the backup limits",
+      "partial failure means stop and inspect"
+    ]
+  },
+  "voice": 2
+}

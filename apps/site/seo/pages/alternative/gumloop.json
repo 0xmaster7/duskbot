@@ -1,0 +1,274 @@
+{
+  "path": "/alternatives/gumloop",
+  "type": "alternative",
+  "title": "Gumloop alternatives: a builder or a bot you text?",
+  "nav": "gumloop",
+  "h1": "gumloop alternatives when you want to give a job in a message",
+  "description": "Compare Gumloop with dusk bot on browser work, credits, model choice and setup, with dated sources and reasons to choose either.",
+  "keyword": "gumloop alternative",
+  "keywords": [
+    "gumloop vs n8n",
+    "gumloop vs zapier"
+  ],
+  "answer": "**keep the builder if you like building. text a bot if you want to hand over the job.** gumloop already has chat, agents and browser work. dusk gives you named bots with standing jobs and a choice of where they live. choose by how you want to work, then add up both the hosting and ai bills.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gumloop",
+    "alternatives"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/n8n",
+    "/alternatives/zapier-agents",
+    "/scheduled-ai-tasks"
+  ],
+  "competitor": {
+    "key": "gumloop",
+    "name": "Gumloop",
+    "url": "https://www.gumloop.com/"
+  },
+  "art": {
+    "props": [
+      "s-signpost",
+      "s-coins"
+    ],
+    "label": "Gumloop",
+    "bubble": "builder or teammate?"
+  },
+  "og_line": "choose how you give the job.",
+  "verdict": {
+    "them_title": "gumloop",
+    "them": [
+      "you want a no-code builder with 400+ connectors for agents and workflows",
+      "you want a hosted browser with saved logins and up to 25 agent chats at once"
+    ],
+    "dusk": [
+      "you want each named bot's job, chats and memory together",
+      "you want to start on your computer and pay the ai provider separately",
+      "you want to describe a small repeating job and adjust it in conversation"
+    ]
+  },
+  "compare": {
+    "h": "what changes if you switch",
+    "intro": "**put the handoff beside the bill.** prices as of 12 november 2026. compare fees and credits before paying; the table covers features, not measured reply quality.",
+    "cols": [
+      "Gumloop",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "starting point",
+        "cells": [
+          "build agents and workflows in a platform",
+          "text a small team of bots in a desktop app"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "browser work",
+        "cells": [
+          "a real browser with saved logins",
+          "each bot can use a separate browser and desktop"
+        ],
+        "src": [
+          1,
+          4
+        ]
+      },
+      {
+        "label": "where work lives",
+        "cells": [
+          "hosted cloud; optional virtual private cloud on enterprise",
+          "choose your computer, your server or dusk cloud"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "model choice",
+        "cells": [
+          "pro has 35+ models; you can bring api keys",
+          "choose each bot's ai: sign-in, api key or local model"
+        ],
+        "src": [
+          2,
+          3,
+          11
+        ]
+      },
+      {
+        "label": "entry price",
+        "cells": [
+          "$37/month for pro after a 14-day trial; no ongoing free tier shown",
+          "personal use is free on your computer; work needs a license"
+        ],
+        "src": [
+          2,
+          6,
+          12
+        ]
+      },
+      {
+        "label": "usage charges",
+        "cells": [
+          "20,000 monthly credits including bonuses; 8% orchestration fee; unused credits expire",
+          "your provider bills ai; cloud hosting costs $20 or $50/month"
+        ],
+        "src": [
+          2,
+          5,
+          6
+        ]
+      },
+      {
+        "label": "conversation channels",
+        "cells": [
+          "chat, slack, teams, imessage and email on its homepage",
+          "desktop app and paired phone browser; store apps are on the way"
+        ],
+        "src": [
+          1,
+          7
+        ]
+      }
+    ]
+  },
+  "method": "**we make dusk bot. we haven't raced it against gumloop.** this comparison uses gumloop's homepage and pricing as of 12 november 2026, alongside dusk docs.\n\nwe have no matching-job measurements for speed, accuracy or cost per result. try your own small job before moving a workflow.",
+  "sections": [
+    {
+      "h": "chat and browser work are already there",
+      "md": "**gumloop already gives you agents and a browser.** it saves browser logins and lists chat, slack, teams, imessage and email on its homepage.[^1]\n\nuse its builder when you want to lay out the process. try dusk when you want to give a bot a standing job and adjust it in conversation.\n\nif the workflow is what you enjoy shaping, compare [n8n](/alternatives/n8n) and [zapier agents](/alternatives/zapier-agents) too."
+    },
+    {
+      "h": "the credit terms belong beside the price",
+      "md": "**price the job, not just the $37 plan.** as of 12 november 2026, gumloop pro advertises 20,000 monthly credits. here's the split:[^2]\n\n```text\n7,400 regular credits\n+ 12,600 bonus credits\n= 20,000 credits\n```\n\n- standard orchestration fee: 8%\n- unused credits expire\n- bring your own api keys: model-use credits fall to zero, but the fee rises to 16%\n\ndusk bills hosting separately; your provider bills ai. personal desktop use is free, while work needs a license.[^5][^6][^12] add both bills and read your provider's current sign-in terms. we haven't measured what the same job costs in each."
+    },
+    {
+      "h": "test the handoff on five files",
+      "md": "**give it a small job before rebuilding your workflow.** try: \"list the five newest files in this folder and explain each. leave the files alone.\" compare the list with the folder.\n\ndusk accepts attached documents. output lives in the bot's folder or a project folder you choose.[^8] if that works, consider a [routine](/scheduled-ai-tasks).\n\nlocal routines stop when dusk closes or your computer sleeps. use an awake machine or dusk cloud for work that must run on time.[^9]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "is gumloop free or paid?",
+      "a": "**paid, after a trial.** as of 12 november 2026, pro starts at $37/month after 14 days. credits and an orchestration fee apply. no ongoing free tier appears.[^2]"
+    },
+    {
+      "q": "gumloop vs n8n: which should i compare first?",
+      "a": "**compare how they charge for your actual process.** gumloop uses credits and orchestration fees. n8n charges per workflow run. see the [n8n comparison](/alternatives/n8n) for its prices.[^2][^10]"
+    },
+    {
+      "q": "do i need a workflow builder for a weekly report?",
+      "a": "**a few files and a short report can start with a message.** test a narrow bot instruction. use a builder when you want control over the sequence. compare the output with the files before scheduling it."
+    }
+  ],
+  "sources": [
+    {
+      "label": "gumloop homepage",
+      "url": "https://www.gumloop.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "gumloop pricing",
+      "url": "https://www.gumloop.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: a bot's computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "n8n pricing",
+      "url": "https://n8n.io/pricing/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: work license",
+      "url": "/docs/faq"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "pick one folder with five files you know",
+      "ask a dusk bot for the file list and one line about each",
+      "read its output beside the files, then inspect the usage charge"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "moving because you think gumloop lacks chat",
+      "fix": "test how you give and correct the job. both products offer conversation."
+    },
+    {
+      "mistake": "comparing only $37 with a hosting price",
+      "fix": "include credits, fees and your ai-provider bill on the same cost sheet."
+    }
+  ],
+  "tip": {
+    "text": "keep the old workflow until the replacement handles a small real job you can check."
+  },
+  "decide": {
+    "h": "which style fits the job",
+    "cols": [
+      "you need",
+      "try first"
+    ],
+    "rows": [
+      [
+        "a process laid out in a builder",
+        "gumloop"
+      ],
+      [
+        "saved browser logins in a hosted platform",
+        "gumloop"
+      ],
+      [
+        "named bots with separate jobs and your choice of ai",
+        "dusk bot"
+      ],
+      [
+        "personal work on your own machine",
+        "dusk bot"
+      ]
+    ]
+  },
+  "voice": 2
+}

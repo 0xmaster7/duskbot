@@ -1,0 +1,152 @@
+/* the guides, integrations, comparisons and other seo pages (seo/ builds them). they sit in the docs' columns and use
+   pages.css for type, tables, callouts and copy boxes; this adds only what they have and the docs do not */
+.seo-top h1 { font-size: clamp(38px, 4.6vw, 56px); line-height: 1; letter-spacing: -0.05em; font-weight: 500; margin: 0; text-wrap: balance; }
+/* one description style for every seo page and hub: under the h1, two or three lines at most */
+.seo-top .seo-answer, .p-seo-hub .phead .lede { margin: 18px 0 0; font-size: 17.5px; line-height: 1.6; letter-spacing: -0.01em; font-weight: 500; color: var(--ink-2); max-width: 640px; text-wrap: pretty; }
+.doc.prose > .seo-answer-more { margin: 24px 0 0; }
+.seo-meta { margin: 16px 0 0; font: 500 12.5px/1.5 var(--mono); color: var(--ink-3); }
+.seo-meta a { color: var(--ink-3); font-weight: 500; }
+.seo-hero { margin: 28px 0 8px; max-width: none; }
+.seo-hero img, .seo-hub-hero img { width: 100%; height: auto; border-radius: var(--r-l); image-rendering: pixelated; background: #a6e1fc; }
+.doc.prose > .seo-hero, .doc.prose > .seo-sec, .doc.prose > .seo-cta, .doc.prose > .seo-related, .doc.prose > .seo-sources { max-width: none; }
+.seo-sec > .table, .seo-sec > .code { max-width: none; }
+.seo-sec h3 { margin-top: 28px; }
+/* tables: a narrow label column that stays put while the values scroll sideways inside the rounded box; no rules,
+   rows part by a soft alternating background */
+.seo .table { padding: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.seo .table:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.seo .table table { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; font-size: 15px; line-height: 1.5; }
+.seo .table th, .seo .table td { padding: 12px 16px; border: 0; vertical-align: top; text-align: left; background: var(--wash); }
+.seo .table tbody tr:nth-child(even) > * { background: #ededea; }
+.seo .table td { min-width: 200px; color: var(--ink-2); font-weight: 500; }
+.seo .table thead th { padding-top: 14px; font-weight: 550; color: var(--ink); white-space: nowrap; }
+.seo .table th[scope="row"], .seo .table thead th:first-child { position: sticky; left: 0; z-index: 1; width: 132px; min-width: 120px; max-width: 140px; white-space: normal; }
+.seo .table th[scope="row"] { font-weight: 550; color: var(--ink); }
+.seo .table tbody tr:last-child > * { padding-bottom: 14px; }
+.seo sup a { font: 500 11px/1 var(--mono); text-decoration: none; padding: 0 2px; color: var(--blue); }
+.seo-fact { font-size: 15px; color: var(--ink-2); font-weight: 500; }
+.seo-steps { padding-left: 1.3em; }
+.seo-steps li { margin: 6px 0; }
+.seo-routine { margin: 24px 0 8px; }
+.seo-routine h3 { margin: 0 0 8px; font-size: 18px; }
+.seo-routine .code, .seo-copy { margin: 0; }
+.seo-copy pre code { white-space: pre-wrap; }
+.seo-runs { margin: 8px 0 0; font-size: 14.5px; color: var(--ink-2); font-weight: 500; }
+.seo-runs span { font-family: var(--mono); font-size: 13px; }
+.seo-specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 20px; }
+.seo-specs div { padding: 12px 16px; border-radius: var(--r-m); background: var(--wash); }
+.seo-specs dt { font: 500 12px/1.4 var(--mono); color: var(--ink-3); }
+.seo-specs dd { margin: 4px 0 0; font-size: 15.5px; color: var(--ink); }
+.seo-sample pre code { white-space: pre-wrap; }
+.seo-verdict { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-verdict > div { padding: 18px 22px 10px; border-radius: var(--r-l); background: var(--t-sky); }
+.seo-verdict > div + div { background: var(--t-lime); }
+.seo-verdict h3 { font-size: 18px; margin: 0 0 4px; }
+.seo-verdict ul { padding-left: 1.1em; margin: 6px 0 10px; }
+.seo-def { font-size: 20px; line-height: 1.45; color: var(--ink); }
+.seo-cta { display: flex; align-items: center; gap: 20px; margin: 56px 0 0; padding: 22px 26px; border-radius: var(--r-xl); background: var(--t-lilac); }
+.seo-cta .bot { width: 64px; height: 64px; }
+.seo-cta p { margin: 0 0 12px; color: var(--ink); font-size: 16.5px; }
+.seo-sources ol { padding-left: 1.4em; font-size: 14.5px; color: var(--ink-2); font-weight: 500; }
+.seo-sources li { margin: 4px 0; scroll-margin-top: 24px; overflow-wrap: anywhere; }
+.seo-sources li:target { background: var(--t-lemon); border-radius: 6px; }
+.seo-cards { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-cards a { display: grid; gap: 6px; height: 100%; padding: 10px 10px 18px; border-radius: var(--r-l); background: var(--wash); text-decoration: none; transition: background-color 0.2s ease; }
+.seo-cards a:hover { background: #ecece9; }
+.seo-cards img { width: 100%; height: auto; border-radius: var(--r-m); image-rendering: pixelated; background: #a6e1fc; }
+.seo-cards b { margin: 8px 8px 0; font-size: 17px; line-height: 1.25; font-weight: 550; letter-spacing: -0.02em; color: var(--ink); }
+.seo-cards span { margin: 0 8px; font-size: 14.5px; line-height: 1.45; color: var(--ink-2); font-weight: 500; }
+.seo-made { margin-top: 40px; font-size: 13.5px; color: var(--ink-3); font-weight: 500; }
+.seo-all { margin: 14px 0 0; font-size: 14px; }
+.seo-all a { color: var(--ink-2); font-weight: 500; }
+.seo-hub-hero { margin-top: 0; }
+.seo-hub { margin-top: 56px; }
+.seo-hub .seo-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.seo-hubs { margin-top: 72px; }
+.inner .seo-hubs h2 { font-size: 22px; }
+.seo-hubs h3 { font-size: 16px; margin: 22px 0 0; }
+.seo-hubs ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.seo-hubs a { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--wash); text-decoration: none; }
+.seo-hubs a:hover { background: #ebebe8; }
+.p-seo-hub .phead .crumb { margin-bottom: 18px; }
+@media (max-width: 960px) { .seo-hub .seo-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .seo-cards, .seo-hub .seo-cards, .seo-verdict, .seo-specs { grid-template-columns: 1fr; }
+  .seo-cta { flex-direction: column; align-items: flex-start; }
+  .seo-top .seo-answer, .p-seo-hub .phead .lede { font-size: 17px; }
+}
+/* the free tools */
+.calc { margin: 28px 0 8px; padding: 24px 26px 18px; border-radius: var(--r-xl); background: var(--t-sky); }
+.prose .calc h2 { margin-top: 0; }
+.calc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; margin: 16px 0 18px; }
+.calc label { display: grid; gap: 6px; font-size: 14.5px; color: var(--ink-2); font-weight: 500; }
+.calc input { height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--wash); font: 500 16px var(--sans); color: var(--ink); }
+.calc input:focus-visible { outline: none; }
+.calc .table { background: #fff; }
+.calc-note { font-size: 14px; color: var(--ink-2); margin: 8px 0; font-weight: 500; }
+@media (max-width: 760px) { .calc-grid { grid-template-columns: 1fr; } }
+/* below the three columns the docs put "on this page" above the article; a guide opens with its answer instead */
+@media (max-width: 1180px) { .seo .doc-toc { display: none; } }
+.seo-top .seo-meta { margin-top: 18px; }
+.seo-actions { columns: 2; column-gap: 24px; padding-left: 1.1em; }
+.seo-actions li { break-inside: avoid; margin: 4px 0; }
+@media (max-width: 760px) { .seo-actions { columns: 1; } }
+
+/* every block in the article starts at the article's own left edge: lists that are layouts, not bullets, drop the
+   prose list indent */
+.prose .seo-cards, .prose .seo-quick, .prose .seo-check { padding-left: 0; }
+.prose .seo-cards > li, .prose .seo-quick > li, .prose .seo-check > li { margin: 0; }
+
+/* the hero: two clouds drift across and two pixels twinkle; nothing moves when motion is reduced */
+.seo-hero { position: relative; overflow: hidden; border-radius: var(--r-l); }
+.seo-drift { position: absolute; width: 120px; height: 40px; background: url("/art/cloud-lemon.png") center / contain no-repeat; image-rendering: pixelated; opacity: 0.9; pointer-events: none; }
+.seo-drift.d1 { top: 9%; left: -20%; animation: seo-drift 38s linear infinite; }
+.seo-drift.d2 { top: 21%; left: -20%; width: 90px; height: 30px; background-image: url("/art/cloud-pink.png"); animation: seo-drift 52s linear -20s infinite; }
+.seo-twinkle { position: absolute; width: 6px; height: 6px; background: #fff; pointer-events: none; animation: seo-twinkle 2.6s steps(2) infinite; }
+.seo-twinkle.t1 { top: 14%; right: 18%; }
+.seo-twinkle.t2 { top: 30%; left: 30%; animation-delay: -1.3s; background: #fff3a0; }
+@keyframes seo-drift { to { translate: calc(var(--w, 760px) + 140%) 0; } }
+@keyframes seo-twinkle { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .seo-drift, .seo-twinkle { animation: none; } .seo-drift.d1 { left: 8%; } .seo-drift.d2 { left: 58%; } }
+
+/* small pixel bots that react beside tips, limits and steps */
+.seo-mini { width: 28px; height: 28px; flex: none; }
+.seo-mini.big { width: 52px; height: 52px; }
+.seo-warned { position: relative; }
+.seo-mascot { position: absolute; top: 4px; right: 0; }
+.seo-mascot .seo-mini { width: 40px; height: 40px; animation: seo-bob 3s ease-in-out infinite; }
+@keyframes seo-bob { 50% { translate: 0 -4px; } }
+@media (prefers-reduced-motion: reduce) { .seo-mascot .seo-mini { animation: none; } }
+.seo-spotted { position: relative; }
+.seo-spot { float: right; width: 92px; height: auto; margin: 0 0 12px 20px; image-rendering: pixelated; rotate: 3deg; }
+.seo-th { display: inline-flex; align-items: center; gap: 6px; }
+
+/* try it in 2 minutes: illustrated step cards */
+.seo-quick { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gut); counter-reset: q; }
+.seo-quick li { counter-increment: q; display: grid; gap: 10px; align-content: start; padding: 16px 16px 18px; border-radius: var(--r-l); background: var(--t-lime); font-size: 15.5px; color: var(--ink); }
+.seo-quick li::before { content: counter(q); font: 600 13px/1 var(--mono); color: var(--ink-2); }
+.seo-quick li:nth-child(2) { background: var(--t-sky); } .seo-quick li:nth-child(3) { background: var(--t-lilac); } .seo-quick li:nth-child(4) { background: var(--t-pink); }
+
+/* worked example, side by side */
+.seo-ba { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-ba .code { margin: 0; } .seo-ba pre code { white-space: pre-wrap; }
+
+/* checklist, estimate, mistakes, tip */
+.seo-check { list-style: none; display: grid; gap: 8px; }
+.seo-check li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 14px; border-radius: var(--r-m); background: var(--wash); }
+.seo-check .i { width: 18px; height: 18px; margin-top: 3px; color: var(--green); }
+.seo-saves { display: grid; grid-template-columns: 52px 1fr; gap: 18px; padding: 20px 22px; border-radius: var(--r-xl); background: var(--t-lemon); }
+.seo-saves-n { margin: 0 0 8px; font-size: 22px; line-height: 1.3; font-weight: 550; color: var(--ink); letter-spacing: -0.02em; }
+.seo-formula { background: #fff; margin: 10px 0; }
+.seo-mistakes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-mistakes > div { padding: 16px 18px; border-radius: var(--r-l); background: var(--t-pink); }
+.seo-mistakes > div:nth-child(even) { background: var(--t-sky); }
+.seo-mistakes p { margin: 8px 0 0; font-size: 15.5px; }
+.seo-tip { display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: center; margin: 32px 0; padding: 16px 20px; border-radius: var(--r-xl); background: var(--t-sky); }
+.seo-tip.careful { background: var(--t-lemon); }
+.seo-tip p { margin: 0; color: var(--ink); }
+@media (max-width: 760px) {
+  .seo-ba, .seo-mistakes { grid-template-columns: 1fr; }
+  .seo-spot { width: 64px; }
+  .seo-mascot { display: none; }
+}

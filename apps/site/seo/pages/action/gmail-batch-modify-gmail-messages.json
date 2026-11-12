@@ -1,0 +1,129 @@
+{
+  "path": "/integrations/gmail/batch-modify-gmail-messages",
+  "type": "action",
+  "title": "Label or archive Gmail messages in bulk with AI",
+  "nav": "change message labels in bulk",
+  "h1": "apply one gmail filing decision to a batch of messages",
+  "description": "Clear delivery notices, label registrations or mark newsletters read in Gmail. Preview the messages, then file up to 1,000 at a time.",
+  "keyword": "gmail bulk label emails with ai",
+  "keywords": [
+    "chatgpt archive gmail messages",
+    "claude bulk label gmail",
+    "gmail mark emails read with ai"
+  ],
+  "answer": "**clear the delivery notices without losing the customer replies beside them.** the bot finds individual gmail messages and adds or removes labels. that can archive mail or mark it read. one request covers up to 1,000 messages. filing skips sending approval, so tell it to show the matches and ask before changing them.",
+  "tags": [
+    "gmail",
+    "labels",
+    "archiving"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/fetch-emails"
+  ],
+  "og_line": "file the notices. keep the customer replies.",
+  "what": "**turn a pile of delivery notices into a clear inbox.** removing inbox archives a message. removing unread marks it read. work on individual messages, so a customer reply in the same conversation stays put.\n\nthe bot searches first and looks up custom labels by name. gmail's success response means it accepted the request. have the bot read back the saved labels to see which changes stuck.",
+  "uses": [
+    "archive delivery notices after the parcels arrive",
+    "mark a chosen group of newsletters read",
+    "label workshop registrations from one named sender",
+    "remove an old project label from emails you have reviewed"
+  ],
+  "routine": {
+    "message": "on the second wednesday of each month at 4, find last month's delivery notices from heron parcel notices in work gmail. show every sender, subject and date here. ask me before you change anything. after i agree, remove only the inbox label from those messages. read back their labels and report any failures. never delete mail or include customer-written messages.",
+    "when": "second wednesday of the month at 16:00",
+    "needs": "work gmail; read and write for message search and label changes",
+    "output": "archive proposal\n- heron parcel notices, 3 october: delivered to studio\n- heron parcel notices, 9 october: delivery window updated\nremove inbox from these messages?"
+  },
+  "steps": [
+    "connect work gmail. allow the search and label actions with read and write.",
+    "try a small group first. ask for the matching messages without any changes.",
+    "name the exact label to add or remove. keep the preview-and-agree step in the routine.",
+    "inspect the labels after it finishes. **Pause** stops future runs if the search catches too much."
+  ],
+  "watch": [
+    "**file up to 1,000 messages in one request.** split larger approved groups and keep the message list for each.",
+    "**look up custom labels before filing.** an unmatched label name can leave mail unchanged without a clear failure.",
+    "**read back the labels to see what stuck.** an accepted request can still leave individual messages unchanged."
+  ],
+  "faq": [
+    {
+      "q": "does archiving delete the emails?",
+      "a": "**no.** archiving removes the inbox label. it leaves the email in gmail."
+    },
+    {
+      "q": "can it mark a group of messages unread?",
+      "a": "**yes.** it adds unread to the messages you choose."
+    },
+    {
+      "q": "will it ask me before it files anything?",
+      "a": "**tell it to ask before filing.** sending settings do not cover labels. read only blocks filing entirely."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "gmail"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "p-folder",
+      "s-mailbox"
+    ],
+    "bubble": "ready to archive notices"
+  },
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_BATCH_MODIFY_MESSAGES"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect gmail and allow search plus label changes",
+      "ask for five newsletter matches, without changing them",
+      "read the list, then ask it to mark only those messages read",
+      "ask it to read back their saved labels"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "filing whole conversations from one matching message",
+      "fix": "review individual messages. a customer reply can share a thread with a notice."
+    },
+    {
+      "mistake": "trusting the word success",
+      "fix": "have the bot inspect the labels after the batch."
+    }
+  ],
+  "tip": {
+    "text": "archive a handful first. a bad search hurts more at 1,000 messages."
+  },
+  "checklist": {
+    "items": [
+      "the account and date window match the job",
+      "every selected message belongs in this group",
+      "the requested change names the label to add or remove",
+      "the saved labels show the filing worked"
+    ]
+  },
+  "voice": 2
+}

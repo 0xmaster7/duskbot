@@ -1,0 +1,135 @@
+{
+  "path": "/use-cases/lead-research",
+  "type": "use-case",
+  "title": "AI lead research: build a list with evidence of fit",
+  "nav": "lead research",
+  "h1": "a lead research bot that explains why each company fits",
+  "description": "Give a bot company criteria and permitted sources. Get a short research list with evidence, unknowns and no automatic outreach.",
+  "keyword": "ai agent for lead generation",
+  "keywords": [
+    "ai lead generation",
+    "ai lead research agent",
+    "ai cold email agent"
+  ],
+  "answer": "**get a shortlist you can explain before you write the pitch.** give the bot a customer profile, exclusions and permitted company pages. it can research in its own browser and bring back a source for each reason to include a company. keep unsupported budgets, buying intent and private contact details unknown. use the list to choose the next question, with outreach left out.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "leads",
+    "sales",
+    "company research",
+    "browser"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/web-scraping",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "props": [
+      "p-briefcase",
+      "p-binoculars"
+    ],
+    "bubble": "why this company fits"
+  },
+  "og_line": "a shortlist with reasons, not guesses.",
+  "routine": {
+    "intro": "**get past \"looks like a fit\" to the passage that supports it.** keep the company queue, customer profile and exclusions in a file the bot can read. this job researches companies without collecting personal addresses.[^1]",
+    "message": "each tuesday at 2pm, read the current company list in the lead research project folder. open its permitted company websites in your own browser. find independent design studios that publicly offer client workshops. exclude recruitment agencies, directories and firms outside my stated region.\n\nreturn a shortlist here with:\n- company name and website\n- the passage supporting fit, source link and date checked\n- a reason to include it and a possible mismatch\n- the next question to investigate\n\nmark team size, budget and buying intent unknown unless a source directly supports them. remove duplicate companies. skip unchanged entries unless the file asks for a fresh check. list restricted pages you couldn't review. never guess emails, collect private contacts, add crm records or contact anyone.",
+    "when": "tuesdays at 14:00, reading the current company list in your project folder",
+    "needs": "a bot with its own browser; access to the company-list file, customer profile and exclusions; no crm connection",
+    "output": "fictional research example for marta\n\ncompany: thimblewick studio\n- fit: services page lists client workshops for small teams\n- source: services page from the company-list file, checked 12 november 2026\n- mismatch: brand workshops; your offer concerns product testing\n- unknown: budget and buying intent\n- next question: does it run product testing workshops too?\n\nexcluded: ruskettle talent desk, a recruitment agency\nnot reviewed: elm design's services page would not open\nno private contacts collected. no outreach."
+  },
+  "sections": [
+    {
+      "h": "define fit using evidence you can point to",
+      "md": "**use a fit rule you can point to on the company website.** \"offers client workshops in this region\" gives the bot something visible to find. \"likely to buy\" invites a guess. exclude directories and other wrong matches before they enter the list.\n\nrequire the passage supporting each inclusion. a website alone tells you little about budget or planned projects. use [market research](/use-cases/market-research) first if the customer profile itself needs work."
+    },
+    {
+      "h": "keep weak matches out of someone else's inbox",
+      "md": "**drop a weak match before it becomes someone else's unwanted email.** this routine leaves the shortlist in chat. it adds no crm records and contacts nobody.\n\nchoose the next research question from the evidence. [email triage](/use-cases/email-triage) handles a different job: replies to conversations you already have."
+    },
+    {
+      "h": "decide the outreach rules separately",
+      "md": "**a public address still belongs to a person.** before contacting anyone, consider the rules where you and the recipient are: consent, sender details and opting out. respect requests for no contact.\n\nrespect source-site terms and personal data rules too. [web scraping](/use-cases/web-scraping) keeps collection to named fields. a polished opener cannot decide whether contact is welcome. get legal advice for those decisions."
+    }
+  ],
+  "safeguards": [
+    "**require evidence of fit.** no source passage, no shortlist entry.",
+    "**check exclusions first.** leave existing customers and do-not-contact companies out.",
+    "**leave unknowns unknown.** don't infer personal emails or intent to buy.",
+    "**review outreach rules separately.** a research entry is not a send decision."
+  ],
+  "faq": [
+    {
+      "q": "can a non-technical business owner research leads with a bot?",
+      "a": "**yes. use plain criteria and a permitted source list.** begin with a few companies you know. compare the reasons with what makes those companies a good fit."
+    },
+    {
+      "q": "is this an ai cold email agent?",
+      "a": "**no. this routine stops at research.** outreach needs its own rules, appropriate access and a decision to send."
+    },
+    {
+      "q": "can it find personal emails and phone numbers?",
+      "a": "**this routine leaves them out.** it researches company fit without collecting private contact details."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "put three known company websites in a project file",
+      "write one visible fit rule and two exclusions",
+      "ask for evidence of fit, without outreach",
+      "open one cited source and find the passage supporting fit"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for companies \"likely to buy\"",
+      "fix": "use observable criteria, such as a named service and region."
+    },
+    {
+      "mistake": "accepting a source that proves only the company exists",
+      "fix": "require the passage that supports the fit rule."
+    },
+    {
+      "mistake": "rechecking the same list every week",
+      "fix": "read new or changed queue entries, or ask for a fresh review."
+    }
+  ],
+  "tip": {
+    "text": "a smaller list with evidence beats a larger list of guesses."
+  },
+  "checklist": {
+    "items": [
+      "the source supports the stated fit",
+      "the company clears our exclusions",
+      "unknown budget and intent remain unknown",
+      "i can open the cited source",
+      "research has not become automatic outreach"
+    ]
+  },
+  "worked": {
+    "before": "marta's queue lists thimblewick studio as a possible product-testing lead.",
+    "after": "source review\n- offers brand workshops\n- product-testing work: unknown\n- budget: unknown\n- next step: investigate the service mismatch\n\nnext question: does it run product-testing workshops?"
+  },
+  "voice": 2
+}

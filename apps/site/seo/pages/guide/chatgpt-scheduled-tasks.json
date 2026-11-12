@@ -1,0 +1,139 @@
+{
+  "path": "/guides/chatgpt-scheduled-tasks",
+  "type": "guide",
+  "title": "ChatGPT scheduled tasks: current limits and 25 ideas",
+  "nav": "chatgpt scheduled tasks",
+  "h1": "chatgpt scheduled tasks: 25 ideas you might keep",
+  "description": "Find the current ChatGPT task limit for each plan, understand event triggers and timing, and choose from 25 small prompts to adapt.",
+  "keyword": "chatgpt scheduled tasks",
+  "keywords": [
+    "chatgpt scheduled tasks ideas",
+    "chatgpt scheduled tasks limit",
+    "chatgpt scheduled tasks not working",
+    "chatgpt scheduled tasks alternative"
+  ],
+  "answer": "**wake up to a useful nudge instead of another reminder you ignore.** as of 12 november 2026, chatgpt supports one-time schedules, repeat jobs, change monitoring and supported events. plans allow three to fifteen active tasks. free tasks run at most once a day, in a flexible window. exact times and hourly schedules need a paid plan. choose a result worth reading.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "chatgpt",
+    "scheduled-tasks",
+    "limits",
+    "prompts"
+  ],
+  "connectors": [],
+  "related": [
+    "/scheduled-ai-tasks",
+    "/guides/gemini-scheduled-actions",
+    "/guides/how-much-does-an-ai-agent-cost"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "p-bubbles"
+    ],
+    "bubble": "a useful little nudge"
+  },
+  "og_line": "pick a useful task within your limit.",
+  "sections": [
+    {
+      "h": "leave room for tasks you actually use",
+      "md": "**your plan has room for a few useful repeat jobs.** these limits come from openai's help page, checked 12 november 2026.[^1]\n\n| plan | active tasks |\n| --- | --- |\n| free and go | 3 |\n| plus | 5 |\n| business and edu | 10 |\n| pro and enterprise | 15 |\n\nkeep room for jobs you actually read. free tasks run at most once daily in flexible windows. exact times and hourly schedules need a paid plan. a free task won't arrive at exactly 8am.[^1]"
+    },
+    {
+      "h": "choose a clock, a change or an app event",
+      "md": "**let the task start when the work arrives.** as of 12 november 2026, gmail, slack and github events work on plus, pro, business, enterprise and edu. free and go don't get them. not every app event works.[^1]\n\nchatgpt also supports one-time schedules, repeat jobs and change monitoring.[^1] agent mode is gone; openai points to chatgpt work instead. work and codex share pricing, credits and usage limits.[^2][^3]\n\ngroup chats are retiring too. since 9 july 2026, you can't create or join new ones. existing history stays viewable.[^4] use today's task options when setting up a routine."
+    },
+    {
+      "h": "25 prompts worth trying",
+      "md": "**pick the result you'd miss tomorrow morning.** these 25 prompts cover learning, planning, work prep, writing and home. exact-time examples need a paid plan. on free, use a flexible daily window.\n\n**learning**\n- every weekday at 7am: teach me one spanish phrase i'd use at work, with a quiz on yesterday's.\n- every morning at 8: explain one science concept in 100 words, then ask me to explain it back.\n- every tuesday at 6pm: give me a short arithmetic puzzle and wait for my answer before showing the solution.\n- every evening at 7: quiz me on one definition from the glossary i attached.\n- every friday at 5: compare two ideas from the course outline i attached, with one example each.\n\n**planning**\n- every weekday at 8am: ask which commitment i should decline today and why.\n- every sunday at 6pm: ask me to choose the week's main goal and its first step.\n- every weekday at 5pm: ask what broke my focus today and one thing i'd change tomorrow.\n- every morning at 9: give me a journaling question about a decision i'm avoiding.\n- on the first day each month at 10am: ask which project i should stop and what i'd lose by stopping.\n\n**work prep**\n- every monday at 9am: suggest one question for my next mentor meeting about delegating work.\n- every tuesday at 10am: challenge one assumption in the pitch i attached and tell me how to test it.\n- every wednesday at 10am: give me one customer-discovery question about why people abandon checkout.\n- every thursday at noon: give me a buyer objection to practise answering about our pricing.\n- every friday at 4pm: ask what i promised this week and what still needs a reply.\n\n**writing**\n- every weekday at 8am: give me one grammar correction exercise and wait for my attempt.\n- every monday at 6pm: give me a storytelling exercise about a small mistake, in 150 words.\n- every tuesday at 6pm: propose three headlines for an article about repairing clothes.\n- every wednesday at 6pm: give me a jargon-heavy sentence to rewrite in plain words.\n- every thursday at 6pm: ask for one thing i learned today, then help me turn it into a short paragraph.\n\n**home**\n- every thursday at 7pm: prompt me to review the packing checklist i attached and name what's still missing.\n- every sunday at 5pm: ask which ingredients i need to use, then help plan the week's meals.\n- every saturday at 9am: ask which household errand i'm putting off and help me choose when to do it.\n- every sunday at 8pm: suggest a discussion question for the book title i gave you.\n- on the last day each month at 6pm: ask what worked at home this month and what we should stop doing."
+    },
+    {
+      "h": "when the task seems to vanish",
+      "md": "**open scheduled on the web to find the missing task.** as of 12 november 2026, openai says to use the web if **scheduled** is missing from desktop. notifications can arrive by push or email.[^1]\n\nlook at your active-task limit and the saved timing. free's flexible daily window can deliver later than you expected.\n\nif the task is there, try a shorter instruction. use the current task help page to separate a delivery problem from a job that asks too much."
+    },
+    {
+      "h": "when another scheduler makes sense",
+      "md": "**keep a useful chatgpt task where it already works.** compare [gemini schedules](/guides/gemini-scheduled-actions) if their delivery fits you better. the [scheduler table](/scheduled-ai-tasks) compares more homes for repeat work.\n\ndusk routines belong to named bots. describe the job, then read the card's next runs. local routines need the computer awake and dusk bot open. dusk cloud runs them on time.[^5]\n\nthat doesn't add chatgpt usage. compare the [whole bill](/guides/how-much-does-an-ai-agent-cost) and check your provider's current terms before connecting ongoing work through another app."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are people actually using chatgpt scheduled tasks for?",
+      "a": "**start with practice or a small review.** questions, planning prompts and regular check-ins need little account access. keep only the results you read and can judge quickly."
+    },
+    {
+      "q": "why can i not create a sixth active task?",
+      "a": "**plus allows five active tasks.** that's the limit as of 12 november 2026. retire one you don't read before adding another. other plans range from three to fifteen.[^1]"
+    },
+    {
+      "q": "does the free plan support chatgpt scheduled tasks?",
+      "a": "**yes, with flexible daily timing.** as of 12 november 2026, free allows three active tasks, at most once daily. exact times and hourly schedules need payment. free and go lack event triggers.[^1]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openai: scheduled tasks",
+      "url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: agent availability",
+      "url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: work and codex pricing",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: retiring group chats",
+      "url": "https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "open scheduled in chatgpt on the web",
+      "find your plan's active-task limit",
+      "choose one practice prompt from the list",
+      "set a permitted schedule and open the saved task"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "expecting a free task at exactly 8am",
+      "fix": "free uses flexible daily windows. exact times need a paid plan."
+    },
+    {
+      "mistake": "using every slot because you can",
+      "fix": "keep only tasks you read. remove stale reminders first."
+    },
+    {
+      "mistake": "copying agent-mode limits into a work budget",
+      "fix": "budget for work and codex together using their current shared limits."
+    }
+  ],
+  "checklist": {
+    "h": "before you save another task",
+    "items": [
+      "you have an active slot left",
+      "the schedule fits your plan",
+      "any app trigger works on your plan",
+      "you know what a useful result looks like"
+    ]
+  },
+  "tip": {
+    "text": "if you ignore a task twice, change its question before adding another reminder."
+  },
+  "voice": 2
+}

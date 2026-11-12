@@ -1,0 +1,176 @@
+{
+  "path": "/integrations/airtable",
+  "type": "integration",
+  "title": "Airtable AI assistant for record checks and intake work",
+  "nav": "airtable",
+  "h1": "an airtable assistant that learns the table before writing",
+  "description": "Review Airtable records, inspect fields and prepare intake work with dusk bot. Copy three routines and see why record edits need explicit limits.",
+  "answer": "**find the missing owner before the launch stalls.** an airtable bot can inspect your base, list records and open a row before handing you the gaps. name the base and table, then start read only. when the reports are right, you can allow intake rows, attachment uploads or corrections under rules you choose.",
+  "tags": [
+    "records",
+    "intake",
+    "tables"
+  ],
+  "connectors": [
+    "airtable"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/notion",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "airtable",
+    "label": "Airtable",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "who owns this launch"
+  },
+  "og_line": "read the fields before filling the rows.",
+  "app": {
+    "name": "Airtable",
+    "toolkit": "airtable",
+    "intro": "**get the gaps that stop work, with the row beside each.** find the right base, read its field definitions and open the records that need attention. your team's column names can hide rules; tell the bot what each required field means before allowing writes.",
+    "highlight": [
+      {
+        "slug": "AIRTABLE_LIST_BASES",
+        "use": "find the base that holds this week's launch work"
+      },
+      {
+        "slug": "AIRTABLE_GET_BASE_SCHEMA",
+        "use": "learn what owner, ready and due mean in your table"
+      },
+      {
+        "slug": "AIRTABLE_LIST_RECORDS",
+        "use": "pull the content due this week"
+      },
+      {
+        "slug": "AIRTABLE_GET_RECORD",
+        "use": "open the row with a missing owner before flagging it"
+      },
+      {
+        "slug": "AIRTABLE_LIST_COMMENTS",
+        "use": "read the comment that might already answer the venue question"
+      },
+      {
+        "slug": "AIRTABLE_GET_ATTACHMENT_INFO",
+        "use": "look at the asset attached to the content row"
+      },
+      {
+        "slug": "AIRTABLE_CREATE_RECORDS",
+        "use": "add the intake rows you agreed to, in the right fields"
+      },
+      {
+        "slug": "AIRTABLE_UPDATE_RECORD",
+        "use": "correct the field you asked it to fix"
+      }
+    ],
+    "setup": "**start the first review read only.**\n\nconnect airtable in **connected apps** and give your records bot read-only access. name the base and table. ask it to describe the fields it will use.\n\nwhen you allow writing, choose the exact actions the job needs. an intake bot doesn't need field or table changes."
+  },
+  "routines_intro": "**start with the table that keeps catching you out.** name its fields and explain what counts as missing. these routines read fresh records or files each time.",
+  "routines": [
+    {
+      "name": "editorial readiness check",
+      "message": "every monday at 9, read my airtable content table. find records due this week with missing titles, owners or assets. list missing values here. inspect attachment details where needed. leave publishing status and dates alone.",
+      "when": "mondays at 9:00",
+      "output": "a short list of content gaps to fix before publishing"
+    },
+    {
+      "name": "event logistics gaps",
+      "message": "every thursday at noon, read upcoming records in my airtable event table. compare them with the venue and contact checklist in your memory notes. read record comments before calling a question unanswered. list gaps and uncertain answers here. never edit the records.",
+      "when": "thursdays at 12:00",
+      "output": "venue and contact questions that still need an answer"
+    },
+    {
+      "name": "approved intake capture",
+      "message": "every weekday at 5, read new intake files in my project folder named approved intake. inspect the destination airtable fields. compare each item with existing records using the matching rule in your memory notes. show proposed new rows here and ask before adding them. report unclear matches instead of overwriting records. skip any item already present.",
+      "when": "weekdays at 17:00",
+      "output": "new intake rows after your review, with uncertain matches held back"
+    }
+  ],
+  "asks": "**get a useful review before handing over edits.** read only lets the bot find gaps and show proposed rows in chat. airtable changes skip sending approval; the intake routine asks because its instruction says to.\n\nwhen you allow writing:\n\n- choose record creation or correction only when needed\n- leave field changes, table changes and deletion out\n- write \"ask me before you change anything\" for supervised edits",
+  "cannot": [
+    "**write with read-only access.** it cannot add rows, upload attachments or repair records. it can show proposed values in chat.",
+    "**guess what blank means.** tell it whether an empty field means missing, unnecessary or waiting for a decision.",
+    "**prove an item is new from its title.** give a matching rule. send unclear matches to you instead of overwriting.",
+    "**run on a sleeping computer.** local jobs need an awake machine and open dusk app. cloud keeps them available with your computer off."
+  ],
+  "sections": [
+    {
+      "h": "tell it what your fields mean",
+      "md": "**ready can mean three different things in the same company.** tell the bot which fields it should read and fill, which values are required and how to find existing records.\n\na note column may carry a team rule nobody wrote into its name. explain it before allowing writes.\n\nmostly cells and formulas? compare [google sheets](/integrations/google-sheets). work starts in a page? try [notion](/integrations/notion)."
+    },
+    {
+      "h": "make intake easy to review",
+      "md": "**small batches make bad matches easier to catch.** name one target table and keep approved intake in a folder the bot can read.\n\nafter creating rows, ask it to return the saved records. compare those values with the source files. use a [filing routine](/use-cases/file-organizer) to plan where supporting files belong."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt work with my airtable base?",
+      "a": "**yes, through a connected airtable account.** choose the bot's ai in dusk. name the base and ask for the missing owners in one table."
+    },
+    {
+      "q": "can it add records without changing the table structure?",
+      "a": "**yes. allow only record creation and its lookups.** leave field and table changes out. the intake routine asks before adding rows because you told it to."
+    },
+    {
+      "q": "what is a useful airtable routine for everyday work?",
+      "a": "**find the gap that will delay friday.** missing content owners, absent assets and unanswered event questions make useful first jobs. all can stay read only."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude airtable",
+  "keywords": [
+    "airtable mcp",
+    "airtable ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect airtable with read only access",
+      "name one base and table",
+      "ask for records due this week without an owner",
+      "open the flagged rows and compare them with the report"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating every blank as an error",
+      "fix": "explain which fields must have a value and which can stay empty."
+    },
+    {
+      "mistake": "adding rows without checking for existing records",
+      "fix": "give a matching rule and hold uncertain matches for your decision."
+    }
+  ],
+  "tip": {
+    "text": "a list of three missing owners beats a tidy summary that hides them."
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "cameron opens the event table before booking equipment.\nthe venue field is empty. a record comment may contain the answer.",
+    "after": "review for cameron\n- venue field: empty\n- comments: venue confirmation still unclear\n- next step: ask the event owner before booking equipment"
+  },
+  "voice": 2
+}

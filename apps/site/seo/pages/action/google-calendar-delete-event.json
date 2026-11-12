@@ -1,0 +1,115 @@
+{
+  "path": "/integrations/google-calendar/delete-event",
+  "type": "action",
+  "title": "Delete Google Calendar events with AI, one date at a time",
+  "nav": "delete event",
+  "h1": "remove the right google calendar event",
+  "description": "Clear the Google Calendar event you meant to cancel. Choose the date, keep the rest of a repeating series and decide who gets a cancellation notice.",
+  "keyword": "google calendar delete event with ai",
+  "keywords": [
+    "chatgpt cancel google calendar event",
+    "claude delete meeting",
+    "ai remove calendar event"
+  ],
+  "answer": "**free the slot without wiping the whole series.** a bot can delete a google calendar event, including one occurrence of a repeating meeting. name the calendar and date so it finds the right one. deletion counts as a calendar change, so put the confirmation step in your request rather than relying on sending approval.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "google-calendar",
+    "delete event"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/find-event"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "p-shield"
+    ],
+    "bubble": "confirm the exact date"
+  },
+  "og_line": "free the slot. keep the rest of the series.",
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_DELETE_EVENT"
+  },
+  "what": "**cancel friday's meeting and keep next week's.** give the bot an event reference or ask it to find the meeting. name the date you mean; deleting the series removes every occurrence.\n\ngoogle can email guests about the cancellation. choose who should hear, since those notices don't follow dusk's sending setting. your connected account needs permission to delete from that calendar.",
+  "uses": [
+    "cancel a training session after the facilitator withdraws it",
+    "remove one date during an office closure while keeping the series",
+    "clear an abandoned personal planning block from the right calendar"
+  ],
+  "routine": {
+    "message": "every monday at 4, find next week’s work-calendar events whose titles start with \"temporary hold:\". ask me before you change anything. show the title, date and whether each event repeats. ask which exact events to delete and who should get cancellation notices. delete only the events i confirm, then report the result here. never delete a whole series. never call a failed lookup a cancellation.",
+    "when": "mondays at 16:00",
+    "needs": "google calendar read and write; permission to delete the chosen events",
+    "output": "temporary hold: wrenstone visit\nfriday 10:00: one standalone event.\nwaiting for your deletion and notification choices."
+  },
+  "steps": [
+    "connect the calendar; allow **read and write** only when you need cancellations",
+    "ask the bot to show the title, calendar, date and whether it repeats",
+    "write the ask-first rule in the routine; sending approval does not hold this change",
+    "open your calendar and confirm that only the chosen event disappeared"
+  ],
+  "watch": [
+    "**find the event before calling it cancelled.** a failed lookup can mean you searched the wrong calendar.",
+    "**use an account with deletion rights.** subscribed calendars can refuse changes even when you can read them.",
+    "**one date and the whole series are different jobs.** name the exact occurrence."
+  ],
+  "faq": [
+    {
+      "q": "will dusk ask before cancelling a meeting?",
+      "a": "**only if you tell it to.** the sending control does not hold this calendar change. write the confirmation step into your request."
+    },
+    {
+      "q": "can it delete only next week's occurrence?",
+      "a": "**yes, choose the dated occurrence.** have it show that date before deleting, and leave the series alone."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "find one event without changing it",
+      "read its date, calendar and series",
+      "choose who gets a cancellation notice",
+      "confirm only that event"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting the sending setting to hold deletions",
+      "fix": "include a confirmation step in the routine itself."
+    },
+    {
+      "mistake": "cancelling by title alone",
+      "fix": "name the date and say whether you mean one occurrence or the series."
+    }
+  ],
+  "tip": {
+    "text": "say \"only this occurrence\" when you mean one meeting in a repeating series."
+  },
+  "voice": 2
+}

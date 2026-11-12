@@ -1,0 +1,118 @@
+{
+  "path": "/integrations/outlook/find-meeting-times",
+  "type": "action",
+  "title": "Find Outlook meeting times with AI before sending invites",
+  "nav": "find meeting times",
+  "h1": "find outlook meeting options that fit your attendees",
+  "description": "Ask a bot for Outlook meeting suggestions using attendees, duration and a time window. Check work-account requirements and who can actually attend.",
+  "keyword": "find outlook meeting times with ai",
+  "keywords": [
+    "outlook meeting availability with ai",
+    "chatgpt find outlook meeting times",
+    "claude suggest outlook meeting slots"
+  ],
+  "answer": "**skip another round of “does tuesday work?”** give the bot attendee emails, duration and a time window. outlook returns meeting options without booking anything. this action needs a work or school microsoft account. tell it everyone must be free when everyone matters: the default can suggest a time with only half the attendees available.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook",
+    "availability",
+    "meeting options"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-email-draft",
+    "/routines/meeting-prep-brief"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-clock",
+      "p-bubbles"
+    ],
+    "bubble": "options before invitations"
+  },
+  "og_line": "find a time with the right people free.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_FIND_MEETING_TIMES"
+  },
+  "what": "**get a shortlist you can put in front of the group.** name the people, room or location limits, meeting length and your time zone. ask for reasons beside each option.\n\noutlook’s defaults can surprise you:\n- no attendees means it looks only at your calendar\n- the meeting length starts at 30 minutes\n- times come back in utc\n- half the group free can be enough\n\nset those choices before the search and spare everyone another scheduling round.",
+  "uses": [
+    "**include the people who matter.** find a supplier call with both buyer and workshop lead.",
+    "**make room for a longer session.** search agreed afternoon windows instead of accepting 30 minutes.",
+    "**find your own openings.** find organiser-only options before asking external guests."
+  ],
+  "routine": {
+    "message": "every other wednesday at 11:10, read the next-week planning brief in our juniperwake textiles folder in google drive. use its attendee email addresses, meeting length and time zone to find outlook options. the usual brief names nadir and claudine for 45 minutes between 13:00 and 16:00. require every named attendee and ask for reasons beside suggestions. show options and any availability uncertainty here. ask if the brief is missing or unclear. never create an event or send invitations.",
+    "when": "alternate wednesdays at 11:10",
+    "needs": "google drive read only for planning briefs; outlook read only through a work or school account",
+    "output": "juniperwake planning options\n- monday, 14:00 to 14:45: all named attendees free in the suggestion.\n- thursday, 13:15 to 14:00: another option to review.\nno meeting booked. choose a time before arranging it."
+  },
+  "steps": [
+    "**use the work account.** connect work or school outlook with read only.",
+    "**name the group.** give attendee emails, duration and dates. say who must attend.",
+    "**make times readable.** request your time zone and reasons for each suggestion.",
+    "**try the actual group.** run one search, then edit the routine if the group or meeting length changes."
+  ],
+  "watch": [
+    "**personal outlook.com accounts do not work here.** use a work or school account.",
+    "**no attendees means only your calendar.** that is not a group availability search.",
+    "**50 percent is the default threshold.** require everyone when leaving someone out would defeat the meeting.",
+    "**utc is the default display.** choose your zone before anyone puts the time in a diary."
+  ],
+  "faq": [
+    {
+      "q": "does finding a time send an invitation?",
+      "a": "**no.** it returns suggestions. booking the event and inviting people are separate tasks."
+    },
+    {
+      "q": "why does a suggested time exclude someone?",
+      "a": "**the default threshold is 50 percent.** say who must be free and read the reasons alongside each option."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect work or school outlook",
+      "name the attendees and meeting length",
+      "ask for everyone free in your time zone",
+      "review the options without booking"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "forgetting the attendee list",
+      "fix": "the search then looks only at the organiser. include every required person."
+    },
+    {
+      "mistake": "assuming a suggestion fits everyone",
+      "fix": "require all attendees and read the returned reasons."
+    }
+  ],
+  "tip": {
+    "text": "say “all named attendees” before searching, rather than discovering a missing person after you book."
+  },
+  "voice": 2
+}

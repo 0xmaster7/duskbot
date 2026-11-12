@@ -1,0 +1,116 @@
+{
+  "path": "/integrations/outlook/send-email",
+  "type": "action",
+  "title": "Send Outlook email with AI after a recipient check",
+  "nav": "send email",
+  "h1": "send an outlook email with the details checked",
+  "description": "Let a bot prepare and send an Outlook email with a subject, body and optional files. Review recipients and attachments using dusk bot's sending controls.",
+  "keyword": "outlook send email with ai",
+  "keywords": [
+    "chatgpt send outlook email",
+    "claude outlook email sending",
+    "ai outlook email with attachments"
+  ],
+  "answer": "**get the final dispatch note to the customer without another round of copying.** give the bot an outlook recipient, subject and text, plus files and any cc or bcc. it prepares a preview and sends after you allow it by default. you can also set a daily amount. this action sends immediately rather than saving a draft.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook",
+    "send email"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "s-parcel"
+    ],
+    "bubble": "the final file attached"
+  },
+  "og_line": "the right message to the right address.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_SEND_EMAIL"
+  },
+  "what": "**turn the agreed words and final file into a ready-to-send email.** the bot needs a recipient, subject and body. it can attach one file or several; each needs content, a valid name and a file type.\n\na different from address needs send-as or send-on-behalf permission. typing an address grants nothing. use plain text unless formatting matters; the body and chosen format must match.",
+  "uses": [
+    "email an agreed delivery note to the warehouse address you name",
+    "send a workshop access letter with its final pdf",
+    "send a short internal notice to a fixed list",
+    "write a new supplier request as a new email, rather than pretending it belongs to an old thread"
+  ],
+  "routine": {
+    "message": "every thursday at 10:10, read final dispatch notes added this week to my local dispatch folder. use the customer contact address in each note. skip any note without a final mark or a complete address. show each recipient, subject, full body and attachment name here.\n\nwait for my approval before sending through outlook. save a sent-items copy and report the result. never replace recipients or use unfinished files. if a send result is unclear, ask me before trying again.",
+    "when": "thursdays at 10:10",
+    "needs": "outlook with read and write; access to the dispatch folder; sending set to ask every time",
+    "output": "dispatch email for review\n- customer: rachel at rivermint ceramics\n- to: address from the final dispatch note\n- subject: dispatch note for the kiln shelves\n- attachment: final-dispatch-note.pdf\nshow the full address and body before allowing this send."
+  },
+  "steps": [
+    "connect the outlook mailbox and give the dispatch bot read and write.",
+    "set **Sending on your behalf** to **Ask every time**.",
+    "give the recipient address and final file. ask to see every recipient, the body and attachment name.",
+    "open the sent-items copy after the first send, then schedule the folder review."
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**use the full recipient address.** a name alone leaves room for a wrong match. a different from mailbox also needs permission.",
+    "**an attachment can fail the send.** empty files, missing names or missing file types need fixing first."
+  ],
+  "faq": [
+    {
+      "q": "can it send the same email to more than one person?",
+      "a": "**yes, including cc and bcc.** primary recipients can use comma-separated addresses. cc and bcc have separate lists. inspect all three before allowing the send."
+    },
+    {
+      "q": "can it send from our shared mailbox?",
+      "a": "**only with the right mailbox permission.** the action accepts a from address. the connected account still needs send-as or send-on-behalf access."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook and set sending to ask every time",
+      "ask for a short test email addressed to yourself",
+      "read the full preview and allow that send",
+      "open its sent-items copy"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "approving \"attachment included\" without a filename",
+      "fix": "ask for each filename and make sure it matches the final copy."
+    },
+    {
+      "mistake": "retrying when the send result is unclear",
+      "fix": "look in sent items and ask before sending again."
+    }
+  ],
+  "tip": {
+    "text": "look in sent items before retrying. the customer may already have the first email."
+  },
+  "voice": 2
+}

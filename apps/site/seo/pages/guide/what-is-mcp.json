@@ -1,0 +1,133 @@
+{
+  "path": "/guides/what-is-mcp",
+  "type": "guide",
+  "title": "What is MCP? Connections for AI apps in plain English",
+  "nav": "what is mcp",
+  "h1": "what is mcp, and why would a bot need it?",
+  "description": "A plain-English explanation of Model Context Protocol, what an MCP server connects, and the trust checks to make before adding one in dusk bot.",
+  "keyword": "what is mcp",
+  "keywords": [
+    "mcp for non developers",
+    "mcp connectors for beginners",
+    "claude connectors"
+  ],
+  "answer": "**mcp lets an ai app reach the files and services where the work lives.** short for model context protocol, it is an open-source connection standard. an mcp server exposes tools or data beyond the chat. you keep talking to the same ai; the connection gives it somewhere else to look or act.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "mcp",
+    "plugins",
+    "connections",
+    "permissions"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-connectors",
+    "/guides/claude-skills",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "props": [
+      "s-plug",
+      "s-server"
+    ],
+    "bubble": "what does this reach?"
+  },
+  "og_line": "connect the bot to where the work lives.",
+  "sections": [
+    {
+      "h": "three pieces, one connection",
+      "md": "**the server is the connection between your ai app and another system.** picture three pieces:\n\n- the ai app you talk to\n- the mcp server exposing tools or data\n- the files or service behind that server\n\nmcp gives those pieces a common connection standard.[^1] anthropic introduced and open-sourced it on 25 november 2024.[^2]\n\non 9 december 2025, anthropic donated mcp to the agentic ai foundation under the linux foundation.[^3] the name describes the connection; each server decides what it offers."
+    },
+    {
+      "h": "name the task before choosing the connection",
+      "md": "**start with the file or service you keep going back to.** name the task, then see whether your app already reaches that material. an existing connection may be enough.\n\nif you need a server, read its available tools. does it read the folder you need? does it offer the action your task calls for? choose by the job instead of adding every connection on the list.\n\nreading a folder and changing a workspace are different jobs. keep that distinction in your request."
+    },
+    {
+      "h": "the two routes in dusk bot",
+      "md": "**for a supported app, start in connected apps.** dusk uses composio there. sign in and choose which bots may use the app, with read-only or read-and-write access.[^4]\n\nfor a trusted mcp server, open plugins, then mcp servers.[^4] that is a separate route with the server’s own access. connected-app controls do not automatically apply to it.\n\n[claude connectors](/guides/claude-connectors) explains how anthropic’s connections also differ from dusk’s sign-in."
+    },
+    {
+      "h": "five questions before adding one",
+      "md": "**give a server only the access you can explain.** settle these before connecting:\n\n- **who runs it?** know whose code or service you trust\n- **what can it reach?** name the folder, account or wider workspace\n- **what can it do?** distinguish reading, changing and sending\n- **what sign-in does it need?** keep secrets out of chat when following unfamiliar instructions\n- **how do you remove access?** find the route before you need it\n\nmcp does not certify a server or promise an approval pause. if those answers are unclear, use files you intentionally attach while you find out."
+    },
+    {
+      "h": "sometimes you need a method instead",
+      "md": "**if the bot already has the files, better instructions may fix the problem.** use [claude skills](/guides/claude-skills) for a review method, format or reference material you want it to reuse.\n\nmcp gets the ai app to external material. a skill tells it how you want the work done. choose the missing piece before spending an afternoon connecting something new."
+    },
+    {
+      "h": "make the first connection earn its place",
+      "md": "**try a reading job with an answer you can trace.** ask for the source material beside the summary. compare the result with what is actually in the file or service.\n\nread the app’s and service’s current terms too. mcp defines the connection standard; your ai provider’s terms still govern its use.\n\nkeep the server if it saves you the repeated lookup. the [computer-use safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) covers supervision when you move on to more involved work."
+    }
+  ],
+  "faq": [
+    {
+      "q": "must i understand mcp to use connected apps?",
+      "a": "**no, use the connected apps sign-in.** choose the bots that may use the app. adding an mcp server under plugins is a separate option.[^4]"
+    },
+    {
+      "q": "is mcp only for claude?",
+      "a": "**no, it is a connection standard for ai applications.** the official definition does not limit it to claude.[^1]"
+    },
+    {
+      "q": "does adding an mcp server make my bot safe?",
+      "a": "**trust the operator and the access, rather than the acronym.** know who runs the server and what it exposes. dusk says to add only servers you trust.[^4]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "model context protocol: introduction",
+      "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: introducing mcp",
+      "url": "https://www.anthropic.com/news/model-context-protocol",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: donating mcp to the agentic ai foundation",
+      "url": "https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "write down the one task you need help with",
+      "see whether connected apps already covers the job",
+      "inspect a candidate server’s operator and available actions",
+      "find how to remove access before connecting it"
+    ]
+  },
+  "checklist": {
+    "h": "before connecting a server",
+    "items": [
+      "you know who operates it",
+      "you can name what it reaches",
+      "its actions fit the job you want",
+      "you know how to revoke access"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting the service name on the label",
+      "fix": "look up who operates the server itself."
+    },
+    {
+      "mistake": "granting changes for a reading job",
+      "fix": "find a narrower option before connecting it."
+    }
+  ],
+  "tip": {
+    "text": "start by asking what the connection can reach. the acronym can wait."
+  },
+  "voice": 2
+}

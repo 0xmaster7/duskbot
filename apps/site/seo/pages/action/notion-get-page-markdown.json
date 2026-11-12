@@ -1,0 +1,131 @@
+{
+  "path": "/integrations/notion/get-page-markdown",
+  "type": "action",
+  "title": "Read and summarise a Notion page with AI",
+  "nav": "get page markdown",
+  "h1": "ask ai to read a notion page for you",
+  "description": "Have a bot read a Notion page and turn it into a summary or checklist, without changing a word of it.",
+  "keyword": "read notion page markdown with ai",
+  "keywords": [
+    "chatgpt read notion page markdown",
+    "claude get notion page text",
+    "ai notion page markdown retrieval"
+  ],
+  "answer": "**turn a long notion page into the few lines you need before the meeting.** paste its link or ask the bot to find the title. it reads the page as markdown and makes a summary, comparison or checklist. the source stays untouched. have it name shortened text and unreadable blocks so you know which parts still need opening.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion markdown",
+    "page reading",
+    "source completeness"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/search-notion-pages-and-databases",
+    "/integrations/notion/fetch-comments"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-books",
+      "s-notebook"
+    ],
+    "bubble": "read the page text"
+  },
+  "og_line": "page text, with its gaps made visible.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_GET_PAGE_MARKDOWN"
+  },
+  "what": "**get the page text in one read, then ask your question.** the bot doesn't need to open every nested block separately. paste the link or let it search the title.\n\nmeeting transcripts stay out by default; ask for them when needed. the result names shortened text and blocks it couldn't turn into markdown. the summary should carry those gaps with it.",
+  "uses": [
+    "**carry a procedure as a checklist.** leave the original alone.",
+    "**spot changes in a brief.** compare it with earlier instructions you provide as a file.",
+    "**make an event plan easier to follow.** ask for plain words without edits to notion.",
+    "**recap a meeting privately.** ask to include its transcript."
+  ],
+  "routine": {
+    "message": "each tuesday at 11:50, read the current notion page titled alder ferry evacuation procedure. make a checklist from the instructions that come back. compare it with the previous version in your memory notes and flag changes. say if text was cut short or any blocks could not be read. leave transcripts out. never edit the page or guess missing safety instructions. if nothing changed, say so in one line.",
+    "when": "tuesdays at 11:50",
+    "needs": "notion connected as read only, with title search and access to the procedure page",
+    "output": "alder ferry procedure: reading checklist\n- gather at the marked assembly point.\n- report to ines, the coordinator named in the text.\none block could not be read. open it in notion for the remaining instructions."
+  },
+  "steps": [
+    "connect notion as **read only** for this bot.",
+    "paste the link or give the exact title. confirm the match before reading.",
+    "ask whether the full text came back. have it list unreadable blocks.",
+    "try a checklist, then schedule a comparison with the last version. pause if the procedure moves."
+  ],
+  "watch": [
+    "**open the parts markdown couldn't read.** the answer should name unreadable blocks and say if text cut off.",
+    "**include transcripts when your question needs them.** they stay out of the default read.",
+    "**keep the original in notion.** read only access lets the bot work with its text without editing the page."
+  ],
+  "faq": [
+    {
+      "q": "will the bot change the formatting in notion?",
+      "a": "**no. this action only reads.** the bot gets text to work with. the source keeps its formatting."
+    },
+    {
+      "q": "can it include a meeting transcript?",
+      "a": "**yes, if you ask.** meeting transcripts stay out by default. name them when your recap needs them."
+    },
+    {
+      "q": "what if part of the page is missing?",
+      "a": "**the answer should show the gap.** ask which blocks it couldn't read and whether text came back cut short. inspect those parts yourself."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect notion as read only",
+      "paste one page link",
+      "ask for a five-line summary that names any missing text",
+      "open any unreadable blocks in notion"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming a successful read means complete text",
+      "fix": "have the summary name cut-off text and unreadable blocks."
+    },
+    {
+      "mistake": "repeating the same unchanged checklist each week",
+      "fix": "compare current text with memory notes. stay brief when nothing changed."
+    }
+  ],
+  "tip": {
+    "text": "ask for the decision and the paragraph behind it. that is often enough for the meeting."
+  },
+  "checklist": {
+    "h": "can you trust this reading?",
+    "items": [
+      "the title matches the intended page",
+      "the bot reports whether text cut off",
+      "unreadable blocks have a visible warning",
+      "transcripts appear only when requested"
+    ]
+  },
+  "voice": 2
+}

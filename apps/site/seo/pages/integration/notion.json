@@ -1,0 +1,183 @@
+{
+  "path": "/integrations/notion",
+  "type": "integration",
+  "title": "Notion AI agent for page upkeep and clearer project notes",
+  "nav": "notion",
+  "h1": "a notion bot that keeps the next step easy to find",
+  "description": "Find the missing owner or next step before the project meeting. Give a dusk bot focused Notion routines for gap reports, decision notes and page upkeep.",
+  "keyword": "claude notion",
+  "keywords": [
+    "claude notion integration",
+    "notion ai agent",
+    "chatgpt notion",
+    "ai bot for notion",
+    "notion mcp"
+  ],
+  "answer": "**find out who owns the next step before the project meeting.** connect notion to a dusk bot and ask for incomplete records. it can find pages, read text and update allowed entries. choose the ai you want. start with the gap report here, then decide which page or database fields it may change.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "knowledge",
+    "project notes",
+    "databases",
+    "upkeep"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/obsidian",
+    "/integrations/linear",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "what is missing here"
+  },
+  "og_line": "clearer notes, with a smaller edit scope.",
+  "app": {
+    "name": "Notion",
+    "toolkit": "notion",
+    "intro": "**get the next step out of the meeting notes and into view.** these actions find the project page, read its records and add an update where you want it. name the source and destination separately.",
+    "highlight": [
+      {
+        "slug": "NOTION_SEARCH_NOTION_PAGE",
+        "use": "find the project home by its title"
+      },
+      {
+        "slug": "NOTION_GET_PAGE_MARKDOWN",
+        "use": "read a document as text before suggesting a revision"
+      },
+      {
+        "slug": "NOTION_FETCH_ALL_BLOCK_CONTENTS",
+        "use": "collect page blocks for a content review"
+      },
+      {
+        "slug": "NOTION_FETCH_DATABASE",
+        "use": "inspect the database before interpreting its records"
+      },
+      {
+        "slug": "NOTION_FETCH_ROW",
+        "use": "read the owner, date and next step on one project record"
+      },
+      {
+        "slug": "NOTION_FETCH_COMMENTS",
+        "use": "include review comments when assessing an unfinished page"
+      },
+      {
+        "slug": "NOTION_APPEND_TEXT_BLOCKS",
+        "use": "add a dated decision note beneath an agreed heading"
+      },
+      {
+        "slug": "NOTION_UPDATE_ROW_DATABASE",
+        "use": "update a specific record after you define the field rules"
+      }
+    ],
+    "setup": "**get a report from the page your team already uses.** connect notion through **connected apps** and choose the bot handling documentation. notion handles the sign-in.\n\npaste the source page reference in chat. name any destination separately, and ask what the bot found before enabling upkeep."
+  },
+  "routines_intro": "**keep missing fields, decisions and old instructions as separate jobs.** each needs a named source. the bot should report a gap before it tries to fill one.",
+  "routines": [
+    {
+      "name": "find incomplete records",
+      "message": "each monday at 2, read the linked notion project database. group records missing an owner, next step or target date by project. show the missing field beside each record. never guess or edit. if all are complete, say so in one line.",
+      "when": "mondays at 14:00",
+      "output": "a checklist of incomplete project records"
+    },
+    {
+      "name": "prepare decision notes",
+      "message": "every thursday at 4, read this week’s entries on the bellwether meeting-notes page in notion. collect only agreed decisions and their stated reasons. compare them with the decision log. draft missing additions here. ask me before you change anything in notion.",
+      "when": "thursdays at 16:00",
+      "output": "proposed additions to the decision log"
+    },
+    {
+      "name": "find old instructions",
+      "message": "on the first monday each month at 10, read the linked notion onboarding pages and their comments. flag dated instructions, unresolved questions and references an owner needs to revisit. explain why each needs attention. never rewrite or archive pages.",
+      "when": "first monday of the month at 10:00",
+      "output": "pages to inspect, with a reason for each"
+    }
+  ],
+  "asks": "**choose the heading it may add to, then keep the rest out of reach.** read only blocks page and database changes. a writer can use an exact action list and a confirmation step in the routine. page edits don't wait for a sending card.\n\ncomments count as posts, so sending controls apply. leave comment creation disabled for a private review.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+  "cannot": [
+    "**a reader can give you the report privately.** read only blocks rewriting, moving and archiving pages.",
+    "**leave missing owners and dates as questions for the team.** the bot can use facts in records and notes; it should leave gaps blank.",
+    "**put recurring upkeep on an awake computer.** local jobs stop during sleep or when dusk closes. dusk cloud hosts the bot instead."
+  ],
+  "sections": [
+    {
+      "h": "name the source and destination separately",
+      "md": "**turn an agreed decision into a note the team can find again.** meeting notes hold the evidence; the decision log is the destination. name both and the headings where additions belong.\n\nif delivery work lives in [linear](/integrations/linear), link to that tracker. prose about progress can lag behind the work.\n\na suggestion in the notes stays a suggestion. only agreed decisions belong in the log."
+    },
+    {
+      "h": "choose where your notes actually live",
+      "md": "**notion pages and an obsidian folder need different access.** notion uses connected app actions. [obsidian](/integrations/obsidian) uses files on your computer.\n\nchoose the source your team maintains, rather than making a second copy no one owns.\n\nfor the wider planning week, see the [product manager workflow](/for/product-managers). start with one small upkeep job before asking a bot to maintain everything."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i use claude with notion pages?",
+      "a": "**yes, choose claude or another ai for the bot.** connect notion and grant only the actions that page job needs. the bot keeps its own chats and memory."
+    },
+    {
+      "q": "can it maintain my wiki without changing everything?",
+      "a": "**begin with a reader’s report.** for writing, name the destination, allowed edit and ask-first instruction."
+    },
+    {
+      "q": "does a bot remember the way we write project notes?",
+      "a": "**yes, tell it the rules you want kept.** read and edit its notes under the bot’s memory settings."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: bot memory",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: app permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect notion and choose read only",
+      "paste one project page or database link",
+      "ask for missing owners, dates and next steps",
+      "open a flagged record and see whether the field is missing"
+    ]
+  },
+  "worked": {
+    "intro": "a made-up project review with invented people.",
+    "before": "ella opens a neat project page. the launch date looks settled, but nobody owns the next step.",
+    "after": "the bot lists the missing owner and links the record. it leaves the field blank. ella asks the team who will take it."
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to fill missing dates",
+      "fix": "ask for a gap report unless a source states the date."
+    },
+    {
+      "mistake": "using one page as both evidence and permission",
+      "fix": "name where the facts come from and where edits may go."
+    }
+  ],
+  "tip": {
+    "text": "find the unowned next step on monday, before it becomes friday’s missed deadline."
+  },
+  "voice": 2
+}

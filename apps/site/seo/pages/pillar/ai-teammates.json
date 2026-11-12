@@ -1,0 +1,156 @@
+{
+  "path": "/ai-teammates",
+  "type": "pillar",
+  "title": "AI teammates for solo founders and small teams",
+  "nav": "ai teammates",
+  "h1": "ai teammates for a small team with work to finish",
+  "description": "Give dusk bot teammates narrow jobs, clear handoffs and a human owner, with group chats, shared-bot team plans and what work use needs.",
+  "keyword": "ai teammates",
+  "keywords": [
+    "ai team members",
+    "ai agents team",
+    "ai coworker"
+  ],
+  "answer": "**hand off the prep and arrive with something ready to decide.** give a dusk bot a narrow job and a person who accepts the result. bots keep separate names, chats, memory and ai choices. bring them into a group when their jobs need each other. choose which apps each can reach and what it may remember. work use needs a work license.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "small-team",
+    "founder",
+    "handoffs",
+    "work-license"
+  ],
+  "connectors": [],
+  "related": [
+    "/for/founders",
+    "/ai-group-chat",
+    "/for/small-business-owners",
+    "/ai-employees"
+  ],
+  "art": {
+    "props": [
+      "p-folder",
+      "p-bubbles"
+    ],
+    "bubble": "ready for your decision"
+  },
+  "og_line": "small jobs, clear handoffs, human owners.",
+  "sections": [
+    {
+      "h": "fill a gap, not a roster",
+      "md": "**start where work keeps falling between people.** a solo founder may need a second reader more than another writer. a two-person studio may need a clearer brief rather than a bot called 'head of operations'.\n\ntry a preparer that turns attached material into a brief. add a reviewer that checks it against the source only when that helps. these are jobs you define, not a pack you have to adopt.\n\nuse **new bot** to give each a name and one job in plain words. each keeps its own chats and memory. edit the job later if it changes.[^1] the [founder guide](/for/founders) starts with work you own alone."
+    },
+    {
+      "h": "put a person at both ends",
+      "md": "**keep the brief current and the client gets the right work.** the bot won't notice the client brief changed on tuesday. a person has to. choose who gives the brief and who accepts the result. that can be the same person.\n\nfor a design studio, attach approved client notes and the current draft. ask the preparer for requirements. ask the reviewer to compare the draft with that list. the accepting person reads the notes before contacting the client.\n\nmake the handoff rule concrete: 'show the source file, requirement and question that needs a person. never turn a suggestion into an approved requirement.' the accepting person resolves the questions against the source."
+    },
+    {
+      "h": "use a group when the jobs depend on each other",
+      "md": "**a room should make the handoff shorter.** group chats let bots pass work through @mentions. choose **only when mentioned** to direct the order yourself. choose **leader** when a lead bot should assign work.[^2]\n\nfor release notes, try these group instructions: 'use the change notes attached to this job. the preparer drafts. the checker flags unsupported claims. bring disagreements to me. ask before changing files or apps. no publishing.'\n\npin the agreed brief as the group's one pinned item. keep the room small. the [group guide](/ai-group-chat) explains the answer settings. more participants won't rescue an unclear brief."
+    },
+    {
+      "h": "a shared room doesn't mean shared access",
+      "md": "**each bot keeps its own ai and permissions.** a reviewer may only need attached files. a preparer might need one connected app. make that choice separately for each bot.\n\n- apps can be off, read only, or read and write\n- an exact action list narrows access further\n- dusk blocks forbidden changes before they reach the app[^3]\n\nsends ask first unless you set a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^8]\n\nfor app edits, keep read only access or add 'ask me before changing anything'. those changes don't automatically ask.[^3] group learning stays off until you enable it for that bot. agree what should carry forward, then review notes in **memory** when jobs change.[^4]"
+    },
+    {
+      "h": "work use has a license and an ai bill",
+      "md": "**budget for the work license and the ai your team will use.** dusk is source-available under polyform strict. personal use on your own computer is free; work needs a work license.[^5][^6]\n\nas of 12 november 2026:\n\n- cloud pro costs $50 monthly or $500 yearly, including one person's work license\n- team plans start at $100 monthly, with a dedicated machine and shared bots\n- write to hello@dusk.bot about team plans and who needs access[^7]\n\nyour provider bills ai usage separately. ongoing work spends that allowance too. compare the [buying options](/ai-employees) with both costs in mind. ask about seats, roles, approvals and activity history before buying if your team needs them."
+    },
+    {
+      "h": "keep it only if the handoff gets easier",
+      "md": "**test one real job before adding more bots.** give it the material you'd give a colleague. define done. have the accepting person review the result.\n\nnote what needed correction: missing context, an unclear brief or an unsupported claim. fix the job when that caused the problem.\n\nif you spend the day untangling replies, shrink the room or split the chats. if jobs overlap, keep the clearer one. client commitments, sensitive people decisions and sign-off stay with a person.\n\nchoosing one repeat job instead? start with the [small-business guide](/for/small-business-owners)."
+    }
+  ],
+  "faq": [
+    {
+      "q": "how many ai teammates should a solo founder start with?",
+      "a": "**start with a useful job.** add a reviewer when it contributes something different. keep a group to a few focused bots. give each a distinct task and the context to do it."
+    },
+    {
+      "q": "can a small team share bots?",
+      "a": "**yes, on team plans.** they start at $100 monthly with shared bots and a dedicated machine. ask hello@dusk.bot about the arrangement, seats and roles you need."
+    },
+    {
+      "q": "do i need a work license if i run it on my own laptop?",
+      "a": "**yes, work use needs one.** the free local app covers personal use. cloud pro includes a work license for one person. team plans cover shared-bot setups."
+    },
+    {
+      "q": "can the bots talk to each other without me copying every reply?",
+      "a": "**yes, through group @mentions.** choose leader for a lead bot to assign tasks. use only when mentioned to direct them yourself. each bot keeps its access limits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: separate bot jobs and chats",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: group handoffs and answer settings",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot docs: access for each bot",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: group learning and memory settings",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: personal and work use",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot docs: source-available license",
+      "url": "/docs/faq"
+    },
+    {
+      "label": "dusk bot pricing: pro and team plans",
+      "url": "/pricing"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "give a bot a preparation job",
+      "attach a short brief and draft",
+      "ask it to list requirements and open questions",
+      "read the result before adding a reviewer"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "giving every bot the same broad job",
+      "fix": "name a distinct contribution. remove roles that only repeat another reply."
+    },
+    {
+      "mistake": "assuming a group shares app permissions",
+      "fix": "set access per bot. a reviewer often needs only the attached files."
+    },
+    {
+      "mistake": "treating agreement in the group as sign-off",
+      "fix": "have the accepting person read the source before anything reaches the client."
+    }
+  ],
+  "checklist": {
+    "h": "before you add another teammate",
+    "items": [
+      "the job fills a real gap",
+      "a person owns the brief and acceptance",
+      "the bot reaches only the apps it needs",
+      "group learning is a deliberate choice",
+      "work licenses and ai costs fit the team"
+    ]
+  },
+  "tip": {
+    "text": "if you can't say what a reviewer adds in a sentence, improve the first job before adding a role."
+  },
+  "voice": 2
+}

@@ -1,0 +1,124 @@
+{
+  "path": "/integrations/gmail/move-to-trash",
+  "type": "action",
+  "title": "Move Gmail messages to trash with AI and a recovery path",
+  "nav": "move to trash",
+  "h1": "clear one gmail message without deleting it forever",
+  "description": "Clear selected Gmail messages while keeping a recovery path. Preview the sender and subject, then have the bot move only the emails you approve.",
+  "keyword": "gmail move to trash with ai",
+  "keywords": [
+    "chatgpt trash gmail messages",
+    "claude gmail delete email",
+    "ai clean gmail trash"
+  ],
+  "answer": "**clear the old shipping notice and keep the booking you still need.** a bot can move a gmail message to trash while leaving the rest of its conversation alone. you can recover it until trash empties. it still uses storage until then. trash moves don't use sending approval, so put 'ask me before moving anything' in the request.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "move to trash"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/untrash-message"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-folder"
+    ],
+    "bubble": "that message can go"
+  },
+  "og_line": "clear the message, keep recovery possible.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_MOVE_TO_TRASH"
+  },
+  "what": "**trash one email without wiping the conversation.** the bot searches for the message and checks its subject and first lines. other replies stay where they are.\n\ntrash keeps a recovery path until it empties. it doesn't free storage on its own. for a large clear-out, ask about a bulk action rather than repeating this one.",
+  "uses": [
+    "**drop the old delivery notice.** keep the replacement that has the right date.",
+    "**remove a duplicate booking email.** leave the amended confirmation alone.",
+    "**clear a shipping notice.** keep the replies around it."
+  ],
+  "routine": {
+    "message": "every saturday at 10, find this week's 'your order has shipped' emails from mossgate outfitters. show each date and subject here. ask me before moving anything to trash. move only the emails i approve, then list what moved. never empty trash or touch other mail.",
+    "when": "saturdays at 10:00",
+    "needs": "gmail connected with read and write access for message moves",
+    "output": "mossgate outfitters: 2 shipping emails this week\n- thursday: your order has shipped\n- friday: your order has shipped\nmove both to trash? the other replies will stay put."
+  },
+  "steps": [
+    "connect the gmail account in **connected apps** with read and write access.",
+    "start with a search preview showing the sender, subject and first lines.",
+    "add 'ask me before moving anything to trash' to the routine.",
+    "pause the routine if its matches drift. fix the search before another run."
+  ],
+  "watch": [
+    "**trash still uses storage.** space only clears when trash empties.",
+    "**one email moves.** the rest of its conversation stays put.",
+    "**put the pause in the request.** say when the bot should show its matches and ask you to choose."
+  ],
+  "faq": [
+    {
+      "q": "can i get the email back after the bot trashes it?",
+      "a": "**yes, until trash empties.** ask the bot to restore it, or move it back from gmail's trash yourself."
+    },
+    {
+      "q": "will this erase all replies with the same subject?",
+      "a": "**no. it targets one email.** ask to see every selected message. matching subjects don't mean you approved a whole conversation."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "pick a harmless old email",
+      "ask the bot to find it without changing anything",
+      "match the sender and subject to the email you meant",
+      "approve that message only, then look in trash"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trashing mail to free space immediately",
+      "fix": "it still counts toward storage. don't confuse moving with permanent removal."
+    },
+    {
+      "mistake": "matching only a common subject",
+      "fix": "add the sender and date range. read the preview before saying yes."
+    }
+  ],
+  "tip": {
+    "text": "start with one email you'd recognise in trash, then widen the search."
+  },
+  "checklist": {
+    "h": "before the move",
+    "items": [
+      "the connected inbox is right",
+      "the sender and first lines match",
+      "you approved individual messages",
+      "the request forbids emptying trash"
+    ]
+  },
+  "voice": 2
+}

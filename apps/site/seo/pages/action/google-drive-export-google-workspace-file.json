@@ -1,0 +1,116 @@
+{
+  "path": "/integrations/google-drive/export-google-workspace-file",
+  "type": "action",
+  "title": "Export Google Docs, Sheets or Slides with AI",
+  "nav": "export workspace file",
+  "h1": "get a portable copy of a google workspace file",
+  "description": "Get a PDF, Word or other portable copy of a Google Workspace file. Choose the source and format, with a 10 MB limit on exported content.",
+  "keyword": "google drive export workspace file with ai",
+  "keywords": [
+    "chatgpt export google doc",
+    "claude export google slides pdf",
+    "ai convert google workspace file"
+  ],
+  "answer": "**take a copy without sharing the live original.** a bot can export google docs, sheets, slides and other supported workspace files into a format you choose. give it the file link and say 'pdf' or 'word'. google caps exported content at 10 mb. dusk requires read and write access for this export.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "google-drive",
+    "export workspace file"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/find-file"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "s-parcel",
+      "p-folder"
+    ],
+    "bubble": "a copy to take away"
+  },
+  "og_line": "a portable copy, with its format chosen.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE"
+  },
+  "what": "**give the editor a word file, or take a pdf to the venue.** paste the original's link or ask the bot to find it. name the format you need.\n\n- docs can become docx or pdf\n- sheets can become xlsx or csv\n- slides can become pptx or pdf\n- drawings also support export\n\nstart from workspace content. uploaded photos and pdfs need a different conversion route. open the result before handing it over.",
+  "uses": [
+    "give an offline editor a docx copy of your google doc",
+    "take a pdf presentation to a venue",
+    "make an xlsx copy for someone who uses excel",
+    "get a plain-text document copy for a separate reading task"
+  ],
+  "routine": {
+    "message": "every sunday at 7, read the linked google document for northmere choir’s current rehearsal notes. export it as docx only if the notes changed since the last copy. ask me before exporting; show the source title and format. return the file here. report size failures clearly. never share the original, email the copy or change the notes.",
+    "when": "sundays at 19:00",
+    "needs": "google drive connected; read and write for workspace export",
+    "output": "northmere choir rehearsal notes\ncopy: rehearsal-notes.docx\nready to open here, then edit offline."
+  },
+  "steps": [
+    "connect google drive with **read and write** for export",
+    "paste the workspace file link and name the format",
+    "ask to see the source title and format before each export if you want a preview",
+    "open the returned copy; pause the routine when rehearsals end"
+  ],
+  "watch": [
+    "**10 mb is the export ceiling.** a bigger result can fail rather than return a complete file.",
+    "**formats depend on the source.** a slide deck cannot become a spreadsheet.",
+    "**drive storage is broader than workspace export.** this action is not a converter for every uploaded file."
+  ],
+  "faq": [
+    {
+      "q": "why does it need write access just to make a copy?",
+      "a": "**dusk treats export as a change.** read only cannot call it. allow this exact action rather than unrelated drive edits."
+    },
+    {
+      "q": "does exporting give someone access to the original?",
+      "a": "**you get a copy; the original stays private.** export returns file content without changing sharing permissions. sending that copy is a separate job."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect drive and allow workspace export",
+      "paste one google doc link",
+      "ask for a pdf copy",
+      "open it and look for missing pages or broken layout"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to convert an uploaded pdf",
+      "fix": "start from a supported google workspace original."
+    },
+    {
+      "mistake": "sending the copy without opening it",
+      "fix": "open the copy and look at its layout before passing it on."
+    }
+  ],
+  "tip": {
+    "text": "say what the recipient needs to do: read a pdf, or edit a word file."
+  },
+  "voice": 2
+}

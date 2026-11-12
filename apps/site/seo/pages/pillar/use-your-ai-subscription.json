@@ -1,0 +1,253 @@
+{
+  "path": "/use-your-ai-subscription",
+  "type": "pillar",
+  "title": "Automate with the AI you already sign in to",
+  "nav": "the ai you already sign in to",
+  "h1": "using the ai you already sign in to for automation",
+  "description": "How dusk bot runs official AI apps, what each provider says about sign-in, and when an API key or a local model fits better.",
+  "keyword": "use chatgpt subscription instead of api",
+  "keywords": [
+    "claude code without api key",
+    "claude code api key vs subscription",
+    "byok ai app",
+    "bring your own ai subscription",
+    "use claude pro with other apps"
+  ],
+  "answer": "**put the ai you already pay for to work on a job you keep repeating.** dusk runs vendors’ official command-line apps, with your own sign-in, an api key or a local model. your provider’s rules decide which route fits. as of 12 november 2026, those conditions differ. read the current terms for your setup before scheduling the work.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "ai",
+    "sign-in",
+    "terms",
+    "models"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/apps-that-use-your-ai-subscription",
+    "/guides/claude-subscription-vs-api",
+    "/scheduled-ai-tasks"
+  ],
+  "art": {
+    "props": [
+      "s-key",
+      "s-plug"
+    ],
+    "bubble": "pick your ai"
+  },
+  "og_line": "your bot, an ai you choose.",
+  "table": {
+    "h": "what the vendor pages say about sign-in",
+    "intro": "**choose the provider route that permits your job.** these vendor statements are as of 12 november 2026. read the conditions for the exact app and access method you intend to use.",
+    "cols": [
+      "provider",
+      "sign-in route",
+      "important boundary"
+    ],
+    "rows": [
+      {
+        "label": "anthropic",
+        "cells": [
+          "end users signing in to the unmodified claude code binary, including on a hosted platform",
+          "the legal page sets hosting conditions and bars developers from offering claude.ai login or routing requests through users' plan credentials"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "openai",
+        "cells": [
+          "codex cli supports chatgpt sign-in and api-key sign-in",
+          "supported third-party apps share existing plan limits; connecting an app adds no allowance"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "google",
+        "cells": [
+          "consumer gemini cli access ended on 18 june 2026; google announced a move to antigravity cli",
+          "antigravity's faq says wrapping agy in third-party agents or applications is not supported under consumer plans"
+        ],
+        "src": [
+          4,
+          5
+        ]
+      },
+      {
+        "label": "xai",
+        "cells": [
+          "grok build documents browser authentication, scripts, bots and acp use in other apps",
+          "consumer terms prohibit sharing credentials or making the account available to anyone else"
+        ],
+        "src": [
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "what runs when you send a message",
+      "md": "**dusk brings the bot’s job and your chosen ai together.** it has no model of its own. each bot keeps its chats and memory while using the ai you choose.\n\nit runs official command-line apps such as claude code and codex cli on the machine where your bots live. sign in yourself in the app.[^8]\n\nyour message goes from that machine straight to your ai provider. it does not pass through dusk. your provider bills usage on your plan.[^15]\n\ndo not paste copied login secrets into an unknown app because a tutorial says it works. running a vendor’s program and handling its login yourself are different arrangements.\n\ndusk is independent. anthropic, openai, google and xai do not own, fund or affiliate with it.[^14]"
+    },
+    {
+      "h": "anthropic distinguishes its own program from borrowed logins",
+      "md": "**you can use your own claude code sign-in under anthropic’s conditions.** as of 12 november 2026, anthropic allows an end user’s own subscription sign-in to unmodified claude code, including on a hosted platform.[^1]\n\nthat wording appeared between 16 and 30 august 2026.[^16] it comes with conditions:\n- run claude code as anthropic publishes it\n- do not remove or restrict its built-in sign-in methods\n- agree to commercial terms when hosting it\n- each person signs in with their own credentials\n- the platform cannot pay for, resell or intermediate their usage\n\nthe same legal page bars developers from offering claude.ai login in their own apps. they also cannot collect, store or handle those login secrets, or route requests through users’ plan credentials.[^1]\n\na support article updated 7 october 2026 says signed-in agent sdk and `claude -p` still use plan limits.[^9] separate login guidance lets anthropic charge certain other tools to usage credits.[^10]\n\nread all three together before putting the job on a schedule."
+    },
+    {
+      "h": "google and xai have different boundaries",
+      "md": "**protect your google account before wrapping its cli in another app.** as of 12 november 2026, antigravity’s terms call third-party software access a breach. google says it can suspend or terminate affected accounts.[^11]\n\nits faq also says wrapping `agy` inside other coding agents or apps is unsupported under consumer plans.[^5] take that seriously when choosing gemini access. an api key or local model offers another route.\n\nxai’s grok build docs describe scripts, bots and acp use in other apps.[^6] its consumer terms forbid sharing account credentials.[^7] that does not settle every desktop app’s use of a sign-in.\n\nsince 12 october 2026, new customers get supergrok through the x subscription. existing standalone subscribers can keep their plan.[^12]\n\nthe [provider sign-in log](/guides/apps-that-use-your-ai-subscription) dates the changes, so you can place an old forum answer."
+    },
+    {
+      "h": "choose an api key or local model when it fits",
+      "md": "**you do not have to make every job depend on a subscription login.** dusk accepts api keys under settings, api keys. it supports anthropic, xai, openrouter, groq and services using the openai api.[^8]\n\nfor local ai, run ollama or lm studio and choose use a local model. an api key still has a provider bill and terms. local setup has its own practical work too.\n\nchoose around the task and the access your provider allows. [claude plans versus api](/guides/claude-subscription-vs-api) walks through costs. [scheduled ai tasks](/scheduled-ai-tasks) helps decide where repeating jobs should live."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i sign in to chatgpt from openclaw or codex?",
+      "a": "**openai supports chatgpt sign-in in codex cli as of 12 november 2026.** it also lists openclaw, opencode, pi and t3 as apps using your plan. dusk is not on that list; it runs official codex cli. requests still use existing plan limits.[^2][^3]"
+    },
+    {
+      "q": "what happens if my ai plan runs out?",
+      "a": "**the bot tells you.** wait for the reset or switch ai. chats, files and memory stay. a dusk cloud payment adds no ai usage.[^8][^13][^15]"
+    },
+    {
+      "q": "does a working sign-in mean the provider allows my setup?",
+      "a": "**no.** it proves the login works. read current provider terms for the app and access method. the rules described here were checked on 12 november 2026."
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: claude code legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: codex authentication",
+      "url": "https://learn.chatgpt.com/docs/auth",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: sign in with chatgpt",
+      "url": "https://learn.chatgpt.com/docs/sign-in-with-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: gemini cli transition",
+      "url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity faq",
+      "url": "https://antigravity.google/docs/faq",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: grok build overview",
+      "url": "https://docs.x.ai/build/overview",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: consumer terms",
+      "url": "https://x.ai/legal/terms-of-service",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "anthropic: agent sdk plan usage",
+      "url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: account login",
+      "url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity terms",
+      "url": "https://antigravity.google/terms",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: the x subscription",
+      "url": "https://x.ai/news/x-subscription",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: about",
+      "url": "/about"
+    },
+    {
+      "label": "dusk bot: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "anthropic: archived legal page, 30 august 2026",
+      "url": "https://web.archive.org/web/20260830094710/https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose the ai you want for one bot",
+      "read the provider boundary in the table",
+      "choose its sign-in route, an api key or local model",
+      "try a small job and find which plan pays for it"
+    ]
+  },
+  "decide": {
+    "cols": [
+      "your situation",
+      "route to examine"
+    ],
+    "rows": [
+      [
+        "your provider permits the intended sign-in use",
+        "its own official app and current conditions"
+      ],
+      [
+        "you need usage-based billing",
+        "an api key and its provider terms"
+      ],
+      [
+        "you want the model to run locally",
+        "ollama or lm studio"
+      ],
+      [
+        "you keep reaching plan limits",
+        "another ai choice or an api key"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating successful login as permission",
+      "fix": "read the current terms for the exact access method."
+    },
+    {
+      "mistake": "assuming cloud hosting buys more ai",
+      "fix": "hosting pays for the machine. ai allowances stay with the provider."
+    }
+  ],
+  "tip": {
+    "text": "read the provider’s current wording before trusting last season’s sign-in tutorial."
+  },
+  "voice": 2
+}

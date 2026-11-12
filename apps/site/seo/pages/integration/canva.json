@@ -1,0 +1,183 @@
+{
+  "path": "/integrations/canva",
+  "type": "integration",
+  "title": "Canva AI assistant for design files, assets and exports",
+  "nav": "canva",
+  "h1": "a canva bot for finding assets and preparing exports",
+  "description": "Find the right Canva design, see its export formats and follow the finished file. Copy routines for handoffs and asset naming with dusk bot.",
+  "keyword": "chatgpt canva",
+  "keywords": [
+    "claude canva",
+    "canva mcp"
+  ],
+  "answer": "**let the bot find the files before you open ten canva tabs.** it can inspect designs, organise assets and start exports using your chosen ai. that helps with a handoff, not individual canvas edits. give it one folder or design and a clear result. you still decide whether the artwork is ready to leave.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "design",
+    "assets",
+    "exports",
+    "handoff"
+  ],
+  "connectors": [
+    "canva"
+  ],
+  "related": [
+    "/integrations/figma",
+    "/integrations/google-drive",
+    "/use-cases/social-media-posting"
+  ],
+  "art": {
+    "label": "Canva",
+    "props": [
+      "s-palette",
+      "s-parcel"
+    ],
+    "bubble": "ready for the handoff"
+  },
+  "og_line": "find the design. check the export.",
+  "app": {
+    "name": "Canva",
+    "toolkit": "canva",
+    "intro": "**find the file that goes to the printer before opening ten tabs.** get design titles, available formats and the assets behind the handoff. the actions below also cover uploads and asset updates within the limits you choose.",
+    "highlight": [
+      {
+        "slug": "CANVA_LIST_USER_DESIGNS",
+        "use": "list the launch designs so you can pick the right version"
+      },
+      {
+        "slug": "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING",
+        "use": "see what is actually in the handoff folder"
+      },
+      {
+        "slug": "CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION",
+        "use": "read the design’s name and access details before export"
+      },
+      {
+        "slug": "CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS",
+        "use": "find whether this design can become the file the printer needs"
+      },
+      {
+        "slug": "CANVA_POST_EXPORTS",
+        "use": "start the export you chose"
+      },
+      {
+        "slug": "CANVA_GET_DESIGN_EXPORT_JOB_RESULT",
+        "use": "wait for the export result to say the file is ready"
+      },
+      {
+        "slug": "CANVA_RETRIEVE_ASSET_METADATA_BY_ID",
+        "use": "read an asset’s details before renaming it"
+      },
+      {
+        "slug": "CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID",
+        "use": "rename and tag assets using your agreed naming rules"
+      },
+      {
+        "slug": "CANVA_CREATE_ASSET_UPLOAD_JOB",
+        "use": "upload the asset you want in the campaign"
+      },
+      {
+        "slug": "CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS",
+        "use": "wait for the upload to finish before using the asset"
+      }
+    ],
+    "setup": "**get the inventory right before handing over the file.** connect canva in **connected apps** and sign in on canva’s page. give the design-operations bot a folder or design reference.\n\nstart with an inventory. once the titles match, allow the export or asset actions the handoff needs."
+  },
+  "routines_intro": "**repeat the handoff without repeating the hunt.** list the folder, resolve unclear versions and get the chosen exports ready. creative approval stays with you.",
+  "routines": [
+    {
+      "name": "campaign design index",
+      "message": "every tuesday at 2, list designs in my launch folder in canva. give their titles here and links only when canva returns them. keep fetching results until none remain. flag titles that leave the intended version unclear. never rename or move items.",
+      "when": "tuesdays at 14:00",
+      "output": "design titles with unclear versions flagged"
+    },
+    {
+      "name": "export readiness",
+      "message": "each thursday at 11, inspect designs in my ready for handoff folder in canva. list their available export formats and propose files to export here. ask me before you start an export. use only post exports for starting jobs. wait for each agreed export result to say it finished before calling the file ready. do not post comments or publish anything.",
+      "when": "thursdays at 11:00",
+      "output": "available formats, then finished export results after your agreement"
+    },
+    {
+      "name": "asset naming proposals",
+      "message": "on the first friday each month at 1, inspect assets in my campaign assets folder in canva. compare their names and tags with the naming guide in my project folder. propose renames here, showing current and proposed names. never update tags, move assets or delete anything.",
+      "when": "first friday of the month at 13:00",
+      "output": "a rename proposal against your written naming guide"
+    }
+  ],
+  "asks": "**one of canva's two export actions counts as a send and asks first. the other doesn't.** limit the bot to post exports, or keep \"ask me before you start an export\" in the routine. a daily sending amount skips individual approvals. canva comments use sending controls too.[^3]\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^3]\n\nasset renames, moves and upload jobs do not automatically ask. keep an inventory bot on inspection actions; tell a writer to ask before making those changes. preparing an export leaves commenting, sharing and publishing as separate jobs.",
+  "cannot": [
+    "**edit any canvas element you point at.** this action list covers designs, jobs, assets, folders and comments. it has no general action for rewriting individual elements.",
+    "**promise every export format.** read the design’s available formats before choosing a file.",
+    "**start from a canva change event.** canva has no events here. use a schedule and an awake computer, or dusk cloud."
+  ],
+  "sections": [
+    {
+      "h": "follow the export through to the finished file",
+      "md": "**wait for the export result to say the file is ready.** starting the job and getting its result take separate actions. ask for both. follow uploads through to completion too.\n\nif the handoff belongs in [google drive](/integrations/google-drive), connect drive separately and name the folder. the printer should get a file, not another search job."
+    },
+    {
+      "h": "keep creative approval beside the brief",
+      "md": "**bring the chosen design back to the brief.** the bot can find files and suggest names. you still decide whether the artwork says the right thing.\n\n[figma handoffs](/integrations/figma) use different actions. read that list before planning the same job there. start [social posting](/use-cases/social-media-posting) after choosing what is ready."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt or claude work with my canva designs?",
+      "a": "**yes, through the listed canva actions.** choose the bot’s ai and connect canva. it cannot do everything available in the canvas editor."
+    },
+    {
+      "q": "can it automatically export a set of designs?",
+      "a": "**it can start exports and follow their results.** name the designs and choose from their available formats. the send-type export asks by default. the other export action doesn't, so say \"ask me first\".[^3]"
+    },
+    {
+      "q": "do canva routines keep running when my laptop closes?",
+      "a": "**local routines stop when it sleeps or dusk closes.** dusk cloud keeps the bot on a running machine while your computer is off."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and files",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routine schedules",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect canva and choose a reading bot",
+      "name one campaign folder",
+      "ask for design titles and unclear versions",
+      "open a result and confirm it is the design you meant"
+    ]
+  },
+  "worked": {
+    "intro": "an invented handoff example",
+    "before": "tavish has three designs named launch final. nobody knows which file should go to the printer.",
+    "after": "the bot lists all three titles and their available formats before starting the chosen export. tavish picks the one that goes to the printer in ten seconds, not ten tabs."
+  },
+  "mistakes": [
+    {
+      "mistake": "calling an export ready when it starts",
+      "fix": "read the separate export result before promising the file."
+    },
+    {
+      "mistake": "using “final” as the only version rule",
+      "fix": "name a ready-for-handoff folder and keep uncertain versions out."
+    }
+  ],
+  "tip": {
+    "text": "ask for design titles first. only promise links when canva returns them."
+  },
+  "voice": 2
+}

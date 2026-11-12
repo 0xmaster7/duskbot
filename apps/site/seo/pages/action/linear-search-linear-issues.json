@@ -1,0 +1,127 @@
+{
+  "path": "/integrations/linear/search-linear-issues",
+  "type": "action",
+  "title": "Search Linear with AI: find the issue you half remember",
+  "nav": "search issues",
+  "h1": "find a linear issue from the words you remember",
+  "description": "Find Linear issues by a phrase, title or issue reference with an AI bot. Include archived work when needed and see why team filters need another action.",
+  "keyword": "search linear issues with ai",
+  "keywords": [
+    "linear issue search with ai",
+    "chatgpt search linear issues",
+    "claude find linear ticket",
+    "search archived linear issues"
+  ],
+  "answer": "**stop asking the team who remembers that ticket.** give the bot words from the problem, title or issue reference. it searches linear and brings back matches, including archived work when you ask. use the separate team-listing action when you need one team’s backlog: putting a team, project or person’s name in this search only adds words.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "linear",
+    "search",
+    "archived-issues"
+  ],
+  "connectors": [
+    "linear"
+  ],
+  "related": [
+    "/integrations/linear",
+    "/integrations/linear/update-issue"
+  ],
+  "art": {
+    "logo": "linear",
+    "label": "Linear",
+    "props": [
+      "p-magnifier",
+      "p-folder"
+    ],
+    "bubble": "find that old ticket"
+  },
+  "og_line": "the ticket behind a half-remembered phrase.",
+  "action": {
+    "toolkit": "linear",
+    "slug": "LINEAR_SEARCH_ISSUES"
+  },
+  "what": "**dig up the old investigation before repeating it.** this search reads issue titles, descriptions and references. archived work stays out unless you ask for it.\n\nyou get 25 matches by default, with up to 50 in a batch. the bot can fetch more. team, project, owner, status and label filters need a different action; use list issues by team for a team’s issues.",
+  "uses": [
+    "**recover a support lead.** find the ticket about a blank screen after sign-in.",
+    "**pick up an old investigation.** include archives before reopening the same question.",
+    "**prepare for a support call.** collect tickets mentioning the exact error phrase.",
+    "**find a half-remembered ticket.** use words from its description."
+  ],
+  "routine": {
+    "message": "every monday at 11, search linear for \"password reset\", including archived issues.\n\n- finish reading available results\n- bring the issue titles and references here\n- mark archived results separately\n- flag loose matches\n\ninclude the matching phrase beside loose matches. never edit, reopen or create an issue.",
+    "when": "mondays at 11:00",
+    "needs": "linear connected with read only for this bot",
+    "output": "password reset matches\nweb-84: reset link opens a blank page; active\nweb-19: reset email delay; archived\nweb-84 is the closest match for the blank-page investigation."
+  },
+  "steps": [
+    "**connect linear with read only.** search needs no write access.",
+    "**give it the phrase.** include the error words and say whether archives belong in the results.",
+    "**open the closest tickets.** ask the bot to fetch remaining results before calling the list complete.",
+    "**schedule a topic worth watching.** pause when the investigation ends."
+  ],
+  "watch": [
+    "**a team name is just another word here.** use the separate team-listing action for a team boundary.",
+    "**bring the archives into an old-bug search.** ask for them by name so earlier work appears.",
+    "**50 is the largest batch.** there may still be more matches to read."
+  ],
+  "faq": [
+    {
+      "q": "can it search issue comments?",
+      "a": "**not with this action.** it checks the issue reference, title and description. reading comments takes a separate step."
+    },
+    {
+      "q": "what if i do not know the ticket number?",
+      "a": "**quote the problem instead.** the bot can show candidates and ask which one you meant."
+    },
+    {
+      "q": "does including archives reopen anything?",
+      "a": "**no, it only finds them.** archived issues stay as they are."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect linear with read only",
+      "quote a distinctive error phrase",
+      "ask to include archived issues",
+      "compare the matching title and description with your problem"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "adding \"ops team\" and expecting a team filter",
+      "fix": "that only adds search words. use list issues by team when the team matters."
+    },
+    {
+      "mistake": "looking only at active tickets",
+      "fix": "include archives when you suspect someone solved this before."
+    }
+  ],
+  "checklist": {
+    "h": "is this the right search?",
+    "items": [
+      "you need words from a title, description or issue reference",
+      "you chose whether to include archives",
+      "you are not relying on team, owner, project, status or label filters",
+      "you will read the matching issue before using it"
+    ]
+  },
+  "tip": {
+    "text": "the exact error message is a better clue than \"that bug from last month\"."
+  },
+  "voice": 2
+}

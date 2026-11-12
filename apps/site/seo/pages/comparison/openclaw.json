@@ -1,0 +1,259 @@
+{
+  "path": "/vs/openclaw",
+  "title": "OpenClaw vs dusk bot: setup, safety and daily use",
+  "nav": "openclaw vs dusk bot",
+  "h1": "openclaw vs dusk bot: running it day to day",
+  "description": "A direct look at OpenClaw and dusk bot: installing them, separating agents, limiting actions and keeping scheduled work running.",
+  "answer": "**pick the setup you can still manage on a busy monday.** openclaw routes agents through a gateway and chat channels; its desktop installers handle the initial pieces.[^1][^2] dusk puts bots, their jobs and per-bot app access in its own app.[^6][^7] both support separate agents and scheduled work. decide who handles upkeep, where instructions arrive and how much access the job needs.",
+  "tags": [
+    "openclaw",
+    "comparison",
+    "permissions",
+    "setup"
+  ],
+  "related": [
+    "/guides/is-openclaw-safe",
+    "/vs/openclaw-vs-hermes-agent",
+    "/agents-when-laptop-closed"
+  ],
+  "competitor": {
+    "key": "openclaw",
+    "name": "OpenClaw",
+    "url": "https://openclaw.ai/"
+  },
+  "art": {
+    "props": [
+      "s-key",
+      "p-shield"
+    ],
+    "label": "OpenClaw",
+    "bubble": "check the permissions"
+  },
+  "og_line": "the setup is only the first decision.",
+  "verdict": {
+    "them_title": "openclaw",
+    "them": [
+      "**you want to change the code.** its mit license and gateway suit an owner who will operate them.",
+      "**you want chat-app entry points.** route agent conversations through whatsapp, telegram or signal."
+    ],
+    "dusk": [
+      "**you want bot settings in one app.** manage jobs, chats and permissions from the desktop.",
+      "**you want hosting handled later.** dusk cloud gives you that option without maintaining your own server."
+    ]
+  },
+  "compare": {
+    "h": "from first install to the next morning",
+    "intro": "**choose where instructions arrive and who owns the upkeep.** as of 12 november 2026, both support separate agents. their day-to-day setup and controls differ.",
+    "cols": [
+      "OpenClaw",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "first install",
+        "cells": [
+          "terminal paths need node.js 24/26; desktop apps install the required pieces",
+          "desktop app for macos, windows and ubuntu 24.04 beta"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "dividing the work",
+        "cells": [
+          "isolated workspaces, auth and sessions; bindings route messages",
+          "each bot has a job, its own chats and memory, and an ai choice"
+        ],
+        "src": [
+          1,
+          6
+        ]
+      },
+      {
+        "label": "where you give instructions",
+        "cells": [
+          "chat channels including whatsapp, telegram, slack and signal",
+          "desktop chat or a paired phone browser; store phone apps are on their way"
+        ],
+        "src": [
+          3,
+          8
+        ]
+      },
+      {
+        "label": "recurring jobs",
+        "cells": [
+          "automations supports recurring jobs, webhooks and chat-channel delivery",
+          "chat creates a routine card; automations lists schedule and run history"
+        ],
+        "src": [
+          4,
+          9
+        ]
+      },
+      {
+        "label": "safety information to inspect",
+        "cells": [
+          "published github advisories describe disclosed issues; check them before setup",
+          "command and file approval levels; app reads and writes limited per bot; sends have their own setting"
+        ],
+        "src": [
+          10,
+          7,
+          11
+        ]
+      },
+      {
+        "label": "machine and ai bills",
+        "cells": [
+          "free mit software; you pay the model provider and any server costs",
+          "free personal desktop use; hosted plans from $20 monthly; ai usage billed by your provider"
+        ],
+        "src": [
+          3,
+          12,
+          13
+        ]
+      }
+    ]
+  },
+  "method": "**we compare setup and controls, not a security score.** we make dusk bot. we read openclaw’s docs and github advisories on 12 november 2026 alongside dusk’s controls.\n\nwe did not run identical jobs, test reliability or try to break either product. published flaws need context: affected versions, fixes and what your installation exposes.",
+  "sections": [
+    {
+      "h": "the installer is only the first evening",
+      "md": "**someone still has to maintain the machine.** openclaw’s desktop apps install the required pieces. terminal routes need node.js 24 or 26.[^2]\n\nopenclaw has no first-party hosted tier. dusk cloud is dusk’s hosted option.[^3][^12] decide who owns updates and restarts before relying on an early-morning job.\n\n[openclaw without setup](/alternatives/openclaw-no-setup) covers the install and hosting choices. an easy install and an easy month afterwards are different questions."
+    },
+    {
+      "h": "approval has three separate parts",
+      "md": "**put a boundary around each kind of work.** dusk separates command and file approvals, app access and sending.\n\n- **commands and files:** choose an approval level\n- **apps:** allow reads, reads and writes, or specific actions\n- **sends:** ask every time, or a daily amount[^11]\n\nread-only app access blocks changes before they reach the app.[^7] ordinary writes, such as moving a meeting, do not automatically pause. keep reads only or say “ask me before you change anything”.\n\nopenclaw publishes security advisories, including critical flaws.[^10] find your version and read the fixes it needs. the [openclaw safety guide](/guides/is-openclaw-safe) goes closer."
+    },
+    {
+      "h": "make the first morning job easy to inspect",
+      "md": "**start with a folder and a question you can answer yourself.** try: “every weekday at 9, read this project folder. list decisions still needing my answer. leave files unchanged.”\n\nwatch the first runs. widen access only when the job needs it.\n\ndusk shows a card with the schedule and next runs. edit, pause and undo live there too. a local run missed by less than 12 hours runs once on return; older runs are skipped.[^9]\n\n[agents with a closed laptop](/agents-when-laptop-closed) covers where that job should live. [openclaw versus hermes](/vs/openclaw-vs-hermes-agent) compares the open projects’ routing, subagents and cloud choices."
+    }
+  ],
+  "faq": [
+    {
+      "q": "do i need docker or a terminal for openclaw?",
+      "a": "**neither is required for the desktop route.** its apps install the pieces. terminal installs need node.js 24 or 26; the default route needs no docker.[^2]"
+    },
+    {
+      "q": "is openclaw free or paid?",
+      "a": "**the mit software is free as of 12 november 2026.** you pay for ai usage and any server.[^3] dusk is source-available rather than open source, and work needs a license.[^14]"
+    },
+    {
+      "q": "does dusk bot ask before every change?",
+      "a": "**app edits need their own boundary.**[^11] read-only access blocks changes before they reach the app. ordinary writes do not automatically ask. command approvals and sending use separate settings.[^7][^11]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw: multi-agent routing",
+      "url": "https://docs.openclaw.ai/concepts/multi-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw: getting started",
+      "url": "https://docs.openclaw.ai/start/getting-started",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw homepage",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw: automation scheduler",
+      "url": "https://docs.openclaw.ai/automation/cron-jobs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: desktop platforms",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: separate bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: app access and sending",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: phone pairing",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: schedule and missed runs",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "openclaw: published security advisories",
+      "url": "https://github.com/openclaw/openclaw/security/advisories",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: approval levels",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: hosted and own computers",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: separate ai billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: license and work use",
+      "url": "/docs/faq"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "openclaw vs dusk bot",
+  "keywords": [
+    "openclaw vs manus",
+    "openclaw vs n8n",
+    "openclaw vs lindy"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "choose one folder with harmless trial files",
+      "ask for its unresolved questions with no edits",
+      "compare the answer with those files",
+      "choose hosting only if the job needs to run while you are away"
+    ]
+  },
+  "checklist": {
+    "h": "before making either setup part of your day",
+    "items": [
+      "someone owns the machine’s upkeep",
+      "only required files and apps are within reach",
+      "you know where approval questions arrive",
+      "the schedule survives the way you use your laptop"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling an advisory count a security verdict",
+      "fix": "find the affected versions, their fixes and what your installation exposes."
+    },
+    {
+      "mistake": "assuming sending controls pause app edits",
+      "fix": "limit app access separately and put ask-before-changing in the job."
+    }
+  ],
+  "tip": {
+    "text": "pick the system you can supervise on a busy day, when you have no patience for setup."
+  },
+  "voice": 2
+}

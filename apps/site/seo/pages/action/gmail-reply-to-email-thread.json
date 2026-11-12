@@ -1,0 +1,114 @@
+{
+  "path": "/integrations/gmail/reply-to-email-thread",
+  "type": "action",
+  "title": "Reply to Gmail threads with AI in the right conversation",
+  "nav": "reply to email thread",
+  "h1": "reply in the gmail conversation you mean",
+  "description": "Answer a Gmail conversation with the original subject, quoted context and optional files. Preview the reply and recipients, then allow the send.",
+  "keyword": "gmail reply to thread with ai",
+  "keywords": [
+    "chatgpt reply to gmail thread",
+    "claude gmail reply",
+    "ai gmail thread response"
+  ],
+  "answer": "**get the answer back into the conversation where it belongs.** the bot replies in an existing gmail thread, keeps its subject and quotes the last returned message. you name the recipients and can attach files. this action sends the reply; choose create email draft when you want to keep editing in gmail.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "reply to email thread"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-bubbles"
+    ],
+    "bubble": "reply in this thread"
+  },
+  "og_line": "the same subject, with your answer.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_REPLY_TO_THREAD"
+  },
+  "what": "**keep the answer where the conversation happened.** the bot finds and reads the thread before replying to the people you name. it does not choose recipients from the thread by itself.\n\nyou can add files and your gmail signature. the complete message, attachments included, must stay under 25 mb. want to keep editing in gmail? ask for a draft instead.",
+  "uses": [
+    "answer a venue coordinator with the room choice you already agreed",
+    "return the corrected brief in the supplier conversation it belongs to",
+    "reply to an introduction without keeping unrelated people on cc"
+  ],
+  "routine": {
+    "message": "when gmail gets a proof query from joss at linden press, read the whole thread. read the matching correction file in the linked 'approved proof corrections' drive folder. use only that file to prepare a reply. show me recipients, text and attachment here. send only after i allow it. if no matching file exists, stop and tell me. never approve proofs or add recipients yourself.",
+    "when": "when matching mail arrives; gmail checks about every 15 minutes",
+    "needs": "gmail read and write; google drive read only; sending on ask every time",
+    "output": "awaiting approval\nto: joss at linden press\nsubject: re: cover proof\nreply: please use the revised subtitle from the attached brief.\nattachment: cover-corrections.pdf"
+  },
+  "steps": [
+    "connect the right gmail account with **read and write**",
+    "set **sending on your behalf** to **ask every time**",
+    "name the sender, subject and intended recipients; ask it to read the full thread",
+    "read the reply, open the file and allow the send; then try the recurring rule"
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**. a daily amount you set also lets it send on its own.",
+    "**subjects repeat.** add the sender or date so the bot finds the right conversation."
+  ],
+  "faq": [
+    {
+      "q": "does it automatically reply to everyone on the thread?",
+      "a": "**you choose who gets the answer.** name the recipients; the bot does not choose them from the thread. include to, cc and bcc in the preview."
+    },
+    {
+      "q": "can i have it leave a reply unsent?",
+      "a": "**ask for create email draft instead.** the reply action sends when you allow it."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "set gmail sending to ask every time",
+      "find one thread by sender and subject",
+      "ask for reply text and recipients here",
+      "read the text and recipients, then allow"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming everyone on the thread gets the answer",
+      "fix": "name the recipients and inspect cc and bcc."
+    },
+    {
+      "mistake": "using a recurring job with corrections buried in chat",
+      "fix": "keep current corrections in a connected folder and name it."
+    }
+  ],
+  "tip": {
+    "text": "the subject keeps the conversation together. the sender and date tell you which conversation it is."
+  },
+  "voice": 2
+}

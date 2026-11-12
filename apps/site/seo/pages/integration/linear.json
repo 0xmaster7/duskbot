@@ -1,0 +1,179 @@
+{
+  "path": "/integrations/linear",
+  "type": "integration",
+  "title": "Linear AI agent for issue context and cycle reviews",
+  "nav": "linear",
+  "h1": "a linear bot that spots missing context before planning",
+  "description": "Walk into planning with the question holding the work up. Your bot reads Linear issues, comments and cycles, then brings you the evidence.",
+  "keyword": "linear mcp",
+  "keywords": [
+    "claude linear",
+    "linear ai agent"
+  ],
+  "answer": "**walk into planning with the question that is holding the work up.** a dusk bot reads linear issues, comments and cycles, then brings you blockers with their evidence. give it one team and read access. it can create or update issues later if you allow it. keep priorities and edits with you until you ask for that work.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "planning",
+    "issues",
+    "cycles",
+    "product"
+  ],
+  "connectors": [
+    "linear"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/notion",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "linear",
+    "label": "Linear",
+    "props": [
+      "s-signpost",
+      "p-magnifier"
+    ],
+    "bubble": "what is blocking this"
+  },
+  "og_line": "better issue context before the planning call.",
+  "app": {
+    "name": "Linear",
+    "toolkit": "linear",
+    "intro": "**find the unanswered comment behind the tidy status.** read the issue, its discussion and the team's cycle before deciding what needs you. these actions bring the context to your chat.",
+    "highlight": [
+      {
+        "slug": "LINEAR_SEARCH_ISSUES",
+        "use": "look for existing work before suggesting a new issue"
+      },
+      {
+        "slug": "LINEAR_GET_LINEAR_ISSUE",
+        "use": "read the full issue before assessing whether it is ready"
+      },
+      {
+        "slug": "LINEAR_LIST_COMMENTS",
+        "use": "find unanswered questions in the issue discussion"
+      },
+      {
+        "slug": "LINEAR_GET_CYCLES_BY_TEAM_ID",
+        "use": "inspect the cycles for the team you named"
+      },
+      {
+        "slug": "LINEAR_LIST_LINEAR_STATES",
+        "use": "learn the team's actual workflow states"
+      },
+      {
+        "slug": "LINEAR_LIST_PROJECT_UPDATES",
+        "use": "collect project updates for a planning review"
+      },
+      {
+        "slug": "LINEAR_CREATE_LINEAR_ISSUE",
+        "use": "create an agreed issue from a prepared brief"
+      },
+      {
+        "slug": "LINEAR_UPDATE_ISSUE",
+        "use": "change the field you asked it to change, leaving the rest alone"
+      }
+    ],
+    "setup": "**explain what ready and blocked mean to your team.**\n\nadd linear in **connected apps**, sign in through linear and allow your planning bot to use it. name the team and give it a few issues to define the scope.\n\nexplain your states instead of asking the bot to guess from their names."
+  },
+  "routines_intro": "**make planning questions smaller.** try duplicate candidates, blocked work or missing project updates. inspect the first runs before widening the job.",
+  "routines": [
+    {
+      "name": "possible duplicate review",
+      "message": "every monday at 10, list issues created last week for the team named in your memory notes. compare descriptions and comments with possible older matches. use word search only to find candidates, then check each candidate's actual team and project.\n\nshow matching details and differences with both issue references. mark uncertain pairs for review. don't create, merge, close or edit anything. if the team note is missing, ask instead of guessing.",
+      "when": "mondays at 10:00",
+      "output": "candidate duplicate pairs with the evidence and differences to check"
+    },
+    {
+      "name": "cycle question list",
+      "message": "every thursday at 2, inspect the current cycle for the team named in your memory notes. read issues in the blocked states listed there.\n\ngroup blockers by the decision or input requested in comments. mark unclear reasons as unclear. leave linear unchanged. say briefly when no decision needs me.",
+      "when": "thursdays at 14:00",
+      "output": "decisions and missing inputs that the issue discussion actually names"
+    },
+    {
+      "name": "project update gaps",
+      "message": "every other tuesday at 4, read updates for the linear projects listed in your memory notes. flag projects without an update in the last two weeks. list questions the latest update leaves open. don't publish updates or edit projects. stop if the project list is missing.",
+      "when": "alternate tuesdays at 16:00",
+      "output": "a project communication checklist with gaps left visible"
+    }
+  ],
+  "asks": "**keep the planning bot read only so the review leaves your plan intact.** creating issues and changing priority, owner or state are writes that can happen without asking. creating a project update works the same way.\n\nfor maintenance later, restrict the action list and write \"ask me before you change anything\".\n\ncomments count as sends and wait for **allow** unless you set a daily amount.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+  "cannot": [
+    "**assign work or change priority under read-only access.** an issue outline here needs no tracker writes.",
+    "**tell you work is finished from its state name alone.** ask for the description and comments too. leave unclear readiness for a person.",
+    "**review a cycle on a sleeping laptop.** local routines need dusk open and the machine awake. dusk cloud can run the review while you are away."
+  ],
+  "sections": [
+    {
+      "h": "keep a blocker tied to its evidence",
+      "md": "**bring both tickets and the difference between them.** a similar title is a lead worth reading. name the states to inspect and require an issue or comment behind each blocker.\n\nlinear's word search cannot filter by team, owner, state, project or label. the bot uses a separate team-list action for team scope. typing a team name into search only searches for those words.\n\nif code discussion lives in [github](/integrations/github), connect it separately and bring that context into the review."
+    },
+    {
+      "h": "write the rule before allowing the update",
+      "md": "**keep today's priority decision with the person who owns it.** name the fields the bot may maintain and where it should report missing values. a [notion note](/integrations/notion) can add context without setting the plan.\n\n[product managers](/for/product-managers) can gather evidence before planning, then permit tracker changes once the rules are clear."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i connect claude to linear without writing an mcp setup?",
+      "a": "**yes, use connected apps.** choose claude or another ai for your dusk bot and connect linear there. the composio actions need no separate server setup."
+    },
+    {
+      "q": "can the bot just tell me what is blocked?",
+      "a": "**yes, give it read access and the team's state names.** ask for the relevant issues and comments, with evidence here. word search alone cannot narrow by team or state."
+    },
+    {
+      "q": "will issue creation ask me first?",
+      "a": "**put the pause in your request.** issue creation is a write and can happen without asking. keep a reviewing bot read only; ask for confirmation before letting a maintenance bot create anything."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and action permissions",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled work",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval controls",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name one team and its blocked states",
+      "connect linear read only",
+      "ask for blockers with supporting issue comments",
+      "check one result before scheduling a cycle review"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "team and project scope came from the records, not search words",
+      "each blocker points to the request that would unblock it",
+      "possible duplicates include differences as well as similarities",
+      "reviewing bots cannot create or edit issues"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "typing a team name and trusting every search hit",
+      "fix": "word search only matches words. check the actual team on each result."
+    },
+    {
+      "mistake": "reading a status as the whole story",
+      "fix": "look at the description and comments. a label can hide the question that matters."
+    }
+  ],
+  "tip": {
+    "text": "ask what decision would unblock the work, and which comment says so. that makes the planning list worth reading."
+  },
+  "voice": 2
+}

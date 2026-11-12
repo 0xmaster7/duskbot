@@ -1,0 +1,156 @@
+{
+  "path": "/guides/claude-scheduled-tasks",
+  "type": "guide",
+  "title": "Claude scheduled tasks: cloud, local and loop limits",
+  "nav": "claude scheduled tasks",
+  "h1": "claude scheduled tasks: which kind are you using?",
+  "description": "Untangle Claude Cowork tasks, Claude Code cloud schedules, desktop local tasks and /loop, with current plans, limits and ten prompt ideas.",
+  "keyword": "claude scheduled tasks",
+  "keywords": [
+    "claude scheduled tasks examples",
+    "claude cowork scheduled tasks",
+    "claude cowork scheduled tasks not working",
+    "claude scheduled tasks on phone"
+  ],
+  "answer": "**get the brief while your laptop is still shut.** current cowork schedules run remotely as of 12 november 2026. claude code also has cloud schedules, desktop local tasks and an open-session loop. they need different setups. find the kind you used first: changing laptop sleep settings won't fix a cloud job, while a local job still needs that laptop awake.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude",
+    "scheduled-tasks",
+    "cowork",
+    "claude-code"
+  ],
+  "connectors": [],
+  "related": [
+    "/scheduled-ai-tasks",
+    "/guides/claude-code-routines",
+    "/run-claude-code-24-7"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "s-computer"
+    ],
+    "bubble": "which schedule is this"
+  },
+  "og_line": "four meanings of a scheduled task.",
+  "sections": [
+    {
+      "h": "current cowork schedules keep going remotely",
+      "md": "**your current cowork schedule can run while you sleep.** saved prompts run remotely on a schedule or on demand. pro, max, ultra, team and enterprise support them; free does not.[^1]\n\nmanual setup offers hourly, daily, weekly, weekdays and manual. each run starts its own cowork session and can use connectors, skills and plugins.[^1]\n\nolder tasks created before 6 october 2026 can still run locally. open yours to see where it lives. scheduled tasks cannot use linked personal finance accounts.[^1]"
+    },
+    {
+      "h": "claude code has three other meanings of schedule",
+      "md": "**pick the schedule that can reach your work.** claude code offers cloud, desktop and loop, each with its own behaviour.[^2][^3][^4]\n\n- code cloud schedules, formerly routines, package prompts, repositories and connectors\n- local tasks in the desktop app need the app open and computer awake\n- `/loop` repeats a prompt inside an open code session\n\nloop needs the machine on and has a minimum interval of one minute.[^4] the [code routines guide](/guides/claude-code-routines) covers cloud setup and its separate limits."
+    },
+    {
+      "h": "match your plan to where you want to work",
+      "md": "**see which features your plan gives you on the phone.** as of 12 november 2026, cowork web and mobile support pro, max, ultra and team. team access is beta.[^6]\n\nclaude desktop supports macos, windows and linux beta on all paid plans. schedules support pro, max, ultra, team and enterprise.[^1][^6]\n\nnew pro, max and ultra cowork tasks run in the cloud. the local-only option went away on 6 october 2026.[^6] try the task with its source files before leaving it unattended."
+    },
+    {
+      "h": "ten jobs that have a reason to repeat",
+      "md": "**put the work that changes on a schedule.** point these prompts at a connected app or a folder the task can read.\n\n1. monday: read new product briefs in the brief folder. list three open questions per brief.\n2. mornings: read new experiment results in the tracker. suggest one next test per result.\n3. friday: find conflicting dates in the current milestone sheet.\n4. weekdays: read new policy drafts in the review folder. explain one unclear clause per draft.\n5. sunday: read changed business-plan files. challenge one changed assumption.\n6. tuesday: read new interview notes. suggest one unanswered customer question.\n7. monthly: find active project constraints that need a fresh decision.\n8. thursday: read new pitch drafts. suggest a simpler opening for each.\n9. evenings: read the current study file. test me on vocabulary still marked for practice.\n10. wednesday: read new documents awaiting review. propose a short checklist for each.\n\nname the source and output length. tell it what to do if files are missing. if nothing changed, ask for one quiet line."
+    },
+    {
+      "h": "diagnose before moving the job",
+      "md": "**find the failed step before rebuilding the setup.** open the task's schedule, time zone and usage account. local jobs need the host and app awake. for a cloud job, look at the remote run.\n\nin dusk, ask a named bot for a routine. its card shows upcoming runs; **automations** shows history. local dusk routines still need an awake host.[^5]\n\nprovider terms and usage allowances follow you between schedulers. read current terms before unattended work. the [scheduler comparison](/scheduled-ai-tasks) helps once you know which failure you need to fix."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a scheduled task use my personal finance accounts?",
+      "a": "**no, not through scheduled tasks.** anthropic excludes linked personal finance accounts as of 12 november 2026. access elsewhere in claude does not carry over.[^1]"
+    },
+    {
+      "q": "why are claude scheduled tasks not working when my laptop sleeps?",
+      "a": "**a local task needs that laptop.** code desktop needs the app open and computer awake. current cowork and code cloud schedules run remotely; older cowork tasks may remain local.[^1][^2][^3]"
+    },
+    {
+      "q": "are claude code routines and scheduled tasks different?",
+      "a": "**code cloud routines changed names.** as of 12 november 2026, they are cloud scheduled tasks. that does not make them cowork tasks or session loops.[^2][^4]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: cowork scheduling",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: code cloud scheduled tasks",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: desktop tasks",
+      "url": "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: session scheduling",
+      "url": "https://code.claude.com/docs/en/scheduled-tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "anthropic: cowork on web, desktop and mobile",
+      "url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "open the task that missed a run",
+      "identify cowork, code cloud, desktop local or loop",
+      "read its next run and time zone; try opening its source",
+      "run one small test before changing hosts"
+    ]
+  },
+  "decide": {
+    "h": "what needs to stay awake?",
+    "cols": [
+      "task kind",
+      "what matters"
+    ],
+    "rows": [
+      [
+        "current cowork",
+        "runs remotely; older tasks can still be local"
+      ],
+      [
+        "code cloud schedule",
+        "cloud setup and its own limits"
+      ],
+      [
+        "code desktop local",
+        "computer awake and desktop app open"
+      ],
+      [
+        "code loop",
+        "computer on and session open"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "fixing sleep settings for a remote task",
+      "fix": "identify the task type before changing the laptop."
+    },
+    {
+      "mistake": "repeating the same old brief every week",
+      "fix": "point the job at new or changed records and add a quiet rule."
+    }
+  ],
+  "tip": {
+    "text": "if the job runs in the cloud, leave the laptop settings alone."
+  },
+  "voice": 2
+}

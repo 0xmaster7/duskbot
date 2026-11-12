@@ -1,0 +1,169 @@
+{
+  "path": "/guides/claude-code-telegram-discord-slack",
+  "type": "guide",
+  "title": "Claude Code from Telegram, Discord or Slack: routes",
+  "nav": "claude code in chat apps",
+  "h1": "claude code from telegram, discord or slack",
+  "description": "Compare a custom chat bridge with Claude Remote Control and dusk bot chat, and separate talking to a bot from posting into a team channel.",
+  "keyword": "claude code telegram",
+  "keywords": [
+    "claude code discord",
+    "claude code slack"
+  ],
+  "answer": "**text your bot from the couch without turning slack into a remote terminal.** a custom bridge needs someone to handle who can direct it, how approvals return and which computer stays on. anthropic’s remote control and dusk’s own chats offer other routes.[^1][^2] most people asking for this just want to text their bot from the couch. that part needs no bridge.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude-code",
+    "chat",
+    "remote",
+    "slack",
+    "discord"
+  ],
+  "connectors": [
+    "slack",
+    "discord"
+  ],
+  "related": [
+    "/claude-code-from-your-phone",
+    "/integrations/slack",
+    "/integrations/discord",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "label": "Claude Code",
+    "props": [
+      "s-mobile",
+      "p-bubbles"
+    ],
+    "bubble": "chat, control or post?"
+  },
+  "og_line": "three different reasons to connect a chat.",
+  "sections": [
+    {
+      "h": "what do you want the chat app to do?",
+      "md": "**decide whether you want to talk to the bot or hear from it.** “claude code in slack” can mean very different jobs:\n\n- control a session by sending a slack message\n- let a bot read team discussion\n- post a finished report into a channel\n\na posting action handles the last job. it does not give channel members control of the session. decide who may issue instructions before building that route. skip that and anyone in #general can tell your agent to run commands."
+    },
+    {
+      "h": "a bridge needs an owner",
+      "md": "**a weekend bridge project with your github token in it is how accounts get emptied.** someone has to own more than the message box:\n\n- **who:** which person or channel may issue requests?\n- **context:** does a message continue a job or start another?\n- **approval:** where do questions arrive, and how do answers return?\n- **uptime:** which computer keeps the session running?\n- **failure:** how do you spot a lost connection?\n\nif you can’t answer those five questions, don’t build it."
+    },
+    {
+      "h": "remote control keeps the session on your machine",
+      "md": "**your phone is a window, not the computer doing the work.** as of 12 november 2026, remote control connects claude.ai/code or claude’s ios and android app to your local session.[^1]\n\nthe computer must stay on with claude running. this route does not use telegram, discord or slack. the [phone guide](/claude-code-from-your-phone) compares where the session lives."
+    },
+    {
+      "h": "dusk gives each bot its own conversation",
+      "md": "**want claude code in your pocket? text the bot from your phone.** pair once by scanning a code. paired with your computer, it works while that computer is on. paired with dusk cloud, it works with the laptop shut.[^3]\n\ndusk keeps named bots with jobs, chats, memory and an ai choice for each. it runs official ai command-line apps where the bots live.[^2]\n\nyou talk in dusk. each bot has a conversation you can come back to, without another team-chat channel to maintain."
+    },
+    {
+      "h": "slack can receive the result",
+      "md": "**put the finished report where your team already reads.** dusk’s slack actions include message search and sending. prepare the result in the bot’s chat, then name its channel. see the [slack integration](/integrations/slack).[^4]\n\nsends ask first unless you allow a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^8]\n\nreading jobs can stay read only. other app edits do not automatically ask; tell a writer “ask me before you change anything”.[^5]\n\ndiscord’s action list covers account and server membership, with no message-posting action as of 12 november 2026. the [discord connection](/integrations/discord) handles different jobs from slack.[^6]"
+    },
+    {
+      "h": "choose the route you can keep running",
+      "md": "**use the smallest route that answers the actual need.** remote control suits a window into your running local session. dusk suits its own bot conversations and app connections.\n\na custom bridge makes sense when that chat entry point matters enough to maintain it. decide who will fix it after a broken connection.\n\nuse the [computer safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) to limit what the session can reach. if the yes/no prompt doesn’t reach you, the bridge is broken. fix that first."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is there an official telegram bridge for claude code?",
+      "a": "**we do not know of one.** anthropic’s published phone route is remote control.[^1]"
+    },
+    {
+      "q": "can i use a slack post to control a dusk bot?",
+      "a": "**you chat with the bot in dusk.** slack events can start a routine and arrive at once. the bot can post back, but slack does not become its chat interface.[^2][^4][^7]"
+    },
+    {
+      "q": "does the discord connection include posting messages?",
+      "a": "**the checked action list does not include it.** that is the discord catalog as of 12 november 2026.[^6]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "claude code: remote control",
+      "url": "https://code.claude.com/docs/en/remote-control",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "composio: slack actions",
+      "url": "https://docs.composio.dev/toolkits/slack",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: discord actions",
+      "url": "https://docs.composio.dev/toolkits/discord",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: routines and app events",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and full access",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose control, reading or posting as the job",
+      "write down who may direct the session",
+      "choose where approval questions should arrive",
+      "name the machine that must stay awake"
+    ]
+  },
+  "decide": {
+    "cols": [
+      "you want",
+      "route to inspect"
+    ],
+    "rows": [
+      [
+        "a window into local claude code",
+        "anthropic remote control"
+      ],
+      [
+        "separate bot conversations",
+        "dusk’s own chat"
+      ],
+      [
+        "control through a specific team chat",
+        "a custom bridge you can maintain"
+      ],
+      [
+        "a report in slack",
+        "slack sending, separate from session control"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating a post action as session control",
+      "fix": "verify the incoming-instruction route separately."
+    },
+    {
+      "mistake": "letting every channel member direct the bot",
+      "fix": "define the people allowed to give instructions before connecting it."
+    }
+  ],
+  "tip": {
+    "text": "before building a bridge, ask if you only wanted the finished report in slack."
+  },
+  "voice": 2
+}

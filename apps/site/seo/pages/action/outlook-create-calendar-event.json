@@ -1,0 +1,132 @@
+{
+  "path": "/integrations/outlook/create-calendar-event",
+  "type": "action",
+  "title": "Create an Outlook calendar event with AI",
+  "nav": "create calendar event",
+  "h1": "put an agreed appointment on your outlook calendar with ai",
+  "description": "Create Outlook calendar events with a bot. Give the subject, start, end and time zone, then review the calendar and attendee list before any change.",
+  "keyword": "create outlook calendar event with ai",
+  "keywords": [
+    "chatgpt create outlook calendar event",
+    "claude add outlook appointment",
+    "ai schedule outlook calendar event"
+  ],
+  "answer": "**put the agreed visit in outlook while the details are still fresh.** give a bot the subject, start, end and time zone. it can add a location, guests or repeating dates. leave the calendar unnamed and it uses your main one. creation counts as a change, so ask to review the entry first; sending approval won't pause it.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook calendar",
+    "event creation",
+    "time zones"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/reply-to-email",
+    "/integrations/outlook/list-tasks-from-a-to-do-list"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-clock",
+      "s-map"
+    ],
+    "bubble": "appointment in the right calendar"
+  },
+  "og_line": "an agreed time, on the intended calendar.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_CALENDAR_CREATE_EVENT"
+  },
+  "what": "**an agreed time needs an exact entry.** give the title, start, end and time zone. the start must come before the end. name the calendar or it uses your main one.\n\n- add body text, location or categories when useful\n- choose busy, free or another availability status\n- give repeating dates a clear pattern\n- request the online-meeting option and teams for business provider for a teams link",
+  "uses": [
+    "**keep personal plans in the right place.** name the calendar before creating the appointment.",
+    "**make a site visit easy to find.** include the street address and travel notes.",
+    "**reserve agreed office hours.** give the repeating pattern an end.",
+    "**create the meeting people expect.** request the teams online-meeting option."
+  ],
+  "routine": {
+    "message": "on the last tuesday of each month at 16:40, look in my outlook calendar named field visits for next month's stockroom inspection. propose it on the first thursday, 15:00 to 15:30, europe/paris, at the east stockroom. skip creation if it already exists. never fall back to my main calendar. show the title, full dates, location and empty guest list here. ask me before creating anything. after approval, create it and return the saved details. never add attendees.",
+    "when": "last tuesday of the month at 16:40",
+    "needs": "outlook connected with read and write for calendar listing, event reading and event creation",
+    "output": "proposal for field visits\nstockroom inspection\n3 december 2026, 15:00-15:30, europe/paris\neast stockroom. no attendees.\nadd this to field visits?"
+  },
+  "steps": [
+    "connect outlook with read and write for the calendar actions this bot needs.",
+    "ask it to list calendars. read the destination, start, end and time zone together.",
+    "include 'ask me before creating anything', especially for guests or repeating dates.",
+    "open the approved event in outlook. pause the routine if the inspection plan changes."
+  ],
+  "watch": [
+    "**no calendar name means your main one.** forbid that fallback when it would be wrong.",
+    "**all-day entries need midnight dates in one time zone.** don't mark a timed appointment all day.",
+    "**three o'clock needs a place.** give the time zone and read the local time in the preview.",
+    "**creation doesn't check clashes.** ask for a separate read of existing events first."
+  ],
+  "faq": [
+    {
+      "q": "will it ask me before adding a meeting?",
+      "a": "**only if you ask it to.** creation counts as a change. put the checkpoint in the message or routine."
+    },
+    {
+      "q": "can it create a teams meeting link?",
+      "a": "**yes, with the right options.** ask for an online meeting using the teams for business provider."
+    },
+    {
+      "q": "can i choose how the time appears to others?",
+      "a": "**yes. name the availability status.** busy, free, tentative and out of office are options. not every calendar entry needs to block time."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "ask which outlook calendars the bot can see",
+      "name the destination, start, end and time zone",
+      "request a proposal with no attendees",
+      "approve it, then open the saved event"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "leaving the destination unstated",
+      "fix": "name the calendar. otherwise the entry lands on your main one."
+    },
+    {
+      "mistake": "letting a monthly routine add duplicates",
+      "fix": "look for an existing inspection before proposing the next one."
+    }
+  ],
+  "tip": {
+    "text": "read back the full date as well as the weekday before you approve."
+  },
+  "checklist": {
+    "h": "before you create it",
+    "items": [
+      "the calendar name matches",
+      "start, end and time zone are clear",
+      "the bot read existing events for clashes",
+      "guests, location and repeat pattern match the plan"
+    ]
+  },
+  "voice": 2
+}

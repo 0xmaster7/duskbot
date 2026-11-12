@@ -1,0 +1,122 @@
+{
+  "path": "/integrations/outlook/search-calendar-events",
+  "type": "action",
+  "title": "Search Outlook calendar events with AI by topic",
+  "nav": "search calendar events",
+  "h1": "find the outlook appointment you can only partly remember",
+  "description": "Find Outlook calendar events by topic with a bot. Learn the primary-calendar boundary and why personal accounts need a dated search window.",
+  "keyword": "outlook search calendar events with ai",
+  "keywords": [
+    "chatgpt find outlook meeting",
+    "claude search outlook calendar",
+    "ai outlook appointment search"
+  ],
+  "answer": "**you remember the venue, not which saturday you booked it.** a bot searches your outlook primary calendar and returns matching appointments. work and school accounts use microsoft search. personal accounts need start and end dates when that search is unavailable. give a short topic or attendee clue and get the dates back in chat.",
+  "tags": [
+    "outlook",
+    "calendar search",
+    "appointments"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/decline-calendar-event"
+  ],
+  "og_line": "the right meeting from the clues you have.",
+  "what": "**one distinctive word can get you back to the appointment.** try a topic, venue or person. the bot returns matches from your primary calendar without changing them. shared and secondary calendars need a different action.\n\nfor personal accounts without microsoft search, give both ends of a date window. every word must match somewhere in the event’s title, preview, location or people. one or two words usually beat a long description.",
+  "uses": [
+    "**recover a workshop date.** search by the workshop name you remember.",
+    "**find a venue.** give the place and dates for a personal-calendar scan.",
+    "**locate a customer meeting.** use an attendee clue before considering changes.",
+    "**compare similar appointments.** ask for candidates rather than a guessed winner."
+  ],
+  "routine": {
+    "message": "each saturday at 09:10, search my personal outlook primary calendar for \"pottery\" in the next thirty days.\n\n- finish scanning the entire date window\n- list matching titles, dates and locations here\n- say if the scan remains unfinished\n\nnever edit, decline or respond to an event.",
+    "when": "saturdays at 09:10",
+    "needs": "outlook connected with read only; access to the personal account’s primary calendar",
+    "output": "pottery appointments in the next thirty days\nwheel workshop: saturday, 10:00, ashby kiln\npottery glaze consultation: following wednesday, 16:00\nsearched the whole thirty-day window on the primary calendar."
+  },
+  "steps": [
+    "**keep searches read only.** connect outlook for this bot.",
+    "**choose the account.** the appointment needs to be in its primary calendar.",
+    "**give the dates.** try a focused topic and confirm a familiar result.",
+    "**review the scan note.** then schedule it and edit the weekend time if needed."
+  ],
+  "watch": [
+    "**personal scans need both dates.** work and school microsoft search ignores those scan-window settings.",
+    "**finish the personal-account date window.** an empty batch can have matching appointments after it.",
+    "**extra words can hide the meeting.** every term must match in a personal-account scan.",
+    "**use another route for shared and secondary calendars.** this action reaches the primary calendar only."
+  ],
+  "faq": [
+    {
+      "q": "does it work with a personal microsoft account?",
+      "a": "**yes, with dates when microsoft search is unavailable.** give start and end times and a short search phrase."
+    },
+    {
+      "q": "why did an empty search find something later?",
+      "a": "**the first batch may have had no matches.** ask the bot to finish scanning the whole date window."
+    },
+    {
+      "q": "can it search all my shared calendars?",
+      "a": "**this action reaches only your primary calendar.** use a separate approach for shared calendars."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "outlook"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-clock",
+      "p-magnifier"
+    ],
+    "bubble": "find the workshop appointment"
+  },
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_SEARCH_EVENTS"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook with read only",
+      "choose the account whose primary calendar holds the appointment",
+      "give a topic plus start and end dates",
+      "ask whether the whole search finished"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "adding every detail you remember",
+      "fix": "start with one distinctive word. personal scans require every word to match."
+    },
+    {
+      "mistake": "calling the first empty batch \"nothing\"",
+      "fix": "finish the date window before drawing that conclusion."
+    }
+  ],
+  "tip": {
+    "text": "if the meeting lives on a shared calendar, say that first. this search will not reach it."
+  },
+  "voice": 2
+}

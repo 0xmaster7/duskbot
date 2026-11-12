@@ -1,0 +1,114 @@
+{
+  "path": "/integrations/excel/search-drive-files",
+  "type": "action",
+  "title": "Find Excel workbooks in OneDrive with AI by asking",
+  "nav": "search workbook files",
+  "h1": "find the excel workbook before reading its cells",
+  "description": "Find Excel workbooks in OneDrive by name or project, including shared files. Pick the right copy before asking a bot to read its cells.",
+  "keyword": "find excel workbook with ai",
+  "keywords": [
+    "excel search onedrive files with ai",
+    "chatgpt find excel workbook",
+    "claude search excel files onedrive"
+  ],
+  "answer": "**get the right workbook without opening every file named final.** give the bot a name fragment or project phrase. it searches onedrive, including shared files if you ask, and lists matching excel files. pick the copy you want, then ask it to read the cells. the search itself opens and changes nothing.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "excel",
+    "onedrive",
+    "workbook discovery"
+  ],
+  "connectors": [
+    "excel"
+  ],
+  "related": [
+    "/integrations/excel",
+    "/use-cases/file-organizer",
+    "/integrations/excel/list-worksheets"
+  ],
+  "art": {
+    "label": "Excel",
+    "props": [
+      "p-binoculars",
+      "p-folder"
+    ],
+    "bubble": "which workbook is it"
+  },
+  "og_line": "find candidate workbooks before opening.",
+  "action": {
+    "toolkit": "excel",
+    "slug": "EXCEL_SEARCH_FILES"
+  },
+  "what": "**you remember the project. the bot finds the file.** a search can match names, file details or content. name another drive if your default isn't the right one.\n\n- include shared files, or search only your own folders\n- ask for xlsx and xlsm if other files clutter the results\n- choose a workbook before asking a separate excel action to read its cells",
+  "uses": [
+    "find an old installation budget when only the project name rings a bell",
+    "track down a shared costing workbook outside your own folders",
+    "compare matching xlsx and xlsm files before choosing the report source"
+  ],
+  "routine": {
+    "message": "on the first of each month at 9, search my onedrive for excel files with \"timesheet\" in the name. include files shared with me. keep going until onedrive has no more results. list names and available file details here. flag files for the current month and any unclear matches. never open or change workbooks.",
+    "when": "the 1st of each month at 9:00",
+    "needs": "excel connected; read only is enough for this search",
+    "output": "timesheet workbooks\n- timesheets-2026.xlsx\n- timesheets-november-contractors.xlsm: matches this month\nwhich copy should i read?"
+  },
+  "steps": [
+    "connect excel in **Connected apps**. give this finder read only access.",
+    "give a name fragment and say whether shared files belong in the search.",
+    "name the file types you want. tell it to follow the results to the end before reporting no matches.",
+    "pick the right copy before requesting cell values. **Edit** changes the routine search."
+  ],
+  "watch": [
+    "**look in onedrive for this job.** local folders and google drive need a different search.",
+    "**keep going after an empty result.** excel filters each batch separately. the next batch may hold your workbook."
+  ],
+  "faq": [
+    {
+      "q": "can it find an excel file someone shared with me?",
+      "a": "**yes, if your account can see it.** ask to include shared files. say \"only my own files\" for a narrower search."
+    },
+    {
+      "q": "does this search inside spreadsheet rows?",
+      "a": "**find the workbook, then ask about its rows.** content can match the file search, but a separate action reads the table or cells."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect excel with read only access",
+      "ask: \"find my november timesheet workbooks, including shared files\"",
+      "compare the names and file details before picking one"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "opening the first similar filename",
+      "fix": "ask which folder and project it belongs to before reading figures."
+    },
+    {
+      "mistake": "calling an empty result the end",
+      "fix": "ask it to keep going until onedrive has no further results, even after an empty batch."
+    }
+  ],
+  "tip": {
+    "text": "final-final.xlsx still needs a project and a month. filenames get optimistic."
+  },
+  "voice": 2
+}

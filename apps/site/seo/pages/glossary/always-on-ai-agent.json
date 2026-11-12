@@ -1,0 +1,63 @@
+{
+  "path": "/glossary/always-on-ai-agent",
+  "type": "glossary",
+  "title": "Always-on AI agent: what it means, with an example",
+  "nav": "always-on ai agent",
+  "h1": "always-on ai agent",
+  "description": "An always-on AI agent keeps working when you are not at your computer: it runs on a machine that stays on. What that means in practice, with a real example.",
+  "keyword": "always on ai agent",
+  "keywords": [
+    "what is an always on ai agent",
+    "24/7 ai agent",
+    "background ai agent"
+  ],
+  "answer": "an always-on ai agent keeps doing its job when you're not around: routines at set times, reactions to new mail, answers to your phone at 2am. the trick isn't the ai. it's where the agent runs. it needs a computer that never sleeps, and your laptop isn't one.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, against dusk bot docs",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "always-on",
+    "glossary",
+    "routine",
+    "cloud"
+  ],
+  "connectors": [],
+  "related": [
+    "/agents-when-laptop-closed",
+    "/scheduled-ai-tasks",
+    "/tools/always-on-cost"
+  ],
+  "art": {
+    "props": [
+      "s-books",
+      "p-laptop"
+    ]
+  },
+  "og_line": "what it means, with an example.",
+  "definition": "an ai that keeps working on its own schedule, on a computer that stays on, so it doesn't stop when you close your laptop.",
+  "example": "a bot has the routine \"every weekday at 7, summarise what came into #support overnight\".\n\n- **on a sleeping laptop:** nothing at 7. a run missed by less than 12 hours runs once when you open it.\n- **on [dusk cloud](/docs/dusk-cloud):** it runs at 7 sharp, and the summary is on your phone when you wake.\n\nsame ai, same bot. only the computer changed.",
+  "sections": [
+    {
+      "h": "what it isn't",
+      "md": "**not an ai that thinks all day.** it mostly waits, and uses your ai plan when it has work to do. a bot with lots of routines uses more.\n\nnot a special model either. claude, chatgpt, gemini and the rest can all power one. \"always on\" is about the computer underneath: a spare machine, a rented server, or a hosted one like dusk cloud."
+    },
+    {
+      "h": "words nearby",
+      "md": "- **routine:** a job a bot does on a schedule or when something happens. see [scheduled ai tasks](/scheduled-ai-tasks).\n- **background agent:** often the same idea, sometimes just an agent in a tab you aren't watching. that one still stops when the computer sleeps.\n- **cloud computer:** a computer someone hosts for you. the usual home for an always-on agent."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    }
+  ],
+  "voice": 2
+}

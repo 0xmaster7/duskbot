@@ -1,0 +1,131 @@
+{
+  "path": "/integrations/jira/add-comment",
+  "type": "action",
+  "title": "Write Jira comments with AI: post a clear test update",
+  "nav": "add issue comment",
+  "h1": "put a clear test update on a jira issue",
+  "description": "Turn test notes into a Jira comment with an AI bot. Review formatting, check who can see it and approve the comment before it reaches the issue.",
+  "keyword": "add jira comment with ai",
+  "keywords": [
+    "jira write comment with ai",
+    "chatgpt post jira comment",
+    "claude jira test update",
+    "ai jira comment formatting"
+  ],
+  "answer": "**give the next person enough detail to repeat your test.** a bot turns your notes into a jira comment with steps, links and a clear result. it finds the issue from the project and problem you name. posting counts as a send and asks first by default. read the wording and audience before you approve.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "jira",
+    "comments",
+    "testing"
+  ],
+  "connectors": [
+    "jira"
+  ],
+  "related": [
+    "/integrations/jira",
+    "/integrations/jira/assign-issue"
+  ],
+  "art": {
+    "label": "Jira",
+    "props": [
+      "p-bubbles",
+      "p-shield"
+    ],
+    "bubble": "test update ready"
+  },
+  "og_line": "test evidence where the team can read it.",
+  "action": {
+    "toolkit": "jira",
+    "slug": "JIRA_ADD_COMMENT"
+  },
+  "what": "**put the evidence beside the issue.** the bot finds the work through jira search, then prepares a comment. it supports lists, bold text and mentions. clickable links need words attached, not bare web addresses.\n\nyou can limit a comment to a project role or group. check the actual names first. group restrictions need an administrator to enable them. if the audience can't be confirmed, stop.",
+  "uses": [
+    "**show how checkout failed.** include the steps and observed result.",
+    "**leave a release check people can follow.** use links with descriptive words.",
+    "**keep an investigation within its audience.** confirm the existing project role first.",
+    "**answer with evidence.** separate expected behaviour from what you actually saw."
+  ],
+  "routine": {
+    "message": "every thursday at 4, find issues in the payments project that moved to done this week and have no comment from the last seven days. for each one, write a short comment asking the person assigned what they tested and on which device. show me the issue and the comment here and post only the ones i allow. never mention anyone else, add customer details or limit who can see a comment unless i ask.",
+    "when": "thursdays at 4",
+    "needs": "jira connected with read and write access for this bot",
+    "output": "comment proposal for pay-73\nwhat did you test, and on which device?\nno mentions or customer details. no visibility restriction requested.\npost this question to pay-73?"
+  },
+  "steps": [
+    "connect jira with read and write access so the bot can add comments.",
+    "set **sending on your behalf** to **ask every time**. try one comment on an issue you can inspect.",
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "read the issue, audience and links before **allow**. schedule the weekly review once that looks right."
+  ],
+  "watch": [
+    "**group restrictions need setup.** an administrator must enable them. role and group names can differ between projects.",
+    "**bare web addresses won't become clickable.** ask for links with descriptive words.",
+    "**use ask every time to review each comment.** a daily sending amount lets comments go out within that limit.",
+    "**put the update on the right issue.** match the project as well as the title."
+  ],
+  "faq": [
+    {
+      "q": "can the bot make a jira comment internal?",
+      "a": "**it can request a role or group restriction.** those names must fit your jira setup. ask it to confirm the audience before posting."
+    },
+    {
+      "q": "can it mention a teammate in the comment?",
+      "a": "**yes, by username or display name.** ask for the mention only when you mean it. review the person alongside the proposed text."
+    },
+    {
+      "q": "does it support a test checklist?",
+      "a": "**yes, with lists and emphasis.** say what passed, what failed and what nobody tried. give the next tester something they can repeat."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name one issue and the test result",
+      "ask for a comment draft without posting",
+      "read who can see the comment and open its evidence links",
+      "approve only the comment you read"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "writing 'tested' with no device or result",
+      "fix": "say what you tried, where you tried it and what happened."
+    },
+    {
+      "mistake": "asking for 'internal' without an audience",
+      "fix": "confirm the project role or group. stop if it can't apply the restriction."
+    }
+  ],
+  "tip": {
+    "text": "\"tested on my phone\" leaves everyone guessing. name the device, steps and result."
+  },
+  "checklist": {
+    "h": "before you post",
+    "items": [
+      "the issue belongs to the right project",
+      "observed and expected results stay separate",
+      "links have words people can click",
+      "mentions and audience match your intent"
+    ]
+  },
+  "voice": 2
+}

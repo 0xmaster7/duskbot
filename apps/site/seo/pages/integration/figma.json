@@ -1,0 +1,180 @@
+{
+  "path": "/integrations/figma",
+  "type": "integration",
+  "title": "Figma AI assistant for comments, components and handoffs",
+  "nav": "figma",
+  "h1": "a figma bot that gathers the handoff details",
+  "description": "Connect Figma to dusk bot to review comments, inspect components and gather file context. Three handoff routines with honest limits on design editing.",
+  "keyword": "claude figma",
+  "keywords": [
+    "figma ai agent",
+    "figma mcp"
+  ],
+  "answer": "**the handoff shouldn't start with a hunt through comments.** a dusk bot can read figma files, comments, components and variables. ask for the decisions still open or a handoff inventory, using the ai you choose. it gathers the context. it can't redraw every screen or turn the design into a finished product for you.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "design",
+    "handoff",
+    "components",
+    "review"
+  ],
+  "connectors": [
+    "figma"
+  ],
+  "related": [
+    "/integrations/canva",
+    "/integrations/linear",
+    "/integrations/github"
+  ],
+  "art": {
+    "logo": "figma",
+    "label": "Figma",
+    "props": [
+      "s-palette",
+      "s-signpost"
+    ],
+    "bubble": "what needs a decision"
+  },
+  "og_line": "comments and components, ready for review.",
+  "app": {
+    "name": "Figma",
+    "toolkit": "figma",
+    "intro": "**walk into the handoff with the open questions already sorted.** give the bot a file link and name the frames. it gathers comments, components and recent file context into a review agenda before anyone starts building.",
+    "highlight": [
+      {
+        "slug": "FIGMA_GET_FILE_METADATA",
+        "use": "find the handoff file before the review starts"
+      },
+      {
+        "slug": "FIGMA_GET_COMMENTS_IN_A_FILE",
+        "use": "pull the comments that still need an answer"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_NODES",
+        "use": "read the checkout frames you want developers to build"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_COMPONENTS",
+        "use": "list the components developers will need from this file"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_STYLES",
+        "use": "collect the styles behind the screens in your handoff"
+      },
+      {
+        "slug": "FIGMA_GET_LOCAL_VARIABLES",
+        "use": "list the local variables behind the design library"
+      },
+      {
+        "slug": "FIGMA_GET_VERSIONS_OF_A_FILE",
+        "use": "show which file version the review covers"
+      },
+      {
+        "slug": "FIGMA_ADD_A_COMMENT_TO_A_FILE",
+        "use": "post the review question you approved"
+      }
+    ],
+    "setup": "**start with a file link and read only access.** add figma in **connected apps**, sign in through figma and choose the bot. name the frames you want it to read. that is enough for a review agenda; variable edits can stay disabled."
+  },
+  "routines_intro": "**pick the question holding up the handoff.** these routines read figma and return private notes in dusk. they don't post review comments or edit the design.",
+  "routines": [
+    {
+      "name": "review agenda",
+      "message": "every wednesday at 11, read comments in the checkout figma file linked in your memory notes. group open questions by frame. separate decisions from small corrections and include the source comment. put the agenda here. never post, react or edit anything.",
+      "when": "wednesdays at 11:00",
+      "output": "a review agenda grouped by frame, with source comments"
+    },
+    {
+      "name": "handoff inventory",
+      "message": "every thursday at 5, inspect the checkout frames listed in the handoff brief in our project folder. read their current components and styles from figma. list what the file answers and what still needs a person. return the inventory here. never change the design or create development tickets.",
+      "when": "thursdays at 17:00",
+      "output": "a current component and style list, with unanswered handoff questions"
+    },
+    {
+      "name": "design reference refresh",
+      "message": "on the first tuesday each month at 9, read local variables and version history for the design library linked in your memory notes. return a current reference list and the version you read. compare with the last reference in our project folder. show the old and new values beside each change. never edit variables.",
+      "when": "first tuesday of the month at 09:00",
+      "output": "a dated design reference tied to the file version"
+    }
+  ],
+  "asks": "**keep the agenda in dusk until you want to post a comment.** comments count as sends and stop at **allow** or **deny** by default. a daily sending amount lets them go out within that limit.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.\n\nvariable edits don't ask first. leave them disabled for reviews. for an editing job later, add 'ask me before changing anything'.",
+  "cannot": [
+    "**it isn't a general canvas editor.** the action list covers variables and development resources, not drawing or rearranging every layer.",
+    "**read only means no comments or variable edits.** gathering a handoff doesn't need permission to maintain the design.",
+    "**there's no figma event trigger.** schedule these reads. local reviews stop while the computer sleeps."
+  ],
+  "sections": [
+    {
+      "h": "turn the inventory into a decision list",
+      "md": "**hand the developer the question that is blocking the build.** put frame references beside each open decision. components tell you what's in the file; a person decides which should ship.\n\nif a decision becomes [linear work](/integrations/linear), review the proposed issue before granting tracker writes."
+    },
+    {
+      "h": "bring the design brief to the code review",
+      "md": "**find the gap between the design and what shipped.** a [github bot](/integrations/github) reads code through its own connection. compare that evidence with the figma brief before signing off the build.\n\nfor exports and campaign assets, look at the [canva actions](/integrations/canva). they cover different work and have different limits."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude read my figma file?",
+      "a": "**yes, through a dusk bot's figma connection.** choose claude or another ai, connect the account and allow that bot. give it the specific file or frame."
+    },
+    {
+      "q": "can it turn my design into a finished app?",
+      "a": "**no. a handoff is preparation.** it can gather what developers need. you still check the build against the design."
+    },
+    {
+      "q": "will it post design feedback without telling me?",
+      "a": "**read only access blocks posting.** if you enable comments, use the sending setting described above to review them. private dusk notes need no publication action."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and action limits",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled reviews",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: comments and approvals",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect figma as read only",
+      "paste one file link and name a frame",
+      "ask which comments need a decision",
+      "open the source comments in the file"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for a handoff without naming the frames",
+      "fix": "name the screens that matter. don't make the bot guess the scope."
+    },
+    {
+      "mistake": "giving a reviewer permission to edit variables",
+      "fix": "allow only reading actions until a separate job needs changes."
+    }
+  ],
+  "checklist": {
+    "h": "before the developer starts",
+    "items": [
+      "the brief names the file and frames",
+      "open decisions stay separate from corrections",
+      "components and styles come from the current file",
+      "code claims have their own evidence"
+    ]
+  },
+  "tip": {
+    "text": "ask 'what needs a person?' before asking for a longer inventory."
+  },
+  "voice": 2
+}

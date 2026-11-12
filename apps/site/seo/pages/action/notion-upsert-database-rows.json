@@ -1,0 +1,130 @@
+{
+  "path": "/integrations/notion/upsert-database-rows",
+  "type": "action",
+  "title": "Add or update Notion database rows with AI by a key",
+  "nav": "add or update database rows",
+  "h1": "match a notion record before adding another row",
+  "description": "Keep Notion bookings and records together as details change. A bot updates matching rows, adds missing ones and reports each result.",
+  "keyword": "notion upsert database rows with ai",
+  "keywords": [
+    "chatgpt add or update notion rows",
+    "claude sync notion database records",
+    "ai notion upsert by unique key"
+  ],
+  "answer": "**keep one booking in one row, even when its details change.** a bot updates matching notion rows and creates missing ones from your incoming list. you get a result for each item. match on a unique reference: only the first batch of matches counts, and multiple matches can update the first or fail. preview the changes before writing.",
+  "tags": [
+    "notion",
+    "record matching",
+    "upsert"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/query-database-with-filter",
+    "/integrations/notion/update-page"
+  ],
+  "og_line": "match the reference before writing the record.",
+  "what": "**one list can contain old records and new ones.** each incoming item carries its matching rule, creation values and update values. a missing match creates a row; a match updates one. the action returns a result for each item.\n\npaste the database link and let the bot inspect its columns first. creation and update values can differ. tell it which fields to leave alone rather than hoping a broad import will guess.",
+  "uses": [
+    "**keep registrations together.** match each workshop booking by its reference.",
+    "**refresh the equipment list.** update known asset numbers and add new ones.",
+    "**avoid supplier name mix-ups.** use stable supplier codes in the directory.",
+    "**correct attendance records.** match the existing entries before adding extra rows for the same people."
+  ],
+  "routine": {
+    "message": "on alternate tuesdays at 16:45, read confirmed registration files added in the past two weeks to the workshop registrations folder. compare them with the notion booking database.\n\nmatch only on booking reference. show proposed creates and updates here. stop when a reference is missing or repeated in the input or destination. ask before writing. after approval, report every item's result. never match by attendee name or retry the whole batch blindly.",
+    "when": "alternate tuesdays at 16:45",
+    "needs": "access to the registration files; notion read and write for the chosen database",
+    "output": "registration review\n\nbr-231, esme: update session choice in the existing row.\nbr-232, kaspar: create a registration; no match returned.\nbr-233: repeated reference; needs your decision.\n\nno writes yet."
+  },
+  "steps": [
+    "**allow only this tracker work.** connect notion with the reads and writes the database needs.",
+    "**pick a unique reference.** paste the database link and name a column such as booking reference.",
+    "**test both paths.** preview one known match and one new reference before creating or updating.",
+    "**account for each result.** list failed items separately. leave earlier successes out when retrying just the failures."
+  ],
+  "watch": [
+    "**a unique reference keeps the right row in reach.** this action reads only the first batch of matches. broad matching can hide the row you need.",
+    "**stop when a reference matches twice.** the action may update the first or fail. a shared name is too weak a key.",
+    "**a batch can half succeed.** retrying successful items can repeat changes or create rows if the matching details changed."
+  ],
+  "faq": [
+    {
+      "q": "what does upsert mean for my tracker?",
+      "a": "**update a match, create when no match returns.** each item can use different values for creation and update."
+    },
+    {
+      "q": "will it always prevent duplicates?",
+      "a": "**a stable reference is your best defence.** weak matching and limited results can still hide an existing row. stop on ambiguity."
+    },
+    {
+      "q": "can i see which records failed?",
+      "a": "**yes, each item gets a result.** ask for failures separately, then retry only items whose changes did not succeed."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-folder",
+      "s-notebook"
+    ],
+    "bubble": "match by booking reference"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_UPSERT_ROW_DATABASE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste the destination database link",
+      "choose its unique booking or asset reference",
+      "preview one existing record and one new one",
+      "review each result before retrying anything"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "every incoming reference is present and unique",
+      "each matching rule narrows to one record",
+      "new values fit the database columns",
+      "successful items stay out of a retry"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using an attendee name to match",
+      "fix": "two people can share it. use the booking reference instead."
+    },
+    {
+      "mistake": "replaying the entire failed batch",
+      "fix": "some items may already have succeeded. read each result and retry only what needs it."
+    }
+  ],
+  "tip": {
+    "text": "a batch is done when you can account for every item, including the ones that failed."
+  },
+  "voice": 2
+}

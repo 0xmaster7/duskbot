@@ -1,0 +1,121 @@
+{
+  "path": "/integrations/gmail/search-people",
+  "type": "action",
+  "title": "Find a Gmail contact with AI from a name or company",
+  "nav": "search people",
+  "h1": "look up a gmail contact before choosing an address",
+  "description": "Find saved Gmail contacts or people you have emailed by name, company or phone. See which fields are available and when results may be partial.",
+  "keyword": "gmail find contacts with ai",
+  "keywords": [
+    "chatgpt search gmail contacts",
+    "claude find contact email address",
+    "gmail search people with ai"
+  ],
+  "answer": "**you remember the photographer, just not where you put their address.** give the bot a name, nickname, email, phone clue or company. it searches saved google contacts and, if you ask, people you contacted without saving. get names and possible addresses in chat, then choose the person you recognise. the broader search returns fewer details.",
+  "tags": [
+    "gmail",
+    "contacts",
+    "address lookup"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/fetch-emails"
+  ],
+  "og_line": "recognise the person before using the address.",
+  "what": "**get the address without digging through old email.** a surname, phone fragment or company gives the bot somewhere to start. the lookup leaves contacts unchanged and writes no email.\n\nsaved contacts can return company details. including unsaved contacts limits results to names, email addresses and phone numbers. need the company too? ask for a separate saved-contact search.",
+  "uses": [
+    "**recover a booking contact.** search for the photographer whose surname you remember.",
+    "**find a repair number.** look up the equipment contact you saved.",
+    "**place a visitor before they arrive.** match saved contacts to the firm on your visitor list.",
+    "**recover an unsaved address.** include people you emailed without adding to contacts."
+  ],
+  "routine": {
+    "message": "every thursday at 1, read visitor names for the coming week from the visitor-list file in the project folder.\n\n- search my work gmail saved contacts for each name\n- include unsaved contacts only when saved contacts have no match\n- show names and possible email addresses here\n- flag namesakes and say which searches finished\n\nnever choose between uncertain matches, edit contacts or message anyone.",
+    "when": "thursdays at 13:00",
+    "needs": "gmail connected with read only and contact-reading access; the visitor-list file in the project folder",
+    "output": "visitor addresses\nleila patel: one saved contact, leila@brindlewick.example.\nsecond visitor: two possible matches; surname needed to choose.\nunsaved-contact search finished for names without a saved match."
+  },
+  "steps": [
+    "**connect the right address book.** choose the google account holding your contacts and keep this bot read only.",
+    "**try someone you know.** ask for their name and address, then compare them with your address book.",
+    "**choose the search scope.** say whether it may include unsaved contacts.",
+    "**give it the visitor file.** open automations, confirm thursday at 13:00 and read the first report."
+  ],
+  "watch": [
+    "**30 matches is the ceiling.** add a surname or company clue when a common name fills the list.",
+    "**one search can fail while the other succeeds.** ask which contact sources finished.",
+    "**unsaved contacts return fewer details.** search saved contacts separately for company information."
+  ],
+  "faq": [
+    {
+      "q": "can it find someone i never saved?",
+      "a": "**yes, ask it to include unsaved contacts.** these are people you interacted with, rather than entries you saved."
+    },
+    {
+      "q": "can i search by company?",
+      "a": "**yes, search your saved contacts for the company.** those results can return its name too. the broader unsaved-contact search leaves company details out."
+    },
+    {
+      "q": "does looking someone up add them to contacts?",
+      "a": "**no, the lookup only reads.** your address book stays as it was."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "gmail"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-notebook",
+      "p-magnifier"
+    ],
+    "bubble": "which address belongs to noa"
+  },
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_SEARCH_PEOPLE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect the google account that holds your contacts",
+      "ask for a person by surname or company",
+      "request names and possible addresses only",
+      "compare the address and company with the person you know"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting the first namesake",
+      "fix": "compare the address and company. let the bot show uncertain matches."
+    },
+    {
+      "mistake": "asking for company details in the broad search",
+      "fix": "run a saved-contact search separately; unsaved-contact results omit that detail."
+    }
+  ],
+  "tip": {
+    "text": "two people with the same name? give the bot a company or surname instead of letting it pick."
+  },
+  "voice": 2
+}

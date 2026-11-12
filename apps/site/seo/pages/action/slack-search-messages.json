@@ -1,0 +1,125 @@
+{
+  "path": "/integrations/slack/search-messages",
+  "type": "action",
+  "title": "Search Slack with AI: track down a specific message",
+  "nav": "search messages",
+  "h1": "find the slack message behind a question",
+  "description": "Search Slack by phrase, person, channel or date with a bot. Get a focused set of matches and understand why a search hit is only part of a thread.",
+  "keyword": "slack search messages with ai",
+  "keywords": [
+    "chatgpt search slack messages",
+    "claude find slack conversation",
+    "ai slack message search by date"
+  ],
+  "answer": "**find the promise before you walk into the supplier call.** give the bot a phrase, person, slack channel or date. it searches by relevance or time and gathers more results when needed. use the match to open the thread: a later reply may have changed the deal. searching leaves slack alone.",
+  "tags": [
+    "slack",
+    "message search",
+    "evidence"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/add-reaction-to-message"
+  ],
+  "og_line": "a focused search beats a remembered phrase.",
+  "what": "**start with the phrase you half remember.** add the channel, person or month if you know them. the bot returns matching wording with its author and time. ask for oldest first to trace the first mention.\n\nthen read the conversation. search and thread reading are separate actions, and later replies can turn a promising offer into a rejected one.",
+  "uses": [
+    "find the first proposal for a supplier discount",
+    "locate the missing-adapter message in the equipment channel",
+    "collect mentions of the old product name before a rename",
+    "trace a delivery promise inside a known date window"
+  ],
+  "routine": {
+    "message": "each wednesday at 14:35, search #vendor-terms for freight surcharges mentioned in the previous seven days. show the matches oldest first here, with author, date and exact relevant words. read matching threads separately when replies could change the meaning. report failed reads. never post a reply or call a proposed price an agreed one.",
+    "when": "wednesdays at 14:35",
+    "needs": "slack with read only for message search and thread reading",
+    "output": "freight surcharge discussion\n- ren, hollow pine supply, monday: proposed a winter surcharge\n- leonie, tuesday: asked whether it covers returns\nreplies returned: still discussing it; no agreement found."
+  },
+  "steps": [
+    "connect slack and give the search bot read only.",
+    "give a phrase plus a channel or person. see whether the first matches fit.",
+    "choose relevance or date order. ask for more results if the first batch leaves gaps.",
+    "schedule the recurring search and read its next runs on the routine card."
+  ],
+  "watch": [
+    "**the first batch may be incomplete.** ask for all matches when the count matters.",
+    "**connect the account that can see the conversation.** search cannot reveal private messages outside its access.",
+    "**a sleeping laptop cannot start the search.** leave dusk running on an awake machine or use dusk cloud."
+  ],
+  "faq": [
+    {
+      "q": "can i search only messages from one person?",
+      "a": "**yes.** name the person and the bot can narrow by sender. it can also narrow by channel and dates."
+    },
+    {
+      "q": "can it find the oldest mention instead of the best match?",
+      "a": "**yes, ask for oldest first.** sorting by relevance can put a newer message at the top."
+    },
+    {
+      "q": "does searching slack tell me whether the question was answered?",
+      "a": "**follow the match into its thread.** the replies tell you whether anyone answered the question."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "slack"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-magnifier",
+      "p-bubbles"
+    ],
+    "bubble": "found the price discussion"
+  },
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SEARCH_MESSAGES"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect slack with read only access",
+      "ask for one phrase in a named channel during the last week",
+      "open the matching thread before treating the message as an answer"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "quoting the proposal as the final price",
+      "fix": "read the replies. later messages may change or reject it."
+    },
+    {
+      "mistake": "asking for the oldest mention but accepting relevance order",
+      "fix": "say \"oldest first\" and compare the dates."
+    }
+  ],
+  "tip": {
+    "text": "the reply that changes everything is often one message below the search hit."
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "in #vendor-terms, falk proposes a freight surcharge.\na search for \"surcharge\" finds that message.",
+    "after": "search result: falk proposed a surcharge.\nlater reply: rejected.\nthe returned conversation contains no agreed surcharge."
+  },
+  "voice": 2
+}

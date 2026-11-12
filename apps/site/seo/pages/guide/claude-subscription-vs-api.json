@@ -1,0 +1,147 @@
+{
+  "path": "/guides/claude-subscription-vs-api",
+  "type": "guide",
+  "title": "Claude plan vs API costs: prices and worked examples",
+  "nav": "claude plan and api costs",
+  "h1": "claude plan vs api: compare the bill you will pay",
+  "description": "Current Claude Pro, Max and Ultra prices, Sonnet and Opus API rates, and clearly labelled calculations for three invented workloads.",
+  "keyword": "claude code api key vs subscription",
+  "keywords": [
+    "claude max vs api cost",
+    "chatgpt plus vs api",
+    "claude code without api key"
+  ],
+  "answer": "**already paying for max? you may already have the api credits you need.** as of 12 november 2026, claude pro is $20/month, max $100 and ultra $200 before tax. sonnet 5.5 api costs $2 per million input units and $10 per million output units. add your actual usage, subtract applied credits, and compare the bill under the current access terms.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude",
+    "api",
+    "pricing",
+    "cost"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/how-much-does-an-ai-agent-cost",
+    "/guides/apps-that-use-your-ai-subscription",
+    "/tools/always-on-cost"
+  ],
+  "art": {
+    "props": [
+      "s-coins",
+      "p-receipt"
+    ],
+    "bubble": "show the arithmetic"
+  },
+  "og_line": "compare usage before comparing prices.",
+  "sections": [
+    {
+      "h": "what the plan and api prices cover",
+      "md": "**put the included credits beside the monthly price.** anthropic lists these prices before tax as of 12 november 2026.[^1]\n\n| plan | price | what matters here |\n| --- | --- | --- |\n| pro | $20 billed monthly | annual billing costs $200 up front, shown as $17/month |\n| max | $100/month | 5x pro usage; $100 monthly api credits |\n| ultra | $200/month | 10x pro weekly usage; $200 monthly api credits |\n\nthe $200 plan is now ultra. older comparisons may still call it max. pro, max and ultra include claude code plus the web, desktop and mobile apps.[^1][^2]\n\nthe api charges for incoming and outgoing text separately. rates per million text units on the same date:[^3]\n\n- sonnet 5.5: $2 input, $10 output\n- opus 5.5: $4 input, $20 output\n\noutput costs more. pricing everything at the input rate makes your estimate look pleasantly wrong."
+    },
+    {
+      "h": "three invented bills, with the sums shown",
+      "md": "**see how a $3 api job becomes $36, then $72.** these are invented workloads, not typical usage. the sums cover only the stated input and output, before credits and other charges.[^3]\n\n**small sonnet workload.**\n\n```text\n1 million input units x $2 = $2\n0.1 million output units x $10 = $1\n$2 + $1 = $3\n```\n\nthat's below pro's $20 price. pro still has its own usage limits.[^1][^3]\n\n**larger sonnet workload.**\n\n```text\n8 million input units x $2 = $16\n2 million output units x $10 = $20\n$16 + $20 = $36\n```\n\nnow raw api use exceeds $20. find out whether the job fits pro's limits before assuming the plan is cheaper.[^3]\n\n**the same amounts on opus.**\n\n```text\n8 million input units x $4 = $32\n2 million output units x $20 = $40\n$32 + $40 = $72\n```\n\nsame text counts, different model, twice the subtotal.[^3] keep input and output separate, then apply credits and billing terms."
+    },
+    {
+      "h": "credits can change what you owe",
+      "md": "**your credits can cover the api bill before you pay another dollar.** as of 12 november 2026, max lists $100 monthly api credits; ultra lists $200.\n\nanthropic's support update of 7 october 2026 says max, ultra and team include monthly api credits. signed-in agent sdk and `claude -p` still draw from plan limits.[^4]\n\nkeep four lines apart:\n\n- the plan payment\n- included credits\n- raw api usage\n- the balance beyond credits\n\nuse the credits the provider actually applied. already paying for max? those may cover the job. buying a plan just for this work? count its whole price."
+    },
+    {
+      "h": "read the sign-in terms before choosing",
+      "md": "**choose a route the provider lets you use before pricing it.** as of 12 november 2026, anthropic describes sign-in to unmodified claude code. it restricts developers handling sign-ins and reserves usage-credit billing for certain third-party tools.[^5][^6]\n\nread your provider's current terms. they don't rule on a particular app here. the [sign-in overview](/use-your-ai-subscription) explains the routes; the [dated log](/guides/apps-that-use-your-ai-subscription) shows which rule came first."
+    },
+    {
+      "h": "count hosting only when the job needs it",
+      "md": "**add hosting only when your laptop needs to be off.** dusk's ai usage stays on your provider bill. personal use on your own computer is free. cloud plus costs $20/month; pro costs $50/month. that buys the computer; ai usage stays separate.[^7]\n\nput the machine in the [always-on calculator](/tools/always-on-cost) and other costs in the [agent cost guide](/guides/how-much-does-an-ai-agent-cost)."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is claude max cheaper than the api?",
+      "a": "**sometimes, depending on usage and credits.** as of 12 november 2026, max costs $100/month with $100 monthly api credits. compare your real bill, not an invented text allowance.[^1]"
+    },
+    {
+      "q": "does claude code need api-key billing?",
+      "a": "**not always.** as of 12 november 2026, anthropic includes claude code with pro, max and ultra. api-key access is another route. the method and its terms decide billing.[^2][^5]"
+    },
+    {
+      "q": "what should i measure before choosing?",
+      "a": "**record input and output separately.** note the model and credits actually applied. for plan sign-in, inspect the provider's usage limits. there is no fixed price for one unit of agent work."
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: individual plan pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: claude code with paid plans",
+      "url": "https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: api pricing",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: agent sdk and credits",
+      "url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: code legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: login and usage credits",
+      "url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: cloud and ai costs",
+      "url": "/docs/dusk-cloud"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "open your provider's usage and billing records",
+      "note the model, input, output and credits applied",
+      "compare the full monthly cost with the plan you would actually buy"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "charging all text at the cheaper input rate",
+      "fix": "count output separately. its rate is higher in these examples."
+    },
+    {
+      "mistake": "adding a raw api bill after credits already covered it",
+      "fix": "use the balance actually due after applied credits."
+    },
+    {
+      "mistake": "assuming a $20 workload fits the $20 plan",
+      "fix": "read the plan limits. dollars do not map to a fixed text allowance."
+    }
+  ],
+  "tip": {
+    "text": "already paying for max? open the credits balance before buying another route."
+  },
+  "checklist": {
+    "items": [
+      "the rates match the model i intend to use",
+      "input and output have separate amounts",
+      "credits appear only once in the calculation",
+      "the access method fits the provider's current terms",
+      "hosting and tax appear where they apply"
+    ]
+  },
+  "voice": 2
+}

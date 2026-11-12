@@ -1,0 +1,122 @@
+{
+  "path": "/integrations/asana/create-task-comment",
+  "type": "action",
+  "title": "Add Asana task comments with AI from delivery updates",
+  "nav": "add task comment",
+  "h1": "turn your notes into a comment on the right asana task",
+  "description": "Put the confirmed delivery update beside its Asana task. A bot drafts the plain text comment for your review, leaving dates and owners alone.",
+  "keyword": "add asana task comment with ai",
+  "keywords": [
+    "asana comment with ai",
+    "chatgpt write asana comment",
+    "claude add asana task comment",
+    "asana ai task updates"
+  ],
+  "answer": "**stop making your team hunt through email for the latest date.** a bot finds the right asana task and puts a plain text update beside it. you get the news where the work lives, with the project confirmed before posting. comments count as sends and ask first by default. set a sending rule when every comment needs your review.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "asana",
+    "comments",
+    "task-updates"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/asana",
+    "/integrations/asana/get-a-task"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "p-bubbles",
+      "s-notebook"
+    ],
+    "bubble": "update on the task"
+  },
+  "og_line": "your update beside the work it describes.",
+  "action": {
+    "toolkit": "asana",
+    "slug": "ASANA_CREATE_TASK_COMMENT"
+  },
+  "what": "**a comment keeps the news with the work.** give the bot the task's project and the words to post. it can look through project tasks, open the match and add your update to its activity feed.\n\nthis field accepts plain text only. html, rich headings and styled links won't carry over. use short lines that still make sense without formatting.",
+  "uses": [
+    "**keep test evidence close.** post the result beside the task your team will review.",
+    "**record a delivery change.** quote the supplier's new date without editing the task deadline.",
+    "**close a design question.** add the answer you approved to the task's discussion.",
+    "**leave a useful handoff.** say what finished and which question remains open."
+  ],
+  "routine": {
+    "message": "on fridays at 11, read this week's emails from people at @tallowmere.com that confirm a new delivery date.\n\n- find the matching task in the mobile checkout project in asana\n- write a plain text comment with the new date, who confirmed it and when\n- show me each task and comment here; post only the ones i allow\n\nnever change a task's due date or owner. if no email qualifies, say so briefly. don't invent a date or confirmation.",
+    "when": "fridays at 11:00",
+    "needs": "gmail read only; asana read and write for task lookup and comments",
+    "output": "packaging samples\nproposed comment: 'coralie at tallowmere confirmed delivery on 21 november in her email this week.'\n\nready to post after approval. due date and owner stay as they are."
+  },
+  "steps": [
+    "**connect the two apps.** give this bot gmail read only and asana read and write.",
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**try one update.** open its task and activity feed before scheduling the friday run."
+  ],
+  "watch": [
+    "**same title, wrong team.** open the task in its project. the connected account needs access there too.",
+    "**plain text means plain text.** don't depend on html or rich formatting to carry the meaning.",
+    "**keep the final word on comments.** a daily sending allowance skips individual reviews.",
+    "**sleep can cost you a run.** a miss under 12 hours runs once when you return. older runs skip. dusk cloud runs on time."
+  ],
+  "faq": [
+    {
+      "q": "can it post the comment without changing the deadline?",
+      "a": "**yes, the comment leaves task fields alone.** allow only task lookups and comments if that is the whole job."
+    },
+    {
+      "q": "will bold text and formatted lists carry over?",
+      "a": "**no rich formatting here.** ask for ordinary text and short lines. html and styled emphasis won't survive this field."
+    },
+    {
+      "q": "what if two asana tasks have the same title?",
+      "a": "**choose by project as well as title.** ask the bot to show both matches before posting. you name the work; it finds the task."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name one task and its asana project",
+      "paste one confirmed delivery update",
+      "ask for the comment here first",
+      "open the task in its project, then allow the comment"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "posting under a familiar title",
+      "fix": "open the project too. repeated task names are an easy way to tell the wrong team."
+    },
+    {
+      "mistake": "rewriting the deadline along with the comment",
+      "fix": "say \"comment only; leave dates and owners alone\". a delivery note is not a reschedule."
+    }
+  ],
+  "tip": {
+    "text": "include who confirmed the date and when. a bare new date leaves the next reader guessing."
+  },
+  "voice": 2
+}

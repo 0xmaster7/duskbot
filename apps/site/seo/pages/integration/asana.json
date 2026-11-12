@@ -1,0 +1,174 @@
+{
+  "path": "/integrations/asana",
+  "type": "integration",
+  "title": "Asana AI assistant for project handoffs and task reviews",
+  "nav": "asana",
+  "h1": "an asana assistant for the work between tasks",
+  "description": "Connect Asana to dusk bot for dependency checks, handoff lists and project reviews. Copy three routines and see the actions and limits behind them.",
+  "answer": "**walk into the handoff knowing what still blocks it.** an asana bot can read tasks, comments, subtasks and dependencies together, then name the unfinished work and its owner. give that review to a dusk bot using the ai you choose. start read only. let the review earn your trust before allowing it to change tasks.",
+  "tags": [
+    "projects",
+    "handoffs",
+    "dependencies"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/linear",
+    "/integrations/jira",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "s-notebook",
+      "s-signpost"
+    ],
+    "bubble": "what blocks the handoff"
+  },
+  "og_line": "find the work holding up the handoff.",
+  "app": {
+    "name": "Asana",
+    "toolkit": "asana",
+    "intro": "**find the missing prerequisite before the launch meeting.** the bot can read the project, comments and dependencies together. these actions get you from \"launch ready\" to the task still holding it up.",
+    "highlight": [
+      {
+        "slug": "ASANA_GET_TASKS_FROM_A_PROJECT",
+        "use": "collect the tasks in the launch project for a handoff review"
+      },
+      {
+        "slug": "ASANA_GET_STORIES_FOR_TASK",
+        "use": "read task comments before calling something blocked"
+      },
+      {
+        "slug": "ASANA_LIST_TASK_DEPENDENCIES",
+        "use": "find the unfinished prerequisite holding up tomorrow's handoff"
+      },
+      {
+        "slug": "ASANA_GET_TASK_SUBTASKS",
+        "use": "look for unfinished details hidden below a parent task"
+      },
+      {
+        "slug": "ASANA_GET_PROJECT_STATUS_UPDATES",
+        "use": "compare the latest project update with the current task list"
+      },
+      {
+        "slug": "ASANA_GET_SECTIONS_IN_PROJECT",
+        "use": "find the right section before suggesting a move"
+      },
+      {
+        "slug": "ASANA_CREATE_A_TASK",
+        "use": "turn the next step you agreed on into a task with your details"
+      },
+      {
+        "slug": "ASANA_UPDATE_A_TASK",
+        "use": "apply a task correction after you have set the rule for changes"
+      }
+    ],
+    "setup": "**keep the first project review read only.**\n\nin **connected apps**, allow the project bot to use asana. name the workspace and project, especially when projects share a name.\n\nchoose an exact list of allowed actions to keep task creation available. leave unrelated changes out of reach."
+  },
+  "routines_intro": "**start with a question, not a workspace dump.** name your project and send one of these. findings come back to your dusk chat before you allow task edits.",
+  "routines": [
+    {
+      "name": "check tomorrow's handoff",
+      "message": "every afternoon at 3, read tomorrow's tasks in the launch project in asana. read their subtasks and dependencies. list unfinished prerequisites and the person assigned, if assigned. return the checklist here. leave every task date alone. if nothing blocks the handoff, say so in one line.",
+      "when": "daily at 15:00",
+      "output": "a checklist of unfinished handoff work in your chat"
+    },
+    {
+      "name": "compare the status note",
+      "message": "every monday at 10, read the website project's latest asana status update and current tasks. flag completion claims with unfinished subtasks. name the tasks. separate missing details from actual contradictions. return questions here; don't post a status update.",
+      "when": "mondays at 10:00",
+      "output": "questions for the project owner; no status post"
+    },
+    {
+      "name": "prepare a contractor return",
+      "message": "every thursday at 2, find the named contractor's tasks in the design project in asana. read their comments. list questions still waiting for our answer, grouped by task. return the list here. never reassign tasks or post comments. if none need an answer, say so briefly.",
+      "when": "thursdays at 14:00",
+      "output": "a task-by-task reply list for the contractor check-in"
+    }
+  ],
+  "asks": "**keep the first review from becoming a reshuffle.** read-only access blocks task creation, edits and section moves before they reach asana.\n\nwhen you want edits, allow the particular actions and write \"ask me before you change anything\". due-date changes and reassignments do not automatically wait for an approval card.",
+  "cannot": [
+    "**it cannot see projects your connected account cannot open.** name the exact workspace and project when names overlap.",
+    "**it cannot create tasks or correct assignments with read-only access.** these review routines leave records alone.",
+    "**it cannot review tomorrow's handoff from a sleeping desktop.** keep the machine awake with dusk open, or use dusk cloud."
+  ],
+  "sections": [
+    {
+      "h": "blocked needs evidence",
+      "md": "**put the unfinished prerequisite beside the claim that launch is ready.** tell the bot what counts as blocked for your team. ask it to show what it found and what it couldn't find.\n\nif delivery also lives in [jira](/integrations/jira), connect it separately. teams working mainly in [linear](/integrations/linear) can start with that issue review instead."
+    },
+    {
+      "h": "keep the review small",
+      "md": "**one project and one decision are enough.** can we hand this off? what needs an answer? does the status note match the tasks?\n\na workspace-wide summary buries the wrong assumptions. compare the early reports with their tasks, then edit or pause the schedule in automations."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are people actually using an asana ai agent for?",
+      "a": "**try a check-in you already do by hand.** read prerequisites, compare status claims or collect unanswered contractor questions. these routines return review lists without editing tasks."
+    },
+    {
+      "q": "can i use claude with asana without moving my tasks?",
+      "a": "**yes. the tasks stay in asana.** connect it and choose your bot's ai. switching ai keeps the bot's chats and memory."
+    },
+    {
+      "q": "will the bot move deadlines without checking?",
+      "a": "**keep reviews read only to keep deadlines in place.** for a later editing job, limit the allowed actions and tell it to ask first. deadline edits do not automatically wait for approval."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "asana mcp",
+  "keywords": [
+    "claude asana",
+    "asana ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect asana read only for one bot",
+      "name the project and one task due tomorrow",
+      "ask what unfinished dependencies it has",
+      "compare the answer with asana"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling every quiet task blocked",
+      "fix": "ask for an unfinished prerequisite or a question, not a guess."
+    },
+    {
+      "mistake": "allowing edits for a reading job",
+      "fix": "keep the first handoff review read only."
+    }
+  ],
+  "tip": {
+    "text": "a late task needs a reason, not another summary."
+  },
+  "worked": {
+    "before": "james reads \"launch ready\" in the status note. a prerequisite still has unfinished work.",
+    "after": "handoff review\n- status says complete\n- prerequisite still open\n- question for the task owner\n\nnext step: ask the prerequisite owner what remains."
+  },
+  "voice": 2
+}

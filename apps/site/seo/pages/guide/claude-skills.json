@@ -1,0 +1,141 @@
+{
+  "path": "/guides/claude-skills",
+  "type": "guide",
+  "title": "Claude skills: what they are and how to add one",
+  "nav": "claude skills",
+  "h1": "claude skills for people who do not write code",
+  "description": "Learn what Claude skills contain, where to add a custom skill, and how to tell a reusable method apart from an app connection or a schedule.",
+  "keyword": "claude skills",
+  "keywords": [
+    "claude skills for non developers",
+    "ai agent skills",
+    "claude skills marketplace"
+  ],
+  "answer": "**stop explaining your review method every time you open a chat.** a claude skill keeps the instructions, scripts and reference material in a folder that loads when needed. it gives claude a repeatable way to work. as of 12 november 2026, anthropic lists skills across all plans, including free, with code execution enabled.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude",
+    "skills",
+    "instructions"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/what-is-mcp",
+    "/guides/claude-connectors",
+    "/guides/claude-code-for-non-developers"
+  ],
+  "art": {
+    "label": "Claude",
+    "props": [
+      "s-books",
+      "p-folder"
+    ],
+    "bubble": "keep the method handy"
+  },
+  "og_line": "a reusable method, with its materials.",
+  "sections": [
+    {
+      "h": "put a usable method in the folder",
+      "md": "**save the correction you are tired of making.** a skill gives claude a repeatable method for a particular task, using instructions, scripts and resources in a folder.[^1]\n\nfor a document review, that might mean:\n\n- your writing rules\n- an approved reference document\n- a list of things the finished document must contain\n\nwrite steps you could follow yourself. \"compare dates in the draft with the brief\" gives it a job. \"make it excellent\" leaves it guessing."
+    },
+    {
+      "h": "give claude the folder once",
+      "md": "**your method goes in a zip; you do not need to build an app.** on individual plans, the setup as of 12 november 2026 is:[^2]\n\n1. open settings, then capabilities\n2. enable code execution and file creation\n3. open customize, then skills\n4. upload a zip of the skill folder\n\nread its instructions and any scripts before enabling it, especially if someone else made the zip. start with a folder you understand."
+    },
+    {
+      "h": "work out which piece is missing",
+      "md": "**choose the piece that saves you repeating yourself.**\n\n- **skill:** how to do the work, with its format and reference material\n- **connector:** the app data or actions the job needs\n- **schedule:** when to repeat it\n\nanthropic’s connectors retrieve data and take actions in apps.[^3] [claude connectors](/guides/claude-connectors) covers access; [mcp](/guides/what-is-mcp) explains the connection standard. the skill teaches the method; the connector gets it to the material."
+    },
+    {
+      "h": "make the first trial catch an error",
+      "md": "**give it a document with a mistake you already know about.** a conflicting date, blank field or missing section makes a useful trial. ask for reasons beside each suggested change.\n\ncompare the answer with the document. did it flag the gap or fill it with a guess? that tells you more than asking the ai to grade itself.\n\nuse a short document without private material while you learn its habits. keep the method only if it catches the correction you built it for."
+    },
+    {
+      "h": "do not build a skill for a one-off problem",
+      "md": "**for a one-off request, just write the prompt.** if the audience and purpose change every time, fresh instructions may take less work than maintaining a skill.\n\nbuild the folder when the same rules and references keep coming back. it will not fix a vague brief or reach an unavailable account. keep the smaller approach when it works.\n\nwant a desktop helper instead? start with the [non-developer guide](/guides/claude-code-for-non-developers). reusable instructions earn their keep when the work repeats."
+    }
+  ],
+  "faq": [
+    {
+      "q": "do i need a paid plan for skills?",
+      "a": "**no, free is on anthropic’s list.** as of 12 november 2026, it lists free, pro, max, ultra, team and enterprise. enable code execution first.[^1]"
+    },
+    {
+      "q": "are skills and connectors the same?",
+      "a": "**no, one teaches a method; the other provides access.** skills carry instructions and resources. connectors reach supported apps and actions.[^1][^3]"
+    },
+    {
+      "q": "can i upload a skill without writing scripts?",
+      "a": "**yes, a script is not required.** skills can contain instructions and resources too. upload a zip of the skill folder, using contents you understand.[^1][^2]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: what are skills",
+      "url": "https://support.claude.com/en/articles/12512176-what-are-skills",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: using skills in claude",
+      "url": "https://support.claude.com/en/articles/12512180-using-skills-in-claude",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: connectors",
+      "url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "write three corrections you repeat on the same kind of document",
+      "compare them with a skill folder you already have",
+      "read that folder’s instructions and any scripts",
+      "try its checklist on a short document you know well"
+    ]
+  },
+  "decide": {
+    "h": "what do you actually need?",
+    "cols": [
+      "the missing piece",
+      "start with"
+    ],
+    "rows": [
+      [
+        "the same review method every time",
+        "a skill"
+      ],
+      [
+        "files or actions in another app",
+        "a connector"
+      ],
+      [
+        "the job should repeat at a set time",
+        "a schedule"
+      ],
+      [
+        "one unusual request with enough context",
+        "a prompt for that job"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "uploading a zip without reading it",
+      "fix": "inspect the instructions and scripts before enabling the skill."
+    },
+    {
+      "mistake": "testing only perfect input",
+      "fix": "try a blank field or conflicting date and see whether the skill flags it."
+    }
+  ],
+  "tip": {
+    "text": "keep a skill only if you can name the repeated correction it saves you."
+  },
+  "voice": 2
+}

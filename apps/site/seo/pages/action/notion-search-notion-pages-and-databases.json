@@ -1,0 +1,119 @@
+{
+  "path": "/integrations/notion/search-notion-pages-and-databases",
+  "type": "action",
+  "title": "Search Notion with AI: find pages by their titles",
+  "nav": "search pages and databases",
+  "h1": "find a notion page or database by asking for its title",
+  "description": "Use AI to find Notion pages and databases by title. Handle similar names, delayed indexing and result pages without mistaking title search for content search.",
+  "keyword": "search notion pages with ai",
+  "keywords": [
+    "chatgpt search notion titles",
+    "claude find notion database",
+    "ai notion page search"
+  ],
+  "answer": "**get back to the notion page whose title you almost remember.** give the bot a few words and say whether you want a page or a database. it searches titles your connection can access, starting with pages by default. it can keep fetching results or list accessible items without a phrase. recently created or shared items can take time to appear.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion search",
+    "page titles",
+    "database finding"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/get-page-markdown",
+    "/integrations/notion/fetch-comments"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-magnifier",
+      "p-folder"
+    ],
+    "bubble": "which title did you mean"
+  },
+  "og_line": "find the title before reading the page.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_SEARCH_NOTION_PAGE"
+  },
+  "what": "**find the right document before asking what it says.** give the bot a few words from its title. ask for all candidates when several names sound familiar. open the selected policy next to find who approved it.\n\nresults arrive in batches. the bot can keep looking or try listing accessible items without a search phrase.\n\nasking for fewer page details makes the result smaller. it does not search document text or values inside a database.",
+  "uses": [
+    "**find the policy first.** locate the supplier page before asking about its terms.",
+    "**look for the database itself.** ask for exhibition bookings, rather than pages mentioning exhibitions.",
+    "**spot competing versions.** compare similar planning titles before choosing one.",
+    "**recover a half-remembered page.** use a distinctive phrase from its name."
+  ],
+  "routine": {
+    "message": "every friday at 09:40, search notion page titles for willowglass supplier policy. fetch results until none remain and list all matching titles and page links here. flag competing candidates for the current policy. if there are no matches, try listing accessible pages without a search phrase. explain that new or recently shared pages may not appear yet. never edit, rename or archive anything. do not call the newest page approved without evidence.",
+    "when": "fridays at 09:40",
+    "needs": "notion read only, with access to the pages you want searched",
+    "output": "willowglass supplier policy: title matches\n\n- supplier policy, purchasing: needs confirmation\n- supplier policy, workshop archive: similar title\n\npage links beside both results. contents not read. no approved version assumed."
+  },
+  "steps": [
+    "**connect notion for reading.** allow the search bot read only.",
+    "**name the kind.** say page or database and give a distinctive title phrase.",
+    "**pick the right document.** compare the candidate titles before a separate action reads its contents.",
+    "**schedule only a useful watch.** inspect the routine card and pause it when the version watch stops helping."
+  ],
+  "watch": [
+    "**databases need their own search choice.** the default looks for pages and can miss what you meant.",
+    "**new pages may not appear yet.** allow for a delay after creation or sharing.",
+    "**25 results is the default batch.** ask the bot to keep looking if your page is absent.",
+    "**find who signed off.** read the selected policy for its owner and approval before using it."
+  ],
+  "faq": [
+    {
+      "q": "does this search inside my notion documents?",
+      "a": "**no, it searches titles.** find the item first, then ask the bot to read it with a separate action."
+    },
+    {
+      "q": "why can i not find a database i just shared?",
+      "a": "**it may not appear in search yet.** ask for databases with no title phrase. if it stays missing, treat the result as uncertain."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect notion with read only",
+      "give a distinctive title phrase",
+      "say page or database",
+      "compare all candidate titles before choosing one"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching for a sentence from the body",
+      "fix": "use words from the title, then read the selected page separately."
+    },
+    {
+      "mistake": "trusting the latest edit date",
+      "fix": "ask who approved the policy. a recent edit is a different fact."
+    }
+  ],
+  "tip": {
+    "text": "give it the odd word from the title. “supplier” finds less noise than “policy”."
+  },
+  "voice": 2
+}

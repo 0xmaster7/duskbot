@@ -1,0 +1,245 @@
+{
+  "path": "/personal-ai-agent",
+  "type": "pillar",
+  "title": "Personal AI agents: how to choose one that fits",
+  "nav": "personal ai agent",
+  "h1": "a personal ai agent that fits your actual day",
+  "description": "Compare personal AI agent types by where you talk, where they run and what you pay for. See where dusk bot fits, its phone limits and a small trial to try.",
+  "keyword": "personal ai agent",
+  "keywords": [
+    "personal ai agent app",
+    "personal ai agent free",
+    "best ai agents for personal use",
+    "ai personal assistant app"
+  ],
+  "answer": "**stop reintroducing the same project every time you need a hand.** a personal agent can keep an ongoing job; dusk gives its bots separate chats and memory. choose where you want to talk, what it may reach and whether it must work with your laptop off. a texting service, cloud task agent or workflow builder may fit your day better.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "personal",
+    "buying-guide",
+    "phone",
+    "choice"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/poke",
+    "/alternatives/manus",
+    "/alternatives/n8n",
+    "/claude-code-from-your-phone"
+  ],
+  "art": {
+    "props": [
+      "p-house",
+      "s-signpost"
+    ],
+    "bubble": "what fits you?"
+  },
+  "og_line": "choose around a job, not a promise.",
+  "table": {
+    "h": "four kinds to put on your shortlist",
+    "intro": "**choose the kind of help you will come back to tomorrow.** competitor details are as of 12 november 2026. start with where you talk and who keeps the work running.",
+    "cols": [
+      "approach",
+      "example and fit",
+      "question to settle"
+    ],
+    "rows": [
+      {
+        "label": "bots you keep in a desktop app",
+        "cells": [
+          "dusk bot: named bots with jobs, chats and memory; local, cloud or your server",
+          "do you want to manage several distinct helpers?"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      },
+      {
+        "label": "an assistant in a messaging channel",
+        "cells": [
+          "poke: apple messages, telegram, whatsapp and rcs",
+          "is talking through an existing messaging channel your main need?"
+        ],
+        "src": [
+          3
+        ]
+      },
+      {
+        "label": "a cloud agent for finished tasks",
+        "cells": [
+          "manus: tasks on its cloud computers, including research and slides",
+          "are you mainly buying help producing a particular result?"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "a visual workflow builder",
+        "cells": [
+          "n8n: a canvas for agents and multi-step workflows, self-hosted or cloud",
+          "do you want to build and maintain the process yourself?"
+        ],
+        "src": [
+          5
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "start with this week’s annoying job",
+      "md": "**give it the annoying job you already understand.** choose material you can hand over and an answer you can judge:\n\n- compare two documents\n- prepare questions before an appointment\n- review notes for a small project\n\nthen ask what would make the next attempt easier: memory, app access, repetition or work while you are away. a single question may need no ongoing agent.\n\ntry the same task across products. compare what each missed and how much context you had to repeat. your real mess tells you more than a polished demo."
+    },
+    {
+      "h": "choose a conversation you will return to",
+      "md": "**pick somewhere you will remember to text it.** [poke](/alternatives/poke) supports apple messages, telegram, whatsapp and rcs. it fits if your existing chat app is where you want the helper.[^3]\n\ndusk has desktop chats and phone pairing. store apps are on the way; today you add the paired browser version to your home screen. that version sends no notifications.[^6]\n\npairing to your computer needs it awake with dusk running. pairing to dusk cloud works with your computer off. try [phone access](/claude-code-from-your-phone) under the conditions you expect to use."
+    },
+    {
+      "h": "tell it once, then keep the memory useful",
+      "md": "**teach it the preference you keep repeating.** each dusk bot keeps its own memory. about me in settings shares your name, time zone and writing preferences with all bots.\n\nread and edit notes in memory settings when an assumption changes. turning off let this bot use memory leaves the files on disk.[^7]\n\nstart connected apps read only. if you grant writes later, say \"ask me before you change anything\"; app edits do not automatically ask.[^8]\n\nyour text goes from the bot’s machine to your chosen ai provider. local storage and local ai are separate choices. ollama and lm studio offer the local-model route.[^1]"
+    },
+    {
+      "h": "compare complete bills",
+      "md": "**add up the work, the computer and any license you need.** as of 12 november 2026, dusk’s desktop app includes every feature free for personal use. work needs a license. your ai provider bills usage separately.\n\ncloud prices cover the computer, with ai separate:[^9]\n\n- plus: $20 monthly or $200 yearly\n- pro: $50 monthly or $500 yearly\n\npoke lists free and pro at $19 monthly. manus lists free and pro at $20 monthly with 4,000 monthly credits.[^10][^11] look at what your job consumes before comparing prices.\n\nwhen a dusk bot’s ai plan runs out, it tells you. wait for the reset or switch ai. cloud hosting keeps the machine awake; it does not add ai allowance."
+    },
+    {
+      "h": "where dusk earns its place",
+      "md": "**pick dusk when you want a helper whose work stays together.** give bots distinct jobs and memory. change a bot’s model without losing its chats, files or notes.\n\nmainly need research or a presentation? try [manus](/alternatives/manus) on that task. enjoy mapping and maintaining a visual process? look at [n8n](/alternatives/n8n).\n\ndusk is a weaker fit if you need a phone-store app or phone-browser notifications today. its code is source-available under polyform strict, not open source. personal and work use have different terms.[^12]"
+    },
+    {
+      "h": "try one helper before making a team",
+      "md": "**make the first conversation worth continuing.** attach a non-sensitive document you know and ask: \"prepare questions about this document. separate what it says from questions i should ask. contact nobody and change no files.\"\n\nread the questions beside the source. give a correction and try a related task. does keeping the conversation save you from explaining it all again?\n\nadd a routine when the job has a clear repeat. if setup and review cost more effort than the task, narrow it. keep the helper because you use it."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what personal jobs should i try first?",
+      "a": "**try the preparation you keep postponing.** ask for questions from a document, a review of your notes or a small recurring report. start with material you know well enough to judge."
+    },
+    {
+      "q": "can a personal agent be free?",
+      "a": "**dusk’s desktop app is free for personal use.** your ai provider bills usage, and cloud hosting is separate. compare competitor allowances with your actual job."
+    },
+    {
+      "q": "how do i use dusk from a phone?",
+      "a": "**pair to the machine holding your bots.** the current browser version sends no notifications. pairing to dusk cloud lets you text with your own computer off."
+    },
+    {
+      "q": "must a personal agent run in the cloud?",
+      "a": "**no, choose where the work needs to happen.** dusk bots can live on your computer, cloud or server. local routines stop when the computer sleeps or dusk closes."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: personal bots and ai choices",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: where bots live",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "poke docs: supported messaging channels",
+      "url": "https://poke.com/docs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "manus: cloud computers and task types",
+      "url": "https://manus.im/blog/manus-joins-meta-for-next-era-of-innovation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "n8n: visual agents and workflow builder",
+      "url": "https://github.com/n8n-io/n8n",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: phone browser and pairing",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot docs: memory controls",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: app permissions",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: charges and work licensing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "poke pricing",
+      "url": "https://poke.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "manus pricing",
+      "url": "https://manus.im/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: license and moving bots",
+      "url": "/docs/faq"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "make one bot for a small personal job",
+      "attach a non-sensitive document you know well",
+      "ask for questions, with no file changes or messages",
+      "compare the answer with the document before adding a related task"
+    ]
+  },
+  "decide": {
+    "h": "what do you want to return to?",
+    "cols": [
+      "your main habit",
+      "consider"
+    ],
+    "rows": [
+      [
+        "texting in an existing messaging app",
+        "poke"
+      ],
+      [
+        "keeping separate helpers and their memory",
+        "dusk bot"
+      ],
+      [
+        "asking a cloud agent for a finished deliverable",
+        "manus"
+      ],
+      [
+        "building and maintaining a visual process",
+        "n8n"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "starting with \"manage my life\"",
+      "fix": "choose one recurring frustration and a result you can judge."
+    },
+    {
+      "mistake": "testing phone access only beside an awake laptop",
+      "fix": "try the conditions you expect to use. local bots need that machine running."
+    },
+    {
+      "mistake": "pricing the download instead of the work",
+      "fix": "count ai usage, hosting and any work license you need."
+    }
+  ],
+  "tip": {
+    "text": "if one helper does not make the day easier, a whole team gives you more to manage."
+  },
+  "voice": 2
+}

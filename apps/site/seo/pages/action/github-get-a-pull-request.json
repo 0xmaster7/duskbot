@@ -1,0 +1,124 @@
+{
+  "path": "/integrations/github/get-a-pull-request",
+  "type": "action",
+  "title": "Check a GitHub pull request with AI from its link",
+  "nav": "get a pull request",
+  "h1": "read one github pull request before the next decision",
+  "description": "Paste a GitHub pull request link and get the title, status and purpose in plain words. Keep access read only; fetch files and reviews when you need them.",
+  "keyword": "github get pull request with ai",
+  "keywords": [
+    "chatgpt read github pull request",
+    "claude check pull request details",
+    "ai summarise specific github pr"
+  ],
+  "answer": "**walk into standup knowing what the pr does.** paste the github link and a bot reads the pull request into plain words. the link gives it the repository owner, name and request number. you get the returned details without changing the pr. fetch changed files, reviews and test results separately when you're deciding whether to merge.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "github",
+    "get a pull request"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/list-repository-issues"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-magnifier",
+      "s-notebook"
+    ],
+    "bubble": "read this pull request"
+  },
+  "og_line": "start with the exact pull request.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_GET_A_PULL_REQUEST"
+  },
+  "what": "**get the point of the pr before opening another tab.** this action reads a known pull request. the bot takes the owner, repository and number from its link. it goes straight there rather than searching for a likely match.\n\nask what changed, why the author wants it and whether the pr is still open. use separate reads for changed files and reviewer comments.",
+  "uses": [
+    "**walk into standup knowing what the pr does.** paste the link, get three plain lines.",
+    "**spot a pr that changed overnight.** ask for the current title, status and description beside yesterday's summary.",
+    "**bring a non-coding teammate along.** ask for a plain explanation of the proposed change."
+  ],
+  "routine": {
+    "message": "every weekday at 12, read pull request 58 in plumtree/harbor-kit while it remains open. tell me what it proposes and tell me if the title, status or description changed since yesterday. say which details you could not read. keep it read only. when it closes, tell me once and ask me to pause this routine.",
+    "when": "weekdays at 12:00, while the pull request stays open",
+    "needs": "github connected with read only access to plumtree/harbor-kit",
+    "output": "plumtree/harbor-kit #58\npull request: simplify the address form\nstatus: open\nthis summary covers the pull request record.\nfiles, reviews and test runs need separate reads."
+  },
+  "steps": [
+    "connect github as **read only**. include the repository you need.",
+    "paste the pull request link. ask the bot to confirm which pull request it found.",
+    "ask your question. request files or reviews separately if the decision needs them.",
+    "if you're following it daily, set the routine. pause it when the pull request closes."
+  ],
+  "watch": [
+    "**a number alone isn't enough.** request 58 in another repository is different work.",
+    "**merge decisions need the files, reviews and tests.** this action reads the pull request details; it doesn't collect that evidence or run code.",
+    "**a correct link doesn't grant access.** your connected github account must be able to open private repositories."
+  ],
+  "faq": [
+    {
+      "q": "can i give it just the pull request url?",
+      "a": "**yes, use the normal github link.** the bot takes the owner, repository and number from it. you don't need to copy those parts separately."
+    },
+    {
+      "q": "will checking it also approve or merge it?",
+      "a": "**no. this action only reads.** keep the bot read only when its job is to explain pull requests."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect github with read only access",
+      "copy one pull request link",
+      "ask for the pull request in three lines",
+      "ask which files, reviews and test results you still need"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking about '#58' without a repository",
+      "fix": "paste the full link. numbers repeat across repositories."
+    },
+    {
+      "mistake": "reading 'open' as 'ready to merge'",
+      "fix": "look at files, reviews and test results before deciding."
+    }
+  ],
+  "tip": {
+    "text": "a pr title tells you the plan. the files tell you what actually changed."
+  },
+  "checklist": {
+    "h": "before making the call",
+    "items": [
+      "the link points to the right repository",
+      "the summary names the pull request",
+      "you have the changed files when the decision needs them",
+      "reviews and tests need their own evidence"
+    ]
+  },
+  "voice": 2
+}

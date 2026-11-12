@@ -1,0 +1,118 @@
+{
+  "path": "/integrations/google-sheets/append-values-to-spreadsheet",
+  "type": "action",
+  "title": "Append Google Sheets rows with AI without replacing data",
+  "nav": "append values to spreadsheet",
+  "h1": "add new records to the end of a google sheets table",
+  "description": "Ask AI to append rows after a Google Sheets table. Confirm the tab name, column order and value interpretation before the bot adds your records.",
+  "keyword": "append google sheets rows with ai",
+  "keywords": [
+    "chatgpt append rows google sheets",
+    "claude add new google sheets records",
+    "ai append values to spreadsheet"
+  ],
+  "answer": "**get this week’s records into the sheet without replacing last week’s.** the bot adds rows after your google sheets table. paste the link, name the tab and give the column order. the range helps it find the table’s end; it does not choose an exact empty cell. ask for a row preview and a pause before it writes.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "append rows",
+    "attendance log",
+    "google sheets"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/update-spreadsheet-values",
+    "/integrations/google-sheets/upsert-rows"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-notebook"
+    ],
+    "bubble": "new records below"
+  },
+  "og_line": "new entries after the table you chose.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND"
+  },
+  "what": "**use append for a log that keeps growing.** each new entry gets a row after the existing table. the bot reads tab names and column headings before writing.\n\nname the tab exactly and compare the proposed column order with its headings. “attendance” and “session log” can be different places in the same file.\n\nsay whether codes should stay literal text or whether sheets should interpret values such as dates.",
+  "uses": [
+    "**finish the workshop register.** add the attendance entries from your session records.",
+    "**extend the loan log.** append equipment loans after approval.",
+    "**keep registrations together.** add visitors in the register’s column order.",
+    "**record fresh inspections.** add completed checks without replacing older ones."
+  ],
+  "routine": {
+    "message": "every saturday at 12, read attendance files added this week to the pottery attendance folder in google drive. use only files whose names end in final. open the foxmere studio attendance spreadsheet, get its actual tab names and read the session log headers. compare existing rows to avoid adding the same session batch again. arrange new rows as session date, attendee name and attendance status. keep names exactly as written. show the rows and destination here. ask me before you change anything. after approval, append the rows and report where they landed. never change old attendance rows. ask if a batch looks duplicated.",
+    "when": "saturdays at 12:00",
+    "needs": "google drive read only for attendance files; google sheets read and write for the session log",
+    "output": "attendance append proposal\n\nfoxmere studio, session log\nsession date | attendee name | attendance status\n14 november 2026 | thalia | attended\n14 november 2026 | rafael | attended\n\nready to add below the existing sessions after your review."
+  },
+  "steps": [
+    "**share the right sheet.** connect sheets and paste the attendance file’s link.",
+    "**allow a narrow write.** permit reading tab names, reading the table and appending rows.",
+    "**line up one row.** compare its values with the column headings. say which codes must stay literal text.",
+    "**open the saved row.** its date, name and status should sit under the right headings. pause the routine between workshop seasons."
+  ],
+  "watch": [
+    "**the table decides the next row.** an unexpected gap or table boundary can change where entries land.",
+    "**read back what matters.** ask to see the saved rows instead of assuming the preview matches them.",
+    "**retrying can duplicate records.** append adds; it does not match and repair existing entries. look for the batch in the table before another attempt."
+  ],
+  "faq": [
+    {
+      "q": "can i choose the exact row number it writes to?",
+      "a": "**use a cell update for that.** append finds the table’s end inside the chosen range and writes after it."
+    },
+    {
+      "q": "does it correct a record that is already there?",
+      "a": "**no.** it adds rows. fixing an existing entry needs a different action."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste the sheet link and tab name",
+      "ask the bot to read the headings",
+      "preview one new record in column order",
+      "append after review and read the saved row"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "retrying after an unclear result",
+      "fix": "read the table first. the first attempt may already have added the rows."
+    },
+    {
+      "mistake": "guessing the tab name",
+      "fix": "have the bot list the real tabs before choosing the destination."
+    }
+  ],
+  "tip": {
+    "text": "a row in the wrong columns is worse than a row still waiting to be added."
+  },
+  "voice": 2
+}

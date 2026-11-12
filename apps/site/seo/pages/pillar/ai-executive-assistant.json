@@ -1,0 +1,208 @@
+{
+  "path": "/ai-executive-assistant",
+  "type": "pillar",
+  "title": "AI executive assistant: get the prep, keep the decisions",
+  "nav": "ai executive assistant",
+  "h1": "an ai executive assistant for inbox and calendar work",
+  "description": "Try five inbox and calendar routines in dusk bot. Get agendas, meeting context and reply drafts while keeping commitments and sensitive replies with you.",
+  "keyword": "ai executive assistant",
+  "keywords": [
+    "ai executive assistant free",
+    "ai executive assistant reddit",
+    "ai virtual assistant for small business"
+  ],
+  "answer": "**walk into the call knowing what you promised last time.** a dusk bot reads your gmail threads and google calendar, brings you meeting context and drafts replies. it can also find possible times for your next catch-up.\n\nstart with reading. get the agenda and open questions in your chat, then choose what deserves your time.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "calendar",
+    "inbox",
+    "preparation",
+    "assistant"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/google-calendar",
+    "/routines/meeting-prep-brief",
+    "/routines/weekly-calendar-preview"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "s-mailbox"
+    ],
+    "bubble": "ready for tomorrow"
+  },
+  "og_line": "prepare the day without giving it away.",
+  "table": {
+    "h": "what to budget for the assistant",
+    "intro": "**budget for the job, not just the app.** prices are as of 12 november 2026. hosting, work licensing and ai usage buy different things.",
+    "cols": [
+      "setup",
+      "published charge",
+      "important limit"
+    ],
+    "rows": [
+      {
+        "label": "dusk on your own computer",
+        "cells": [
+          "free personal use, with ai billed separately",
+          "work use needs a license; local routines need an awake computer"
+        ],
+        "src": [
+          4,
+          5
+        ]
+      },
+      {
+        "label": "dusk cloud pro",
+        "cells": [
+          "$50 monthly or $500 yearly, plus ai usage",
+          "includes a work license for one person"
+        ],
+        "src": [
+          4,
+          6
+        ]
+      },
+      {
+        "label": "lindy team",
+        "cells": [
+          "from $29.99 monthly per active user, with 3,000 credits",
+          "no credit rollover; top-ups cost $10 per 1,000 credits"
+        ],
+        "src": [
+          7
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "give it the accounts it actually needs",
+      "md": "**give it the inbox and calendar behind your day.** make a bot with this job: \"help me prepare for meetings and correspondence. use only named accounts. flag uncertainty. ask before changing anything.\"\n\nconnect gmail and google calendar in **connected apps**. label work and personal accounts clearly; dusk supports up to five usable accounts per app.\n\nstart read only. **find event** and **find free slots** read your calendar; gmail fetches mail and threads.[^1][^2] the first three routines need no meeting edits. see [gmail](/integrations/gmail) and [google calendar](/integrations/google-calendar) for setup."
+    },
+    {
+      "h": "routine one: the day before it starts",
+      "md": "**find the clash before you're late to it.** send:\n\n\"every weekday at 8:15am, read today's work calendar. return a time-ordered agenda here. include stated locations, missing details and overlapping meetings. don't change events or guess travel time.\"\n\nopen the overlapping events and decide which matters. the brief has already done the hunt.\n\nread the schedule card. wrong hour? ask which time zone it uses. set yours in **about me** so every bot gets it.[^5][^8]"
+    },
+    {
+      "h": "routine two: possible times, no invitations",
+      "md": "**find a catch-up time and leave yourself a lunch break.** try:\n\n\"every monday at 9:30am, find free slots in my work calendar for this week's catch-ups. look for 30 minutes between 10am and 4pm. return options here. never create, move or invite. these are my free times, not anyone else's confirmed availability.\"\n\nuse the **find free slots** read action. leave room for preparation or an actual break before offering a time.\n\nneed the week's pressure points instead? use the [calendar preview](/routines/weekly-calendar-preview). keep the routine that gives you something useful."
+    },
+    {
+      "h": "routine three: the thread before the meeting",
+      "md": "**know what you promised before joining the call.** send:\n\n\"every weekday at 4pm, read tomorrow's work calendar. for contacts named in your job, read related gmail threads. give me open questions and explicit commitments here. say when a thread match is uncertain. change nothing.\"\n\nname people or threads for the first runs. repeated subjects can belong to different conversations.\n\nopen the original thread when a promise matters. the [meeting prep routine](/routines/meeting-prep-brief) gives this job more room."
+    },
+    {
+      "h": "routine four: shorter replies, with a stopping point",
+      "md": "**turn the thread into a reply you only have to finish.** gmail's **create email draft** needs write access.[^2] allow the reads and that action alone.\n\n\"at noon each weekday, read new direct requests from correspondents named in your job. use their threads and your memory notes for context. propose replies here using facts you can verify. ask me about commitments or sensitive judgments. ask before saving gmail drafts. never send.\"\n\nthe ask-before-drafting line is your instruction; draft edits don't ask automatically. for enforced reading access, keep proposed replies here and save them yourself."
+    },
+    {
+      "h": "routine five: close the day without missing a question",
+      "md": "**leave work knowing which questions still need you.** try:\n\n\"every weekday at 5:15pm, read today's work email threads. list unanswered direct questions and dates promised in the messages. quote only enough to identify each request. return the list here. silence is not a promise. never chase, label or archive.\"\n\nread the thread's last reply before answering. narrow the senders or pause the routine if it repeats work you've handled.\n\nwatch the early runs. add the next routine when the first one helps."
+    },
+    {
+      "h": "what stays with you",
+      "md": "**let it carry the context so you can handle the conversation.** keep disputes, hiring conversations and important negotiations with a person. the bot can prepare the thread and open questions. you own the relationship.\n\ncalendar edits and inbox labels don't automatically wait for approval. keep access read only where possible. for writes, retain \"ask me before you change anything\".\n\nlocal work stops during sleep or when dusk closes. runs under 12 hours late run once on return; older runs skip. **automations** shows schedules and history. pause routines that no longer help.[^5]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "can an ai assistant clean up my gmail inbox?",
+      "a": "**start by identifying messages.** these routines read threads and prepare replies. archive, delete and label actions are different jobs. keep access read only while you work out the rules."
+    },
+    {
+      "q": "will it book meetings automatically?",
+      "a": "**these routines only find events and possible times.** you choose and book. calendar edits need an explicit ask-first instruction if you allow writes."
+    },
+    {
+      "q": "can i connect separate work and personal gmail accounts?",
+      "a": "**yes, with separate labels.** dusk supports up to five usable accounts per app. name the account in each routine."
+    },
+    {
+      "q": "is an ai executive assistant free?",
+      "a": "**personal desktop use is free; ai usage stays separate.** work use needs a license. cloud pro includes one for one person. your ai provider still bills usage."
+    }
+  ],
+  "sources": [
+    {
+      "label": "composio: google calendar read and write actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: gmail reading and draft actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: connected apps and send approvals",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: personal use, work licenses and ai billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot docs: routine schedules and run history",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot pricing",
+      "url": "/pricing"
+    },
+    {
+      "label": "lindy pricing",
+      "url": "https://www.lindy.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: shared time zone preferences",
+      "url": "/docs/memory"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "make one bot for meeting and email preparation",
+      "connect work gmail and calendar, read only",
+      "ask for today's agenda without changes",
+      "open one meeting and the email thread behind it"
+    ]
+  },
+  "checklist": {
+    "h": "before adding another routine",
+    "items": [
+      "the existing one returns something you actually read",
+      "its account and time zone are right",
+      "it names uncertain matches instead of guessing",
+      "you still approve commitments and sensitive replies"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "letting an open slot become an invitation",
+      "fix": "ask only for options. decide whether you want that time booked."
+    },
+    {
+      "mistake": "letting the assistant guess which thread matters",
+      "fix": "name the contact or source thread for early runs."
+    },
+    {
+      "mistake": "turning on five routines before checking one",
+      "fix": "start with the agenda. add another only after the first earns its place."
+    }
+  ],
+  "tip": {
+    "text": "the note earns its keep when you join the call already knowing the awkward question."
+  },
+  "voice": 2
+}

@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dusk bot: a team of ai bots that lives on your computer</title>
+<meta name="description" content="dusk bot is a desktop app where you run a team of ai bots and message them like teammates. free for personal use, on the ai plan you already pay for.">
+<meta name="theme-color" content="#fcfcfb">
+<meta property="og:title" content="dusk bot: a team of ai bots that lives on your computer">
+<meta property="og:description" content="run a team of ai bots and message them like teammates. free for personal use, on the ai plan you already pay for.">
+<link rel="icon" href="art/cursor-88.webp" type="image/webp">
+<link rel="preload" href="fonts/switzer.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">skip to the page</a>
+
+<header class="bar">
+  <div class="wrap bar-in">
+    <a class="brand" href="./"><img src="art/cursor-88.webp" alt="" width="26" height="26">dusk bot</a>
+    <nav class="bar-links" aria-label="on this page">
+      <a href="#bots">what it does</a>
+      <a href="#use">where it runs</a>
+      <a href="#pricing">pricing</a>
+      <a href="/docs">docs</a>
+    </nav>
+    <div class="bar-end">
+      <a class="bar-quiet" href="https://dusk.bot/dashboard">sign in</a>
+      <a class="btn dark sm" href="/download">download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="wrap hero-top">
+    <h1>a team of ai bots that lives on your computer.</h1>
+    <div class="hero-side">
+      <p class="lede">give each bot a name and a job, then message it like a teammate. free for personal use, on the ai plan you already pay for.</p>
+      <p class="actions">
+        <a class="btn dark" href="/download">{{os apple}}download for macos</a>
+        <a class="more" href="#download">windows, linux and servers{{i arrow-down}}</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap stage" data-stage>
+    <div class="tiles" aria-hidden="true">
+      <img class="tile t1" src="art/t-peaks.webp" alt="" width="520" height="355">
+      <img class="tile t2" src="art/t-sails.webp" alt="" width="520" height="410">
+      <img class="tile t3" src="art/t-birches.webp" alt="" width="520" height="512">
+      <img class="tile t4" src="art/t-islands.webp" alt="" width="520" height="550">
+      <img class="tile t5" src="art/t-flowers.webp" alt="" width="520" height="513">
+      <img class="tile t6" src="art/t-dunes.webp" alt="" width="520" height="545">
+      {{b juno peek}}
+    </div>
+    <figure class="win" data-demo>
+      <div class="win-bar">
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win-title">dusk bot</span>
+        <button class="try" type="button" data-try aria-pressed="false"><i aria-hidden="true"></i><span data-try-label>try it live</span></button>
+      </div>
+      <div class="win-body" data-frame>
+        <img class="still" src="art/app-1x.webp" srcset="art/app-1x.webp 1180w, art/app-2x.webp 2360w" sizes="(min-width: 1280px) 1200px, (min-width: 761px) 94vw, 720px" alt="the dusk bot app. on the left a list of bots, each with a name and its last message. in the middle a chat with nova, who has compared three mug shops and written a short script. on the right nova's own computer, with a browser open." width="1180" height="680" fetchpriority="high">
+      </div>
+      <figcaption class="win-note" aria-live="polite"><span data-note="still">a picture of the real app, with sample bots.<span class="win-note-more"> press try it live and click around.</span></span><span data-note="live" hidden>this is the live app, on sample data. click around.</span><span data-note="missing" hidden>the live app is not on this server. it runs on the preview site.</span></figcaption>
+    </figure>
+  </div>
+
+  <div class="wrap runs">
+    <p>runs on the ai you already pay for</p>
+    <ul>
+      <li>{{logo claude}}claude</li>
+      <li>{{logo chatgpt}}chatgpt</li>
+      <li>{{logo gemini}}gemini</li>
+      <li>{{logo grok}}grok</li>
+      <li>{{logo cursor}}cursor</li>
+      <li>{{logo copilot}}copilot</li>
+      <li>{{logo deepseek}}deepseek</li>
+      <li class="runs-more">or your own api key</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap sec" id="bots">
+  <div class="mate">
+    <div class="mate-copy">
+      <h2>message bots like teammates.</h2>
+      <p>give a bot a task the way you'd text a coworker. it does the work from start to finish, keeps you posted, and asks before the scary stuff.</p>
+    </div>
+    <figure class="snip chat" data-play="ask" aria-label="a chat with nova, a research bot">
+      <figcaption class="snip-head">{{b nova}}<b>nova</b><span>research</span></figcaption>
+      <p class="msg me">find the cheapest flight to lisbon in march.</p>
+      <p class="msg">found it. the 9:40 on the 14th, €84.</p>
+      <div class="ask" data-ask>
+        <span>book it for €84?</span>
+        <span class="ask-btns"><b class="pill yes" data-yes><span class="was">allow</span><span class="now">{{i check}}allowed</span></b><b class="pill" data-no>deny</b></span>
+      </div>
+      <p class="msg" data-late>booked. aisle seat, like always.</p>
+      <img class="ptr" data-ptr src="art/cursor-88.webp" alt="" width="26" height="26">
+    </figure>
+    {{b nova mate-face}}
+  </div>
+</section>
+
+<section class="wrap sec many">
+  <div class="head">
+    <h2>work with many bots at once.</h2>
+    <p>start with one. add another when the work grows. each has its own chat, job and memory, and they all work at the same time.</p>
+  </div>
+  <div class="moments">
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>each bot gets its own computer</h3>
+        <p>a browser and a desktop it signs in to and clicks through. watch it live, and take the mouse back whenever you like.</p>
+      </div>
+      <figure class="fig screen" data-play="browse" aria-label="nova's computer, live: a browser comparing three flights">
+        <figcaption class="screen-bar">{{b nova}}<b>nova's computer</b><span class="live"><i></i>live</span><span class="take">take the mouse</span></figcaption>
+        <div class="screen-view">
+          <img class="wall" src="art/wide-islands.webp" alt="" width="1200" height="800" loading="lazy">
+          <div class="browser">
+            <div class="browser-bar"><i></i><i></i><i></i><span>flights · lisbon · march</span></div>
+            <ul class="fares">
+              <li data-row class="hot"><b>9:40</b><span>one stop</span><em>€84</em></li>
+              <li data-row><b>13:05</b><span>direct</span><em>€112</em></li>
+              <li data-row><b>18:20</b><span>direct</span><em>€139</em></li>
+              <li><b>21:10</b><span>one stop</span><em>€151</em></li>
+            </ul>
+          </div>
+          <img class="ptr" data-ptr src="art/cursor-88.webp" alt="" width="26" height="26">
+        </div>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>ask once and it becomes a routine</h3>
+        <p>it runs on a schedule, or the moment something happens. routines run while you sleep.</p>
+      </div>
+      <figure class="fig card routines" data-play="routine" aria-label="three routines, all switched on">
+        <p class="msg me">summarise my inbox every weekday at 8.</p>
+        <ul class="rows">
+          <li>{{b juno}}<div><b>inbox summary</b><span>every weekday at 8:00</span></div><i class="toggle on" data-toggle></i></li>
+          <li>{{b nova}}<div><b>competitor prices</b><span>every monday at 9:00</span></div><i class="toggle on"></i></li>
+          <li>{{b rivet}}<div><b>triage new issues</b><span>{{logo github}}when a github issue opens</span></div><i class="toggle on"></i></li>
+        </ul>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>it remembers how you like things</h3>
+        <p>each bot keeps notes on what you like and who's who. every note is yours to read and edit.</p>
+      </div>
+      <figure class="fig card memory" data-play="note" aria-label="nova's notes about how you like things done">
+        <figcaption class="mem-head">{{b nova}}<b>nova's notes</b><span>{{i pencil}}edit</span></figcaption>
+        <ul class="notes">
+          <li>sources first, opinions after.</li>
+          <li>dana approves anything over €500.</li>
+          <li>no flights before 7:00. ever.</li>
+          <li class="new"><span data-type>aisle seat, always.</span><i class="caret" aria-hidden="true"></i></li>
+        </ul>
+        <p class="mem-foot">{{i check}}nova updated its memory</p>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <div class="moment-copy">
+        <h3>put bots in a room</h3>
+        <p>several bots in one thread hand work to each other. you step in when one of them needs a yes.</p>
+      </div>
+      <figure class="fig card room" aria-label="a room called launch, where three bots hand work to each other">
+        <figcaption class="room-head"><b># launch</b><span class="stack">{{b rivet}}{{b echo}}{{b juno}}</span></figcaption>
+        <div class="said">{{b rivet}}<div><b>rivet</b><p>the fix is live. echo, you're up.</p></div></div>
+        <div class="said">{{b echo}}<div><b>echo</b><p>post is drafted. juno, can you email the list?</p></div></div>
+        <div class="said">{{b juno}}<div><b>juno</b><p>ready to send to 1,204 people. need a yes first.</p><span class="ask-btns"><b class="pill yes">allow</b><b class="pill">deny</b></span></div></div>
+      </figure>
+    </article>
+
+  </div>
+  <div class="tools">
+    <p>and they work in the apps you already use.</p>
+    <ul aria-label="some of the apps a bot can connect to">
+      <li><img class="logo" src="logos/gmail.png" alt="gmail" width="18" height="18"></li>
+      <li><img class="logo" src="logos/calendar.png" alt="google calendar" width="18" height="18"></li>
+      <li><img class="logo" src="logos/drive.png" alt="google drive" width="18" height="18"></li>
+      <li><img class="logo" src="logos/slack.png" alt="slack" width="18" height="18"></li>
+      <li><img class="logo" src="logos/notion.png" alt="notion" width="18" height="18"></li>
+      <li><img class="logo" src="logos/github.svg" alt="github" width="18" height="18"></li>
+      <li><img class="logo" src="logos/linear.png" alt="linear" width="18" height="18"></li>
+      <li><img class="logo" src="logos/figma.png" alt="figma" width="18" height="18"></li>
+      <li><img class="logo" src="logos/stripe.png" alt="stripe" width="18" height="18"></li>
+      <li><img class="logo" src="logos/discord.svg" alt="discord" width="18" height="18"></li>
+      <li><img class="logo" src="logos/hubspot.png" alt="hubspot" width="18" height="18"></li>
+      <li><img class="logo" src="logos/airtable.svg" alt="airtable" width="18" height="18"></li>
+      <li class="tools-more">60+ apps, and any mcp server you add</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap sec jobs" data-jobs>
+  <div class="jobs-copy">
+    <h2>give each bot a job.</h2>
+    <p class="jobs-sub">one bot, one job, one chat. each can run on a different ai, and you can swap it any time.</p>
+    <div class="chips" role="tablist" aria-label="six sample bots">
+      <span class="ind" data-ind aria-hidden="true"></span>
+      <button type="button" role="tab" id="jt-nova" aria-controls="jp-nova" aria-selected="true">{{b nova}}research</button>
+      <button type="button" role="tab" id="jt-juno" aria-controls="jp-juno" aria-selected="false">{{b juno}}inbox</button>
+      <button type="button" role="tab" id="jt-rivet" aria-controls="jp-rivet" aria-selected="false">{{b rivet}}code</button>
+      <button type="button" role="tab" id="jt-tally" aria-controls="jp-tally" aria-selected="false">{{b tally}}bookkeeping</button>
+      <button type="button" role="tab" id="jt-quill" aria-controls="jp-quill" aria-selected="false">{{b quill}}travel</button>
+      <button type="button" role="tab" id="jt-echo" aria-controls="jp-echo" aria-selected="false">{{b echo}}socials</button>
+    </div>
+    <div class="job-lines">
+      <p data-line="nova"><b>nova, research.</b> reads the 40 tabs so you don't. comes back with sources, a table and a straight answer.</p>
+      <p data-line="juno"><b>juno, inbox.</b> reads what came in overnight, drafts replies in your voice, and leaves the three that need you on top.</p>
+      <p data-line="rivet"><b>rivet, code.</b> picks up an issue, opens a pull request, and fixes what the review finds.</p>
+      <p data-line="tally"><b>tally, bookkeeping.</b> matches receipts to charges, and tells you when a subscription quietly got pricier.</p>
+      <p data-line="quill"><b>quill, travel.</b> watches fares, holds the good one, and asks before it books anything.</p>
+      <p data-line="echo"><b>echo, socials.</b> drafts the week's posts from what you shipped. posts nothing until you say so.</p>
+    </div>
+  </div>
+  <div class="jobs-stage">
+    <img class="jobs-art" src="art/wide-sails.webp" alt="" width="1536" height="1024" loading="lazy">
+    <div class="jobs-card">
+
+      <div class="job" role="tabpanel" id="jp-nova" aria-labelledby="jt-nova" tabindex="0">
+        <div class="job-head">{{b nova}}<b>nova</b><span class="runs-on">{{logo claude}}on claude</span></div>
+        <p class="msg me">which of these three mug shops is cheapest with shipping?</p>
+        <div class="msg wide">
+          <ul class="proof table">
+            <li><span>juniper lane</span><em>28 + 9</em><u class="best">37</u></li>
+            <li><span>north kiln</span><em>32 + 7</em><u>39</u></li>
+            <li><span>clayhouse studio</span><em>34 + 6</em><u>40</u></li>
+          </ul>
+          <p>juniper lane, by 2. sources are attached.</p>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-juno" aria-labelledby="jt-juno" tabindex="0">
+        <div class="job-head">{{b juno}}<b>juno</b><span class="runs-on">{{logo chatgpt}}on chatgpt</span></div>
+        <p class="msg me">what came in overnight?</p>
+        <div class="msg wide">
+          <p>41 emails. 3 need you.</p>
+          <ul class="proof">
+            <li>{{logo gmail}}<span>dana, contract redline</span><u class="flag">needs you</u></li>
+            <li>{{logo gmail}}<span>bank, card expiring</span><u class="flag">needs you</u></li>
+            <li class="dim"><span>38 more</span><u>filed</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-rivet" aria-labelledby="jt-rivet" tabindex="0">
+        <div class="job-head">{{b rivet}}<b>rivet</b><span class="runs-on">{{logo cursor}}on cursor</span></div>
+        <p class="msg me">sign-in is broken on safari. can you look?</p>
+        <div class="msg wide">
+          <p>found it, fixed it, opened a pull request.</p>
+          <ul class="proof">
+            <li>{{logo github}}<span>#212 fix sign-in on safari</span><u class="plus">+18</u><u class="minus">-4</u></li>
+            <li>{{logo github}}<span>review: 2 comments</span><u>both fixed</u></li>
+            <li class="chips-row"><u class="ok">{{i check}}checks passed</u><u>ready to merge</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-tally" aria-labelledby="jt-tally" tabindex="0">
+        <div class="job-head">{{b tally}}<b>tally</b><span class="runs-on">{{logo gemini}}on gemini</span></div>
+        <p class="msg me">anything odd in october?</p>
+        <div class="msg wide">
+          <p>one thing. you paid for figma twice.</p>
+          <ul class="proof">
+            <li>{{logo figma}}<span>figma, 3 oct</span><u>$15.00</u></li>
+            <li>{{logo figma}}<span>figma, 3 oct</span><u class="flag">$15.00, again</u></li>
+            <li class="dim"><span>21 more receipts</span><u>matched</u></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-quill" aria-labelledby="jt-quill" tabindex="0">
+        <div class="job-head">{{b quill}}<b>quill</b><span class="runs-on">{{logo grok}}on grok</span></div>
+        <p class="msg me">get me to lisbon on the 14th, cheap.</p>
+        <div class="msg wide">
+          <p>holding the cheapest one. aisle seat.</p>
+          <ul class="proof">
+            <li><span>9:40, one stop</span><u class="best">€84, held</u></li>
+            <li><span>13:05, direct</span><u>€112</u></li>
+            <li><span>book the 9:40?</span><span class="ask-btns"><b class="pill yes">allow</b><b class="pill">deny</b></span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="job" role="tabpanel" id="jp-echo" aria-labelledby="jt-echo" tabindex="0">
+        <div class="job-head">{{b echo}}<b>echo</b><span class="runs-on">{{logo chatgpt}}on chatgpt</span></div>
+        <p class="msg me">draft this week's posts.</p>
+        <div class="msg wide">
+          <p class="quote">"shipped this week: routines can start from a webhook, and bots ask before the scary stuff."</p>
+          <ul class="proof">
+            <li><span>draft 1 of 5</span><u class="flag">needs your yes</u></li>
+            <li class="dim"><span>4 more drafts</span><u>ready when you are</u></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec use" id="use">
+  <h2>how to use dusk bot.</h2>
+  <div class="ways">
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-birches.webp" alt="" width="900" height="537" loading="lazy">
+        <figure class="way-snip disk" aria-label="a folder on this computer holding bots, chats, files and memory">
+          <figcaption>{{i hard-drive}}<b>on this computer</b><span class="awake"><i></i>awake</span></figcaption>
+          <ul>
+            <li>{{i folder}}<span>bots</span><em>6</em></li>
+            <li>{{i folder}}<span>chats</span><em>214</em></li>
+            <li>{{i folder}}<span>files</span><em>1.2 gb</em></li>
+            <li>{{i folder}}<span>memory</span><em>38 notes</em></li>
+            <li>{{i folder}}<span>browser data</span><em>6 profiles</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on your computer</h3>
+      <p>free. bots, chats, files and memory stay on your disk. no account, nothing to rent.</p>
+      <a class="go" href="/download">download the app{{i arrow-right}}</a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-cliffs.webp" alt="" width="900" height="1200" loading="lazy">
+        <figure class="way-snip term" aria-label="a terminal running the one-line install on a server">
+          <figcaption><i></i><i></i><i></i><span>you@your-server</span></figcaption>
+          <pre><code><span class="p">$</span> curl -fsSL \
+    https://dusk.bot/install.sh <span class="p">|</span> sh
+
+<span class="c">installing dusk bot ...</span>
+<span class="g">done.</span> open the app and
+choose <span class="s">add a server</span>.
+<span class="p">$</span> <i class="caret" aria-hidden="true"></i></code></pre>
+        </figure>
+      </div>
+      <h3>on your own server</h3>
+      <p>free. paste one line on a server you already have, and your bots stay on all day.</p>
+      <a class="go" href="/docs">read the docs{{i arrow-right}}</a>
+    </article>
+
+    <article class="way">
+      <div class="way-art">
+        <img src="art/use-layers.webp" alt="" width="900" height="1200" loading="lazy">
+        <figure class="way-snip cloud" data-play="wake" aria-label="a dusk cloud computer that wakes itself for an 8:00 routine">
+          <figcaption>{{i cloud}}<b>cloud computer</b><span class="state" data-state><span class="asleep">asleep</span><span class="awake"><i></i>awake</span></span></figcaption>
+          <ul>
+            <li><span>next up</span><em>inbox summary, 8:00</em></li>
+            <li><span>your laptop</span><em>shut</em></li>
+            <li><span>size</span><em>2 vcpu · 4 gb · 40 gb</em></li>
+            <li><span>bot computers</span><em>2</em></li>
+          </ul>
+        </figure>
+      </div>
+      <h3>on a dusk cloud computer</h3>
+      <p>we host it. routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p>
+      <a class="go" href="#pricing">see the plans{{i arrow-right}}</a>
+    </article>
+
+  </div>
+</section>
+
+<section class="wrap sec cost" id="cost" data-cost>
+  <h2>what a month costs you.</h2>
+  <div class="cost-grid">
+    <div class="cost-big">
+      <p class="zero" aria-live="polite"><span class="cur">$</span><span data-total>0</span></p>
+      <p class="cost-cap">a month, from us. <span data-cap>for personal use, with every feature.</span></p>
+    </div>
+    <div class="chart">
+      <div class="bar-row">
+        <div class="bar-name"><b>dusk bot</b><span data-sub>on your computer</span></div>
+        <div class="track"><i class="fill" data-fill></i></div>
+        <div class="bar-val">$<span data-val>0</span></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name"><b>markup on ai usage</b><span>we add nothing</span></div>
+        <div class="track"><i class="fill"></i></div>
+        <div class="bar-val">$0</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-name"><b>your ai plan</b><span>claude, chatgpt, gemini or grok</span></div>
+        <div class="track yours"><span>billed by them, the same as today</span></div>
+        <div class="bar-val quiet">no change</div>
+      </div>
+      <div class="seg" role="group" aria-label="where your bots run" data-seg>
+        <span class="ind" data-ind aria-hidden="true"></span>
+        <button type="button" aria-pressed="true" data-price="0" data-sub="on your computer" data-cap="for personal use, with every feature.">your computer</button>
+        <button type="button" aria-pressed="false" data-price="0" data-sub="on your own server" data-cap="for personal use, with every feature.">your server</button>
+        <button type="button" aria-pressed="false" data-price="20" data-sub="plus: a cloud computer" data-cap="for a cloud computer that works with your laptop shut.">dusk cloud</button>
+        <button type="button" aria-pressed="false" data-price="50" data-sub="pro: a bigger cloud computer" data-cap="for a bigger cloud computer and a work license.">dusk cloud, pro</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec pricing" id="pricing" data-pricing>
+  <div class="head">
+    <h2>free on your machine. pay only for a computer in the cloud.</h2>
+    <div class="seg bill" role="group" aria-label="billing period" data-seg>
+      <span class="ind" data-ind aria-hidden="true"></span>
+      <button type="button" aria-pressed="true" data-bill="month">monthly</button>
+      <button type="button" aria-pressed="false" data-bill="year">yearly<em>2 months free</em></button>
+    </div>
+  </div>
+  <div class="plans">
+
+    <article class="plan">
+      <img class="plan-art" src="art/p-free.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>free</h3>
+      <p class="why">your bots, on your own computer.</p>
+      <p class="price"><span class="amt">$0</span><span class="per">forever. no card, no account.</span></p>
+      <a class="btn line" href="/download">download</a>
+      <ul class="has">
+        <li>{{i check}}every feature of the app</li>
+        <li>{{i check}}runs on your computer or your server</li>
+        <li>{{i check}}the ai plan you already have</li>
+        <li class="no">{{i minus}}no cloud computer</li>
+        <li class="no">{{i minus}}no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan pick">
+      <img class="plan-art" src="art/p-plus.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>plus<span class="tag">always on</span></h3>
+      <p class="why">your bots keep working with the laptop shut.</p>
+      <p class="price"><span class="amt">$<span data-m="20" data-y="200">20</span></span><span class="per" data-per data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn blue" href="https://dusk.bot/dashboard/billing">get plus</a>
+      <ul class="has">
+        <li>{{i check}}everything in free</li>
+        <li>{{i check}}a cloud computer: 2 vcpu, 4 gb, 40 gb</li>
+        <li>{{i check}}2 bot computers, each with a screen</li>
+        <li>{{i check}}routines run around the clock</li>
+        <li class="no">{{i minus}}no work license</li>
+      </ul>
+    </article>
+
+    <article class="plan has-cat">
+      <figure class="cat"><img src="art/cat.webp" alt="a pixel cat, asleep on top of the pro plan" width="520" height="280" loading="lazy"><figcaption>gary. not included.</figcaption></figure>
+      <img class="plan-art" src="art/p-pro.webp" alt="" width="800" height="354" loading="lazy">
+      <h3>pro</h3>
+      <p class="why">for work, and for more bots at once.</p>
+      <p class="price"><span class="amt">$<span data-m="50" data-y="500">50</span></span><span class="per" data-per data-m="a month" data-y="a year. two months free.">a month</span></p>
+      <a class="btn dark" href="https://dusk.bot/dashboard/billing">get pro</a>
+      <ul class="has">
+        <li>{{i check}}everything in plus</li>
+        <li>{{i check}}a bigger cloud computer: 4 vcpu, 8 gb, 80 gb</li>
+        <li>{{i check}}5 bot computers, first in line to wake</li>
+        <li>{{i check}}a work license for one person</li>
+      </ul>
+    </article>
+
+  </div>
+  <p class="team">a team? from $100 a month you get a dedicated machine and shared bots. <a href="mailto:hello@dusk.bot">write to us</a></p>
+  <div class="own">
+    <span class="own-logos" aria-hidden="true">{{logo claude}}{{logo chatgpt}}{{logo gemini}}{{logo grok}}</span>
+    <p><b>already paying for claude or chatgpt?</b> sign in with your plan. ai usage is billed by your ai provider, never by dusk.</p>
+    <a class="btn line sm" href="/download">download and sign in</a>
+  </div>
+</section>
+
+<section class="wrap sec dl" id="download">
+  <div class="dl-copy">
+    <h2>download dusk bot.</h2>
+    <p>one app, on your desk. using it for yourself is free, and it stays free.</p>
+  </div>
+  <ul class="dl-list">
+    <li><a href="/download">{{os apple}}<span class="dl-name">macos</span><span class="dl-get">download{{i download}}</span></a></li>
+    <li><a href="/download">{{os windows}}<span class="dl-name">windows</span><span class="dl-get">download{{i download}}</span></a></li>
+    <li><a href="/download">{{os linux}}<span class="dl-name">linux</span><span class="dl-get">download{{i download}}</span></a></li>
+    <li class="dl-server">
+      {{i terminal}}
+      <span class="dl-name">your own server<code>curl -fsSL https://dusk.bot/install.sh | sh</code></span>
+      <button class="copy" type="button" data-copy="curl -fsSL https://dusk.bot/install.sh | sh"><span data-copy-label aria-live="polite">copy</span></button>
+    </li>
+  </ul>
+</section>
+
+<section class="wrap sec faq">
+  <div class="faq-side">
+    <h2>questions.</h2>
+    <p>something we missed? write to <a href="mailto:hello@dusk.bot">hello@dusk.bot</a>.</p>
+    <div class="faq-bots" data-eyes aria-hidden="true">{{b nova}}{{b rivet}}{{b quill}}{{b juno}}{{b tally}}{{b echo}}</div>
+  </div>
+  <div class="qs">
+    <details name="faq" open><summary>is dusk bot really free?<i aria-hidden="true"></i></summary><div class="a"><p>yes, for personal use. you get every feature, on your own computer or your own server, with no trial timer. you pay only for a cloud computer or a work license.</p></div></details>
+    <details name="faq"><summary>which ai does it use?<i aria-hidden="true"></i></summary><div class="a"><p>the one you already pay for. dusk bot has no model of its own: you sign in with claude, chatgpt, gemini or grok. cursor, copilot, deepseek, kimi, qwen, opencode, cline and your own api key work too. each bot can use a different one, and when you swap, the bot keeps its chats, files and memory.</p></div></details>
+    <details name="faq"><summary>where does my data go?<i aria-hidden="true"></i></summary><div class="a"><p>nowhere, unless you choose a cloud computer. on your computer or your own server, bots, chats, files and memory stay on your disk.</p></div></details>
+    <details name="faq"><summary>what is a cloud computer?<i aria-hidden="true"></i></summary><div class="a"><p>a computer we host for your bots, so routines keep running with your laptop shut. it sleeps when idle and wakes for work.</p></div></details>
+    <details name="faq"><summary>is it safe to let bots click around?<i aria-hidden="true"></i></summary><div class="a"><p>bots ask before the scary stuff: sending, buying, deleting. you allow or deny. you can watch a bot's computer live and take the mouse back at any time.</p></div></details>
+    <details name="faq"><summary>what can a bot connect to?<i aria-hidden="true"></i></summary><div class="a"><p>more than 60 apps: gmail, google calendar, drive, docs and sheets, slack, notion, github, linear, figma, stripe, discord, hubspot, airtable, asana, trello, dropbox, outlook, shopify, sentry, vercel, supabase, posthog, zapier and more. you can also add any mcp server yourself.</p></div></details>
+    <details name="faq"><summary>can a bot talk?<i aria-hidden="true"></i></summary><div class="a"><p>yes. a bot can talk back, and you can call it and talk the job through.</p></div></details>
+    <details name="faq"><summary>can i use it for work?<i aria-hidden="true"></i></summary><div class="a"><p>yes, with a license. one comes with pro, for one person, and with team.</p></div></details>
+  </div>
+</section>
+
+<section class="end">
+  <div class="wrap end-copy">
+    <h2>say hi to your first bot.</h2>
+    <p class="actions"><a class="btn dark" href="/download">{{os apple}}download for macos</a></p>
+  </div>
+  <div class="end-art">
+    <img src="art/end-meadow.webp" alt="" width="1536" height="1024" loading="lazy">
+    <i class="dissolve top" aria-hidden="true"></i>
+    <div class="hill" data-eyes aria-hidden="true">{{b nova}}{{b rivet}}{{b quill}}{{b juno}}{{b tally}}{{b echo}}</div>
+    <i class="dissolve bottom" aria-hidden="true"></i>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="./"><img src="art/cursor-88.webp" alt="" width="26" height="26">dusk bot</a>
+      <p>a team of ai bots that runs where you want it to.</p>
+    </div>
+    <nav class="foot-col" aria-label="product"><h2>product</h2><a href="/download">download</a><a href="/pricing">pricing</a><a href="/docs">docs</a><a href="https://dusk.bot/dashboard">sign in</a></nav>
+    <nav class="foot-col" aria-label="legal"><h2>legal</h2><a href="/terms">terms</a><a href="/privacy">privacy</a><a href="/license">license</a><a href="/security">security</a></nav>
+    <nav class="foot-col" aria-label="contact"><h2>say hi</h2><a href="mailto:hello@dusk.bot">hello@dusk.bot</a></nav>
+  </div>
+  <p class="wrap foot-fine"><span>© 2026 dusk bot</span><span>the bots, shops and inboxes on this page are samples.</span></p>
+</footer>
+
+</body>
+</html>

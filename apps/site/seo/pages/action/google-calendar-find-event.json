@@ -1,0 +1,116 @@
+{
+  "path": "/integrations/google-calendar/find-event",
+  "type": "action",
+  "title": "Find Google Calendar events with AI by topic or date",
+  "nav": "find event",
+  "h1": "find the calendar event behind a half-remembered name",
+  "description": "Search Google Calendar by topic, dates or event type with a bot. Get matching appointments without changing them, including repeated occurrences.",
+  "keyword": "google calendar find event with ai",
+  "keywords": [
+    "chatgpt search google calendar",
+    "claude find calendar event",
+    "ai search meeting by name"
+  ],
+  "answer": "**the meeting is next week. the title has completely left your head.** give the bot a topic, person or date range and it finds candidates in one google calendar. descriptions and attendee details can match too. ask for dates beside the results so you can spot the appointment without opening every day yourself.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "google-calendar",
+    "find event"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/get-event"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "p-binoculars"
+    ],
+    "bubble": "which appointment was it"
+  },
+  "og_line": "find the appointment by what you recall.",
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_FIND_EVENT"
+  },
+  "what": "**a topic and a date window beat scrolling through a busy month.** the search covers titles, descriptions, locations and people. name the calendar as well as the clue. broad words bring back more candidates.\n\nneed every training date? ask for each occurrence of repeating meetings within that window. the bot must follow further results even after an empty batch.",
+  "uses": [
+    "**find a guest’s workshop.** their name may appear only in the description.",
+    "**recover an old discussion.** search last quarter by the office-move venue.",
+    "**plan around an absence.** find out-of-office entries before arranging customer time.",
+    "**list training dates.** request each occurrence of a repeating course."
+  ],
+  "routine": {
+    "message": "every other wednesday at 2, search my work google calendar for events mentioning sablewing in the next fortnight.\n\n- include individual dates of recurring meetings\n- show the calendar, title, date and start time here\n- finish reading all result batches\n\nleave unrelated matches as candidates for me to choose. never move appointments or contact attendees.",
+    "when": "alternate wednesdays at 14:00",
+    "needs": "google calendar connected with read only for the work calendar",
+    "output": "sablewing matches\nclient workshop: thursday, 14:00, work calendar\nsite visit: next monday, 11:00, work calendar\nno events changed."
+  },
+  "steps": [
+    "**start with read only.** connect google calendar for the search bot.",
+    "**give it a clue.** name the calendar and what the meeting involved.",
+    "**try a short window.** include your time zone and compare a result with the appointment in your calendar.",
+    "**keep the useful search running.** inspect its next runs and pause when the project ends."
+  ],
+  "watch": [
+    "**ask what matched.** an unfamiliar title can belong to the right meeting if the clue appears in its people or description.",
+    "**one batch may leave meetings out.** ask the bot to finish the search.",
+    "**get actual dates for a repeating meeting.** request individual occurrences rather than one series."
+  ],
+  "faq": [
+    {
+      "q": "can it find a meeting from a person’s name?",
+      "a": "**yes, people can be the clue.** search also checks attendee and organiser details. add dates to cut unrelated matches."
+    },
+    {
+      "q": "can it search all my calendars at once?",
+      "a": "**name each calendar you want searched.** this action searches one at a time; the bot can search them separately."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect google calendar with read only",
+      "name the calendar and a person or topic",
+      "give a start date, end date and time zone",
+      "open the closest match and compare its people, topic and date"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for \"the training\" without dates",
+      "fix": "name the calendar and a short date window first."
+    },
+    {
+      "mistake": "getting one result for a repeating meeting",
+      "fix": "ask for individual occurrences within your chosen dates."
+    }
+  ],
+  "tip": {
+    "text": "a strange title can still be the right meeting. ask why the search matched it."
+  },
+  "voice": 2
+}

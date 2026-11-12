@@ -1,0 +1,131 @@
+{
+  "path": "/integrations/outlook/query-emails",
+  "type": "action",
+  "title": "Query Outlook emails with AI inside a chosen folder",
+  "nav": "query emails in a folder",
+  "h1": "pull the outlook mail that meets a precise condition",
+  "description": "Get unread Outlook mail with attachments from one folder. See every matching result in received-time order, even when Microsoft drops the requested sort.",
+  "keyword": "outlook query emails with ai",
+  "keywords": [
+    "chatgpt filter outlook emails",
+    "claude query outlook mail folder",
+    "ai outlook email property search"
+  ],
+  "answer": "**get the unread attachment queue without moving a single email.** a bot queries an outlook folder for unread mail, attachments, a sender or other properties. ask for the details and order your report needs. dusk classes this query as a change even though it reads mail. allow the query and folder reads with read and write access, keeping mailbox edits disabled.",
+  "tags": [
+    "outlook",
+    "folder queries",
+    "email filters"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/search-calendar-events"
+  ],
+  "og_line": "one mail folder, with a clear filter.",
+  "what": "**conditions beat a vague search when you need a repeatable list.** choose one folder and the properties that matter. the bot can return just the details your report needs. built-in folders like inbox work by name; custom folders need a lookup first.\n\n- the default request covers up to 100 messages\n- each batch can hold at most 1,000\n- large results need more batches\n- if microsoft rejects sorting, the bot sorts the returned mail and tells you",
+  "uses": [
+    "**find unread intake mail with attachments.** keep the report inside the named folder.",
+    "**read urgent inbox messages.** leave them where they are.",
+    "**see who sent invoices this month.** ask for senders and subjects from that folder.",
+    "**clear up who owes the shared team a reply.** the connected account must already have access."
+  ],
+  "routine": {
+    "message": "every monday and thursday at 14:10, find my custom outlook folder intake. query it for unread messages with attachments. keep fetching until every matching message is included. list sender, subject and received time here, in received-time order. say if you sorted the results yourself. never mark mail read, move messages, open attachments or send replies.",
+    "when": "mondays and thursdays at 14:10",
+    "needs": "outlook connected with read and write limited to query emails and folder reads; the account must have access to intake",
+    "output": "intake attachment queue\n- saskia, amber finch studio: reference photographs, monday 09:12.\n- cedric, river desk: purchase request, monday 10:36.\nsorted by time received. mail unchanged."
+  },
+  "steps": [
+    "connect outlook with read and write. limit the bot to query emails and folder reads.",
+    "name one folder. let the bot find custom folders first.",
+    "try a small query. compare the matches with your folder and read their received times.",
+    "schedule it once the matches look right. open run history in **automations** to find each report."
+  ],
+  "watch": [
+    "**one query covers one folder.** use separate queries for several locations.",
+    "**big folders come back in batches.** read all results before calling the list complete.",
+    "**ask it to sort the mail it gets.** microsoft can reject the requested order as too costly; the bot should tell you and sort locally.",
+    "**shared mail still needs access.** the bot can't read a mailbox your account cannot open."
+  ],
+  "faq": [
+    {
+      "q": "why does a mail query need a write grant in dusk?",
+      "a": "**dusk classifies this action as a change.** it still reads mail. allow the query and folder reads specifically, keeping unrelated mailbox edits out."
+    },
+    {
+      "q": "can it query a folder called supplier returns?",
+      "a": "**yes. it finds the custom folder first.** built-in names such as inbox work directly."
+    },
+    {
+      "q": "will it always return the newest email first?",
+      "a": "**no. microsoft can reject the requested order.** the query can continue without sorting. ask the bot to say so and sort the returned results itself."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "outlook"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "p-magnifier"
+    ],
+    "bubble": "find the unread attachments"
+  },
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_QUERY_EMAILS"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name a single outlook folder",
+      "allow query emails and folder reads only",
+      "ask for unread messages with attachments",
+      "match the folder, total results and received-time order"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling the first 100 messages the whole queue",
+      "fix": "ask it to keep reading until it has every matching result."
+    },
+    {
+      "mistake": "granting every mailbox action for a report",
+      "fix": "allow this query and the folder reads it needs."
+    }
+  ],
+  "tip": {
+    "text": "keep the report to sender, subject and received time until you need more."
+  },
+  "checklist": {
+    "h": "before you call the queue complete",
+    "items": [
+      "the bot found the intended folder",
+      "the conditions match your question",
+      "all matching results appear",
+      "the received times run in the requested order"
+    ]
+  },
+  "voice": 2
+}

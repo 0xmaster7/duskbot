@@ -1,0 +1,176 @@
+{
+  "path": "/integrations/hubspot",
+  "type": "integration",
+  "title": "HubSpot AI assistant for customer handovers and CRM notes",
+  "nav": "hubspot",
+  "h1": "a hubspot assistant for the customer handover",
+  "description": "Use dusk bot to review HubSpot contacts, company links and open tickets. Copy customer handover routines and keep CRM changes under your instructions.",
+  "answer": "**learn the champion left before you walk into the kickoff call.** ask the bot for a hubspot account brief ten minutes before: linked contacts, company details, deals and tickets, with record links beside the gaps. start read only. it hands you the questions the crm can answer and the ones a person still needs to ask. notes and tasks can come later.",
+  "tags": [
+    "crm",
+    "customer-handover",
+    "tickets"
+  ],
+  "connectors": [
+    "hubspot"
+  ],
+  "related": [
+    "/integrations/salesforce",
+    "/integrations/gmail",
+    "/use-cases/lead-research"
+  ],
+  "art": {
+    "logo": "hubspot",
+    "label": "HubSpot",
+    "props": [
+      "p-briefcase",
+      "s-notebook"
+    ],
+    "bubble": "bring the handover together"
+  },
+  "og_line": "know the account before the kickoff call.",
+  "app": {
+    "name": "HubSpot",
+    "toolkit": "hubspot",
+    "intro": "**walk in with the account story, not a company-name guess.** start from the customer’s actual hubspot record. read linked contacts, company details and open tickets. keep real associations separate from records that merely look related.",
+    "highlight": [
+      {
+        "slug": "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA",
+        "use": "find the champion’s contact before the kickoff call"
+      },
+      {
+        "slug": "HUBSPOT_SEARCH_COMPANIES",
+        "use": "find the customer company among similar names"
+      },
+      {
+        "slug": "HUBSPOT_GET_COMPANY",
+        "use": "read the account details before the meeting"
+      },
+      {
+        "slug": "HUBSPOT_LIST_OBJECT_ASSOCIATIONS",
+        "use": "see which contacts and records really belong to this company"
+      },
+      {
+        "slug": "HUBSPOT_SEARCH_TICKETS",
+        "use": "pull open tickets before promising a smooth launch"
+      },
+      {
+        "slug": "HUBSPOT_GET_TICKET",
+        "use": "read the ticket behind the customer’s complaint"
+      },
+      {
+        "slug": "HUBSPOT_CREATE_NOTE",
+        "use": "save the handover note you read and approved"
+      },
+      {
+        "slug": "HUBSPOT_CREATE_TASK",
+        "use": "add the follow-up you agreed in the handover"
+      }
+    ],
+    "setup": "**start with the customer you meet next.** connect hubspot and allow the account bot read only. give it the company record or enough detail to find candidates. ask for linked contacts and open questions.\n\nwhen that brief is useful, allow only the note or task action you need. leave other crm changes out."
+  },
+  "routines_intro": "**get the brief before the call, not halfway through it.** paste a company link and choose the time. these jobs use hubspot records or details you put in chat; no separate files to hunt down.",
+  "routines": [
+    {
+      "name": "kickoff account brief",
+      "message": "every monday at 2, prepare a read-only handover brief here for the hubspot customer companies whose links i put in this chat. inspect company details, linked contacts, deals and open tickets. give me record links and flag unclear associations or missing contact details. ask me which questions to take into the kickoff. never create contacts, link records or change anything.",
+      "when": "mondays at 14:00; choose ten minutes before your usual kickoff",
+      "output": "account context, linked contacts and open questions before the call"
+    },
+    {
+      "name": "ticket queue age review",
+      "message": "every weekday at 9, search the hubspot support queue i name in this chat. use the ticket age and status rules i give you here; ask for them if missing. open each ticket that needs a person. report its owner and age when available, and flag missing details. never close tickets or change records.",
+      "when": "weekdays at 9:00",
+      "output": "tickets needing the support lead’s attention, with their owners and ages"
+    },
+    {
+      "name": "save approved handover notes",
+      "message": "every friday at 3, review handover notes i added to this chat during the week. find each company in hubspot and read existing notes to avoid duplicates. show the company link and proposed note here. ask me before creating anything. save only notes i choose, then report where they went. show unclear company matches and stop. never add a claim beyond my handover text.",
+      "when": "fridays at 15:00",
+      "output": "your reviewed handover text saved to the chosen company records"
+    }
+  ],
+  "asks": "**notes and tasks go into the crm without an automatic approval stop.** the routine asks because you told it to. keep the action list narrow and the proposed text beside its company link. record links follow the same write rules.\n\nhubspot marketing emails count as sends and ask first unless you allow a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**. leave marketing email actions out of a handover job.",
+  "cannot": [
+    "**repair records with read-only access.** finding a missing association and fixing it need different permissions.",
+    "**identify a company from a name alone.** ask for actual associations and the evidence behind any proposed link.",
+    "**send customer email with the highlighted reads.** connect the relevant mailbox separately if correspondence belongs in the job.",
+    "**review support while its computer sleeps.** keep the app on an awake machine or use dusk cloud for scheduled work while you are away."
+  ],
+  "sections": [
+    {
+      "h": "find the person behind the company name",
+      "md": "**the champion leaving is a terrible kickoff surprise.** use the brief to find who is actually linked to the company and what details are missing. hubspot can show its associations; a similar name is only a search clue. ask the customer about gaps the crm cannot settle.\n\n[salesforce](/integrations/salesforce) has its own actions if that is your team’s crm. keep [lead research](/use-cases/lead-research) separate from customer facts until a person reviews it."
+    },
+    {
+      "h": "internal doubts should not become customer promises",
+      "md": "**read the open ticket before promising a clean handover.** an internal note can carry doubts and questions. a customer email turns your words into a promise.\n\nname the approved note and company. if the next job uses [gmail](/integrations/gmail), name the account and ask for a draft. read it beside the customer record before sending."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is a practical hubspot ai agent routine?",
+      "a": "**prepare the account brief before the kickoff.** linked contacts, company details and open tickets give you questions to take into the call. start with read-only access."
+    },
+    {
+      "q": "can claude add notes to hubspot for me?",
+      "a": "**yes, if the bot can use the create-note action.** the routine above asks before saving because you told it to. note creation does not automatically wait."
+    },
+    {
+      "q": "can it merge duplicate contacts safely on its own?",
+      "a": "**keep this job to finding unclear matches.** these routines do not merge contacts. read-only access keeps possible duplicates as a review list."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude hubspot",
+  "keywords": [
+    "hubspot ai agent",
+    "hubspot mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect hubspot with read only",
+      "name one customer company",
+      "ask for its linked contacts and unclear matches",
+      "compare one result with the hubspot record"
+    ]
+  },
+  "worked": {
+    "intro": "an invented kickoff example",
+    "before": "marco opens the kickoff call and asks for the champion. the customer says she left. the account handover never reached him.",
+    "after": "ten minutes before the call, the bot lists the linked contacts, the open ticket and the missing role details. marco asks who now owns the rollout before promising dates."
+  },
+  "mistakes": [
+    {
+      "mistake": "linking records because their names match",
+      "fix": "show existing associations and ask a person about uncertain matches."
+    },
+    {
+      "mistake": "giving a note bot every crm writing action",
+      "fix": "allow only the note and reading actions its job requires."
+    }
+  ],
+  "tip": {
+    "text": "ten minutes before the call is a good time to find the handover gap. halfway through is not."
+  },
+  "voice": 2
+}

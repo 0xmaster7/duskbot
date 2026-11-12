@@ -1,0 +1,121 @@
+{
+  "path": "/integrations/notion/update-page",
+  "type": "action",
+  "title": "Update Notion page properties with AI, field by field",
+  "nav": "update page properties",
+  "h1": "change a notion page property without rewriting its text",
+  "description": "Update a Notion page title, status, icon or cover with a bot. Discover the exact properties first and keep page text and archive changes separate.",
+  "keyword": "notion update page properties with ai",
+  "keywords": [
+    "chatgpt change notion page status",
+    "claude update notion page properties",
+    "ai change notion page icon"
+  ],
+  "answer": "**mark the reviewed work ready without rewriting its notes.** a bot can update a notion page's properties, icon, cover or archive state. body text uses a separate action.\n\nit first reads your database's field names and valid statuses. capital letters must match too. ask for old and new values before it writes.",
+  "tags": [
+    "notion",
+    "page properties",
+    "status updates"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/query-database-with-filter"
+  ],
+  "og_line": "a precise property change on a known page.",
+  "what": "**get the tracker to reflect the work you've approved.** paste the page link or let the bot search by name. it reads the row and database for the real field names and allowed choices.\n\nthis action changes page details, including icon, cover and archive state. body paragraphs need a content action. keep the routine focused on the property you chose.",
+  "uses": [
+    "**mark a reviewed catalogue item ready.** use the status that already exists in its database.",
+    "**correct a misspelled title.** target the known page rather than searching by the mistaken spelling alone.",
+    "**change the project icon.** use the symbol your team chose.",
+    "**restore an archived database page.** do that only when you ask for restoration."
+  ],
+  "routine": {
+    "message": "every thursday at 10:50, read the catalogue review tracker in notion. find entries with an approval date in the past week and a linked catalogue page. fetch each page and its database fields.\n\npropose changing only review status to ready, if ready is an existing choice. skip pages already ready. show old and new values here and ask me before changing anything. report the titles you changed afterward. never edit body text, add a status choice or archive pages.",
+    "when": "thursdays at 10:50",
+    "needs": "notion read and write for tracker reads, page and database reads, and property updates",
+    "output": "review-status proposal\n\n- lio's ceramic vessels: in review to ready\n- marsh reed prints: skipped; no ready choice in its database\n\none status to approve. body text and archive state stay as they are."
+  },
+  "steps": [
+    "**allow the property update.** connect notion with read and write for this bot.",
+    "**inspect one page first.** ask for its actual fields and the valid status choices.",
+    "**name the one change.** request the old and new values before it writes.",
+    "**open the saved field in notion.** schedule upkeep after that trial. pause if it proposes unrelated edits."
+  ],
+  "watch": [
+    "**status names differ across workspaces.** guessed fields or wrong capital letters can fail, even when the name looks familiar.",
+    "**archiving is a real change.** workspace-level pages can restrict it. leave archive state out of ordinary status upkeep.",
+    "**your review rule covers property edits.** they do not wait for sending approval."
+  ],
+  "faq": [
+    {
+      "q": "can it rewrite the paragraphs on the page?",
+      "a": "**no.** this changes properties, icon, cover or archive state. the body needs a separate content action."
+    },
+    {
+      "q": "why does a status change fail with an invalid option?",
+      "a": "**that database must already have the choice.** ask the bot to read its fields and use the exact name."
+    },
+    {
+      "q": "can i change the icon without touching the status?",
+      "a": "**yes.** ask for the icon alone and tell it to leave other properties as they are."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "s-button"
+    ],
+    "bubble": "set the approved status"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_UPDATE_PAGE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste one notion page link",
+      "ask for its current properties and status choices",
+      "choose one field and ask for a preview",
+      "allow the change, then inspect that field"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "guessing every database has a ready status",
+      "fix": "read its choices first. skip entries where ready does not exist."
+    },
+    {
+      "mistake": "letting a status bot archive old work",
+      "fix": "tell it to leave archive state alone. that is a different decision."
+    }
+  ],
+  "tip": {
+    "text": "the field name your team says aloud may differ from the one notion actually uses."
+  },
+  "voice": 2
+}

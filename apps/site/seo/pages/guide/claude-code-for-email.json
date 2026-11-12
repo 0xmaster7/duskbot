@@ -1,0 +1,149 @@
+{
+  "path": "/guides/claude-code-for-email",
+  "type": "guide",
+  "title": "Claude Code for email: find the mail you need again",
+  "nav": "claude code for email",
+  "h1": "claude code for email: clean up one slice first",
+  "description": "Use Claude Code in dusk bot to sort one slice of Gmail and make label changes you approved, with trash left out of the job.",
+  "keyword": "claude code for email",
+  "keywords": [
+    "claude code email agent",
+    "i used claude code to clean up my gmail inbox",
+    "claude gmail"
+  ],
+  "answer": "**find that old contract without spending lunch in gmail search.** a claude code bot in dusk can read one sender's mail and propose labels.[^1][^2] start read only, open the full threads and choose what belongs together. then allow the label changes you want. leave deletion out; ongoing inbox triage is a separate job.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "email",
+    "claude-code",
+    "gmail",
+    "cleanup",
+    "permissions"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/use-cases/email-triage",
+    "/integrations/outlook",
+    "/guides/claude-code-for-non-developers"
+  ],
+  "art": {
+    "label": "Claude Code",
+    "props": [
+      "s-mailbox",
+      "p-magnifier"
+    ],
+    "bubble": "show me the candidates"
+  },
+  "og_line": "find the mail you will need next month.",
+  "sections": [
+    {
+      "h": "pick a cleanup you can finish over coffee",
+      "md": "**pick the sender whose mail you keep hunting for.** add a date range and decide what you are collecting.\n\n- old reference mail\n- threads from a finished project\n- newsletters you no longer read\n\nask for candidate threads and a reason for each. leave deletion out. unclear mail should stay uncertain. use [email triage](/use-cases/email-triage) for ongoing sorting and reply drafts."
+    },
+    {
+      "h": "give the bot reading access",
+      "md": "**get the first shortlist while your mail stays untouched.** choose claude code for a dusk bot. connect gmail under **connected apps** and allow that bot to read only.[^1][^3]\n\nyou sign in on google's page. composio holds the connection; dusk stores no gmail sign-in credentials.[^1]\n\nlabel separate inboxes and name the one you mean. dusk supports up to five usable accounts per app. an empty search might mean the wrong mailbox.[^1]\n\nyour claude sign-in runs on anthropic's terms, not ours. read them (checked 12 november 2026) before you put it on a schedule.[^6]"
+    },
+    {
+      "h": "read the conversation before choosing the label",
+      "md": "**an old subject can hide a reply you still owe.** have the bot fetch the whole thread before proposing a label.[^2]\n\nask for the sender, the reason it matches your date range and the proposed label. open the messages before saying yes.\n\nthe [gmail guide](/integrations/gmail) lists the search actions. keep the candidate list short enough to read in full."
+    },
+    {
+      "h": "allow one visible change",
+      "md": "**file the messages you chose under the label you agreed.** allow only the actions the job needs.[^1][^2]\n\n**modify email labels** happens to count as a send in dusk, so it waits for **Allow**. the thread and batch versions don't wait. leave those two out. a daily sending amount also permits changes without asking.[^2][^4]\n\nfor this step, allow **modify email labels** and **create label**. leave deletion and outgoing email out. the thread action is **modify thread labels**; the batch action is **batch modify gmail messages**."
+    },
+    {
+      "h": "find the contract under its new label",
+      "md": "**open the new label and find the mail you meant to keep.** ask what changed and what the bot could not finish. compare the report with gmail, including messages outside your chosen sender and date range.\n\nif the grouping is wrong, fix the criteria before widening the job. keep bulk deletion out.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^1][^4]"
+    },
+    {
+      "h": "know when a label job becomes an account-settings job",
+      "md": "**labels get you organised; filters need extra permissions.** so do vacation replies, imap, pop, forwarding, send-as and delegates. the standard gmail connection cannot use those settings.[^1]\n\nyour own composio project can add them. on dusk cloud, ask support. the bot should tell you about the limit rather than retrying.\n\na label won't change gmail settings or explain why you kept a message. tell the bot that context. for microsoft mail, start with [outlook's actions](/integrations/outlook)."
+    },
+    {
+      "h": "finish once before making it repeat",
+      "md": "**finish the backlog, then stop.** a cleanup is usually a one-off. schedule a separate review only if new work keeps arriving. name the source, time, result and quiet rule.[^5]\n\nlocal dusk routines need an awake computer and open app. dusk cloud keeps them running.\n\nif choosing the bot is unfamiliar, start with the [non-developer guide](/guides/claude-code-for-non-developers). the win is finding that contract in five seconds next month."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i use claude code to clean up my gmail inbox?",
+      "a": "**yes, connect gmail and start with one sender.** use read only for the shortlist. open the full threads, then choose the label changes to allow.[^1][^2][^3]"
+    },
+    {
+      "q": "will it ask before changing labels?",
+      "a": "**the action matters.** single-message label changes follow sending approval. thread and batch label changes do not. leave those out of the allowed list.[^2][^4]"
+    },
+    {
+      "q": "can it set up filters instead?",
+      "a": "**filters need extra google permissions.** the catalog includes a filter action, but the standard connection cannot use it.[^1][^2]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: ai setup",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: approval settings",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "anthropic: legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect gmail to the bot with read only",
+      "choose one sender and date range",
+      "ask for five candidate threads and reasons",
+      "open those threads before permitting labels"
+    ]
+  },
+  "checklist": {
+    "h": "before allowing the label pass",
+    "items": [
+      "the account, sender and dates match your request",
+      "you read the full candidate conversations",
+      "only single-message label changes and label creation are allowed",
+      "sending is on ask every time; deletion stays outside the job"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "judging a thread by its old subject",
+      "fix": "read the conversation before calling it finished."
+    },
+    {
+      "mistake": "giving every gmail action to a label helper",
+      "fix": "allow only the specific label actions you reviewed."
+    }
+  ],
+  "tip": {
+    "text": "one sender done right beats 4,000 emails moved on a guess."
+  },
+  "voice": 2
+}

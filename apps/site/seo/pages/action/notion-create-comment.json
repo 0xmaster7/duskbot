@@ -1,0 +1,115 @@
+{
+  "path": "/integrations/notion/create-comment",
+  "type": "action",
+  "title": "Comment on Notion pages with AI after reviewing the words",
+  "nav": "create comment",
+  "h1": "leave a useful notion comment where it belongs",
+  "description": "Have a bot post a focused Notion page comment or reply in an existing discussion. Review the destination and wording, with clear sending controls.",
+  "keyword": "notion create comment with ai",
+  "keywords": [
+    "chatgpt comment on notion page",
+    "claude notion discussion reply",
+    "ai post notion review comment"
+  ],
+  "answer": "**put the review question where the document owner will actually see it.** the bot can leave a notion page comment or reply in an existing discussion. it cannot start a new inline thread on a block. draft the wording in dusk chat, choose the page or thread, and keep sending on **Ask every time** so posting waits for you.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "notion",
+    "create comment"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/insert-row-database"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-bubbles"
+    ],
+    "bubble": "leave this review note"
+  },
+  "og_line": "a review note in its intended discussion.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_CREATE_COMMENT"
+  },
+  "what": "**choose the destination before polishing the words.** a page comment suits feedback about the whole document. for a reply, point the bot at the existing discussion. it finds the right thread.\n\n“comment on this sentence” needs a clearer destination. this action cannot start a new inline discussion on that sentence.\n\nask to see the page or thread alongside the proposed text. a good comment in the wrong place still wastes someone’s time.",
+  "uses": [
+    "**settle a disputed date.** ask the document owner which delivery date is current.",
+    "**keep the decision together.** reply in the existing design-review discussion.",
+    "**question a forecast.** leave a page comment asking for the missing source."
+  ],
+  "routine": {
+    "message": "every other tuesday at 16:20, read new proposal pages in the silvermere instruments proposals database in notion. compare delivery dates with the matching project briefs in notion. for each clear conflict, prepare one page-level comment asking which date is current. read existing comments first and skip questions already raised. show each page, the two dates and the proposed wording here. post only the comments i allow. report where each comment appears. never invent a deadline or start a new inline thread.",
+    "when": "alternate tuesdays at 16:20",
+    "needs": "notion read and write, including reading pages and comments; sending set to ask every time",
+    "output": "comment awaiting approval\npage: silvermere instruments proposal\ntext: the proposal says friday delivery; the project brief says the following monday. which date should we use?\nno comment posted yet."
+  },
+  "steps": [
+    "**connect the review bot.** give it notion read and write so it can read and comment.",
+    "**choose the destination.** open the page or existing thread alongside the proposed words.",
+    "**keep posts supervised.** set sending on your behalf to **Ask every time**. a daily allowance skips individual approvals.",
+    "**read it in notion.** allow the post, then follow its link to the discussion."
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**use a page comment for a new question.** this action can reply in an existing inline thread but cannot start one.",
+    "**read the conversation first.** nobody needs another reminder of a question they answered yesterday."
+  ],
+  "faq": [
+    {
+      "q": "can it reply to a notion comment that is already there?",
+      "a": "**yes.** point it at the comment and ask it to read the surrounding discussion before replying."
+    },
+    {
+      "q": "can i keep the feedback private until i approve?",
+      "a": "**prepare it in dusk chat first.** set sending to ask every time. posting is the step that puts the note in notion."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste a notion page link",
+      "ask for a short page-level comment",
+      "read the destination and wording",
+      "allow the post with sending set to ask every time"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for an inline comment on a new sentence",
+      "fix": "use a page comment, or point to an existing discussion for a reply."
+    },
+    {
+      "mistake": "posting a question somebody already answered",
+      "fix": "read the existing discussion before writing the next comment."
+    }
+  ],
+  "tip": {
+    "text": "a useful review comment names the uncertainty and asks one answerable question."
+  },
+  "voice": 2
+}

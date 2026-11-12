@@ -1,0 +1,218 @@
+{
+  "path": "/guides/claude-cowork-pricing",
+  "type": "guide",
+  "title": "Claude Cowork pricing: plans, limits and the rename",
+  "nav": "claude cowork pricing",
+  "h1": "claude cowork pricing: what are you paying for?",
+  "description": "Compare Claude Free, Pro, Max and Ultra prices, see where Cowork is included, and separate the plan price from usage and other services.",
+  "keyword": "claude cowork pricing",
+  "keywords": [
+    "claude cowork use cases",
+    "what can claude cowork do"
+  ],
+  "answer": "**cowork comes with paid claude plans; it isn't another add-on to buy.** as of 12 november 2026, monthly prices before tax are $20 for pro, $100 for max and $200 for ultra. free excludes cowork. anthropic now describes cowork and chat as one claude, so the older name may appear less often.[^1][^2][^3]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude",
+    "cowork",
+    "pricing",
+    "plans"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-cowork-windows",
+    "/guides/claude-code-routines",
+    "/alternatives/claude-cowork"
+  ],
+  "art": {
+    "label": "Claude",
+    "props": [
+      "s-coins",
+      "p-receipt"
+    ],
+    "bubble": "check the whole bill"
+  },
+  "og_line": "the plan price, the limits, the name.",
+  "table": {
+    "h": "claude consumer plans as of 12 november 2026",
+    "intro": "**cowork has no separate add-on bill.** these are usd prices before tax, checked 12 november 2026. paid claude plans include it.[^1][^2]",
+    "cols": [
+      "",
+      "monthly billing",
+      "annual option in the source",
+      "cowork included"
+    ],
+    "rows": [
+      {
+        "label": "free",
+        "cells": [
+          "$0",
+          "not listed here",
+          "no"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      },
+      {
+        "label": "pro",
+        "cells": [
+          "$20",
+          "$200 up front, listed as $17/month",
+          "yes"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      },
+      {
+        "label": "max",
+        "cells": [
+          "$100",
+          "not listed here",
+          "yes"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      },
+      {
+        "label": "ultra",
+        "cells": [
+          "$200",
+          "not listed here",
+          "yes"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "cowork is part of the claude plan",
+      "md": "**start with the smallest paid plan that covers your work.** anthropic includes cowork on pro, max, ultra, team and enterprise. prices here are usd before tax, checked 12 november 2026.[^1][^2]\n\n- pro: $20 with monthly billing\n- pro annual: $200 up front, shown as $17/month\n- max and ultra: monthly prices only\n- team: $20 per seat/month annually, or $25 monthly\n- enterprise: ask anthropic[^1][^2]\n\nthe annual pro price is a commitment, not a $17 monthly checkout. check the final checkout and current terms before paying."
+    },
+    {
+      "h": "the rename does not create a second product bill",
+      "md": "**keep using the access your paid plan already includes.** anthropic now describes cowork and chat as one claude. file work brings cowork in automatically.[^3]\n\nolder tutorials may show a separate tab or mac-only setup. compare their dates with your account before buying anything. the [platform guide](/guides/claude-cowork-windows) covers windows and linux too."
+    },
+    {
+      "h": "the larger plan is about more than the sticker price",
+      "md": "**buy more allowance only when allowance is the problem.** the current $200 tier is ultra, not the older max 20x name. max costs $100.[^2]\n\n- max: 5x pro usage\n- ultra: 10x pro weekly usage; no five-hour limit for verified accounts[^2]\n\nthose allowances don't promise unlimited work. first write down the task the smaller plan cannot finish. missing files or an unsuitable connection won't improve just because the plan costs more."
+    },
+    {
+      "h": "scheduled work still consumes usage",
+      "md": "**your scheduled job can run while the laptop sleeps.** cowork includes remote scheduled tasks on all paid plans, using your allowance.[^6]\n\nclaude code has separate cloud scheduled tasks, formerly routines. they use plan allowance on pro, max, ultra, team and enterprise, with a minimum cloud interval of one hour. anthropic hosts them.[^4]\n\nread the [claude code scheduling guide](/guides/claude-code-routines) for code work. choose the task type you need before paying."
+    },
+    {
+      "h": "compare the costs of the workflow you want",
+      "md": "**add the bills before comparing the price.** list the ai plan, extra services and where the work runs. in dusk, your ai provider bills usage separately from dusk.[^5]\n\ndusk's desktop app is free for personal use. company work needs a work license, and dusk cloud has its own price.[^5]\n\nthe [cowork alternative guide](/alternatives/claude-cowork) compares that setup. put every part you need in the budget."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is claude cowork free or paid?",
+      "a": "**paid, with no separate cowork price.** anthropic includes it on pro, max, ultra, team and enterprise. free does not include it.[^1]"
+    },
+    {
+      "q": "is the $200 claude plan still max?",
+      "a": "**it is ultra on the current pricing page.** checked 12 november 2026: max costs $100 monthly and ultra costs $200, before tax.[^2]"
+    },
+    {
+      "q": "do i pay extra because cowork is becoming claude?",
+      "a": "**the new name adds no separate cowork charge.** anthropic describes cowork and chat as one claude; access remains through paid plans.[^1][^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: get started with cowork",
+      "url": "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cowork product page",
+      "url": "https://claude.com/product/cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude code: cloud scheduled tasks",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "anthropic: cowork scheduled tasks",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "open your account and find your current claude plan",
+      "identify the task that hits its limit",
+      "compare monthly billing with the annual commitment",
+      "read the current checkout total before upgrading"
+    ]
+  },
+  "decide": {
+    "cols": [
+      "your situation",
+      "look at"
+    ],
+    "rows": [
+      [
+        "you only need cowork access",
+        "pro includes it; start there"
+      ],
+      [
+        "you run out of usage",
+        "max and ultra allowances, not just their names"
+      ],
+      [
+        "you want scheduled file work",
+        "cowork scheduled tasks"
+      ],
+      [
+        "you want scheduled code work",
+        "claude code cloud task limits"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "looking for a separate cowork add-on",
+      "fix": "paid claude plans include it. open your existing plan before buying."
+    },
+    {
+      "mistake": "reading $17 as a monthly checkout",
+      "fix": "that is the listed annual equivalent. pro takes $200 up front on that option."
+    },
+    {
+      "mistake": "upgrading to fix a missing source file",
+      "fix": "give the task its inputs first. extra usage cannot replace missing evidence."
+    }
+  ],
+  "tip": {
+    "text": "write down what stopped your last task. upgrade for that constraint, not the biggest plan name."
+  },
+  "voice": 2
+}

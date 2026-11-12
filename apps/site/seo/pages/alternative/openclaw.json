@@ -1,0 +1,372 @@
+{
+  "path": "/alternatives/openclaw",
+  "type": "alternative",
+  "title": "OpenClaw alternatives for non-technical people (November 2026)",
+  "nav": "openclaw",
+  "h1": "openclaw alternatives for people who'd rather not run a server",
+  "description": "Hermes Agent, Genspark Claw, Poke and dusk bot next to OpenClaw: setup, where it runs, which AI it uses, price and security, each with a dated source.",
+  "keyword": "openclaw alternatives",
+  "keywords": [
+    "openclaw alternative for non technical",
+    "openclaw better alternative",
+    "clawdbot alternative",
+    "moltbot alternative",
+    "openclaw safe alternative"
+  ],
+  "answer": "love the idea of openclaw but not the upkeep? you have three ways out. run another open-source agent yourself (hermes agent). text a hosted assistant and install nothing (poke, genspark claw). or use an app with a small team of bots that can move to a hosted computer later (dusk bot). the right one depends on how much you want to own and look after.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, against omb-ref/seo-research/facts-competitors.json (checked 2026-11-12) and dusk bot docs",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "openclaw",
+    "alternatives",
+    "hosted",
+    "non-technical",
+    "security"
+  ],
+  "connectors": [],
+  "related": [
+    "/vs/openclaw",
+    "/alternatives/openclaw-no-setup",
+    "/alternatives/openclaw-hosting",
+    "/guides/is-openclaw-safe",
+    "/alternatives/hermes-agent"
+  ],
+  "competitor": {
+    "key": "openclaw",
+    "name": "OpenClaw",
+    "url": "https://openclaw.ai/"
+  },
+  "art": {
+    "props": [
+      "s-signpost",
+      "p-binoculars"
+    ],
+    "label": "OpenClaw",
+    "bubble": "which way?"
+  },
+  "og_line": "four alternatives, dated and sourced.",
+  "verdict": {
+    "them_title": "openclaw itself",
+    "them": [
+      "you're comfortable with a terminal, or happy with its desktop installers, and like owning every piece",
+      "you want it in whatsapp, telegram, imessage or one of its other chat channels (it lists 29)",
+      "you want mit-licensed open source you can read and change"
+    ],
+    "dusk": [
+      "you'd rather have an app than a gateway, and a few bots with separate jobs than one assistant",
+      "you want each bot to think with the ai you already sign in to, and to switch it per bot",
+      "you want it to ask before it sends anything, with a per-bot setting for how much it does alone",
+      "you want a hosted computer for later, so it keeps working with your laptop shut, without running a server"
+    ]
+  },
+  "compare": {
+    "h": "five options side by side",
+    "intro": "**every cell comes from the product's own pages, checked 12 november 2026.** prices change, so check before you pay.",
+    "cols": [
+      "OpenClaw",
+      "Hermes Agent",
+      "Genspark Claw",
+      "Poke",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "what it is",
+        "cells": [
+          "open-source assistant you text from chat apps",
+          "open-source agent from nous research with memory and its own skills",
+          "a personal ai employee inside genspark, texted from chat apps",
+          "an assistant you text like a contact; it messages you first",
+          "an app with a small team of bots you text like teammates"
+        ],
+        "src": [
+          1,
+          5,
+          7,
+          9,
+          11
+        ]
+      },
+      {
+        "label": "where it runs",
+        "cells": [
+          "your computer or your own server; no hosted tier",
+          "your computer or server; optional cloud agent on paid nous plans",
+          "their cloud computer, or a local mode in their desktop app",
+          "their cloud",
+          "your computer, your own server, or dusk cloud"
+        ],
+        "src": [
+          1,
+          5,
+          7,
+          10,
+          12
+        ]
+      },
+      {
+        "label": "getting started",
+        "cells": [
+          "terminal install, or desktop apps that install everything; about 5 minutes per its docs",
+          "desktop app or a terminal one-liner; you connect a model provider",
+          "pick a plan, check out, connect chat apps; no terminal",
+          "sign up and text it; nothing to install",
+          "download the app and sign in to your ai; no account needed"
+        ],
+        "src": [
+          2,
+          5,
+          7,
+          10,
+          11
+        ]
+      },
+      {
+        "label": "which ai, and who pays for it",
+        "cells": [
+          "bring your own: api keys, some vendor sign-ins, or local models; you pay the provider",
+          "any provider: api keys, nous portal, some vendor sign-ins, local models",
+          "70+ models through genspark credits",
+          "models included in the plan; not named",
+          "the ai you sign in to (claude, chatgpt, gemini, grok and others), an api key, or a local model; billed by your provider"
+        ],
+        "src": [
+          3,
+          6,
+          8,
+          9,
+          11
+        ]
+      },
+      {
+        "label": "price",
+        "cells": [
+          "free (mit); you pay for the ai",
+          "free (mit); nous portal plans $0, $20, $100, $200 a month",
+          "free tier; plus from $24.99 a month; cloud computer from $9.99 a month (promotional)",
+          "free; pro $19 a month; ultra $199 a month",
+          "free for personal use; dusk cloud $20 or $50 a month"
+        ],
+        "src": [
+          1,
+          5,
+          8,
+          9,
+          12
+        ]
+      },
+      {
+        "label": "scheduled jobs",
+        "cells": [
+          "yes, built-in scheduler and triggers",
+          "yes, built-in scheduler in plain words",
+          "yes, scheduled tasks, each run uses credits",
+          "yes, reminders and background automations on pro",
+          "yes, routines you set up by asking; on time when on dusk cloud"
+        ],
+        "src": [
+          1,
+          5,
+          7,
+          9,
+          12
+        ]
+      },
+      {
+        "label": "where you talk to it",
+        "cells": [
+          "whatsapp, telegram, discord, slack, signal, imessage and more",
+          "desktop app, terminal, telegram, discord, slack, whatsapp, signal, email",
+          "whatsapp, slack, teams, telegram and more, plus its own email address",
+          "imessage, telegram, whatsapp, rcs",
+          "its own desktop app and a phone app (store apps on the way; browser version today)"
+        ],
+        "src": [
+          1,
+          5,
+          7,
+          10,
+          17
+        ]
+      },
+      {
+        "label": "open source",
+        "cells": [
+          "yes, mit; 394,365 github stars",
+          "yes, mit; 262,734 github stars",
+          "no",
+          "no",
+          "no: source-available, free for personal use"
+        ],
+        "src": [
+          4,
+          5,
+          7,
+          9,
+          14
+        ]
+      },
+      {
+        "label": "security record",
+        "cells": [
+          "722 published github security advisories (14 critical) since january 2026; 341 malicious skills found in its skill store in february",
+          "no published github advisories as of 12 november 2026 (which isn't the same as none existing)",
+          "warns that local mode can reach your files",
+          "not checked",
+          "asks before sending; per-bot approval levels; bots can work on their own computer"
+        ],
+        "src": [
+          4,
+          15,
+          7,
+          13
+        ]
+      }
+    ]
+  },
+  "method": "**we read each product's own site, docs and pricing on 12 november 2026 and wrote down only what they say.** for openclaw's security record we counted its published advisories through github's api the same day; the malicious-skills finding is from a security firm's audit, reported by the hacker news.\n\nwe didn't run the same tasks through every product. this compares what each offers, not how well each does a job. and yes, we make dusk bot. read our column with that in mind, and tell us at hello@dusk.bot if a cell is wrong.",
+  "sections": [
+    {
+      "h": "why people leave openclaw",
+      "md": "**it's free, it's famous, and it's work.** three reasons come up again and again.\n\n- **upkeep.** the main installs use a terminal and node.js, and it runs as a gateway you look after. the desktop apps help at the start; updates and the server are still yours. openclaw itself apologised for a run of broken releases in late april 2026.[^16]\n- **security.** an agent that reads your mail and runs commands is only as safe as its add-ons. its github lists 722 published security advisories since january 2026, 14 critical,[^4] and an audit found 341 malicious skills in its store in february.[^15] the project has since added skill scanning and an outside audit.\n- **the ai sign-in.** openclaw can reuse some vendor sign-ins, and its own docs recommend api keys for anthropic in production.[^3] vendor rules shifted during 2026. check your provider's terms whatever you pick."
+    },
+    {
+      "h": "the three kinds of alternative",
+      "md": "**pick by how much you want to own.**\n\n- **run it yourself:** [hermes agent](/alternatives/hermes-agent) is the closest swap. open source, texted from chat apps, yours to install and maintain. there's a desktop app for mac and windows.\n- **text a hosted assistant:** poke and genspark claw need nothing installed. the ai comes inside their plan, paid in their credits or tiers, not an ai account you already have.\n- **an app with a team of bots:** dusk bot. a few bots, one job each, own memory, the ai you picked. free on your computer; move to [dusk cloud](/docs/dusk-cloud) when you want them working with the lid shut."
+    },
+    {
+      "h": "moving over from openclaw",
+      "md": "**there's no importer. you won't need much of one.**\n\n- write each job you gave openclaw as one bot's job, in plain words\n- connect the same apps once in **Connected apps**\n- ask each bot for the routines you had: \"every weekday at 8, summarise my inbox\"\n\npaste your \"how i like things done\" notes into a bot's first message. it keeps them in memory."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is there a hosted openclaw?",
+      "a": "not from the openclaw project, whose site says it has no hosted tier. some hosting companies sell managed openclaw; see [openclaw hosting](/alternatives/openclaw-hosting)."
+    },
+    {
+      "q": "what's the easiest openclaw alternative for a non-technical person?",
+      "a": "the hosted ones you just text (poke, genspark claw) have the least setup. dusk bot is an app you download and sign in to, with no terminal, and it keeps using the ai you already sign in to."
+    },
+    {
+      "q": "did openai buy openclaw?",
+      "a": "no. its creator joined openai in february 2026 and the project moved to the openclaw foundation, an independent non-profit announced in july 2026."
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw.ai, homepage",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw docs: getting started",
+      "url": "https://docs.openclaw.ai/start/getting-started",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw docs: oauth and subscription sign-in",
+      "url": "https://docs.openclaw.ai/concepts/oauth",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "github: openclaw security advisories",
+      "url": "https://github.com/openclaw/openclaw/security/advisories",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent, homepage",
+      "url": "https://hermes-agent.nousresearch.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent docs: providers",
+      "url": "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "genspark help center: genspark claw",
+      "url": "https://www.genspark.ai/helpcenter/genspark-claw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "genspark pricing",
+      "url": "https://www.genspark.ai/business/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke pricing",
+      "url": "https://poke.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke docs",
+      "url": "https://poke.com/docs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot license",
+      "url": "/license"
+    },
+    {
+      "label": "the hacker news: 341 malicious clawhub skills (2 february 2026)",
+      "url": "https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw blog: a rough week (5 may 2026)",
+      "url": "https://openclaw.ai/blog/openclaw-rough-week",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: the phone app",
+      "url": "/docs/phone"
+    }
+  ],
+  "voice": 2,
+  "decide": {
+    "h": "which one fits you",
+    "cols": [
+      "if you want",
+      "pick"
+    ],
+    "rows": [
+      [
+        "to read and change every line of code",
+        "openclaw or hermes agent"
+      ],
+      [
+        "to text from imessage and install nothing",
+        "poke"
+      ],
+      [
+        "several bots with separate jobs, on the ai you already use",
+        "dusk bot"
+      ],
+      [
+        "a hosted computer without running a server",
+        "genspark claw or dusk cloud"
+      ]
+    ]
+  },
+  "tip": {
+    "text": "whatever you pick, check its add-ons before you install them. that's where most agent trouble starts.",
+    "careful": true
+  }
+}

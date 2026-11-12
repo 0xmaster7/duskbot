@@ -1,0 +1,219 @@
+{
+  "path": "/ai-employees",
+  "type": "pillar",
+  "title": "AI employees: useful jobs, real costs and limits",
+  "nav": "ai employees",
+  "h1": "ai employees you can give a clear job",
+  "description": "Choose useful jobs for AI employees, compare dusk bot, Sintra and Lindy costs, and learn what to hand to a bot and what still needs a person.",
+  "keyword": "ai employees",
+  "keywords": [
+    "ai employee",
+    "ai teammates",
+    "hire ai employees",
+    "ai employees for business",
+    "ai coworker"
+  ],
+  "answer": "**give the bot the chore you keep putting off.** in dusk, it has a name, job, chats, memory and the ai you choose. ask it to compare a proposal with a brief or repeat a small review. keep the decisions with a person. work licensing, optional hosting and the ai provider’s bill still belong in the budget.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "jobs",
+    "cost",
+    "business",
+    "bots"
+  ],
+  "connectors": [],
+  "related": [
+    "/ai-teammates",
+    "/alternatives/sintra",
+    "/alternatives/lindy",
+    "/guides/how-much-does-an-ai-agent-cost"
+  ],
+  "art": {
+    "props": [
+      "p-briefcase",
+      "s-coins"
+    ],
+    "bubble": "one clear job"
+  },
+  "og_line": "give a bot a job you can check.",
+  "table": {
+    "h": "compare the bill before the job titles",
+    "intro": "**compare what the bill buys, not the job titles.** prices are as of 12 november 2026. credits differ across products. dusk cloud hosting does not include ai usage.",
+    "cols": [
+      "option",
+      "listed price",
+      "what to budget around it"
+    ],
+    "rows": [
+      {
+        "label": "dusk on your computer",
+        "cells": [
+          "free for personal use",
+          "your ai costs; work use needs a work license"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "dusk cloud plus",
+        "cells": [
+          "$20/month or $200/year",
+          "your ai costs; work licensing still needs attention"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "dusk cloud pro",
+        "cells": [
+          "$50/month or $500/year",
+          "includes a work license for one person; ai billed separately"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "sintra",
+        "cells": [
+          "$48.50/month promotional one-month price, list $97",
+          "the full helper set and 250 monthly credits; longer commitments have other rates"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "lindy team",
+        "cells": [
+          "from $29.99/month per active user",
+          "3,000 credits; top-ups $10 per 1,000 credits; no rollover"
+        ],
+        "src": [
+          5
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "start with the job that keeps coming back",
+      "md": "**buy relief from a real chore.** can you name its input, result and the point where a person takes over? that tells you more than a roster of “employees”.\n\nchecking a proposal against a brief has a finish line. running sales bundles relationships, judgment and promises into two words. start with the former.\n\nin dusk, new bot takes a name and a job in plain words. change that job if it grows too broad.[^1] a friendly shape helps you find the bot; it does not make it responsible for a business decision."
+    },
+    {
+      "h": "start with one bot, add a second reader when it earns its keep",
+      "md": "**get the brief reader useful before building a department.** ask it to pull requirements from attached files and flag what the brief leaves open. give it a result you can judge against the original.\n\nif review becomes the bottleneck, add a reviewer with the same source files. ask “which requirements did this draft miss?” rather than “does this sound convincing?”\n\neach bot has its own memory and can keep several threads. attach the relevant files to its chat. [ai teammates](/ai-teammates) covers shared conversations and handoffs."
+    },
+    {
+      "h": "make the first request work before it repeats",
+      "md": "**an unclear brief gets worse on a schedule.** try one job first: “read this supplier proposal against the requirements file. list missing requirements and questions. do not contact anyone or change files.”\n\nlook for three things:\n- did it find the right material?\n- did it separate facts from guesses?\n- did it stop at the requested result?\n\ncorrect the job if it missed. more bots will not fix a vague request.\n\nthen try: “every thursday at 4pm, review proposals in this project folder. list unresolved questions here. ask me before changing anything.”\n\nthe routine returns a schedule card with next runs. watch the early runs and pause it if corrections take over. local routines need your computer awake and dusk open.[^6]"
+    },
+    {
+      "h": "count ai, licensing and hosting separately",
+      "md": "**a cloud bill buys a computer, not endless ai usage.** dusk has no model of its own. your ai provider bills its usage on your plan. check that provider’s current terms for your chosen sign-in.\n\nwork use needs a license even on your own computer. pro includes one person’s work license. for a team, plans start at $100 a month with a dedicated machine and shared bots ([pricing](/pricing)).\n\n[sintra](/alternatives/sintra) packages role-based helpers. [lindy](/alternatives/lindy) prices its team offer by active users and credits. match the work to the allowance and commitment. a monthly price is not a finished-work budget."
+    },
+    {
+      "h": "a human still owns the promise",
+      "md": "**keep customer commitments and difficult decisions with a person.** bots can prepare material for hiring, disputes and public claims. the person checking it still owns what happens next.\n\na neat draft can misunderstand the whole situation. in a trial, ask:\n- how much did i have to correct?\n- what did it miss?\n- was checking it easier than doing it?\n\nwe have no measured time-saving or success-rate result to offer. do not count a job as delegated while you redo it quietly.\n\nif you need someone to build relationships and handle unclear situations all day, that is a staffing decision. a list of bot roles does not answer it."
+    },
+    {
+      "h": "start with one harmless document",
+      "md": "**get a useful answer from a harmless file first.** choose a non-sensitive document. give the bot only the accounts the task needs.\n\nkeep app access read only; if you permit writes, say “ask me before you change anything”.[^7]\n\nkeep the trial if the result helps. narrow it if corrections eat the benefit. the [cost guide](/guides/how-much-does-an-ai-agent-cost) helps budget for the job once it earns its place."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can ai employees replace my staff?",
+      "a": "**do not make that your staffing plan.** give bots bounded work with a person checking the result. a job title does not give them human accountability or your staff’s context."
+    },
+    {
+      "q": "can a non-technical business owner set this up?",
+      "a": "**yes.** create a bot with a name and plain-language job. start with an attached document so the first result is small enough to judge."
+    },
+    {
+      "q": "is anyone running several agents without spending a fortune?",
+      "a": "**count the full bill before choosing the roster.** dusk’s local app is free for personal use. business licensing, ai usage and optional hosting still need a budget. start with one useful job."
+    },
+    {
+      "q": "does each bot need the same ai?",
+      "a": "**no.** choose a model for each bot and change it later. its chats, files and memory stay. check the provider’s terms and charges for your setup."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: bot jobs and models",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: personal use, work licenses and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot pricing",
+      "url": "/pricing"
+    },
+    {
+      "label": "sintra pricing",
+      "url": "https://sintra.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "lindy pricing",
+      "url": "https://www.lindy.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: app access and sending",
+      "url": "/docs/files-and-apps"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose one non-sensitive brief and draft",
+      "make a bot whose job is comparing them",
+      "ask for missing requirements without editing anything",
+      "compare a finding with the original brief"
+    ]
+  },
+  "worked": {
+    "intro": "an invented first-job example",
+    "before": "elspeth asks a bot to “handle marketing”. the answer is a long plan she has no time to read.",
+    "after": "she asks it to compare one newsletter draft with her brief. it returns missing points she can verify before sending."
+  },
+  "checklist": {
+    "h": "does this job belong with a bot?",
+    "items": [
+      "the input is somewhere the bot can read",
+      "you can describe a finished result",
+      "a person owns the final decision",
+      "review takes less effort than redoing the job"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "building a whole roster before testing one job",
+      "fix": "keep the first job narrow until its results help."
+    },
+    {
+      "mistake": "comparing monthly prices without the extras",
+      "fix": "count work licenses, hosting, ai charges and credit terms."
+    }
+  ],
+  "tip": {
+    "text": "write “what done looks like” before you write the bot’s job title."
+  },
+  "voice": 2
+}

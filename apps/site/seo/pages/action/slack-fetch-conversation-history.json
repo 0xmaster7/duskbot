@@ -1,0 +1,126 @@
+{
+  "path": "/integrations/slack/fetch-conversation-history",
+  "type": "action",
+  "title": "Read Slack channel history with AI before your handover",
+  "nav": "read conversation history",
+  "h1": "read a stretch of slack channel history with ai",
+  "description": "Catch up on a Slack channel for the dates you missed. Get announcements in order, with threads flagged when their replies need a separate read.",
+  "keyword": "read slack channel history with ai",
+  "keywords": [
+    "slack conversation history with ai",
+    "chatgpt read slack channel messages",
+    "claude fetch slack history"
+  ],
+  "answer": "**come back from holiday knowing what the team announced.** name a slack channel or direct conversation and the dates you missed. a bot reads the main timeline your account can access and brings back a recap. thread replies need their own read, so ask it to flag those. read only access keeps the catch-up from changing slack.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "slack",
+    "history",
+    "channel reading"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/update-a-slack-message",
+    "/routines/slack-channel-digest"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-newspaper",
+      "s-clock"
+    ],
+    "bubble": "timeline before the reply"
+  },
+  "og_line": "the announcements you missed, in order.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_FETCH_CONVERSATION_HISTORY"
+  },
+  "what": "**get the week's announcements without scrolling the whole channel.** give the bot a conversation and a date window. it finds the place and narrows the timeline by time.\n\na parent message shows whether replies exist. a separate thread read gets those replies, including decisions made after the announcement. ask for a timeline recap first and open the flagged threads next.",
+  "uses": [
+    "**catch the announcements you missed on holiday.** keep the summary within those dates.",
+    "**rebuild an outage timeline.** pick which threads need a closer read next.",
+    "**prepare a handover.** read the recent timeline of a direct conversation you can access."
+  ],
+  "routine": {
+    "message": "each saturday at 10:45, read the past week's main timeline in harborflint-dispatch on slack. list announced collection times and changed pickup locations here, with posting times. flag messages that have thread replies. don't treat the parent message as final until you read those replies separately. never post, react or edit anything in slack.",
+    "when": "saturdays at 10:45",
+    "needs": "slack connected as read only for channel lookup and conversation history",
+    "output": "harborflint dispatch timeline\n- beatriz announced a friday pickup at the north gate.\n- hugh posted a revised collection window. its replies remain unread.\nopen that thread before treating the window as final."
+  },
+  "steps": [
+    "connect slack as **read only** for this bot.",
+    "name the channel or conversation. confirm the account can open it.",
+    "give the time window. decide whether to allow a separate thread read too.",
+    "try a dated extract. schedule it when the coverage looks right; find later runs in **automations**."
+  ],
+  "watch": [
+    "**history leaves thread replies out.** the bot reads those separately.",
+    "**busy channels need several batches.** keep reading until the whole week is covered.",
+    "**keep going while slack says more history remains.** it can return fewer messages than requested before reaching the end."
+  ],
+  "faq": [
+    {
+      "q": "why did the summary miss a reply inside a thread?",
+      "a": "**history returns the main timeline only.** the bot needs the separate conversation-replies action for the thread under a message."
+    },
+    {
+      "q": "can it read private channels and direct messages?",
+      "a": "**yes, where the connected account has access.** those conversation types work. it cannot open conversations outside that account's reach."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect slack as read only",
+      "name one channel and yesterday's date window",
+      "ask for the main announcements and unread threads",
+      "open one flagged thread before acting on its parent message"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating the first announcement as the final decision",
+      "fix": "read its replies. the plan might have changed there."
+    },
+    {
+      "mistake": "stopping when a batch looks short",
+      "fix": "ask whether slack has more history to return."
+    }
+  ],
+  "tip": {
+    "text": "ask for 'timeline only, unread threads flagged' when you want a quick first pass."
+  },
+  "checklist": {
+    "h": "before you act on the recap",
+    "items": [
+      "the channel and dates match",
+      "the bot covered the whole time window",
+      "unread threads have visible flags",
+      "you read the replies behind any final decision"
+    ]
+  },
+  "voice": 2
+}

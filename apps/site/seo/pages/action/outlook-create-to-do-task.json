@@ -1,0 +1,121 @@
+{
+  "path": "/integrations/outlook/create-to-do-task",
+  "type": "action",
+  "title": "Create Microsoft To Do tasks from chat with AI",
+  "nav": "create to do task",
+  "h1": "put the next step in your microsoft to do list",
+  "description": "Turn an agreed next step into a Microsoft To Do task with a bot. Choose the list, title, due date and source link without guessing missing commitments.",
+  "keyword": "outlook create to do task with ai",
+  "keywords": [
+    "chatgpt create microsoft to do task",
+    "claude add outlook task",
+    "ai microsoft to do from notes"
+  ],
+  "answer": "**the promise you made on a call deserves better than a sticky note.** tell the bot the next step and the microsoft to do list it belongs in. it can add notes, source links, categories, dates and reminders. give real deadlines when you have them; leave the date blank when you never agreed one.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook",
+    "create to do task"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/move-message-to-folder"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-notebook",
+      "s-clock"
+    ],
+    "bubble": "give it a next step"
+  },
+  "og_line": "an agreed task, in its chosen list.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_CREATE_TASK"
+  },
+  "what": "**keep the promise and the email behind it together.** give the bot a task title and list name. it looks up the list before creation, so you can distinguish lists with the same name.\n\nyou can add categories, source links and low, normal or high importance. dates and reminders need a time zone. due dates and reminders are separate choices; request both when you need both.",
+  "uses": [
+    "**keep a supplier promise.** capture the follow-up you accepted on a call.",
+    "**keep the fault report handy.** link it from a repair task.",
+    "**keep errands out of work.** name your personal list when that is where the task belongs.",
+    "**remember a real deadline.** request both the due date and the reminder you need."
+  ],
+  "routine": {
+    "message": "every weekday at 18:15, read outlook emails i flagged today for quillstone books. find concrete next steps i accepted in those threads.\n\n- compare them with existing tasks in \"shop follow-ups\"\n- show new task titles, source email links and stated dates here\n- leave missing dates unset\n- ask me before you change anything\n\nafter my ok, create only the tasks i choose. never invent deadlines or high importance. do not repeat a task after an unclear result; look for the task in the list first.",
+    "when": "weekdays at 18:15",
+    "needs": "outlook connected with read and write; allow reading email and existing to do tasks, plus task creation",
+    "output": "quillstone books task preview\nlist: shop follow-ups\ntitle: request the revised delivery slip\ndue: no date in the email; leave unset\nsource: flagged supplier email\nready to create after you approve this task."
+  },
+  "steps": [
+    "**connect outlook for the job.** allow read and write for this bot.",
+    "**find its home.** ask it to show which follow-ups list it found.",
+    "**preview one task.** confirm its title, dates and time zone before creation. task writes do not wait on email send approval.",
+    "**inspect it in to do.** then set the routine’s closing-time schedule."
+  ],
+  "watch": [
+    "**list names can repeat.** confirm which one should hold the task.",
+    "**due and remind are different choices.** request both if you need both.",
+    "**leave room for a deadline you have not agreed yet.** keep the date blank when the source gives none."
+  ],
+  "faq": [
+    {
+      "q": "does this put an appointment on my calendar?",
+      "a": "**no, it creates a to do task.** use calendar scheduling for an appointment."
+    },
+    {
+      "q": "can the task link to its source email?",
+      "a": "**yes, keep the source with the task.** linked resources can hold an email or document link and a readable name. get the real link first."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook with task write access",
+      "ask it to find your chosen to do list",
+      "give one task and its source email link",
+      "preview the date and reminder before creation"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: hugo turns a supplier email into a task.",
+    "before": "the supplier asks for a revised delivery slip. hugo agrees in an email but gives no deadline.",
+    "after": "hugo gets a task linked to the supplier email, with the due date left blank. the delivery-slip request is in the follow-ups list instead of buried in the thread."
+  },
+  "mistakes": [
+    {
+      "mistake": "turning \"soon\" into friday",
+      "fix": "leave the date blank or ask for a real deadline."
+    },
+    {
+      "mistake": "retrying after an unclear reply",
+      "fix": "look for the task in the list before creating another."
+    }
+  ],
+  "tip": {
+    "text": "write the task as a next action. \"ask for delivery slip\" beats \"supplier\"."
+  },
+  "voice": 2
+}

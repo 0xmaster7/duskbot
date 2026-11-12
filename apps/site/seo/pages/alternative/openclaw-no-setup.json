@@ -1,0 +1,255 @@
+{
+  "path": "/alternatives/openclaw-no-setup",
+  "type": "alternative",
+  "title": "OpenClaw setup without a terminal: what changes?",
+  "nav": "openclaw setup",
+  "h1": "openclaw setup without the terminal",
+  "description": "Compare OpenClaw's desktop installers with dusk bot: the steps before your first reply, where each runs, and what you still need to look after.",
+  "keyword": "openclaw setup",
+  "keywords": [
+    "openclaw install",
+    "why is openclaw so hard to set up",
+    "openclaw too complicated",
+    "non technical openclaw"
+  ],
+  "answer": "**get to your first reply without opening a terminal.** openclaw's desktop apps install the pieces for you.[^1] you still choose an ai and keep its computer running.[^2] dusk bot offers named bots and optional hosting later.[^3][^4] try the app and sign-in first, then decide who handles upkeep. we haven't timed first replies in either.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "openclaw",
+    "setup",
+    "desktop",
+    "upkeep"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/openclaw",
+    "/alternatives/openclaw-hosting",
+    "/agents-when-laptop-closed"
+  ],
+  "competitor": {
+    "key": "openclaw",
+    "name": "OpenClaw",
+    "url": "https://openclaw.ai/"
+  },
+  "art": {
+    "props": [
+      "s-computer",
+      "s-clock"
+    ],
+    "label": "OpenClaw",
+    "bubble": "start with one reply"
+  },
+  "og_line": "the installer is only the start.",
+  "verdict": {
+    "them_title": "choose openclaw’s desktop route when",
+    "them": [
+      "**you want openclaw’s chat channels.** try its installer if the terminal was your only obstacle.",
+      "**you want software you can change.** openclaw uses the mit license; you look after the machine."
+    ],
+    "dusk": [
+      "**you want a named bot with a clear job.** add separate jobs when the first one works.",
+      "**you want hosting as a later option.** move chats, memory and routines to a dusk cloud computer."
+    ]
+  },
+  "compare": {
+    "h": "what happens before and after hello",
+    "intro": "**the desktop installer gets you past the terminal.** the machine still needs upkeep. these setup paths reflect sources checked 12 november 2026. openclaw's time estimate is its own; we haven't timed it.",
+    "cols": [
+      "openclaw",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "what you install",
+        "cells": [
+          "a desktop app that installs everything, or the terminal package",
+          "the desktop app; it runs the ai vendors' own command-line apps"
+        ],
+        "src": [
+          1,
+          3,
+          8
+        ]
+      },
+      {
+        "label": "supported computers",
+        "cells": [
+          "macos 15+; windows 10/11, marked beta; linux appimage or .deb",
+          "macos 12+; windows 10/11 64-bit; ubuntu 24.04 beta"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "before the first reply",
+        "cells": [
+          "install, run onboarding and connect a model provider",
+          "download, sign in to your ai, and create a bot"
+        ],
+        "src": [
+          1,
+          5,
+          3,
+          6
+        ]
+      },
+      {
+        "label": "published setup time",
+        "cells": [
+          "about 5 minutes, according to its getting-started docs",
+          "no measured dusk first-reply time in this comparison"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "where the assistant runs",
+        "cells": [
+          "your computer or your server; no hosted tier from the project",
+          "your computer, your own server or dusk cloud"
+        ],
+        "src": [
+          2,
+          4
+        ]
+      },
+      {
+        "label": "what happens overnight",
+        "cells": [
+          "scheduled jobs run through its scheduler on your chosen machine",
+          "local routines stop during sleep or while the app is closed; dusk cloud runs them on time"
+        ],
+        "src": [
+          7,
+          9
+        ]
+      },
+      {
+        "label": "what you pay",
+        "cells": [
+          "free mit software; model usage paid to your provider",
+          "free personal desktop use; ai usage billed separately by your provider"
+        ],
+        "src": [
+          2,
+          10
+        ]
+      }
+    ]
+  },
+  "method": "**this is a map of the setup, not a race.** we make dusk bot. we read the outside sources on 12 november 2026.\n\nwe did not install both on identical computers or time the same first task. openclaw's five-minute estimate belongs to its docs. a quick install says nothing about answer quality.",
+  "sections": [
+    {
+      "h": "get one reply before connecting your working life",
+      "md": "**try the current installer before giving up on openclaw.** its docs call windows hub the easiest desktop path. terminal instructions remain an option, not a requirement.[^1]\n\nin dusk, use **new bot**, give it one job and ask one question. personal desktop use needs no dusk account.[^3][^6][^10]\n\nleave work apps disconnected until that first answer works. it is easier to spot a sign-in problem before you add several permissions."
+    },
+    {
+      "h": "decide who keeps the computer running",
+      "md": "**someone has to keep the morning job running.** openclaw runs on your computer or server; its project offers no hosted tier.[^2] third-party offers are a separate choice in [managed openclaw hosting](/alternatives/openclaw-hosting).\n\ndusk cloud hosts the computer and backs it up daily. move bots there with chats, memory and routines.[^4]\n\nstaying local costs less in dusk. routines stop during sleep, though. read [where agents run with the lid shut](/agents-when-laptop-closed) before counting on an overnight job."
+    },
+    {
+      "h": "the setup ends when you know what you own",
+      "md": "**choose who gets the call when it breaks next month.** the installer leaves three decisions with you.\n\n- where the assistant runs\n- which ai answers\n- who handles the machine\n\nopenclaw's desktop route handles installation. you own the running setup.[^1][^2]\n\ndusk hosting doesn't include ai usage. when the plan runs out, the bot tells you: wait for the reset or switch ai.[^6][^10] read your provider's current terms. the [broader alternatives](/alternatives/openclaw) help if upkeep was the real concern."
+    }
+  ],
+  "faq": [
+    {
+      "q": "why is openclaw so hard to set up?",
+      "a": "**old instructions may be the obstacle.** openclaw now has desktop installers that install everything. start with its current getting-started docs.[^1]"
+    },
+    {
+      "q": "can a non-technical person install openclaw?",
+      "a": "**start with the desktop installer.** it handles installation; the model sign-in and the computer still need your attention. we haven't measured beginner success rates.[^1][^2]"
+    },
+    {
+      "q": "which one gives me a reply fastest?",
+      "a": "**openclaw's docs say about five minutes for setup, onboarding and chat.** we haven't timed that against dusk, so try a reply before buying hosting.[^1]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw getting started",
+      "url": "https://docs.openclaw.ai/start/getting-started",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw homepage and downloads",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "openclaw model authentication",
+      "url": "https://docs.openclaw.ai/concepts/oauth",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot jobs and model choices",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "openclaw scheduler",
+      "url": "https://docs.openclaw.ai/automation/cron-jobs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot on your own server",
+      "url": "/docs/your-own-server"
+    },
+    {
+      "label": "dusk routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk account and billing",
+      "url": "/docs/account-and-billing"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "find the installer for your operating system",
+      "choose one ai provider",
+      "ask one question before adding apps",
+      "write down who keeps the host awake"
+    ]
+  },
+  "checklist": {
+    "h": "before calling setup finished",
+    "items": [
+      "one reply came back from the ai you chose",
+      "you know where the assistant runs",
+      "someone owns updates and backups",
+      "you know what happens when that machine sleeps"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "following old terminal-only instructions",
+      "fix": "use the current desktop installer if it supports your machine."
+    },
+    {
+      "mistake": "buying hosting before testing one reply",
+      "fix": "confirm the app and ai sign-in first."
+    }
+  ],
+  "tip": {
+    "text": "the useful setup time includes the evening spent fixing it next month."
+  },
+  "voice": 2
+}

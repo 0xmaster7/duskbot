@@ -1,0 +1,1218 @@
+{
+  "toolkit": "discord",
+  "name": "Discord",
+  "version": "20261101_00",
+  "description": "An instant messaging and VoIP social platform.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 28,
+  "triggers_count": 1,
+  "tools": [
+    {
+      "name": "Consume Entitlement (Deprecated)",
+      "slug": "DISCORD_CONSUME_ENTITLEMENT",
+      "kind": "write",
+      "description": "Deprecated: Consumes an entitlement for an application. This endpoint requires a bot token and cannot be used by an OAuth2 user connection; the legacy action is retained for existing Discord bearer-token connections.",
+      "inputs": [
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the application that owns the entitlement."
+        },
+        {
+          "name": "entitlement_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the entitlement to mark as consumed."
+        }
+      ],
+      "scopes": [
+        "applications.entitlements"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Delete Test Entitlement (Deprecated)",
+      "slug": "DISCORD_DELETE_TEST_ENTITLEMENT",
+      "kind": "write",
+      "description": "Deletes a test entitlement for a specified application. Deprecated: this endpoint requires a bot token and cannot be used by an OAuth2 user connection; the legacy action is retained for existing Discord bearer-token connections.",
+      "inputs": [
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the application that owns the test entitlement."
+        },
+        {
+          "name": "entitlement_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the test entitlement to delete."
+        }
+      ],
+      "scopes": [
+        "applications.entitlements"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Delete User Application Role Connection",
+      "slug": "DISCORD_DELETE_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "write",
+      "description": "Deletes the current user's application role connection for the specified application. Removes the platform metadata and linked role connection.",
+      "inputs": [
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the application to delete the role connection for."
+        }
+      ],
+      "scopes": [
+        "role_connections.write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Edit Application Command Permissions",
+      "slug": "DISCORD_EDIT_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "write",
+      "description": "Edits the permissions for a specific application command in a guild. Requires OAuth2 Bearer token (bot tokens will error). The authorizing user must have MANAGE_GUILD and MANAGE_ROLES permissions in the target guild.",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the guild."
+        },
+        {
+          "name": "command_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application command."
+        },
+        {
+          "name": "permissions",
+          "type": "array",
+          "required": true,
+          "about": "List of permission overrides to set for the command in the guild."
+        },
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application."
+        }
+      ],
+      "scopes": [
+        "applications.commands.permissions.update"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Application Command Permissions",
+      "slug": "DISCORD_GET_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "read",
+      "description": "Retrieves the permissions for a specific application command in a guild. Requires OAuth2 Bearer token (bot tokens will error). The authorizing user must have MANAGE_GUILD and MANAGE_ROLES permissions in the target guild.",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the guild."
+        },
+        {
+          "name": "command_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application command."
+        },
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application."
+        }
+      ],
+      "scopes": [
+        "applications.commands.permissions.update"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Batch Application Command Permissions",
+      "slug": "DISCORD_GET_BATCH_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "read",
+      "description": "Retrieves permissions for all commands of an application in a guild. Returns a list of permission objects for each command. Requires OAuth2 Bearer token (Bot tokens will error).",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the guild."
+        },
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the application."
+        }
+      ],
+      "scopes": [
+        "applications.commands.permissions.update"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Current User Application Entitlements",
+      "slug": "DISCORD_GET_CURRENT_USER_APPLICATION_ENTITLEMENTS",
+      "kind": "read",
+      "description": "Retrieves a page of entitlements for the current user and application, with optional SKU and guild filters and controls for ended or deleted entitlements. Supports before/after pagination; a guild-filtered page may contain fewer results than requested. Requires the applications.entitlements OAuth2 scope.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Retrieve entitlements after this entitlement ID (snowflake). Used for forward pagination."
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of entitlements to return (1-100, default 100)."
+        },
+        {
+          "name": "before",
+          "type": "string",
+          "required": false,
+          "about": "Retrieve entitlements before this entitlement ID (snowflake). Used for backward pagination."
+        },
+        {
+          "name": "sku_ids",
+          "type": "array",
+          "required": false,
+          "about": "Optional list of SKU IDs to filter entitlements by."
+        },
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": false,
+          "about": "Optional guild ID to filter entitlements by; only returns entitlements granted for that guild."
+        },
+        {
+          "name": "exclude_ended",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether ended entitlements should be omitted. Defaults to false."
+        },
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the application to retrieve entitlements for."
+        },
+        {
+          "name": "exclude_deleted",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether deleted entitlements should be omitted. Defaults to true."
+        }
+      ],
+      "scopes": [
+        "applications.entitlements"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "commerce_and_entitlements"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Gateway",
+      "slug": "DISCORD_GET_GATEWAY",
+      "kind": "read",
+      "description": "Tool to retrieve a valid WebSocket (wss) URL for establishing a Gateway connection to Discord. Use when you need to connect to the Discord Gateway for real-time events.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "gateway"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Guild Template",
+      "slug": "DISCORD_GET_GUILD_TEMPLATE",
+      "kind": "read",
+      "description": "Tool to retrieve information about a Discord guild template using its unique template code. Use when you need to get details about a guild template for creating new servers.",
+      "inputs": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "about": "The unique template code identifier for the guild template to retrieve."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "guilds_and_widgets"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Guild Widget",
+      "slug": "DISCORD_GET_GUILD_WIDGET",
+      "kind": "read",
+      "description": "Tool to retrieve the guild widget in JSON format. Use when you need to get public information about a Discord guild's widget that can be displayed on external websites. The widget must be enabled in the guild's server settings.",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the guild (snowflake ID)."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "guilds_and_widgets"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Guild Widget PNG",
+      "slug": "DISCORD_GET_GUILD_WIDGET_PNG",
+      "kind": "read",
+      "description": "Tool to retrieve a PNG image widget for a Discord guild. Use when you need a visual representation of the guild widget that can be displayed on external websites. The widget must be enabled in the guild's server settings.",
+      "inputs": [
+        {
+          "name": "style",
+          "type": "string",
+          "required": false,
+          "about": "Customizes the visual appearance of the widget image. Options: 'shield' (compact badge-style), 'banner1', 'banner2', 'banner3', 'banner4' (various horizontal banner formats)."
+        },
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the guild (snowflake ID)."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "guilds_and_widgets"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Invite (Deprecated)",
+      "slug": "DISCORD_GET_INVITE",
+      "kind": "read",
+      "description": "Deprecated: Retrieves information about a specific Discord invite, including available guild or channel details. Do not infer guild membership or channel access from the response.",
+      "inputs": [
+        {
+          "name": "invite_code",
+          "type": "string",
+          "required": true,
+          "about": "A single Discord invite code (e.g., \"0vCdhLbwjZZTWZLD\"). Can be provided as a bare code or as a full URL like \"https://discord.gg/0vCdhLbwjZZTWZLD\". Only one invite code should be provided. If multiple codes or URLs are present, only the first one will be used."
+        },
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include approximate member and presence counts in the response (approximate_member_count and approximate_presence_count fields)."
+        },
+        {
+          "name": "with_expiration",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include the expiration date (expires_at field) in the response. Note: expires_at is typically returned regardless of this parameter."
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "string",
+          "required": false,
+          "about": "The ID of a guild scheduled event to include with the invite. When provided, the response will include guild_scheduled_event details."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "invite",
+        "readOnlyHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Get my guild member",
+      "slug": "DISCORD_GET_MY_GUILD_MEMBER",
+      "kind": "read",
+      "description": "Retrieves the guild member object for the currently authenticated user within a specified guild, including roles, nickname, join date, and permissions.",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the Discord guild (server) from which to fetch the member object."
+        }
+      ],
+      "scopes": [
+        "guilds.members.read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get my OAuth2 authorization",
+      "slug": "DISCORD_GET_MY_OAUTH2_AUTHORIZATION",
+      "kind": "read",
+      "description": "Retrieves current OAuth2 authorization details for the application, including app info, scopes, token expiration, and user data (contingent on scopes like 'identify').",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "identify"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get My User",
+      "slug": "DISCORD_GET_MY_USER",
+      "kind": "read",
+      "description": "Fetches comprehensive profile information for the currently authenticated Discord user, including email if the 'email' scope is granted.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "identify"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get OpenID Connect userinfo",
+      "slug": "DISCORD_GET_OPENID_CONNECT_USERINFO",
+      "kind": "read",
+      "description": "Retrieve OpenID Connect compliant user information for the authenticated user. Returns standardized OIDC user claims (sub, email, nickname, picture, locale, etc.) following the OpenID Connect specification. Requires OAuth2 access token with 'openid' scope; additional fields require 'identify' and 'email' scopes.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "openid",
+        "identify",
+        "email"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "users_and_identity"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Public Keys",
+      "slug": "DISCORD_GET_PUBLIC_KEYS",
+      "kind": "read",
+      "description": "Tool to retrieve Discord OAuth2 public keys. Use when you need to verify OAuth2 tokens or access public keys for cryptographic operations.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "security_and_keys"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get SKU Subscription",
+      "slug": "DISCORD_GET_SKU_SUBSCRIPTION",
+      "kind": "read",
+      "description": "Retrieves a specific subscription by ID for a given SKU. Use to check details of a single user subscription.",
+      "inputs": [
+        {
+          "name": "sku_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the SKU the subscription belongs to."
+        },
+        {
+          "name": "subscription_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the subscription to retrieve."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get User",
+      "slug": "DISCORD_GET_USER",
+      "kind": "read",
+      "description": "Retrieve information about a Discord user. With OAuth Bearer token authentication, this returns the authenticated user's information (use '@me'). With Bot token authentication, you can query any user by their ID. Use this when you need user details like username, avatar, email (if email scope is granted), locale, premium status, or other profile information.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the user to retrieve. Use '@me' to get the current authenticated user. Note: With OAuth Bearer token authentication, only '@me' is supported. With Bot token authentication, you can query any user ID (snowflake format). If you're unsure, start with '@me'."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "users_and_identity"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get User Application Role Connection",
+      "slug": "DISCORD_GET_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "read",
+      "description": "Retrieves the application role connection for the currently authenticated user for a specified application. Requires the role_connections.write OAuth2 scope.",
+      "inputs": [
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application to get the role connection for."
+        }
+      ],
+      "scopes": [
+        "role_connections.write"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Resolve Invite",
+      "slug": "DISCORD_INVITE_RESOLVE",
+      "kind": "send",
+      "description": "Tool to resolve and retrieve information about a Discord invite code. Use when you need to get details about a guild, channel, or event associated with an invite code.",
+      "inputs": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "about": "The invite code to resolve (e.g., \"discord-api\" for vanity URLs, \"abc123xyz\" for regular invite codes, or a full URL like \"https://discord.gg/abc123xyz\")."
+        },
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include approximate member counts (approximate_member_count and approximate_presence_count) in the response."
+        },
+        {
+          "name": "with_expiration",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include the expiration date (expires_at) in the response. Note: This parameter is deprecated as expires_at is now always returned."
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "string",
+          "required": false,
+          "about": "The guild scheduled event ID to include with the invite. When provided with a valid event ID, returns guild_scheduled_event data in the response."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "invites"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Leave Guild (Deprecated)",
+      "slug": "DISCORD_LEAVE_GUILD",
+      "kind": "write",
+      "description": "Deprecated: Leaves the specified Discord guild for the authenticated account. This endpoint requires a bot token; use DISCORDBOT_LEAVE_GUILD with a DiscordBot connection.",
+      "inputs": [
+        {
+          "name": "guild_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the guild to leave."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "List My Connections",
+      "slug": "DISCORD_LIST_MY_CONNECTIONS",
+      "kind": "read",
+      "description": "Retrieves a list of the authenticated user's connected third-party accounts on Discord.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "connections"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List My Guilds",
+      "slug": "DISCORD_LIST_MY_GUILDS",
+      "kind": "read",
+      "description": "Lists the current user's guilds, returning partial data for each; primarily used for displaying server lists or verifying memberships.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Get guilds after this guild ID."
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "Max number of guilds to return (1-200, default 200)."
+        },
+        {
+          "name": "before",
+          "type": "string",
+          "required": false,
+          "about": "Get guilds before this guild ID."
+        },
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false,
+          "about": "Include approximate member and presence counts for each guild."
+        }
+      ],
+      "scopes": [
+        "guilds"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List SKU Subscriptions",
+      "slug": "DISCORD_LIST_SKU_SUBSCRIPTIONS",
+      "kind": "read",
+      "description": "Lists all subscriptions for a given SKU. When using a Bot token, the user_id query parameter is required. Returns paginated subscription objects.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Retrieve subscriptions after this subscription ID for forward pagination."
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of subscriptions to return (1-100, default 100)."
+        },
+        {
+          "name": "before",
+          "type": "string",
+          "required": false,
+          "about": "Retrieve subscriptions before this subscription ID for backward pagination."
+        },
+        {
+          "name": "sku_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the SKU to list subscriptions for."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user ID to filter subscriptions for. Required when using a Bot token; not needed for OAuth2."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List Sticker Packs",
+      "slug": "DISCORD_LIST_STICKER_PACKS",
+      "kind": "read",
+      "description": "Tool to retrieve all available Discord Nitro sticker packs. Use when you need to list or browse official Discord sticker packs.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "stickers"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Modify Current User (Deprecated)",
+      "slug": "DISCORD_MODIFY_CURRENT_USER",
+      "kind": "write",
+      "description": "Deprecated: Updates the authenticated Discord user's username or avatar, including removing the avatar. This endpoint requires a bot token; use DISCORDBOT_UPDATE_MY_USER with a DiscordBot connection.",
+      "inputs": [
+        {
+          "name": "avatar",
+          "type": "string",
+          "required": false,
+          "about": "New avatar as a base64-encoded image data URI (e.g., 'data:image/png;base64,...')."
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": false,
+          "about": "New username for the user. Limited to 2 changes per hour by Discord."
+        },
+        {
+          "name": "remove_avatar",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to remove the user's avatar (sends null to Discord API). Cannot be used together with avatar."
+        }
+      ],
+      "scopes": [
+        "identify"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Update User Application Role Connection",
+      "slug": "DISCORD_UPDATE_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "write",
+      "description": "Updates the application role connection for the currently authenticated user for a specified application. Requires the role_connections.write OAuth2 scope.",
+      "inputs": [
+        {
+          "name": "metadata",
+          "type": "object",
+          "required": false,
+          "about": "Object mapping application role connection metadata keys to their string-ified values."
+        },
+        {
+          "name": "platform_name",
+          "type": "string",
+          "required": false,
+          "about": "The vanity name of the platform a bot has connected (max 50 characters)."
+        },
+        {
+          "name": "application_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (snowflake ID) of the application to update the role connection for."
+        },
+        {
+          "name": "platform_username",
+          "type": "string",
+          "required": false,
+          "about": "The username on the platform a bot has connected (max 100 characters)."
+        }
+      ],
+      "scopes": [
+        "role_connections.write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/discord",
+  "fetched_at": "2026-11-12"
+}

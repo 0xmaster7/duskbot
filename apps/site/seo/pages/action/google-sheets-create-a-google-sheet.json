@@ -1,0 +1,122 @@
+{
+  "path": "/integrations/google-sheets/create-a-google-sheet",
+  "type": "action",
+  "title": "Create a Google spreadsheet with AI in the right folder",
+  "nav": "create a spreadsheet",
+  "h1": "start a named google spreadsheet where it belongs",
+  "description": "Start the month with a clearly named Google spreadsheet in the right folder. A bot creates the blank file and reports where it landed.",
+  "keyword": "create google spreadsheet with ai",
+  "keywords": [
+    "chatgpt create google sheet",
+    "claude create spreadsheet in drive folder",
+    "ai make new google spreadsheet"
+  ],
+  "answer": "**start the month with a spreadsheet you can find by name.** a bot creates a blank google spreadsheet and places it in a drive folder. give it a title and destination link; exact folder names can return choices. creation and filing can succeed separately, so recover the existing file after a failed move. ask for review before this write.",
+  "tags": [
+    "google sheets",
+    "new spreadsheets",
+    "drive folders"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/copy-sheet-to-another-spreadsheet"
+  ],
+  "og_line": "a named spreadsheet with its location checked.",
+  "what": "**start a fresh file when the old one carries too much history.** this action creates a spreadsheet, not a new tab. a title is optional, but leaving it out gives you a default name.\n\nfolder names must match exactly. several matches return choices; no match returns an error. a folder link removes the naming guess. if filing fails after creation, recover the existing file before trying again.",
+  "uses": [
+    "**separate a grant period.** give the new ledger its own name and location.",
+    "**start workshop feedback cleanly.** create a blank file in the confirmed workshop folder.",
+    "**leave old exhibition data behind.** make a fresh planning file rather than copying last year's rows.",
+    "**prepare an expense tracker.** create the file now; add rows through a separate task."
+  ],
+  "routine": {
+    "message": "on the first weekday of each month at 09:20, read the monthly tracker plan in the tallowmere guild expenses folder. use the current month's approved entry and skip it if that entry already links to a spreadsheet.\n\npropose a title with the month and the destination folder. ask me before creating anything. return the file and whether folder placement succeeded. if filing fails, report the file you already made. never populate cells, share it or create another copy during recovery.",
+    "when": "first weekday of the month at 09:20",
+    "needs": "access to the monthly tracker plan; google sheets read and write with permission to create in the chosen folder",
+    "output": "monthly spreadsheet for leah\n\ntallowmere guild expenses, november\ncreation: succeeded\nfolder placement: failed\n\nfile exists. no second copy created; cells remain empty."
+  },
+  "steps": [
+    "**allow file creation.** connect google sheets with read and write for this bot.",
+    "**give the name and destination.** if folder names repeat, choose the match or paste its link.",
+    "**put the pause in your request.** tell the bot to show the title and folder before creating anything.",
+    "**open the file in drive.** confirm its folder. pause the routine while recovering from a successful create and failed move."
+  ],
+  "watch": [
+    "**build on the blank file next.** headers, values, formulas and validation need other actions.",
+    "**partial names don't pick a folder.** exact names can return choices or no match.",
+    "**recover the file after a failed move.** creation may already have succeeded; find that spreadsheet before making another.",
+    "**local schedules need an awake machine.** misses under 12 hours run once when you return; older ones skip. dusk cloud runs on time."
+  ],
+  "faq": [
+    {
+      "q": "does this create a new file or a tab?",
+      "a": "**a new spreadsheet file.** copying a tab into another existing spreadsheet uses a different action."
+    },
+    {
+      "q": "can i tell it the folder name?",
+      "a": "**yes, use the exact name.** multiple matches return choices. a folder link gives a clearer destination."
+    },
+    {
+      "q": "should i retry if it says the folder move failed?",
+      "a": "**find the spreadsheet first.** creation may have succeeded. repeating the whole job can leave an unwanted duplicate."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "googlesheets"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "new ledger in place"
+  },
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_CREATE_GOOGLE_SHEET1"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose a clear spreadsheet title",
+      "paste its destination folder link",
+      "ask to review both before creation",
+      "open the result and confirm where it landed"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "retrying after a failed folder move",
+      "fix": "look for the spreadsheet already created. recover that file before making another."
+    },
+    {
+      "mistake": "expecting a ready-to-use tracker",
+      "fix": "creation gives you a blank file. request headers and values as a separate step."
+    }
+  ],
+  "tip": {
+    "text": "ask for two outcomes: file creation and folder placement. one success message can hide half a job."
+  },
+  "voice": 2
+}

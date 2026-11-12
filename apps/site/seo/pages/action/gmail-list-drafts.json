@@ -1,0 +1,115 @@
+{
+  "path": "/integrations/gmail/list-drafts",
+  "type": "action",
+  "title": "List Gmail drafts with AI and find unfinished emails",
+  "nav": "list drafts",
+  "h1": "find the gmail drafts you have left unfinished",
+  "description": "Find the Gmail reply you meant to finish. A bot reads recipients, subjects and draft text, then lists what each email still needs.",
+  "keyword": "list gmail drafts with ai",
+  "keywords": [
+    "gmail find drafts with ai",
+    "chatgpt list gmail drafts",
+    "claude review unfinished gmail drafts"
+  ],
+  "answer": "**find the reply you meant to finish last week.** a bot lists saved gmail drafts with recipients, subjects and full text, using read access alone. ask what each draft still needs and get a useful to-do list back. gmail returns drafts without a fixed order, in batches. new drafts can take time to appear, so let the bot finish the list.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "draft inventory",
+    "unfinished mail"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/update-draft",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-binoculars"
+    ],
+    "bubble": "still in drafts"
+  },
+  "og_line": "unfinished mail, gathered for review.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_LIST_DRAFTS"
+  },
+  "what": "**find the half-written email before it becomes a missed reply.** full draft details let the bot see who it's for and what remains unfinished. a subject alone rarely tells the whole story.\n\ngmail returns long lists in batches without sorting them by date. the bot needs to keep reading until there are no more. an incomplete search should say what it missed.",
+  "uses": [
+    "**recover a forgotten follow-up.** find the unfinished grant reviewer email without opening every draft.",
+    "**see what you might clear.** collect recipients and subjects before cleaning the folder yourself.",
+    "**check a lost compose window.** look for the saved proposal before writing it again."
+  ],
+  "routine": {
+    "message": "on mondays at 2, read all my gmail drafts with full details. keep fetching batches until the list ends.\n\nshow a checklist here for drafts addressed to pebblewake arts. include recipient, subject and what looks unfinished. mark anything you can't tell as unknown. say if an error leaves the list incomplete. never edit, delete or send a draft.",
+    "when": "mondays at 14:00",
+    "needs": "gmail read only, including full draft details",
+    "output": "pebblewake arts drafts\n- marina: workshop proposal; closing paragraph unfinished.\n- jun: materials list; body mentions an attachment to confirm.\n\nend of draft list reached."
+  },
+  "steps": [
+    "**start with a reader.** give the bot gmail read only in connected apps.",
+    "**ask for the whole draft.** recipients and bodies help distinguish two emails with similar subjects.",
+    "**try one checklist.** inspect it before scheduling. use **edit** for timing and **pause** to stop future runs."
+  ],
+  "watch": [
+    "**give a fresh draft time to appear.** a short delay after saving is normal for this listing.",
+    "**get the full folder, not its first batch.** the bot should say where an error stopped it."
+  ],
+  "faq": [
+    {
+      "q": "can it list draft bodies as well as subjects?",
+      "a": "**yes, ask for full details.** the bot can read the draft text as well as its subject."
+    },
+    {
+      "q": "why is the draft i just created missing?",
+      "a": "**the listing can lag behind a save.** wait before asking again. rapid repeat requests can hit gmail rate limits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "give the bot gmail read only",
+      "ask for all drafts with full details",
+      "pick a recipient or organisation to focus on",
+      "open one result in gmail and read its full text"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming the first draft is the newest",
+      "fix": "the list has no guaranteed order. ask for the details rather than trusting position."
+    },
+    {
+      "mistake": "retrying a fresh save over and over",
+      "fix": "wait, then ask again. fast repeated requests can make the list harder to retrieve."
+    }
+  ],
+  "tip": {
+    "text": "ask what still needs doing, not just what the subjects say. that turns a folder listing into a useful checklist."
+  },
+  "voice": 2
+}

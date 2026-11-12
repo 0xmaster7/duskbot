@@ -1,0 +1,230 @@
+{
+  "path": "/vs/ai-agent-vs-chatbot",
+  "title": "AI agent vs chatbot: what you are handing over",
+  "nav": "agent vs chatbot",
+  "h1": "ai agent vs chatbot: answers, actions and responsibility",
+  "description": "A plain comparison of asking for an answer and handing over a task, with permission boundaries and a way to decide how much help you need.",
+  "answer": "**a chatbot tells you how to rename files. an agent renames them.** the difference is who takes the next step. for a paragraph rewrite, a conversation may be all you need. for a friday folder review, you need file access and a schedule. look at the tools and permissions behind the name before handing over the job.",
+  "tags": [
+    "agents",
+    "chatbots",
+    "comparison",
+    "permissions"
+  ],
+  "related": [
+    "/guides/what-is-an-ai-agent",
+    "/scheduled-ai-tasks",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "props": [
+      "p-bubbles",
+      "s-button"
+    ],
+    "label": "Chatbot / agent",
+    "bubble": "answer or action?"
+  },
+  "og_line": "decide what you want to hand over.",
+  "verdict": {
+    "them_title": "a chatbot",
+    "them": [
+      "**keep the next step yours.** you want an explanation, second opinion or draft.",
+      "**act after reading.** you prefer to carry out each change yourself."
+    ],
+    "dusk_title": "an ai agent",
+    "dusk": [
+      "**hand over a small job.** it needs to read allowed material and use tools.",
+      "**repeat work with clear limits.** you can define access, stopping rules and review."
+    ]
+  },
+  "compare": {
+    "h": "a working distinction, not two fixed product categories",
+    "intro": "**the next step is the useful dividing line.** a product can offer both conversation and action. dusk illustrates the agent column; other agents have different tools and controls.",
+    "cols": [
+      "a chatbot",
+      "an ai agent"
+    ],
+    "rows": [
+      {
+        "label": "what you hand over",
+        "cells": [
+          "a question, passage or idea to discuss",
+          "a job, allowed inputs and a clear place for the result"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "who takes the next step",
+        "cells": [
+          "you read the answer and do the next action",
+          "the agent may call permitted tools and continue the task"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "access to other apps",
+        "cells": [
+          "for a conversation-only task, you supply the material",
+          "may read connected apps or change them, depending on permissions"
+        ],
+        "src": [
+          3
+        ]
+      },
+      {
+        "label": "when work starts",
+        "cells": [
+          "you start this exchange by asking",
+          "may start in chat, on a schedule or from an app event"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "checking progress",
+        "cells": [
+          "you inspect the reply before using it",
+          "in dusk bot, tool activity is shown while the bot works; you can stop it"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "memory and identity",
+        "cells": [
+          "a conversation interface alone says nothing about lasting memory",
+          "dusk bots have separate jobs and memory; memory can be turned off"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      }
+    ]
+  },
+  "method": "**the labels describe responsibility, not a ranking.** we make dusk bot and use its docs for the agent examples.\n\nwe didn't run matching tests across products. a chat interface can include tools, memory and background work. inspect the controls before deciding how much authority a product gets.",
+  "sections": [
+    {
+      "h": "when a chatbot is enough",
+      "md": "**a paragraph rewrite can stay a conversation.** paste the passage, discuss it and take the next step yourself. explanations, second opinions and draft wording often need no app access.\n\ntry: \"which terms in this paragraph are unclear? ask what i mean before rewriting it.\" you get help thinking and keep the original intact.\n\nthe [agent explainer](/guides/what-is-an-ai-agent) covers the vocabulary. choose around the work you need done."
+    },
+    {
+      "h": "when you need an agent",
+      "md": "**an agent helps when the result needs more than a reply.** a friday folder review needs file access and a schedule. dusk routines start through chat and show their next runs on a card.[^4]\n\ntry: \"every friday at 3, read this project folder's notes. list unanswered questions here. change nothing. stay quiet if there are none.\" [scheduled tasks](/scheduled-ai-tasks) turns a repeated request into work to supervise.\n\nthe machine still matters. dusk desktop routines stop during sleep or when the app closes. dusk cloud runs them on time.[^4]"
+    },
+    {
+      "h": "agent or plain automation?",
+      "md": "**use a fixed rule when a fixed rule will do.** if the same input always needs the same action, spell out the process. messy notes may need judgement; tell the agent which evidence to use.\n\nin dusk, read-only app access blocks changes. other app edits can happen without asking, so require confirmation before allowing writes.[^3] file and command approvals are separate.[^6]\n\nwatch the first runs and stop if the job grows. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) helps you choose its limits."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are the best uses for an agent in personal life?",
+      "a": "**start with a review you can read against the original.** name the notes or folder, result destination and quiet rule. keep changes out of the first routine."
+    },
+    {
+      "q": "does a chatbot become an agent just because it remembers me?",
+      "a": "**memory is separate from action.** dusk has a memory setting and app permissions for tools.[^5][^3] ask what it can do on your behalf, not just what it recalls."
+    },
+    {
+      "q": "do i need a group chat of agents for a simple job?",
+      "a": "**start with one bot.** dusk supports small, focused groups.[^7] add another job when it brings a distinct contribution."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot: what a bot is",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: jobs, tools and stopping work",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: connected-app limits",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: schedules and app events",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: memory controls",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot: command and file approvals",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: focused group chats",
+      "url": "/docs/group-chats"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "ai agent vs chatbot",
+  "keywords": [
+    "ai agents vs workflows",
+    "ai agent vs automation",
+    "ai agent vs zapier"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "choose a paragraph you want help with",
+      "ask for suggestions without changing the original",
+      "write down any next step you still do yourself",
+      "consider an agent only when that step needs tools"
+    ]
+  },
+  "decide": {
+    "cols": [
+      "the work you need",
+      "start with"
+    ],
+    "rows": [
+      [
+        "explain or rewrite material you paste",
+        "a conversation"
+      ],
+      [
+        "read a folder every friday",
+        "an agent with read access and a schedule"
+      ],
+      [
+        "apply the same fixed rule every time",
+        "a clearly defined automation"
+      ],
+      [
+        "make a decision with missing evidence",
+        "a person who can resolve the gaps"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "granting an account for a small question",
+      "fix": "paste the relevant excerpt when that is enough."
+    },
+    {
+      "mistake": "assuming an agent runs all night",
+      "fix": "find where it runs. a local routine stops with the computer or app."
+    }
+  ],
+  "tip": {
+    "text": "ask what the software can change. that answer tells you more than the word agent on its homepage."
+  },
+  "voice": 2
+}

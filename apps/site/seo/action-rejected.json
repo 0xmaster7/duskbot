@@ -1,0 +1,20 @@
+{
+ "_about": "action pages a reviewer rejected, with why; seo/scripts/plan-actions.mjs never proposes these again",
+ "paths": {
+  "/integrations/excel/create-comment": "microsoft graph beta, work or school accounts only, not for production",
+  "/integrations/excel/insert-range": "too fine-grained for a non-technical reader",
+  "/integrations/github/compare-two-commits": "developers only",
+  "/integrations/github/create-a-release": "maintainers only; publishes by default without asking",
+  "/integrations/github/list-notifications-for-authenticated-user": "needs a classic personal access token; fails on the managed sign-in",
+  "/integrations/github/list-pull-requests": "developer inventory; find pull requests covers the real question",
+  "/integrations/github/list-releases": "developers only",
+  "/integrations/google-calendar/get-event": "needs an internal id; find event covers it",
+  "/integrations/google-calendar/update-google-event": "near-duplicate of patch event and riskier",
+  "/integrations/google-drive/list-file-revisions": "returns only ids and dates, nothing usable",
+  "/integrations/slack/download-slack-file": "makes a public link to the file, even for a read-only bot",
+  "/integrations/slack/find-users": "a lookup step for other actions, not a job",
+  "/integrations/hubspot/create-contact-from-natural-language": "needs an openai api key inside the hubspot action",
+  "/integrations/hubspot/list-deal-activities": "returns only activity ids, not what happened",
+  "/integrations/youtube/list-comments": "a helper step that needs comment ids first"
+ }
+}

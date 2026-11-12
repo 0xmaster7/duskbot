@@ -1,0 +1,59 @@
+---
+title: dusk cloud
+description: a computer we host for your bots, so they keep working with your laptop shut. the way we recommend once bots are part of your day.
+section: start
+order: 2
+art: s-cloud
+---
+
+on your own computer, your bots stop when it sleeps. dusk cloud gives them a computer of their own that we look after, so routines run at 3am, long jobs finish while you are out, and your phone always has someone to talk to.
+
+## why it's the one we recommend
+
+- **always on.** routines run on time, every time. no "missed while asleep".
+- **nothing to look after.** no server, no updates, no keeping a laptop open. daily backups included.
+- **a real browser for every bot.** bots get their own desktop to sign in to sites and click through, and you can watch.
+- **your phone just works.** pair it with the cloud and it answers even when your computer is off.
+- **private to you.** your cloud has its own storage that no one else can reach, and your ai sign-in stays yours. plus and pro each run in a sandbox of their own; a team plan gets a whole machine.
+
+## what it costs
+
+| | plus | pro |
+| --- | --- | --- |
+| **price** | $20 a month, or $200 a year | $50 a month, or $500 a year |
+| **cloud computer** | 2 vcpu, 4 gb memory, 40 gb disk | 4 vcpu, 8 gb memory, 80 gb disk |
+| **bot computers awake at once** | a good amount | more, for heavy workloads, and first in line to wake |
+| **work license** | no | yes, for one person |
+
+ai usage is not part of the bill. your bots use the ai you sign in with, on your plan with them. current prices are always on [the pricing page](/pricing).
+
+## how it works
+
+1. pick plus or pro on [the pricing page](/pricing) and check out.
+2. in the app, open **settings**, **dusk cloud** and sign in. your cloud is ready in about a minute and shows up as **my cloud**.
+3. a short welcome walks you through it: bring your bots over (chats, memory and routines come too), sign in to your ai, and give your cloud a job.
+
+after that the app is a window onto your cloud. you use it exactly the same way.
+
+> tip: a bot that works around the clock uses your ai plan around the clock. for heavy use, a bigger ai plan or an api key works best.
+
+## files
+
+**settings**, **dusk cloud** has a files section.
+
+- **share a folder.** your cloud gets a read-only copy, kept up to date while your computer is on. a bot can read it but never change your files.
+- **get your bots' work.** what bots make on the cloud lands in `Documents/Dusk Bot` on your computer, a folder per bot and conversation.
+
+## where bots can live
+
+| | your computer | dusk cloud | your own server |
+| --- | --- | --- | --- |
+| **cost** | free | plus or pro | free, plus the server |
+| **works with the laptop shut** | no | yes | yes |
+| **who looks after it** | you | we do | you |
+
+start on your computer, move to the cloud when you want bots that never sleep. you can keep both and switch from the menu at the top of the sidebar. running a server yourself is covered in [your own server](/docs/your-own-server), and [where do ai agents run when your laptop is closed](/agents-when-laptop-closed) puts all the options side by side.
+
+## if you stop
+
+cancel from the billing page of your [account](/docs/account-and-billing). bots on your own computer carry on. the cloud computer is kept for 30 days after the plan ends and is then deleted (we email you a week before), so move your bots back or export a [backup](/docs/privacy-and-data#backups) first.

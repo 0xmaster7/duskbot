@@ -1,0 +1,132 @@
+{
+  "path": "/integrations/google-drive/create-permission",
+  "type": "action",
+  "title": "Share a Google Drive file with AI using exact access",
+  "nav": "create permission",
+  "h1": "give a named person google drive access with ai",
+  "description": "Give a contractor or reviewer access to the right Google Drive file. Choose their role, notification and expiry, then review the share before it happens.",
+  "keyword": "share google drive file with ai",
+  "keywords": [
+    "chatgpt grant google drive permission",
+    "claude share drive file with person",
+    "ai google drive access permissions"
+  ],
+  "answer": "**let the contractor open the brief without making the folder public.** a bot can grant google drive access to a person, group, domain or anyone. name the file, audience and role. sharing counts as a change even when google emails the recipient. put 'ask me before sharing anything' in your request to review the audience first.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "drive sharing",
+    "permission creation",
+    "access roles"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/upload-file",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "s-key",
+      "p-shield"
+    ],
+    "bubble": "access for this person"
+  },
+  "og_line": "the named recipient, with the intended role.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_CREATE_PERMISSION"
+  },
+  "what": "**give people just enough access to do the work.** pick who gets access and what they can do: read, comment or edit. the bot finds the file and shows its name first.\n\n- people and groups need an email address\n- domain access needs the domain; anyone access can make the file public\n- notifications default to on for people and groups, with an optional message\n- expiry only works for people and groups: a future time within one year",
+  "uses": [
+    "**give a contractor the brief.** grant reader access to the named file.",
+    "**collect comments without going public.** share with the agreed review group.",
+    "**limit a reviewer's access period.** choose an expiry date.",
+    "**let a collaborator edit.** confirm the person and writer role first."
+  ],
+  "routine": {
+    "message": "every tuesday at 3, inspect new files in my google drive folder 'lighting briefs ready for review'. read each file's reviewer email from its brief and check current access. propose reader access only where that person lacks it. show me the file, email, role and expiry, with notification email off. ask me before changing anything. share only approved files with approved people, then report the access. stop if a reviewer address is missing. never grant anyone or domain access, transfer ownership or upgrade a role.",
+    "when": "tuesdays at 15:00",
+    "needs": "google drive connected with read and write access for file lookup, permission reading and permission creation",
+    "output": "permission proposal\nfile: amberwick lighting brief\nrecipient: esteban@amberwickstage.example\nrole: reader. notification email: off.\ngrant access to this person only?"
+  },
+  "steps": [
+    "connect drive as read only first. ask the bot to find the exact file.",
+    "pick the recipient, role, notification choice and expiry. read them together.",
+    "allow the permission action with read and write access. tell it to show you the share before granting access.",
+    "open the file's sharing panel after the share. pause the routine when the review work ends."
+  ],
+  "watch": [
+    "**one change at a time per file.** if permission changes land together, only the last sticks.",
+    "**google emails people by default.** turn notifications off if you don't want that email.",
+    "**a missing address isn't permission to go public.** stop before anyone or domain access.",
+    "**ownership is a bigger handover.** it makes you an editor on your own file. keep it out of routines."
+  ],
+  "faq": [
+    {
+      "q": "will it ask me before sharing?",
+      "a": "**only if you tell it to.** sharing counts as a change, even when google emails someone. put 'ask me before sharing anything' in the request."
+    },
+    {
+      "q": "can i give access that expires?",
+      "a": "**yes, for people and groups.** choose a future expiry no more than a year away. it doesn't apply to anyone or domain access."
+    },
+    {
+      "q": "does turning off notifications stop access being granted?",
+      "a": "**turn notifications off to skip the email.** the person still gets access. choose the audience and notification setting separately."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "pick a file and a reviewer email",
+      "ask for a permission proposal without changes",
+      "choose reader, commenter or writer",
+      "say whether google should email them before approving"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "giving edit access for a review",
+      "fix": "choose commenter when you want feedback without edits."
+    },
+    {
+      "mistake": "sharing the same brief every week",
+      "fix": "read a ready-for-review folder and look up existing access first."
+    }
+  ],
+  "tip": {
+    "text": "read the actual email address, not just the recipient's first name."
+  },
+  "checklist": {
+    "h": "before you grant access",
+    "items": [
+      "the file is the intended version",
+      "the address belongs to the right person",
+      "the role grants only what they need",
+      "expiry and notification choices match your request"
+    ]
+  },
+  "voice": 2
+}

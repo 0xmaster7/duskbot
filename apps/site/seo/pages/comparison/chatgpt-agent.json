@@ -1,0 +1,266 @@
+{
+  "path": "/vs/chatgpt-agent",
+  "title": "ChatGPT agent is now Work: compare it with dusk bot",
+  "nav": "chatgpt work",
+  "h1": "chatgpt agent is gone: chatgpt work vs dusk bot",
+  "description": "ChatGPT agent has been replaced by Work. Compare current hosting, shared Codex usage, task limits and bot roles with dusk bot.",
+  "answer": "**pick the app that makes your next handoff easier.** as of 12 november 2026, openai says agent is no longer available.[^1] work replaces it for longer tasks and finished deliverables. web and phone run in the cloud; desktop can work locally too.[^2] dusk gives named bots their own memory and ai choices. compare the roles you need and the usage bills.",
+  "tags": [
+    "chatgpt",
+    "work",
+    "comparison",
+    "usage"
+  ],
+  "related": [
+    "/guides/chatgpt-scheduled-tasks",
+    "/vs/claude-cowork",
+    "/guides/how-much-does-an-ai-agent-cost"
+  ],
+  "competitor": {
+    "key": "chatgpt-agent",
+    "name": "ChatGPT Work",
+    "url": "https://chatgpt.com/"
+  },
+  "art": {
+    "props": [
+      "p-briefcase",
+      "s-coins"
+    ],
+    "label": "ChatGPT Work",
+    "bubble": "work has moved"
+  },
+  "og_line": "compare work, not retired agent mode.",
+  "verdict": {
+    "them_title": "chatgpt work",
+    "them": [
+      "**finish multi-step tasks inside chatgpt.** keep openai models and the work together.",
+      "**share one usage pool with codex.** that fits how you already budget."
+    ],
+    "dusk": [
+      "**keep roles apart.** each bot has its own memory and chats.",
+      "**choose ai per role and where bots live.** use your computer, server or dusk cloud."
+    ]
+  },
+  "compare": {
+    "h": "the current choice, rather than the old agent limits",
+    "intro": "**work and dusk give your tasks different homes and usage bills.** these rows reflect 12 november 2026. agent mode has retired; its old message quotas don't describe work's allowances.",
+    "cols": [
+      "ChatGPT Work",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "entry point",
+        "cells": [
+          "choose work inside chatgpt",
+          "download the app, sign in to your ai and create a bot"
+        ],
+        "src": [
+          3,
+          6
+        ]
+      },
+      {
+        "label": "cloud or local",
+        "cells": [
+          "cloud on web and mobile; desktop can work locally with files, apps and browser",
+          "local computer, your server or dusk cloud"
+        ],
+        "src": [
+          2,
+          7
+        ]
+      },
+      {
+        "label": "model choice",
+        "cells": [
+          "openai models within the chatgpt plan",
+          "ai chosen per bot; api keys and local models are also options"
+        ],
+        "src": [
+          2,
+          6
+        ]
+      },
+      {
+        "label": "usage pool",
+        "cells": [
+          "work and codex share usage, pricing and credits",
+          "ai usage is billed by the ai provider, separately from dusk"
+        ],
+        "src": [
+          4,
+          8
+        ]
+      },
+      {
+        "label": "scheduled tasks",
+        "cells": [
+          "active-task limits and timing controls vary by plan",
+          "made by chat; on your computer they wait while it sleeps or the app is closed"
+        ],
+        "src": [
+          5,
+          9
+        ]
+      },
+      {
+        "label": "starting price",
+        "cells": [
+          "limited desktop work on free; plus $20 monthly; pro from $100 monthly",
+          "free personal desktop use; dusk cloud plus $20 monthly, plus ai costs"
+        ],
+        "src": [
+          10,
+          7,
+          8
+        ]
+      }
+    ]
+  },
+  "method": "**use the rows to choose a setup, then try your own task.** we make dusk bot. openai's help and pricing pages were checked on 12 november 2026; dusk claims come from our docs.\n\nwe didn't run matching tasks. active-task caps count saved schedules. shared usage limits still govern how much work can finish.",
+  "sections": [
+    {
+      "h": "put the task where its files live",
+      "md": "**work can reach local files from desktop.** openai points former agent users to work.[^1] choose it inside chatgpt.[^3] the [cowork comparison](/vs/claude-cowork) covers another changing product.\n\nweb and phone tasks run in the cloud. desktop can use local files, apps and a browser.[^2] find where your file lives, then see which plugins work where you start the task."
+    },
+    {
+      "h": "your schedule count isn't your usage budget",
+      "md": "**work and codex spend from shared usage.** count both when you plan the month.[^4] an active schedule slot doesn't tell you how many runs your plan can finish. timing controls and active-task limits vary by plan.[^5]\n\ndusk separates hosting from ai usage. your provider bills the ai, and a bot tells you when that plan runs out.[^8][^11]\n\nread the [task guide](/guides/chatgpt-scheduled-tasks) for schedule caps and the [cost guide](/guides/how-much-does-an-ai-agent-cost) for the full bill."
+    },
+    {
+      "h": "test a handoff you can judge",
+      "md": "**find out how much correcting the handoff takes.** attach short notes. ask for agreed points, open questions and claims the notes don't support. compare the result with the original.\n\ndusk can give preparation and review separate jobs, chats and memory.[^11] try attached files first. if you connect apps later, keep the reviewer read only so it can read the work without changing it.[^12][^13]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "does chatgpt work run on my own computer?",
+      "a": "**desktop work can run locally.** it can use local files, apps and a browser. web and mobile work run in openai's cloud, as of 12 november 2026.[^2]"
+    },
+    {
+      "q": "can i use chatgpt agent on my iphone?",
+      "a": "**use its replacement, work.** it supports ios, android, web and desktop. phone and web tasks run in the cloud.[^2] old agent guides don't tell you current work quotas."
+    }
+  ],
+  "sources": [
+    {
+      "label": "openai: agent retirement",
+      "url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: work environments and usage",
+      "url": "https://help.openai.com/articles/20001275",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: get started with work",
+      "url": "https://learn.chatgpt.com/docs/get-started-with-work",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: work and codex pricing and credits",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: scheduled tasks and active limits",
+      "url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: ai choices and first run",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: where bots live",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: ai billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: desktop routine timing",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "openai: plan pricing",
+      "url": "https://developers.openai.com/codex/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bot jobs and ai limits",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: read-only access and sends",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "chatgpt agent mode",
+  "keywords": [
+    "chatgpt agent vs claude agent",
+    "chatgpt agent vs codex"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "pick one short document handoff",
+      "try work with the notes attached",
+      "try a dusk bot with the same notes",
+      "compare missing facts and corrections, not just polish"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "budgeting from an old agent message cap",
+      "fix": "read work and codex's current shared usage before setting the budget."
+    },
+    {
+      "mistake": "connecting every app for the first test",
+      "fix": "use attached notes. judge the handoff before granting wider access."
+    }
+  ],
+  "decide": {
+    "h": "which setup matches your work?",
+    "cols": [
+      "your priority",
+      "closer fit"
+    ],
+    "rows": [
+      [
+        "stay within chatgpt and openai models",
+        "chatgpt work"
+      ],
+      [
+        "different ai choices for separate jobs",
+        "dusk bot"
+      ],
+      [
+        "cloud on a phone and local desktop work",
+        "compare both on the actual task"
+      ],
+      [
+        "separate planning and review bots",
+        "dusk bot roles"
+      ]
+    ]
+  },
+  "tip": {
+    "text": "judge the second draft too; correcting the first answer is part of the job."
+  },
+  "voice": 2
+}

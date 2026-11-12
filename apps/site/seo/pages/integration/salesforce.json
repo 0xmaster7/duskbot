@@ -1,0 +1,178 @@
+{
+  "path": "/integrations/salesforce",
+  "type": "integration",
+  "title": "Salesforce AI assistant for deal reviews and lead checks",
+  "nav": "salesforce",
+  "h1": "a salesforce assistant that checks the record first",
+  "description": "Review Salesforce opportunities, leads and follow-up tasks with dusk bot. Copy bounded routines and see where read-only access stops record changes.",
+  "answer": "**find the deal with no next step on monday, before it slips at quarter end.** a dusk bot can search salesforce opportunities, leads and follow-up tasks with read-only access. get the owner, close date and missing next step together in chat. creating tasks or changing deals needs write access. start with the review; let the owner answer the gap.",
+  "tags": [
+    "crm",
+    "pipeline",
+    "sales-operations"
+  ],
+  "connectors": [
+    "salesforce"
+  ],
+  "related": [
+    "/integrations/hubspot",
+    "/use-cases/lead-research",
+    "/integrations/gmail"
+  ],
+  "art": {
+    "label": "Salesforce",
+    "props": [
+      "p-briefcase",
+      "p-magnifier"
+    ],
+    "bubble": "which deals need attention"
+  },
+  "og_line": "deal reviews with the record beside them.",
+  "app": {
+    "name": "Salesforce",
+    "toolkit": "salesforce",
+    "intro": "**choose the record type and review question first.**\n\n- an opportunity review should cite opportunity details.\n- a lead intake check should stay with lead fields.\n- these actions support those jobs without making the bot roam through every crm object.",
+    "highlight": [
+      {
+        "slug": "SALESFORCE_SEARCH_OPPORTUNITIES",
+        "use": "pull every deal closing this month before the monday meeting"
+      },
+      {
+        "slug": "SALESFORCE_GET_OPPORTUNITY",
+        "use": "open a deal before describing its next step"
+      },
+      {
+        "slug": "SALESFORCE_SEARCH_LEADS",
+        "use": "find leads matching the intake criteria you set"
+      },
+      {
+        "slug": "SALESFORCE_GET_LEAD",
+        "use": "inspect a lead before flagging missing information"
+      },
+      {
+        "slug": "SALESFORCE_SEARCH_TASKS",
+        "use": "find the follow-up that should happen before the deal closes"
+      },
+      {
+        "slug": "SALESFORCE_SEARCH_CONTACTS",
+        "use": "locate the contact relevant to a customer question"
+      },
+      {
+        "slug": "SALESFORCE_CREATE_TASK",
+        "use": "record an agreed follow-up as a new task"
+      },
+      {
+        "slug": "SALESFORCE_UPDATE_OPPORTUNITY",
+        "use": "fix a field you asked it to fix, nothing else"
+      }
+    ],
+    "setup": "**give the bot the fields that define your question.**\n\nallow salesforce for your sales bot in **connected apps**. start with the read actions needed for an opportunity and task review. name the team, records and fields.\n\nif your crm uses terms in a special way, explain them before scheduling."
+  },
+  "routines_intro": "**keep the pipeline where it is. bring the gaps here.** define the fields your team uses. these routines read records and ask questions; they don't rewrite stages or owners.",
+  "routines": [
+    {
+      "name": "close-date review",
+      "message": "every monday at 8, find our team's salesforce opportunities expected to close this month. read the deal details and related follow-up tasks where available. list those with no saved next step here. show the saved close date and owner. leave both alone. flag any records you cannot read.",
+      "when": "mondays at 8:00",
+      "output": "deals with missing next steps for the pipeline meeting"
+    },
+    {
+      "name": "lead intake gaps",
+      "message": "every weekday at 2, review new leads in salesforce that match our intake criteria. flag missing company or contact details. separate those gaps from leads ready for our qualification check. link findings to the records here. never guess field values, enrich details or convert leads.",
+      "when": "weekdays at 14:00",
+      "output": "an intake checklist beside the source lead records"
+    },
+    {
+      "name": "friday follow-up audit",
+      "message": "every friday at 10, find my salesforce tasks due this week. compare their saved status with related opportunity details you can read. list unfinished follow-ups and unclear links here. leave task statuses alone. if all are complete, say so in one line.",
+      "when": "fridays at 10:00",
+      "output": "unfinished follow-ups and unclear links in your chat"
+    }
+  ],
+  "asks": "**keep the review read only until you want record changes.** that blocks task creation and opportunity edits. if you later allow writes, put \"ask me before you change anything\" in the job. the sending setting does not hold record changes.\n\nsends ask by default unless you set a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^3]",
+  "cannot": [
+    "**it cannot change stages, owners or tasks with read-only access.** allow specific writes only if record maintenance becomes part of the job.",
+    "**it cannot fill gaps without evidence.** report an empty field as empty and ask its owner.",
+    "dusk classes **query contacts by name** as a write, so a read-only bot can't use it. use the search actions above instead.",
+    "**a sleeping local computer cannot deliver the review.** keep dusk open and the machine awake, or use dusk cloud."
+  ],
+  "sections": [
+    {
+      "h": "define what counts as a next step",
+      "md": "**find the ownerless next step on monday, rather than at quarter end.** tell the bot where your team saves next steps. a linked task and a vague note need different follow-up. ask it to bring both into the review.\n\nuse [lead research](/use-cases/lead-research) for a separate company brief. if your pipeline lives in [hubspot](/integrations/hubspot), start with its own record actions."
+    },
+    {
+      "h": "mail needs its own connection",
+      "md": "**bring the customer thread into the deal review when it matters.** connect [gmail](/integrations/gmail) separately and name the threads to read. salesforce access alone does not include that inbox.\n\nkeep the crm finding beside the email evidence. missing correspondence belongs in the questions for the owner."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what can a salesforce ai agent do without editing my crm?",
+      "a": "**bring record gaps into your chat.** the listed read actions cover opportunity searches, lead details and tasks. these routines return lists without changing records."
+    },
+    {
+      "q": "can claude update salesforce opportunities?",
+      "a": "**yes, if you allow that update action.** your bot uses the ai you choose. keep reviews read only, or tell it to ask before every record change."
+    },
+    {
+      "q": "how do i stop the bot making up missing lead information?",
+      "a": "**make missing values part of the result.** define the required fields and forbid guesses. open the linked records in the first reports and compare their fields."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude salesforce",
+  "keywords": [
+    "salesforce ai agent",
+    "salesforce mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect salesforce with only the needed read actions",
+      "name one opportunity",
+      "ask for its saved next step and follow-up tasks",
+      "open the deal record beside the answer"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling a deal healthy from a close date",
+      "fix": "ask what saved next step supports that judgment."
+    },
+    {
+      "mistake": "letting a reviewer fix fields",
+      "fix": "keep it read only until you choose a separate maintenance job."
+    },
+    {
+      "mistake": "assuming every lookup is a read",
+      "fix": "use the exact search and get actions listed above."
+    }
+  ],
+  "tip": {
+    "text": "an empty next-step field is a question for the owner."
+  },
+  "worked": {
+    "before": "leah sees a deal closing this month. the next-step field is empty.",
+    "after": "review question\n- close date: saved in salesforce\n- next step: missing\n- follow-up tasks: read before calling it stalled\n\nquestion for the owner: what happens before the close date?"
+  },
+  "voice": 2
+}

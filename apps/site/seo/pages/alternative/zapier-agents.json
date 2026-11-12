@@ -1,0 +1,254 @@
+{
+  "path": "/alternatives/zapier-agents",
+  "type": "alternative",
+  "title": "Zapier Agents alternatives: app reach or your own bots?",
+  "nav": "zapier agents",
+  "h1": "a zapier agents alternative you talk to in its own app",
+  "description": "Compare Zapier Agents with dusk bot on app coverage, recurring work and chat. Keep agent activities separate from Zap tasks before budgeting.",
+  "keyword": "zapier agents alternative",
+  "keywords": [
+    "zapier agents pricing",
+    "zapier agents review",
+    "ai agent vs zapier"
+  ],
+  "answer": "**keep the automation that works; move the job that's still a pain.** zapier agents acts across a large app catalogue, by request or trigger. dusk gives you named bots with separate memories, in a desktop app with local or hosted homes.\n\nzapier agents activities and zap automation tasks use different allowances. find out what your job spends before comparing bills.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "zapier-agents",
+    "alternatives"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/gumloop",
+    "/alternatives/n8n",
+    "/alternatives/ai-assistant-you-text"
+  ],
+  "competitor": {
+    "key": "zapier-agents",
+    "name": "Zapier Agents",
+    "url": "https://zapier.com/agents"
+  },
+  "art": {
+    "props": [
+      "s-plug",
+      "p-receipt"
+    ],
+    "label": "Zapier Agents",
+    "bubble": "which meter counts?"
+  },
+  "og_line": "buy the work, understand the meter.",
+  "verdict": {
+    "them_title": "zapier agents",
+    "them": [
+      "**you need an unusual app.** its catalogue lists 9,000+ apps.",
+      "**you want cloud triggers.** no computer for you to keep running.",
+      "**you want agents calling agents.** that handoff exists inside zapier."
+    ],
+    "dusk": [
+      "**you want separate bot conversations.** each bot keeps its own job and memory.",
+      "**you want to choose each bot's ai.** change it later as the job changes.",
+      "**you want to watch the work.** bots can have a separate browser and desktop."
+    ]
+  },
+  "compare": {
+    "h": "what each product sells",
+    "intro": "**an activity and a zap task spend different allowances.** prices are as of 12 november 2026. compare the charge for your actual process; a dusk chat uses another billing setup.",
+    "cols": [
+      "Zapier Agents",
+      "dusk bot"
+    ],
+    "rows": [
+      {
+        "label": "product shape",
+        "cells": [
+          "agents using company knowledge and taking actions across zapier apps",
+          "a small bot team with separate jobs, conversations and memory"
+        ],
+        "src": [
+          1,
+          4
+        ]
+      },
+      {
+        "label": "where you interact",
+        "cells": [
+          "web app and chrome extension",
+          "desktop app and a paired iphone or android browser"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "app coverage",
+        "cells": [
+          "9,000+ listed apps",
+          "60+ connected apps through composio; trusted mcp servers can be added"
+        ],
+        "src": [
+          1,
+          6
+        ]
+      },
+      {
+        "label": "starting allowance",
+        "cells": [
+          "agents free: 400 activities each month",
+          "free personal desktop use, with ai usage billed by your provider"
+        ],
+        "src": [
+          2,
+          7
+        ]
+      },
+      {
+        "label": "paid offering",
+        "cells": [
+          "agents pro: $33.33 monthly equivalent, billed $400 yearly; 1,500 monthly activities",
+          "cloud plus: $20 monthly or $200 yearly; pro: $50 monthly or $500 yearly"
+        ],
+        "src": [
+          2,
+          8
+        ]
+      },
+      {
+        "label": "background work",
+        "cells": [
+          "behaviours and triggers running in their cloud",
+          "scheduled or app-event routines; local work needs the computer awake and app open"
+        ],
+        "src": [
+          1,
+          9
+        ]
+      },
+      {
+        "label": "several agents",
+        "cells": [
+          "agent-to-agent calling",
+          "group threads where bots hand work to each other with mentions"
+        ],
+        "src": [
+          3,
+          10
+        ]
+      }
+    ]
+  },
+  "method": "**try the operation your process depends on.** we read zapier's agents and pricing pages against dusk docs on 12 november 2026. we make dusk bot.\n\nwe didn't run matching tasks or measure a real process's activities. we haven't tested each connection either. the catalogue tells you where to start looking; your trial tells you whether the job works.",
+  "sections": [
+    {
+      "h": "activities are not zap tasks",
+      "md": "**budget from agents activities, or you'll buy the wrong allowance.** as of 12 november 2026, agents free has 400 monthly activities. pro has 1,500, billed at $400 yearly and shown as $33.33 monthly. enterprise pricing is custom.[^2]\n\nthe automation free plan's 100 tasks belong to another allowance.[^2] zapier's pricing doesn't explain exactly which agent steps spend an activity. ask zapier to show the accounting for your process.\n\n[gumloop](/alternatives/gumloop) uses credits and orchestration fees; [n8n](/alternatives/n8n) bills workflow executions. compare a finished job against its bill, rather than treating those units as equal."
+    },
+    {
+      "h": "find the action behind the app name",
+      "md": "**one missing action can strand the whole job.** zapier lists 9,000+ apps;[^1] dusk lists 60+.[^6] an unusual tool is a good reason to try zapier first.\n\nwrite down each read, draft or change your process needs. try the essential operation before rebuilding everything around it.\n\nin dusk, limit the bot to reads or exact actions.[^6] keep the first trial read only. if the job needs writes, put \"ask me before you change anything\" in the routine.[^11]"
+    },
+    {
+      "h": "try the friday file review",
+      "md": "**get the weekly file roundup out of your head.** ask: \"every friday at 3, read your folder's files from this week. list filenames with one line about each. change nothing.\" bots keep their work in their own folders, alongside chats and memory.[^4][^6]\n\nmoving because you want phone chat? dusk uses its own app and paired phone browser. store apps are on the way.[^5]\n\nsee [assistants you text](/alternatives/ai-assistant-you-text) for messaging-app choices. read your ai provider's current terms before choosing the ai for your dusk bot."
+    }
+  ],
+  "faq": [
+    {
+      "q": "how much does zapier agents cost?",
+      "a": "**as of 12 november 2026: 400 monthly activities on free.** pro has 1,500 for $400 yearly, shown as $33.33 monthly. enterprise is custom. these are agents plans, separate from automation plans.[^2]"
+    },
+    {
+      "q": "will an agent run while my laptop is closed?",
+      "a": "**zapier says its agents run in the cloud.**[^1] local dusk routines need an awake computer and open app. dusk cloud keeps them running on time.[^8][^9]"
+    },
+    {
+      "q": "is a zapier task the same as an agents activity?",
+      "a": "**they are separate allowances.**[^2] ask zapier to show the bill for your exact process before comparing plans."
+    }
+  ],
+  "sources": [
+    {
+      "label": "zapier agents",
+      "url": "https://zapier.com/agents",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "zapier pricing",
+      "url": "https://zapier.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "zapier agent orchestration",
+      "url": "https://zapier.com/blog/orchestrate-zapier-agents/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: group chats",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot: computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose one existing workflow",
+      "write down its essential app action",
+      "try that exact action in the alternative",
+      "compare billing units before moving it"
+    ]
+  },
+  "checklist": {
+    "h": "before you switch a working process",
+    "items": [
+      "every required action exists, beyond the app name",
+      "you know which steps spend an activity",
+      "the annual commitment fits your budget",
+      "the result arrives where you will read it"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using the 100 free zap tasks in an agents budget",
+      "fix": "use agents activities. the plans count different work."
+    },
+    {
+      "mistake": "assuming 9,000 apps means every operation",
+      "fix": "test the exact read or change your workflow depends on."
+    }
+  ],
+  "tip": {
+    "text": "keep the old workflow until the new one finishes the job you actually need."
+  },
+  "voice": 2
+}

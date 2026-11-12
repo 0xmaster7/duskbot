@@ -1,0 +1,179 @@
+{
+  "path": "/integrations/jira",
+  "type": "integration",
+  "title": "Jira AI assistant: catch sprint changes before the meeting",
+  "nav": "jira",
+  "h1": "a jira assistant that explains what changed",
+  "description": "Read Jira issue history, sprint changes and release questions with dusk bot. Try three review routines and keep status changes under your control.",
+  "answer": "**walk into the sprint meeting knowing what changed yesterday.** a jira bot reads issues, comments and history, then explains scope and status changes in your dusk chat. schedule that review with the ai you choose.\n\nstart read only. you get the story behind the labels while tickets and the sprint stay where they are.",
+  "tags": [
+    "issues",
+    "sprints",
+    "releases"
+  ],
+  "connectors": [
+    "jira"
+  ],
+  "related": [
+    "/integrations/linear",
+    "/integrations/github",
+    "/for/product-managers"
+  ],
+  "art": {
+    "label": "Jira",
+    "props": [
+      "s-signpost",
+      "p-magnifier"
+    ],
+    "bubble": "what changed this sprint"
+  },
+  "og_line": "read the issue history before the verdict.",
+  "app": {
+    "name": "Jira",
+    "toolkit": "jira",
+    "intro": "**get the story behind the status label.** ask for the issue, comments and available history together. the bot brings back scope changes and questions with issue references, ready for the sprint or release meeting.",
+    "highlight": [
+      {
+        "slug": "JIRA_SEARCH_FOR_ISSUES_USING_JQL_POST",
+        "use": "pull the sprint issues matching your project and saved jql"
+      },
+      {
+        "slug": "JIRA_GET_ISSUE",
+        "use": "open the issue behind a surprising status"
+      },
+      {
+        "slug": "JIRA_GET_ISSUE_CHANGELOGS",
+        "use": "find when the scope or status changed before asking the team about it"
+      },
+      {
+        "slug": "JIRA_LIST_ISSUE_COMMENTS",
+        "use": "read the discussion behind a reopened bug"
+      },
+      {
+        "slug": "JIRA_LIST_SPRINTS",
+        "use": "find the sprint your board review is about"
+      },
+      {
+        "slug": "JIRA_GET_PROJECT_VERSIONS",
+        "use": "bring back the project versions for the release discussion"
+      },
+      {
+        "slug": "JIRA_GET_TRANSITIONS",
+        "use": "show which next states the issue can move to"
+      },
+      {
+        "slug": "JIRA_TRANSITION_ISSUE",
+        "use": "move an issue through the transition you agreed, with change access enabled"
+      }
+    ],
+    "setup": "**give it the same issue set the team uses.** connect jira and choose the bot that may read it. name the project, board and sprint. \"our current sprint\" needs that context.\n\nhave a saved jql filter for bugs or releases? use it, then compare the first returned issues with the team's queue."
+  },
+  "routines_intro": "**give each review one question to answer.** use the same issue selection your team uses. these routines read evidence and return questions without moving work or promising a release.",
+  "routines": [
+    {
+      "name": "what changed in the sprint",
+      "message": "every weekday at 4, read the jira sprint named in your job. read the issue histories for scope and status changes since the previous workday. group additions, removals and unclear history here, with issue keys. keep reading until the relevant history is complete; flag anything you cannot read. never change the sprint.",
+      "when": "weekdays at 16:00",
+      "output": "a sprint note with additions, removals and gaps in the history"
+    },
+    {
+      "name": "why bugs reopened",
+      "message": "every wednesday at 10, search the jira bug queue using the saved jql in your job. use our reopened-status rule from your memory notes. read matching issue histories and comments. report each reopening reason given in the issue here; leave missing reasons as questions. never assign blame or edit tickets.",
+      "when": "wednesdays at 10:00",
+      "output": "reopening reasons with issue references, plus questions where the history is silent"
+    },
+    {
+      "name": "questions before the release",
+      "message": "every thursday at 2, read issues from our saved release filter and the relevant project version. compare them with the release checklist in your memory notes. read comments when a status is unclear. return unresolved questions here. never change versions, statuses or dates.",
+      "when": "thursdays at 14:00",
+      "output": "questions for the release owner, without changing the candidate"
+    }
+  ],
+  "asks": "**read the workflow, then choose whether the bot can change it.** read-only access lets it inspect transitions and propose a next step. moving issues, assigning work and creating tickets need change access.\n\nthose edits don't wait for sending approval. if you enable writes, restrict the actions and put \"ask me before you change anything\" in the routine.\n\ncomments count as sends and ask unless you grant a daily amount.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^3]",
+  "cannot": [
+    "**move an issue with read-only access.** listing available transitions is a read; applying one is a change.",
+    "**invent why a bug reopened.** comments and history provide evidence. missing explanations should remain questions.",
+    "**declare a release ready from a filter.** the routine compares issues with your checklist and brings back unresolved work.",
+    "**review on schedule while the local machine sleeps.** dusk bot must be open and the computer awake. dusk cloud can keep the review running."
+  ],
+  "sections": [
+    {
+      "h": "use your team's actual workflow",
+      "md": "**teach it what reopened means on your team.** give the bot your status meanings and saved jql. compare the first report with the original issue histories.\n\nneed to know whether the code shipped? follow the release evidence, which may live in [github](/integrations/github). connect that separately when the review needs it."
+    },
+    {
+      "h": "make the note useful for a decision",
+      "md": "**bring the release owner questions worth answering.** sprint additions help a lead discuss scope. reopening reasons help pick a bug to investigate. unresolved release questions show the owner where a decision is needed.\n\nteams using [linear](/integrations/linear) can use its own issue tools. [product managers](/for/product-managers) get more from a focused question than another summary of everything."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude help with jira without changing tickets?",
+      "a": "**yes.** a dusk bot can use the search and read actions with jira read only. these three routines return findings in chat."
+    },
+    {
+      "q": "will it ask before changing an issue status?",
+      "a": "**put that instruction in the routine if you enable transitions.** status changes can run without asking. stay read only while you try the reviews."
+    },
+    {
+      "q": "what should i give a jira ai agent first?",
+      "a": "**one project, one issue selection, one question.** your existing jql helps. for history reviews, include the time window and actual status meanings."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude jira",
+  "keywords": [
+    "jira mcp",
+    "jira ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect jira with reading access",
+      "name one project and your existing issue filter",
+      "ask what changed in one issue since yesterday",
+      "compare the answer with the issue history"
+    ]
+  },
+  "checklist": {
+    "h": "before a recurring review",
+    "items": [
+      "the project, board and sprint are unambiguous",
+      "status meanings match your team's workflow",
+      "the review names gaps in history",
+      "it returns questions rather than changing issues"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating done as proof of a release",
+      "fix": "follow the code and release evidence when you need to know what shipped."
+    },
+    {
+      "mistake": "assuming reopened means the same thing everywhere",
+      "fix": "give the bot your real status rule and verify a first example."
+    }
+  ],
+  "tip": {
+    "text": "ask what changed since the last workday. a full project summary rarely helps the next meeting."
+  },
+  "voice": 2
+}

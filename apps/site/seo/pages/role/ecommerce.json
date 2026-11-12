@@ -1,0 +1,171 @@
+{
+  "path": "/for/ecommerce",
+  "type": "role",
+  "title": "AI agent for ecommerce: order facts and faster replies",
+  "nav": "ecommerce",
+  "h1": "an ai agent for the shop work between orders",
+  "description": "Use Shopify records and email to prepare customer replies, review abandoned checkouts and improve product copy. Keep refunds and publishing with you.",
+  "keyword": "ai agent for ecommerce",
+  "keywords": [
+    "ai assistant for shopify store owners",
+    "claude shopify"
+  ],
+  "answer": "**answer \"where's my order?\" with the right order open.** a store bot reads shopify records and customer email, then prepares replies from the details it finds. it can also review abandoned checkouts and suggest product copy.\n\nshopify needs your own composio project key and sign-in configuration; managed sign-in isn't available. start with store access read only.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "ecommerce",
+    "role",
+    "orders",
+    "customer-service",
+    "product-copy"
+  ],
+  "connectors": [
+    "shopify",
+    "gmail"
+  ],
+  "related": [
+    "/integrations/shopify",
+    "/integrations/gmail",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "props": [
+      "s-parcel",
+      "p-bag"
+    ],
+    "bubble": "the order behind the email"
+  },
+  "og_line": "order facts ready, customer reply drafted.",
+  "day_h": "where the store bot helps during the week",
+  "day": [
+    {
+      "when": "monday morning",
+      "what": "**see the abandoned checkouts.** review last week's results and missing details without sending recovery messages."
+    },
+    {
+      "when": "first inbox check",
+      "what": "**open the order behind the question.** use the order number in the customer email to find it."
+    },
+    {
+      "when": "before a product launch",
+      "what": "**write from the actual specifications.** keep missing dimensions and materials as questions."
+    },
+    {
+      "when": "late afternoon",
+      "what": "**finish the replies that need you.** read open customer threads and choose which drafts to send."
+    },
+    {
+      "when": "end of week",
+      "what": "**notice the repeated questions.** choose which product descriptions need clearer answers."
+    }
+  ],
+  "pack": [
+    {
+      "name": "weekly abandoned-checkout review",
+      "message": "every monday at 9, read last week's abandoned shopify checkouts available to this connection. list returned references, dates and item details here. group repeated items without guessing why people left. flag missing fields and incomplete results separately from no abandoned checkouts. never contact customers, send recovery messages, create discounts or change the store.",
+      "note": "**read only is enough.** use the abandoned-checkout listing action. [shopify setup](/integrations/shopify) covers its extra connection requirements."
+    },
+    {
+      "name": "customer replies grounded in the order",
+      "message": "each weekday at 11, read new customer questions in store gmail. use an email's order number to find that exact shopify order. draft a reply here from its details and the store-policy file in our project folder. ask about uncertain matches. never promise delivery dates, refunds or replacements without confirmation.",
+      "note": "**both apps can stay read only.** drafts return here. saving drafts in [gmail](/integrations/gmail) needs separate drafting access."
+    },
+    {
+      "name": "product copy from the current specifications",
+      "message": "every thursday at 3, read the product-review list and specification files in our store project folder. find the listed shopify products and compare their descriptions with those files. suggest clearer copy here and list unanswered buyer questions. skip products with no new review notes. never invent materials, performance claims or reviews. never publish or change listings.",
+      "note": "**keep a small, current review list.** use the folder as the recurring input, so each run checks products that need attention."
+    }
+  ],
+  "sections": [
+    {
+      "h": "shopify has an extra setup step",
+      "md": "**get shopify connected before promising yourself a monday report.** it needs your own composio project key and sign-in configuration. follow the [shopify setup](/integrations/shopify).\n\nwhile that's being set up, attach product notes and try a copy draft. you can see whether the writing helps before connecting the store."
+    },
+    {
+      "h": "give the customer an answer you can stand behind",
+      "md": "**a wrong delivery promise buys you another angry email tomorrow.** ask the bot for the order's current status and any missing details. keep arrival dates as questions until someone can confirm them.\n\nput your refund and replacement policy in a readable file. requests outside it come back to you. the bot does the lookup and prepares the reply; you decide what to promise."
+    },
+    {
+      "h": "keep refunds and publishing with you",
+      "md": "**keep the busywork moving while store changes stay with you.** read-only shopify access covers these jobs and blocks store edits. if a later job needs writes, include \"ask me before you change anything\". app edits don't all ask automatically.\n\nrunning a shop is work use and needs a license. cloud pro includes one for one person.[^3] see [pricing](/pricing). your ai provider bills usage separately."
+    }
+  ],
+  "faq": [
+    {
+      "q": "does this work for a non-technical store owner?",
+      "a": "**the jobs use ordinary messages; shopify setup takes more work.** it requires your own composio project and sign-in configuration. use attached notes and email first if that is not ready."
+    },
+    {
+      "q": "can it reply to customers without touching orders?",
+      "a": "**it can prepare replies while store access stays read only.** keep drafts in dusk chat and copy them yourself. saving gmail drafts needs the specific drafting actions."
+    },
+    {
+      "q": "will it automatically issue refunds?",
+      "a": "**these routines do not.** they report questions for your decision. keep shopify read only to prevent store changes."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "composio: shopify catalog and sign-in",
+      "url": "https://docs.composio.dev/toolkits/shopify",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "attach one product specification file",
+      "ask for a clearer description from that file alone",
+      "match each size, material and claim to the file",
+      "keep the proposed copy in chat until you choose to publish"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "matching customers by similar names",
+      "fix": "use the exact order number from the email. ask when the match is uncertain."
+    },
+    {
+      "mistake": "turning an order status into a delivery guarantee",
+      "fix": "quote what the record says. leave arrival promises for someone who can confirm them."
+    },
+    {
+      "mistake": "reviewing the same products forever",
+      "fix": "maintain a current review list and skip products without new notes."
+    }
+  ],
+  "checklist": {
+    "h": "before sending a customer reply",
+    "items": [
+      "the order number matches the email",
+      "the reply follows the current written store policy",
+      "delivery, refund and replacement promises have confirmation",
+      "private details belong to this customer"
+    ]
+  },
+  "tip": {
+    "text": "use the order number. two customers with the same name should never get each other's reply."
+  },
+  "voice": 2
+}

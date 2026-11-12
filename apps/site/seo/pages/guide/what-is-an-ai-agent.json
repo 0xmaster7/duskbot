@@ -1,0 +1,132 @@
+{
+  "path": "/guides/what-is-an-ai-agent",
+  "type": "guide",
+  "title": "What is an AI agent? A plain guide with small tasks",
+  "nav": "what is an ai agent",
+  "h1": "what is an ai agent, in plain english?",
+  "description": "See an AI agent at work on a small folder: how it differs from a chatbot, which tools it needs and what to tell it before it starts.",
+  "keyword": "what is an ai agent",
+  "keywords": [
+    "what is agentic ai",
+    "ai agent examples",
+    "how to use ai agents"
+  ],
+  "answer": "**an ai agent does the steps you would otherwise do yourself.** give it a goal and suitable tools. it can read the material, act, see what happened and choose the next step. a chatbot tells you how to rename 200 files. an agent renames them. that's the whole difference, and also the risk.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "agents",
+    "beginners",
+    "chat",
+    "tools"
+  ],
+  "connectors": [],
+  "related": [
+    "/vs/ai-agent-vs-chatbot",
+    "/guides/what-is-mcp",
+    "/scheduled-ai-tasks",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "props": [
+      "s-computer",
+      "p-bubbles"
+    ],
+    "bubble": "what happens next?"
+  },
+  "og_line": "a goal, some tools, and your limits.",
+  "sections": [
+    {
+      "h": "watch one small job instead of learning the jargon",
+      "md": "**turn the folder you keep avoiding into a reading index.** each document gets a subject and a pointer back to its source.\n\nthe agent finds the files, reads them and groups them. an unrelated file or one it cannot open belongs in the result as a gap.\n\nthe failure to fear isn't a crash. it's a confident index that silently skipped half the folder."
+    },
+    {
+      "h": "look at the tools behind the chat box",
+      "md": "**ask which steps you still have to do yourself.** a chatbot can explain how to make the index. an agent with suitable tools can inspect the files and make it.\n\nyou might text either one. some chat products also have tools. the interface alone does not decide the difference.\n\nthe [agent versus chatbot comparison](/vs/ai-agent-vs-chatbot) goes further. for now, ask: can it reach the material and put the result where i need it?"
+    },
+    {
+      "h": "give it four things before it starts",
+      "md": "**tell it what finished looks like.** 'help me get organised' leaves almost every decision open. try this brief instead.\n\n- **goal:** make a reading index\n- **material:** use this exact folder\n- **boundary:** leave originals alone and report unreadable files\n- **result:** group source names by subject in the chat\n\nnow you can compare the index with the folder. if a source is missing, ask why. keep the first result small enough to read in a few minutes."
+    },
+    {
+      "h": "where dusk fits",
+      "md": "**keep a bot that remembers the job for next time.** dusk is a desktop app for a small team you text like teammates. each bot has its own job and memory; you choose its name and ai.[^1]\n\ndusk has no model of its own. it runs vendors' official command-line apps where your bots live. your chosen ai does the thinking.[^1][^2]\n\ndrop files into chat or use **attach files**. results appear there and live in the bot's folder or your chosen project folder.[^2] start with a folder. don't hand it your inbox on day one."
+    },
+    {
+      "h": "access is one choice; repetition is another",
+      "md": "**a useful first job can live inside one folder.** add an app when the task needs it, then look at the actions its connection gives the bot.\n\nthe [mcp guide](/guides/what-is-mcp) explains one way apps connect to tools. every extra permission should have a job to do.\n\nin dusk, a routine repeats a job you describe once. local routines stop when the app closes or the computer sleeps.[^3] [scheduled ai tasks](/scheduled-ai-tasks) covers hosting. a finished reading index may never need a weekly schedule."
+    },
+    {
+      "h": "read the result beside the source",
+      "md": "**a source name beside each claim makes the review quicker.** compare dates, names and claims with the originals before passing the work on. a busy tool log tells you little about whether the answer is right.\n\nkeep the job small and the access narrow. when a run goes well, give it the next useful task.\n\nbefore trying accounts or computer control, read the [safety guide](/guides/is-it-safe-to-let-ai-control-your-computer)."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are people actually using ai agents for?",
+      "a": "**index documents, compare two files or review new entries in a tracker.** start with inputs you know, then compare the result with those sources."
+    },
+    {
+      "q": "does an ai agent have to run all day?",
+      "a": "**no, one job is enough.** recurring work needs a schedule and a computer or hosted setup running when it is due."
+    },
+    {
+      "q": "is an ai agent the same as a bot?",
+      "a": "**bot is the broader word.** look at a particular bot’s tools, access and instructions to understand what it can do."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: getting started and the ai",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "choose two short files you can share",
+      "ask for one sentence about each, with its source name",
+      "tell it to leave originals alone",
+      "compare the answer with both files"
+    ]
+  },
+  "worked": {
+    "intro": "an invented example with made-up people and files.",
+    "before": "nora has three project notes and a meeting in ten minutes. each file has a different title.",
+    "after": "the agent groups the three notes by subject and names their sources. one unreadable attachment appears under \"could not open\". nora knows what still needs her."
+  },
+  "checklist": {
+    "h": "a first job you can review in minutes",
+    "items": [
+      "the material is small and you know where it came from",
+      "the result has a clear shape",
+      "original files stay untouched",
+      "missing inputs must appear as gaps"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to organise your whole life",
+      "fix": "choose one folder and one finished result."
+    },
+    {
+      "mistake": "trusting the answer because tools ran",
+      "fix": "compare the sources it used with the material you gave it."
+    }
+  ],
+  "tip": {
+    "text": "your first agent job should be small enough that you can spot a wrong answer."
+  },
+  "voice": 2
+}

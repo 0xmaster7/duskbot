@@ -1,0 +1,115 @@
+{
+  "path": "/integrations/gmail/get-gmail-attachment",
+  "type": "action",
+  "title": "Download Gmail attachments with AI from the right email",
+  "nav": "get an attachment",
+  "h1": "get the gmail attachment you actually need",
+  "description": "Bring the signed Gmail attachment to your next call. Find it by sender, subject and filename, get a copy in chat and leave the original in Gmail.",
+  "keyword": "download gmail attachment with ai",
+  "keywords": [
+    "gmail get attachment with ai",
+    "chatgpt download gmail attachments",
+    "claude retrieve gmail attachment"
+  ],
+  "answer": "**walk into the call with the signed agreement open.** give the bot the sender, subject and filename. it finds the gmail message, selects the attachment and returns a download in your chat.\n\nyou get a copy. the original email and attachment stay in gmail, ready to find again.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "gmail",
+    "attachments",
+    "downloads"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/use-cases/file-organizer",
+    "/integrations/gmail/list-drafts"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-parcel",
+      "p-magnifier"
+    ],
+    "bubble": "the attached contract"
+  },
+  "og_line": "the file from the email you meant.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_GET_ATTACHMENT"
+  },
+  "what": "**last month's unsigned contract is no help on today's call.** the bot finds the email, reads its attachment list and downloads the file you mean. it can name the downloaded copy so you recognise it.\n\ngive it the sender and rough date as well as the filename. open the returned file and look for the signature.",
+  "uses": [
+    "**bring the signed agreement to the call.** fetch it from the venue booking email.",
+    "**use the corrected drawing.** choose the supplier message that replaced the earlier version.",
+    "**find the travel receipt again.** start from the airline email instead of guessing where you saved it."
+  ],
+  "routine": {
+    "message": "every tuesday at 9:30, find emails received since last tuesday from yasmin at fenwick hall. retrieve pdf attachments that the messages describe as signed agreements. return each download here with its email subject and date.\n\nif two files could be the signed version, ask which i mean. if no new agreement arrived, say so briefly. never forward files or change messages.",
+    "when": "tuesdays at 9:30",
+    "needs": "gmail read only, with message searches and attachment downloads allowed",
+    "output": "new agreement from fenwick hall\n\n- sender: yasmin\n- subject: countersigned venue terms\n- file: fenwick-signed-venue.pdf\n\ncopy ready here. the original stays in gmail."
+  },
+  "steps": [
+    "**connect the inbox holding the file.** give this bot gmail read-only access.",
+    "**describe the email and attachment.** include sender and subject. ask it to inspect the message first.",
+    "**open one returned copy.** look for the signature and version date, then set the collection routine. pause it when agreements stop arriving."
+  ],
+  "watch": [
+    "**same filename, different emails.** name the sender and rough date to distinguish them.",
+    "**local schedules need an awake computer.** a run under 12 hours late runs once when you return. older runs skip; dusk cloud runs on time."
+  ],
+  "faq": [
+    {
+      "q": "can i ask for an attachment by filename?",
+      "a": "**yes, as a clue.** the bot still finds the email and checks its attachments before downloading."
+    },
+    {
+      "q": "does downloading remove the attachment from gmail?",
+      "a": "**no.** you get a copy. the original email and file stay where they were."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect the right gmail account, read only",
+      "name the sender, subject and file",
+      "ask for the newest signed copy",
+      "open the download and find the signature"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for contract.pdf with no context",
+      "fix": "add who sent it and roughly when. filenames repeat."
+    },
+    {
+      "mistake": "assuming newest means signed",
+      "fix": "read the email and open the file. a newer attachment can still be a draft."
+    }
+  ],
+  "tip": {
+    "text": "ask for the email date beside the download. it makes the wrong version easier to spot."
+  },
+  "voice": 2
+}

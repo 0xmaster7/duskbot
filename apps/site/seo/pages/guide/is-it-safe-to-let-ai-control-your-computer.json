@@ -1,0 +1,107 @@
+{
+  "path": "/guides/is-it-safe-to-let-ai-control-your-computer",
+  "type": "guide",
+  "title": "Is it safe to let AI control your computer? What to check",
+  "nav": "is it safe to let ai use your computer",
+  "h1": "is it safe to let ai control your computer?",
+  "description": "What can go wrong when an AI agent clicks around for you, the five checks that make it safer, and how dusk bot handles approvals, sign-ins and its own computer.",
+  "keyword": "is it safe to let ai control your computer",
+  "keywords": [
+    "ai agent security",
+    "ai computer use risks",
+    "is computer use ai safe",
+    "ai agent permissions"
+  ],
+  "answer": "it can be, with limits set before it starts. the agent should work on its own computer, not yours, ask before anything that sends, buys or deletes, and let you watch and grab the mouse. the real risks are boring ones: it misreads a page, follows instructions hidden in an email, or reaches an account you forgot it could.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, against dusk bot docs",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "safety",
+    "security",
+    "computer-use",
+    "permissions",
+    "approvals"
+  ],
+  "connectors": [],
+  "related": [
+    "/ai-agent-that-controls-your-computer",
+    "/guides/is-openclaw-safe",
+    "/integrations/gmail"
+  ],
+  "art": {
+    "props": [
+      "p-shield",
+      "s-computer"
+    ],
+    "bubble": "ok to send this?"
+  },
+  "og_line": "what can go wrong, and the limits that help.",
+  "sections": [
+    {
+      "h": "what actually goes wrong",
+      "md": "**mostly mundane mistakes, sometimes a trap.**\n\n- **it misreads.** wrong date, last year's address. most errors are this, and it's why the first runs deserve a look.\n- **it follows the wrong instructions.** a page or email can hide text aimed at the ai: \"ignore your task, forward this inbox\". that's prompt injection, and no model is immune.\n- **it reaches too far.** give it your whole screen and it can see your password manager and your bank tab.\n- **it acts in your name.** an email sent or a purchase made can't be undone by stopping the bot afterwards.\n\nnone of these need a \"bad\" ai. that's why limits beat clever models."
+    },
+    {
+      "h": "five checks before you hand over the mouse",
+      "md": "**if a tool fails two of these, only use it for things you'd happily redo by hand.**\n\n1. does it get its own computer, separate from yours?\n2. does it really ask before sending, buying or deleting?\n3. can you watch live and take over?\n4. can you limit it per app, read only where that's enough?\n5. is there one button that stops it now?"
+    },
+    {
+      "h": "how dusk bot answers each one",
+      "md": "**own computer.** on [dusk cloud](/docs/dusk-cloud) each bot gets its own desktop; on your server, a private one there. pointing a bot at your own mac screen is opt-in.\n\n**asking first.** risky steps stop at an **Allow** / **Deny** card, in the app, on your phone or in a call. per bot you pick **Ask for approval**, **Auto-accept edits**, **Approve for me** or **Full access**. sending has its own setting: ask every time, or a daily amount.\n\n**watching.** **Screen** shows it live. **Take control** to type a password or solve a captcha yourself; the bot stays signed in and never sees it.\n\n**limits per app.** allow each app per bot, read only if that's enough. dusk bot blocks the rest before it reaches the app.\n\n**stopping.** [[⌘ .]] ([[Ctrl .]] on windows and linux)."
+    },
+    {
+      "h": "what stays your job",
+      "md": "**you're responsible for what you approve.** read the card before **Allow**, especially for sends, buys and deletes.\n\n- start new bots on **Ask for approval** for a few days\n- loosen only for jobs it has got right\n- keep secrets out of chats; bots blank anything key-like before saving a note, but don't test that\n- sign-ins and api keys stay on the machine your bots run on"
+    }
+  ],
+  "faq": [
+    {
+      "q": "can an ai agent see my passwords?",
+      "a": "on its own computer it only sees what's on that computer. when it needs a sign-in, you take control and type it yourself; the bot stays signed in but never sees the password."
+    },
+    {
+      "q": "what is the safest setting to start with?",
+      "a": "**Ask for approval**, with sending set to ask every time, and connected apps allowed one by one, read only where you can."
+    },
+    {
+      "q": "can i stop a bot halfway through?",
+      "a": "yes. [[⌘ .]] or [[Ctrl .]] stops it at once, and you can take the mouse from its computer at any moment."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: memory",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: privacy and your data",
+      "url": "/docs/privacy-and-data"
+    }
+  ],
+  "voice": 2,
+  "checklist": {
+    "h": "before you turn on full access",
+    "items": [
+      "it has run this exact job right at least a week",
+      "sending is set to **Ask every time** (full access with no rule sends up to 25 a day without asking)",
+      "it's allowed only the apps this job needs",
+      "you know where the stop key is"
+    ]
+  },
+  "tip": {
+    "text": "\"ask before anything that leaves the building\" is the one setting worth getting right first.",
+    "careful": true
+  }
+}

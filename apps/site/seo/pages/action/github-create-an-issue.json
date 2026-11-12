@@ -1,0 +1,127 @@
+{
+  "path": "/integrations/github/create-an-issue",
+  "type": "action",
+  "title": "Create a GitHub issue with AI from a clear bug report",
+  "nav": "create an issue",
+  "h1": "turn your bug notes into a github issue with ai",
+  "description": "Give a developer a GitHub issue they can start on: what happened, what you expected and the steps you tried, with a review before filing.",
+  "keyword": "create github issue with ai",
+  "keywords": [
+    "chatgpt create github issue",
+    "claude write github bug report",
+    "ai turn notes into github issue"
+  ],
+  "answer": "**a useful bug report saves the next person a round of questions.** give your bot the repository and what you saw. it can file an issue with a title, body, labels and assignees. the repository must allow issues. creation is a write, so say \"show me before you file it\" when you want a review.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "github issues",
+    "bug reports",
+    "issue creation"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/add-labels-to-an-issue",
+    "/integrations/github/close-an-issue"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "bug report ready"
+  },
+  "og_line": "give the report a clear place to land.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CREATE_AN_ISSUE"
+  },
+  "what": "**give the developer enough to start, without a follow-up interview.** the bot needs the repository owner, name and issue title. add what happened, what you expected and the steps you actually tried. leave unknown details as questions.\n\nlabels, assignees and milestones are optional. github can quietly skip extras your account cannot set. open the finished issue to see which ones stuck.",
+  "uses": [
+    "**save the demo failure.** turn your customer demonstration notes into steps someone can follow.",
+    "**make accessibility work concrete.** describe the missing behaviour and exactly how you found it.",
+    "**fix a docs gap.** file the small writing change in the repository that owns it.",
+    "**capture an agreed task.** leave the deadline and owner blank unless someone chose them."
+  ],
+  "routine": {
+    "message": "every friday at 4, read bug notes added this week to the booking-desk bug reports folder. use only notes marked ready for copperfinch/booking-desk.\n\n- prepare a title, observed result, expected result and reproduction steps from each note\n- search the repository for matching reports\n- show any matches and proposed issues here\n\nask me before you change anything. create only the issues i confirm. don't invent steps or assign anyone. if a matching report exists, ask what to do. skip notes that already link to a filed issue.",
+    "when": "fridays at 16:00",
+    "needs": "access to the bug reports folder; github read and write for issue search and creation in copperfinch/booking-desk",
+    "output": "issue proposal: booking confirmation loses the room name\nrepository: copperfinch/booking-desk\n\nrenata's note: choose a room, save a booking, reopen the confirmation.\nexpected: the selected room name stays visible.\nactual: the room field is blank.\n\nsearch found no matching report. waiting before creation."
+  },
+  "steps": [
+    "**name the repository exactly.** connect github and give its owner and repository, not just an internal nickname.",
+    "**allow only needed actions.** issue search and creation need read and write. read only cannot file anything.",
+    "**read the proposal first.** tell it to wait for your confirmation before creating the issue.",
+    "**see what stuck.** open the new issue and look for the labels, assignees and milestone you requested."
+  ],
+  "watch": [
+    "**issues must already work there.** this action cannot create a repository or turn its issues on.",
+    "**success can hide skipped extras.** github can file the issue while dropping labels, assignees or a milestone your account cannot set.",
+    "**creation doesn't pause by itself.** keep an ask-first line in the routine if you want to review it.",
+    "**the issue starts the investigation.** your evidence gives a developer somewhere to begin; filing alone neither reproduces nor fixes the bug."
+  ],
+  "faq": [
+    {
+      "q": "can it file an issue without assigning a developer?",
+      "a": "**yes, ownership can stay blank.** only the title, repository owner and repository name are required. assignees are optional."
+    },
+    {
+      "q": "why did my new issue appear without its label?",
+      "a": "**github can quietly drop a label your account cannot set.** creation can still succeed. open the issue and look at its labels."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "give the repository owner and name",
+      "describe one actual failure and its steps",
+      "ask for an issue proposal without filing",
+      "look for an existing report before confirming"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "the repository has issues enabled",
+      "the steps describe what someone really tried",
+      "uncertain details remain questions",
+      "the final issue has the extras you requested"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "filing a polished guess",
+      "fix": "leave missing evidence as questions. tidy wording cannot replace a reproduction step."
+    },
+    {
+      "mistake": "treating a successful create as a complete setup",
+      "fix": "open the issue. labels and assignments can disappear without stopping creation."
+    }
+  ],
+  "tip": {
+    "text": "a screenshot and three honest steps beat a confident paragraph about a cause nobody tried to reproduce."
+  },
+  "voice": 2
+}

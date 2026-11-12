@@ -1,0 +1,132 @@
+{
+  "path": "/use-cases/market-research",
+  "type": "use-case",
+  "title": "AI market research with a source for each finding",
+  "nav": "market research",
+  "h1": "an ai market research bot that shows its sources",
+  "description": "Give a research bot a narrow question and a browser. Copy a routine for a sourced market brief with clear gaps, dates and limits.",
+  "keyword": "ai market research",
+  "keywords": [
+    "ai research agent",
+    "ai agent for market research",
+    "ai research assistant agent"
+  ],
+  "answer": "**get a sourced brief in chat every other monday instead of losing an afternoon to tabs.** give the bot a narrow market question and a browser. ask for links, dates and a short supporting passage beside each finding. you can follow the evidence back before acting. keep unread pages and unknowns visible, so a confident report does not quietly turn guesses into your next business decision.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "research",
+    "sources",
+    "markets",
+    "browser"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/competitor-monitoring",
+    "/use-cases/lead-research",
+    "/use-cases/web-scraping"
+  ],
+  "art": {
+    "props": [
+      "s-books",
+      "p-magnifier"
+    ],
+    "bubble": "show me the evidence"
+  },
+  "og_line": "get the brief. follow the evidence back.",
+  "routine": {
+    "intro": "**test the question before putting it on a schedule.** give the researcher its own browser. save the question and permitted source list in a project file it can read.",
+    "message": "every other monday at 10, read the research brief and source list in my architecture research project folder. revisit this question: what problems do small architecture studios describe when sharing project files with clients?\n\nuse your own browser. for each source, record its title, web address, publication date if visible and the date you read it. include a short supporting passage for each finding. separate company claims, reported experiences and your inferences.\n\ngroup repeated problems without turning mentions into market-size estimates. include contrary evidence and pages you could not read. finish with customer interview questions. never sign up, contact anyone or buy reports.",
+    "when": "every other monday at 10:00, after a trial with your chosen sources",
+    "needs": "a bot with its own browser and access to your research brief and source list file; no connected app required",
+    "output": "client file handovers, for sorrel\n\nan architect’s forum post describes sending the wrong drawing revision: “we sent the previous drawing set.” that gives us an interview question, not a count of how often this happens.\n\nsource: page title and web address; read 12 november 2026.\n\na studio blog says a shared naming rule fixed its problem. neither source discusses budget, so willingness to pay stays unknown.\n\nask customers: what happened the last time a client opened the wrong version?"
+  },
+  "sections": [
+    {
+      "h": "make the question small enough to answer",
+      "md": "**give it a decision you need to make.** are you choosing interviewees, a feature or a message to test? name the buyer and problem behind that decision. “research construction” can eat an afternoon and still leave you guessing.\n\nstart with sources you would read yourself. ask for the original evidence. several articles quoting one report still rest on that one report."
+    },
+    {
+      "h": "put the passage beside the claim",
+      "md": "**put the passage beside the claim and save the second hunt.** a link should take you to the evidence, not leave you searching the article again. ask for short passages in context, with missing dates marked.\n\nuse the bot’s separate browser. watch with screen; take control for sign-ins or two-step codes, then hand control back.[^1]\n\nif you already know the businesses to follow, [competitor monitoring](/use-cases/competitor-monitoring) gives you a narrower recurring job."
+    },
+    {
+      "h": "turn the evidence into better interview questions",
+      "md": "**find the question worth asking a customer next.** a public complaint can point you towards a conversation. keep it labelled as a reported experience, with company claims and your own inferences separate.\n\nprivate revenue, market-wide satisfaction and demand for an untested idea can stay unknown. leave unread reports in the gaps list, however promising their titles look.\n\n[lead research](/use-cases/lead-research) helps prepare interviews. [web scraping](/use-cases/web-scraping) suits known pages and specific fields."
+    }
+  ],
+  "safeguards": [
+    "**require readable support.** drop a finding if only the page title backs it.",
+    "**label the kind of evidence.** keep facts, reported experiences and inferences on separate lines.",
+    "**report access gaps.** stop at restrictions rather than trying to work around them.",
+    "**read the inconvenient evidence.** review contrary findings before spending money."
+  ],
+  "faq": [
+    {
+      "q": "can a non-technical business owner set up a research bot?",
+      "a": "**yes.** write the job and routine in plain words. choosing a narrow question and useful sources takes more thought than the setup. start with a brief you can trace."
+    },
+    {
+      "q": "can it tell me the size of my market?",
+      "a": "**only use an estimate with a readable supporting source.** compare its definition with your question. this routine does not turn scattered mentions into market size."
+    },
+    {
+      "q": "how do i know the sources are real?",
+      "a": "**open them and read the passages in context.** keep unread pages separate. a confident claim without evidence should not survive review."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: bots",
+      "url": "/docs/bots"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "write one buyer-and-problem question",
+      "give the bot two sources you can inspect",
+      "ask for one finding with a passage and date",
+      "open the source and read the passage in context"
+    ]
+  },
+  "worked": {
+    "intro": "an invented research handoff",
+    "before": "sorrel has a report saying architects struggle with files. its links mostly repeat the same story.",
+    "after": "the monday brief separates the original incident from articles repeating it. sorrel gets a studio’s different experience and a budget question to ask next, with a path back to each source."
+  },
+  "checklist": {
+    "h": "before a finding changes your plans",
+    "items": [
+      "the source opens and supports the passage",
+      "the date fits the decision",
+      "repeated articles are not mistaken for separate evidence",
+      "contrary evidence and unknowns remain visible"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "counting repeated articles as repeated demand",
+      "fix": "trace them back to the original evidence."
+    },
+    {
+      "mistake": "using an unread paid report as proof",
+      "fix": "put it in the access gaps and leave its claims unconfirmed."
+    }
+  ],
+  "tip": {
+    "text": "ask what would change your mind before asking the bot to build a case."
+  },
+  "voice": 2
+}

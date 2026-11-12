@@ -1,0 +1,170 @@
+{
+  "path": "/integrations/youtube",
+  "type": "integration",
+  "title": "YouTube AI assistant for comments and channel reviews",
+  "nav": "youtube",
+  "h1": "a youtube assistant for the work around your videos",
+  "description": "Review YouTube comments, playlists and channel data with dusk bot. See available caption actions, three routines and the limits on video summaries.",
+  "answer": "**your next video idea may already be sitting in the comments.** a dusk bot can collect viewer questions, group recurring topics and bring you the comments behind them. it also reads video details and playlists with the ai you choose. spoken-content summaries need downloadable captions; that action requires video ownership, so a link alone is not enough.",
+  "tags": [
+    "video",
+    "comments",
+    "channel-review"
+  ],
+  "connectors": [
+    "youtube"
+  ],
+  "related": [
+    "/integrations/twitter",
+    "/use-cases/market-research",
+    "/use-cases/newsletter"
+  ],
+  "art": {
+    "label": "YouTube",
+    "props": [
+      "p-newspaper",
+      "p-bubbles"
+    ],
+    "bubble": "questions worth answering next"
+  },
+  "og_line": "turn comments into a useful review list.",
+  "app": {
+    "name": "YouTube",
+    "toolkit": "youtube",
+    "intro": "**turn the work around your videos into a list you can act on.**\n\n- comments show what viewers keep asking.\n- playlists show the videos in your series.\n- video details give you titles and descriptions to review.\n- captions, when available, give you the spoken content for a summary.",
+    "highlight": [
+      {
+        "slug": "YOUTUBE_LIST_CHANNEL_VIDEOS",
+        "use": "**find the uploads.** collect videos from the channel you name."
+      },
+      {
+        "slug": "YOUTUBE_GET_VIDEO_DETAILS_BATCH",
+        "use": "**spot outdated descriptions.** read the details of selected videos together."
+      },
+      {
+        "slug": "YOUTUBE_LIST_COMMENT_THREADS2",
+        "use": "**gather viewer questions.** read comment threads for the chosen videos."
+      },
+      {
+        "slug": "YOUTUBE_LIST_COMMENTS",
+        "use": "**read the replies.** inspect individual comments needed for a response review."
+      },
+      {
+        "slug": "YOUTUBE_LIST_PLAYLIST_ITEMS",
+        "use": "**review a lesson series.** list the videos in the playlist you give it."
+      },
+      {
+        "slug": "YOUTUBE_LIST_CAPTION_TRACK",
+        "use": "**find the caption track.** see what the connection returns for your video."
+      },
+      {
+        "slug": "YOUTUBE_LOAD_CAPTIONS",
+        "use": "**download an owned track.** get caption text when your account owns the video."
+      },
+      {
+        "slug": "YOUTUBE_CREATE_COMMENT_REPLY",
+        "use": "**answer a viewer.** send a reviewed reply under the sending rule."
+      }
+    ],
+    "setup": "**start with the questions under one video.**\n\nconnect youtube with read access and name the channel or videos. leave replies and moderation out of that first job.\n\nfor captions, allow the download action separately: dusk counts it as a change, so read only blocks it. your account must still own the video; extra app access does not bypass that requirement."
+  },
+  "routines_intro": "**have the useful bits ready for the next recording.** keep video links, lesson lists and current contact details in project files. these routines bring the review to chat without publishing or moderating.",
+  "routines": [
+    {
+      "name": "viewer question notebook",
+      "message": "every tuesday at 10, read the beginner-series video links in the project’s youtube-review file. gather their youtube comment threads. group practical questions by topic, with the video and comment behind each. return the notebook here. never reply or moderate comments.",
+      "when": "tuesdays at 10:00",
+      "output": "a topic notebook for the next recording"
+    },
+    {
+      "name": "playlist coverage check",
+      "message": "on the first friday of each month at noon, read the onboarding playlist link and lesson checklist in the project folder. list its youtube videos and compare their titles with that checklist. show possible missing topics here. flag title gaps for a lesson review; do not assume the lesson itself is missing. never change the playlist.",
+      "when": "first friday monthly at 12:00",
+      "output": "a playlist review with possible topic gaps"
+    },
+    {
+      "name": "video description housekeeping",
+      "message": "every thursday at 3, read video links from the project’s description-review file. compare their youtube descriptions with the current contact address and resource links in that file. show mismatches beside the current wording here. never update the videos.",
+      "when": "thursdays at 15:00",
+      "output": "description mismatches beside the current wording"
+    }
+  ],
+  "asks": "**a viewer will read the reply as yours.** comments and replies ask first by default; a daily sending amount lets the bot send within it.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.\n\nvideo edits, playlist changes and moderation use different rules. read-only access blocks them. if you allow writes, choose the exact actions and say \"ask me before you change anything\". the question notebook can stay read only.",
+  "cannot": [
+    "**summaries need caption text.** downloading it requires video ownership and a track the connection can access.",
+    "**use titles and comments for a details review.** they cannot tell you what the speaker said.",
+    "**allow caption download separately.** dusk counts it as a change, which read-only access blocks.",
+    "**a sleeping laptop misses scheduled reviews.** local jobs need dusk running on an awake computer. dusk cloud provides a host that stays on."
+  ],
+  "sections": [
+    {
+      "h": "viewer questions can shape the next recording",
+      "md": "**make the next recording answer a question people actually asked.** group repeated viewer questions and keep the original comment beside each summary. read the tone and context before choosing a topic. a reported problem alone cannot tell you what caused it.\n\n[market research](/use-cases/market-research) covers broader topic work. for a [newsletter](/use-cases/newsletter), keep caption evidence separate from your own commentary."
+    },
+    {
+      "h": "choose the review you need",
+      "md": "**for channel planning, comments and video details may be plenty.** ask for a question list or description review by name. you can get useful work without a transcript.\n\nfor a spoken-content summary, get the caption track and text first. if the download fails, have the bot say so and stop that summary. titles and comments cannot stand in for the words spoken."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude summarise any youtube video here?",
+      "a": "**no, caption access must succeed first.** this download action requires ownership of the video. if the bot has only titles and descriptions, it should say that and review those details."
+    },
+    {
+      "q": "can it answer comments for me?",
+      "a": "**yes, use the reply action for an answer you reviewed.** keep sending on **Ask every time** for replies you want to approve.[^3] the question routine only reads."
+    },
+    {
+      "q": "what can it do besides video summaries?",
+      "a": "**get viewer questions and channel housekeeping into a short list.** group recurring questions, compare playlist titles with a lesson plan or find descriptions with outdated links."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude youtube",
+  "keywords": [
+    "chatgpt youtube",
+    "youtube mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect youtube with read only",
+      "give one video link from your channel",
+      "ask for practical questions from its comments",
+      "read the original comments beside the grouped questions"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for a summary when only the title came back",
+      "fix": "require caption text first. if unavailable, stop or request a details review."
+    },
+    {
+      "mistake": "treating a playlist-title gap as a missing lesson",
+      "fix": "read the actual lesson before planning a replacement."
+    }
+  ],
+  "tip": {
+    "text": "ask for the comment behind every topic. a viewer’s own words are a better brief than a guess."
+  },
+  "voice": 2
+}

@@ -1,0 +1,160 @@
+{
+  "path": "/guides/claude-cowork-windows",
+  "type": "guide",
+  "title": "Claude Cowork on Windows and Linux: current options",
+  "nav": "cowork on windows and linux",
+  "h1": "does claude cowork work on windows and linux?",
+  "description": "Use Claude Cowork on Windows or Linux beta, understand where new tasks run, and compare dusk bot's Windows and Ubuntu requirements.",
+  "keyword": "claude cowork windows",
+  "keywords": [
+    "claude cowork for windows",
+    "claude cowork pricing"
+  ],
+  "answer": "**yes, cowork works on windows. the mac-only guides are old.** as of 12 november 2026, anthropic lists claude desktop for windows, macos and linux beta on all paid plans. cowork and chat are also coming together under claude. you can try it on your current machine. read where new tasks run before handing over files that must stay local.[^1][^2]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "windows",
+    "linux",
+    "cowork",
+    "desktop"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-cowork-pricing",
+    "/guides/claude-code-for-non-developers",
+    "/agents-when-laptop-closed"
+  ],
+  "art": {
+    "label": "Claude",
+    "props": [
+      "s-computer",
+      "s-cloud"
+    ],
+    "bubble": "yes, on windows too"
+  },
+  "og_line": "try the computer you already have.",
+  "sections": [
+    {
+      "h": "windows needs no workaround",
+      "md": "**you don't need a mac for cowork.** anthropic made it generally available on macos and windows on 9 april 2026.[^3] its support page checked on 12 november 2026 lists windows on paid plans.[^1]\n\ntry your existing machine first. anthropic's page doesn't list hardware needs, so find those before spending money on a replacement."
+    },
+    {
+      "h": "linux users can try the beta",
+      "md": "**ubuntu and debian users have a linux beta to try.** claude desktop lists linux alongside macos and windows on all paid plans.[^1] the download page names ubuntu and debian.[^8]\n\nweb and mobile support lists pro, max, ultra and team, with team in beta there. the support page also lists a claude in chrome side panel.[^1]\n\nmatch your distribution and plan to those options before installing."
+    },
+    {
+      "h": "the desktop window doesn't keep new tasks local",
+      "md": "**new cowork tasks keep running in the cloud.** since 6 october 2026, new cowork tasks on pro, max and ultra run in the cloud. anthropic removed **only on your computer**. you can't switch it back.[^1]\n\nfor files that must stay local, this is the decision to make before starting. where the agent runs and where its ai processes prompts are separate questions.\n\nthe [laptop-closed guide](/agents-when-laptop-closed) explains which computer has to stay awake."
+    },
+    {
+      "h": "cowork is becoming part of claude",
+      "md": "**look for claude when the cowork label disappears.** as of 12 november 2026, anthropic says cowork is now just claude. the change reaches pro, max and ultra first. claude brings in cowork when a task needs files.[^2]\n\ncowork comes with paid pro, max, ultra, team and enterprise plans at no extra price.[^9] compare tiers in the [pricing guide](/guides/claude-cowork-pricing).\n\nmatch the feature you need to your plan and platform, then download the app.[^4]"
+    },
+    {
+      "h": "dusk bot has its own system requirements",
+      "md": "**dusk gives windows and ubuntu users another way to text their bots.** it's a separate app with its own requirements:[^5]\n\n- macos 12 or later\n- windows 10 or 11, 64-bit; installer needs no admin rights\n- ubuntu 24.04 beta, as .deb or appimage\n\ndusk runs vendors' official command-line apps where your bots live. you sign in yourself to the ai you use.[^5][^6] the [non-developer guide](/guides/claude-code-for-non-developers) explains the text-a-bot setup."
+    },
+    {
+      "h": "choose where the work should live",
+      "md": "**keep the bot available while you travel.** local dusk routines stop when the computer sleeps or the app closes. dusk cloud keeps them running. your own server is another option, with upkeep on you.[^7]\n\nmoving bots changes which computer stays awake. ai usage still belongs on your provider's bill.[^7]\n\nfor occasional file work, try your existing machine first. for work while travelling, look at hosting. both linux options remain beta; we haven't tested either app on every system."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is claude cowork still mac only?",
+      "a": "**no. windows is supported too.** general availability on macos and windows began on 9 april 2026. the current support page also lists linux beta.[^1][^3]"
+    },
+    {
+      "q": "can i use claude cowork on linux?",
+      "a": "**yes, as a beta.** as of 12 november 2026, claude desktop lists linux beta on all paid plans. downloads name ubuntu and debian.[^1][^8]"
+    },
+    {
+      "q": "does dusk bot need administrator rights on windows?",
+      "a": "**no. its windows installer needs no admin rights.** dusk supports windows 10 or 11, 64-bit.[^5]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: cowork across platforms",
+      "url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cowork and claude",
+      "url": "https://claude.com/product/cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: release notes",
+      "url": "https://support.claude.com/en/articles/12138966-release-notes",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: get started with cowork",
+      "url": "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: your own server and ai sign-in",
+      "url": "/docs/your-own-server"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "anthropic: claude downloads",
+      "url": "https://claude.com/download",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: claude pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "find your operating system and version",
+      "match your claude plan to its supported platforms",
+      "read where new tasks run",
+      "try a small file task before buying different hardware"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "buying a mac because an old guide says mac-only",
+      "fix": "read the current windows support and hardware needs first."
+    },
+    {
+      "mistake": "assuming desktop means local",
+      "fix": "new pro, max and ultra cowork tasks run in the cloud."
+    },
+    {
+      "mistake": "dropping beta from a linux recommendation",
+      "fix": "match the named distribution and keep the beta label visible."
+    }
+  ],
+  "checklist": {
+    "h": "before choosing a machine",
+    "items": [
+      "the operating system and distribution match support",
+      "the plan includes the feature you need",
+      "task location fits your file requirements",
+      "you found the hardware needs separately"
+    ]
+  },
+  "tip": {
+    "text": "don't buy hardware to fix a limitation that an old tutorial invented for you."
+  },
+  "voice": 2
+}

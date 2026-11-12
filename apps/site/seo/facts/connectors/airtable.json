@@ -1,0 +1,1394 @@
+{
+  "toolkit": "airtable",
+  "name": "Airtable",
+  "version": "20261101_00",
+  "description": "Airtable merges spreadsheet functionality with database power, enabling teams to organize projects, track tasks, and collaborate through customizable views, automation, and integrations for data management",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 28,
+  "triggers_count": 6,
+  "tools": [
+    {
+      "name": "Create base",
+      "slug": "AIRTABLE_CREATE_BASE",
+      "kind": "write",
+      "description": "Creates a new Airtable base with specified tables and fields within a workspace.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Name for the new Airtable base, visible in the UI."
+        },
+        {
+          "name": "tables",
+          "type": "array",
+          "required": true,
+          "about": "Configurations for tables to be created in the new base; each table needs 'name' and 'fields'. Must be an array of table objects, not a stringified JSON. The first field in each table cannot be 'singleSelect' as it becomes the primary field. Select field choices must include both 'id' and 'name' for"
+        },
+        {
+          "name": "workspaceId",
+          "type": "string",
+          "required": true,
+          "about": "Workspace ID where the base will be created. MUST start with 'wsp' prefix (e.g., 'wspXXXXXXXXXXXXXX'). Common mistake: Do not use user IDs (usr prefix), base IDs (app prefix), or other Airtable IDs - only workspace IDs work here. Get your workspace ID from Airtable workspace settings or via the List"
+        }
+      ],
+      "scopes": [
+        "schema.bases:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create Comment",
+      "slug": "AIRTABLE_CREATE_COMMENT",
+      "kind": "send",
+      "description": "Tool to create a comment on a specific Airtable record. Use when adding comments to records, mentioning collaborators using @[userId] syntax, or creating threaded comment replies. Supports optional parentCommentId for threaded conversations.",
+      "inputs": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "about": "The content of the comment. To mention a user, use the format @[userId] (e.g., @[usrGISFlfA7l5F7kY6])."
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base. This typically starts with 'app'."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the record on which the comment will be created. This typically starts with 'rec'."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (typically starting with 'tbl') or the name of the table within the base."
+        },
+        {
+          "name": "parentCommentId",
+          "type": "string",
+          "required": false,
+          "about": "The ID of the parent comment for creating threaded replies. If provided, this comment will be a reply to the specified parent comment."
+        }
+      ],
+      "scopes": [
+        "data.recordComments:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "comments",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create Field",
+      "slug": "AIRTABLE_CREATE_FIELD",
+      "kind": "write",
+      "description": "Creates a new field within a specified table in an Airtable base. The action first reads the base schema to resolve the table and check existing fields, so it requires schema read access as well as write access.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED. The name for the new field. Field names must be unique within a table."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "about": "The type for the new field. If not provided, it defaults to 'singleLineText'. Types that can be created via API: 'singleLineText', 'multilineText', 'richText', 'singleSelect', 'multipleSelects', 'checkbox', 'number', 'percent', 'currency', 'date', 'dateTime', 'duration', 'phoneNumber', 'email', 'url"
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED. The unique identifier of the base where the field will be created. Format: 'appXXXXXXXXXXXXXXX' (17 characters starting with 'app')."
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": false,
+          "about": "Type-specific configuration for the new field. Required for 'multipleRecordLinks' (must include 'linkedTableId' - the ID (format: tblXXXXXXXXXXXXXX) or name (case-sensitive) of the table to link to; if you provide 'isReversed' or 'prefersSingleRecordLink', they will be automatically stripped as the "
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "An optional description for the new field. This can provide context or instructions for the field's usage."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The ID or name of the table within the base where the field will be created. Table IDs start with 'tbl' followed by 14 characters. Table names are case-sensitive and must match exactly as they appear in Airtable."
+        }
+      ],
+      "scopes": [
+        "schema.bases:read",
+        "schema.bases:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create multiple records (Deprecated)",
+      "slug": "AIRTABLE_CREATE_MULTIPLE_RECORDS",
+      "kind": "write",
+      "description": "DEPRECATED: Use AIRTABLE_CREATE_RECORDS instead. Creates multiple records in a specified Airtable table in batches of up to 10; if a later batch fails, earlier batches may already have been created.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "Required. The unique identifier of the Airtable base (e.g., 'appXXXXXXXXXXXXXX')."
+        },
+        {
+          "name": "records",
+          "type": "array",
+          "required": true,
+          "about": "Required. List of record objects to create. Each record must have a 'fields' key containing a dictionary mapping field names to values. Field names are case-sensitive and can contain any Unicode characters (e.g., 'Тема Reels', '日期'). Field values must match their configured types in Airtable (e.g., "
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, Airtable will perform automatic type conversion. Helps with: converting strings to numbers, creating new options for single/multi-select fields, automatically creating/linking records in linked record fields from text values, and type coercion for compatible types. Does NOT help with: text "
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "Required. The table ID (e.g., 'tblXXXXXXXXXXXXXX') or the table name (e.g., 'Tasks')."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the returned field objects will use field IDs as keys instead of field names. Using field IDs is recommended for integrations that need to be resilient to field name changes. Default is false, which returns field names as keys."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "deprecated",
+        "createHint"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create a record (Deprecated)",
+      "slug": "AIRTABLE_CREATE_RECORD",
+      "kind": "write",
+      "description": "DEPRECATED: Use CreateRecords instead. Creates a new record in a specified Airtable table; field values must conform to column types, null, empty-string and false values are omitted, and some values may be normalized before submission.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "Required. The unique identifier of the Airtable base (e.g., 'appXXXXXXXXXXXXXX'). Use AIRTABLE_LIST_BASES to find available base IDs."
+        },
+        {
+          "name": "fields",
+          "type": "object",
+          "required": false,
+          "about": "$51"
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "When set to true, enables automatic data conversion from strings to appropriate field types. For example, if a singleSelect field receives a value that doesn't match an existing option, Airtable will create a new option with that value. Also converts string numbers to numeric types. Default is false"
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "Required. The table ID (e.g., 'tblXXXXXXXXXXXXXX') or table name (e.g., 'Tasks', 'Meal Plan') where the record will be created. Table names with spaces and special characters are supported. This is separate from baseId and must be provided. Use AIRTABLE_GET_BASE_SCHEMA to find table IDs/names within"
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the returned field objects will use field IDs as keys instead of field names. Using field IDs is recommended for integrations that need to be resilient to field name changes. Default is false, which returns field names as keys."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "records_management",
+        "deprecated",
+        "createHint"
+      ],
+      "deprecated": true
+    },
+    {
+      "name": "Create Record From Natural Language",
+      "slug": "AIRTABLE_CREATE_RECORD_FROM_NATURAL_LANGUAGE",
+      "kind": "write",
+      "description": "Creates an Airtable record from a natural language description using the table schema and an LLM-generated field payload. Typecast is enabled by default and can be disabled.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the Airtable base, typically starting with 'app'."
+        },
+        {
+          "name": "nl_query",
+          "type": "string",
+          "required": true,
+          "about": "Natural language description of the record to create. Example: 'Add a task called Fix Login Bug, status In Progress, priority High, due date 2025-03-15'."
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "If True, Airtable will automatically convert string values to their appropriate types (e.g., string to number, date parsing). Enabled by default."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier (typically starting with 'tbl') or name of the table within the specified base."
+        }
+      ],
+      "scopes": [
+        "data.records:write",
+        "schema.bases:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create records",
+      "slug": "AIRTABLE_CREATE_RECORDS",
+      "kind": "write",
+      "description": "Tool to create multiple records (up to 10) in a specified Airtable table. Use when you need to add new rows to a table with field values. Rate limit: 5 requests per second per base.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base. Format: 'app' followed by alphanumeric characters (e.g., 'appHPvgqYXl3LNHXq')."
+        },
+        {
+          "name": "records",
+          "type": "array",
+          "required": true,
+          "about": "Array of record objects to create. Each record object must contain a 'fields' property with the cell values. Maximum of 10 records can be created per request."
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, Airtable will perform best-effort automatic data conversion from string values to the appropriate cell type. If false (default), field values must exactly match the expected type. Use with caution as it may produce unexpected results."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier or name of the table where records will be created. Table IDs are recommended over names for stability. Format: 'tbl' followed by alphanumeric characters (e.g., 'tblUkxCONS303zkN7')."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the returned field objects will use field IDs as keys instead of field names. Defaults to false."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint",
+        "records_management"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Create table",
+      "slug": "AIRTABLE_CREATE_TABLE",
+      "kind": "write",
+      "description": "Creates a table in an existing Airtable base with a specified name, description, and field structure. Optionally returns an existing same-name table instead of creating one.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The desired name for the new table."
+        },
+        {
+          "name": "fields",
+          "type": "array",
+          "required": true,
+          "about": "$52"
+        },
+        {
+          "name": "base_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the base where the new table will be created."
+        },
+        {
+          "name": "if_exists",
+          "type": "string",
+          "required": false,
+          "about": "Options for handling duplicate table name scenarios."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "An optional textual description for the new table."
+        },
+        {
+          "name": "reorder_message",
+          "type": "string",
+          "required": false,
+          "about": "Internal field used to track field reordering messages. This is populated automatically when fields are reordered."
+        }
+      ],
+      "scopes": [
+        "schema.bases:read",
+        "schema.bases:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "schema_and_base_administration",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "AIRTABLE_DELETE_COMMENT",
+      "kind": "write",
+      "description": "Tool to delete a comment from a record in an Airtable table. Use when you need to remove an existing comment. Non-admin users can only delete their own comments; Enterprise Admins can delete any comment.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base from which the comment will be deleted."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the record within the specified table from which the comment will be deleted."
+        },
+        {
+          "name": "rowCommentId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the comment to be deleted from the specified record."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (ID) or name of the table within the specified base that contains the record and comment."
+        }
+      ],
+      "scopes": [
+        "data.recordComments:write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "idempotentHint",
+        "comments"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Delete multiple records",
+      "slug": "AIRTABLE_DELETE_MULTIPLE_RECORDS",
+      "kind": "write",
+      "description": "Tool to delete up to 10 specified records from a table within an Airtable base. Use when you need to remove multiple records in a single operation.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the records to be deleted."
+        },
+        {
+          "name": "recordIds",
+          "type": "array",
+          "required": true,
+          "about": "A list of unique identifiers for the records to be deleted."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (e.g., 'tbluIzIsxPIM2V3Y4') or the name (e.g., 'Marketing Leads') of the table within the base from which records will be deleted."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "idempotentHint",
+        "records_management"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Delete Record",
+      "slug": "AIRTABLE_DELETE_RECORD",
+      "kind": "write",
+      "description": "Permanently deletes a specific record from an existing table within an existing Airtable base.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the Airtable base, typically starting with 'app'."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the record to be deleted, typically starting with 'rec'."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier (typically starting with 'tbl') or name of the table within the specified base."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Attachment Info",
+      "slug": "AIRTABLE_GET_ATTACHMENT_INFO",
+      "kind": "read",
+      "description": "Retrieves attachment metadata and download URLs from a specified Airtable record field, including sizes, types, and thumbnails when available; attachment URLs expire 2 hours after retrieval. An empty result can also mean the field was not found or did not contain a list.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Airtable base containing the record."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "ID of the record containing the attachment. Must start with 'rec' followed by 14 alphanumeric characters."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "ID or name of the table containing the record."
+        },
+        {
+          "name": "attachmentFieldIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "Field ID (e.g., 'fldXXXXXXXXXXXXXX') or field name of the attachment field to retrieve information from."
+        }
+      ],
+      "scopes": [
+        "data.records:read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "attachments"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Base Metadata",
+      "slug": "AIRTABLE_GET_BASE_METADATA",
+      "kind": "read",
+      "description": "Retrieves basic metadata for one Airtable base.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The Airtable base ID, beginning with 'app'."
+        }
+      ],
+      "scopes": [
+        "schema.bases:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "schema_and_base_administration"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Base Schema",
+      "slug": "AIRTABLE_GET_BASE_SCHEMA",
+      "kind": "read",
+      "description": "Retrieves the detailed schema for a specified Airtable base, including its tables, fields, field types, and configurations, using the `baseId`.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier for the Airtable base. This ID typically starts with 'app' and is followed by a string of alphanumeric characters. It can be found in the URL when viewing the base."
+        },
+        {
+          "name": "include",
+          "type": "array",
+          "required": false,
+          "about": "Optional list of additional fields to include in the views object response. Currently only supports the value 'visibleFieldIds' (for views of type 'grid' only). When specified, grid views will include a visibleFieldIds array showing which fields are visible in that view."
+        }
+      ],
+      "scopes": [
+        "schema.bases:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "schema_and_base_administration"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get Record",
+      "slug": "AIRTABLE_GET_RECORD",
+      "kind": "read",
+      "description": "Retrieves a specific record from an Airtable table by its record ID. Requires a known, valid record ID obtained from listing records or another API call - this tool cannot search or list records. Use the list records tool to find record IDs. Empty field values are not returned in the response.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Airtable base."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "ID of the record to retrieve. Must be a real record ID obtained from listing records or another API call. Format: starts with 'rec' followed by exactly 14 alphanumeric characters (e.g., 'rec4YsVV8cU6V4EiT'). This tool retrieves a single specific record - to list or search multiple records, use the l"
+        },
+        {
+          "name": "timeZone",
+          "type": "string",
+          "required": false,
+          "about": "Time zone for formatting dates when cellFormat='string'. Required when cellFormat='string'. Uses IANA time zone format (e.g., 'America/New_York', 'Europe/London', 'UTC')."
+        },
+        {
+          "name": "cellFormat",
+          "type": "string",
+          "required": false,
+          "about": "Controls cell value formatting: 'json' for native types, 'string' for all values as strings. When 'string', timeZone and userLocale are required."
+        },
+        {
+          "name": "userLocale",
+          "type": "string",
+          "required": false,
+          "about": "User locale for formatting dates when cellFormat='string'. Required when cellFormat='string'. Uses BCP 47 language tag format (e.g., 'en-us', 'en-gb', 'de-de')."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "ID or name of the table."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, field keys in the response are field IDs; otherwise, field names."
+        }
+      ],
+      "scopes": [
+        "data.records:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "records_management"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Get user information",
+      "slug": "AIRTABLE_GET_USER_INFO",
+      "kind": "read",
+      "description": "Retrieves information, such as ID and permission scopes, for the currently authenticated Airtable user from the `/meta/whoami` endpoint.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "users"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List bases",
+      "slug": "AIRTABLE_LIST_BASES",
+      "kind": "read",
+      "description": "Lists a page of Airtable bases accessible to the authenticated token. If an offset is returned, use it to retrieve the next page.",
+      "inputs": [
+        {
+          "name": "offset",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token for retrieving the next page of results. This is an opaque cursor returned in the 'offset' field of a previous list bases response. Pass this exact value to retrieve the next page. Do not construct or modify this value. Only present when there are more than 1,000 bases."
+        }
+      ],
+      "scopes": [
+        "schema.bases:read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "schema_and_base_administration"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List Comments",
+      "slug": "AIRTABLE_LIST_COMMENTS",
+      "kind": "read",
+      "description": "Tool to list comments on a specific Airtable record. Use when retrieving comments for a record, with optional pagination support for large comment threads.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base from which to list comments."
+        },
+        {
+          "name": "offset",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token to retrieve the next page of comments. If specified, the returned comments will begin at the specified offset. Obtained from the previous response."
+        },
+        {
+          "name": "pageSize",
+          "type": "integer",
+          "required": false,
+          "about": "The number of comments to return per page. Must be less than or equal to 100. Defaults to 100 if not specified."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the record for which comments are to be listed."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier or name of the table within the specified base containing the record."
+        }
+      ],
+      "scopes": [
+        "data.recordComments:read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "comments"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "List records",
+      "slug": "AIRTABLE_LIST_RECORDS",
+      "kind": "read",
+      "description": "Tool to list records from an Airtable table with filtering, sorting, and pagination. Use when you need to retrieve multiple records from a table with optional query parameters.",
+      "inputs": [
+        {
+          "name": "sort",
+          "type": "array",
+          "required": false,
+          "about": "Array of sort objects to apply to records. Each object specifies a field and direction. Records are sorted by the first sort object, then by the second, and so on. IMPORTANT: Cannot sort by system metadata fields like 'createdTime' or 'lastModifiedTime' - these are metadata properties returned with "
+        },
+        {
+          "name": "view",
+          "type": "string",
+          "required": false,
+          "about": "The name or ID of a view to use for filtering and sorting records. View names are case-sensitive. View IDs (format: 'viwXXXXXXXXXXXXXX') are more reliable than names and not affected by view renames. Use AIRTABLE_GET_BASE_SCHEMA to discover valid views. Note: this parameter is overridden if sort par"
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the Airtable base. Must start with 'app' followed by 14 characters."
+        },
+        {
+          "name": "fields",
+          "type": "array",
+          "required": false,
+          "about": "Array of field names or IDs to include in the response. If not specified or if ['*'] is passed, all fields are returned. Field names are case-sensitive and must match exactly as they appear in Airtable. The Airtable API accepts both field names and field IDs interchangeably in this parameter, regard"
+        },
+        {
+          "name": "offset",
+          "type": "string",
+          "required": false,
+          "about": "Opaque pagination cursor token returned in the 'offset' field of a previous list records response. This value must be used exactly as returned by Airtable - do not construct, modify, or decode it. IMPORTANT: Do not pass numeric values like '50' or '100' - these are not valid offsets. Offset tokens a"
+        },
+        {
+          "name": "pageSize",
+          "type": "integer",
+          "required": false,
+          "about": "Number of records to return per page. Must be between 1 and 100. Defaults to 100."
+        },
+        {
+          "name": "timeZone",
+          "type": "string",
+          "required": false,
+          "about": "The time zone to use for formatting date and time fields. Required when cellFormat is 'string'. If not provided when cellFormat='string', defaults to 'utc'. Examples: 'utc', 'America/New_York', 'Europe/London'."
+        },
+        {
+          "name": "cellFormat",
+          "type": "string",
+          "required": false,
+          "about": "Format for cell values. 'json' returns structured JSON values (default), 'string' returns simple string representations. When set to 'string', timeZone and userLocale are required - if not provided, defaults will be auto-populated (timeZone='utc', userLocale='en-US')."
+        },
+        {
+          "name": "maxRecords",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum total number of records to return across all pages. If not specified, all records matching the query will be returned."
+        },
+        {
+          "name": "userLocale",
+          "type": "string",
+          "required": false,
+          "about": "The user locale to use for formatting cell values (e.g., 'en-US', 'fr-FR'). Required when cellFormat is 'string'. If not provided when cellFormat='string', defaults to 'en-US'."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The ID or name of the table within the base. Table IDs start with 'tbl' followed by 14 characters. Table names are case-sensitive and must match exactly as they appear in Airtable. Can also be passed as 'tableId' or 'tableName'."
+        },
+        {
+          "name": "recordMetadata",
+          "type": "array",
+          "required": false,
+          "about": "Array of strings specifying additional metadata to include. Currently supports 'commentCount' to include comment counts on records."
+        },
+        {
+          "name": "filterByFormula",
+          "type": "string",
+          "required": false,
+          "about": "$53"
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, field keys in the response will be field IDs instead of field names. Recommended when working with field names that contain special characters or when building integrations that need stability across field renames. Note: The 'fields' parameter accepts both field names and field IDs regardle"
+        }
+      ],
+      "scopes": [
+        "data.records:read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update Comment",
+      "slug": "AIRTABLE_UPDATE_COMMENT",
+      "kind": "write",
+      "description": "Tool to update an existing comment on a specific Airtable record. Use when modifying comment text or updating user mentions using @[userId] syntax. API users can only update comments they have created.",
+      "inputs": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "about": "The updated comment text. To mention a user, use the format @[userId] (e.g., @[usrGISFlfA7l5F7kY6])."
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base. This typically starts with 'app'."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the record containing the comment. This typically starts with 'rec'."
+        },
+        {
+          "name": "rowCommentId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the comment to update. This typically starts with 'com'."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (typically starting with 'tbl') or the name of the table within the base."
+        }
+      ],
+      "scopes": [
+        "data.recordComments:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "comments"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update Field",
+      "slug": "AIRTABLE_UPDATE_FIELD",
+      "kind": "write",
+      "description": "Updates a field's name or description in an Airtable table. Use this action to modify field metadata without changing the field's type or options. At least one of 'name' or 'description' must be provided.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "The new name for the field. At least one of 'name' or 'description' must be provided."
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the field."
+        },
+        {
+          "name": "fieldId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the field to update. IMPORTANT: Unlike data API endpoints, the Metadata API requires field IDs - field names are not supported. Field IDs start with 'fld' followed by 14 alphanumeric characters. Use AIRTABLE_GET_BASE_SCHEMA to find field IDs."
+        },
+        {
+          "name": "tableId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the table containing the field to update. IMPORTANT: Unlike data API endpoints, the Metadata API requires table IDs - table names are not supported. Table IDs start with 'tbl' followed by 14 alphanumeric characters. Use AIRTABLE_GET_BASE_SCHEMA to find table IDs."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "The new description for the field. Must not exceed 20,000 characters. At least one of 'name' or 'description' must be provided."
+        }
+      ],
+      "scopes": [
+        "schema.bases:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "schema_and_base_administration"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update multiple records",
+      "slug": "AIRTABLE_UPDATE_MULTIPLE_RECORDS",
+      "kind": "write",
+      "description": "Tool to update up to 10 records in an Airtable table with selective field modifications. Use when you need to modify multiple existing records or perform upsert operations. Updates are not performed atomically.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the Airtable base containing the table."
+        },
+        {
+          "name": "records",
+          "type": "array",
+          "required": true,
+          "about": "List of records to be updated. Airtable's API limits updates to a maximum of 10 records per request. If you need to update more records, split them into multiple requests of 10 or fewer records each."
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, Airtable attempts automatic data conversion from string values on a best-effort basis (e.g., '123' to 123)."
+        },
+        {
+          "name": "performUpsert",
+          "type": "object",
+          "required": false,
+          "about": "Configuration for upsert behavior when updating records."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The ID or name of the table within the base where records will be updated."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, returns field values keyed by field ID instead of field name. Useful for integrations resilient to field name changes."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "important",
+        "records_management",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update multiple records (PUT)",
+      "slug": "AIRTABLE_UPDATE_MULTIPLE_RECORDS_PUT",
+      "kind": "write",
+      "description": "Tool to destructively update multiple records in Airtable using PUT, clearing unspecified fields. Use when you need to fully replace record data or perform upsert operations. Supports up to 10 records per request.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the Airtable base containing the table."
+        },
+        {
+          "name": "records",
+          "type": "array",
+          "required": true,
+          "about": "Array of up to 10 record objects to update. PUT destructively updates records, clearing unspecified fields."
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, Airtable will attempt to convert string values into appropriate cell values."
+        },
+        {
+          "name": "performUpsert",
+          "type": "object",
+          "required": false,
+          "about": "Configuration for upsert behavior."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The ID or name of the table within the base where records will be updated."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, returns fields object keyed by field ID instead of field name."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "important",
+        "records_management",
+        "createHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update record",
+      "slug": "AIRTABLE_UPDATE_RECORD",
+      "kind": "write",
+      "description": "Modifies specified fields of an existing record in an Airtable base and table; the base, table, and record must exist.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the record to be updated."
+        },
+        {
+          "name": "fields",
+          "type": "object",
+          "required": true,
+          "about": "Fields to update. Keys are field names (case-sensitive) or IDs (fldXXXX recommended). Only specified fields are modified. Empty strings convert to null. Field names must match Airtable schema exactly (e.g., 'Call Status' not 'call status'). Use AIRTABLE_GET_BASE_SCHEMA for exact names/IDs. Date-only"
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (ID) of the record to be updated within the specified table. MUST be in Airtable's record ID format: exactly 17 characters starting with 'rec' followed by 14 alphanumeric characters (e.g., 'recABC123def456G'). Simple numeric values or row numbers are NOT valid record IDs. You c"
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "Enables automatic data conversion and select option creation. CRITICAL FOR SELECT FIELDS: When false (default), Airtable rejects updates to single-select or multi-select fields if the value is not already an existing option, failing with 'Insufficient permissions to create new select option' error. "
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (ID) or the name of the table within the base that contains the record to be updated. Also accepts 'tableId' as an alias."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If `True`, API response keys record fields by field ID instead of name. Using field IDs is recommended for integrations resilient to field name changes."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "important",
+        "records_management"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update record (PUT)",
+      "slug": "AIRTABLE_UPDATE_RECORD_PUT",
+      "kind": "write",
+      "description": "Updates an existing record in an Airtable base using PUT method. Use when you want to replace all field values, clearing any unspecified fields. For partial updates that preserve unspecified fields, use the PATCH-based update action instead.",
+      "inputs": [
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the record to be updated."
+        },
+        {
+          "name": "fields",
+          "type": "object",
+          "required": true,
+          "about": "Specifies fields to update. Keys are field names or IDs; values are new content. PUT method clears all unspecified cell values (destructive update). Empty strings are automatically converted to null to clear field values. For Date fields: use 'YYYY-MM-DD' format for date-only fields, or ISO 8601 for"
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (ID) of the record to be updated within the specified table."
+        },
+        {
+          "name": "typecast",
+          "type": "boolean",
+          "required": false,
+          "about": "When set to true, enables automatic data conversion from strings to appropriate field types. For example, converts string '123' to number 123. Default is false."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (ID) or the name of the table within the base that contains the record to be updated."
+        },
+        {
+          "name": "returnFieldsByFieldId",
+          "type": "boolean",
+          "required": false,
+          "about": "If `True`, API response keys record fields by field ID instead of name. Using field IDs is recommended for integrations resilient to field name changes."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "important",
+        "records_management"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Update Table",
+      "slug": "AIRTABLE_UPDATE_TABLE",
+      "kind": "write",
+      "description": "Updates the name, description, and/or date dependency settings of a table in Airtable. Use this action to modify table metadata without changing the table's fields or views. At least one of 'name', 'description', or 'dateDependencySettings' must be provided.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "The new name for the table. Must be non-empty if provided. At least one of 'name', 'description', or 'dateDependencySettings' must be provided."
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the table to update."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "The new description for the table. Must not exceed 20,000 characters. At least one of 'name', 'description', or 'dateDependencySettings' must be provided."
+        },
+        {
+          "name": "tableIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier or name of the table to update."
+        },
+        {
+          "name": "dateDependencySettings",
+          "type": "object",
+          "required": false,
+          "about": "Configuration for date-based task scheduling in Airtable tables."
+        }
+      ],
+      "scopes": [
+        "schema.bases:write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "schema_and_base_administration"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Upload attachment",
+      "slug": "AIRTABLE_UPLOAD_ATTACHMENT",
+      "kind": "write",
+      "description": "Uploads a file attachment to a specified field in an Airtable record. Use when you need to add a file to an attachment field. The file must be provided as a base64-encoded string.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "string",
+          "required": true,
+          "about": "The file content encoded as a base64 string. This is the base64-encoded binary content of the file to be uploaded."
+        },
+        {
+          "name": "baseId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Airtable base containing the record."
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "required": true,
+          "about": "The name of the file including its extension (e.g., 'test.txt', 'document.pdf', 'image.jpg')."
+        },
+        {
+          "name": "recordId",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the record to which the attachment will be uploaded."
+        },
+        {
+          "name": "contentType",
+          "type": "string",
+          "required": true,
+          "about": "MIME type of the file being uploaded (e.g., 'text/plain', 'image/jpeg', 'application/pdf')."
+        },
+        {
+          "name": "attachmentFieldIdOrName",
+          "type": "string",
+          "required": true,
+          "about": "The field ID (e.g., 'fldXXXXXXXXXXXXXX') or field name of the attachment field where the file will be uploaded."
+        }
+      ],
+      "scopes": [
+        "data.records:write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "attachments",
+        "updateHint"
+      ],
+      "deprecated": false
+    },
+    {
+      "name": "Who Am I",
+      "slug": "AIRTABLE_WHO_AM_I",
+      "kind": "write",
+      "description": "Returns the connected Airtable account's user ID and, when available, email address.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "auth"
+      ],
+      "deprecated": false
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/airtable",
+  "fetched_at": "2026-11-12"
+}

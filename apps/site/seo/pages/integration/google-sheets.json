@@ -1,0 +1,179 @@
+{
+  "path": "/integrations/google-sheets",
+  "type": "integration",
+  "title": "Google Sheets AI assistant for rows, ranges and reports",
+  "nav": "google sheets",
+  "h1": "a google sheets bot with a clear range to work in",
+  "description": "Connect Google Sheets to dusk bot for row checks, table updates and charts. Copy focused routines that name their input range and write boundary.",
+  "keyword": "claude google sheets",
+  "keywords": [
+    "google sheets mcp",
+    "chatgpt google sheets"
+  ],
+  "answer": "**find the stock that needs ordering before someone sells the last unit.** connect google sheets to a dusk bot, choose your ai and name the file, tab and cells. it can read rows, update values and make charts. get the first report in chat. when you want edits, add an ask-first instruction; cell changes do not automatically wait for approval.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "spreadsheets",
+    "ranges",
+    "reports",
+    "google"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/excel",
+    "/integrations/stripe",
+    "/integrations/google-drive"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "p-magnifier"
+    ],
+    "bubble": "which rows need attention"
+  },
+  "og_line": "name the tab. bound the change.",
+  "app": {
+    "name": "Google Sheets",
+    "toolkit": "googlesheets",
+    "intro": "**tell the bot where headers end and formulas live.**\n\nthese actions find the right table and read its structure. they also let the bot update only the cells you intend.",
+    "highlight": [
+      {
+        "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
+        "use": "find the tracker by title before touching a similarly named file"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_SPREADSHEET_INFO",
+        "use": "read the workbook structure and find the inventory tab"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_SHEET_NAMES",
+        "use": "confirm the current tab names rather than guessing"
+      },
+      {
+        "slug": "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW",
+        "use": "find the row for a particular order reference"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_TABLE_SCHEMA",
+        "use": "inspect the table columns before preparing new entries"
+      },
+      {
+        "slug": "GOOGLESHEETS_VALUES_UPDATE",
+        "use": "write agreed values to a named destination range"
+      },
+      {
+        "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        "use": "add new records after existing entries instead of overwriting them"
+      },
+      {
+        "slug": "GOOGLESHEETS_CREATE_CHART",
+        "use": "make a chart from the range you selected"
+      }
+    ],
+    "setup": "**give the bot the tab and the actions it needs.**\n\nin **connected apps**, sign in to google sheets and allow your spreadsheet bot to use it. google receives the sign-in. paste the spreadsheet reference into chat and name the tab.\n\nfor controlled updates, allow only the actions the job needs. don't grant the entire catalog."
+  },
+  "routines_intro": "**the bot needs column meanings, not just a file link.** say what counts as an exception and where changes may go. each message below names the result you should get.",
+  "routines": [
+    {
+      "name": "stock exceptions",
+      "message": "each monday at 9, read the inventory tab in my stock sheet. compare available units with each row's reorder level. list items below that level here, with row numbers. leave values and row order alone. if none are below it, say so in one line.",
+      "when": "mondays at 09:00",
+      "output": "a list of stock exceptions with their row numbers"
+    },
+    {
+      "name": "intake rows",
+      "message": "every weekday at 5, read new request files added today to the intake requests project folder. compare them with the intake sheet to skip existing requests. prepare new rows using the sheet's column names. show the rows here and wait for me to approve the append. append only the rows i choose. never overwrite existing requests or guess missing details.",
+      "when": "weekdays at 17:00",
+      "output": "new rows for your review, then an append only after your yes"
+    },
+    {
+      "name": "weekly chart check",
+      "message": "every friday at 2, read the weekly totals table in my sales sheet. report its covered dates and any empty weeks. propose a chart from only that table. wait for me to choose it before creating it. leave the source values alone.",
+      "when": "fridays at 14:00",
+      "output": "a date coverage check and a chart to approve"
+    }
+  ],
+  "asks": "**keep cell changes tied to the range you chose.** updates, sorting and charts do not automatically wait for an approval card. put \"ask me before you change anything\" in the editing job.\n\nleave find and replace off a reading bot's exact action list. dusk counts it as a read even though it changes cells. some lookup-like actions count as writes. choose actions by what they do, rather than how their names sound.",
+  "cannot": [
+    "**a reading bot needs an exact action list here.** updates, appends and formatting need writes. find and replace is the exception: dusk counts it as a read, so leave it off.",
+    "**\"clean this up\" doesn't name a safe range.** identify the tab, headers and cells to leave alone. read the proposed edits first.",
+    "**a closed local app misses the monday check.** a run less than 12 hours late runs once on return. older runs skip."
+  ],
+  "sections": [
+    {
+      "h": "tell it what blank means",
+      "md": "**tell the bot whether that blank means missing stock or none left.** name the columns with formulas too. ask for the source range beside each finding so you can open the row that needs attention.\n\nworking from a file dropped in chat? see [excel files](/integrations/excel). that is a different route from a connected spreadsheet."
+    },
+    {
+      "h": "start the chart with the right transactions",
+      "md": "**a missing transaction stays missing in a beautiful chart.** if the question starts with billing records, read [stripe](/integrations/stripe) before planning the update.\n\nconnect [google drive](/integrations/google-drive) separately for other source files. say which source wins when figures disagree."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude or chatgpt update my google sheet?",
+      "a": "**yes, through a bot using your chosen ai.** it needs the connected account, permission for that write and a clear destination range."
+    },
+    {
+      "q": "does it ask before changing a cell?",
+      "a": "**not automatically.** cell edits sit outside the send approval rule. include the ask-first line and keep the allowed actions narrow."
+    },
+    {
+      "q": "can it just tell me which rows look wrong?",
+      "a": "**yes. keep the result in chat.** ask for row numbers and reasons, and tell it to leave source values alone."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines and missed runs",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "give the spreadsheet link, tab and a small range",
+      "explain the column meanings",
+      "ask for a list of problems without edits",
+      "open the source row for one finding"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to clean the whole workbook",
+      "fix": "name one range and the columns it must leave alone."
+    },
+    {
+      "mistake": "assuming blank means zero",
+      "fix": "say whether blanks mean missing, zero or not applicable."
+    },
+    {
+      "mistake": "allowing find and replace on a reading bot",
+      "fix": "remove it from the exact action list; dusk counts it as a read."
+    }
+  ],
+  "tip": {
+    "text": "a row number beside the finding saves a hunt."
+  },
+  "worked": {
+    "before": "nina sees a blank stock cell and a zero stock cell. both look low.",
+    "after": "stock review\n- blank: missing count, ask the owner\n- zero: compare with reorder level\n\nnext step: ask the owner for the missing count."
+  },
+  "voice": 2
+}

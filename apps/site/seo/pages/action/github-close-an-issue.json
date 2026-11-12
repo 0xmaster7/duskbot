@@ -1,0 +1,125 @@
+{
+  "path": "/integrations/github/close-an-issue",
+  "type": "action",
+  "title": "Close a GitHub issue with AI and the right reason",
+  "nav": "close an issue",
+  "h1": "close a specific github issue after you confirm the outcome",
+  "description": "Ask AI to close a GitHub issue by repository and issue number. Distinguish completed from not planned, and add a review step before changing its state.",
+  "keyword": "close github issue with ai",
+  "keywords": [
+    "chatgpt close github issue",
+    "claude github issue closure",
+    "ai close issue not planned"
+  ],
+  "answer": "**get finished work out of the open queue, with the right reason attached.** the bot can close a github issue as completed or not planned. paste its full link so it finds the right repository. want the final say? tell it to show the title and closure reason, then wait for your answer. closures do not pause automatically.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "issue closure",
+    "github",
+    "closure reasons"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/create-an-issue",
+    "/integrations/github/add-labels-to-an-issue"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-folder",
+      "s-button"
+    ],
+    "bubble": "confirm then close"
+  },
+  "og_line": "close the issue for the reason you chose.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CLOSE_ISSUE"
+  },
+  "what": "**leave the next reader a clear decision.** completed means the work passed its acceptance criteria. not planned means you decided against doing it. closing takes the issue out of the open queue.\n\nit changes the state and optional reason. code still needs its own fix and merge; an explanation needs a separate comment.\n\nhave the bot read the owner’s latest reply before proposing closure. an old report can still describe a live problem.",
+  "uses": [
+    "**finish verified work.** close an issue after its acceptance test passes.",
+    "**make the product decision clear.** mark a rejected feature request not planned.",
+    "**clear an obsolete task.** get its owner’s agreement before closing it."
+  ],
+  "routine": {
+    "message": "every second friday at 11, read open issues in fieldnote-co/visitor-map and their latest comments. find ones where the owner says the acceptance test passed. show each title, issue number and supporting comment here. propose closing those as completed. ask me before you change anything. close only the issues i choose and report their resulting states. do not treat age or silence as proof.",
+    "when": "alternate fridays at 11:00",
+    "needs": "github with read and write; access to read and close issues in fieldnote-co/visitor-map",
+    "output": "closure proposal\n\nfieldnote-co/visitor-map #41: keep the accessible entrance route\nthe owner reports a passed acceptance test in the issue discussion.\nproposed reason: completed\n\nclose #41 as completed? the owner’s comment is beside the proposal."
+  },
+  "steps": [
+    "**name the repository.** connect github and paste the full issue link, including its number.",
+    "**read the owner’s reply.** start read only and compare the bot’s proposal with the issue discussion.",
+    "**keep the last word.** allow read and write, then say “ask me before you close anything”.",
+    "**open the issue afterwards.** its state and reason should match your decision. pause the routine when the project ends."
+  ],
+  "watch": [
+    "**numbers repeat across repositories.** #41 alone can point to the wrong report. include the owner and repository.",
+    "**not planned tells the truth about rejected work.** completed tells readers the work was done.",
+    "**comments are a separate step.** closing alone leaves no written explanation for the decision."
+  ],
+  "faq": [
+    {
+      "q": "will closing the issue post an explanation?",
+      "a": "**no.** it changes the state and can add a closure reason. a written explanation needs a separate comment action."
+    },
+    {
+      "q": "can it close an issue that will never be implemented?",
+      "a": "**yes, with not planned as the reason.** ask to see that reason before the change. completed would give people the wrong impression."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste an issue link",
+      "ask for its title and current state",
+      "ask which closure reason fits the evidence",
+      "review the proposal before allowing a change"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "closing the oldest reports first",
+      "fix": "age proves nothing. require an owner decision or a passed acceptance test."
+    },
+    {
+      "mistake": "calling rejected work completed",
+      "fix": "choose not planned so the next person understands what happened."
+    }
+  ],
+  "checklist": {
+    "items": [
+      "the title and repository match",
+      "the acceptance test or product decision supports closure",
+      "the reason says what actually happened",
+      "the bot must ask before changing the state"
+    ]
+  },
+  "tip": {
+    "text": "“not planned” saves the next person from hunting for a fix that never happened."
+  },
+  "voice": 2
+}

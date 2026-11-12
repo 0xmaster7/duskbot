@@ -1,0 +1,157 @@
+{
+  "path": "/ai-chief-of-staff",
+  "type": "pillar",
+  "title": "AI chief of staff: a lead bot and three routines",
+  "nav": "ai chief of staff",
+  "h1": "an ai chief of staff for the loose ends",
+  "description": "Build a lead bot that hands work to specialists. Copy morning brief, inbox sweep and weekly review routines, with clear limits on what the lead decides.",
+  "keyword": "ai chief of staff",
+  "keywords": [
+    "ai chief of staff claude",
+    "ai executive assistant",
+    "ai executive assistant claude",
+    "ai chief of staff prompt"
+  ],
+  "answer": "**get the loose ends together before they become your evening.** a lead bot in dusk can ask specialists for calendar prep, inbox requests and a weekly review. put them in a small group and choose leader under who answers. the lead brings you decisions with their context. you keep the priorities and promises; the bots do the preparation.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "coordination",
+    "leader",
+    "briefing",
+    "review"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar"
+  ],
+  "related": [
+    "/ai-group-chat",
+    "/use-cases/daily-briefing",
+    "/use-cases/email-triage",
+    "/ai-executive-assistant"
+  ],
+  "art": {
+    "props": [
+      "s-map",
+      "s-notebook"
+    ],
+    "bubble": "what needs you?"
+  },
+  "og_line": "bring the decisions back to you.",
+  "sections": [
+    {
+      "h": "give the lead a job, not a grand title",
+      "md": "**coordination is useful only if it reduces your chasing.** don't connect every account and hope the lead discovers your priorities. name what it gathers, who helps and what comes back to you.\n\ntry this job:\n\n\"coordinate preparation in our group. mention the specialist whose job fits. separate confirmed facts, missing facts and decisions for me. never set priorities or make promises for me. ask me before you change anything.\"\n\n**give the lead readers with distinct jobs.** add an inbox reader and a calendar reader beside the lead. choose leader under who answers and select the lead. each keeps its own ai and permissions in the group.[^1]"
+    },
+    {
+      "h": "make the handoff easy to follow",
+      "md": "**a handoff needs a question and evidence.** put that rule in the group instructions. open questions return to the lead. conflicting priorities return to you.\n\nthen try one bounded request:\n\n\"help me prepare for tomorrow. @calendar, find events that need prep. @inbox, read the threads i name for those events. lead, bring me the decisions after their replies. change no events and send nothing.\"\n\n**bring the findings into the group where the lead can use them.** share specialist results there yourself. each routine below returns results where you set it up. the [group chat guide](/ai-group-chat) explains the room settings."
+    },
+    {
+      "h": "morning brief: what needs an answer first",
+      "md": "**know what needs prep before the first meeting starts.** give the calendar bot read access. find event and find free slots are read actions.[^6]\n\ntry:\n\n\"every weekday at 7:45am, find today's calendar events. return a prep list here. show times, facts from descriptions and open prep questions. separate work mentioned in an event from commitments i confirmed. never change the calendar.\"\n\nread the time and time zone on the schedule card. compare the early briefs with your calendar. bring one to the lead and ask which questions need answers before the first meeting.\n\na brief cannot know the parts of your day that aren't in its sources. [daily briefing](/use-cases/daily-briefing) covers a narrower setup."
+    },
+    {
+      "h": "inbox sweep: requests without replies",
+      "md": "**find the request buried under the loud subject lines.** connect gmail to the inbox reader and keep it read only. it can fetch mail and read threads.[^5]\n\ntry:\n\n\"every weekday at 11:30am, read new work gmail since the last sweep. list direct requests, stated deadlines and decisions for me here. point to each thread. separate explicit deadlines from your interpretation. never label, archive, draft or send.\"\n\nshare the findings in the group before asking the lead to compare them with your stated priorities. if the sweep is noisy, narrow it to named senders or a search you tried yourself. [email triage](/use-cases/email-triage) covers that smaller job."
+    },
+    {
+      "h": "weekly review: read the commitment tracker",
+      "md": "**find the promise still open before you make another.** use a current file the lead can read, rather than asking it to recover a week of chat.\n\ntry:\n\n\"every friday at 3pm, read this week's commitment tracker in my project folder. list resolved items, open items and missing owners. keep source filenames with findings. if the tracker lacks an outcome, call it unknown. ask me to confirm next week's priorities. return the review here and change nothing elsewhere.\"\n\nkeep the tracker current. add specialist summaries as files when they belong in the review. missing context should become a question, not a confident update. the card offers edit, pause and undo; automations shows run history.[^3]"
+    },
+    {
+      "h": "set authority and operating hours",
+      "md": "**each bot needs only its own sources.** keep the inbox and calendar readers read only. later app edits do not automatically wait for approval.[^4]\n\nlocal routines need an awake computer with dusk open. a run less than 12 hours late runs once on return. older runs skip. choose dusk cloud if the morning brief must arrive with your computer off.[^3]\n\nkeep priorities, sensitive conversations and commitments with a person. if all you need is meeting prep and reply drafts, start with the [executive assistant setup](/ai-executive-assistant). add a lead when several preparation jobs actually need coordination."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is a useful ai chief of staff prompt?",
+      "a": "**name the handoff and its limit.** ask the lead to coordinate specialists, separate facts from questions and return decisions to you. name the sources and result for each job."
+    },
+    {
+      "q": "what are people actually using scheduled tasks for?",
+      "a": "**try calendar prep, inbox requests and a commitment review.** these return checkable lists. they are examples to adapt, not measured results."
+    },
+    {
+      "q": "does the leader get access to every specialist's apps?",
+      "a": "**no. permissions stay with each bot.** calendar access belongs to its reader; gmail belongs to the inbox reader. the lead asks questions and brings replies together."
+    },
+    {
+      "q": "can it decide what my team should do next?",
+      "a": "**keep that choice with you.** ask for options, missing owners and conflicting deadlines. confirm priorities before anyone acts."
+    },
+    {
+      "q": "can i use this for my job?",
+      "a": "**yes, with a work license.** personal use is free. dusk cloud pro includes a work license for one person. see [account and billing](/docs/account-and-billing)."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: leader groups and separate permissions",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot docs: bot jobs and attached context",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: routines and missed runs",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: app access and sends",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google calendar actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "make a lead and readers with separate jobs",
+      "give each reader only its needed app access",
+      "put them in a group and choose leader",
+      "try tomorrow's preparation request once"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "giving the lead every account",
+      "fix": "let specialists read their sources and return findings."
+    },
+    {
+      "mistake": "asking it to review a week of earlier chat",
+      "fix": "keep commitments in a tracker file the routine can read."
+    },
+    {
+      "mistake": "treating mention of a task as completion",
+      "fix": "require an outcome in the source, or mark it unknown."
+    }
+  ],
+  "tip": {
+    "text": "a good lead brings you fewer decisions, with better context."
+  },
+  "checklist": {
+    "items": [
+      "each bot has one clear preparation job",
+      "each source has an owner who keeps it current",
+      "the group knows which decisions come back to me",
+      "private routine results reach the group",
+      "the machine will be awake when the brief is due"
+    ]
+  },
+  "voice": 2
+}

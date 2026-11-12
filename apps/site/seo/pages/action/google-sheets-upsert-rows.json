@@ -1,0 +1,127 @@
+{
+  "path": "/integrations/google-sheets/upsert-rows",
+  "type": "action",
+  "title": "Update or add Google Sheets rows with AI by reference",
+  "nav": "upsert rows",
+  "h1": "match google sheets rows by a unique number before updating them",
+  "description": "Keep one record in one Google Sheets row. A bot matches your key, updates existing entries and adds new ones, with a preview before writing.",
+  "keyword": "upsert google sheets rows with ai",
+  "keywords": [
+    "chatgpt update or insert google sheets rows",
+    "claude google sheets upsert by key",
+    "ai match spreadsheet rows by id"
+  ],
+  "answer": "**stop adding a fresh row every time a delivery changes.** a bot matches records to a key column, updates existing rows and appends new ones. header names do the matching, whatever their order. missing headers become new columns. name the key and preview new headers first, then ask for confirmation before the bot writes to your sheet.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "upsert",
+    "row matching",
+    "key columns"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/append-values-to-spreadsheet",
+    "/integrations/google-sheets/update-spreadsheet-values"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-key"
+    ],
+    "bubble": "match before adding"
+  },
+  "og_line": "known records update. new ones add rows.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_UPSERT_ROWS"
+  },
+  "what": "**upsert means update a match, add the rest.** give the spreadsheet link, exact tab and a header that uniquely names each record. use an asset number rather than a person's name. without a chosen key, the first column wins.\n\n- give headers separately if every incoming row contains data; otherwise the first row becomes headers\n- partial updates can leave other columns alone\n- missing headers create columns automatically\n- name the table's start cell if its headers don't sit at a1",
+  "uses": [
+    "**keep equipment records current.** match each approved change by asset number.",
+    "**refresh delivery status.** update known consignments and add new consignment numbers.",
+    "**merge membership changes.** match stable references rather than people's positions in the sheet.",
+    "**touch only what's changed.** update one or two columns while leaving the others alone."
+  ],
+  "routine": {
+    "message": "every thursday at 17:20, read equipment change files added this week to the approved equipment changes folder. compare them with the moonwillow stores register, tab equipment, with headers at c5.\n\nmatch on the asset number header. show updates, new rows and any new column names here. stop for missing or repeated keys, or rows with more values than columns. ask me before you change anything. apply only the batch i confirm, then report the result. never add an unapproved column or guess a missing reference.",
+    "when": "thursdays at 17:20",
+    "needs": "access to approved change files; google sheets read and write for register reads and upsert rows",
+    "output": "moonwillow equipment review\n\nm-42: update condition to inspected\nm-87: add portable stand\nnew columns: none\n\ndorian must confirm before writing. headers start at c5."
+  },
+  "steps": [
+    "**allow the register actions only.** connect google sheets with read and write for this bot.",
+    "**read the destination back.** confirm the file, tab, header cell and matching header before giving it changes.",
+    "**preview the whole effect.** ask for matches, additions and new headers before any write.",
+    "**try a small batch.** inspect it once. pause the routine whenever the register's headers change."
+  ],
+  "watch": [
+    "**a spelling mistake can become a column.** a missing header doesn't simply fail; the action adds it.",
+    "**the first data row can disappear into headers.** give column names separately when every incoming row is data.",
+    "**keep rejection of extra values on.** rows wider than their headers fail by default. turn that off and extra values silently disappear.",
+    "**don't let the default choose your key.** without one, it uses the first column. stop on blank or repeated references."
+  ],
+  "faq": [
+    {
+      "q": "does the incoming column order have to match the sheet?",
+      "a": "**no, header names do the matching.** make them exact. review any unfamiliar name before it becomes a new column."
+    },
+    {
+      "q": "what if my table starts below the top row?",
+      "a": "**give the header cell.** the default is a1. a title or notes above the table can make that wrong."
+    },
+    {
+      "q": "should i use a person's name as the key?",
+      "a": "**choose a reference that stays unique.** an order or asset number is safer when names can repeat or change."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "paste a sheet link and name its tab",
+      "choose the matching header and table start",
+      "give one known record and one new record",
+      "review the proposed updates and additions first"
+    ]
+  },
+  "worked": {
+    "before": "equipment table at c5:\nm-42 | condition: awaiting inspection\n\nincoming changes:\nm-42 | condition: inspected\nm-87 | item: portable stand",
+    "after": "proposed result:\nm-42 updates its condition\nm-87 becomes a new row\n\nnew columns: none. preview ready for dorian."
+  },
+  "mistakes": [
+    {
+      "mistake": "matching on a column letter",
+      "fix": "name the actual header. the meaning should survive someone moving a column."
+    },
+    {
+      "mistake": "letting a header typo through",
+      "fix": "compare incoming names with the sheet first. a typo can add a whole new column."
+    }
+  ],
+  "tip": {
+    "text": "look at proposed new columns before new rows. a misspelled header is easier to catch there."
+  },
+  "voice": 2
+}

@@ -1,0 +1,116 @@
+{
+  "path": "/integrations/google-drive/find-file",
+  "type": "action",
+  "title": "Find Google Drive files with AI by folder, type or date",
+  "nav": "find file",
+  "h1": "find a drive file from more than its filename",
+  "description": "Ask a bot to locate Google Drive files by folder, file type, dates or search terms. Get useful file references while keeping the search read only.",
+  "keyword": "google drive find file with ai",
+  "keywords": [
+    "chatgpt find google drive file",
+    "claude search drive folder",
+    "ai find pdf in google drive"
+  ],
+  "answer": "**stop opening five files called final.** a bot searches drive by name, type, date or folder and returns names, dates and links. it can cover my drive and shared drives your connected account can open. give it the clues you remember and get a shortlist, with the files left where they are.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "google-drive",
+    "find file"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/export-google-workspace-file"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "p-binoculars",
+      "p-folder"
+    ],
+    "bubble": "where is that pdf"
+  },
+  "og_line": "narrow the search before choosing a file.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_FIND_FILE"
+  },
+  "what": "**a pdf, a folder link and a rough date can be enough.** the bot searches my drive and shared drives your account can open. results include names, types, dates and viewing links.\n\nit can fetch further matches too. once you have the shortlist, open the contents before choosing the latest contract or treating a certificate as valid.",
+  "uses": [
+    "**find equipment certificates.** limit the search to pdfs in the equipment folder.",
+    "**recover a folder.** use the part of its name you remember.",
+    "**collect revised decks.** look for presentations changed since the review date.",
+    "**locate a contract copy.** name the shared drive that should hold it."
+  ],
+  "routine": {
+    "message": "on the second friday of each month at 4:30, search the fablecrest equipment folder in drive. find pdfs modified since the previous search.\n\n- finish reading all results\n- return each name, modification date and viewing link here\n- flag similar certificate names instead of choosing one\n\nnever move files or change sharing. do not call a certificate valid without reading it.",
+    "when": "second friday of the month at 16:30",
+    "needs": "google drive connected with read only; access to the fablecrest equipment folder",
+    "output": "fablecrest equipment pdfs\nworkshop-press-certificate.pdf: changed thursday; viewing link\nworkshop-press-certificate-copy.pdf: changed friday; viewing link\ntwo candidates to open for a validity review."
+  },
+  "steps": [
+    "**leave files untouched.** connect drive with read only for this bot.",
+    "**point at the folder.** paste its link and name a file type or date clue.",
+    "**try the folder once.** open a returned link and confirm it points into the folder you meant.",
+    "**keep up with revisions.** change the routine when the folder or reporting dates change."
+  ],
+  "watch": [
+    "**choose a version by what is inside it.** a filename alone cannot tell you which contract is current or approved.",
+    "**want full-text matches in date order?** the bot has to sort them after the search.",
+    "**more matches can follow.** finish reading them before saying a file is missing."
+  ],
+  "faq": [
+    {
+      "q": "can it search one shared drive?",
+      "a": "**yes, name the shared drive.** a link helps the bot choose the right one."
+    },
+    {
+      "q": "what if i have forgotten the filename?",
+      "a": "**use the clues you have.** a folder, file type or date can narrow the list. ask it to flag uncertain matches."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "connect drive with read only",
+      "paste a folder link",
+      "ask for pdfs changed since a date you choose",
+      "open a result and read the contents you need"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching all drive for \"contract\"",
+      "fix": "start with the client folder and file type."
+    },
+    {
+      "mistake": "choosing the newest filename",
+      "fix": "use the modification date and the contents. filenames can mislead."
+    }
+  ],
+  "tip": {
+    "text": "paste the folder link when two folders share a name. it saves a round of guessing."
+  },
+  "voice": 2
+}

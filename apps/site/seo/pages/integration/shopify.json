@@ -1,0 +1,180 @@
+{
+  "path": "/integrations/shopify",
+  "type": "integration",
+  "title": "Shopify AI assistant for stock and fulfilment reviews",
+  "nav": "shopify",
+  "h1": "a shopify assistant for stock and fulfilment exceptions",
+  "description": "Review Shopify stock, draft orders and fulfilment work with dusk bot. See the custom sign-in requirement and routines that leave store records unchanged.",
+  "answer": "**see the stock shortage before you promise the order.** the bot can read shopify orders, location inventory and draft orders, then bring you a short exception list. start with the specific read actions. connecting shopify takes your own composio project key and sign-in setup; there is no managed sign-in here. add store writes only when the review gives you a reason.",
+  "tags": [
+    "ecommerce",
+    "stock",
+    "fulfilment"
+  ],
+  "connectors": [
+    "shopify"
+  ],
+  "related": [
+    "/for/ecommerce",
+    "/integrations/stripe",
+    "/integrations/whatsapp"
+  ],
+  "art": {
+    "logo": "shopify",
+    "label": "Shopify",
+    "props": [
+      "s-parcel",
+      "p-magnifier"
+    ],
+    "bubble": "check the stock exceptions"
+  },
+  "og_line": "review stock before changing the store.",
+  "app": {
+    "name": "Shopify",
+    "toolkit": "shopify",
+    "intro": "**ask for a short list of store exceptions.**\n\nwhich draft orders need a decision? which locations have low stock? ask for source records beside each point. use these specific reads first. don't assume every broad graphql action works for a read-only bot.",
+    "highlight": [
+      {
+        "slug": "SHOPIFY_LIST_LOCATIONS",
+        "use": "identify the store locations before comparing their stock"
+      },
+      {
+        "slug": "SHOPIFY_LIST_LOCATION_INVENTORY_LEVELS",
+        "use": "read inventory levels at the location you name"
+      },
+      {
+        "slug": "SHOPIFY_GET_ORDER",
+        "use": "inspect a known order when reviewing a fulfilment question"
+      },
+      {
+        "slug": "SHOPIFY_GET_PRODUCT",
+        "use": "read product details for a catalog correction list"
+      },
+      {
+        "slug": "SHOPIFY_LIST_DRAFT_ORDERS",
+        "use": "review drafts that still need a store owner's decision"
+      },
+      {
+        "slug": "SHOPIFY_LIST_ASSIGNED_FULFILLMENT_ORDERS",
+        "use": "list assigned fulfilment work before the fulfilment desk starts its day"
+      },
+      {
+        "slug": "SHOPIFY_LIST_ABANDONED_CHECKOUTS",
+        "use": "inspect returned abandoned checkouts without sending recovery messages"
+      },
+      {
+        "slug": "SHOPIFY_CREATE_DRAFT_ORDER",
+        "use": "prepare an agreed draft order when you allow that change"
+      }
+    ],
+    "setup": "**shopify needs your own composio setup.**\n\nthere's no ready-made sign-in through composio. add your own composio project key under **settings**, **api keys**. create your own auth config before asking a bot to use shopify.\n\nonce connected, name the store and locations. only allow the bot that needs store access."
+  },
+  "routines_intro": "**your store rules decide what needs attention.** keep thresholds and age rules in a file the bot can read. these jobs report exceptions and leave store records alone.",
+  "routines": [
+    {
+      "name": "location stock exceptions",
+      "message": "every weekday at 7, read the stock minimums file in my store operations folder. read shopify inventory for the location named there. list items below their minimums with the returned quantity and location. show missing inventory data separately. never adjust stock or assume a delivery arrived.",
+      "when": "weekdays at 7:00",
+      "output": "low-stock items at the chosen location, with missing data separate"
+    },
+    {
+      "name": "draft orders needing a decision",
+      "message": "every tuesday at 1, read the draft order age rule in my store operations guide. list shopify draft orders and show those needing a decision under that rule. include their order details. never complete drafts, send invoices or contact customers.",
+      "when": "tuesdays at 13:00",
+      "output": "draft orders for the store owner to review"
+    },
+    {
+      "name": "fulfilment desk check",
+      "message": "every afternoon at 4, read the fulfilment exception rules in my store operations guide. list assigned shopify fulfilment orders available to this connection. highlight matching exceptions and read the known order details when needed. leave holds, routing and fulfilment status unchanged.",
+      "when": "daily at 16:00",
+      "output": "a fulfilment desk note with the matching order records"
+    }
+  ],
+  "asks": "**keep the stock review read only.** that blocks draft creation, inventory adjustments and order edits. use the specific read actions, since broad graphql queries count as writes here.\n\ninventory edits do not automatically ask first. if you add them later, say “ask me before you change anything” and allow only the actions needed.\n\ncustomer messages and other sends ask first unless you allow a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+  "cannot": [
+    "**connect through a ready-made shopify sign-in.** prepare your own composio project key and sign-in configuration first.",
+    "**use every broad query with read-only access.** general shopify graphql orders, products and inventory actions count as writes here. use the specific highlighted reads.",
+    "**fix stock or complete drafts while limited to reading.** a stock warning tells you where to investigate. it does not change the quantity.",
+    "**run the morning review on a sleeping laptop.** local routines need an awake machine and dusk open. dusk cloud can keep them running while you are away."
+  ],
+  "sections": [
+    {
+      "h": "give each stock warning a location and a minimum",
+      "md": "**find the shortage that could break a customer promise.** name each location and its stock minimums. say how to report blanks and missing values. the bot should show the quantity shopify returns, with gaps on their own line.\n\nkeep incoming deliveries separate until stock says they arrived. [bots for ecommerce](/for/ecommerce) covers the wider day.\n\nread [payments](/integrations/stripe) in their own account. an order record cannot tell you money arrived."
+    },
+    {
+      "h": "keep recovery messages as a separate job",
+      "md": "**read the order before making the customer a promise.** abandoned checkouts can feed an internal review list. sending a recovery message needs a separate request.\n\nif support uses [whatsapp business](/integrations/whatsapp), connect it separately. say which store facts belong in the reply. read the recipient and promise before allowing the send."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude help manage my shopify store?",
+      "a": "**yes, through the available actions after custom setup.** try a read-only stock review for a location first. decide later whether the bot needs any store writes."
+    },
+    {
+      "q": "why is this not a one-click shopify connection?",
+      "a": "**composio has no managed shopify sign-in here.** you need your own composio project key and sign-in configuration."
+    },
+    {
+      "q": "will it automatically change stock when it finds a problem?",
+      "a": "**read-only access prevents that.** this routine reports exceptions. if you later permit inventory changes, tell the bot to ask before each change."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude shopify",
+  "keywords": [
+    "shopify mcp",
+    "ai assistant for shopify store owners"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "use your configured shopify connection",
+      "choose one store location",
+      "ask for its inventory without changing anything",
+      "compare one returned quantity with the store record"
+    ]
+  },
+  "checklist": {
+    "h": "before the first stock review",
+    "items": [
+      "your custom connection works",
+      "the store and location are named",
+      "minimums live in a readable file",
+      "the bot has only the read actions it needs"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "comparing stock across unnamed locations",
+      "fix": "pick the location before judging a quantity."
+    },
+    {
+      "mistake": "giving broad store writes to a stock reader",
+      "fix": "use the specific inventory reads and leave adjustments out."
+    }
+  ],
+  "tip": {
+    "text": "missing inventory data should get its own line, not quietly become zero."
+  },
+  "voice": 2
+}

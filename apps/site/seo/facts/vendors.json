@@ -1,0 +1,970 @@
+{
+  "checked": "2026-11-12",
+  "notes": [
+    "All facts read on 2026-11-12 from the cited URL unless the source_url is a web.archive.org copy, in which case the archive timestamp is the source date.",
+    "Live pricing pages were viewed from India and some render INR; USD figures are from vendor help pages, docs, or 1-day-old US archive copies as noted.",
+    "Quotes are verbatim except where quote_note says punctuation was changed (em dashes in originals are not reproduced)."
+  ],
+  "features": {
+    "claude-scheduled-tasks": {
+      "name": "Claude scheduled tasks (Claude apps and Cowork)",
+      "facts": [
+        {
+          "text": "Scheduled tasks run a saved prompt automatically on a recurring basis or on demand in Claude Cowork and in the new Claude experience.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week' (week of 2026-11-12)",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Scheduled tasks allow you to delegate work to Claude Cowork by creating tasks that run automatically on a recurring basis, or on demand."
+        },
+        {
+          "text": "Available on all paid plans: Pro, Max, Ultra, Team and Enterprise. Not on Free.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Scheduled tasks are available on all paid plans (Pro, Max, Ultra, Team, and Enterprise), in Claude Cowork and in the new Claude experience."
+        },
+        {
+          "text": "They run remotely, so they keep running when your computer is asleep or the desktop app is closed. Tasks created before October 6 that run on your computer keep running there.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Scheduled tasks run remotely, so they run on their cadence even when your computer is asleep or the Claude Desktop app is closed."
+        },
+        {
+          "text": "Manual setup offers frequencies of hourly, daily, weekly, weekdays, or manual. Each run is its own Cowork session and can use connectors, skills and plugins.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Scheduled tasks cannot use linked accounts in Personal Finance.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Launched in Cowork on February 25, 2026 per Anthropic's release notes.",
+          "source_url": "https://support.claude.com/en/articles/12138966-release-notes",
+          "source_date": "release note entry dated 2026-02-25",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "We introduced the ability to create and schedule both recurring and on-demand tasks in Cowork"
+        },
+        {
+          "text": "The pricing page lists 'Hand off and schedule tasks' as No on Free and Yes on Pro, Max and Ultra.",
+          "source_url": "https://claude.com/pricing",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "No published cap on the number of Cowork scheduled tasks was found on the pages read.",
+          "source_url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "absence of a stated limit, not a confirmed 'unlimited'"
+        }
+      ]
+    },
+    "claude-code-routines": {
+      "name": "Claude Code cloud scheduled tasks (formerly routines), plus Desktop local tasks and /loop",
+      "facts": [
+        {
+          "text": "Routines were renamed 'scheduled tasks' (cloud scheduled tasks). One is a saved Claude Code configuration (prompt, repositories, connectors) that runs on a schedule, on API calls, or on GitHub events.",
+          "source_url": "https://code.claude.com/docs/en/routines",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "A cloud scheduled task, formerly a routine, is a saved Claude Code configuration: a prompt, one or more repositories, and a set of connectors, packaged once and run automatically."
+        },
+        {
+          "text": "They run on Anthropic-managed cloud infrastructure, so they keep working when your laptop is closed.",
+          "source_url": "https://code.claude.com/docs/en/routines",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Scheduled tasks execute on Anthropic-managed cloud infrastructure, or on your organization's self-hosted environment when routed there, so they keep working when your laptop is closed."
+        },
+        {
+          "text": "Available on Pro, Max, Ultra, Team and Enterprise. Created at claude.ai/code/routines or with /schedule in the CLI. Marked research preview.",
+          "source_url": "https://code.claude.com/docs/en/routines",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Scheduled tasks are available on Pro, Max, Ultra, Team, and Enterprise plans."
+        },
+        {
+          "text": "Limits: 100 scheduled runs per hour per account; 30 per hour per task for Run now, API fires and re-running one-off tasks; runs count against subscription usage. Minimum interval for cloud tasks is 1 hour.",
+          "source_url": "https://code.claude.com/docs/en/routines",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Desktop local scheduled tasks run on your machine and only fire while the app is open and the computer is awake; cloud tasks run even when the computer is off.",
+          "source_url": "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Local task: runs on your machine with direct access to your files and tools, but only fires while the app is open and your computer is awake"
+        },
+        {
+          "text": "/loop re-runs a prompt on an interval inside an open Claude Code session (minimum 1 minute); it requires the machine on.",
+          "source_url": "https://code.claude.com/docs/en/scheduled-tasks",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Launch date of routines is not stated on the pages read.",
+          "source_url": "https://code.claude.com/docs/en/routines",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "could not verify launch date"
+        }
+      ]
+    },
+    "claude-code-remote-control": {
+      "name": "Claude Code Remote Control and Claude Code on mobile",
+      "facts": [
+        {
+          "text": "Remote Control connects claude.ai/code or the Claude iOS/Android app to a Claude Code session running on your own machine.",
+          "source_url": "https://code.claude.com/docs/en/remote-control",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Remote Control connects claude.ai/code or the Claude app for iOS and Android to a Claude Code session running on your machine."
+        },
+        {
+          "text": "The session runs locally, so your computer has to stay on and the claude process has to keep running.",
+          "source_url": "https://code.claude.com/docs/en/remote-control",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "The web and mobile interfaces are a window into that local session, so your computer has to stay on and the claude process has to keep running."
+        },
+        {
+          "text": "Available on Pro, Max, Ultra, Team and Enterprise; API keys are not supported. Team and Enterprise need an Owner to enable it.",
+          "source_url": "https://code.claude.com/docs/en/remote-control",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "available on Pro, Max, Ultra, Team, and Enterprise plans. API keys are not supported."
+        },
+        {
+          "text": "If the laptop sleeps or the network drops, Claude Code reconnects when the machine comes back online.",
+          "source_url": "https://code.claude.com/docs/en/remote-control",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Launch date not stated on the docs page. Release notes show Trusted Devices for Remote Control added June 25, 2026.",
+          "source_url": "https://support.claude.com/en/articles/12138966-release-notes",
+          "source_date": "release note entry dated 2026-06-25",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      ]
+    },
+    "claude-code-cloud": {
+      "name": "Claude Code on the web / cloud sessions",
+      "facts": [
+        {
+          "text": "A cloud session runs Claude Code on cloud infrastructure instead of your machine and keeps running after you close your laptop.",
+          "source_url": "https://code.claude.com/docs/en/claude-code-on-the-web",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "The session keeps running after you close your laptop, and you can check on it or steer it from any device."
+        },
+        {
+          "text": "Available on Pro, Max, Ultra and Team, and for Enterprise users with premium or Chat + Claude Code seats.",
+          "source_url": "https://code.claude.com/docs/en/claude-code-on-the-web",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Cloud sessions are available on Pro, Max, Ultra, and Team plans, and for Enterprise users with premium seats or Chat + Claude Code seats."
+        },
+        {
+          "text": "Can be started from claude.ai/code in a browser, the Code tab in the Claude mobile app, the Desktop app, or the terminal with claude --cloud. Usage counts toward plan limits.",
+          "source_url": "https://code.claude.com/docs/en/claude-code-on-the-web",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Cloud sessions clone code from GitHub; GitLab, Bitbucket and other hosts have documented restrictions.",
+          "source_url": "https://code.claude.com/docs/en/claude-code-on-the-web",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      ]
+    },
+    "claude-cowork": {
+      "name": "Claude Cowork",
+      "facts": [
+        {
+          "text": "Cowork brings Claude Code's agentic capabilities to knowledge work beyond coding, with no terminal required; you describe an outcome and come back to finished work.",
+          "source_url": "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Claude Cowork uses the same agentic architecture that powers Claude Code, with no terminal required."
+        },
+        {
+          "text": "Plans: paid plans only (Pro, Max, Ultra, Team, Enterprise). No separate price; it comes with the plan (Pro is $20/month billed monthly per the pricing page).",
+          "source_url": "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Claude Cowork is available on paid plans (Pro, Max, Ultra, Team, and Enterprise)"
+        },
+        {
+          "text": "Platforms: Claude Desktop for macOS, Windows, and Linux (beta) on all paid plans; web and mobile on Pro, Max, Ultra and Team (beta on Team); Claude in Chrome side panel.",
+          "source_url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Claude Desktop for macOS, Windows, and Linux (beta): All paid plans."
+        },
+        {
+          "text": "Since October 6, 2026, new Cowork tasks on Pro, Max and Ultra run in the cloud; the 'Only on your computer' option was removed and you cannot switch back.",
+          "source_url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "On October 6, 2026, new Cowork tasks on Pro, Max, and Ultra plans run in the cloud."
+        },
+        {
+          "text": "Research preview expanded to Pro on January 16, 2026 (macOS only); generally available on macOS and Windows on April 9, 2026.",
+          "source_url": "https://support.claude.com/en/articles/12138966-release-notes",
+          "source_date": "release note entries 2026-01-16 and 2026-04-09",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Anthropic now says Cowork and chat are one Claude: when a task calls for working with files, Claude brings in Cowork automatically.",
+          "source_url": "https://claude.com/product/cowork",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      ]
+    },
+    "claude-connectors": {
+      "name": "Claude connectors",
+      "facts": [
+        {
+          "text": "Connectors let Claude access your apps and services, retrieve your data, and take actions in them (examples given: Linear, Slack, Google Drive).",
+          "source_url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Connectors let Claude access your apps and services, retrieve your data, and take actions within connected services."
+        },
+        {
+          "text": "Web connectors are available for all users on Claude, Cowork, Claude Desktop and Claude Mobile; they work across Claude, Claude Desktop, Claude Code and the API.",
+          "source_url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Listed in the Connectors Directory at claude.ai/connectors; custom connectors can connect any service that supports MCP.",
+          "source_url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+          "source_date": "page says 'Updated this week'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "You can find available connectors in the Connectors Directory, where each connector has a page detailing its use cases, read/write capabilities, and availability."
+        },
+        {
+          "text": "The pricing page marks Connectors as Yes on Free, Pro, Max and Ultra.",
+          "source_url": "https://claude.com/pricing",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      ]
+    },
+    "claude-skills": {
+      "name": "Claude skills",
+      "facts": [
+        {
+          "text": "Skills are folders of instructions, scripts and resources that Claude loads dynamically to do specialized tasks in a repeatable way.",
+          "source_url": "https://support.claude.com/en/articles/12512176-what-are-skills",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Skills are folders of instructions, scripts, and resources that Claude loads dynamically to improve performance on specialized tasks."
+        },
+        {
+          "text": "Available on Free, Pro, Max, Ultra, Team and Enterprise; requires code execution to be enabled; also in Claude Code and in beta on the API.",
+          "source_url": "https://support.claude.com/en/articles/12512176-what-are-skills",
+          "source_date": "page says 'Updated over a week ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Skills are available for users on Free, Pro, Max, Ultra, Team, and Enterprise plans. This feature requires code execution to be enabled."
+        },
+        {
+          "text": "To add one on an individual plan: enable Code execution and file creation in Settings > Capabilities, then go to Customize > Skills; custom skills are uploaded as a ZIP of the skill folder.",
+          "source_url": "https://support.claude.com/en/articles/12512180-using-skills-in-claude",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      ]
+    },
+    "chatgpt-scheduled-tasks": {
+      "name": "ChatGPT scheduled tasks",
+      "facts": [
+        {
+          "text": "ChatGPT can run one-time or recurring tasks, monitor for changes, and respond to supported events; managed from the Scheduled page.",
+          "source_url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+          "source_date": "page says 'Updated: 11 days ago' (about 2026-11-01)",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "ChatGPT can run one-time or recurring tasks, monitor for changes, and respond to supported events when available."
+        },
+        {
+          "text": "Active task limits: 3 for Free and Go, 5 for Plus, 10 for Business and Edu, 15 for Pro and Enterprise. Free users are limited to once per day with flexible windows; hourly schedules and exact times need a paid plan.",
+          "source_url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+          "source_date": "page says 'Updated: 11 days ago'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Active task limits depend on the plan: 3 for Free and Go, 5 for Plus, 10 for Business and Edu, and 15 for Pro and Enterprise."
+        },
+        {
+          "text": "Event-triggered tasks (Gmail, Slack, GitHub) are for Plus, Pro, Business, Enterprise and Edu; not Free or Go.",
+          "source_url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+          "source_date": "page says 'Updated: 11 days ago'",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        {
+          "text": "Notifications by push or email. If Scheduled does not appear in the desktop app, use ChatGPT on the web. Tasks that 'run only on your computer' exist but cannot be scheduled from a shared link.",
+          "source_url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+          "source_date": "page says 'Updated: 11 days ago'",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "page does not plainly state whether ordinary tasks run while you are offline"
+        }
+      ]
+    },
+    "chatgpt-agent": {
+      "name": "ChatGPT agent / agent mode",
+      "facts": [
+        {
+          "text": "The help article now says ChatGPT agent is no longer available and points to ChatGPT Work for longer multi-step tasks.",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "source_date": "page says 'Updated: 15 days ago' (about 2026-10-28)",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "ChatGPT agent is no longer available. Use ChatGPT Work for longer, multi-step tasks and finished deliverables."
+        },
+        {
+          "text": "The same article still carries older text listing agent mode on Pro, Plus, Business, Enterprise and Edu with monthly limits of Plus 40, Pro 400, Business and Enterprise 40 messages. Treat this as historical.",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "source_date": "page says 'Updated: 15 days ago'",
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "internally inconsistent page; do not present these limits as current"
+        },
+        {
+          "text": "ChatGPT Work and Codex share usage, pricing and credits.",
+          "source_url": "https://learn.chatgpt.com/docs/pricing",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "ChatGPT Work usage inside ChatGPT uses the same pricing, credits, and usage limits as Codex."
+        }
+      ]
+    },
+    "chatgpt-group-chats": {
+      "name": "ChatGPT group chats",
+      "facts": [
+        {
+          "text": "Group chats are being retired: since July 9, 2026 you can no longer create or join group chats; existing history stays viewable.",
+          "source_url": "https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt",
+          "source_date": "page says 'Updated: 15 days ago'; served as 'Retiring group chats in ChatGPT'",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Since July 9, 2026, you can no longer create or join new group chats. You can still view your existing group chat history."
+        },
+        {
+          "text": "In the UK group chats are read-only; elsewhere you can keep sending messages while messaging is enabled.",
+          "source_url": "https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt",
+          "source_date": "page says 'Updated: 15 days ago'",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      ]
+    },
+    "gemini-scheduled-actions": {
+      "name": "Gemini scheduled actions (Schedules in Gemini Apps)",
+      "facts": [
+        {
+          "text": "You can schedule recurring actions in Gemini Apps (for example a daily news digest); Gemini prepares content in the background within the hour before delivery time.",
+          "source_url": "https://support.google.com/gemini/answer/16316416?hl=en",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "You can make Gemini a part of your daily, weekly, and monthly routines by scheduling recurring actions."
+        },
+        {
+          "text": "Limit: up to 10 active schedules at a time.",
+          "source_url": "https://support.google.com/gemini/answer/16316416?hl=en",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "You can have up to 10 active schedules at a time."
+        },
+        {
+          "text": "Eligible accounts: a personal Google Account, or a work or school account with a qualifying Workspace edition; Keep Activity must be on; rolling out gradually. No paid Google AI plan requirement is stated on the page.",
+          "source_url": "https://support.google.com/gemini/answer/16316416?hl=en",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "We're gradually making this feature available to all personal Google Accounts, so it might not be available to you just yet."
+        },
+        {
+          "text": "Notifications arrive in the web app sidebar and as mobile notifications.",
+          "source_url": "https://support.google.com/gemini/answer/16316416?hl=en",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      ]
+    },
+    "grok-tasks": {
+      "name": "Grok tasks / automations and Grok Bot routines",
+      "facts": [
+        {
+          "text": "grok.com/tasks now presents the feature as Automations.",
+          "source_url": "https://grok.com/tasks",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "quote": "Schedule recurring work, react to events, and get notified"
+        },
+        {
+          "text": "The plans page lists 'Cloud agents & automations' and 'Grok Bot' under the Premium tier of The X Subscription.",
+          "source_url": "https://grok.com/plans",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "plan page viewed from India; tier placement read from live page"
+        },
+        {
+          "text": "Grok Bot routines run a workflow on a schedule and run in the cloud while your laptop is closed.",
+          "source_url": "https://docs.x.ai/grok-bot/skills-routines-and-automations",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Routines run in the cloud while your laptop is closed."
+        },
+        {
+          "text": "Per-plan limits on number or frequency of Grok automations could not be verified on an xAI page.",
+          "source_url": "https://grok.com/plans",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "could not verify"
+        }
+      ]
+    },
+    "mcp": {
+      "name": "Model Context Protocol (MCP)",
+      "facts": [
+        {
+          "text": "Official definition from modelcontextprotocol.io.",
+          "source_url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+          "source_date": "no publish date on page; live page read on 2026-11-12",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems."
+        },
+        {
+          "text": "Anthropic introduced and open-sourced MCP on November 25, 2024.",
+          "source_url": "https://www.anthropic.com/news/model-context-protocol",
+          "source_date": "2024-11-25",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "quote": "Today, we're open-sourcing the Model Context Protocol (MCP), a new standard for connecting AI assistants to the systems where data lives"
+        },
+        {
+          "text": "On December 9, 2025 Anthropic donated MCP to the Agentic AI Foundation, a directed fund under the Linux Foundation co-founded by Anthropic, Block and OpenAI.",
+          "source_url": "https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation",
+          "source_date": "2025-12-09",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "claude": {
+      "source_url": "https://claude.com/pricing",
+      "source_date": "no publish date on page; live page read on 2026-11-12",
+      "checked": "2026-11-12",
+      "currency": "USD (shown in USD when viewed from India)",
+      "confidence": "high",
+      "items": [
+        {
+          "plan": "Free",
+          "monthly": "$0"
+        },
+        {
+          "plan": "Pro",
+          "monthly": "$20 billed monthly, or $17/month with annual billing ($200 up front)"
+        },
+        {
+          "plan": "Max",
+          "monthly": "$100",
+          "note": "5x Pro usage; $100/month in API credits"
+        },
+        {
+          "plan": "Ultra",
+          "monthly": "$200",
+          "note": "10x Pro weekly usage, no 5-hour limit for verified accounts; $200/month in API credits"
+        }
+      ],
+      "note": "There is no longer a $200 Max 20x tier on this page; the $200 tier is called Ultra. Prices exclude tax."
+    },
+    "chatgpt": {
+      "checked": "2026-11-12",
+      "confidence": "medium",
+      "items": [
+        {
+          "plan": "Free",
+          "monthly": "$0",
+          "source_url": "https://learn.chatgpt.com/docs/pricing"
+        },
+        {
+          "plan": "Go",
+          "monthly": "$8",
+          "source_url": "https://learn.chatgpt.com/docs/pricing",
+          "note": "USD price from Codex pricing doc; help article says Go prices are on the pricing page"
+        },
+        {
+          "plan": "Plus",
+          "monthly": "$20",
+          "source_url": "https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus",
+          "source_date": "page says 'Updated: 22 days ago'"
+        },
+        {
+          "plan": "Pro 100 / Pro 200 / Pro 500",
+          "monthly": "$100 / $200 / $500",
+          "source_url": "https://help.openai.com/en/articles/9793128-about-chatgpt-pro-tiers",
+          "source_date": "page says 'Updated: 9 days ago'"
+        }
+      ],
+      "india_view_today": {
+        "source_url": "https://chatgpt.com/pricing",
+        "Free": "INR 0",
+        "Go": "INR 399",
+        "Plus": "INR 1,999",
+        "Pro": "from INR 10,699"
+      },
+      "note": "chatgpt.com/pricing renders prices by visitor location; from India it shows INR, and the archived US copy renders no prices, so USD figures come from OpenAI help and docs pages."
+    },
+    "google": {
+      "source_url": "https://gemini.google/subscriptions/",
+      "checked": "2026-11-12",
+      "confidence": "medium",
+      "usd_source": "Wayback Machine copy of gemini.google/subscriptions dated 2026-11-11 (US region shown on page): https://web.archive.org/web/20261111102611/https://gemini.google/subscriptions/",
+      "items": [
+        {
+          "plan": "Free",
+          "monthly": "$0"
+        },
+        {
+          "plan": "Google AI Plus",
+          "monthly": "$4.99"
+        },
+        {
+          "plan": "Google AI Pro",
+          "monthly": "$19.99"
+        },
+        {
+          "plan": "Google AI Ultra",
+          "monthly": "$99.99 (5x Pro limits) or $199.99 (20x Pro limits)"
+        }
+      ],
+      "india_view_today": {
+        "Free": "INR 0",
+        "AI Plus": "INR 399",
+        "AI Pro": "INR 1,950",
+        "AI Ultra": "INR 6,500 or INR 19,500"
+      },
+      "note": "Live page viewed from India on 2026-11-12 shows INR; USD figures are from the 2026-11-11 US archive copy, one day old."
+    },
+    "xai": {
+      "source_url": "https://x.ai/news/x-subscription",
+      "source_date": "2026-10-12",
+      "checked": "2026-11-12",
+      "confidence": "high",
+      "items": [
+        {
+          "plan": "Free",
+          "monthly": "$0"
+        },
+        {
+          "plan": "Plus",
+          "monthly": "$8"
+        },
+        {
+          "plan": "Premium",
+          "monthly": "$30",
+          "note": "benefits of SuperGrok, Cursor Pro and X Premium+; 4x Plus usage"
+        },
+        {
+          "plan": "Super",
+          "monthly": "$100",
+          "note": "15x Plus usage"
+        },
+        {
+          "plan": "Ultra",
+          "monthly": "$200",
+          "note": "50x Plus usage"
+        }
+      ],
+      "note": "SuperGrok as a standalone plan was folded into The X Subscription on 2026-10-12; existing SuperGrok subscribers can keep their plan. grok.com/plans viewed from India shows INR (Plus INR 759, Premium INR 3,399, Super INR 11,299, Ultra INR 22,599 after intro offers)."
+    }
+  },
+  "api_prices": {
+    "anthropic": {
+      "model": "Claude Sonnet 5.5",
+      "input_per_mtok": "$2",
+      "output_per_mtok": "$10",
+      "also": "Claude Opus 5.5: $4 in / $20 out",
+      "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "source_date": "no publish date on page; live page read on 2026-11-12",
+      "checked": "2026-11-12",
+      "confidence": "high"
+    },
+    "openai": {
+      "model": "GPT-6.1 Sol",
+      "input_per_mtok": "$2.00",
+      "output_per_mtok": "$10.00",
+      "also": "GPT-6 Astra: $10 in / $50 out; standard rates for context under 272K",
+      "source_url": "https://openai.com/api/pricing/",
+      "source_date": "no publish date on page; live page read on 2026-11-12",
+      "checked": "2026-11-12",
+      "confidence": "high"
+    },
+    "google": {
+      "model": "Gemini 4 Argon",
+      "input_per_mtok": "$2.00 through 2026-11-30, then $4.00 from 2026-12-01",
+      "output_per_mtok": "$10.00 through 2026-11-30, then $20.00 from 2026-12-01",
+      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "source_date": "no publish date on page; live page read on 2026-11-12",
+      "checked": "2026-11-12",
+      "confidence": "high",
+      "note": "price doubles on 2026-12-01; Gemini 4 Carbon shows the same figures on the page"
+    },
+    "xai": {
+      "model": "Grok 4.7",
+      "input_per_mtok": "$2.00",
+      "output_per_mtok": "$6.00",
+      "note": "long-context rate doubles above 200K tokens per model metadata",
+      "source_url": "https://docs.x.ai/developers/models",
+      "source_date": "page metadata dateModified 2026-09-21",
+      "checked": "2026-11-12",
+      "confidence": "high"
+    }
+  },
+  "terms": {
+    "anthropic": {
+      "summary": "Anthropic separates two things. (1) Signing in to Anthropic's own unmodified Claude Code binary with your own Claude subscription is explicitly allowed, including when a platform hosts Claude Code, provided the platform follows the commercial conditions (binary unmodified, no removing auth methods, each end user signs in with their own credentials, no reselling or intermediating usage). (2) Third-party harnesses (OpenClaw and similar) that use subscription OAuth tokens directly are not covered by plan limits: since 2026-04-04 they draw from paid extra usage, and developers may not offer Claude.ai login in their own apps or route requests through plan credentials. The consumer Terms of Service themselves (effective Oct 8, 2025) were not changed in February 2026; the February change was to the Claude Code legal and compliance docs page.",
+      "timeline": [
+        {
+          "date": "2025-10-08",
+          "event": "Consumer Terms of Service in force today carry this effective date; they bar automated access except via API key or where Anthropic explicitly permits it.",
+          "quote": "Except when you are accessing our Services via an Anthropic API Key or where we otherwise explicitly permit it, to access the Services through automated or non-human means, whether through a bot, script, or otherwise.",
+          "source_url": "https://www.anthropic.com/legal/consumer-terms",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-01-09",
+          "event": "Anthropic engineer Thariq Shihipar posted that third-party harnesses using subscriptions are prohibited, after Anthropic tightened safeguards against spoofing the Claude Code harness.",
+          "quote": "Third-party harnesses using Claude subscriptions create problems for users and are prohibited by our Terms of Service.",
+          "source_url": "https://x.com/trq212/status/2009689811616182404",
+          "confidence": "high",
+          "note": "read via Nitter mirror"
+        },
+        {
+          "date": "2026-02-02 to 2026-02-18",
+          "event": "Claude Code legal and compliance page gained an 'Authentication and credential use' section: absent in the 2026-02-01 archive copy, present in the 2026-02-18 copy. The Register reported it on 2026-02-20 as a clarification of existing rules; the consumer Terms of Service were not changed.",
+          "quote": "OAuth authentication (used with Free, Pro, and Max plans) is intended exclusively for Claude Code and Claude.ai. Using OAuth tokens obtained through Claude Free, Pro, or Max accounts in any other product, tool, or service [dash] including the Agent SDK [dash] is not permitted and constitutes a violation of the Consumer Terms of Service.",
+          "quote_note": "the original uses em dash punctuation where [dash] appears",
+          "source_url": "https://web.archive.org/web/20260218171531/https://code.claude.com/docs/en/legal-and-compliance",
+          "confidence": "high",
+          "corroboration": "https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access"
+        },
+        {
+          "date": "2026-04-03",
+          "event": "Boris Cherny (head of Claude Code) announced the change one day ahead; subscribers were emailed.",
+          "quote": "Starting tomorrow at 12pm PT, Claude subscriptions will no longer cover usage on third-party tools like OpenClaw.",
+          "source_url": "https://x.com/bcherny/status/2040206440556826908",
+          "confidence": "high",
+          "note": "read via Nitter mirror"
+        },
+        {
+          "date": "2026-04-04",
+          "event": "Change took effect at 12pm PT: third-party harnesses connected to a Claude account draw from extra usage, not plan limits. One-time credit equal to the monthly plan price, redeemable by April 17; extra usage bundles up to 30% off. API users unaffected.",
+          "quote": "Starting April 4, third-party harnesses like OpenClaw connected to your Claude account will draw from extra usage instead of from your subscription",
+          "source_url": "https://www.infoworld.com/article/4154435/anthropic-cuts-openclaw-access-from-claude-subscriptions-offers-credits-to-ease-transition.html",
+          "confidence": "medium",
+          "note": "quote is from Anthropic's email as reported by InfoWorld; primary email not seen. Consistent with Cherny's post and TNW."
+        },
+        {
+          "date": "2026-04-05",
+          "event": "OpenClaw's creator reported that even claude -p invoked from OpenClaw with an OpenClaw system prompt returned a 400 error saying third-party apps draw from extra usage.",
+          "quote": "400 Third-party apps now draw from your extra usage, not your plan limits.",
+          "source_url": "https://x.com/steipete/status/2040925717144252694",
+          "confidence": "medium",
+          "note": "third-party report of an error message, not an Anthropic statement"
+        },
+        {
+          "date": "2026-04-06",
+          "event": "OpenClaw docs changed to say Anthropic staff told them Claude CLI reuse and claude -p are 'allowed again'. This is OpenClaw's claim; no Anthropic primary source found.",
+          "quote": "Anthropic staff told us this usage is allowed again, so OpenClaw treats Claude CLI reuse and `claude -p` usage as sanctioned for this integration unless Anthropic publishes a new policy.",
+          "source_url": "https://github.com/openclaw/openclaw/commit/d378a504ac17eab2425a114fed32a217b5702395",
+          "confidence": "low"
+        },
+        {
+          "date": "2026-05-13",
+          "event": "Anthropic announced that from June 15 Agent SDK usage on subscriptions would move to a separate monthly credit.",
+          "quote": "The Claude creator announced on May 13 that it would move automated Agent SDK usage onto a separate monthly credit from June 15",
+          "source_url": "https://thenewstack.io/anthropic-pauses-claude-agent-sdk-subscription-change/",
+          "confidence": "medium",
+          "note": "press report; Anthropic's May announcement not opened"
+        },
+        {
+          "date": "2026-06-15",
+          "event": "Anthropic paused that change. Its support article says Agent SDK, claude -p and third-party app usage still draw from subscription limits 'for now'. This is the most likely basis for the 'OAuth is back' reports.",
+          "quote": "Update June 15, 2026: We've paused the previously-announced changes to Claude Agent SDK usage. For now, nothing has changed: Claude Agent SDK, claude -p, and third-party app usage still draw from your subscription limits.",
+          "source_url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-06-16 to 2026-07-17",
+          "event": "Legal page OAuth wording changed from 'exclusively for Claude Code and Claude.ai' to 'exclusively for purchasers of ... subscription plans ... to support ordinary use of Claude Code and other native Anthropic applications'.",
+          "quote": "OAuth authentication is intended exclusively for purchasers of Claude Free, Pro, Max, Team, and Enterprise subscription plans and is designed to support ordinary use of Claude Code and other native Anthropic applications.",
+          "source_url": "https://web.archive.org/web/20260717070253/https://code.claude.com/docs/en/legal-and-compliance",
+          "confidence": "high",
+          "note": "date bracketed by archive copies"
+        },
+        {
+          "date": "2026-08-16 to 2026-08-30",
+          "event": "Legal page added 'Can customers offer Claude Code in their products?' and an explicit statement that end users may sign in to the unmodified Claude Code binary with their own subscription, including where a platform hosts Claude Code.",
+          "quote": "Nor does it prevent an end user from signing in to the unmodified Claude Code binary with their own Claude subscription, including where a platform hosts Claude Code as described under Can customers offer Claude Code in their products? above.",
+          "source_url": "https://web.archive.org/web/20260830094710/https://code.claude.com/docs/en/legal-and-compliance",
+          "confidence": "high",
+          "note": "absent in 2026-08-16 archive copy, present on 2026-08-30"
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Support article update: Max, Ultra and Team now include monthly API credits; signed-in Agent SDK and claude -p still draw from subscription limits.",
+          "quote": "Nothing changes for your plan: when you're signed in with your Claude plan, the Claude Agent SDK and claude -p still draw from your subscription limits.",
+          "source_url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Current legal page text on hosted Claude Code and credentials.",
+          "quote": "The Claude Code binary must not be modified. Claude Code must be installed and run as published by Anthropic, and customers may not remove, disable, or restrict any authentication method built into it (including methods that permit signing in with a Claude account or the user's own API key).",
+          "source_url": "https://code.claude.com/docs/en/legal-and-compliance",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Current legal page: what developers may not do.",
+          "quote": "Anthropic does not permit third-party developers to offer Claude.ai login into their own applications, or to route requests through Free, Pro, Max, or Ultra plan credentials on behalf of their users. Moreover, developers may not collect, store, or intermediate Claude.ai credentials or session tokens",
+          "source_url": "https://code.claude.com/docs/en/legal-and-compliance",
+          "confidence": "high",
+          "quote_note": "sentence continues after a dash: 'sign-in to a Claude account must complete through Anthropic's own flow.'"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Current login help article: Anthropic 'may at its discretion' allow certain third-party tools for paid subscribers with usage credits, and may bill them from usage credits rather than plan limits.",
+          "quote": "Anthropic may at its discretion allow paid subscribers who have enabled usage credits to use certain third-party tools to access Anthropic services included in paid subscription plans, but reserves the right to draw use of such third-party tools from usage credits rather than subscription limits.",
+          "source_url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
+          "confidence": "high"
+        }
+      ],
+      "claude_code_with_subscription": {
+        "quote": "With Pro, Max, and Ultra plans, you now have access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal with one unified subscription.",
+        "source_url": "https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan",
+        "confidence": "high",
+        "note": "Claude Code is not included on Free per claude.com/pricing"
+      },
+      "hosted_platform_conditions": {
+        "quote": "Customers may not pay for, resell, or intermediate Claude usage on their end users' behalf. Each end user must authenticate with their own Anthropic API key, Claude subscription plan credentials, or 3P inference provider credential",
+        "source_url": "https://code.claude.com/docs/en/legal-and-compliance",
+        "also": "Running Claude Code in your products or services (e.g. hosted sandboxes) requires agreeing to Anthropic's Commercial Terms of Service. You may say in plain text that a product 'runs Claude Code' but may not use the Claude Code or Anthropic names or logos in a way that suggests endorsement.",
+        "confidence": "high"
+      },
+      "status_today": "Two current Anthropic sources point in slightly different directions and neither is retracted. The support article (updated 2026-10-07) says Agent SDK, claude -p and 'third-party app usage' still draw from subscription limits, which reads as a relaxation since April. The legal page and login article still say developers may not offer Claude.ai login or route requests through plan credentials, and Anthropic may bill third-party tools from usage credits at its discretion. What is unambiguous today: an end user signing in to the unmodified Claude Code binary with their own subscription is allowed, including on a hosted computer. Whether third-party harnesses that use OAuth tokens directly are back on plan limits is NOT confirmed by any Anthropic statement found; 'OAuth is back' is supported only by OpenClaw's own docs and the paused-change support note.",
+      "confidence": "medium"
+    },
+    "openai": {
+      "summary": "OpenAI officially supports signing in to Codex CLI with a ChatGPT plan, and goes further: 'Sign in with ChatGPT' lets participating third-party apps use your ChatGPT plan, with OpenClaw and T3 listed as open-source integrations. Usage counts against your plan limits.",
+      "timeline": [
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Codex docs: two sign-in methods; Codex CLI supports both.",
+          "quote": "Codex supports two ways for a person to sign in when using OpenAI models: Sign in with ChatGPT for subscription access; Sign in with an API key for usage-based access",
+          "quote_note": "list items joined with semicolons",
+          "source_url": "https://learn.chatgpt.com/docs/auth",
+          "confidence": "high",
+          "note": "developers.openai.com/codex/auth redirects here"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Codex docs on headless or remote machines: device code login (beta) or copying ~/.codex/auth.json; API keys recommended for CI.",
+          "quote": "Use API key authentication for programmatic Codex CLI workflows, such as CI/CD jobs.",
+          "source_url": "https://learn.chatgpt.com/docs/auth",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Sign in with ChatGPT for third-party apps; eligible Go, Plus, Pro and Business subscribers can use their plan in supported apps; OpenClaw, OpenCode, Pi and T3 listed as open-source integrations.",
+          "quote": "In supported apps, eligible ChatGPT Go, Plus, Pro, and Business subscribers can also choose to use their ChatGPT plan for AI requests.",
+          "source_url": "https://learn.chatgpt.com/docs/sign-in-with-chatgpt",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Plan usage by apps counts against existing limits; users can cap each app's weekly share.",
+          "quote": "App usage counts toward your existing plan limits. Connecting an app does not add a new allowance, and the app may have its own fees.",
+          "source_url": "https://learn.chatgpt.com/docs/sign-in-with-chatgpt",
+          "confidence": "high"
+        }
+      ],
+      "status_today": "Supported. Signing in to the official Codex CLI with a ChatGPT plan is documented, and third-party plan usage is an official program. Dusk is not listed as a partner; running the official Codex CLI does not depend on that list.",
+      "confidence": "high"
+    },
+    "google": {
+      "summary": "Since 2026-06-18 Gemini CLI no longer serves Google AI Pro, Ultra or free personal accounts; those moved to Antigravity CLI (agy). Google's terms say using third-party software to access Antigravity or Gemini CLI services (example: OpenClaw with OAuth) is a breach and may lead to suspension. The Antigravity FAQ also says wrapping agy inside third-party coding agents or applications is not supported under consumer plans. This is the most restrictive of the four vendors for a product that runs the official CLI.",
+      "timeline": [
+        {
+          "date": "2026-02-11",
+          "event": "OpenClaw GitHub issue reports Google banning accounts that used OpenClaw with Antigravity / Gemini CLI.",
+          "quote": "Google banning accounts for using OpenClaw with Antigravity/Gemini CLI",
+          "source_url": "https://github.com/openclaw/openclaw/issues/14203",
+          "confidence": "high",
+          "note": "user report; issue closed 2026-02-20"
+        },
+        {
+          "date": "2026-02-12",
+          "event": "Google AI Developers Forum thread: AI Ultra subscriber restricted after connecting OpenClaw OAuth; a Google-flaired staffer said it was escalated.",
+          "quote": "The only recent change in my workflow was connecting Gemini models via OpenClaw OAuth.",
+          "source_url": "https://discuss.ai.google.dev/t/account-restricted-without-warning-google-ai-ultra-oauth-via-openclaw/122778",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-02-22",
+          "event": "Varun Mohan (Google Antigravity) said bans followed 'malicious usage' of the Antigravity backend and affected users would get a path back. Reported 2026-02-23.",
+          "quote": "It is not intended to use the Antigravity backend as a proxy for other products and users in these groups have overwhelmed our compute",
+          "source_url": "https://www.theregister.com/2026/02/23/google_antigravity_compute_burden/",
+          "confidence": "medium",
+          "note": "quote via The Register; original post not opened"
+        },
+        {
+          "date": "2026-02-27",
+          "event": "Gemini CLI terms and FAQ updated to name OpenClaw explicitly.",
+          "quote": "Directly accessing the services powering Gemini CLI (e.g., the Gemini Code Assist service) using third-party software, tools, or services (for example, using OpenClaw with Gemini CLI OAuth) is a violation of applicable terms and policies.",
+          "source_url": "https://github.com/google-gemini/gemini-cli/commit/83a3851dfd6a002ef4552d34cb6c4e76e0640b98",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-05-19",
+          "event": "Google announced the Gemini CLI to Antigravity CLI transition.",
+          "quote": "On June 18, 2026, Gemini CLI and Gemini Code Assist IDE extensions will stop serving requests for Google AI Pro and Ultra, as well as those using it free of charge using Gemini Code Assist for individuals.",
+          "source_url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+          "confidence": "medium",
+          "note": "publication date read from page text 'MAY 19, 2026'; quote high confidence"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Antigravity Additional Terms.",
+          "quote": "Using third party software, tools, or services to access the Service (e.g. using OpenClaw with Antigravity OAuth) is a breach of this Agreement. Such actions may be grounds for suspension or termination of your Antigravity and/or Gemini CLI accounts.",
+          "source_url": "https://antigravity.google/terms",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Antigravity FAQ on headless agy in third-party apps.",
+          "quote": "Antigravity CLI headless mode (agy -p) is intended for direct scripting and CI workflows. Wrapping agy inside third-party coding agents or applications, or automating account rotation, is not supported under consumer plans.",
+          "source_url": "https://antigravity.google/docs/faq",
+          "confidence": "high",
+          "quote_note": "spacing around the code span normalised"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Antigravity CLI officially supports ACP so editors (Zed, JetBrains, Android Studio, Xcode) can launch agy acp as a subprocess using the user's cached sign-in.",
+          "quote": "Your editor launches agy acp as a subprocess and talks to it with JSON-RPC over stdin and stdout.",
+          "source_url": "https://antigravity.google/docs/cli/acp/",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-09-28 and 2026-11-04",
+          "event": "Forum replies by user Ambati_Rajendra said running the unmodified agy binary from another tool is allowed, but consumer plans do not allow unattended background runs or task queues. This user has no Google flair on the forum, so this is NOT an official Google answer.",
+          "quote": "Consumer plans ([FAQ]) don't allow unattended background runs, task queues, multi-agent \"teammates,\" or credential sharing/rotation on oauth-personal.",
+          "source_url": "https://discuss.ai.google.dev/t/tos-clarification-is-openbot-official-antigravity-acp-server-permitted-under-the-antigravity-terms-of-service/197826",
+          "confidence": "low"
+        }
+      ],
+      "sign_in": "Gemini CLI today: Google account sign-in serves Gemini Code Assist Standard/Enterprise; individuals use an API key. Antigravity: personal Google accounts can sign in on any plan including free (antigravity.google/docs/faq).",
+      "ban_reversal": "A secondary blog (metricnexus.ai) says Google reversed the February bans on 2026-02-27; not confirmed by any Google source read. Treat as unverified.",
+      "status_today": "Restrictive and ambiguous for Dusk. Running Google's official binary is not the same as OAuth token reuse, but the Antigravity FAQ explicitly says wrapping agy inside third-party applications is not supported on consumer plans, and unattended scheduled runs are the risky part. Official supported path for third-party agents: Google AI Studio or Vertex/Gemini Enterprise API keys.",
+      "confidence": "medium"
+    },
+    "xai": {
+      "summary": "Grok Build (xAI's CLI) signs in with your xAI/X account via browser on first launch, or uses XAI_API_KEY. xAI's own docs say Grok Build can be used headlessly in scripts or bots, or through ACP in other apps. No consumer-terms clause specific to third-party apps using a subscription was found.",
+      "timeline": [
+        {
+          "date": "2026-05-25",
+          "event": "Grok Build launched in early beta for SuperGrok and X Premium Plus subscribers.",
+          "quote": "Available now to all SuperGrok and X Premium Plus subscribers. Install Grok Build with a single command and sign in with your account",
+          "source_url": "https://x.ai/news/grok-build-cli",
+          "confidence": "high"
+        },
+        {
+          "date": "2026-11-12 (checked)",
+          "event": "Grok Build docs on sign-in and use in other apps.",
+          "quote": "Grok Build is a powerful and extensible coding agent. Use it via an interactive TUI, headlessly in scripts or bots, or through the Agent Client Protocol (ACP) in other apps.",
+          "source_url": "https://docs.x.ai/build/overview",
+          "confidence": "high",
+          "also": "On first launch, Grok opens a browser for authentication. In non-browser environments, use an API key"
+        },
+        {
+          "date": "2026-10-12",
+          "event": "The X Subscription replaced standalone SuperGrok for new customers (Plus $8, Premium $30, Super $100, Ultra $200).",
+          "source_url": "https://x.ai/news/x-subscription",
+          "confidence": "high",
+          "quote": "Today we're introducing The X Subscription, which brings together Grok, Grok Bot, Cursor, and X Premium in one plan."
+        },
+        {
+          "date": "2026-10-27",
+          "event": "Consumer terms last updated; they bar sharing account credentials but contain no clause found on third-party apps using a subscription.",
+          "quote": "You may not share your account credentials or make your account available to anyone else, and are responsible for all activities that occur under your account.",
+          "source_url": "https://x.ai/legal/terms-of-service",
+          "confidence": "high"
+        }
+      ],
+      "status_today": "No restriction found on running the official Grok Build CLI with your own subscription; docs describe scripted and in-app (ACP) use. Absence of a clause is not a permission; no xAI statement addressing third-party desktop apps was found.",
+      "confidence": "medium"
+    }
+  }
+}

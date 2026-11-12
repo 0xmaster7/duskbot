@@ -1,0 +1,131 @@
+{
+  "path": "/integrations/google-calendar/create-event",
+  "type": "action",
+  "title": "Create Google Calendar events with AI from a message",
+  "nav": "create event",
+  "h1": "put a new event in google calendar by asking",
+  "description": "Turn a message into a timed or all-day Google Calendar event. Choose the calendar, time zone, guests and meeting link before the bot adds it.",
+  "keyword": "google calendar create event with ai",
+  "keywords": [
+    "chatgpt create google calendar event",
+    "claude add calendar appointment",
+    "ai schedule google calendar event"
+  ],
+  "answer": "**get the appointment out of your messages and onto the calendar.** give a bot the title, date, time zone and duration. it can create timed or all-day entries. ask for availability separately. google emails all guests by default; dusk treats creation as a change. put review and notification choices in your request before the bot creates it.",
+  "tags": [
+    "google calendar",
+    "new events",
+    "scheduling"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/patch-event"
+  ],
+  "og_line": "a new appointment, with the details checked.",
+  "what": "**book the slot you agreed, on the calendar you meant.** choose your primary calendar, or ask the bot to list your calendars. look up availability separately before booking.\n\n- timed entries need a start and an end or duration\n- all-day entries end on the following date for a single day\n- eligible events request a meet link by default; turn it off for a simple reminder",
+  "uses": [
+    "**keep confirmed exhibition dates visible.** add an all-day entry.",
+    "**reserve the workshop slot.** include the street address and duration.",
+    "**stop losing repair appointments.** give the bot the date and time you agreed.",
+    "**keep practice at the right hour.** give repeating sessions an explicit time zone."
+  ],
+  "routine": {
+    "message": "each saturday at 10, read new emails from larch quay gallery in gmail from the past week. find confirmed exhibition dates, not tentative ones. compare them with my personal google calendar and skip entries already there. propose each missing all-day event with its venue. ask me before creating anything. add only approved events, with no guests, no meeting link and guest notifications off. list the saved entries here. never change existing events.",
+    "when": "saturdays at 10:00",
+    "needs": "gmail connected as read only; google calendar connected with read and write for calendar lookup and event creation",
+    "output": "proposed exhibition\nmina's glasswork at larch quay gallery\nall day: 21 november. calendar: personal.\nno guests, guest emails or meeting link.\nadd this event?"
+  },
+  "steps": [
+    "connect google calendar with read and write access for this bot.",
+    "name the calendar and time zone. ask it to list calendars if the name is unclear.",
+    "try one event. choose guest emails and meeting-link options, then ask to review before creation.",
+    "open the saved event in google calendar. pause the routine if it proposes unconfirmed dates."
+  ],
+  "watch": [
+    "**find a free slot first.** event creation won't look for clashes; request an availability lookup.",
+    "**defaults can surprise guests.** updates default to all attendees; eligible events request a meet link.",
+    "**no time zone means utc.** spell yours out, especially for repeating events.",
+    "**your laptop must stay awake.** missed runs under 12 hours old run once on return. older runs skip. dusk cloud runs on time."
+  ],
+  "faq": [
+    {
+      "q": "can i ask for a whole-day event instead of choosing hours?",
+      "a": "**yes. give dates rather than hours.** the end date falls outside the event. for one day, the bot uses the next date as the end."
+    },
+    {
+      "q": "will it warn me if i already have a meeting?",
+      "a": "**ask for an availability lookup before creating it.** event creation alone won't warn you about a clash."
+    },
+    {
+      "q": "does adding a guest send an invitation email?",
+      "a": "**by default, yes.** google emails all attendees. dusk counts event creation as a change. put review and notification choices directly in your request."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "connectors": [
+    "googlecalendar"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "s-button"
+    ],
+    "bubble": "add the workshop dates"
+  },
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_CREATE_EVENT"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "name a calendar and your time zone",
+      "ask for a ten-minute test event with no guests",
+      "request no meet link and no guest emails",
+      "review the proposal before it creates anything"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying 'three tomorrow'",
+      "fix": "give the date, time zone and duration. ambiguity costs calendar space."
+    },
+    {
+      "mistake": "expecting sending approval to catch guest emails",
+      "fix": "event creation is a change. ask to review before creation."
+    }
+  ],
+  "tip": {
+    "text": "ask for the calendar name, local time and guest list together before booking."
+  },
+  "checklist": {
+    "h": "before it hits the calendar",
+    "items": [
+      "the calendar and time zone match",
+      "availability got a separate check",
+      "all-day dates cover the intended days",
+      "guest emails and meeting links match your choice"
+    ]
+  },
+  "voice": 2
+}

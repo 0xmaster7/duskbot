@@ -1,0 +1,140 @@
+{
+  "path": "/guides/openclaw-clawdbot-moltbot-explained",
+  "type": "guide",
+  "title": "Did OpenAI buy OpenClaw? The names and timeline",
+  "nav": "openclaw, clawdbot and moltbot",
+  "h1": "did openai buy openclaw?",
+  "description": "What changed from Clawd and Moltbot to OpenClaw, when its creator joined OpenAI, and what the independent foundation says about the project.",
+  "keyword": "openclaw bought by openai",
+  "keywords": [
+    "clawdbot vs moltbot",
+    "openclaw founder",
+    "openclaw foundation",
+    "cloudbot ai"
+  ],
+  "answer": "**openclaw remains independent; its creator joined openai.** peter steinberger's new job and the project's move to a foundation are separate events. clawd, clawdbot and moltbot appear in the same project's history. as of 12 november 2026, the foundation says openclaw remains open and independent.[^1] the dates below untangle the names and the acquisition headlines.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "openclaw",
+    "history",
+    "foundation"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/is-openclaw-safe",
+    "/alternatives/openclaw"
+  ],
+  "art": {
+    "label": "OpenClaw",
+    "props": [
+      "s-signpost",
+      "s-clock"
+    ],
+    "bubble": "same project, new name"
+  },
+  "og_line": "the names changed. follow the dates.",
+  "sections": [
+    {
+      "h": "the names belong to one history",
+      "md": "**clawd, moltbot and openclaw belong to the same project's story.** clawd began in november 2025. after anthropic's legal team requested a rename, moltbot followed. openclaw arrived on 29 january 2026.[^2] clawdbot also appears in a repository docker advisory.[^6]\n\nmatch a tutorial's date, release and install instructions to the current docs before copying its commands."
+    },
+    {
+      "h": "the dates that matter",
+      "md": "**keep the rename, job move and foundation apart.** they answer different questions.\n\n- **november 2025:** clawd begins. moltbot follows the rename request; the history gives no exact date.[^2]\n- **29 january 2026:** the project announces the openclaw name.[^2]\n- **14 february 2026:** peter steinberger announces his move to openai. he says openclaw will enter a foundation and stay independent.[^3]\n- **8 july 2026:** the foundation launches as a us 501(c)(3) with full-time staff. it says openai committed to keeping the project open and independent.[^1]"
+    },
+    {
+      "h": "the creator joined openai; the project got a foundation",
+      "md": "**february explains the new job; july explains who looks after openclaw.** the creator's post sets out his plans. the foundation announcement describes an independent organisation, rather than an acquisition or an openai product.[^1][^3]\n\nthe connection is real: the creator joined openai, and the foundation describes openai's commitment. ownership, support and safety guarantees don't follow from that connection."
+    },
+    {
+      "h": "what you're choosing today",
+      "md": "**install the project as it exists today.** as of 12 november 2026, openclaw describes an open-source assistant for your computer or server, reached through chat apps. its repository uses mit.[^4][^5]\n\nlook at the current setup and upkeep before installing. the [alternatives guide](/alternatives/openclaw) compares the work involved. the [safety guide](/guides/is-openclaw-safe) separates published advisories, malicious skills and later security work."
+    },
+    {
+      "h": "follow the headline back to its announcement",
+      "md": "**the original announcement tells you what actually changed.** a creator's post explains their plans. a foundation post describes the organisation. the repository shows the license and code history.\n\nfor an acquisition claim, ask for an acquisition announcement. another retelling of the creator joining openai won't do.\n\nfor a clawd or moltbot setup guide, match its release to the current project site. old downloads, hosts and lookalike names still need that scrutiny."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is the difference between clawdbot and moltbot?",
+      "a": "**both names appear in openclaw's history.** the naming account goes from clawd to moltbot to openclaw. an older repository advisory also uses clawdbot.[^2][^6]"
+    },
+    {
+      "q": "who founded openclaw?",
+      "a": "**peter steinberger is its creator.** he announced his move to openai on 14 february 2026.[^3]"
+    },
+    {
+      "q": "is openclaw still independent?",
+      "a": "**the foundation says yes.** its announcement calls the project open and independent and describes openai's commitment to that. this remained its position on 12 november 2026.[^1]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw foundation announcement",
+      "url": "https://openclaw.ai/blog/introducing-openclaw-foundation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw naming history",
+      "url": "https://openclaw.ai/blog/introducing-openclaw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "peter steinberger: openclaw announcement",
+      "url": "https://steipete.me/posts/2026/openclaw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw homepage",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw repository and license",
+      "url": "https://github.com/openclaw/openclaw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw security advisories",
+      "url": "https://github.com/openclaw/openclaw/security/advisories",
+      "checked": "2026-11-12"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "find the date on the guide or headline",
+      "match it to the timeline",
+      "open the original announcement",
+      "read whether it says rename, job move or acquisition"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "reading 'creator joins openai' as 'openai buys app'",
+      "fix": "look for an acquisition announcement. the cited posts describe different events."
+    },
+    {
+      "mistake": "installing from a familiar old name",
+      "fix": "use the current project site and match the release the guide covers."
+    }
+  ],
+  "checklist": {
+    "h": "before you repeat the claim",
+    "items": [
+      "the original source names what changed",
+      "the date matches the event",
+      "ownership claims have ownership evidence",
+      "old install guides match a current release"
+    ]
+  },
+  "tip": {
+    "text": "a founder's next employer doesn't tell you who owns their earlier project."
+  },
+  "voice": 2
+}

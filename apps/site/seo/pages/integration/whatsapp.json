@@ -1,0 +1,184 @@
+{
+  "path": "/integrations/whatsapp",
+  "type": "integration",
+  "title": "WhatsApp Business AI assistant for replies and reminders",
+  "nav": "whatsapp",
+  "h1": "a whatsapp business bot for replies and reminders",
+  "description": "Get WhatsApp Business templates and customer reply drafts ready with a dusk bot. Review message status and business details from the connected account.",
+  "answer": "**get customer replies ready before the support handover.** a dusk bot can inspect available whatsapp business history, read template status and prepare replies here. start read only while you review the results.[^3] this uses whatsapp business, so personal chats stay outside it. to text your own bots from a phone, use dusk's separate phone connection.",
+  "tags": [
+    "business-messaging",
+    "customer-support",
+    "templates"
+  ],
+  "connectors": [
+    "whatsapp"
+  ],
+  "related": [
+    "/integrations/hubspot",
+    "/integrations/shopify",
+    "/for/small-business-owners"
+  ],
+  "art": {
+    "label": "WhatsApp",
+    "props": [
+      "s-phone",
+      "s-notebook"
+    ],
+    "bubble": "business replies to review"
+  },
+  "og_line": "customer replies ready for your handover.",
+  "app": {
+    "name": "WhatsApp",
+    "toolkit": "whatsapp",
+    "intro": "**find the business number and template behind the next reply.** start with the connected account's profile and phone numbers, then name the conversation or template to review. the connection reaches business records; personal inboxes stay outside it.",
+    "highlight": [
+      {
+        "slug": "WHATSAPP_GET_BUSINESS_PROFILE",
+        "use": "review the customer-facing business information"
+      },
+      {
+        "slug": "WHATSAPP_GET_PHONE_NUMBERS",
+        "use": "confirm which business numbers belong to the account"
+      },
+      {
+        "slug": "WHATSAPP_GET_MESSAGE_HISTORY",
+        "use": "inspect business message history available to the connection"
+      },
+      {
+        "slug": "WHATSAPP_GET_MESSAGE_TEMPLATES",
+        "use": "list existing templates before proposing new wording"
+      },
+      {
+        "slug": "WHATSAPP_GET_TEMPLATE_STATUS",
+        "use": "find out whether the reminder template has the status you need"
+      },
+      {
+        "slug": "WHATSAPP_GET_MEDIA_INFO",
+        "use": "get the media details for a business attachment you name"
+      },
+      {
+        "slug": "WHATSAPP_SEND_MESSAGE",
+        "use": "send an agreed customer message with the bot's sending approval"
+      },
+      {
+        "slug": "WHATSAPP_SEND_TEMPLATE_MESSAGE",
+        "use": "send an existing template message after reviewing the recipient and content"
+      }
+    ],
+    "setup": "**start with the number customers actually contact.** connect a whatsapp business account, then ask the bot for its account and business phone number. keep permission read only for the routines below.\n\nchoose which bot may use the connection in **connected apps**. a personal whatsapp account cannot substitute for the business account."
+  },
+  "routines_intro": "**get the reminders, handover and contact details ready in this chat.** give each job a business account and a clear question. keep these routines read only while you judge the results.",
+  "routines": [
+    {
+      "name": "review reminder templates",
+      "message": "every weekday at 8, read the connected whatsapp business templates used for appointment reminders. list any whose returned status differs from the status we need. quote that status. if all are ready, say so. never edit templates or send reminders.",
+      "when": "weekdays at 8:00",
+      "output": "template readiness in this chat"
+    },
+    {
+      "name": "prepare the support handover",
+      "message": "every day at 4, read available whatsapp business history for the customer conversations named in the support handover file in your project folder. summarise unresolved questions and propose replies here. say when history is missing. never send or invent order details.",
+      "when": "daily at 16:00",
+      "output": "a handover note and proposed replies"
+    },
+    {
+      "name": "compare business contact details",
+      "message": "each monday at 9, retrieve the connected whatsapp business profile and phone numbers. compare them with the approved contact details in your memory notes. show differences here without editing the profile. if the approved note is missing, ask me to provide it.",
+      "when": "mondays at 9:00",
+      "output": "differences between the profile and approved contact details"
+    }
+  ],
+  "asks": "**read the customer reply before it leaves the business number.** messages and template sends ask first unless you allow a daily amount.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^3]\n\ncreating a template counts as a send. editing one and changing the profile follow app-write rules instead. stay read only, or put 'ask me before you change anything' in the job.[^1][^3]",
+  "cannot": [
+    "**use whatsapp business for this connection.** it cannot read family groups or an ordinary personal whatsapp inbox.",
+    "**show the gaps when history is missing.** the bot should say what it could not read and leave the rest open.",
+    "**keep reply preparation read only.** it can write text here while whatsapp stays untouched; read only blocks customer sends.",
+    "**give scheduled work an awake host.** local runs need dusk open and the computer awake. dusk cloud keeps the routine running."
+  ],
+  "sections": [
+    {
+      "h": "texting your bots is a separate connection",
+      "md": "**text your own bots through dusk phone pairing.** scan the code on an iphone or android phone. store apps are on their way; today's version opens in your phone browser.[^4]\n\nif a customer answer needs [hubspot](/integrations/hubspot) records or a [shopify](/integrations/shopify) order, connect that app separately.\n\nuse the order record for shipment status. the message history alone can't tell you the parcel shipped."
+    },
+    {
+      "h": "give the reply a source it can point to",
+      "md": "**give the customer a date someone can stand behind.** name the conversations in the support handover file, then let the bot find the matching business history.\n\nkeep exceptions, such as a refund outside policy, with a person. have the draft name the information it still needs.\n\nif the lookup fails, report the missing history. a familiar customer name is no substitute for the order details."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt read my personal whatsapp messages through this?",
+      "a": "**no, the connection supports whatsapp business only.** changing the ai does not add personal account access."
+    },
+    {
+      "q": "can i text my bots from my phone?",
+      "a": "**yes, use dusk phone pairing.** scan the code and use the browser version until store apps arrive. pairing to your computer needs that computer on with dusk running."
+    },
+    {
+      "q": "will it automatically answer customers?",
+      "a": "**these routines leave the proposed answers here for you.** read only blocks sends to customers. if you enable sending later, use the controls above.[^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval and sending",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: phone",
+      "url": "/docs/phone"
+    }
+  ],
+  "keyword": "chatgpt whatsapp",
+  "keywords": [
+    "whatsapp mcp",
+    "openclaw whatsapp",
+    "ai assistant whatsapp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
+    "at": "2026-11-12"
+  },
+  "quick": {
+    "steps": [
+      "connect a whatsapp business account",
+      "ask for its business profile and phone numbers",
+      "keep the bot read only",
+      "read one template’s returned status"
+    ]
+  },
+  "checklist": {
+    "h": "before enabling customer replies",
+    "items": [
+      "the account and phone number belong to the right business",
+      "the customer conversation history is available",
+      "the reply uses confirmed order or account facts",
+      "sending is on ask every time"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "connecting a personal account for business-api work",
+      "fix": "use a supported whatsapp business account."
+    },
+    {
+      "mistake": "using old chat text as the weekly contact reference",
+      "fix": "save the approved contact details in the bot’s memory notes."
+    }
+  ],
+  "tip": {
+    "text": "put the missing order detail in the draft. let a person fill it before it reaches the customer."
+  },
+  "voice": 2
+}

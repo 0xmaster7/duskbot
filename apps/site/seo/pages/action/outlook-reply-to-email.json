@@ -1,0 +1,123 @@
+{
+  "path": "/integrations/outlook/reply-to-email",
+  "type": "action",
+  "title": "Reply to Outlook email with AI after reviewing the text",
+  "nav": "reply to email",
+  "h1": "ask ai to reply to a specific outlook email",
+  "description": "Reply to the Outlook message you mean, with approved text and the right files attached. Preview the original email, recipients and sending mailbox.",
+  "keyword": "reply outlook email with ai",
+  "keywords": [
+    "chatgpt reply outlook email",
+    "claude send outlook reply",
+    "ai outlook email reply with attachment"
+  ],
+  "answer": "**answer the delivery question with the certificate already attached.** the bot replies to a specific outlook email with text you approve, files and optional cc or bcc. name the mailbox and original message so it lands in the right conversation. this action sends; ask for text here first if you still want to edit.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, after two independent reviewer passes, against dusk bot docs and the composio catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "outlook replies",
+    "exact email",
+    "email sending"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-calendar-event",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "p-bubbles"
+    ],
+    "bubble": "answer the right email"
+  },
+  "og_line": "a reply tied to the message you meant.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_REPLY_EMAIL"
+  },
+  "what": "**keep the answer attached to the email that prompted it.** the bot finds and reads the exact message first. name the connected mailbox too, so a personal reply leaves from personal mail.\n\nyou can use plain text or html, attach files and name extra cc or bcc recipients. enable the html option for styled replies, or the recipient sees formatting tags as text.",
+  "uses": [
+    "answer a supplier’s delivery question with the confirmed address",
+    "attach an approved certificate to the customer email that requested it",
+    "decline a request using your short reason",
+    "confirm a correction in the buyer’s original email"
+  ],
+  "routine": {
+    "message": "when outlook gets a delivery certificate request from liora@briarpost.example, read that email. find the matching final certificate in the linked 'approved delivery certificates' drive folder. show the reply text, source subject, file and recipients here. wait for my permission before replying from work mail. report the result. never use a draft certificate or add cc or bcc. if no approved file matches, stop and tell me.",
+    "when": "when matching email arrives in the connected outlook mailbox",
+    "needs": "outlook read and write for reading and replying; google drive read only; sending on ask every time",
+    "output": "reply awaiting approval\nsource: delivery certificate request from liora\nattachment: briarpost-approved-certificate.pdf\ncc and bcc: none\n\nhello liora, the approved delivery certificate is attached. let me know if you need anything else for the booking."
+  },
+  "steps": [
+    "choose the correct outlook account and allow **read and write** for replies",
+    "set **sending on your behalf** to **ask every time**",
+    "ask for the source subject, proposed text, recipients and file here",
+    "read and allow one reply before turning the request into a routine"
+  ],
+  "watch": [
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**use the subject to tell similar emails apart.** the sender alone may match several conversations.",
+    "**open the attachment in the preview.** a polished reply can still carry yesterday’s certificate.",
+    "**local bots stop during sleep or when dusk closes.** dusk cloud runs routines on time."
+  ],
+  "faq": [
+    {
+      "q": "can it leave the proposed reply here for me to edit?",
+      "a": "**yes, ask for text here first.** keep the reply action for when the answer is ready to send."
+    },
+    {
+      "q": "can it add someone on cc?",
+      "a": "**yes, name the addresses.** include cc and bcc in the preview before approving."
+    },
+    {
+      "q": "why did formatting tags appear in the email?",
+      "a": "**html needs its formatting option enabled.** use plain text for a simple reply if you do not need styling."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ],
+  "quick": {
+    "steps": [
+      "set outlook sending to ask every time",
+      "find one email by sender and subject",
+      "preview the reply and any files here",
+      "read the preview, then allow the send"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "choosing a reply by sender alone",
+      "fix": "include the original subject and date in the request."
+    },
+    {
+      "mistake": "pulling the final attachment from old chat messages",
+      "fix": "keep approved files in a connected folder and name it."
+    }
+  ],
+  "tip": {
+    "text": "work or personal? choose the mailbox before writing the first line."
+  },
+  "voice": 2
+}
