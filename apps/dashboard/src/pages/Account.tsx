@@ -125,6 +125,7 @@ export function AccountPage() {
       <SectionTitle id="notifications-title">notifications</SectionTitle>
       <ul className="divide-y divide-line">{NOTIFICATIONS.map((item) => <li key={item.id} className="flex items-center gap-4 py-3"><div className="min-w-0 flex-1"><label htmlFor={`notification-${item.id}`} className="text-14 text-ink">{item.label}</label><p className="mt-0.5 text-13 text-ink-3">{item.hint}</p></div><Switch id={`notification-${item.id}`} label={item.label} checked={prefs[item.id]} disabled={notificationBusy} onChange={(checked) => void toggle(item.id, checked)} /></li>)}</ul>
     </section>
+    <DataSharing />
     <section className="mt-10" aria-labelledby="appearance-title">
       <SectionTitle id="appearance-title">appearance</SectionTitle>
       <div className="divide-y divide-line"><div className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-14 text-ink">theme</span><Segmented<ThemePref> label="theme" value={theme} onChange={setTheme} options={[{ value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "system" }]} /></div></div>
@@ -152,4 +153,29 @@ export function AccountPage() {
       {confirmError && <p role="alert" className="mt-3 text-13 text-bad">{confirmError}</p>}
     </Modal>
   </div>;
+}
+
+/** usage stats and anonymous summaries, both on unless switched off here; error reports live in the desktop app */
+function DataSharing() {
+  const [state, setState] = useState<{ optOut: boolean; summaries: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { void api.dataSharing().then(setState, () => setError("could not load these settings.")); }, []);
+  const save = async (next: { optOut?: boolean; summaries?: boolean }) => {
+    setError(null);
+    try { setState(await api.setDataSharing(next)); } catch { setError("could not save that. try again."); }
+  };
+  const rows = state ? [
+    { id: "usage", label: "share anonymous usage stats", hint: "counts like which apps and tools your bots use and what fails. never your messages.", checked: !state.optOut, disabled: false, set: (on: boolean) => save({ optOut: !on }) },
+    { id: "summaries", label: "share anonymous summaries", hint: "when something goes wrong, and once a week, your own ai writes a short anonymous summary on your device. never your messages, names or files.",
+      checked: !state.optOut && state.summaries, disabled: state.optOut, set: (on: boolean) => save({ summaries: on }) },
+  ] : [];
+  return (
+    <section className="mt-10" aria-labelledby="data-sharing-title">
+      <SectionTitle id="data-sharing-title">data sharing</SectionTitle>
+      <p className="-mt-1 mb-2 text-13 text-ink-3">anonymous and written on your device. it helps us see what to fix first.</p>
+      {state ? <ul className="flex flex-col gap-1">{rows.map((row) => <li key={row.id} className="flex items-center gap-4 rounded-[14px] py-3"><div className="min-w-0 flex-1"><label htmlFor={`sharing-${row.id}`} className="text-14 text-ink">{row.label}</label><p className="mt-0.5 text-13 text-ink-3">{row.hint}</p></div><Switch id={`sharing-${row.id}`} label={row.label} checked={row.checked} disabled={row.disabled} onChange={(on) => void row.set(on)} /></li>)}</ul>
+        : !error && <Skeleton className="h-28 !rounded-card" />}
+      {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
+    </section>
+  );
 }

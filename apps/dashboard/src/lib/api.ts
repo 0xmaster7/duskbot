@@ -106,6 +106,9 @@ function subscriptionPath(): string {
 }
 
 export const api = {
+  /** what the account shares: usage counts (off when opted out) and the anonymous summaries its workspaces write */
+  dataSharing: (): Promise<{ optOut: boolean; summaries: boolean }> => call("/v1/account/analytics"),
+  setDataSharing: (next: { optOut?: boolean; summaries?: boolean }): Promise<{ optOut: boolean; summaries: boolean }> => send("/v1/account/analytics", "PUT", next),
   me: async (): Promise<{ account: Account }> => {
     if (FIXTURE) return call("/v1/me");
     const answer = await call<MeAnswer>("/v1/me");

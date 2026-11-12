@@ -90,7 +90,7 @@ describe("Settings, drawn as Grok Bot's", () => {
 
   it("opens General as Account, Appearance, System, Notifications and Grok's Import, with Theme, Accent and Language as selects", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications", "Import"]);
+    expect(groups(html)).toEqual(["Account", "Appearance", "System", "Notifications", "Data sharing", "Import"]);
     expect(markers(html)).toEqual([]);
     expect(html).toContain('data-panel-page="import"');
     expect(markers(open("import"))).toEqual(["import"]);

@@ -44,6 +44,7 @@ import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { RoutineWakeRow } from "./routines/RoutineWakeRow";
 import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
+import { DataSharingRows } from "./DataSharingRows";
 import { SettingsSelect } from "./SettingsSelect";
 import { useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
@@ -205,6 +206,11 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
       <SettingsGroup label={t("notifications.title")} block="notifications">
         <SettingsRows><NotificationRows /></SettingsRows>
       </SettingsGroup>
+      {!remoteActive && (
+        <SettingsGroup label={t("settings.dataSharing.title")} block="data-sharing">
+          <SettingsRows><DataSharingRows /></SettingsRows>
+        </SettingsGroup>
+      )}
       {has("import") && (
         <SettingsGroup label={t("settings.section.import")} block="import">
           <SettingsRows><ImportRow /></SettingsRows>

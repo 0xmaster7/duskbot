@@ -7951,5 +7951,14 @@
   "mobile.demo.tryDetail": "No account or computer needed",
   "mobile.demo.banner": "Demo",
   "mobile.demo.readOnly": "The demo cannot do this. Link your own computer to use it.",
-  "mobile.account.legal": "By continuing you agree to the Terms of use and the Privacy policy."
+  "mobile.account.legal": "By continuing you agree to the Terms of use and the Privacy policy.",
+  "settings.dataSharing.title": "Data sharing",
+  "settings.dataSharing.usage": "Share anonymous usage stats",
+  "settings.dataSharing.note": "Anonymous counts written on your device, like which apps and tools your bots use and what fails. Never your messages.",
+  "settings.dataSharing.summaries": "Share anonymous summaries",
+  "settings.dataSharing.summariesHint": "When something goes wrong, and once a week, your own AI writes a short anonymous summary on your device. Never your messages, names or files.",
+  "settings.dataSharing.errors": "Send error reports",
+  "settings.dataSharing.errorsHint": "When the app breaks, what broke and where. Never your messages.",
+  "settings.dataSharing.error": "Couldn't save that. Try again.",
+  "settings.dataSharing.unavailable": "Data sharing settings aren't available here."
 }
