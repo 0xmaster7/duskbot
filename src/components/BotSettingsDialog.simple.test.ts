@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => {
     dispatch: (() => {}) as (...args: unknown[]) => void,
     api: (() => Promise.resolve({})) as (...args: unknown[]) => Promise<unknown>,
     storeState: {} as Record<string, unknown>,
+    otherServer: null as string | null,
     skills: {
       skills: [] as ManagedSkill[],
       loading: false,
@@ -57,6 +58,11 @@ vi.mock("react", async (original) => ({
     }];
   },
   useEffect: () => {},
+}));
+vi.mock("@/lib/other-server", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/other-server")>(),
+  useOtherServerName: () => fixture.otherServer,
+  desktopShowsOtherServer: () => fixture.otherServer !== null,
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/app-links", async (importOriginal) => ({
@@ -119,7 +125,7 @@ const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
-const { ComputerTab, RunsOnCard, WherePage } = await import("./bot-panel/ComputerTab");
+const { CloudCtaCard, ComputerTab, RunsOnCard, WherePage, cloudCtaStep } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
@@ -255,6 +261,7 @@ beforeEach(() => {
   fixture.saveMemory = vi.fn((_bot: unknown, path: unknown, text: unknown) => Promise.resolve({ ok: true, doc: { path, text, hash: "h2", exists: true } }));
   fixture.openExternal = vi.fn(() => Promise.resolve());
   fixture.storeState = { settingsOpen: true, botSettingsSection: "overview", botSettingsExpandAccordion: false };
+  fixture.otherServer = null;
   fixture.skills = {
     skills: [], loading: false, working: "", error: "", reviewing: null, toggle: vi.fn(() => Promise.resolve()),
     setWorking: vi.fn(), setError: vi.fn(), refresh: vi.fn(() => Promise.resolve()), putAssignments: vi.fn(() => Promise.resolve()),
@@ -678,8 +685,12 @@ describe("the Library", () => {
 });
 
 describe("the Computer tab", () => {
+  // a screen belongs to a bot whose computer is a VPS or the cloud; one on this computer has none to show
+  beforeEach(() => { fixture.otherServer = "Studio VPS"; });
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
   const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
+  const cta = (bot: Bot, stage: Parameters<typeof CloudCtaCard>[0]["stage"], cloudDesktop: Parameters<typeof CloudCtaCard>[0]["cloudDesktop"] = null) =>
+    capture(() => CloudCtaCard({ bot, stage, cloudDesktop }));
   const runsOn = (bot: Bot) => {
     const card = ofType(computer(bot), RunsOnCard)!;
     return capture(() => RunsOnCard(card.props as Parameters<typeof RunsOnCard>[0]));
@@ -730,9 +741,12 @@ describe("the Computer tab", () => {
     expect(screen).toBeGreaterThan(card);
     expect(rendered.html).toContain(">Runs on<");
     const card2 = runsOn(cloudBot());
-    expect(card2.html).toContain('data-runs-on="pc"');
-    expect(card2.html).toContain(">This PC<");
+    expect(card2.html).toContain('data-runs-on="vps"');
+    expect(card2.html).toContain(">Studio VPS<");
     expect(card2.html).toMatch(/data-runs-on-status="(asleep|offline)"/);
+    fixture.otherServer = null;
+    expect(runsOn(cloudBot()).html).toContain(">This PC<");
+    fixture.otherServer = "Studio VPS";
     const before = fixture.storeState;
     fixture.storeState = { ...before, config: { cloudHome: true } };
     try {
@@ -757,6 +771,40 @@ describe("the Computer tab", () => {
     expect((select.props.options as Array<{ icon?: string }>).map((option) => option.icon)).toEqual(["laptop", "cloud"]);
     expect((placeSelect(runsOn(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud"]);
     expect(placeSelect(runsOn(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
+  });
+
+  it("on this computer drops the screen choice and preview, and offers dusk cloud through checkout", () => {
+    fixture.otherServer = null;
+    const rendered = computer(cloudBot());
+    expect(rendered.html).not.toContain('data-asleep-mascot=""');
+    expect(rendered.html).not.toContain('data-panel-screen-of=""');
+    expect(rendered.nodes.some((node) => node.props.inline === true)).toBe(false);
+    expect(has(runsOn(cloudBot()), "data-panel-select", "place")).toBe(false);
+    const card = cta(cloudBot(), null);
+    expect(card.html).toContain('data-cloud-cta="get"');
+    expect(card.html).toContain('data-cloud-hop="laptop"');
+    expect(card.html).toContain(">keep Scout working 24/7 on dusk cloud<");
+    expect(card.html).toContain(">Get dusk cloud<");
+    click(find(card, "data-panel-action", "move-cloud"));
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
+  });
+
+  it("on this computer with a dusk cloud offers the move, then the switch once the bots live there, never the checkout", () => {
+    fixture.otherServer = null;
+    const openHome = vi.fn(() => Promise.resolve());
+    const desktop = { openHome } as unknown as Parameters<typeof CloudCtaCard>[0]["cloudDesktop"];
+    const ready = cta(cloudBot(), "ready", desktop);
+    expect(ready.html).toContain(">Move to dusk cloud<");
+    expect(ready.html).toContain('data-cloud-hop="laptop"');
+    const moved = cta(cloudBot(), "moved", desktop);
+    expect(moved.html).toContain(">Switch to dusk cloud<");
+    expect(moved.html).toContain('data-cloud-hop="cloud"');
+    expect(moved.html).toContain(">Scout works 24/7 on dusk cloud<");
+    click(find(moved, "data-panel-action", "move-cloud"));
+    expect(openHome).toHaveBeenCalledTimes(1);
+    expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "openCloudAdd" }));
+    expect(cloudCtaStep("moving")).toBe("moving");
+    expect(cloudCtaStep("buy")).toBe("get");
   });
 });
 

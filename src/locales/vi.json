@@ -2384,6 +2384,8 @@
   "notices.allowance.near": "Bạn đã dùng 80% ngân sách tuần này.",
   "notices.allowance.over": "Đã chạm giới hạn tuần. Tác vụ mới chờ đến khi đặt lại; chế độ tiết kiệm giúp tiếp tục trò chuyện.",
   "notices.allowance.see": "Xem mức sử dụng",
+  "notices.serverBehind": "Máy chủ này chạy dusk bot phiên bản cũ, nên một vài phần của ứng dụng bị ẩn ở đây. Hãy cập nhật để dùng chúng.",
+  "notices.serverBehind.copy": "Sao chép lệnh cập nhật",
   "composer.limit.reached": "Đã chạm giới hạn tuần",
   "composer.limit.saver": "Chế độ tiết kiệm",
   "composer.limit.saverOn": "Chế độ tiết kiệm đã bật",

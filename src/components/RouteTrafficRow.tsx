@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EgressStatus } from "../../shared/computer-egress";
 import { t } from "@/lib/i18n";
+import { serverHas } from "@/lib/server-compat";
 import { NoteRow, SwitchRow } from "./ListRows";
 
 const POLL_MS = 10_000;
@@ -12,6 +13,7 @@ export function RouteTrafficRow() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
+    if (!(await serverHas("computerEgress"))) return;
     const response = await fetch("/api/computer/egress", { signal, cache: "no-store" });
     if (!response.ok) return;
     setStatus(await response.json() as EgressStatus);

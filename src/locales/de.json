@@ -1392,6 +1392,8 @@
   "notices.allowance.near": "Du hast 80 % deines Wochenbudgets verbraucht.",
   "notices.allowance.over": "Wochenlimit erreicht. Neue Aufgaben warten bis zum Zurücksetzen; im Sparmodus geht der Chat weiter.",
   "notices.allowance.see": "Nutzung ansehen",
+  "notices.serverBehind": "Dieser Server nutzt ein älteres dusk bot, deshalb sind hier einige Teile der App ausgeblendet. Aktualisiere ihn, um sie zu bekommen.",
+  "notices.serverBehind.copy": "Update-Befehl kopieren",
   "composer.limit.reached": "Wochenlimit erreicht",
   "composer.limit.saver": "Sparmodus",
   "composer.limit.saverOn": "Sparmodus an",

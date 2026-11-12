@@ -7,6 +7,7 @@ import type { MobileDevice, MobilePairingRequest, MobilePairingResponse } from "
 import { companionBridge } from "@/lib/companion-bridge";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
+import { requireUserPresence } from "@/lib/user-presence";
 import { api, ApiError } from "@/state/store";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { haptic } from "../mobile/haptics";
@@ -15,7 +16,6 @@ import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { PhoneLinkIllustration } from "./PhoneLinkIllustration";
 import { Art, type ArtName } from "./ui/Art";
 import { cn } from "@/lib/cn";
-import { confirmUserPresence } from "@/lib/user-presence";
 
 function LinkChoice({ art, title, hint, onClick, disabled, expanded, ...rest }: {
   art: ArtName; title: string; hint: string; onClick: () => void; disabled?: boolean; expanded?: boolean; "data-phone-way"?: string;
@@ -124,10 +124,6 @@ export function MobilePairingCard({ remote, accountEmail = null }: { remote: boo
     const epoch = generation.current;
     setWay(next);
     setBusy(true);
-    if (!await confirmUserPresence(t("settings.docs.phone.presence"))) {
-      if (generation.current === epoch) setBusy(false);
-      return;
-    }
     setError(null);
     setCopied("idle");
     setShowLink(false);
@@ -135,6 +131,7 @@ export function MobilePairingCard({ remote, accountEmail = null }: { remote: boo
     setOffer(null);
     baseline.current = null;
     try {
+      if (!(await requireUserPresence()) || generation.current !== epoch) return;
       const request: MobilePairingRequest = {};
       const companion = remote ? null : companionBridge();
       if (companion) {

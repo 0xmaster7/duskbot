@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { EgressStatus } from "../../shared/computer-egress";
 import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
+import { serverHas } from "@/lib/server-compat";
 
 const SEEN_KEY = "dusk-egress-fallback-seen";
 const POLL_MS = 60_000;
@@ -17,6 +18,7 @@ export function EgressFallbackNotice() {
     let timer = 0;
     const check = async () => {
       try {
+        if (!(await serverHas("computerEgress"))) { window.clearInterval(timer); return; }
         const response = await fetch("/api/computer/egress", { signal: abort.signal, cache: "no-store" });
         if (response.status === 404 || response.status === 403) { window.clearInterval(timer); return; }
         if (!response.ok) return;

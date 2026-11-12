@@ -108,12 +108,13 @@ import { installCloudFiles } from "./cloud-sync-main.mjs";
 import { createCloudEntry } from "./cloud-entry.mjs";
 import { createOpenAtLogin, installOpenAtLogin } from "./open-at-login.mjs";
 import { createCleanWorkspace } from "./clean-workspace.mjs"; import { installOneHome } from "./one-home-main.mjs"; import { handSaved, installOwnHome } from "./own-home-main.mjs"; import { serverOpens } from "./saved-server.mjs"; import { installTwoPlacesMain } from "./two-places-main.mjs"; import { installVpsLink, unlimitTunnelConnections } from "./vps-link-main.mjs"; import { installSealTrust } from "./seal-trust.mjs";
-import { askForMicrophone, openPrivacySettings } from "./privacy-settings.mjs";
+import { askForMicrophone, openPrivacySettings } from "./privacy-settings.mjs"; import { installUserPresence } from "./user-presence.mjs";
 import { createHomeWindow, HOME_SCREEN_PATH, installHomeWindowIpc } from "./home-window.mjs";
 import { settledActive } from "./workspace-choice.mjs"; import { createWorkspaceReconnect, installWorkspaceReconnectIpc, RECONNECT_PATH } from "./workspace-reconnect.mjs";
 import { createTeamProfileSeeds } from "./team-profile-seed.mjs";
 import { createHomePlaces } from "./home-places.mjs"; import { createDesktopRing, installAccounts } from "./accounts-main.mjs"; import { createAddedCloudNotice, installCloudRail, railPlaces } from "./cloud-rail.mjs"; import { createPlaceInboxWatch } from "./place-inbox-watch.mjs"; import { homeLook, otherOwnClouds, withoutOldCloudHome } from "./cloud-list.mjs"; import { installPlaceLook } from "./place-look.mjs"; import { CHROME_RAIL_PATH, createChromeRail } from "./chrome-rail.mjs";
 import { createWindowStateFile } from "./window-state-file.mjs";
+import { bundleSource, createLocalUi, devSource, originOf, servedOrigins } from "./local-ui.mjs";
 import { accountSetupStore, localAccountSetupStore, remoteAccountSetupStore } from "./account-setup-store.mjs"; import { CLOUD_HOME_ID, installBotsElsewhere, placesElsewhere } from "./bots-elsewhere.mjs";
 import { createEnvironmentsFile } from "./environments-file.mjs";
 import { createOrgLibrary } from "./org-library.mjs";
@@ -138,6 +139,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // vite binds IPv4; a bare "localhost" can resolve to ::1.
 const DEV_URL = process.env.ELECTRON_START_URL ?? "http://127.0.0.1:5199";
 let SERVER_PORT = 8799;
+/** Origins the window was sent to besides the saved places (a team's Cloud, a Cloud being connected). */
+const visitedPlaces = new Set();
+// DUSK_REMOTE_UI=server: every place shows its server's own page again
+const localUi = process.env.DUSK_REMOTE_UI === "server" ? null : createLocalUi({
+  source: app.isPackaged ? bundleSource(path.join(process.resourcesPath, "ui")) : devSource(DEV_URL),
+  origins: () => {
+    let place = [], saved = [];
+    // module-level state below this line is not initialised until main has run once
+    try {
+      if (desktopRemoteAccess) return [];
+      saved = environmentsState.environments.filter((entry) => entry.kind !== "local").map((entry) => entry.origin);
+      place = [homeWindow.cloudOrigin(), homeWindow.placeOrigin(), myCloud()];
+    } catch {}
+    return servedOrigins([...saved, ...place, ...visitedPlaces], [DEV_URL, rendererOrigin(), `http://127.0.0.1:${SERVER_PORT}`, `http://localhost:${SERVER_PORT}`]);
+  },
+  log: (line) => slog(line),
+});
 let devServer = null;
 const APP_ICON = path.join(__dirname, "resources/app-icon.png");
 let desktopViewerWindow = null;
@@ -1616,9 +1634,16 @@ async function workspaceMenuAction(action) {
   }
 }
 
+/** From now on the page at `url`'s origin, when it is a place, is this app's own. */
+function servePlaceFrom(url) {
+  const origin = originOf(url);
+  if (origin && origin !== rendererOrigin()) visitedPlaces.add(origin);
+  return localUi ? localUi.refresh() : Promise.resolve();
+}
+
 function navigateMainWindow(url) {
   if (!mainWindow || mainWindow.isDestroyed()) return Promise.resolve(false);
-  return mainWindow.loadURL(url).then(() => true, () => false);
+  return servePlaceFrom(url).then(() => (mainWindow && !mainWindow.isDestroyed() ? mainWindow.loadURL(url).then(() => true, () => false) : false));
 }
 
 let rememberedHome = null;
@@ -2074,6 +2099,8 @@ function createWindow({ deferNavigation = false } = {}) {
     },
   });
   mainWindow = win; hiddenStart = false; chromeRail.attach(win);
+  // a place's page never waits long on this: without it the server's own page shows, as before
+  const localUiReady = Promise.race([localUi?.attach(win.webContents), new Promise((resolve) => setTimeout(resolve, 2_000).unref?.())]);
   startupTrace.mark("window");
   win.webContents.once("did-finish-load", () => startupTrace.mark("loaded"));
   win.once("show", () => startupTrace.finish("shown"));
@@ -2297,7 +2324,7 @@ function createWindow({ deferNavigation = false } = {}) {
   if (desktopRemoteAccess) {
     win.loadURL(serverReady ? `http://127.0.0.1:${SERVER_PORT}` : buildErrorPage({ allPortsOccupied: serverStartConflictOnly, logDir: LOG_DIR }));
   } else if (remote) {
-    void win.loadURL(remote.origin).catch(() => {});
+    void localUiReady.then(() => win.loadURL(remote.origin)).catch(() => {});
   } else if (app.isPackaged) {
     win.loadURL(serverReady ? `http://127.0.0.1:${SERVER_PORT}` : buildErrorPage({ allPortsOccupied: serverStartConflictOnly, logDir: LOG_DIR }));
   } else {
@@ -2756,7 +2783,7 @@ const chromeRail = createChromeRail({ createView: options => new WebContentsView
   args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), "--dusk-current-local-origin=1", ...(app.isPackaged && !desktopRemoteAccess ? ["--dusk-company-desktop=1"] : []), ...(accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
   url: () => `${rendererOrigin()}${CHROME_RAIL_PATH}`, wanted: () => !desktopRemoteAccess && serverReady && railList().length > 0 });
 chromeRail.install(ipcMain);
-function railChanged() { chromeRail.refresh(); rail.changed(); }
+function railChanged() { chromeRail.refresh(); rail.changed(); void localUi?.refresh(); }
 const accountPages = [() => (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents }) ? mainWindow.webContents : null), () => ({ send: channel => chromeRail.send(channel) })];
 const accountRing = createDesktopRing({ allowed: () => app.isPackaged && !desktopRemoteAccess, active: cloudAccountStore, savedStore: () => createCloudAccountStore({ file: path.join(app.getPath("userData"), cloudTarget(process.env).saved), encryption: cloudEncryption }), stash: () => jsonFile(path.join(app.getPath("userData"), cloudTarget(process.env).places)), client: ensureCloudAccount, origin: cloudTarget(process.env).origin, makeClient: ({ store, onState }) => createCloudAccountClient({ store, onState, platform: process.platform, deviceName: os.hostname().slice(0, 100) || "My computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom, openBrowser: url => shell.openExternal(url) }), saved: () => environmentsState, persist: persistEnvironments, session: () => session.defaultSession, mine: () => myCloud(), leaveWindow: () => (mainWindow && !mainWindow.isDestroyed() && !senderIsLocal({ sender: mainWindow.webContents }) ? navigateMainWindow(rendererOrigin()) : null), rows: () => railList(), holding: () => oneHome.holding(), letGo: () => { homeWindow.accountLeaving(); homePlaces.remember(null); }, settled: () => showHome(), tell: () => { accounts.tell(); railChanged(); }, log: slog }); const accounts = installAccounts({ ipcMain, ownPage: event => chromeRail.owns(event) || cloudPageAsking(event) === "local", placePage: event => cloudPageAsking(event) !== null || ownCloudPage(event) !== null || homeWindow.homePage(event) || (Boolean(ownHome?.home()) && activeEnvironment(environmentsState)?.origin === ownHome.home().origin && workspaceSenderAllowed(event, mainWindow?.webContents, environmentsState, rendererOrigin())), account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null), client: ensureCloudAccount, ring: accountRing, holdSheet: open => chromeRail.holdOpen(open), tellSheet: () => chromeRail.send("accounts:open-sheet"), tell: () => { for (const page of accountPages) page()?.send("accounts:changed"); } });
 const rail = installCloudRail({ ipcMain, clipboard, openCloud: openOwnCloud, switchAccount: id => accountRing().switchTo(id), account: () => (app.isPackaged && !desktopRemoteAccess ? cloudAccount : null),
@@ -2782,6 +2809,7 @@ const cloudSync = installCloudFiles({
   cloudOrigin: () => myCloud(), cloudAccount: () => ensureCloudAccount(), stateDir: cloudTarget(process.env).sync, power: cloudPower,
 });
 
+installUserPresence({ ipcMain, guard: workspaceOnly, dialog, systemPreferences, log: slog, window: () => mainWindow, trusted: senderIsLocal });
 // window.confirm() has no parent window, so (tiling) window managers cannot center it over the app.
 ipcMain.handle("dialog:confirm", localWorkspaceOnly("dialog:confirm", async (_event, message) => {
   if (typeof message !== "string" || !message.trim() || message.length > 4096 || !mainWindow || mainWindow.isDestroyed()) return false;

@@ -12,6 +12,7 @@ import { lateRoutineRun } from "@/lib/late-routine";
 import { useAllowanceNotice } from "@/lib/allowance-notice";
 import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
+import { useServerBehindHint } from "@/lib/server-behind";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
 import { t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
@@ -55,6 +56,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const digest = useUpdateDigest();
   // the weekly allowance at 80% and at 100%: one quiet line each, never in a chat, the amounts left to Usage
   const allowance = useAllowanceNotice();
+  // this app's page on an older server: what it hides, said once
+  const behind = useServerBehindHint();
   // Bots in two places: this computer's page only, where main knows what lives here.
   const two = useTwoPlaces();
   const twoFact = !local || two.suggest === null ? false : two.suggest === undefined ? null : true;
@@ -155,6 +158,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     return <NoticeToast text={t(allowance.level === "over" ? "notices.allowance.over" : "notices.allowance.near")} tone={allowance.level === "over" ? "warning" : undefined}
       onDone={allowance.seen} action={{ label: t("notices.allowance.see"), onClick: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }) }} />;
   }
+  if (!notice && behind && !waits) return <NoticeToast text={behind.text} onDone={behind.seen} action={behind.action} />;
   if (!notice && askFeedback && !waits && usedBefore(state.bots)) return <FeedbackCard onDone={() => setAskFeedback(false)} />;
   if (!notice) return null;
 

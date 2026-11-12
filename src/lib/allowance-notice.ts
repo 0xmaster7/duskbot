@@ -2,6 +2,7 @@
 // the small line above the message box while the week's limit is reached. Owners only: anyone else gets nothing.
 import { useEffect, useState } from "react";
 import { api } from "@/state/store";
+import { whenServerHas } from "./server-compat";
 import type { AllowanceReport } from "./spend";
 
 const POLL_MS = 60_000;
@@ -20,8 +21,8 @@ function usePolled<T>(load: () => Promise<T>): [T | null, (next: T | null) => vo
   return [value, setValue];
 }
 
-const readNotice = () => api<{ notice: "near" | "over" | null }>("/api/usage/allowance/notice", { background: true });
-const readAllowance = () => api<AllowanceReport>("/api/usage/allowance", { background: true });
+const readNotice = () => whenServerHas("allowance", () => api<{ notice: "near" | "over" | null }>("/api/usage/allowance/notice", { background: true }));
+const readAllowance = () => whenServerHas("allowance", () => api<AllowanceReport>("/api/usage/allowance", { background: true }));
 
 /** The notice waiting to be shown once, and the call that marks it seen. */
 export function useAllowanceNotice(): { level: "near" | "over"; seen: () => void } | null {

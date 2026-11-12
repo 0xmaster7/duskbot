@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { requireUserPresence } from "@/lib/user-presence";
 
 import { t } from "@/lib/i18n";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
@@ -7,7 +8,6 @@ import { api } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/session";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { revealPhonePairing } from "../lib/phone-pairing";
-import { confirmUserPresence } from "@/lib/user-presence";
 import { Card, SettingRow } from "./SettingsPrimitives";
 import { SettingsSelect } from "./SettingsSelect";
 import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
@@ -128,8 +128,8 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     setBusy(true);
     setError(null);
     setCopied("idle");
-    if (!await confirmUserPresence(t("settings.docs.phone.presence"))) { setBusy(false); return; }
     try {
+      if (!(await requireUserPresence())) return;
       const body: PairingOffer = await api("/api/auth/pairing", { method: "POST", body: JSON.stringify({ scopes: scope === "admin" || cloudHome ? ["admin", "client"] : ["client"] }) });
       setOffer(body);
       setNow(Date.now());
