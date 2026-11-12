@@ -43,6 +43,8 @@ vi.mock("@/lib/connector-oauth", async (original) => ({
   reserveConnectionPage: () => ({ open: async (url: string) => { fixture.opened.push(url); return true; }, cancel: () => {}, closed: () => fixture.closed }),
 }));
 vi.mock("@/lib/connector-poll", () => ({ pollConnector: () => () => {} }));
+// sealing has its own tests (src/lib/sealed-send.test.ts): here the patch the key step asked to save is what the server gets
+vi.mock("@/lib/sealed-send", () => ({ putConfig: (patch: unknown) => fixture.api("/api/config", { method: "PUT", body: JSON.stringify(patch) }) }));
 vi.mock("@/lib/logins", () => ({ listLogins: async () => ({ logins: [], onePassword: { connected: false } }) }));
 vi.mock("@/lib/mcp-servers", () => ({ useMcpServers: () => ({ servers: [], error: false, refresh: async () => [] }) }));
 vi.mock("../McpServersPanel", () => ({ McpServersPanel: () => null }));
