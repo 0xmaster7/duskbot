@@ -8,6 +8,7 @@ import { Table, Td, Th } from "../ui/table";
 import { useAdmin } from "./api";
 import { duration, percent, type Range } from "./kit";
 import { Failed, Loading, n } from "./ui";
+import { MORE_TITLE, MoreCards, MoreTable, type MoreAnswer, type MoreDetail } from "./UsageMore";
 
 interface Row { key: string; turns: number; failed: number; share: number; previous: number; trend: number[]; p50Ms?: number | null }
 interface FailureRow { kind: "engine" | "tool" | "app"; key: string; turns: number; failed: number; rate: number; reason: string; reasonWords: string }
@@ -28,6 +29,7 @@ export interface UsageAnswer {
   frustration: { total: number; previous: number; groups: ProblemGroup[]; signals: Array<{ key: string; count: number }> };
   themes: Theme[];
   focus: Array<{ id: string; text: string; target: string; weight: number }>;
+  more?: MoreAnswer;
 }
 
 const I = { size: 14, strokeWidth: 1.75 } as const;
@@ -97,11 +99,12 @@ function Card({ title, icon, wash = "bg-card", action, children, className }: { 
 }
 const More = ({ onClick }: { onClick(): void }) => <button type="button" onClick={onClick} className="hover-link inline-flex items-center gap-1 text-12 text-ink-3">all <ArrowUpRight size={12} strokeWidth={1.75} aria-hidden /></button>;
 
-type Detail = "categories" | "apps" | "tools" | "engines" | "failures" | "routines" | "people" | "adoption" | "frustration" | "themes" | "sources";
-const DETAIL_TITLE: Record<Detail, string> = { categories: "what people use it for", apps: "connected apps", tools: "tools", engines: "engines", failures: "what fails", routines: "routines",
+type Detail = "categories" | "apps" | "tools" | "engines" | "failures" | "routines" | "people" | "adoption" | "frustration" | "themes" | "sources" | MoreDetail;
+const DETAIL_TITLE: Record<Detail, string> = { ...MORE_TITLE, categories: "what people use it for", apps: "connected apps", tools: "tools", engines: "engines", failures: "what fails", routines: "routines",
   people: "power users and casual", adoption: "how far people get", frustration: "what's frustrating people", themes: "themes from weekly summaries", sources: "where people chat from" };
 
 function DetailTable({ detail, data }: { detail: Detail; data: UsageAnswer }) {
+  if (detail in MORE_TITLE) return data.more ? <MoreTable detail={detail as MoreDetail} more={data.more} /> : <p className="py-6 text-center text-13 text-ink-3">nothing yet.</p>;
   const rowsTable = (rows: Row[], kind: string, extra?: (row: Row) => ReactNode, extraHead?: string) => (
     <Table label={DETAIL_TITLE[detail]}>
       <thead><tr><Th>{kind === "runs" ? "trigger" : "name"}</Th><Th className="!text-end">turns</Th><Th className="!text-end">share</Th><Th className="!text-end">failed</Th><Th className="!text-end">trend</Th>{extraHead && <Th className="!text-end">{extraHead}</Th>}</tr></thead>
@@ -115,7 +118,14 @@ function DetailTable({ detail, data }: { detail: Detail; data: UsageAnswer }) {
   if (detail === "tools") return rowsTable(data.tools, "tools");
   if (detail === "sources") return <div className="flex flex-col gap-4">{rowsTable(data.sources, "sources")}{rowsTable(data.places, "places")}</div>;
   if (detail === "engines") return rowsTable(data.engines, "engines", (row) => duration(row.p50Ms ?? null), "median time");
-  if (detail === "routines") return rowsTable(data.routines.byTrigger, "runs");
+  if (detail === "routines") return (
+    <div className="flex flex-col gap-4">
+      {rowsTable(data.routines.byTrigger, "runs")}
+      {data.more && <Table label="how often routines run"><thead><tr><Th>set to run</Th><Th className="!text-end">runs</Th><Th className="!text-end">worked</Th></tr></thead>
+        <tbody>{data.more.routines.every.map((row) => <tr key={row.key}><Td>{words(row.key)}</Td><Td className="text-end font-mono num">{n(row.total)}</Td><Td className="text-end font-mono num">{percent(row.rate)}</Td></tr>)}</tbody></Table>}
+      {data.more && <p className="text-13 text-ink-3">half of runs take {duration(data.more.routines.runP50)}. of {n(data.more.routines.survival.eligible)} routines that first ran over a week ago, {percent(data.more.routines.survival.share)} were still running a week later.</p>}
+    </div>
+  );
   if (detail === "failures") return (
     <Table label="what fails">
       <thead><tr><Th>what</Th><Th className="!text-end">turns</Th><Th className="!text-end">failed</Th><Th className="!text-end">rate</Th><Th>mostly</Th></tr></thead>
@@ -255,7 +265,8 @@ export function UsageSection({ range }: { range: Range }) {
                 })}
               </ul>
             </Card>
-            <Card title="top connected apps" icon={<Plug {...I} />} action={<More onClick={() => open("apps")} />}><Ranked rows={data.apps} kind="apps" onOpen={() => open("apps")} /></Card>
+            <Card title="top connected apps" icon={<Plug {...I} />} action={<More onClick={() => open("apps")} />}><Ranked rows={data.apps} kind="apps" onOpen={() => open("apps")} />
+              {data.more && <button type="button" onClick={() => open("connects")} className="hover-link mt-1 px-2.5 text-12 text-ink-3">connecting and top actions</button>}</Card>
             <Card title="top tools" icon={<SquareTerminal {...I} />} action={<More onClick={() => open("tools")} />}><Ranked rows={data.tools.filter((row) => row.key !== "other" && row.key !== "memory")} kind="tools" onOpen={() => open("tools")} /></Card>
           </div>
 
@@ -271,7 +282,7 @@ export function UsageSection({ range }: { range: Range }) {
                 <Stat label="ran" value={n(r.runs)} note={`${percent(r.runs ? (r.runs - r.failed) / r.runs : null)} worked`} />
                 <Stat label="ran twice" value={percent(r.peopleWithRoutines ? r.peopleRanTwice / r.peopleWithRoutines : null)} note="of people who made one" />
               </button>
-              <p className="mt-2 px-1 text-12 text-ink-3">{n(r.made.routines)} scheduled, {n(r.made.appEvents)} on app events, {n(r.made.webhooks)} webhooks.</p>
+              <p className="mt-2 px-1 text-12 text-ink-3">{n(r.made.routines)} scheduled, {n(r.made.appEvents)} on app events, {n(r.made.webhooks)} webhooks.{data.more?.routines.survival.share != null ? ` ${percent(data.more.routines.survival.share)} still run a week later.` : ""}</p>
             </Card>
             <Card title="what fails most" icon={<AlertTriangle {...I} />} wash="bg-wash-pink" action={<More onClick={() => open("failures")} />}>
               {data.failures.length ? (
@@ -300,6 +311,7 @@ export function UsageSection({ range }: { range: Range }) {
                 <div className="mt-1.5 flex gap-1.5">{data.people.buckets.map((bucket) => <span key={bucket.key} className="flex-1 truncate text-center text-[11.5px] text-ink-4">{bucket.label}</span>)}</div>
                 <p className="mt-2 text-12 text-ink-3">{data.people.topShare !== null ? `top 10% do ${percent(data.people.topShare)} of turns. ` : ""}{data.people.medianTurns !== null ? `the middle person did ${n(data.people.medianTurns)}.` : ""}</p>
               </button>
+              {data.more && <button type="button" onClick={() => open("bots")} className="hover-link mt-1 text-12 text-ink-3">their bots</button>}
             </Card>
             <Card title="how far people get" icon={<Compass {...I} />} action={<More onClick={() => open("adoption")} />} className="col-span-2 max-lg:col-span-1">
               <button type="button" onClick={() => open("adoption")} className="flex w-full flex-col gap-1.5 text-start">
@@ -342,6 +354,7 @@ export function UsageSection({ range }: { range: Range }) {
               ) : <p className="px-2 py-3 text-13 text-ink-2">no weekly summaries yet. they come from people who use it a few days a week.</p>}
             </Card>
           </div>
+          {data.more && <MoreCards more={data.more} open={open} />}
         </div>
       )}
       <Modal open={detail !== null} onClose={() => setDetail(null)} title={detail ? DETAIL_TITLE[detail] : ""} wide>

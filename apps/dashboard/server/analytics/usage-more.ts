@@ -26,12 +26,13 @@ export interface MoreInput {
   billing: { checkouts: Array<{ accountId: string; status: string; createdAt: number }>; subscriptions: Array<{ accountId: string; totalCents: number; createdAt: number; status: string }>;
     feedback: Array<{ answer: string; at: number }> };
   accounts: ReadonlyArray<{ id: string; createdAt: number }>; from: number; to: number; now: number;
+  /** cloud wake times as the slack edge measures them, per desktop kind */
+  wake?: { count: number; p50Ms: number | null; p90Ms: number | null };
 }
 
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 const rate = (part: number, whole: number) => whole > 0 ? part / whole : null;
 const median = (values: number[]) => { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor((sorted.length - 1) / 2)]!; };
-const quantile = (values: number[], q: number) => { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]!; };
 const counts = (values: Iterable<string>): Count[] => { const map = new Map<string, number>(); for (const value of values) map.set(value, (map.get(value) ?? 0) + 1); return [...map].map(([key, count]) => ({ key, count })).sort((a, b) => b.count - a.count); };
 function bucketQuantile(buckets: number[], q: number): number | null {
   const total = sum(buckets);
@@ -67,19 +68,12 @@ export function moreOf(input: MoreInput): MoreAnswer {
   ].map(row => ({ ...row, rate: rate(row.errors, row.turns) })).sort((a, b) => b.errors - a.errors);
   const errors = byName("app_error");
   const crashes = { count: errors.length, people: new Set(errors.map(event => event.accountId ?? event.ctx?.install).filter(Boolean)).size, top: counts(errors.map(event => `${event.props.kind}:${event.props.code}`)).slice(0, 8) };
-  const asleep = new Map<string, number>(), wakes: number[] = [];
-  for (const event of byName("cloud_state").sort((a, b) => a.at - b.at)) {
-    const cloud = String(event.props.cloudId), to = String(event.props.to);
-    if (["sleeping", "stopped", "waking", "starting"].includes(to) && !asleep.has(cloud)) asleep.set(cloud, event.at);
-    if (to === "running" && asleep.has(cloud)) { const from = String(event.props.from); if (from !== "new" && from !== "provisioning") wakes.push(event.at - asleep.get(cloud)!); asleep.delete(cloud); }
-  }
-
   const people = input.people.filter(row => row.turns > 0), personDays = people.length;
   const opens = byName("app_open"), closes = byName("app_close");
   const openDays = new Set(opens.map(event => `${event.accountId ?? event.ctx?.install}|${new Date(event.at).toISOString().slice(0, 10)}`)).size;
   const hours = Array.from({ length: 24 }, () => 0), weekdays = Array.from({ length: 7 }, () => 0);
   const env = actionsNamed("env");
-  for (const event of env) { const hour = Number(event.props.hour), weekday = Number(event.props.weekday); if (hour >= 0 && hour < 24) hours[hour]!++; if (weekday >= 0 && weekday < 7) weekdays[weekday]!++; }
+  for (const event of env) { const hour = Number(event.props.hour); if (hour >= 0 && hour < 24) hours[hour]!++; weekdays[new Date(event.at).getUTCDay()]!++; }
   const chatTurns = people.flatMap(row => Object.values(row.chats ?? {}));
   const chatsPerDay = people.map(row => Object.keys(row.chats ?? {}).length).filter(n => n > 0);
   const latest = input.snapshots;
@@ -132,7 +126,7 @@ export function moreOf(input: MoreInput): MoreAnswer {
   return {
     setup: { onboarding, signIn: signInRows(events) },
     reliability: { firstP50: bucketQuantile(buckets("first:"), 0.5), firstP90: bucketQuantile(buckets("first:"), 0.9), engines, models: models.slice(0, 15), toolErrors: toolErrors.slice(0, 20), crashes,
-      wake: { count: wakes.length, p50Ms: quantile(wakes, 0.5), p90Ms: quantile(wakes, 0.9) } },
+      wake: input.wake ?? { count: 0, p50Ms: null, p90Ms: null } },
     engagement: { sessionsPerPersonDay: rate(opens.length, openDays), sessionMedianMs: median(closes.map(event => Number(event.props.ms)).filter(ms => ms > 0)), hours, weekdays,
       turnsPerChat: median(chatTurns), chatsPerPersonDay: rate(sum(chatsPerDay), personDays), attachments: keys("sig:attachment:kind:").map(key => ({ key, count: total(`sig:attachment:kind:${key}`) })).sort((a, b) => b.count - a.count),
       attachmentSizes: keys("sig:attachment:size:").map(key => ({ key, count: total(`sig:attachment:size:${key}`) })), chatsDeleted: total("sig:chat_deleted"), archivedShare: rate(archived, chats + archived),
@@ -180,7 +174,7 @@ export function moreFocus(m: MoreAnswer): FocusItem[] {
   if (s.eligible >= 5 && s.share !== null && s.share < 0.5) out.push({ id: "survival", target: "routines", weight: 60 + (0.5 - s.share) * 40, text: `only ${pct(s.share)} of routines are still running a week after their first run.` });
   if (m.reliability.firstP50 !== null && m.reliability.firstP50 >= 20_000) out.push({ id: "first-token", target: "reliability", weight: 55, text: `the first reply takes ${seconds(m.reliability.firstP50)} for half of turns: people wait before seeing anything.` });
   const toolError = m.reliability.toolErrors.find(row => row.turns >= 20 && row.rate !== null && row.rate >= 0.15);
-  if (toolError) out.push({ id: `toolerr:${toolError.key}`, target: "reliability", weight: 58 + toolError.rate! * 30, text: `${toolError.key} calls error in ${pct(toolError.rate!)} of the turns that use it.` });
+  if (toolError) out.push({ id: `toolerr:${toolError.key}`, target: "reliability", weight: 58 + toolError.rate! * 30, text: `${toolError.kind === "tool" && toolError.key === "app" ? "connected app" : toolError.key.replace(/_/g, " ")} calls error in ${pct(toolError.rate!)} of the turns that use it.` });
   const connect = m.apps.connects.find(row => row.total >= 5 && row.rate !== null && row.rate < 0.6);
   if (connect) out.push({ id: `connect:${connect.key}`, target: "apps", weight: 62 + (0.6 - connect.rate!) * 40, text: `connecting ${connect.key} works ${pct(connect.rate!)} of the time: fix the connect flow.` });
   const hidden = m.discovery.find(row => ["routine_created", "app_connected", "phone_paired", "voice_used"].includes(row.feature) && row.share !== null && row.share < 0.15);

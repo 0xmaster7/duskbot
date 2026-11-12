@@ -9,7 +9,7 @@ import { createUsageOutbox, hashId, turnRecord } from "./usage-signals.ts";
 const NOW = Date.now();
 const SECRET = "Email jane.doe@acme.com /Users/jane/Plan.xlsx https://acme.com";
 const valid: Record<string, Record<string, string | number>> = {
-  env: { os: "darwin", arch: "arm64", locale: "pt_br", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9, weekday: 2 },
+  env: { os: "darwin", arch: "arm64", locale: "pt_br", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9 },
   engine_sign_in: { engine: "claude", outcome: "failed", reason: "auth" },
   attachment: { kind: "pdf", size: "lt1m" },
   setting_changed: { key: "newBotDefaults" },
@@ -41,8 +41,12 @@ describe("product signal catalogue", () => {
 
   it("every allowed value is a short word or a small number, never text", () => {
     for (const [name, props] of Object.entries(valid)) for (const value of Object.values(cleanSignal(name, props)!)) {
-      expect(typeof value === "number" ? Number.isInteger(value) && value < 1e6 : /^[a-zA-Z0-9_]{1,32}$/.test(value)).toBe(true);
+      expect(typeof value === "number" ? Number.isInteger(value) && value < 1e6 : typeof value === "string" && /^[a-zA-Z0-9_]{1,32}$/.test(value)).toBe(true);
     }
+  });
+
+  it("an app signal fits the apps' limit of 8 extra keys on an app action", () => {
+    for (const spec of Object.values(SIGNALS)) if (spec.source === "app") expect(Object.keys(spec.props).length).toBeLessThanOrEqual(8);
   });
 
   it("an app action named as a signal keeps only the catalogue's keys on the service", () => {

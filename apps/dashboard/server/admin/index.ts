@@ -34,6 +34,8 @@ export interface AdminOptions {
   workspaces: () => StoredWorkspace[];
   analytics: Analytics;
   usage: Usage;
+  /** the slack edge's measured cloud wake times by desktop kind */
+  wakeStats?: () => Partial<Record<string, { medianMs: number; p90Ms: number; samples: number }>>;
   waitlist: WaitlistSource | null;
   now: () => number;
   fetch?: typeof fetch;
@@ -126,9 +128,14 @@ export function createAdmin(options: AdminOptions) {
     const billingState = billing.store.state;
     const more = moreOf({ days, daily: new Map(daily.map(row => [row.day, row.c])), people, snapshots, routines: spans, events: [...events, ...signIns],
       billing: { checkouts: billingState.checkouts, subscriptions: billingState.subscriptions, feedback: billingState.feedback ?? [] },
-      accounts: directory().accounts, from: start, to: end, now: now() });
+      accounts: directory().accounts, from: start, to: end, now: now(), wake: wakeOf() });
     const focus = [...answer.focus, ...moreFocus(more)].sort((a, b) => b.weight - a.weight).slice(0, 5);
     return { ...answer, focus, more };
+  }
+  /** the slack edge's measured wakes: the kind with the most samples stands for all */
+  function wakeOf() {
+    const stats = Object.values(options.wakeStats?.() ?? {}).filter((stat): stat is { medianMs: number; p90Ms: number; samples: number } => !!stat).sort((a, b) => b.samples - a.samples);
+    return stats[0] ? { count: stats.reduce((sum, stat) => sum + stat.samples, 0), p50Ms: stats[0].medianMs, p90Ms: stats[0].p90Ms } : undefined;
   }
   function adoption(snapshots: Awaited<ReturnType<Usage["store"]["snapshots"]>>, recent: Awaited<ReturnType<Usage["store"]["people"]>>): AdoptionInput {
     const { accounts, sessions } = directory();

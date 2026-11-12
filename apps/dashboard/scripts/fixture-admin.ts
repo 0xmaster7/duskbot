@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { createDashboardApp } from "../server/app.ts";
 import { memoryWaitlist, type WaitlistEntry } from "../server/admin/waitlist.ts";
 import { BILLING_CONFIG } from "../server/billing/plans.ts";
-import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
+import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
 const PEOPLE = ["mira.okafor", "tomas.lindqvist", "priya.raman", "jules.moreau", "kenji.watanabe", "ana.ferreira", "leo.brandt", "sofia.marin", "ravi.kulkarni", "noor.haddad",
@@ -203,6 +203,32 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
   await analytics.sink.saveNote({ id: "note_pricing2", at: now - 4 * DAY, text: "new pricing page", by: accounts[0]!.id, createdAt: now });
 }
 
+const MODELS: Partial<Record<string, string[]>> = { claude: ["claude-sonnet-4-5", "claude-opus-4-1", "claude-haiku-4-5"], codex: ["gpt-5.1-codex", "gpt-5.1"], gemini: ["gemini-2.5-pro", "gemini-2.5-flash"], grok: ["grok-4"] };
+const ACTIONS: Record<string, string[]> = { gmail: ["gmail_send_email", "gmail_fetch_emails", "gmail_create_email_draft", "gmail_reply_to_thread"], github: ["github_create_an_issue", "github_list_pull_requests"],
+  googlecalendar: ["googlecalendar_create_event", "googlecalendar_find_event"], notion: ["notion_create_notion_page", "notion_search_notion_page"], googlesheets: ["googlesheets_batch_update", "googlesheets_get_spreadsheet_info"],
+  slack: ["slack_sends_a_message_to_a_slack_channel"], twitter: ["twitter_creation_of_a_post"] };
+
+/** the apps' side: their setup, sessions, errors, features and connect attempts, as the real app events */
+async function seedAppSignals(app: ReturnType<typeof createDashboardApp>, account: SeededAccount, i: number, now: number) {
+  const { analytics } = app, platform = i % 4 === 0 ? "darwin" : i % 5 === 1 ? "ios" : "win32";
+  for (let t = Math.max(account.createdAt, now - 28 * DAY); t < now; t += DAY * (1 + Math.floor(rand() * 3))) {
+    const at = t + Math.round((7 + rand() * 14) * 3_600_000);
+    await analytics.record("app_open", { accountId: account.id, at, props: { kind: platform === "ios" ? "mobile" : "desktop", platform, appVersion: rand() < 0.7 ? "0.2.15" : "0.2.14" } });
+    await analytics.record("app_action", { accountId: account.id, at, props: { name: "env", os: platform, arch: platform === "darwin" ? "arm64" : "x64", locale: pick(["en", "en", "en", "de", "pt_br", "hi", "fr"]),
+      screen: platform === "ios" ? "xs" : pick(["m", "l", "l"]), theme: pick(["light", "dark", "dark"]), skin: pick(["grok", "grok_dark", "midnight"]), notifications: pick(["granted", "granted", "default", "denied"]),
+      hour: new Date(at).getHours() } });
+    await analytics.record("app_close", { accountId: account.id, at: at + 600_000, props: { ms: Math.round(60_000 + rand() * 40 * 60_000) } });
+    if (rand() < 0.05) await analytics.record("app_error", { accountId: account.id, at, props: { kind: "window", code: pick(["error", "rejection"]) } });
+  }
+  for (const [k, feature] of ["bot_created", "chat_opened", "app_connected", "routine_created", "voice_used", "phone_paired", "search_used"].entries())
+    if (rand() < 0.95 - k * 0.12) await analytics.record("app_feature", { accountId: account.id, at: account.createdAt + Math.round((k + rand() * 3) * DAY), props: { feature } });
+  for (const app_ of ["gmail", "notion", "googlecalendar"].slice(0, 1 + (i % 3))) {
+    const result = app_ === "notion" && rand() < 0.5 ? "failed" : "connected";
+    await analytics.record("app_action", { accountId: account.id, at: account.createdAt + DAY, props: { name: "connector_connect", app: app_, result } });
+  }
+  await analytics.record("app_action", { accountId: account.id, at: account.createdAt + 3_600_000, props: { name: "bot_created", source: "template", template: pick(["writer", "researcher", "assistant", "coder"]) } });
+}
+
 const ENGINES = [["claude", 50], ["codex", 28], ["gemini", 9], ["grok", 6], ["opencode", 4], ["api", 3]] as const;
 const TASKS: Array<{ category: UsageCategory; tools: UsageTool[]; apps: string[]; weight: number; fail: number; reason?: UsageReason; ms: number }> = [
   { category: "email", tools: ["app"], apps: ["gmail"], weight: 22, fail: 0.18, reason: "auth", ms: 25_000 },
@@ -243,7 +269,13 @@ async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: S
   for (const [i, account] of accounts.entries()) {
     if (i % 6 === 5) continue;
     const power = i % 5 === 0 ? 6 : i % 3 === 0 ? 2.2 : 0.7, ws = `ws_fixture_${i}`, from: UsageFrom = i % 4 === 1 ? "remote" : "app";
-    const turns: UsageTurn[] = [], runs: UsageRun[] = [];
+    const turns: UsageTurn[] = [], runs: UsageRun[] = [], signals: UsageSignal[] = [];
+    for (const engine of i % 2 ? ["claude"] : ["claude", "codex"]) {
+      const at = Math.max(account.createdAt, now - 28 * DAY) + 3_600_000;
+      signals.push({ id: uid("sig"), at, name: "engine_sign_in", props: { engine, outcome: "started" } });
+      const outcome = engine === "codex" && rand() < 0.45 ? "failed" : "succeeded";
+      signals.push({ id: uid("sig"), at: at + 60_000, name: "engine_sign_in", props: { engine, outcome, ...(outcome === "failed" ? { reason: pick(["auth", "timeout"]) } : {}) } });
+    }
     for (let t = Math.max(account.createdAt, now - 29 * DAY); t < now; t += DAY) {
       if (rand() > (power > 2 ? 0.85 : 0.45)) continue;
       const count = Math.round(power * (2 + rand() * 6));
@@ -252,8 +284,17 @@ async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: S
         turns.push({ id: uid("turn"), at: Math.min(now - 60_000, t + Math.round(rand() * DAY)), engine: weighted(ENGINES, item => item[1])[0], outcome: failed ? "failed" : cancelled ? "cancelled" : "ok",
           ...(failed ? { reason: rand() < 0.75 ? task.reason ?? "unknown" : "unknown" } : cancelled ? { reason: "unknown" as const } : {}), ms: Math.round(task.ms * (0.4 + rand() * 1.8)), tools: task.tools,
           apps: task.apps, category: task.category, from: rand() < 0.15 ? "routine" : from, place: i % 3 === 0 ? "cloud" : "desktop", room: rand() < 0.08 });
+        const last = turns.at(-1)!, model = MODELS[last.engine];
+        Object.assign(last, { firstMs: Math.round(last.ms * (0.15 + rand() * 0.3)), ...(model ? { model: pick(model) } : {}), bot: `bot${String(i).padStart(3, "0")}${Math.floor(rand() * (1 + i % 4))}xyz`.slice(0, 10).padEnd(10, "x"),
+          chat: `chat${String(i).padStart(3, "0")}${Math.floor(rand() * 9)}`.padEnd(10, "x"), ...(failed && task.tools[0] ? { failedTools: [task.tools[0]], ...(task.apps.length ? { failedApps: task.apps } : {}) } : {}),
+          ...(task.apps.length ? { actions: [pick(ACTIONS[task.apps[0]!] ?? [`${task.apps[0]}_list_items`])] } : {}) });
       }
-      if (i % 3 === 0 && rand() < 0.7) runs.push({ id: uid("run"), at: t + 8 * 3_600_000, trigger: weighted(["schedule", "schedule", "event", "webhook"] as const, () => 1), outcome: rand() < 0.14 ? "failed" : "ok" });
+      if (i % 3 === 0 && rand() < 0.7) { const trigger = weighted(["schedule", "schedule", "event", "webhook"] as const, () => 1), routine = Math.floor(rand() * 3);
+        runs.push({ id: uid("run"), at: t + 8 * 3_600_000, trigger, outcome: rand() < 0.14 ? "failed" : "ok", ms: Math.round(20_000 + rand() * 200_000),
+          every: trigger === "schedule" ? (["daily", "weekdays", "hourly"] as const)[routine]! : "event", routine: `rtn${String(i).padStart(3, "0")}${routine}`.padEnd(10, "x") }); }
+      if (rand() < 0.5) signals.push({ id: uid("sig"), at: Math.min(now - 60_000, t + 3_600_000), name: "attachment", props: { kind: pick(["image", "image", "pdf", "doc", "sheet", "text"]), size: pick(["lt100k", "lt1m", "lt1m", "lt10m"]) } });
+      if (rand() < 0.15) signals.push({ id: uid("sig"), at: Math.min(now - 60_000, t + 7_200_000), name: "setting_changed", props: { key: pick(["theme", "newBotDefaults", "talkingStyle", "helper", "browser"]) } });
+      if (rand() < 0.1) signals.push({ id: uid("sig"), at: Math.min(now - 60_000, t + 9_000_000), name: "chat_deleted", props: {} });
     }
     const frustrations: UsageFrustration[] = [];
     if (power >= 2) for (const [category, engine, summary] of FRUSTRATIONS.filter((_, f) => (f + i) % 3 !== 0)) {
@@ -262,7 +303,9 @@ async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: S
         retries: Math.floor(rand() * 4), summary });
     }
     const digests: UsageDigest[] = power >= 2 ? [{ id: uid("digest"), at: now - Math.round(rand() * 6 * DAY), turns: Math.round(power * 30), days: 5, summary: DIGESTS[i % DIGESTS.length]! }] : [];
-    for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, digests }),
-      snapshot: { bots: 1 + (i % 4), rooms: i % 3 === 0 ? 1 : 0, routines: i % 3 === 0 ? 2 : i % 4 === 2 ? 1 : 0, webhooks: i % 7 === 0 ? 1 : 0, appEvents: i % 5 === 0 ? 1 : 0, skills: i % 4 } });
+    for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, digests, signals }),
+      snapshot: { bots: 1 + (i % 4), rooms: i % 3 === 0 ? 1 : 0, routines: i % 3 === 0 ? 2 : i % 4 === 2 ? 1 : 0, webhooks: i % 7 === 0 ? 1 : 0, appEvents: i % 5 === 0 ? 1 : 0, skills: i % 4,
+        chats: 4 + i * 2, archived: i % 5, memory: 1 + (i % 4), botEngines: i % 2 ? { claude: 1 + (i % 4) } : { claude: 1, codex: i % 4 } } });
+    await seedAppSignals(app, account, i, now);
   }
 }

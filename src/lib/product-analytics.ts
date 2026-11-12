@@ -288,7 +288,7 @@ export function environment(platform: Platform, arch?: string): Record<string, s
     const dark = scheme.includes("dark") || (!scheme && typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches);
     const notifications = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
     const props = { os: platform, arch: arch === "x64" || arch === "arm64" ? arch : "other", locale: localeOf(activeLocale()), screen: screenBucket(typeof window === "undefined" ? 0 : window.innerWidth),
-      theme: dark ? "dark" : "light", skin: resolveSkin(readSkinChoice()).replace(/-/g, "_"), notifications, hour: now.getHours(), weekday: now.getDay() };
+      theme: dark ? "dark" : "light", skin: resolveSkin(readSkinChoice()).replace(/-/g, "_"), notifications, hour: now.getHours() };
     return cleanSignal("env", props, "app") as Record<string, string | number> | null;
   } catch { return null; }
 }

@@ -29,15 +29,14 @@ describe("the deeper usage answer", () => {
     const store = await setup(), days = [dayOf(NOW)];
     const daily = new Map((await store.daily(days[0]!, days[0]!)).map(row => [row.day, row.c]));
     const input: MoreInput = { days, daily, people: await store.people(days[0]!, days[0]!), snapshots: await store.snapshots(), routines: await store.routines(), from: NOW - DAY, to: NOW + DAY, now: NOW,
-      accounts: [{ id: "acct_a", createdAt: NOW - 10 * DAY }],
+      accounts: [{ id: "acct_a", createdAt: NOW - 10 * DAY }], wake: { count: 12, p50Ms: 6000, p90Ms: 20_000 },
       events: [
         event("app_open", { kind: "desktop", platform: "darwin", appVersion: "0.2.15" }), event("app_close", { ms: 600_000 }),
-        event("app_action", { name: "env", os: "darwin", arch: "arm64", locale: "en", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9, weekday: 2 }),
+        event("app_action", { name: "env", os: "darwin", arch: "arm64", locale: "en", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9 }),
         event("app_feature", { feature: "routine_created" }, "acct_a", NOW - 7 * DAY),
         ...["connected", "failed", "failed", "timed_out", "failed"].map(result => event("app_action", { name: "connector_connect", app: "notion", result })),
         event("engine_sign_in", { engine: "codex", outcome: "started" }), event("engine_sign_in", { engine: "codex", outcome: "failed", reason: "auth" }),
         ...Array.from({ length: 4 }, () => event("engine_sign_in", { engine: "codex", outcome: "started" })),
-        event("cloud_state", { cloudId: "c1", from: "running", to: "sleeping" }, "acct_a", NOW - 10_000), event("cloud_state", { cloudId: "c1", from: "sleeping", to: "running" }, "acct_a", NOW - 4_000),
       ],
       billing: { checkouts: Array.from({ length: 6 }, (_, i) => ({ accountId: "acct_a", status: i < 1 ? "completed" : "expired", createdAt: NOW - 1000 })),
         subscriptions: [{ accountId: "acct_a", totalCents: 900, createdAt: NOW - 40 * DAY, status: "ended" }, { accountId: "acct_a", totalCents: 2900, createdAt: NOW - 1000, status: "active" }],
@@ -45,7 +44,7 @@ describe("the deeper usage answer", () => {
     const m = moreOf(input);
     expect(m.reliability.models[0]).toMatchObject({ key: "claude-sonnet-4-5", turns: 30, firstP50: 30_000 });
     expect(m.reliability.toolErrors.find(row => row.kind === "app" && row.key === "gmail")).toMatchObject({ errors: 6, turns: 30, rate: 0.2 });
-    expect(m.reliability.wake).toMatchObject({ count: 1, p50Ms: 6000 });
+    expect(m.reliability.wake).toMatchObject({ count: 12, p50Ms: 6000 });
     expect(m.engagement).toMatchObject({ turnsPerChat: 10, attachments: [{ key: "pdf", count: 1 }], settings: [{ key: "theme", count: 1 }], archivedShare: 0.2, sessionMedianMs: 600_000 });
     expect(m.engagement.hours[9]).toBe(1);
     expect(m.bots).toMatchObject({ perPerson: 3, topBotShare: 1, engines: [{ key: "claude", count: 2 }, { key: "codex", count: 1 }] });
@@ -63,6 +62,6 @@ describe("the deeper usage answer", () => {
     expect(focus).toContain("83% of checkouts are left unpaid (5 of 6): look at the checkout step.");
     expect(focus).toContain("connecting notion works 20% of the time: fix the connect flow.");
     expect(focus).toContain("the first reply takes 30 s for half of turns: people wait before seeing anything.");
-    expect(focus).toContain("app calls error in 20% of the turns that use it.");
+    expect(focus).toContain("connected app calls error in 20% of the turns that use it.");
   });
 });
