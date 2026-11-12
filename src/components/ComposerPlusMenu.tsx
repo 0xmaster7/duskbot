@@ -194,15 +194,17 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
     // grok's + holds Attach files and Teach a task alone: a bot's Work until done lives in its panel's Details
     ...(goal && (circle || !goal.solo) ? [{
       key: "goal",
+      separatorBefore: circle,
       label: t(goal.solo ? "composer.goal.soloAria" : "composer.goal.aria"),
       icon: <Target size={16} />,
       active: goal.on,
       trailing: goal.on ? check : undefined,
       onSelect: goal.onToggle,
     } satisfies SidebarMenuItem] : []),
-    ...(teach ? [{ key: "teach", label: t("composer.teachTask"), icon: circle ? <GraduationCap size={16} /> : <TeachMark />, onSelect: teach } satisfies SidebarMenuItem] : []),
+    ...(teach ? [{ key: "teach", separatorBefore: circle && !goal, label: t("composer.teachTask"), icon: circle ? <GraduationCap size={16} /> : <TeachMark />, onSelect: teach } satisfies SidebarMenuItem] : []),
     ...(approval ? [approvalItem(approval.name, approval.choice)] : []),
-    ...(callBotId === undefined ? [] : CALL_MODES.map((entry, index): SidebarMenuItem => {
+    // the phone's + lists only the call modes it can start, so the menu stays one short screen
+    ...(callBotId === undefined ? [] : CALL_MODES.filter((entry) => !circle || entry.id !== "turns" || !turnsHelp).map((entry, index): SidebarMenuItem => {
       const unavailable = entry.id === "turns" ? turnsHelp : null;
       return {
         key: `call:${entry.id}`,

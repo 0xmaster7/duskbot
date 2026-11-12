@@ -32,7 +32,7 @@ describe("account mail", () => {
     const message = codeMessage("fixture@example.test", "01234567");
     await resendMailer({ apiKey: "fixture-key", from: "Fixture <mail@example.test>", fetch: request }).send(message);
     expect(request).toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({ method: "POST", redirect: "error",
-      headers: { authorization: "Bearer fixture-key", "content-type": "application/json" }, body: JSON.stringify({ from: "Fixture <mail@example.test>", ...message }) }));
+      headers: { authorization: "Bearer fixture-key", "content-type": "application/json" }, body: JSON.stringify({ from: "Fixture <mail@example.test>", reply_to: "hello@dusk.bot", ...message }) }));
   });
   it.each([400, 401, 429, 500])("hides Resend failure details for status %s", async status => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(new Response("sensitive provider details", { status }));
@@ -50,7 +50,7 @@ describe("account mail", () => {
     await brevoMailer({ apiKey: "fixture-key", from: "Fixture <mail@example.test>", fetch: request }).send(message);
     expect(request).toHaveBeenCalledWith("https://api.brevo.com/v3/smtp/email", expect.objectContaining({ method: "POST", redirect: "error",
       headers: { "api-key": "fixture-key", "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ sender: { name: "Fixture", email: "mail@example.test" }, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) }));
+      body: JSON.stringify({ sender: { name: "Fixture", email: "mail@example.test" }, replyTo: { email: "hello@dusk.bot" }, to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: message.html }) }));
     await brevoMailer({ apiKey: "fixture-key", from: "mail@example.test", fetch: request }).send(message);
     expect(JSON.parse(String(request.mock.calls[1][1]?.body)).sender).toEqual({ email: "mail@example.test" });
   });

@@ -137,24 +137,23 @@ spin_color() {
 
 banner_art() {
   cat <<'EOF'
-##b   b##   b####b   ##    ##   b######  ######b    b####b   ########
-###b b###  ##    ##  ##    ##  ##        ##    ##  ##    ##     ##
-## p#p ##  ########  ##    ##   p####b   #######   ##    ##     ##
-##     ##  ##    ##  ##    ##        ##  ##    ##  ##    ##     ##
-##     ##  ##    ##   p####p   ######p   ######p    p####p      ##
+######b   ##    ##   b######  ##   b#p     ######b    b####b   ########
+##    ##  ##    ##  ##        ##  b#p      ##    ##  ##    ##     ##
+##    ##  ##    ##   p####b   #####        #######   ##    ##     ##
+##    ##  ##    ##        ##  ##  p#b      ##    ##  ##    ##     ##
+######p    p####p   ######p   ##   p#b     ######p    p####p      ##
 EOF
 }
 # the install's wordmark, drawn once with its light sweep (no decode: this is the way out)
 banner() {
   say ""
   if [ "$UI" != tty ] || [ "$ASCII" = 1 ] || [ "$COLS" -lt 80 ]; then
-    say "  ${ACC}${BOLD}open${R}${BOLD}dusk${R}  ${DIM}uninstall${R}"
+    say "  ${ACC}${BOLD}dusk bot${R}  ${DIM}uninstall${R}"
     say ""
     MASCOT=0
     return 0
   fi
   anim=0; [ "$DEPTH" -ge 8 ] && [ "${DUSK_NO_ANIM:-}" != 1 ] && anim=1
-  say "  ${DIM}o p e n${R}"
   banner_art | awk -v depth="$DEPTH" -v esc="$ESC" -v shade="$SHADOW" -v reset="$R" -v anim="$anim" '
     function lerp(a, b, t) { return int(a + (b - a) * t + 0.5) }
     function code(r, g, b) {

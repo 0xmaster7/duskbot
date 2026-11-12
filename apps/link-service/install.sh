@@ -141,11 +141,11 @@ spin_frame() { # tick -> G (braille dots, see third_party/cli-spinners)
 # one-cell drop shadow. original art, no font file.
 banner_art() {
   cat <<'EOF'
-##b   b##   b####b   ##    ##   b######  ######b    b####b   ########
-###b b###  ##    ##  ##    ##  ##        ##    ##  ##    ##     ##
-## p#p ##  ########  ##    ##   p####b   #######   ##    ##     ##
-##     ##  ##    ##  ##    ##        ##  ##    ##  ##    ##     ##
-##     ##  ##    ##   p####p   ######p   ######p    p####p      ##
+######b   ##    ##   b######  ##   b#p     ######b    b####b   ########
+##    ##  ##    ##  ##        ##  b#p      ##    ##  ##    ##     ##
+##    ##  ##    ##   p####b   #####        #######   ##    ##     ##
+##    ##  ##    ##        ##  ##  p#b      ##    ##  ##    ##     ##
+######p    p####p   ######p   ##   p#b     ######p    p####p      ##
 EOF
 }
 # the intro: the block letters decode out of noise, a light sweeps across once, then they stay. about a second,
@@ -153,13 +153,12 @@ EOF
 banner() {
   say ""
   if [ "$UI" != tty ] || [ "$ASCII" = 1 ] || [ "$COLS" -lt 80 ]; then
-    say "  ${ACC}${BOLD}open${R}${BOLD}dusk${R}  ${DIM}server setup${R}"
+    say "  ${ACC}${BOLD}dusk bot${R}  ${DIM}server setup${R}"
     say ""
     MASCOT=0
     return 0
   fi
   anim=0; [ "$DEPTH" -ge 8 ] && [ "${DUSK_NO_ANIM:-}" != 1 ] && anim=1
-  say "  ${DIM}o p e n${R}"
   banner_art | awk -v depth="$DEPTH" -v esc="$ESC" -v shade="$SHADOW" -v reset="$R" -v anim="$anim" -v seed="$$" '
     function lerp(a, b, t) { return int(a + (b - a) * t + 0.5) }
     function code(r, g, b) {
@@ -1017,7 +1016,7 @@ note_failed() { # version
 }
 
 get_package() { # file
-  verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 Dusk Bot
+  verified_download "$LINK_BASE/pkg/$LINK_ID/$PKG_SHA.tgz" "$1" "$PKG_SHA" "$PKG_SIZE" 1800 "Dusk Bot"
 }
 do_app() {
   bin="$SVC_HOME/.local/bin/duskbot"
@@ -1703,7 +1702,7 @@ demo_work() {
     docker) demo_lines 0.4 "Get:1 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 docker.io 27.5.1 [28.6 MB]" \
       "Unpacking docker.io (27.5.1-0ubuntu3~24.04.2) ..." "Setting up containerd (1.7.27-0ubuntu1~24.04.1) ..." \
       "Created symlink /etc/systemd/system/sockets.target.wants/docker.socket" "Docker version 27.5.1, build 27.5.1" ;;
-    user) demo_lines 0.3 "uid=1001(maus) gid=1001(maus) groups=1001(maus),988(docker)" ;;
+    user) demo_lines 0.3 "uid=1001(dusk) gid=1001(dusk) groups=1001(dusk),988(docker)" ;;
     node) demo_lines 0.35 "$ curl -fsSL --connect-timeout 15 -m 300 https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key" "$ apt-get -y -q install nodejs" "Get:1 https://deb.nodesource.com/node_24.x nodistro InRelease [12.1 kB]" \
       "Get:4 https://deb.nodesource.com/node_24.x nodistro/main arm64 nodejs 24.11.0-1nodesource1 [31.2 MB]" \
       "Unpacking nodejs (24.11.0-1nodesource1) ..." "node v24.11.0, npm 11.6.1" ;;
@@ -1711,14 +1710,14 @@ demo_work() {
       demo_lines 0.4 "sha256 ok: 7c2f0a9e41d6b3c88f1e2a07d95b6e4f3a10c2d8e7f6b5a4c3d2e1f0a9b8c7d6" \
         "added 3 packages in 2s" "changed 61 packages in 4s" ;;
     engines)
-      demo_lines 0.5 "$ npm install --global --no-fund --no-audit --prefix /home/maus/.local @anthropic-ai/claude-code @openai/codex" "npm http fetch GET 200 https://registry.npmjs.org/@anthropic-ai%2fclaude-code 412ms" \
+      demo_lines 0.5 "$ npm install --global --no-fund --no-audit --prefix /home/dusk/.local @anthropic-ai/claude-code @openai/codex" "npm http fetch GET 200 https://registry.npmjs.org/@anthropic-ai%2fclaude-code 412ms" \
         "npm http fetch GET 200 https://registry.npmjs.org/@openai%2fcodex 388ms" \
         "npm http fetch GET 200 https://registry.npmjs.org/@openai/codex/-/codex-0.58.0-linux-arm64.tgz 2104ms"
       if [ "$DEMO" = fail ]; then
         demo_lines 0.4 "npm error code ETIMEDOUT" "npm error syscall connect" \
           "npm error errno ETIMEDOUT" "npm error network request to https://registry.npmjs.org/@openai%2fcodex failed, reason: connect ETIMEDOUT 104.16.2.35:443" \
           "npm error network This is a problem related to network connectivity." \
-          "npm error A complete log of this run can be found in: /home/maus/.npm/_logs/2026-11-07T09_41_12_018Z-debug-0.log"
+          "npm error A complete log of this run can be found in: /home/dusk/.npm/_logs/2026-11-07T09_41_12_018Z-debug-0.log"
         return 1
       fi
       demo_lines 0.4 "added 4 packages in 6s" ;;
@@ -1788,7 +1787,8 @@ finale() {
   printf '\n  %s%s %sDusk Bot is ready%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$R" "$DIM" "$G" "$total" "$R"
   printf '    %s%s%s\n\n' "$DIM" "$where" "$R"
   if [ "${DUSK_VERBOSE:-}" = 1 ]; then printf '%s\n' "$table" | sed 's/^/    /'; printf '\n'; fi
-  printf '  %s%sYour bots now live here, go back to the app.%s\n\n' "$ACC" "$BOLD" "$R"
+  printf '  %s%sYour bots now live here, go back to the app.%s\n' "$ACC" "$BOLD" "$R"
+  printf '  %sTo take it off later: dusk.bot/docs/your-own-server#removing-it%s\n\n' "$DIM" "$R"
 }
 
 

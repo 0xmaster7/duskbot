@@ -61,7 +61,7 @@ export function createBillingService(options: BillingServiceOptions) {
     const due = notices; notices = [];
     for (const notice of due) try { options.notify?.(notice); } catch { console.warn("billing: a notice failed"); }
   }
-  const planLabel = (sub: StoredSubscription) => config.bundles.find(bundle => bundle.id === quote(sub.cart, config).bundle)?.label ?? "Custom plan";
+  const planLabel = (sub: StoredSubscription) => config.bundles.find(bundle => bundle.id === quote(sub.cart, config).bundle)?.label.toLowerCase() ?? "custom";
   const cancelledNotice = (sub: StoredSubscription): BillingNotice =>
     ({ kind: "cancelled", accountId: sub.accountId, description: planLabel(sub), cloudId: sub.cloudId, endsAt: sub.currentPeriodEnd, graceDays: config.graceDays });
   // retain webhook ownership binding without retaining the deleted account id.

@@ -129,7 +129,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
           <Button variant="primary" className="mt-4 w-full !h-11" onClick={() => void go()} disabled={busy || !ready || unchanged}>{busy ? (owned ? "switching" : "opening checkout") : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : "checkout"}</Button>
-          <p className="mt-3 text-center text-12 text-ink-4">cancel anytime. set up in about a minute.</p>
+          <p className="mt-3 text-center text-12 text-ink-4">cancel any time. set up in about a minute.</p>
         </div>
       }
     >

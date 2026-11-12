@@ -1912,6 +1912,10 @@ body {
 :root[data-focus-nav] :focus-visible:not(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select, [contenteditable="true"], [role="textbox"])) {
   background-image: linear-gradient(color-mix(in srgb, var(--color-ink) 10%, transparent), color-mix(in srgb, var(--color-ink) 10%, transparent));
 }
+/* native checkboxes, radios, sliders, colour wells and file pickers paint no background, so their tint is a halo */
+:root[data-focus-nav] input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]):focus-visible {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ink) 22%, transparent);
+}
 /* A menu row shows keyboard focus as its hover fill. */
 [role="menu"] :is(button, [role^="menuitem"]):focus-visible {
   outline: none;

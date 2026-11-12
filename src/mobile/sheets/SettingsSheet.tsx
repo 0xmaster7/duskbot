@@ -1,6 +1,6 @@
 import { useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bell, CalendarClock, Check, Cloud, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
+import { Bell, CalendarClock, Check, FileText, Globe, KeyRound, LayoutDashboard, LifeBuoy, LogOut, MoreHorizontal, Palette, Plug, Plus, ShieldCheck, Trash2, UserRound } from "../../icons";
 import { accountDashboardUrl } from "@/lib/account-dashboard";
 import { useGroupYou } from "@/components/GroupAvatar";
 import { trackUpsell } from "@/lib/cloud-upsell";
@@ -21,6 +21,7 @@ import { LEGAL_LINKS } from "../legal";
 import { usePlatform } from "../platform";
 import { Sheet } from "../Sheet";
 import { SettingsRow, SettingsSection, SettingsSwitch } from "./SettingsRow";
+import { PixelArt } from "../Illustration";
 import type { SheetPageProps } from "./registry";
 
 /** The account rows Settings shows. The account dashboard sells plans, so the store apps never link to it (App Store
@@ -29,11 +30,36 @@ export function accountRows(input: { native: boolean; demo: boolean; signedIn: b
   return { dashboard: !input.native && !input.demo, signOut: input.signedIn, deleteAccount: input.signedIn };
 }
 
-/** one quiet line for dusk cloud, only where the dashboard may be linked and the phone is not already talking to a cloud */
-function CloudRow({ onOpen }: { onOpen: () => void }) {
+/** A label a person would recognise for where these bots live: never an address like 127.0.0.1:5331 or a URL. */
+export function readableWorkspace(label: string | null | undefined): string | null {
+  const value = label?.trim();
+  if (!value) return null;
+  if (/:\/\//.test(value) || /^\[?[0-9a-f:.]+\]?(:\d+)?$/i.test(value) || /^[\w.-]+:\d+$/.test(value) || /^localhost$/i.test(value)) return null;
+  return value;
+}
+
+/** The header's two lines: the person's name, then their account email, else the computer they're linked to. */
+export function settingsIdentity(input: { name?: string | null; email?: string | null; workspace?: string | null; demo: boolean }): { title: string; subtitle: string } {
+  const title = input.name?.trim() || input.email?.split("@")[0] || t("mobile.settings.you");
+  if (input.demo) return { title, subtitle: t("mobile.settings.demoName") };
+  const subtitle = input.email?.trim() || readableWorkspace(input.workspace) || t("mobile.settings.onComputer");
+  return { title, subtitle };
+}
+
+/** dusk cloud, as its own quiet card under the settings, only where the dashboard may be linked and the phone is not
+ * already talking to a cloud */
+function CloudCard({ onOpen }: { onOpen: () => void }) {
   const shown = useRef(false);
   useEffect(() => { if (shown.current) return; shown.current = true; trackUpsell("shown", "app_mobile"); }, []);
-  return <SettingsRow icon={<Cloud />} label={t("cloudUpsell.mobile")} detail={t("cloudUpsell.mobileDetail")} onClick={() => { trackUpsell("click", "app_mobile"); onOpen(); }} />;
+  return (
+    <button type="button" onClick={() => { trackUpsell("click", "app_mobile"); onOpen(); }} className="mobile-press mx-2 mt-9 flex w-[calc(100%-16px)] items-center gap-4 rounded-[20px] bg-ink/[0.045] px-4 py-4 text-left">
+      <PixelArt name="server" size={44} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[16px] font-semibold text-ink">{t("cloudUpsell.mobile")}</span>
+        <span className="mt-0.5 block text-[14px] font-medium leading-5 text-ink-secondary">{t("cloudUpsell.mobileDetail")}</span>
+      </span>
+    </button>
+  );
 }
 
 export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet, open, onClose, onOpenSheet }) => {
@@ -53,8 +79,11 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   const [error, setError] = useState(false);
   const appearanceId = useId();
   const active = connections.find((connection) => connection.id === activeId);
-  const workspace = demo ? t("mobile.settings.demoName") : active?.label ?? globalThis.location?.host ?? "";
   const email = account?.account?.email;
+  const identity = settingsIdentity({ name: state.config?.profile?.name, email, workspace: active?.label, demo });
+  const pageRef = useRef<HTMLDivElement>(null);
+  // each page inside the sheet opens at its top, not where the last one was scrolled to
+  useEffect(() => { const body = pageRef.current?.closest(".mobile-sheet-body"); if (body) body.scrollTop = 0; }, [page]);
   const rows = accountRows({ native: platform.native, demo, signedIn: Boolean(email) });
 
   const changeWorkspace = async (id: string, unlink = false) => {
@@ -76,7 +105,7 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
   return (
     <Sheet open={open} onClose={onClose} title={t(page === "language" ? "mobile.settings.language" : page === "delete" ? "mobile.settings.deleteAccount" : "mobile.settings.title")} full back={page !== "main" ? () => setPage("main") : undefined}>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={page} initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -4, opacity: 0 }} transition={{ duration: dur.base, ease: ease.out }} className="px-2 pb-6">
+        <motion.div ref={pageRef} key={page} initial={{ y: 6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -4, opacity: 0 }} transition={{ duration: dur.base, ease: ease.out }} className="px-2 pb-6">
           {page === "language" ? (
             <SettingsSection>
               {[{ code: "", label: t("mobile.settings.system") }, ...localeChoices].map(({ code, label }) => (
@@ -96,16 +125,21 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               </div>
             </div>
           ) : <>
-            <div className="flex items-center gap-3.5 px-4 py-5">
-              <span className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.05] text-[20px] font-semibold text-ink">
-                {you?.avatarUrl ? <img src={you.avatarUrl} alt="" className="size-full object-cover" /> : you?.initials ?? <UserRound aria-hidden size={24} />}
+            <div className="flex items-center gap-4 px-4 pb-6 pt-3">
+              <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink/[0.06] text-[22px] font-semibold text-ink">
+                {you?.avatarUrl ? <img src={you.avatarUrl} alt="" className="size-full object-cover" /> : you?.initials ?? <UserRound aria-hidden size={26} />}
               </span>
-              <div className="min-w-0"><p className="text-[20px] font-semibold text-ink">{state.config?.profile?.name || t("mobile.settings.you")}</p><p className="truncate text-[14px] text-ink-secondary">{workspace}</p></div>
+              <div className="min-w-0"><p className="truncate text-[22px] font-semibold leading-7 tracking-[-0.01em] text-ink">{identity.title}</p><p data-settings-identity className="truncate text-[15px] font-medium text-ink-secondary">{identity.subtitle}</p></div>
             </div>
             <SettingsSection>
-              <SettingsRow icon={<Bell />} label={t("mobile.settings.notifications")} value={state.notifications.filter((entry) => !entry.read).length} onClick={() => onOpenSheet({ kind: "notifications" })} />
+              <SettingsRow icon={<Bell />} label={t("mobile.settings.notifications")} value={state.notifications.filter((entry) => !entry.read).length || undefined} onClick={() => onOpenSheet({ kind: "notifications" })} />
             </SettingsSection>
-            <SettingsSection title={t("mobile.settings.workspaces")}>
+            <SettingsSection title={t("mobile.settings.bots")} art="books" hint={t("mobile.settings.botsHint")}>
+              <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} detail={t("mobile.settings.routinesDetail")} onClick={() => onOpenSheet({ kind: "routines" })} />
+              {!demo && <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} detail={t("mobile.settings.connectorsDetail")} onClick={() => onOpenSheet({ kind: "connectors" })} />}
+              {!demo && <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} detail={t("mobile.settings.vaultDetail")} onClick={() => onOpenSheet({ kind: "vault" })} />}
+            </SettingsSection>
+            <SettingsSection title={t("mobile.settings.workspaces")} art="computer" hint={t("mobile.settings.workspacesHint")}>
               {connections.map((connection) => (
                 <WorkspaceRow key={connection.id} connection={connection} active={connection.id === activeId} confirming={unlinkId === connection.id} busy={busy} onSelect={() => { void changeWorkspace(connection.id); }} onConfirm={() => { setError(false); setUnlinkId(connection.id); }} onCancel={() => { setUnlinkId(null); setError(false); }} onUnlink={() => { void changeWorkspace(connection.id, true); }} />
               ))}
@@ -113,38 +147,33 @@ export const SettingsSheet: ComponentType<SheetPageProps<"settings">> = ({ sheet
               {demo && <SettingsRow icon={<LogOut />} label={t("mobile.settings.leaveDemo")} detail={t("mobile.settings.leaveDemoDetail")} onClick={() => { void leaveDemo(platform); }} />}
               <SettingsRow icon={<Plus />} label={t("mobile.settings.link")} onClick={() => { onClose(); window.dispatchEvent(new Event("dusk:link-another")); }} />
             </SettingsSection>
-            <SettingsSection title={t("mobile.settings.bots")}>
-              <SettingsRow icon={<CalendarClock />} label={t("mobile.settings.routines")} onClick={() => onOpenSheet({ kind: "routines" })} />
-              {!demo && <SettingsRow icon={<Plug />} label={t("mobile.settings.connectors")} onClick={() => onOpenSheet({ kind: "connectors" })} />}
-              {!demo && <SettingsRow icon={<KeyRound />} label={t("mobile.settings.vault")} onClick={() => onOpenSheet({ kind: "vault" })} />}
-            </SettingsSection>
-            <SettingsSection title={t("mobile.settings.phone")}>
-              <SettingsSwitch label={t("mobile.settings.haptics")} checked={hapticsEnabled} onChange={(enabled) => { if (!enabled) haptic("selection"); setHapticsEnabled(enabled); if (enabled) haptic("selection"); }} />
+            <SettingsSection title={t("mobile.settings.phone")} art="phone" hint={t("mobile.settings.phoneHint")}>
               <SettingsRow icon={<Palette />} label={t("mobile.settings.appearance")} />
-              <div role="group" aria-label={t("mobile.settings.appearance")} className="mx-4 mb-2 flex rounded-full bg-ink/[0.05] p-1">
+              <div role="group" aria-label={t("mobile.settings.appearance")} className="mx-4 mb-2 flex rounded-full bg-ink/[0.06] p-1">
                 {([{ choice: "system", label: t("mobile.settings.system") }, { choice: THEME_SKINS.light, label: t("mobile.settings.light") }, { choice: THEME_SKINS.dark, label: t("mobile.settings.dark") }] as const).map(({ choice, label }) => (
-                  <button key={choice} type="button" aria-pressed={skin === choice} onClick={() => { haptic("selection"); applySkinChoice(choice); }} className="mobile-press relative flex min-h-11 flex-1 items-center justify-center rounded-full px-2 text-[14px] font-semibold text-ink">
-                    {skin === choice && <motion.span aria-hidden layoutId={`${appearanceId}-selection`} className="absolute inset-0 rounded-full bg-composer mobile-float" transition={spring.settle} />}
-                    <span className="relative">{label}</span>
+                  <button key={choice} type="button" aria-pressed={skin === choice} onClick={() => { haptic("selection"); applySkinChoice(choice); }} className="mobile-press relative flex min-h-11 flex-1 items-center justify-center rounded-full px-2 text-[15px] font-semibold">
+                    {skin === choice && <motion.span aria-hidden layoutId={`${appearanceId}-selection`} className="absolute inset-0 rounded-full bg-ink" transition={spring.settle} />}
+                    <span className={skin === choice ? "relative text-app" : "relative text-ink-secondary"}>{label}</span>
                   </button>
                 ))}
               </div>
+              <SettingsSwitch label={t("mobile.settings.haptics")} checked={hapticsEnabled} onChange={(enabled) => { if (!enabled) haptic("selection"); setHapticsEnabled(enabled); if (enabled) haptic("selection"); }} />
               <SettingsRow icon={<Globe />} label={t("mobile.settings.language")} value={localeChoices.find((choice) => choice.code === language)?.label ?? t("mobile.settings.system")} onClick={() => setPage("language")} />
             </SettingsSection>
+            {rows.dashboard && !state.config?.cloudHome && <CloudCard onOpen={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
             {(rows.dashboard || rows.signOut) && (
-              <SettingsSection title={t("mobile.settings.account")}>
-                {rows.dashboard && !state.config?.cloudHome && <CloudRow onOpen={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
+              <SettingsSection title={t("mobile.settings.account")} art="key" hint={email}>
                 {rows.dashboard && <SettingsRow icon={<LayoutDashboard />} label={t("mobile.settings.accountDashboard")} onClick={() => void accountDashboardUrl().then((url) => platform.openExternal(url))} />}
-                {rows.signOut && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} detail={email} onClick={() => void account?.signOut()} />}
+                {rows.signOut && <SettingsRow icon={<LogOut />} label={t("accountGate.signOut")} onClick={() => void account?.signOut()} />}
                 {rows.deleteAccount && <SettingsRow icon={<Trash2 />} label={t("mobile.settings.deleteAccount")} danger onClick={() => setPage("delete")} />}
               </SettingsSection>
             )}
-            <SettingsSection title={t("mobile.settings.about")}>
+            <SettingsSection title={t("mobile.settings.about")} art="signpost">
               <SettingsRow icon={<ShieldCheck />} label={t("mobile.settings.privacy")} onClick={() => void platform.openExternal(LEGAL_LINKS.privacy)} />
               <SettingsRow icon={<FileText />} label={t("mobile.settings.terms")} onClick={() => void platform.openExternal(LEGAL_LINKS.terms)} />
               <SettingsRow icon={<LifeBuoy />} label={t("mobile.settings.help")} onClick={() => void platform.openExternal(LEGAL_LINKS.help)} />
             </SettingsSection>
-            <p className="mt-8 text-center text-[13px] text-ink-tertiary">{t("mobile.settings.version", { version: platform.appVersion })}</p>
+            <p className="mt-8 text-center text-[13px] font-medium text-ink-secondary">{t("mobile.settings.version", { version: platform.appVersion })}</p>
           </>}
         </motion.div>
       </AnimatePresence>

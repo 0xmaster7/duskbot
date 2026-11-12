@@ -38,7 +38,7 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.equal(result.custom.per10GbDisk, 0.51);
   assert.deepEqual(result.custom.diskGb, catalog.dedicated.diskGb);
   assert.deepEqual(result.bundles.map((bundle) => [bundle.license, bundle.members, bundle.desktop, bundle.monthly, bundle.recommended]), [["personal", 1, "none", 0, false], ["starter", 1, "shared-s", 20, false], ["starter", 1, "shared-m", 50, true], ["team", 3, "dedicated", 100, false]]);
-  assert.equal(result.bundles[0]!.blurb, "for personal use on your mac or your own vps");
+  assert.equal(result.bundles[0]!.blurb, "for personal use on your computer or your own vps");
   assert.equal(result.bundles[1]!.blurb, "work license and dusk cloud, on 24/7");
   assert.equal(result.bundles[2]!.blurb, "more room and priority for serious bots");
   assert.equal(result.bundles[3]!.blurb, "a dedicated machine for the whole team");

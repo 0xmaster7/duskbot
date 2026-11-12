@@ -1,8 +1,8 @@
 import { readHeader, withLegacyHeaders } from "../../electron/legacy-names.mjs";
 // A Cloud home on a plan that sleeps tells its pages it is going to sleep (a `power` frame on the event stream, or an
-// "asleep" answer). From then on the page sends nothing in the background: any request reaching the Cloud would wake it.
-// The next thing the person does (a key press or a click; never the window regaining focus, which is no intent) wakes it
-// again: one POST the home counts as someone using it, which through the public edge also starts a stopped machine.
+// "asleep" answer). Nobody is ever shown that: a page someone is using wakes it at once (one POST the home counts as
+// someone using it, which through the public edge also starts a stopped machine) and only says it is connecting. A page
+// left untouched stays quiet so the home can sleep, and wakes on the person's next touch, key press or return to it.
 // On every other Cloud, and on a computer's own server, nothing here ever changes state.
 
 /** Background requests (polls nobody asked for just now) carry this header, so the home doesn't count them as someone
@@ -13,17 +13,25 @@ export const BACKGROUND_HEADERS: Record<string, string> = withLegacyHeaders({ [B
 export const CLOUD_POWER_HEADER = "x-dusk-cloud-power";
 const WAKE_PATH = "/api/cloud/wake";
 export type PageWakeIntent = "type" | "click";
+/** A page with no touch, key press or return to it for this long is left alone, so its home can sleep. */
+export const IDLE_PAGE_MS = 10 * 60_000;
 
 type Listener = (asleep: boolean) => void;
 const listeners = new Set<Listener>();
 let asleep = false, waking = false, sendsHeld = 0;
-/** Which gestures wake a sleeping Cloud: on a phone a touch is scrolling, not intent, so only typing (and sending) does. */
-export type CloudWakeGestures = "type" | "type-or-click";
-let gestures: CloudWakeGestures = "type-or-click";
-export function setCloudWakeGestures(next: CloudWakeGestures): void {
-  gestures = next;
-}
 let detach: (() => void) | null = null;
+let lastActive = Date.now();
+const now = () => Date.now();
+
+/** The person did something on this page (a touch, a key press, the page showing again). */
+export function noteCloudPageActivity(at = now()): void {
+  lastActive = at;
+}
+
+if (typeof globalThis.window?.addEventListener === "function" && typeof globalThis.document?.addEventListener === "function") {
+  for (const name of ["keydown", "pointerdown", "touchstart"]) window.addEventListener(name, () => noteCloudPageActivity(), { capture: true, passive: true });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") noteCloudPageActivity(); });
+}
 const wakingListeners = new Set<Listener>();
 
 export function cloudAsleep(): boolean {
@@ -100,15 +108,26 @@ export function noteCloudAwake(): void {
   set(false);
 }
 
-/** The home agreed to sleep: stay quiet until the person does something. */
-export function markCloudAsleep(target: Pick<Window, "addEventListener" | "removeEventListener"> | undefined = globalThis.window): void {
+/** The home agreed to sleep. A page in use wakes it straight back; an untouched one waits for the person's next action. */
+export function markCloudAsleep(
+  target: Pick<Window, "addEventListener" | "removeEventListener"> | undefined = globalThis.window,
+  visibility: Pick<Document, "addEventListener" | "removeEventListener" | "visibilityState"> | undefined = globalThis.document,
+): void {
   if (asleep) return;
   set(true);
-  if (!target) return;
+  if (visibility?.visibilityState !== "hidden" && now() - lastActive < IDLE_PAGE_MS) {
+    markCloudAwake("click");
+    return;
+  }
   const typed = () => markCloudAwake("type"), clicked = () => markCloudAwake("click");
-  const events = gestures === "type" ? [["keydown", typed]] as const : [["keydown", typed], ["pointerdown", clicked], ["touchstart", clicked]] as const;
-  for (const [name, wake] of events) target.addEventListener(name, wake, { capture: true });
-  detach = () => { for (const [name, wake] of events) target.removeEventListener(name, wake, { capture: true }); };
+  const shown = () => { if (visibility?.visibilityState !== "hidden") markCloudAwake("click"); };
+  const events = [["keydown", typed], ["pointerdown", clicked], ["touchstart", clicked]] as const;
+  for (const [name, wake] of events) target?.addEventListener(name, wake, { capture: true });
+  visibility?.addEventListener("visibilitychange", shown);
+  detach = () => {
+    for (const [name, wake] of events) target?.removeEventListener(name, wake, { capture: true });
+    visibility?.removeEventListener("visibilitychange", shown);
+  };
 }
 
 /** The page is out of sight: a background tab, a minimized or hidden window. */
@@ -150,7 +169,7 @@ export function resetCloudPowerForTests(): void {
   detach = null;
   asleep = false;
   waking = false;
-  gestures = "type-or-click";
+  lastActive = 0;
   sendsHeld = 0;
   listeners.clear();
   wakingListeners.clear();

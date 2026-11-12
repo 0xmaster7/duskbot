@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { asleepAnswer, cloudAsleep, markCloudAsleep, markCloudAwake, onCloudPower, resetCloudPowerForTests, setCloudWakeGestures, sleepingFrame } from "./cloud-power";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { asleepAnswer, cloudAsleep, markCloudAsleep, markCloudAwake, onCloudPower, noteCloudPageActivity, resetCloudPowerForTests, sleepingFrame, IDLE_PAGE_MS } from "./cloud-power";
 
+beforeEach(() => noteCloudPageActivity(0));
 afterEach(() => { vi.unstubAllGlobals(); resetCloudPowerForTests(); });
 
 class Target {
@@ -52,15 +53,47 @@ describe("a page of a Cloud home that sleeps", () => {
   });
 });
 
-describe("wake gestures", () => {
-  it("on a phone only typing wakes it: a touch is scrolling", () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
-    setCloudWakeGestures("type");
-    const target = new Target();
-    markCloudAsleep(target as unknown as Window);
-    target.emit("pointerdown"); target.emit("touchstart");
-    expect(cloudAsleep()).toBe(true);
-    target.emit("keydown");
+class Visibility extends Target {
+  visibilityState: DocumentVisibilityState = "visible";
+}
+
+describe("never asleep to the person", () => {
+  it("a page someone is using wakes it straight back and never reads as asleep", () => {
+    const fetch = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", fetch);
+    noteCloudPageActivity();
+    const target = new Target(), page = new Visibility(), heard = vi.fn();
+    onCloudPower(heard);
+    markCloudAsleep(target as unknown as Window, page as unknown as Document);
     expect(cloudAsleep()).toBe(false);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0]).toEqual(["/api/cloud/wake", expect.objectContaining({ method: "POST" })]);
+    expect(target.size + page.size).toBe(0);
+  });
+
+  it("an untouched page lets it sleep, then any touch wakes it", () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
+    noteCloudPageActivity(Date.now() - IDLE_PAGE_MS - 1);
+    const target = new Target(), page = new Visibility();
+    markCloudAsleep(target as unknown as Window, page as unknown as Document);
+    expect(cloudAsleep()).toBe(true);
+    target.emit("touchstart");
+    expect(cloudAsleep()).toBe(false);
+    expect(target.size + page.size).toBe(0);
+  });
+
+  it("a hidden page waits, and wakes it the moment it shows again", () => {
+    const fetch = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", fetch);
+    noteCloudPageActivity();
+    const target = new Target(), page = new Visibility();
+    page.visibilityState = "hidden";
+    markCloudAsleep(target as unknown as Window, page as unknown as Document);
+    expect(cloudAsleep()).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+    page.visibilityState = "visible";
+    page.emit("visibilitychange");
+    expect(cloudAsleep()).toBe(false);
+    expect(fetch).toHaveBeenCalledOnce();
   });
 });

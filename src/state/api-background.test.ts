@@ -56,7 +56,7 @@ describe("api() and a Cloud home that sleeps", () => {
     expect(page.listeners.size).toBe(0);
   });
 
-  it("refuses a held background request if the home fell asleep before the page showed, and lets a caller's signal end the wait", async () => {
+  it("wakes a home that fell asleep while the page was hidden as soon as it shows, then sends the held read, and lets a caller's signal end the wait", async () => {
     const fetch = vi.fn(async (_path: string, _init?: RequestInit) => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetch);
     const page = hiddenPage();
@@ -66,10 +66,11 @@ describe("api() and a Cloud home that sleeps", () => {
     const mine = api("/api/team-map", { background: true, signal: controller.signal });
     controller.abort();
     await expect(mine).rejects.toMatchObject({ name: "AbortError" });
-    markCloudAsleep(undefined);
+    markCloudAsleep(undefined, page as unknown as Document);
     page.show();
-    await expect(held).rejects.toMatchObject({ status: 503 });
-    expect(fetch).not.toHaveBeenCalled();
+    // the page showing again is the person back: it wakes the home first, then the held read goes out
+    await expect(held).resolves.toEqual({});
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/cloud/wake", "/api/limit-resets"]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Moon } from "../icons";
+import { ArrowUp } from "../icons";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { randomUuid } from "@/lib/random-uuid";
@@ -13,16 +13,16 @@ type WakeIntent = "type" | "click" | "send";
 const NOT_TYPING = new Set(["Tab", "Shift", "Control", "Alt", "Meta", "CapsLock", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"]);
 
 /**
- * My Cloud asleep, on this computer's screen: its chats as this computer last saw them, read-only, and a composer. Opening
- * and reading never wake it; the first key press or click in the composer does (main's `home:wake`), the line says it is
- * waking, and a message sent meanwhile is held and sent by My Cloud's page once it opens.
+ * My Cloud coming back, on this computer's screen: its chats as this computer last saw them, read-only, and a composer.
+ * Opening it wakes it (main's `home:wake`) and the line only says it is connecting; a message sent meanwhile is held and
+ * sent by My Cloud's page once it opens.
  */
 export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wake" | "lastSeen">; view: AsleepView }) {
   const [seen, setSeen] = useState<LastSeen | null | undefined>(undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [failed, setFailed] = useState(false);
-  const [asked, setAsked] = useState(false);
+  const [, setAsked] = useState(false);
   const askedRef = useRef(false);
   const end = useRef<HTMLLIElement | null>(null);
 
@@ -32,9 +32,11 @@ export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wa
     return () => { alive = false; };
   }, [bridge]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { wake("click"); }, []);
+
   const bots = seen?.bots ?? [];
   const bot = bots.find((entry) => entry.id === selected) ?? bots[0] ?? null;
-  const waking = view.waking === true || asked;
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [bot?.id, view.held]);
 
   const wake = (intent: WakeIntent, send?: { botId: string; threadId: string; text: string; sendId: string }) => {
@@ -67,10 +69,8 @@ export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wa
       )}
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         <p role="status" data-cloud-asleep-line className="flex items-center gap-2 px-5 pt-4 pb-2 text-[13px] text-ink-secondary">
-          {waking
-            ? <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent motion-reduce:animate-none" />
-            : <Moon size={14} aria-hidden="true" className="shrink-0" />}
-          <span>{waking ? t("cloudAsleep.waking") : t("cloudAsleep.line")}</span>
+          <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent motion-reduce:animate-none" />
+          <span>{t("cloudAsleep.waking")}</span>
         </p>
         <ol aria-label={bot?.name} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-3">
           {seen !== undefined && !bot && <li className="m-auto max-w-[360px] text-center text-[14px] leading-relaxed text-ink-secondary">{t("cloudAsleep.empty")}</li>}
@@ -107,7 +107,7 @@ export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wa
                 <ArrowUp size={16} aria-hidden="true" />
               </button>
             </form>
-            : seen !== undefined && !waking && <button type="button" className="ui-button ui-button-primary" onClick={() => wake("click")}>{t("cloudPower.wake")}</button>}
+            : failed && <button type="button" className="ui-button ui-button-primary" onClick={() => wake("click")}>{t("cloudHome.tryAgain")}</button>}
         </div>
       </section>
     </main>
