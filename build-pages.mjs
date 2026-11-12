@@ -231,7 +231,7 @@ const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/cont
 const FOOT = [
   ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [WAITLIST_HOME ? '/' : '/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
-  ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
+  ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security'], ['https://x.com/duskbot_hq', 'x / @duskbot_hq']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
 ];
 // the seo hubs (seo/), once any of their pages is live
