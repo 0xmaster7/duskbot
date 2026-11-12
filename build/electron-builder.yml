@@ -1,6 +1,6 @@
 appId: bot.dusk.app
 productName: Dusk Bot
-copyright: Copyright © 2026 Siddharth Meena
+copyright: Copyright © 2026 dusk bot
 artifactName: DuskBot-${version}-${arch}.${ext}
 
 protocols:
@@ -127,11 +127,11 @@ mac:
     - from: dist-native/duckdb/darwin-${arch}/node_modules
       to: duckdb/node_modules
   extendInfo:
-    NSMicrophoneUsageDescription: Dusk Bot uses the microphone for voice dictation into the composer.
-    NSSpeechRecognitionUsageDescription: Dusk Bot transcribes your voice on-device to type messages for you.
-    NSAccessibilityUsageDescription: Dusk Bot uses Accessibility when you let a bot control this Mac.
-    NSScreenCaptureUsageDescription: Dusk Bot uses Screen Recording so bots can see this Mac before acting.
-    NSDownloadsFolderUsageDescription: Dusk Bot looks in Downloads for the file your Grok Bot saved when you move it here.
+    NSMicrophoneUsageDescription: The microphone is used for voice dictation into the composer.
+    NSSpeechRecognitionUsageDescription: Your voice is transcribed on this Mac to type messages for you.
+    NSAccessibilityUsageDescription: Accessibility is used when you let a bot control this Mac.
+    NSScreenCaptureUsageDescription: Screen Recording lets bots see this Mac before acting.
+    NSDownloadsFolderUsageDescription: Downloads is checked for the file your Grok Bot saved when you move it here.
   # Notarization runs manually after the build (notarytool + staple),
   # mirroring the BlueyLite ship_release.sh flow.
   notarize: false
@@ -204,8 +204,8 @@ linux:
   executableName: duskbot
   synopsis: Your own team of AI bots, in a chat app
   description: A local-first chat app for running a team of AI agents.
-  maintainer: Milind Soni <46266943+milind-soni@users.noreply.github.com>
-  vendor: Dusk Bot
+  maintainer: dusk bot <hello@dusk.bot>
+  vendor: dusk bot
   syncDesktopName: true
   # The reviewed x64 CLI runtime is staged before packaging and remains
   # outside ASAR so executable modes and adjacent sidecars are preserved.

@@ -6,11 +6,11 @@
   "homepage": "https://dusk.bot",
   "repository": {
     "type": "git",
-    "url": "https://github.com/goatedgrokbotalternative/duskbot.git"
+    "url": "https://github.com/DuskBotAI/duskbot.git"
   },
   "author": {
-    "name": "Milind Soni",
-    "email": "46266943+milind-soni@users.noreply.github.com"
+    "name": "dusk bot",
+    "email": "hello@dusk.bot"
   },
   "license": "SEE LICENSE IN LICENSE",
   "desktopName": "bot.dusk.app.desktop",

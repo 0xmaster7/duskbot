@@ -17,8 +17,8 @@
     <key>LSBackgroundOnly</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Dusk Bot listens while you dictate messages or talk to a bot.</string>
+    <string>The microphone listens while you dictate messages or talk to a bot.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Dusk Bot converts your speech into text during dictation and calls.</string>
+    <string>Your speech is converted into text during dictation and calls.</string>
   </dict>
 </plist>
