@@ -245,7 +245,7 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
       data-select-row=""
       className={cn(
         rowCls,
-        "relative has-[[role=combobox]:enabled:hover]:bg-ink/[0.035] has-[[aria-expanded=true]]:bg-ink/[0.035]",
+        "relative",
         "has-[[role=combobox]:focus-visible]:outline-2 has-[[role=combobox]:focus-visible]:-outline-offset-2 has-[[role=combobox]:focus-visible]:outline-focus has-[[role=combobox]:disabled]:opacity-45",
       )}
     >

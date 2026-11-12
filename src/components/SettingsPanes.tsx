@@ -38,7 +38,6 @@ import { NotificationRows } from "./NotificationSettingsRows";
 import { OpenAtLoginRow } from "./OpenAtLoginRow";
 import { OrganizationSettings } from "./OrganizationSettings";
 import { PeopleSection } from "./PeopleSection";
-import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { BatteryCard } from "./usage/BatteryCard";
 import { ProviderSummary } from "./usage/ProviderSummary";
@@ -191,7 +190,6 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <AccentRow />
           <TalkingStyleRow />
           <LanguageRow simple />
-          <PlaceLookRows />
           <AmbientRows />
         </SettingsRows>
       </SettingsGroup>
