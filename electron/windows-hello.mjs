@@ -45,7 +45,7 @@ public static class DuskHello {
     IntPtr table = Marshal.ReadIntPtr(obj);
     return (T)(object)Marshal.GetDelegateForFunctionPointer(Marshal.ReadIntPtr(table, slot * IntPtr.Size), typeof(T));
   }
-  static void Ok(int hr, string stage) { if (hr < 0) throw new Stage(stage); }
+  static void Ok(int hr, string stage) { if (hr < 0) throw new Stage(stage + "-" + hr.ToString("x8")); }
   static void Emit(string line) { Console.Out.WriteLine(line); Console.Out.Flush(); }
   static IntPtr Text(string value) { IntPtr h; Ok(WindowsCreateString(value, value.Length, out h), "string"); return h; }
   static IntPtr Factory(string iid, string stage) {
