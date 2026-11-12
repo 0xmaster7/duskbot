@@ -470,49 +470,14 @@ describe("bots in two places", () => {
   });
 });
 
-describe("the invested card", () => {
-  const ROLL = "Your bots are on a roll";
-  const bots = (count: number, turns = 1) => Array.from({ length: count }, (_, i) => ({ tasks: [{ threadId: `t${i}`, createdAt: NOW, usage: { turns } }] }));
+describe("the invested pitch", () => {
+  const bots = (count: number) => Array.from({ length: count }, (_, i) => ({ tasks: [{ threadId: `t${i}`, createdAt: NOW, usage: { turns: 1 } }] }));
 
-  it("shows once someone has 3 bots, in their own numbers, and never again for the account", async () => {
+  it("is never a corner notice: it lives in the sidebar card (CloudUpsell.test.ts)", async () => {
     f.state.bots = bots(3);
     const html = await launch();
-    expect(html).toContain(ROLL);
-    expect(html).toContain("3 bots and counting.");
-    expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
-    expect(hints()).toContain("cloud-invested-v1");
-    expect(await settle()).toContain(ROLL);
-    expect(await relaunch()).not.toContain(ROLL);
-  });
-
-  it("waits below every threshold: 2 bots and 49 messages say nothing, 50 messages do", async () => {
-    f.state.bots = [...bots(1, 25), ...bots(1, 24)];
-    expect(await launch()).not.toContain(ROLL);
-    f.state.bots = [...bots(1, 25), ...bots(1, 25)];
-    const html = await relaunch();
-    expect(html).toContain(ROLL); expect(html).toContain("50 messages in.");
-  });
-
-  it("counts several routines too", async () => {
-    f.state.routines = [{ id: "a" }, { id: "b" }, { id: "c" }];
-    expect(await launch()).toContain("3 routines set up.");
-  });
-
-  it("never to someone who already has a cloud, or on a Cloud's own page", async () => {
-    f.state.bots = bots(4);
-    account = paid();
-    expect(await launch()).not.toContain(ROLL);
-    account = signedOut; f.state.config.cloudHome = true;
-    expect(await relaunch()).not.toContain(ROLL);
-  });
-
-  it("Get Dusk Cloud opens Add a Cloud as app_invested; Not now ends it for good", async () => {
-    f.state.bots = bots(3);
-    await launch();
-    press("Get Dusk Cloud");
-    expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_invested", signIn: true });
-    expect(track).toHaveBeenCalledWith("upsell_click", { source: "app_invested" });
-    f.state.bots = bots(3); vi.mocked(track).mockClear();
-    expect(await relaunch()).not.toContain(ROLL);
+    expect(html).not.toContain("bots and counting");
+    expect(html).not.toContain('data-notice="cloud-invested"');
+    expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
   });
 });

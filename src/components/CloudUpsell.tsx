@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Cloud, X } from "../icons";
 import type { CloudSource } from "@/lib/cloud-plan";
+import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
 import { firstChatQuiet, firstReplyPending } from "@/lib/corner-popup";
-import { cloudUpsellAllowed, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell } from "@/lib/cloud-upsell";
+import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell } from "@/lib/cloud-upsell";
 import { MASCOT_INK } from "@/lib/mascot";
-import { CLOUD_INTRO, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice } from "@/lib/notices";
+import { CLOUD_INTRO, dismissNotice, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice, noticeSeen } from "@/lib/notices";
 import { t } from "@/lib/i18n";
-import { useStore } from "@/state/store";
+import { api, useStore } from "@/state/store";
 import { DuskMark } from "./mascot-view";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { useCloudPlan } from "./ProIntroduction";
@@ -45,38 +46,59 @@ function NappingBot({ size }: { size: number }) {
   </span>;
 }
 
-const CLOUD_NOTICES = new Set<string>([INVESTED_NOTICE, CLOUD_INTRO, LATE_ROUTINE_NOTICE]);
+const CLOUD_NOTICES = new Set<string>([CLOUD_INTRO, LATE_ROUTINE_NOTICE]);
+const INVESTED_LINE = { bots: "cloudUpsell.invested.bots", messages: "cloudUpsell.invested.messages", routines: "cloudUpsell.invested.routines" } as const;
+// the invested pitch holds the card for the rest of the launch it first showed in
+let launchInvested: InvestedFacts | null = null;
 
 /** the small dusk cloud card at the foot of the sidebar: after the first reply, never during setup, and snoozed for some days
- * when closed. A launch that already showed a cloud notice in the corner leaves it out, so the pitch is said once. */
+ * when closed. A launch that already showed a cloud notice in the corner leaves it out, so the pitch is said once. Someone
+ * clearly invested (shared/cloud-upsell.ts INVESTED) gets it in their own numbers instead, once per account. */
 export function SidebarCloudCard() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const { allowed, open } = useCloudUpsell();
   const [snoozed, setSnoozed] = useState(() => sidebarCardSnoozed());
+  const [held, setHeld] = useState<InvestedFacts | null>(launchInvested);
   const shown = useRef(false);
   const settled = firstReplyPending(state) === false && !firstChatQuiet(state) && !state.welcomeOpen;
   const notice = launchNotice();
   const visible = allowed === true && settled && !snoozed && !(notice && CLOUD_NOTICES.has(notice));
+  const record = state.config?.onboarding;
+  const due = !shown.current && !held && !noticeSeen(record, INVESTED_NOTICE) && isInvested(state) ? investedFacts(state) : null;
+  const invested = held ?? due;
+  const by = invested ? investedBy(invested) : null;
+  const source: CloudSource = by ? "app_invested" : "app_sidebar";
   useEffect(() => {
     if (!visible || shown.current) return;
     shown.current = true;
-    trackUpsell("shown", "app_sidebar");
+    trackUpsell("shown", source);
+    if (!due) return;
+    launchInvested = due;
+    setHeld(due);
+    const patch = dismissNotice(record, INVESTED_NOTICE);
+    if (patch) void api("/api/config", { method: "PUT", body: JSON.stringify(patch) }).then(config => dispatch({ type: "configStatus", config })).catch(() => {});
   }, [visible]);
   if (!visible) return null;
-  const dismiss = () => { trackUpsell("dismiss", "app_sidebar"); snoozeSidebarCard(); setSnoozed(true); };
+  const dismiss = () => { trackUpsell("dismiss", source); snoozeSidebarCard(); setSnoozed(true); };
   return (
-    <section aria-labelledby="sidebar-cloud-title" data-sidebar-cloud-card=""
+    <section aria-labelledby="sidebar-cloud-title" data-sidebar-cloud-card="" data-invested={by ? "" : undefined}
       className="relative mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-transparent [@media(max-height:600px)]:hidden">
       <button type="button" onClick={dismiss} aria-label={t("cloudUpsell.snooze")}
         className="absolute end-1.5 top-1.5 flex size-6 cursor-pointer items-center justify-center rounded-full text-ink/56 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
         <X size={13} aria-hidden="true" />
       </button>
-      <div className="flex items-center gap-2.5 pe-5">
+      {invested && by ? <div className="flex items-center gap-2.5 pe-5">
+        <span aria-hidden="true" className="shrink-0"><DuskMark body="kit" colour={MASCOT_INK.blue} state="happy" size={30} label={null} /></span>
+        <div className="min-w-0">
+          <h2 id="sidebar-cloud-title" className="m-0 text-[13px] font-semibold leading-[1.35] text-ink">{t(INVESTED_LINE[by], { count: invested[by] })}</h2>
+          <p className="m-0 mt-0.5 text-[12px] font-medium leading-[1.45] text-ink-secondary">{t("cloudUpsell.invested.body", { device: deviceWord() })}</p>
+        </div>
+      </div> : <div className="flex items-center gap-2.5 pe-5">
         <NappingBot size={30} />
-        <h2 id="sidebar-cloud-title" className="m-0 min-w-0 text-[12px] font-normal leading-[1.45] text-ink-secondary">{t("cloudUpsell.sidebar", { device: deviceWord() })}</h2>
-      </div>
+        <h2 id="sidebar-cloud-title" className="m-0 min-w-0 text-[12px] font-medium leading-[1.45] text-ink-secondary">{t("cloudUpsell.sidebar", { device: deviceWord() })}</h2>
+      </div>}
       <button type="button" data-sidebar-cloud-start="" className="ui-button ui-button-primary mt-2.5 w-full justify-center gap-1.5"
-        onClick={() => { trackUpsell("click", "app_sidebar"); open("app_sidebar"); }}>
+        onClick={() => { trackUpsell("click", source); open(source); }}>
         <Cloud size={13} aria-hidden="true" />{t("rail.buy")}
       </button>
     </section>

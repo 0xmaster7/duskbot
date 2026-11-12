@@ -17,7 +17,8 @@ const none = () => false;
 const DAY = 86_400_000, NOON = new Date(2026, 9, 9, 12).getTime();
 
 it("queues account and workspace notices without upstream campaigns", () => {
-  expect(NOTICES).toEqual([GROK_MOVE_NOTICE, WHATS_NEW_NOTICE, TWO_PLACES_NOTICE, LATE_ROUTINE_NOTICE, INVESTED_NOTICE, CLOUD_INTRO, CLOUD_TRIAL_NOTICE, CLOUD_NOTICE]);
+  expect(NOTICES).toEqual([GROK_MOVE_NOTICE, WHATS_NEW_NOTICE, TWO_PLACES_NOTICE, LATE_ROUTINE_NOTICE, CLOUD_INTRO, CLOUD_TRIAL_NOTICE, CLOUD_NOTICE]);
+  expect(NOTICES, "the invested pitch lives in the sidebar card").not.toContain(INVESTED_NOTICE);
   // a routine that ran late is the stronger moment, so it goes before the general Cloud card
   expect(nextNotice(facts({ [LATE_ROUTINE_NOTICE]: true, [CLOUD_INTRO]: true }), none)).toBe(LATE_ROUTINE_NOTICE);
   expect(nextNotice(facts({ [TWO_PLACES_NOTICE]: true, [CLOUD_INTRO]: true }), none)).toBe(TWO_PLACES_NOTICE);

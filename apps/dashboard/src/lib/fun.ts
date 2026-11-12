@@ -34,7 +34,7 @@ export function streakLine(days: number): string | null {
 
 const INVESTED_KEY = (account: string) => `omb-dash-invested:${account}`;
 
-/** the invested note on home: someone without a cloud who crossed a threshold, shown once per account */
+/** the sidebar card's invested copy: someone without a cloud who crossed a threshold, shown once per account */
 export function investedNoteDue(account: string | null | undefined, facts: InvestedFacts, hasCloud: boolean): boolean {
   if (!account || hasCloud || !investedBy(facts)) return false;
   try { return !localStorage.getItem(INVESTED_KEY(account)); } catch { return false; }
@@ -44,9 +44,10 @@ export function markInvestedNote(account: string): void {
   try { localStorage.setItem(INVESTED_KEY(account), "1"); } catch {}
 }
 
+/** the invested card's headline, in their own number */
 export function investedLine(facts: InvestedFacts): string {
   const by = investedBy(facts) ?? "bots";
-  if (by === "bots") return `${facts.bots} bots and counting. they nap when your mac does.`;
-  if (by === "routines") return `${facts.routines} routines set up. they only run while your mac is awake.`;
-  return `${facts.messages.toLocaleString("en-US")} messages in. your bots nap when your mac does.`;
+  if (by === "bots") return `${facts.bots} bots and counting.`;
+  if (by === "routines") return `${facts.routines} routines set up.`;
+  return `${facts.messages.toLocaleString("en-US")} messages sent.`;
 }
