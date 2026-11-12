@@ -1796,7 +1796,7 @@ async function asPlaceFailure(
   const failure = error instanceof Error ? error : new Error(String(error));
   const cause = failure.message.trim().replace(/[\s.]+$/, "");
   return placeUnavailable(place, {
-    state: "place-failed", params: { bot: bot.name, cause: `${cause.charAt(0).toUpperCase()}${cause.slice(1)}.` }, source,
+    state: "place-failed", params: { bot: bot.name, cause: `${/^dusk\b/u.test(cause) ? cause : cause.charAt(0).toUpperCase() + cause.slice(1)}.` }, source,
   }, Boolean(CLOUD_HOME));
 }
 const directTurnDispatchClaims = new Map<string, DirectTurnDispatchClaim>();
@@ -12352,7 +12352,7 @@ const workspaceBackupRoutes = createWorkspaceBackupRoutes(workspaceCopyAccess);
 let restartRequested = false;
 const cloudMoveRoutes = createCloudMoveRoutes();
 
-ROUTES.push(createStopLineRoutes()); ROUTES.push(createUpdateRoutes(() => updateState)); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null }));
+ROUTES.push(createStopLineRoutes()); ROUTES.push(createUpdateRoutes(() => updateState, () => updateHolds())); ROUTES.push(createConnectorDirectoryRoutes({ providers: () => [composioProvider(cfg), remoteMcpProvider] })); ROUTES.push(createComposioConnectRoutes({ servers: () => cfg.mcpServers, signedIn: (name, server) => mcpOAuth.authState(name, server.url) === "signed-in", withToken: async (name, server) => { const spec = (await signedInMcp({ [name]: server }, mcpOAuth))[name]; return spec && "url" in spec ? spec : null; }, refusal: (slug) => managedPolicy.appRefusal(slug) ?? null }));
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 // `routines` is assigned at boot, so it is read per request.
@@ -15612,10 +15612,14 @@ restoreChannelMessages();
   if (movedAutoPins) console.log(`Works on: moved ${movedAutoPins} auto-pinned thread(s) to their bot's current Works on`);
 }
 
-if (CLOUD_HOME) registerCloudPower(cloudPower = createCloudPower({ dataDir: DATA_DIR, team: CLOUD_TEAM !== null, broadcast: (payload) => broadcast(payload), log: (line) => console.warn(line), probes: {
+const workProbes = {
   turn: () => store.bots.some((bot) => botHasActiveTurn(bot.id)) || store.groups.some(groupIsWorking), run: () => Boolean(routines?.hasActiveRuns()),
-  liveCall: () => liveCalls.current() !== null, computer: () => activeVpsThreads.size > 0 || vps.vpsLifecycleBusy() || remoteComputerLifecycleBusyOwners.size > 0, nextDueAt: () => { const due = [routines?.nextDueAt() ?? null, botWaits.nextWakeAt()].filter((at): at is number => at !== null); return due.length ? Math.min(...due) : null; }, upcoming: () => routines?.upcoming() ?? [],
-  maintenance: () => workspaceMaintenance.active || providerFleetReloading || providerAuthSessions.active || browserEngineInstall !== null } })); if (!DESKTOP_MANAGED) updateState = createUpdateHost({ dataDir: DATA_DIR, version: serverVersion(), log: (line) => console.log(line), health: () => Array.isArray(store.bots), browser: async () => (builtInBrowserEnabled(cfg) ? (await chromeLauncher.binary()).path : null), connected: async () => { if (!composio.configured(cfg)) return null; const services = await composio.connectedServices(cfg); return { gmail: services.gmail?.connected === true, googlecalendar: services.googlecalendar?.connected === true }; }, relay: (payload, session, signal) => composio.relayMcp(cfg, payload as never, session, undefined, signal), runs: () => routines?.listRuns() ?? [] }); // the Mac app's server never updates itself
+  liveCall: () => liveCalls.current() !== null, computer: () => activeVpsThreads.size > 0 || vps.vpsLifecycleBusy() || remoteComputerLifecycleBusyOwners.size > 0,
+  maintenance: () => workspaceMaintenance.active || providerFleetReloading || providerAuthSessions.active || browserEngineInstall !== null };
+const updateHolds = (): string[] => (Object.entries({ turn: workProbes.turn, run: workProbes.run, "live-call": workProbes.liveCall, computer: workProbes.computer, maintenance: workProbes.maintenance }) as Array<[string, () => boolean]>).filter(([, probe]) => probe()).map(([code]) => code);
+if (CLOUD_HOME) registerCloudPower(cloudPower = createCloudPower({ dataDir: DATA_DIR, team: CLOUD_TEAM !== null, broadcast: (payload) => broadcast(payload), log: (line) => console.warn(line), probes: {
+  ...workProbes, nextDueAt: () => { const due = [routines?.nextDueAt() ?? null, botWaits.nextWakeAt()].filter((at): at is number => at !== null); return due.length ? Math.min(...due) : null; }, upcoming: () => routines?.upcoming() ?? [],
+ } })); if (!DESKTOP_MANAGED) updateState = createUpdateHost({ dataDir: DATA_DIR, version: serverVersion(), log: (line) => console.log(line), health: () => Array.isArray(store.bots), browser: async () => (builtInBrowserEnabled(cfg) ? (await chromeLauncher.binary()).path : null), connected: async () => { if (!composio.configured(cfg)) return null; const services = await composio.connectedServices(cfg); return { gmail: services.gmail?.connected === true, googlecalendar: services.googlecalendar?.connected === true }; }, relay: (payload, session, signal) => composio.relayMcp(cfg, payload as never, session, undefined, signal), runs: () => routines?.listRuns() ?? [] }); // the Mac app's server never updates itself
 
 server.listen(PORT, "127.0.0.1", async () => {
   engineProgressReady = true;
