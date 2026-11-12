@@ -2,48 +2,40 @@ import { writeFileSync } from "node:fs";
 import { C, opaquePng72, renderPixels, scene } from "../art/pixel-scene.mjs";
 
 // icon centres and size must match dmg.contents and dmg.iconSize in build/electron-builder.yml
-const W = 720;
-const H = 440;
-const APP = { x: 180, y: 206 };
-const APPLICATIONS = { x: 540, y: 206 };
+const W = 660;
+const H = 400;
+const APP = { x: 170, y: 168 };
+const APPLICATIONS = { x: 490, y: 168 };
 const ICON = 112;
 
 export function dmgScene() {
   const s = scene(W, H, { cell: 8, seed: 41 });
+  // one soft sky, lightest where the icons sit so the app icon and both labels stand out
   s.sky([
-    [C.sky0, 0],
-    [C.sky1, 5],
-    [C.sky2, 13],
-    [C.sky3, 31],
-    [C.canvas, 34],
-  ]);
-  s.cloud(96, 3, 14, C.pink);
-  s.cloud(636, 6, 10, C.lemon);
-  s.ground(41, { flowers: 7, avoid: [[180, 360, 360, 50]] });
+    ["#f7fbfe", 0],
+    [C.canvas, 32],
+    ["#dcf3fd", 40],
+    [C.sky3, 45],
+  ], { fray: [0, 0, 0, 1], stray: 0 });
 
-  // the way across: a dashed trail of white blocks with a pink shadow, ending in a stepped arrowhead
-  const u = 8;
-  const mid = APP.y;
-  const from = APP.x + ICON / 2 + 36;
-  const head = APPLICATIONS.x - ICON / 2 - 36 - 4 * u;
-  for (let x = from; x + 2 * u <= head - u; x += 3 * u) {
-    s.rect(x + 2, mid - u / 2 + 3, 2 * u, u, C.pink).rect(x, mid - u / 2, 2 * u, u, C.cloud);
+  // a quiet pixel cloud line along the bottom edge
+  for (let x = 0; x < W;) {
+    const run = 2 + Math.floor(s.rand() * 4);
+    const rise = [1, 1, 2, 2, 3][Math.floor(s.rand() * 5)];
+    s.rect(x, H - (2 + rise) * 8, run * 8, (2 + rise) * 8, C.cloud);
+    x += run * 8;
   }
-  [7, 5, 3, 1].forEach((n, i) => s.rect(head + i * u + 2, mid - (n * u) / 2 + 3, u, n * u, C.pink));
-  [7, 5, 3, 1].forEach((n, i) => s.rect(head + i * u, mid - (n * u) / 2, u, n * u, C.cloud));
 
-  // a blue bot hopping along the trail, saying where to go
-  const botX = from + 3 * u;
-  s.bot("pip", C.blue, botX, mid - u / 2, 3);
-  s.bubble(botX + 4, mid - 56, "this way!", { size: 17, pad: 12, tail: "left" });
+  // one arrow between the icons: a slim ink shaft and a stepped head
+  const u = 3;
+  const from = APP.x + ICON / 2 + 34;
+  const tip = APPLICATIONS.x - ICON / 2 - 34;
+  const head = tip - 6 * u;
+  s.rect(from, APP.y - u, head - from, 2 * u, C.ink);
+  [12, 10, 8, 6, 4, 2].forEach((n, i) => s.rect(head + i * u, APP.y - (n * u) / 2, u, n * u, C.ink));
 
-  // friends on the horizon, clear of both icons and their labels
-  s.bot("mochi", C.pinkBot, 54, 328, 3);
-  s.bot("loaf", C.tangerine, 92, 328, 2.5);
-  s.bot("hoot", C.violet, 660, 328, 3, { flip: true });
-
-  s.text(W / 2, 384, "drag dusk bot into Applications", { size: 22, anchor: "middle" });
-  s.text(W / 2, 410, "then open it from there, it will say hi", { size: 14, fill: C.inkSoft, anchor: "middle" });
+  s.text(W / 2, 292, "drag dusk bot to Applications", { size: 20, anchor: "middle" });
+  s.bot("pip", C.blue, W - 36, H - 24, 2);
   return s.svg();
 }
 
