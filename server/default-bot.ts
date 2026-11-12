@@ -108,6 +108,8 @@ export function createDefaultBot(store: DefaultBotStore, options: { person?: str
  * install's own adopted, or a new one. A Dusk that is gone is never made again. Two marked ones keep the oldest. A
  * place with no Chief of Staff at all gets Dusk as its Chief, so someone keeps an eye on the day; one that has a
  * Chief keeps it. */
+const LEGACY_DEFAULT_BOT_NAME = "MausBot";
+
 export function ensureDefaultBot(store: DefaultBotStore, options: { dataDir: string; person?: string; team?: string | null }): BotRecord | null {
   const person = options.person?.trim().toLowerCase() ?? "";
   const marked = store.bots.filter((bot) => bot.defaultBot && defaultBotPerson(bot) === person)
@@ -115,6 +117,7 @@ export function ensureDefaultBot(store: DefaultBotStore, options: { dataDir: str
   for (const extra of marked.slice(1)) store.patchBot(extra.id, { defaultBot: undefined, sidebarHidden: undefined });
   if (marked[0]) {
     remember(options.dataDir, person, marked[0].id);
+    if (marked[0].name.trim() === LEGACY_DEFAULT_BOT_NAME) return store.patchBot(marked[0].id, { name: DEFAULT_BOT_NAME }) ?? marked[0];
     return marked[0];
   }
   if (Object.hasOwn(ledger(options.dataDir), person)) return null;

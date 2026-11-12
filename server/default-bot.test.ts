@@ -32,6 +32,15 @@ describe("Dusk, every person's helper", () => {
   beforeEach(() => rmSync(DATA_DIR, { recursive: true, force: true }));
   afterEach(() => readTeamRolesWith(() => null));
 
+  it("renames a Dusk still called MausBot", () => {
+    const store = new Store(selection);
+    store.seedIfEmpty();
+    const dusk = boot(store)!;
+    store.patchBot(dusk.id, { name: "MausBot" });
+    expect(boot(store)?.name).toBe("Dusk");
+    expect(store.bot(dusk.id)?.name).toBe("Dusk");
+  });
+
   it("gives a fresh install one Dusk, its Chief, in chrome, introduced once", () => {
     const store = new Store(selection);
     store.seedIfEmpty();
