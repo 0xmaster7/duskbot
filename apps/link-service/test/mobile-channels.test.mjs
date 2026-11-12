@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createLinkService, sha256hex } from "../src/app.mjs";
-import { MAX_CHANNELS_PER_TUNNEL } from "../src/store.mjs";
+import { MAX_CHANNELS_PER_TUNNEL, TUNNEL_IDLE_MS } from "../src/store.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const id = "abcdefghij", other = "klmnopqrst", cid = "phoneaaaaa", second = "phoneaaaab";
@@ -399,5 +399,37 @@ describe("typed-code lookups", () => {
     service = makeService();
     expect((await request(`/v1/lookups/${lookupId}`)).status).toBe(404);
     expect((await request(`/v1/channels/${cid}/to-app`, phone)).status).toBe(200);
+  });
+});
+
+describe("tunnel retention", () => {
+  it("drops a tunnel whose server stayed silent past the idle limit, with its channels and readers", async () => {
+    tunnel(other);
+    await put();
+    time += TUNNEL_IDLE_MS - 1000;
+    expect((await request(`/v1/tunnels/${other}/to-vps`, vps)).status).toBe(200);
+    const lines = await stream(`/v1/channels/${cid}/to-app`, phone);
+    await next(lines);
+    time += 2000;
+    service.store.sweep();
+    await ended(lines);
+    expect(service.store.tunnels.has(id)).toBe(false);
+    expect(service.store.tunnels.has(other)).toBe(true);
+    expect(service.store.channels.size).toBe(0);
+    expect((await request(`/v1/tunnels/${id}/to-vps`, vps)).status).toBe(404);
+  });
+
+  it("counts the phone hub's channel poll as the server being alive", async () => {
+    time += TUNNEL_IDLE_MS - 1000;
+    expect((await request(`/v1/tunnels/${id}/channels/to-vps`, vps)).status).toBe(200);
+    time += 2000;
+    service.store.sweep();
+    expect(service.store.tunnels.has(id)).toBe(true);
+  });
+});
+
+describe("health", () => {
+  it("answers on /health as well as /healthz", async () => {
+    for (const path of ["/health", "/healthz"]) expect(await (await request(path)).json()).toEqual({ ok: true });
   });
 });

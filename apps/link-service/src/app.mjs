@@ -221,7 +221,7 @@ function frameQueue(onPush = () => {}) {
  * }} options
  */
 export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }) }) {
-  const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel });
+  const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => dropTunnelState(tunnel.id) });
   const packages = createPackages(packagesDir !== undefined ? packagesDir : dataDir ? join(dataDir, "packages") : null);
   const sessionWaiters = new Map();
   const queues = new Map();
@@ -234,7 +234,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const lookupCreated = new Map();
   const lookupMisses = new Map();
   const sweepStore = store.sweep;
-  store.sweep = () => { sweepStore(); sweepLookups(); };
+  store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); };
 
   function file(path) {
     const mtime = statSync(path).mtimeMs;
@@ -287,7 +287,11 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     return new Promise((resolve) => {
       let waiters = sessionWaiters.get(id);
       if (!waiters) sessionWaiters.set(id, (waiters = new Set()));
-      const done = () => { clearTimeout(timer); waiters.delete(done); signal?.removeEventListener("abort", done); resolve(); };
+      const done = () => {
+        clearTimeout(timer); waiters.delete(done); signal?.removeEventListener("abort", done);
+        if (!waiters.size && sessionWaiters.get(id) === waiters) sessionWaiters.delete(id);
+        resolve();
+      };
       const timer = setTimeout(done, ms);
       waiters.add(done);
       signal?.addEventListener("abort", done, { once: true });
@@ -320,6 +324,15 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const key = `${id}:${dir}`, q = queues.get(key);
       if (q) { q.wakeAll(); q.close(); queues.delete(key); }
     }
+  }
+  function dropTunnelState(id) {
+    channelReaders.get(id)?.close();
+    channelReaders.delete(id);
+    clearQueues(id);
+  }
+  function touchTunnel(tunnel) {
+    const t = now();
+    if (!tunnel.seenAt || t - tunnel.seenAt > 60_000) { tunnel.seenAt = t; store.save(); } else tunnel.seenAt = t;
   }
   function clearChannel(channel) {
     clearQueues(channel.id);
@@ -387,6 +400,13 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     if (!ok) fail(res, 429, "too many channel requests", "rate_limited");
     return ok;
   }
+  function sweepCreated() {
+    const t = now();
+    for (const [ip, list] of created) {
+      const kept = list.filter((at) => t - at < 3_600_000);
+      if (kept.length) created.set(ip, kept); else created.delete(ip);
+    }
+  }
   function sweepLookups() {
     const t = now();
     for (const [id, lookup] of lookups) if (lookup.expiresAt <= t) lookups.delete(id);
@@ -450,14 +470,29 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     return tunnel;
   }
 
+  /** at most `limit` bytes of a body the requester's own server sends, so a huge answer is never buffered */
+  async function firstBytes(response, limit) {
+    if (!response.body) return "";
+    const reader = response.body.getReader(), chunks = [];
+    let size = 0;
+    try {
+      while (size < limit) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        size += value.length;
+      }
+    } finally { await reader.cancel().catch(() => {}); }
+    return Buffer.concat(chunks).subarray(0, limit).toString("utf8");
+  }
+
   async function probe(ip, nonce) {
     if (!publicIp(ip)) return false;
     const host = isIP(ip) === 6 ? `[${ip}]` : ip;
     try {
       const response = await fetchImpl(`http://${host}/.well-known/omb-link/${nonce}`, { redirect: "manual", signal: AbortSignal.timeout(5000) });
-      if (!response.ok) return false;
-      const text = (await response.text()).slice(0, 200).trim();
-      return text === nonce;
+      if (!response.ok) { await response.body?.cancel().catch(() => {}); return false; }
+      return (await firstBytes(response, 200)).trim() === nonce;
     } catch { return false; }
   }
 
@@ -471,7 +506,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const dashboard = process.env.DUSK_LINK_DASHBOARD_URL;
       return dashboard ? send(res, 200, { v: 1, url: dashboard }) : fail(res, 404, "No account dashboard is configured.");
     }
-    if (method === "GET" && path === "/healthz") return send(res, 200, { ok: true });
+    if (method === "GET" && (path === "/healthz" || path === "/health")) return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
     if (path === "/v1/push") return push.route(req, res, { method, readJson, send, fail, ip: clientIp(req) });
@@ -705,7 +740,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
 
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/channels(?:\/(to-vps)|\/([a-z2-7]{10})\/to-app)?$/.exec(path))) {
       const [, id, aggregate, cid] = parts;
-      if (!tunnelFor(req, res, id, "vps")) return;
+      const owner = tunnelFor(req, res, id, "vps");
+      if (!owner) return;
+      touchTunnel(owner);
       if (!aggregate && !cid && method === "PUT") {
         const body = await readJson(req);
         if (!tunnelFor(req, res, id, "vps")) return;
@@ -808,10 +845,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
         if (!tunnel) return;
         store.tunnels.delete(id);
         for (const channel of store.channels.values()) if (channel.tunnel === id) deleteChannel(channel);
-        channelReaders.get(id)?.close();
-        channelReaders.delete(id);
+        dropTunnelState(id);
         store.save();
-        clearQueues(id);
         return send(res, 200, { ok: true });
       }
       if (action === "status" && method === "GET") {
@@ -825,7 +860,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       const role = method === "POST" ? writer : writer === "app" ? "vps" : "app";
       const tunnel = tunnelFor(req, res, id, role);
       if (!tunnel) return;
-      if (role === "vps") { const t = now(); if (!tunnel.seenAt || t - tunnel.seenAt > 60_000) { tunnel.seenAt = t; store.save(); } else tunnel.seenAt = t; }
+      if (role === "vps") touchTunnel(tunnel);
       if (method === "POST") {
         const body = await readJson(req, MAX_BODY);
         const frames = body?.frames;

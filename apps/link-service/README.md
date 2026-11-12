@@ -449,6 +449,14 @@ cd apps/link-service && npm start                       # PORT (default 8790)
 | `LINK_DATA_DIR` | `./data` | `state.json` (sessions, tunnel verifiers); keep it outside the checkout so redeploys keep tunnels |
 | `LINK_PACKAGES_DIR` | `$LINK_DATA_DIR/packages` | the private server builds (see "The server build") |
 | `LINK_TRUST_PROXY` | `1` | read the client IP from `X-Real-IP` or the last `X-Forwarded-For` hop; set `0` without a proxy |
+| `HOST` | `127.0.0.1` | listen address; keep loopback behind the proxy so `X-Real-IP` cannot be forged |
+| `DUSK_LINK_DASHBOARD_URL` | unset | advertised at `/.well-known/duskbot/dashboard` |
+| `DUSK_APNS_KEY_FILE`, `DUSK_APNS_KEY_ID`, `DUSK_APNS_TEAM_ID`, `DUSK_APNS_TOPIC` | unset | APNs for the push relay; all four or it stays off |
+| `DUSK_FCM_SERVICE_ACCOUNT_FILE` | unset | FCM for the push relay |
+
+`.env.example` lists the same names. The proxy must set `X-Real-IP` to the connecting address (overwriting any the
+client sent), or every per-address rate limit can be dodged. A tunnel whose server has not polled for 30 days is
+dropped by the sweep; that server links again with a new command. Health: `GET /healthz` (or `/health`).
 
 The app's base comes from `DUSK_LINK_BASE` (default `https://link.dusk.bot`).
 

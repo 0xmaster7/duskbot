@@ -25,7 +25,7 @@ const service = createLinkService({
   trustProxy: process.env.LINK_TRUST_PROXY !== "0",
   log: (line) => console.error(line),
 });
-const server = createServer({ requestTimeout: 0, headersTimeout: 30_000 }, (req, res) => void service.handler(req, res));
+const server = createServer({ requestTimeout: 300_000, headersTimeout: 30_000 }, (req, res) => void service.handler(req, res));
 server.keepAliveTimeout = 65_000;
 const sweep = setInterval(() => service.store.sweep(), 60_000);
 sweep.unref();

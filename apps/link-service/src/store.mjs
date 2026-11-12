@@ -11,9 +11,11 @@ export const MAX_EVENTS = 400;
 export const MAX_SESSIONS = 5000;
 export const MAX_TUNNELS = 20000;
 export const MAX_CHANNELS_PER_TUNNEL = 32;
+/** a tunnel whose server has not polled for this long is dropped, so dead links cannot fill MAX_TUNNELS for good */
+export const TUNNEL_IDLE_MS = 30 * 24 * 60 * 60_000;
 
-/** @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void }} options */
-export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {} } = {}) {
+/** @param {{ dir?: string | null, now?: () => number, onChannelDelete?: (channel: any) => void, onTunnelDelete?: (tunnel: any) => void }} options */
+export function createStore({ dir = null, now = Date.now, onChannelDelete = () => {}, onTunnelDelete = () => {} } = {}) {
   /** @type {Map<string, any>} */
   const sessions = new Map();
   /** @type {Map<string, any>} */
@@ -61,6 +63,9 @@ export function createStore({ dir = null, now = Date.now, onChannelDelete = () =
       const state = stateOf(session);
       const endedAt = session.endedAt ?? (state === "expired" ? session.createdAt + (session.state === "waiting" ? SESSION_CLAIM_MS : SESSION_LIFE_MS) : null);
       if (endedAt !== null && t > endedAt + SESSION_KEEP_MS) { sessions.delete(id); changed = true; }
+    }
+    for (const [id, tunnel] of tunnels) {
+      if (t - (tunnel.seenAt ?? tunnel.createdAt ?? 0) > TUNNEL_IDLE_MS) { tunnels.delete(id); onTunnelDelete(tunnel); changed = true; }
     }
     for (const [id, channel] of channels) {
       if ((channel.expiresAt != null && channel.expiresAt <= t) || !tunnels.has(channel.tunnel)) {
