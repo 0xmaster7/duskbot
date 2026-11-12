@@ -43,11 +43,11 @@ export function teamMoveConfirmWords({ bot, team }) {
   return {
     message: `move ${bot} to ${team}?`,
     detail: [
-      `everyone in ${team} can use ${bot}. only ${team}'s admins can change it.`,
+      `Everyone in ${team} can use ${bot}. Only ${team}'s admins can change it.`,
       `goes with ${bot}: instructions, skills, files, routines, and your chats with ${bot}`,
-      "your chats stay private there: only you can see them.",
+      "Your chats stay private there: only you can see them.",
       `stays on my cloud: what ${bot} remembers, your connections, and dusk`,
-      "there's no way back: you can't move it back to my cloud.",
+      "There's no way back: you can't move it back to my cloud.",
     ].join("\n\n"),
     buttons: [`move to ${team}`, "cancel"],
   };
