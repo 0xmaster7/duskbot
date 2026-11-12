@@ -8,7 +8,7 @@ export const LEGACY_ERRORS_PATH = "/v1/client-error";
 /** a client error report's whole body */
 export const MAX_ERROR_BYTES = 16 * 1024;
 /** per address, per hour (the service's rate window) */
-export const ERRORS_PER_HOUR = 60;
+export const ERRORS_PER_HOUR = 240;
 
 export class IncidentRouteError extends Error {
   status: number; code: string;

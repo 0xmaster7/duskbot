@@ -51,7 +51,7 @@ export function createPagesService(options: {
 }) {
   const now = options.now ?? Date.now, random = options.random ?? randomBytes, pagesDomain = (options.pagesDomain ?? "page.dusk.bot").toLowerCase();
   if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(pagesDomain)) throw new Error("Invalid pages domain.");
-  const limits = { pagesPerAccount: 50, bytes: PAGE_MAX_BYTES, files: PAGE_MAX_FILES, perHour: 30, ...options.limits };
+  const limits = { pagesPerAccount: 50, bytes: PAGE_MAX_BYTES, files: PAGE_MAX_FILES, perHour: 120, ...options.limits };
   if (!Object.values(limits).every(value => Number.isSafeInteger(value) && value > 0) || limits.bytes > PAGE_MAX_BYTES || limits.files > PAGE_MAX_FILES) throw new Error("Invalid pages limits.");
   const registry = createJsonStore<{ pages: Page[] }>(join(options.dataDir, "pages.json"), () => ({ pages: [] }), validState);
   const nonces = new Map<string, number>(), tokens = new Map<string, Grant>(), rates = new Map<string, number[]>();

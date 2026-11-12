@@ -92,13 +92,13 @@ const WAIT_MSG = {
   not_json: 'this address only takes json.',
   server: "we couldn't save that just now. try again in a minute.",
 };
-// five tries a minute per address; behind cloudflare the visitor is in CF-Connecting-IP, else nginx's X-Real-IP (this server only listens on loopback)
+// twenty tries a minute per address (people share one behind carrier nat or an office); behind cloudflare the visitor is in CF-Connecting-IP, else nginx's X-Real-IP (this server only listens on loopback)
 const tries = new Map();
 function tooMany(ip) {
   const now = Date.now(), recent = (tries.get(ip) || []).filter((t) => now - t < 60_000);
   recent.push(now); tries.set(ip, recent);
   if (tries.size > 5000) for (const [k, v] of tries) if (now - v[v.length - 1] > 60_000) tries.delete(k);
-  return recent.length > 5;
+  return recent.length > 20;
 }
 // a new signup also goes on the brevo list when BREVO_API_KEY and BREVO_WAITLIST_LIST_ID are set. fire and forget:
 // network errors, 429 and 5xx are retried twice, other answers are final; failures only log, never the email

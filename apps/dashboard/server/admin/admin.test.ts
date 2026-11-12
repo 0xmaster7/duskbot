@@ -252,7 +252,7 @@ describe("admin panel api", () => {
     it("rate limits a signed-in account", async () => {
       const cookie = await login(OTHER);
       let last = 0;
-      for (let n = 0; n < 601; n++) last = (await call("/v1/events", { cookie, body: { events: [{ name: "page_view", props: { path: "/" } }] } })).status;
+      for (let n = 0; n < 1501; n++) last = (await call("/v1/events", { cookie, body: { events: [{ name: "page_view", props: { path: "/" } }] } })).status;
       expect(last).toBe(429);
     });
 

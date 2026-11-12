@@ -164,14 +164,14 @@ export function createAnalytics(options: AnalyticsOptions) {
     }
     if (path === "/v1/events" && method === "POST") {
       const publicOrigin = `${url.protocol}//${url.host}`;
-      helpers.rate(req, "events", 1200);
+      helpers.rate(req, "events", 3000);
       const input = helpers.bodyObject(await helpers.readBody(req));
       const list = Array.isArray(input.events) ? input.events : null;
       if (!list || list.length < 1 || list.length > MAX_BATCH) { helpers.json(res, 400, { error: "Invalid request.", code: "invalid_request" }); return true; }
       if (declined(req)) { res.writeHead(204, { "cache-control": "no-store" }); res.end(); return true; }
       let owner: { id: string } | null = null;
       try { owner = helpers.account(req, true); } catch { owner = null; }
-      if (owner) helpers.rate(req, `events:${owner.id}`, 600);
+      if (owner) helpers.rate(req, `events:${owner.id}`, 1500);
       const session = typeof input.session === "string" && /^[A-Za-z0-9_-]{8,40}$/.test(input.session) ? input.session : undefined;
       const referrer = typeof input.referrer === "string" ? input.referrer.slice(0, 500) : undefined;
       const visitor = anonymous(req) ? visitorOf(req) : visitorCookie(req) ?? (typeof input.visitor === "string" && VISITOR.test(input.visitor) ? input.visitor : null);

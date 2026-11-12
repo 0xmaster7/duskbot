@@ -60,7 +60,7 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
   if (req.method !== "POST") return done(res, 405);
   const origin = req.headers.origin;
   if (typeof origin === "string" && !deps.origins.has(origin)) return done(res, 403);
-  deps.rate(req, "track", 1200);
+  deps.rate(req, "track", 3000);
   let raw: Buffer;
   try { raw = await deps.readBody(req, MAX_TRACK_BYTES); } catch { return done(res, 413); }
   if (deps.declined(req) || AUTOMATED.test(String(req.headers["user-agent"] ?? "")) || !req.headers["user-agent"]) return done(res);
@@ -118,7 +118,7 @@ export async function handleAppEvents(req: IncomingMessage, res: ServerResponse,
   cors(req, res, "*");
   if (req.method === "OPTIONS") { res.setHeader("access-control-allow-methods", "POST"); res.setHeader("access-control-allow-headers", "content-type, authorization"); return done(res); }
   if (req.method !== "POST") return done(res, 405);
-  deps.rate(req, "app-events", 600);
+  deps.rate(req, "app-events", 1500);
   let raw: Buffer;
   try { raw = await deps.readBody(req, MAX_APP_BYTES); } catch { return done(res, 413); }
   let body: Record<string, unknown>;
@@ -126,7 +126,7 @@ export async function handleAppEvents(req: IncomingMessage, res: ServerResponse,
   const install = typeof body?.install === "string" && INSTALL.test(body.install) ? body.install : null;
   const events = Array.isArray(body?.events) ? body.events : null;
   if (!install || !events || events.length < 1 || events.length > MAX_APP_BATCH) return done(res, 400);
-  deps.rate(req, `app-install:${install}`, 600);
+  deps.rate(req, `app-install:${install}`, 1500);
   const accountId = deps.appAccount(req);
   const session = typeof body.session === "string" && INSTALL.test(body.session) ? body.session : undefined;
   const platform = text(body.platform, 20), version = text(body.version, 40);

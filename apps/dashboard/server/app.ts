@@ -499,7 +499,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
     // a link grant is only ever made for the signed-in app's own account; the json and origin checks above apply
     if (method === "POST" && path === LINK_GRANT_PATH) {
-      rate(req, "link-grant", 120);
+      rate(req, "link-grant", 600);
       const found = auth.appSession(req);
       if (!found) fail(401, "invalid_token", "Session is invalid.");
       if (!linkGrants) fail(503, "link_grants_off", "Linking a server is not available right now.");
@@ -527,7 +527,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       fail(404, "not_found", "Route not found.");
     }
     if (method === "POST" && path === "/v1/enroll") {
-      rate(req, "enroll", 30);
+      rate(req, "enroll", 120);
       const body = await readBody(req), input = bodyObject(body);
       const data = parseEnrollRequest(input);
       if (input.enrollToken !== undefined && (typeof input.enrollToken !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(input.enrollToken))) fail(400, "invalid_request", "Invalid enrollment grant.");
@@ -694,7 +694,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
         const queue = commands.get(ws.id) ?? [];
         if (queue.filter(item => item.status === "queued" || item.status === "sent").length >= 200) fail(429, "rate_limited", "Too many pending commands.");
         if (app) {
-          rate(req, "app-command", 60);
+          rate(req, "app-command", 300);
           if (queue.filter(item => item.kind.startsWith("app.") && (item.status === "queued" || item.status === "sent")).length >= 5) fail(429, "rate_limited", "Too many app sign-ins at once. Try again in a minute.");
           if (now() - (seen.get(ws.id) ?? -Infinity) > APP_COMMAND_ONLINE_MS) fail(409, "workspace_offline", ws.kind === "vps"
             ? "This cloud is asleep or not answering. Wake it from clouds, then try again."

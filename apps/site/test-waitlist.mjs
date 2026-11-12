@@ -61,8 +61,8 @@ async function suite(label, { port, logs }, saved) {
   });
   await t('rate limit is a 429', async () => {
     const statuses = [];
-    for (let i = 0; i < 6; i++) statuses.push((await post({ email: `r${i}@rate.dev` }, '10.0.0.5')).status);
-    assert.deepEqual(statuses, [201, 201, 201, 201, 201, 429]);
+    for (let i = 0; i < 21; i++) statuses.push((await post({ email: `r${i}@rate.dev` }, '10.0.0.5')).status);
+    assert.deepEqual(statuses, [...Array(20).fill(201), 429]);
   });
   await t('oversized body is a 413', async () => {
     const r = await post({ email: 'big@body.dev', source: 'x'.repeat(4000) }, '10.0.0.6');
@@ -70,7 +70,7 @@ async function suite(label, { port, logs }, saved) {
   });
   await t('count', async () => {
     const r = await fetch(`${url}/count`).then((x) => x.json());
-    assert.equal(r.count, 7);
+    assert.equal(r.count, 22);
   });
   await t('parallel signups get distinct positions', async () => {
     const rs = await Promise.all(Array.from({ length: 5 }, (_, i) => post({ email: `p${i}@par.dev` }, `10.0.1.${i}`)));

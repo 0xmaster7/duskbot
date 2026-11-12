@@ -14,7 +14,7 @@ import { clientIp } from "../client-ip.ts";
 
 /** sign-in limits an hour, set so a real person never meets them; the per-code tries (EMAIL_CODE_TRIES), the resend
  *  wait and the overall mail cap are what stop abuse */
-export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 15, verifiesPerIp: 150, oauthPerIp: 150, deviceAuthorizePerIp: 90, mailPerHour: 600, handoffsPerSession: 20, handoffsPerIp: 150 };
+export const AUTH_LIMITS = { startsPerIp: 300, startsPerEmail: 30, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300, mailPerHour: 600, handoffsPerSession: 60, handoffsPerIp: 600 };
 /** a web handoff link: how long it lives, and how many one account holds unredeemed at once (older ones are dropped) */
 export const HANDOFF_TTL_MS = 120_000, HANDOFF_OUTSTANDING = 5;
 
