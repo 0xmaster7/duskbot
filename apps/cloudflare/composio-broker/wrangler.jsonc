@@ -7,7 +7,7 @@
   // dusk bot's own cloudflare account (the dusk.bot zone): scripts/deploy-composio-broker.sh creates the database,
   // writes its id below, applies the migrations, sets the secrets and deploys
   "workers_dev": false,
-  "routes": [{ "pattern": "composio.dusk.bot", "custom_domain": true }],
+  "routes": [{ "pattern": "composio.dusk.bot", "custom_domain": true }, { "pattern": "composio.dusk.bot/*", "zone_name": "dusk.bot" }],
   "vars": {
     "COMPOSIO_API_BASE": "https://backend.composio.dev/api/v3.1",
     "COMPOSIO_TOOLKIT_BASE": "https://backend.composio.dev/api/v3",
@@ -18,7 +18,7 @@
     {
       "binding": "DB",
       "database_name": "duskbot-composio",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "284c79d9-d1b6-406f-b08b-eb7d1abd1ac6",
       "migrations_dir": "migrations"
     }
   ],
