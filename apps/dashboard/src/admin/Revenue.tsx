@@ -45,7 +45,7 @@ export function PaymentsCard({ revenue }: { revenue: RevenueAnswer }) {
         ) : !list.length ? (
           <SkyEmpty art="cat" className="!py-8" title="no payments in this window.">try a longer range, or check back after the next renewal.</SkyEmpty>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="">
             {list.map((p) => {
               const waited = p.firstSeen !== null && p.kind !== "refund" && p.kind !== "renewal" ? Math.max(0, p.at - p.firstSeen) : null;
               return (
@@ -74,7 +74,7 @@ export function PaymentsCard({ revenue }: { revenue: RevenueAnswer }) {
           </ul>
         )}
       </div>
-      {revenue.recent.length > 6 && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1.5 h-8 px-3 text-12 text-ink-3">{all ? "show fewer" : `show all ${revenue.recent.length}`}</button>}
+      {revenue.recent.length > 6 && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1.5 h-8 px-3 text-12">{all ? "show fewer" : `show all ${revenue.recent.length}`}</button>}
     </section>
   );
 }

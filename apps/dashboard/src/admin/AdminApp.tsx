@@ -119,7 +119,7 @@ export function AdminApp() {
   return (
     <div className="min-h-[100dvh] bg-bg">
       <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-ink">skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-[232px] flex-col gap-6 border-e border-line bg-bg px-3 pb-4 pt-5 max-lg:hidden">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-[232px] flex-col gap-6 bg-side px-3 pb-4 pt-5 max-lg:hidden">
         <Link to="/admin" className="flex items-center gap-2 rounded-full px-2.5 py-1" aria-label="dusk bot admin, overview">
           <img src={mark} alt="" width={24} height={24} className="size-6" />
           <span className="text-[16px] font-[550] tracking-[-0.02em] text-ink">dusk bot</span>
@@ -174,10 +174,10 @@ export function AdminApp() {
           <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> your account</Link>
         </div>
       </aside>
-      <header className="sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur lg:hidden">
         <div className="flex h-12 items-center justify-between px-4">
           <Link to="/admin" className="flex items-center gap-2" aria-label="dusk bot admin, overview"><img src={mark} alt="" width={22} height={22} className="size-[22px]" /><span className="text-[15px] font-[550] tracking-[-0.02em]">dusk bot</span><span className="tag !h-[22px] !px-2">admin</span></Link>
-          <Link to="/" className="hover-link text-13 text-ink-3">your account</Link>
+          <Link to="/" className="text-link text-13">your account</Link>
         </div>
         <nav aria-label="admin" className="scroll-x flex gap-1 px-3 pb-2">
           {ALL.map((item, i) => (

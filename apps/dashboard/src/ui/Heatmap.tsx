@@ -119,7 +119,7 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
           </div>
         </div>
       </div>
-      {picked && <style>{`[data-day="${picked.key}"]{outline:1px solid var(--ink-2);outline-offset:0}`}</style>}
+      {picked && <style>{`[data-day="${picked.key}"]{filter:brightness(0.82)}[data-theme="dark"] [data-day="${picked.key}"]{filter:brightness(1.45)}`}</style>}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}` : <span className="text-ink-4">pick a day to see it</span>}</p>
         <div className="t-pixel flex items-center gap-1.5 text-ink-3" aria-hidden>

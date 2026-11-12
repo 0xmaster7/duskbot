@@ -24,7 +24,7 @@ const asleepLine = (ws: WorkspaceSummary, cloud: boolean) => cloud || ws.kind ==
 
 function ConnectAction({ app, flow, onConnect }: { app: DashApp; flow: AppFlow | undefined; onConnect(): void }) {
   if (flow?.phase === "waiting") return <Button size="sm" disabled aria-label={`connecting ${app.label}`}>connecting</Button>;
-  if (flow?.phase === "sign-in" && flow.url) return <a className="shrink-0 px-2 text-13 text-ink underline underline-offset-2" href={flow.url} target="_blank" rel="noopener noreferrer">finish sign-in</a>;
+  if (flow?.phase === "sign-in" && flow.url) return <a className="text-link shrink-0 px-2 text-13" href={flow.url} target="_blank" rel="noopener noreferrer">finish sign-in</a>;
   return <Button size="sm" onClick={onConnect} aria-label={`connect ${app.label}`}>connect</Button>;
 }
 
@@ -201,7 +201,7 @@ export function ConnectorsPage() {
       <section className="mt-10" aria-labelledby="installed-title">
         <SectionHead id="installed-title">{apps_ ? "connected" : "skills"}</SectionHead>
         {error ? (
-          <div className="flex flex-wrap items-center gap-3 border-y border-line py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>retry</Button></div>
+          <div className="flex flex-wrap items-center gap-3 py-5"><p role="alert" className="text-14 text-bad">{error}</p><Button size="sm" onClick={() => location.reload()}>retry</Button></div>
         ) : loading ? (
           <div className="flex flex-col gap-2" aria-busy="true">{[0, 1].map((i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : shown.length ? (
@@ -224,7 +224,7 @@ export function ConnectorsPage() {
             {shown.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
         ) : (
-          <p className="border-y border-line py-6 text-15 text-ink-2">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
+          <p className="py-6 text-15 text-ink-2">{q || filtered ? `nothing connected matches${q ? ` "${query.trim()}"` : " that filter"}.` : apps_ ? "nothing connected yet. pick an app below to connect it." : "no skills yet. ask a bot in a chat to learn one."}</p>
         )}
         {!apps_ && !loading && <p className="mt-4 text-14 text-ink-4">skills ship with the app and work on every workspace.</p>}
       </section>

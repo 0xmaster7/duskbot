@@ -59,7 +59,7 @@ function PlanCard({ id, catalog, interval, current, onChoose, action, disabled, 
         <p className="num mt-4 text-[48px] font-medium leading-none tracking-[-0.05em] text-ink">${perMonth}</p>
         <p className="num mt-2 text-13 text-ink-3">{sub}</p>
         {onChoose ? (
-          <button type="button" onClick={onChoose} disabled={disabled} className="press hover-outline mt-6 h-12 w-full rounded-full bg-btn text-15 font-medium text-ink disabled:cursor-default disabled:opacity-50">{action}</button>
+          <button type="button" onClick={onChoose} disabled={disabled} className="press hover-btn mt-6 h-12 w-full rounded-full bg-btn text-15 font-medium text-ink disabled:cursor-default disabled:opacity-50">{action}</button>
         ) : <p className="mt-6 grid h-12 place-items-center rounded-full text-14 text-ink-3">{action}</p>}
         <h3 className="sr-only">what you get</h3>
         <ul className="mt-6 flex flex-col gap-3">
@@ -79,7 +79,7 @@ function Faq() {
   return (
     <section className="mt-16" aria-labelledby="faq-title">
       <SectionHead id="faq-title">questions</SectionHead>
-      <div className="divide-y divide-line border-y border-line">
+      <div className="">
         {FAQ.map((f) => (
           <details key={f.q} className="group">
             <summary className="hover-link flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-14 text-ink [&::-webkit-details-marker]:hidden">{f.q}<ChevronDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3 group-open:rotate-180" aria-hidden /></summary>
@@ -101,7 +101,7 @@ function Row({ k, children, action }: { k: string; children: ReactNode; action?:
   );
 }
 
-const quiet = "hover-link inline-flex h-9 items-center rounded-full px-1 text-14 text-ink-2 disabled:opacity-45 max-sm:h-11";
+const quiet = "text-link inline-flex h-9 items-center rounded-full px-1 text-14 disabled:opacity-45 max-sm:h-11";
 
 function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalog; onLicense(): void; onCancelPlan(): void }) {
   const { billing, clouds, openPortal } = useCloud();
@@ -120,7 +120,7 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
     <>
       <section className="mt-16" aria-labelledby="billing-title">
         <SectionHead id="billing-title">your billing</SectionHead>
-        <dl className="divide-y divide-line border-y border-line">
+        <dl className="">
           <Row k="plan" action={sub && !sub.cancelAt ? <button type="button" className={quiet} onClick={onCancelPlan}>cancel</button> : undefined}>
             <span className="block truncate">{plan}{desk && sel ? <span className="text-ink-3">, {clouds?.[0]?.name ?? desk.name} in {regionName(catalog, sel.region)}</span> : <span className="text-ink-3">, your bots run on your mac</span>}</span>
             {sub && <span className="num block truncate text-13 text-ink-3">{cart ? `${cartText(cart, sub.selection.interval)} · ` : ""}{renews}</span>}
@@ -139,7 +139,7 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
       <section className="mt-12" aria-labelledby="invoices-title">
         <SectionHead id="invoices-title">invoices</SectionHead>
         {invoices.length ? (
-          <ul className="divide-y divide-line border-y border-line">
+          <ul className="">
             {invoices.map((inv) => (
               <li key={inv.id} className="flex min-h-12 items-center gap-4 text-14">
                 <span className="num w-16 shrink-0 text-ink-3">{shortDate(inv.date)}</span>
@@ -152,7 +152,7 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
               </li>
             ))}
           </ul>
-        ) : <p className="border-y border-line py-5 text-14 text-ink-3">invoices show up here after your first payment.</p>}
+        ) : <p className="py-5 text-14 text-ink-3">invoices show up here after your first payment.</p>}
       </section>
       <BuyCredits source="dash_credits" open={buying} onClose={() => setBuying(false)} />
     </>
@@ -197,7 +197,7 @@ function CancelDialog({ open, onClose }: { open: boolean; onClose(): void }) {
         </div>
       )}
       {keepsLicense && error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
-      <button type="button" className="hover-link mt-3 h-9 text-13 text-ink-3 underline decoration-line-2 underline-offset-4" onClick={() => void openPortal()}>manage billing details instead</button>
+      <button type="button" className="text-link mt-3 h-9 text-13" onClick={() => void openPortal()}>manage billing details instead</button>
     </Modal>
   );
 }
@@ -256,7 +256,7 @@ export function BillingPage() {
         {card("starter", 1)}
         {card("pro", 2)}
       </div>
-      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel anytime."} personal use is free.{free ? ` work use is free until ${longDate(free)}.` : ""} need a dedicated machine? <a href={CONTACT} className="hover-link text-ink-3 underline decoration-line-2 underline-offset-4">talk to us</a>.</p>
+      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel anytime."} personal use is free.{free ? ` work use is free until ${longDate(free)}.` : ""} need a dedicated machine? <a href={CONTACT} className="text-link">talk to us</a>.</p>
 
       {work && (
         <div className="surface mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
@@ -264,7 +264,7 @@ export function BillingPage() {
             <p className="text-14 text-ink">{ownsLicense ? "you have a work license" : "using it for work?"}</p>
             <p className="num mt-0.5 text-13 text-ink-3">{ownsLicense ? "covers work use on every plan." : `${priceText(work.monthly, "month", catalog).replace("/mo", "")} a month per person. pro includes one.`}</p>
           </div>
-          <button type="button" className="press hover-outline h-10 shrink-0 rounded-full bg-btn px-4.5 text-14 font-medium text-ink" onClick={() => openLicense()}>{ownsLicense ? "manage" : "add a license"}</button>
+          <button type="button" className="press hover-btn h-10 shrink-0 rounded-full bg-btn px-4.5 text-14 font-medium text-ink" onClick={() => openLicense()}>{ownsLicense ? "manage" : "add a license"}</button>
         </div>
       )}
 

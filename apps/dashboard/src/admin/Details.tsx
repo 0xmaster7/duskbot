@@ -34,7 +34,7 @@ export function DetailsPage({ dimension }: { dimension: string }) {
   );
   return (
     <>
-      <Link to={`/admin?${query.toString()}`.replace(/\?$/, "")} className="hover-link mb-4 inline-flex items-center gap-1.5 text-13 text-ink-3"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> overview</Link>
+      <Link to={`/admin?${query.toString()}`.replace(/\?$/, "")} className="text-link mb-4 inline-flex items-center gap-1.5 text-13"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> overview</Link>
       <AdminHeader title={TITLE[dimension] ?? dimension} sub={`${surface === "all" ? "every surface" : SURFACES.find((s) => s.value === surface)?.label ?? surface}${Object.keys(filters).length ? `, filtered by ${Object.entries(filters).map(([k, v]) => `${k} ${dimLabel(k, v)}`).join(", ")}` : ""}`}
         action={<RangePicker value={range} onChange={setRange} />} />
       <div className="mb-4"><SearchBox value={q} onChange={setQ} label={`search ${TITLE[dimension] ?? dimension}`} placeholder="search" /></div>

@@ -13,11 +13,11 @@ export function Table({ children, label, className }: { children: ReactNode; lab
 }
 
 export function Th({ className, children, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th scope="col" className={cx("t-meta h-10 whitespace-nowrap border-b border-line px-4 text-start font-normal lowercase first:ps-0", className)} {...rest}>{children}</th>;
+  return <th scope="col" className={cx("t-meta h-10 whitespace-nowrap px-4 text-start font-medium lowercase first:ps-0", className)} {...rest}>{children}</th>;
 }
 
 export function Td({ className, children, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cx("h-14 border-b border-line px-4 py-2 align-middle text-ink first:ps-0", className)} {...rest}>{children}</td>;
+  return <td className={cx("h-14 px-4 py-2 align-middle text-ink first:ps-0", className)} {...rest}>{children}</td>;
 }
 
 /** a dash for a value we do not know */

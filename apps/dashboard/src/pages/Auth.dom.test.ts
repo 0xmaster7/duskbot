@@ -36,20 +36,20 @@ async function type(input: HTMLInputElement, value: string) {
   });
 }
 
-test("can't sign in? asks for the address, sends a recovery start and says what was sent without telling whether an account exists", async () => {
+test("trouble signing in? asks for the address, sends a recovery start and says what was sent without telling whether an account exists", async () => {
   history.replaceState(null, "", "/sign-in");
   const start = vi.spyOn(state.api, "start");
   const host = await render();
-  await act(async () => button(host, "can't sign in?")!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("can't sign in?");
-  expect(host.textContent).toContain("lost access to that email?");
+  await act(async () => button(host, "trouble signing in?")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("trouble signing in?");
+  expect(host.textContent).toContain("can't access your email?");
   expect(host.querySelector<HTMLAnchorElement>('a[href^="mailto:"]')?.href).toBe("mailto:hello@dusk.bot");
   await type(host.querySelector<HTMLInputElement>("#recover-email")!, "sid@duskbot.test");
-  await act(async () => button(host, "email me a sign-in link")!.click());
+  await act(async () => button(host, "send sign-in link")!.click());
   expect(start).toHaveBeenCalledWith("sid@duskbot.test", "signin", undefined, true);
   expect(host.textContent).toContain("if an account uses sid@duskbot.test, we sent a link and a 8-digit code.");
-  await act(async () => button(host, "use another email")!.click());
-  expect(host.querySelector("h1")?.textContent).toBe("can't sign in?");
+  await act(async () => button(host, "use a different email")!.click());
+  expect(host.querySelector("h1")?.textContent).toBe("trouble signing in?");
 });
 
 test("the emailed link waits for a click, signs in once, and leaves the address bar", async () => {
@@ -80,5 +80,5 @@ test("every sign-in button shows; one without keys yet says so in place instead 
   await act(async () => button(host, "continue with x")!.click());
   expect(assign).not.toHaveBeenCalled();
   expect(host.querySelector("#auth-soon")?.textContent).toBe("x sign-in is coming soon. use email or google for now.");
-  expect(host.textContent).toContain("new here? make an account");
+  expect(host.textContent).toContain("don't have an account? sign up");
 });

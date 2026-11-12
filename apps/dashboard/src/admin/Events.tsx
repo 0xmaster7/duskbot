@@ -57,7 +57,7 @@ export function EventsPage() {
                     <tr key={event.id} className="hover-row">
                       <Td className="t-id whitespace-nowrap text-ink-3">{stamp(event.at)}</Td>
                       <Td className="whitespace-nowrap text-14">{event.name.replace(/_/g, " ")}</Td>
-                      <Td className="max-w-[220px]">{event.accountId ? <Link to={`/admin/users/${encodeURIComponent(event.accountId)}`} className="block truncate text-13 text-ink-2 underline-offset-4 hover:underline">{event.email ?? event.accountId}</Link> : <span className="text-13 text-ink-4">anonymous</span>}</Td>
+                      <Td className="max-w-[220px]">{event.accountId ? <Link to={`/admin/users/${encodeURIComponent(event.accountId)}`} className="text-link block truncate text-13">{event.email ?? event.accountId}</Link> : <span className="text-13 text-ink-4">anonymous</span>}</Td>
                       <Td className="max-w-[320px] text-13 text-ink-3"><span className="block truncate font-mono !text-[12.5px]">{Object.entries(event.props).map(([k, v]) => `${k}=${v}`).join(" ") || "-"}</span>{event.ctx && <span className="block truncate text-12 text-ink-4">{context(event.ctx)}</span>}</Td>
                     </tr>
                   ))}

@@ -52,7 +52,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
   return (
     <div
       ref={box}
-      className="relative outline-none focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--ink)_40%,transparent)]"
+      className="relative outline-none focus-visible:rounded-[12px]"
       tabIndex={0}
       role="group"
       aria-label={`tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. use the left and right arrow keys to read a day.`}

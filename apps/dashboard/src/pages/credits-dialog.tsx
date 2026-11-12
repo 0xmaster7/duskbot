@@ -21,7 +21,7 @@ export function BuyCredits({ open, source, onClose }: { source: CheckoutSource; 
       <p>for bots that use our ai instead of your own accounts. credits never expire.</p>
       <div className="mt-5 grid grid-cols-3 gap-2">
         {(catalog?.creditPacks ?? []).map((p) => (
-          <button key={p.id} type="button" disabled={busy !== null} onClick={() => void buy(p.id, p.usd)} className="press-soft hover-outline num h-14 rounded-[12px] bg-card-2 text-17 font-medium text-ink disabled:opacity-45">
+          <button key={p.id} type="button" disabled={busy !== null} onClick={() => void buy(p.id, p.usd)} className="press-soft hover-btn num h-14 rounded-[12px] bg-card-2 text-17 font-medium text-ink disabled:opacity-45">
             {busy === p.id ? <span className="text-13 font-normal text-ink-3">opening</span> : dollars(p.usd)}
           </button>
         ))}

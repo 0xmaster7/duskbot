@@ -19,7 +19,6 @@ export function AppLogo({ app, size = 40 }: { app: Pick<DashApp, "label" | "icon
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.28),
-        border: "1px solid rgb(255 255 255 / 0.08)",
         background: source ? icon.background ?? (/github/i.test(label) && source === icon.image ? "#f1f1f0" : undefined) : undefined,
         fontSize: Math.round(size * 0.38),
       }}

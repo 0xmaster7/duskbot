@@ -43,8 +43,8 @@ const OAUTH_ERROR: Record<string, string> = {
 type Mode = "signin" | "signup";
 type Step = "start" | "code" | "recover" | "done";
 
-const LINK = "hover-link text-ink-2 underline decoration-line-2 underline-offset-4";
-const QUIET = "hover-link h-11 rounded-full px-2 text-14 text-ink-3 disabled:opacity-50";
+const LINK = "text-link";
+const QUIET = "text-link h-11 rounded-full px-2 text-14 disabled:opacity-50";
 
 function Busy({ children }: { children: ReactNode }) {
   return <><LoaderCircle size={17} strokeWidth={2} className="spin" aria-hidden />{children}</>;
@@ -60,8 +60,7 @@ function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, o
     <div className="relative">
       <div ref={boxes} className="flex gap-1.5" aria-hidden>
         {Array.from({ length }, (_, i) => (
-          <span key={i} className={cx("num grid h-14 min-w-0 flex-1 place-items-center rounded-[14px] text-[22px] font-medium text-ink bg-btn", i === half && "ms-2.5",
-            invalid && "shadow-[inset_0_0_0_2px_var(--bad)]", disabled && "opacity-60")}>
+          <span key={i} className={cx("num grid h-14 min-w-0 flex-1 place-items-center rounded-[14px] text-[22px] font-medium text-ink", invalid ? "bg-[color-mix(in_oklab,var(--bad)_9%,var(--btn))]" : "bg-btn", i === half && "ms-2.5", disabled && "opacity-60")}>
             {value[i] ?? (focused && i === at ? <i className="h-6 w-0.5 rounded-full bg-ink [animation:caret_1.1s_steps(1)_infinite]" /> : null)}
           </span>
         ))}
@@ -117,7 +116,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   // signed out on a page like /cloud/desktop?code= or /claim: come back to it after signing in
   const here = ["/sign-in", "/signin", "/signup", "/welcome"].includes(appPath(window.location.pathname)) ? "/" : `${appPath(window.location.pathname)}${window.location.search}`;
   const home = intent ? `/welcome?${planQuery(intent)}` : next && next.startsWith("/") && !next.startsWith("//") ? next : here;
-  // the one-time link of a "can't sign in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
+  // the one-time link of a "trouble signing in?" email: its code waits behind a click, so a mail scanner opening it signs nobody in
   const [linked] = useState(() => { const hash = new URLSearchParams(window.location.hash.slice(1)), a = hash.get("attempt"), c = hash.get("code"); return a && LINK_ATTEMPT.test(a) && c && /^\d{8}$/.test(c) ? { attempt: a, code: c } : null; });
   const [step, setStep] = useState<Step>(linked ? "code" : "start");
   const [recovering, setRecovering] = useState(false);
@@ -247,18 +246,18 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
       mood={mood}
       scene={scene}
       card={<SceneCard />}
-      aside={<a href={SITE_URL} className="hover-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
+      aside={<a href={SITE_URL} className="text-link -me-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back to {SITE_NAME === "dusk.bot" ? SITE_NAME : "the site"}</a>}
       foot={signup ? <>by continuing you agree to the <a href={siteUrl("/terms")} className={LINK}>terms</a> and <a href={siteUrl("/privacy")} className={LINK}>privacy policy</a>.</> : "your chats and files stay on your own computers."}
     >
       {step === "done" ? (
         <div key="done" className="step-in" role="status">
-          <h1 className="t-title">you're in.</h1>
+          <h1 className="t-title">you're signed in.</h1>
           <p className="mt-3 text-16 text-ink-2">taking you to your bots.</p>
         </div>
       ) : step === "start" ? (
         <div key="start" className="step-in">
           {intent && <p className="mb-4 flex items-center gap-2"><span className="tag !bg-lime !text-ink">{intent.plan === "starter" ? "plus" : "pro"} plan{intent.interval ? `, ${intent.interval}ly` : ""}</span><a href={siteUrl("/#pricing")} className={cx(LINK, "text-13")}>change</a></p>}
-          <h1 className="t-title">{signup ? "make your account." : "welcome back."}</h1>
+          <h1 className="t-title">{signup ? "create your account." : "welcome back."}</h1>
           <p className="mt-3 text-16 text-ink-2">{intent ? "an account first, then checkout. your dusk cloud is ready in about a minute." : signup ? "free on your own computer. one account for the app, your phone and dusk cloud." : "sign in to see your bots, wherever they live."}</p>
           {note && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">{note}</div>}
           {pending && <div className="mt-4 rounded-[16px] bg-lemon px-4 py-3 text-14 leading-[1.5] text-ink">one more step: your provider didn't share an email, so enter the one you want to sign in with.</div>}
@@ -270,7 +269,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
                 onClick={() => void oauth(p)}
                 disabled={busy !== null}
                 aria-describedby={soon === p ? "auth-soon" : undefined}
-                className="press hover-outline relative flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-btn text-15 font-medium text-ink disabled:opacity-45"
+                className="press hover-btn relative flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-btn text-15 font-medium text-ink disabled:opacity-45"
               >
                 <span className="grid size-5 place-items-center text-ink"><ProviderMark provider={p} size={18} /></span>
                 {busy === p ? "signing in" : `continue with ${PROVIDER_NAME[p].toLowerCase()}`}
@@ -278,25 +277,25 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
             ))}
             {soon && !pending && <p id="auth-soon" role="status" className="px-1 pt-1 text-14 text-ink-2">{PROVIDER_NAME[soon].toLowerCase()} sign-in is coming soon. use email{soon !== "google" && enabled("google") ? " or google" : ""} for now.</p>}
           </div>
-          <div className={cx("t-meta my-5 flex items-center gap-3", pending && "hidden")} aria-hidden><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+          <div className={cx("t-meta my-5 flex items-center gap-3", pending && "hidden")} aria-hidden><span className="flex-1" />or<span className="flex-1" /></div>
           <form onSubmit={(e) => { e.preventDefault(); setRecovering(false); void send(false); }} noValidate>
             {emailField("email")}
-            <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending the code</Busy> : "continue"}</Button>
+            <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending code</Busy> : "continue"}</Button>
           </form>
           {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 text-14 text-ink-3">
-            <span>{signup ? <>already have an account? <Link to={`/signin${carry}`} className={LINK}>sign in</Link></> : <>new here? <Link to={`/signup${carry}`} className={LINK}>make an account</Link></>}</span>
-            {!signup && !pending && <button type="button" className={cx(QUIET, "-me-2")} onClick={() => { setStep("recover"); setError(null); }}>can't sign in?</button>}
+            <span>{signup ? <>already have an account? <Link to={`/signin${carry}`} className={LINK}>sign in</Link></> : <>don't have an account? <Link to={`/signup${carry}`} className={LINK}>sign up</Link></>}</span>
+            {!signup && !pending && <button type="button" className={cx(QUIET, "-me-2")} onClick={() => { setStep("recover"); setError(null); }}>trouble signing in?</button>}
           </div>
         </div>
       ) : step === "recover" ? (
         <form key="recover" className="step-in" onSubmit={(e) => { e.preventDefault(); setRecovering(true); void send(true); }} noValidate>
-          <h1 className="t-title">can't sign in?</h1>
-          <p className="mb-7 mt-3 text-16 text-ink-2">enter the address you used. we'll email a sign-in link and a code, and say how that account signs in.</p>
+          <h1 className="t-title">trouble signing in?</h1>
+          <p className="mb-7 mt-3 text-16 text-ink-2">enter your email and we'll send you a sign-in link and a code.</p>
           {emailField("recover-email")}
-          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending</Busy> : "email me a sign-in link"}</Button>
-          <h2 className="mt-7 text-15 font-medium text-ink">lost access to that email?</h2>
-          <p className="mt-1 text-14 leading-[1.55] text-ink-3">if you linked google or apple, go back and continue with it. if not, write to <a href={`mailto:${SUPPORT}`} className={LINK}>{SUPPORT}</a> from any address with your receipt, and we'll move your account to a new one.</p>
+          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || !email.trim()}>{busy === "email" ? <Busy>sending</Busy> : "send sign-in link"}</Button>
+          <h2 className="mt-7 text-15 font-medium text-ink">can't access your email?</h2>
+          <p className="mt-1 text-14 leading-[1.55] text-ink-3">if you signed up with google or apple, go back and continue with it. otherwise, email <a href={`mailto:${SUPPORT}`} className={LINK}>{SUPPORT}</a> with your receipt and we'll move your account to a new email.</p>
           <button type="button" className={cx(QUIET, "-ms-2 mt-3")} onClick={() => { setStep("start"); setError(null); }}>back to sign in</button>
         </form>
       ) : (
@@ -313,11 +312,11 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
               if (v.length === length && busy === null && attempt) void verify(v);
             }} />
           {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
-          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || (attempt ? code.length !== length : !sentTo || wait > 0)}>{busy ? <Busy>{attempt ? "checking" : "sending"}</Busy> : !attempt ? <span className="num">{wait > 0 ? `send a new code in ${wait} s` : "send a new code"}</span> : signup ? "make my account" : "sign in"}</Button>
+          <Button type="submit" variant="primary" className="mt-3 w-full !h-12 !text-15" disabled={busy !== null || (attempt ? code.length !== length : !sentTo || wait > 0)}>{busy ? <Busy>{attempt ? "checking" : "sending"}</Busy> : !attempt ? <span className="num">{wait > 0 ? `resend code in ${wait} s` : "resend code"}</span> : signup ? "create account" : "sign in"}</Button>
           {slow && <p role="status" className="mt-3 text-13 text-ink-3">still working. this connection is slow.</p>}
           <div className="mt-3 flex items-center justify-between gap-2">
-            <button type="button" className={cx(QUIET, "-ms-2")} onClick={leaveCode}>use another email</button>
-            {attempt && <button type="button" className={cx(QUIET, "-me-2")} disabled={wait > 0 || busy !== null || !sentTo} onClick={() => void send(recovering, true)}><span className="num">{wait > 0 ? `send again in ${wait} s` : "send a new code"}</span></button>}
+            <button type="button" className={cx(QUIET, "-ms-2")} onClick={leaveCode}>use a different email</button>
+            {attempt && <button type="button" className={cx(QUIET, "-me-2")} disabled={wait > 0 || busy !== null || !sentTo} onClick={() => void send(recovering, true)}><span className="num">{wait > 0 ? `resend code in ${wait} s` : "resend code"}</span></button>}
           </div>
         </form>
       )}

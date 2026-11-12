@@ -87,7 +87,7 @@ function Credits({ now, onAdd }: { now: number; onAdd(): void }) {
         <div className="flex items-baseline justify-between gap-4 py-1.5 text-14 text-ink-3"><dt>monthly usage</dt><dd className="num">resets {shortDate(nextMonthStart(now))}</dd></div>
         <div className="flex items-baseline justify-between gap-4 py-2">
           <dt className="text-ink-3">monthly spend limit</dt>
-          <dd className="num text-ink">{controls.limitUsd === null ? "not set" : dollars(controls.limitUsd)}{controls.supported && <> <span className="text-ink-4">·</span> <button type="button" onClick={() => setLimiting(true)} className="hover-link rounded-full text-ink-2 underline decoration-line-2 underline-offset-4">edit</button></>}</dd>
+          <dd className="num text-ink">{controls.limitUsd === null ? "not set" : dollars(controls.limitUsd)}{controls.supported && <> <span className="text-ink-4">·</span> <button type="button" onClick={() => setLimiting(true)} className="text-link rounded-full">edit</button></>}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 py-2"><dt className="text-ink-3">credits available</dt><dd className="num text-ink">{credits ? usd(credits.balanceUsd) : <Nil />}</dd></div>
         {controls.supported && <div className="flex items-center justify-between gap-3 py-2">
@@ -226,7 +226,7 @@ export function UsagePage() {
             </Table>
             {month.events.length > limit && <button type="button" onClick={() => setLimit((n) => n + PAGE * 2)} className="press-soft hover-ghost -ms-4 mt-2 h-11 rounded-full px-4 text-14 text-ink-3">show more</button>}
           </>
-        ) : <p className="border-y border-line py-8 text-14 text-ink-3">no usage events yet this month.</p>}
+        ) : <p className="py-8 text-14 text-ink-3">no usage events yet this month.</p>}
         <p className="mt-4 text-13 text-ink-3">costs are estimates. workspaces report daily totals, never your messages.</p>
       </section>
       <BuyCredits source="dash_credits" open={buying} onClose={() => setBuying(false)} />

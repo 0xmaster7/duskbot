@@ -149,7 +149,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
         {(tab === "journey" || tab === "users") && (people.error ? <Failed error={people.error} retry={people.reload} /> : !people.data ? <Loading rows={5} /> : list.length ? (
           <>
             <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] gap-4 px-3 py-2 t-meta max-md:hidden"><span>visitor</span><span>source</span><span>visits</span><span>time to sign up</span><span className="text-end">last seen</span></div>
-            <ul className="divide-y divide-line">
+            <ul className="">
               <AnimatePresence initial={false} mode="popLayout">
               {list.map((p) => (
                 <m.li key={p.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
@@ -170,7 +170,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
               ))}
               </AnimatePresence>
             </ul>
-            {(people.data.people.length > 10) && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1 block h-8 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em] text-ink-3">{all ? "show fewer" : `show all ${n(people.data.people.length)}`}</button>}
+            {(people.data.people.length > 10) && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1 block h-8 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em]">{all ? "show fewer" : `show all ${n(people.data.people.length)}`}</button>}
           </>
         ) : <SkyEmpty art="cat" className="!py-8" title={q ? `no one matches "${q}".` : "no one here yet."} />)}
       </div>
@@ -255,7 +255,7 @@ function FunnelSection({ range }: { range: Range }) {
                 );
               })}
             </ol>
-            <p className="mt-3 border-t border-line pt-3 text-13 text-ink-2">
+            <p className="mt-3 pt-3 text-13 text-ink-2">
               {worst ? <>biggest drop: <span className="font-medium text-ink">{percent(1 - (worst.kept ?? 0))}</span> stop between "{worst.from.label}" and "{worst.to.label}" (<span className="font-mono num">{n(worst.lost)}</span> people).</> : "not enough people in this window to call a biggest drop."}
             </p>
           </div>
@@ -266,8 +266,8 @@ function FunnelSection({ range }: { range: Range }) {
           <h3 className="text-13 font-medium text-ink">which upsell converts</h3>
           {upsells.length ? (
             <table className="mt-2 w-full text-13">
-              <thead><tr className="t-meta"><th scope="col" className="py-1 text-start font-normal">where</th><th scope="col" className="py-1 text-end font-normal">shown</th><th scope="col" className="py-1 text-end font-normal">clicked</th><th scope="col" className="py-1 text-end font-normal">paid</th><th scope="col" className="py-1 text-end font-normal">click rate</th></tr></thead>
-              <tbody className="divide-y divide-line">
+              <thead><tr className="t-meta"><th scope="col" className="py-1 text-start font-medium">where</th><th scope="col" className="py-1 text-end font-medium">shown</th><th scope="col" className="py-1 text-end font-normal">clicked</th><th scope="col" className="py-1 text-end font-normal">paid</th><th scope="col" className="py-1 text-end font-normal">click rate</th></tr></thead>
+              <tbody className="">
                 {upsells.map((u) => (
                   <tr key={u.source}>
                     <th scope="row" className="py-1.5 text-start font-normal text-ink">{UPSELL[u.source] ?? u.source.replace(/_/g, " ")}</th>
@@ -357,7 +357,7 @@ export function OverviewPage() {
       {data && c && p && series && (
         <div className={cx("transition-opacity duration-150", loading && "opacity-80")}>
           <section className="rounded-[28px] bg-card p-2" aria-label="key numbers and chart">
-            <div className="grid grid-cols-8 gap-px overflow-hidden rounded-[22px] bg-line max-xl:grid-cols-4 max-sm:grid-cols-2">
+            <div className="grid grid-cols-8 gap-1.5 overflow-hidden rounded-[22px] max-xl:grid-cols-4 max-sm:grid-cols-2">
               <Kpi label="sales" icon={<CreditCard {...I} />} value={r ? r.current.net : null} format={dollars} now={r?.current.net} before={r?.previous.net} />
               <Kpi label="mrr" icon={<Repeat {...I} />} value={r && !filtered ? r.current.mrr : null} format={dollars} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
               <Kpi label="customers" icon={<Star {...I} />} value={r ? (overview.data?.totals.paying ?? r.current.customers) : null} format={whole} now={r?.current.customers} before={r?.previous.customers} />

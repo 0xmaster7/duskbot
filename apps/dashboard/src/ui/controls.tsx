@@ -169,7 +169,7 @@ function SheetFrame({ onClose, title, children, footer }: { onClose(): void; tit
           <button data-close type="button" onClick={onClose} aria-label="close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5">{children}</div>
-        {footer && <div className="border-t border-line px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
+        {footer && <div className="px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
       </m.div>
     </div>
   );
@@ -179,9 +179,9 @@ function SheetFrame({ onClose, title, children, footer }: { onClose(): void; tit
 export function Choice({ name, value, checked, onChange, title, detail, aside }: { name: string; value: string; checked: boolean; onChange(): void; title: ReactNode; detail?: ReactNode; aside?: ReactNode }) {
   const id = `${name}-${value}`;
   return (
-    <label htmlFor={id} className={cx("pick flex min-h-14 cursor-pointer items-center gap-3 rounded-[16px] px-3.5 py-2.5", checked ? "bg-btn" : "hover-row")}>
+    <label htmlFor={id} className={cx("pick focus-tint flex min-h-14 cursor-pointer items-center gap-3 rounded-[16px] px-3.5 py-2.5", checked ? "bg-btn" : "hover-row")}>
       <input id={id} type="radio" name={name} value={value} checked={checked} onChange={onChange} className="peer sr-only" />
-      <span aria-hidden className={cx("size-4 shrink-0 rounded-full border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink-3", checked ? "border-[5px] border-ink" : "border-ink-4")} />
+      <span aria-hidden className={cx("grid size-4 shrink-0 place-items-center rounded-full", checked ? "bg-ink" : "bg-track")}>{checked && <span className="size-1.5 rounded-full bg-bg" />}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-14 text-ink">{title}</span>
         {detail && <span className="block truncate text-13 text-ink-3">{detail}</span>}

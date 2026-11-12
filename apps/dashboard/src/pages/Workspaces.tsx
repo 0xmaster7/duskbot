@@ -102,7 +102,7 @@ export function WorkspacesPage() {
               <thead><tr><Th>name</Th><Th className="max-md:hidden">type</Th><Th className="max-sm:w-[120px]">status</Th><Th className="max-lg:hidden">version</Th><Th className="max-lg:hidden">connected</Th><Th className="w-0 max-sm:w-11"><span className="sr-only">more</span></Th></tr></thead>
               <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
             </Table>
-          ) : <p className="border-y border-line py-8 text-14 text-ink-3">no workspaces yet. add your mac or server below.</p>}
+          ) : <p className="py-8 text-14 text-ink-3">no workspaces yet. add your mac or server below.</p>}
         </section>
         <section id="add" className="enter mt-6 scroll-mt-20" style={{ ["--i" as string]: 2 }}>
           <Card>
@@ -111,12 +111,12 @@ export function WorkspacesPage() {
               <div className="min-w-0 md:pr-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">your mac</h3>
                 <ol className="flex flex-col gap-5">
-                  <Step n={1} title={<a className="hover-link underline decoration-line-2 underline-offset-4" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">download dusk bot for mac</a>} />
+                  <Step n={1} title={<a className="text-link" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">download dusk bot for mac</a>} />
                   <Step n={2} title="sign in with this account">it shows up here by itself a few seconds later.</Step>
                   <Step n={3} title="keep it awake">your bots run while the mac is on.</Step>
                 </ol>
               </div>
-              <div className="min-w-0 border-line max-md:border-t max-md:pt-6 md:border-l md:pl-6">
+              <div className="min-w-0 max-md:pt-6 md:pl-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">your own server</h3>
                 <ol className="flex flex-col gap-5">
                   {/* the installer only runs with a line the app makes: it carries the one-time code that links the server */}
@@ -139,9 +139,9 @@ function WorkspaceDevices({ detail, now, ready }: { detail: WorkspaceDetail; now
     <SectionTitle>phones and signed-in apps</SectionTitle>
     {!devices ? <p className="text-13 text-ink-3">this workspace has not sent its devices yet.</p> : <>
       <h3 className="text-13 text-ink-3">phones</h3>
-      {devices.phones.length ? <ul className="divide-y divide-line">{devices.phones.map((p) => <li key={p.id} className="flex items-center gap-3 py-3"><Smartphone {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{p.label}</div><p className="truncate text-13 text-ink-3">{[p.platform, p.lastSeenAt ? `seen ${ago(p.lastSeenAt, now)}` : p.pairedAt ? `paired ${ago(p.pairedAt, now)}` : null].filter(Boolean).join(" · ")}</p></div><CommandButton kind="phone.revoke" target={p.id} label="revoke" doing="revoking" variant="danger" disabled={!ready} confirm={`revoke ${p.label}? it will need to pair again.`} /></li>)}</ul> : <p className="mt-2 text-13 text-ink-3">no phones paired. pair one in the app under settings, phone.</p>}
+      {devices.phones.length ? <ul className="">{devices.phones.map((p) => <li key={p.id} className="flex items-center gap-3 py-3"><Smartphone {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{p.label}</div><p className="truncate text-13 text-ink-3">{[p.platform, p.lastSeenAt ? `seen ${ago(p.lastSeenAt, now)}` : p.pairedAt ? `paired ${ago(p.pairedAt, now)}` : null].filter(Boolean).join(" · ")}</p></div><CommandButton kind="phone.revoke" target={p.id} label="revoke" doing="revoking" variant="danger" disabled={!ready} confirm={`revoke ${p.label}? it will need to pair again.`} /></li>)}</ul> : <p className="mt-2 text-13 text-ink-3">no phones paired. pair one in the app under settings, phone.</p>}
       <h3 className="mt-6 text-13 text-ink-3">signed-in apps and browsers</h3>
-      {devices.sessions.length ? <ul className="divide-y divide-line">{devices.sessions.map((s) => <li key={s.id} className="flex items-center gap-3 py-3"><Monitor {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{s.label}</div><p className="truncate text-13 text-ink-3">{[s.scopes.includes("admin") ? "owner" : "member", s.lastSeenAt ? `active ${ago(s.lastSeenAt, now)}` : s.createdAt ? `signed in ${ago(s.createdAt, now)}` : null].filter(Boolean).join(" · ")}</p></div><CommandButton kind="session.revoke" target={s.id} label="sign out" doing="signing out" variant="danger" disabled={!ready} confirm={`sign ${s.label} out of this workspace?`} /></li>)}</ul> : <p className="mt-2 text-13 text-ink-3">only the app on this computer. nothing else is signed in.</p>}
+      {devices.sessions.length ? <ul className="">{devices.sessions.map((s) => <li key={s.id} className="flex items-center gap-3 py-3"><Monitor {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><div className="truncate text-14 text-ink">{s.label}</div><p className="truncate text-13 text-ink-3">{[s.scopes.includes("admin") ? "owner" : "member", s.lastSeenAt ? `active ${ago(s.lastSeenAt, now)}` : s.createdAt ? `signed in ${ago(s.createdAt, now)}` : null].filter(Boolean).join(" · ")}</p></div><CommandButton kind="session.revoke" target={s.id} label="sign out" doing="signing out" variant="danger" disabled={!ready} confirm={`sign ${s.label} out of this workspace?`} /></li>)}</ul> : <p className="mt-2 text-13 text-ink-3">only the app on this computer. nothing else is signed in.</p>}
     </>}
   </Card>;
 }

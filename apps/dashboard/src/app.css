@@ -19,8 +19,8 @@
   --line-2: rgb(19 19 22 / 0.14);
   --ink: #131316;
   --ink-2: #4b4b55;
-  --ink-3: #6c6c77;
-  --ink-4: #91919b;
+  --ink-3: #5d5d68;
+  --ink-4: #787882;
   --track: #e4e4e1;
   --cell: #e9e9e6;
   --accent: #2f7bf2;
@@ -41,7 +41,7 @@
   --btn: #efefed;
   --btn-hover: #e4e4e1;
   --scrim: rgb(19 19 22 / 0.32);
-  --pop-shadow: 0 24px 60px -28px rgb(10 60 120 / 0.34), 0 0 0 1px rgb(19 19 22 / 0.07);
+  --pop-shadow: 0 24px 60px -28px rgb(10 60 120 / 0.34), 0 2px 8px -2px rgb(19 19 22 / 0.08);
   --sky: #e2f3ff;
   --lime: #eef8c6;
   --rose: #ffe7ef;
@@ -63,8 +63,8 @@
   --line-2: rgb(245 245 243 / 0.13);
   --ink: #f5f5f3;
   --ink-2: #c0c0c8;
-  --ink-3: #9a9aa3;
-  --ink-4: #73737d;
+  --ink-3: #a8a8b1;
+  --ink-4: #8a8a94;
   --track: #2e2e35;
   --cell: #26262c;
   --accent: #5b9bff;
@@ -84,7 +84,7 @@
   --btn: #27272d;
   --btn-hover: #32323a;
   --scrim: rgb(0 0 0 / 0.55);
-  --pop-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(245 245 243 / 0.08);
+  --pop-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.7), 0 2px 8px -2px rgb(0 0 0 / 0.4);
   --sky: #17293a;
   --lime: #232b12;
   --rose: #33202a;
@@ -250,12 +250,15 @@
   }
   body { margin: 0; min-height: 100dvh; }
   ::selection { background: color-mix(in oklab, var(--accent) 28%, transparent); }
-  /* buttons and links: a quiet ink ring for keyboard users only. fields never show a ring, a border or a new background */
+  /* no rings or borders anywhere: a keyboard user sees a control darken a step, layered over its own colour.
+     fields never show a ring, a border or a new background */
   :focus-visible {
-    outline: 2px solid color-mix(in oklab, var(--ink) 30%, transparent);
-    outline-offset: 3px;
+    outline: none;
+    background-image: linear-gradient(var(--focus-tint), var(--focus-tint));
   }
-  input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, select:focus, select:focus-visible { outline: none; box-shadow: none; }
+  input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, select:focus, select:focus-visible { outline: none; box-shadow: none; background-image: none; }
+  /* dialogs and panes take focus by script; only controls show the tint */
+  [tabindex="-1"]:focus-visible { background-image: none; }
   button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   button { cursor: pointer; font: inherit; color: inherit; }
   button:disabled { cursor: not-allowed; }
@@ -277,7 +280,10 @@
   .t-figure { font-weight: 500; font-size: 32px; line-height: 36px; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--ink); }
   .t-pixel { font-family: var(--font-pixel); font-size: 12px; line-height: 16px; letter-spacing: 0.02em; }
   .t-id { font-family: var(--font-mono); font-size: 13px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-  .t-meta { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; letter-spacing: -0.01em; color: var(--ink-3); }
+  .t-meta { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; letter-spacing: -0.01em; font-weight: 500; color: var(--ink-3); }
+  /* quiet ink reads a step heavier so it never looks faint; an explicit font-* utility still wins */
+  .text-ink-2 { font-weight: 450; }
+  .text-ink-3, .text-ink-4 { font-weight: 500; }
   /* a small pixel-type pill, like the tags on the site */
   .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--btn); font: 500 12px/1 var(--font-pixel); letter-spacing: 0.02em; color: var(--ink-2); white-space: nowrap; }
 
@@ -319,33 +325,43 @@
   .range::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--ink) var(--fill, 0%), var(--track) var(--fill, 0%)); }
   .range::-moz-range-track { height: 6px; border-radius: 999px; background: var(--track); }
   .range::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--ink); }
-  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 999px; background: var(--ink); border: 0; box-shadow: 0 0 0 4px var(--card); transition: transform var(--dur-fast) var(--ease-out); }
-  .range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 999px; background: var(--ink); border: 0; box-shadow: 0 0 0 4px var(--card); }
+  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 999px; background: var(--ink); border: 0; transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) ease; }
+  .range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 999px; background: var(--ink); border: 0; }
   .range:active::-webkit-slider-thumb { transform: scale(1.12); }
-  .range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--card), 0 0 0 6px color-mix(in oklab, var(--ink) 30%, transparent); }
-  .range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--card), 0 0 0 6px color-mix(in oklab, var(--ink) 30%, transparent); }
+  .range:focus-visible::-webkit-slider-thumb { background: var(--primary-hover); transform: scale(1.12); }
+  .range:focus-visible::-moz-range-thumb { background: var(--primary-hover); }
 
   /* a field looks the same focused as at rest; the caret and a fading placeholder are the only cues */
   .field { height: 46px; width: 100%; border-radius: 14px; border: 0; background: var(--btn); box-shadow: none; padding: 0 16px; font-size: 16px; color: var(--ink); outline: none; }
   .field::placeholder { color: var(--ink-4); transition: opacity 160ms ease; }
   .field:focus::placeholder { opacity: 0.55; }
-  .field[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--bad); }
+  .field[aria-invalid="true"] { background: color-mix(in oklab, var(--bad) 9%, var(--btn)); }
   .scroll-x { overflow-x: auto; scrollbar-width: none; }
   .scroll-x::-webkit-scrollbar { display: none; }
 }
 
-/* hovers stay light: cards and rows take a faint ink tint, chips a little more, and a button keeps its own colour and
-   gains a hairline and a soft shadow, so it never melts into the card under it */
+/* hovers stay light: cards and rows take a faint ink tint, chips a little more, and a quiet button steps one tone
+   darker. never a border, ring or raised shadow */
 :root {
   --tint: color-mix(in oklab, var(--ink) 3.5%, transparent);
   --tint-2: color-mix(in oklab, var(--ink) 7%, transparent);
-  --btn-ring: inset 0 0 0 1px var(--line-2), 0 1px 3px rgb(19 19 22 / 0.07);
+  --focus-tint: color-mix(in oklab, var(--ink) 10%, transparent);
 }
+/* filled buttons take their hover fill on focus; a dark fill would hide the ink tint */
+.hover-primary:focus-visible { background: var(--primary-hover); }
+.hover-accent:focus-visible { background-color: var(--accent-fill-hover); }
+/* a text link reads as a link: ink, a step heavier than the copy around it, never underlined or boxed */
+.text-link { color: color-mix(in oklab, var(--ink) 84%, var(--bg)); font-weight: 550; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .text-link:hover:not(:disabled) { color: var(--ink); }
+}
+/* a label wrapping a hidden radio or checkbox shows the tint when its input has keyboard focus */
+.focus-tint:has(:focus-visible) { background-image: linear-gradient(var(--focus-tint), var(--focus-tint)); }
 @media (hover: hover) and (pointer: fine) {
   .hover-row:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-side:hover { background: var(--tint); color: var(--ink); }
   .hover-ghost:hover { background: var(--tint-2); }
-  .hover-outline:hover:not(:disabled) { box-shadow: var(--btn-ring); }
+  .hover-btn:hover:not(:disabled) { background-image: linear-gradient(var(--tint-2), var(--tint-2)); }
   .hover-card:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-chip:hover { background-image: linear-gradient(var(--tint-2), var(--tint-2)); color: var(--ink); }
   .hover-primary:hover { background: var(--primary-hover); }
@@ -353,7 +369,8 @@
   .hover-lift:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-tile:hover { background-image: linear-gradient(color-mix(in oklab, var(--ink) 2.5%, transparent), color-mix(in oklab, var(--ink) 2.5%, transparent)); }
   .hover-tile:hover .tile-arrow { color: var(--ink); }
-  .hover-cell:hover { outline: 1px solid var(--ink-3); outline-offset: 0; }
+  .hover-cell:hover { filter: brightness(0.88); }
+  [data-theme="dark"] .hover-cell:hover { filter: brightness(1.35); }
   .hover-pick:hover { background-image: linear-gradient(var(--tint), var(--tint)); }
   .hover-link:hover { color: var(--ink); }
 }

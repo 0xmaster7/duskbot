@@ -199,7 +199,7 @@ function Recent({ rows: all }: { rows: BotRow[] }) {
   return (
     <Card className="enter !p-3" style={{ ["--i" as string]: 4 }} aria-labelledby="recent-title">
       <h2 id="recent-title" className="px-3 pb-1 pt-2 text-16 font-medium tracking-[-0.02em] text-ink">who ran last</h2>
-      <ul className="divide-y divide-line px-3">
+      <ul className="px-3">
         {rows.map(({ bot, where, mood }) => (
           <li key={`${where}-${bot.id}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[minmax(0,1fr)_200px_130px]">
             <span className="flex min-w-0 items-center gap-3">

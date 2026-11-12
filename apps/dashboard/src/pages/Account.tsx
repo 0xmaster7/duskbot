@@ -95,7 +95,7 @@ export function AccountPage() {
     <PageHeader title="account" />
     <section aria-labelledby="profile-title">
       <SectionTitle id="profile-title">profile</SectionTitle>
-      <div className="divide-y divide-line">
+      <div className="">
         <div className="flex min-w-0 items-center gap-3 py-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-card-2 text-14 font-medium uppercase text-ink-2" aria-hidden>{displayName.slice(0, 1)}</span>
           <div className="min-w-0 flex-1"><p className="truncate text-14 font-medium text-ink">{displayName}</p><p className="truncate text-13 text-ink-3">{profile.email}</p></div>
@@ -106,7 +106,7 @@ export function AccountPage() {
     </section>
     <section className="mt-10" aria-labelledby="sign-in-title">
       <SectionTitle id="sign-in-title">sign-in methods</SectionTitle>
-      <ul className="divide-y divide-line">{PROVIDERS.map((provider) => {
+      <ul className="">{PROVIDERS.map((provider) => {
         const identity = account.identities.find((item) => item.provider === provider.id);
         const last = account.identities.length <= 1;
         return <li key={provider.id} className="py-3"><div className="flex items-center gap-3"><span className="shrink-0 text-ink-3" aria-hidden><ProviderMark provider={provider.id} size={16} /></span><div className="min-w-0 flex-1"><p className="text-14 text-ink">{provider.label}</p>{identity && <p className="truncate text-13 text-ink-3">{identity.label}</p>}</div>{identity ? <Button size="sm" variant="ghost" className="-me-3.5" disabled={last || busy !== null} title={last ? "keep at least one sign-in method so you can access your account." : undefined} onClick={() => void unlink(provider.id)}>{busy === `identity-${provider.id}` ? "removing" : "remove"}</Button> : provider.id === "email" ? <span className="text-13 text-ink-4">always on</span> : <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => window.location.assign(api.oauthUrl(provider.id, "signin"))}>link</Button>}</div>{identityError?.provider === provider.id && <p role="alert" className="mt-2 text-13 text-bad">{identityError.message}</p>}</li>;
@@ -114,7 +114,7 @@ export function AccountPage() {
     </section>
     <section id="devices" className="mt-10 scroll-mt-20">
       <SectionTitle>devices</SectionTitle>
-      {account.devices.length ? <ul className="divide-y divide-line">{account.devices.map((device) => {
+      {account.devices.length ? <ul className="">{account.devices.map((device) => {
         const Icon = device.kind === "desktop" ? Monitor : device.kind === "phone" ? Smartphone : Globe;
         return <li key={device.id} className="py-3"><div className="flex flex-wrap items-center gap-3"><Icon {...ICON} className="shrink-0 text-ink-3" aria-hidden /><div className="min-w-0 flex-1"><p className="truncate text-14 text-ink">{device.label}</p><p className="text-13 text-ink-3">{[device.platform, device.current ? "active now" : `last active ${ago(device.lastSeenAt, now)}`].filter(Boolean).join(" · ")}</p></div>{device.current ? <span className="text-13 text-ink-3">this device</span> : <Button size="sm" variant="ghost" className="-me-3.5" disabled={busy !== null} onClick={() => void revoke(device.id)}>{busy === `device-${device.id}` ? "revoking" : "revoke"}</Button>}</div>{deviceError?.id === device.id && <p role="alert" className="mt-2 text-13 text-bad">{deviceError.message}</p>}</li>;
       })}</ul> : <p className="text-14 text-ink-3">no devices reported yet.</p>}
@@ -123,21 +123,21 @@ export function AccountPage() {
     </section>
     <section className="mt-10" aria-labelledby="notifications-title">
       <SectionTitle id="notifications-title">notifications</SectionTitle>
-      <ul className="divide-y divide-line">{NOTIFICATIONS.map((item) => <li key={item.id} className="flex items-center gap-4 py-3"><div className="min-w-0 flex-1"><label htmlFor={`notification-${item.id}`} className="text-14 text-ink">{item.label}</label><p className="mt-0.5 text-13 text-ink-3">{item.hint}</p></div><Switch id={`notification-${item.id}`} label={item.label} checked={prefs[item.id]} disabled={notificationBusy} onChange={(checked) => void toggle(item.id, checked)} /></li>)}</ul>
+      <ul className="">{NOTIFICATIONS.map((item) => <li key={item.id} className="flex items-center gap-4 py-3"><div className="min-w-0 flex-1"><label htmlFor={`notification-${item.id}`} className="text-14 text-ink">{item.label}</label><p className="mt-0.5 text-13 text-ink-3">{item.hint}</p></div><Switch id={`notification-${item.id}`} label={item.label} checked={prefs[item.id]} disabled={notificationBusy} onChange={(checked) => void toggle(item.id, checked)} /></li>)}</ul>
     </section>
     <section className="mt-10" aria-labelledby="appearance-title">
       <SectionTitle id="appearance-title">appearance</SectionTitle>
-      <div className="divide-y divide-line"><div className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-14 text-ink">theme</span><Segmented<ThemePref> label="theme" value={theme} onChange={setTheme} options={[{ value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "system" }]} /></div></div>
+      <div className=""><div className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="text-14 text-ink">theme</span><Segmented<ThemePref> label="theme" value={theme} onChange={setTheme} options={[{ value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "system" }]} /></div></div>
     </section>
     <section className="mt-10" aria-labelledby="api-title">
       <SectionTitle id="api-title">developers</SectionTitle>
-      <p className="text-14 text-ink-3">drive your bots from your own scripts with the bot api. <a href={API_DOCS} target="_blank" rel="noreferrer" className="hover-link text-ink-2 underline decoration-line-2 underline-offset-4">read the api docs</a></p>
+      <p className="text-14 text-ink-3">drive your bots from your own scripts with the bot api. <a href={API_DOCS} target="_blank" rel="noreferrer" className="text-link">read the api docs</a></p>
     </section>
     <section className="mt-10" aria-labelledby="download-title">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="download-title">download your data</SectionTitle><p className="text-13 text-ink-3">a copy of your account, sign-ins, devices, workspaces, dusk cloud and plans as a json file.</p></div><Button onClick={() => window.location.assign("/v1/account/export")}>download</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 py-3"><div className="min-w-0 flex-1"><SectionTitle id="download-title">download your data</SectionTitle><p className="text-13 text-ink-3">a copy of your account, sign-ins, devices, workspaces, dusk cloud and plans as a json file.</p></div><Button onClick={() => window.location.assign("/v1/account/export")}>download</Button></div>
     </section>
     <section className="mt-10" aria-labelledby="delete-title">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-3"><div className="min-w-0 flex-1"><SectionTitle id="delete-title">delete account</SectionTitle><p className="text-13 text-ink-3">close your account and remove its workspaces from the dashboard.</p></div><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>delete account</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 py-3"><div className="min-w-0 flex-1"><SectionTitle id="delete-title">delete account</SectionTitle><p className="text-13 text-ink-3">close your account and remove its workspaces from the dashboard.</p></div><Button variant="danger" disabled={busy !== null} onClick={() => { setConfirmError(null); setConfirmEmail(""); setConfirm("delete"); }}>delete account</Button></div>
     </section>
     <Modal open={confirm !== null} onClose={close} title={confirm === "delete" ? "delete your account?" : "sign out everywhere?"} footer={<><Button disabled={busy !== null} onClick={close}>cancel</Button><Button variant={confirm === "delete" ? "danger" : "primary"} disabled={busy !== null || confirm === "delete" && (confirmEmail !== profile.email || destroyDesktopsNow && !confirmDestroy)} onClick={() => void finish()}>{busy === "delete" ? "deleting" : busy === "signout" ? "signing out" : confirm === "delete" ? blockers !== null ? "cancel everything and delete" : "delete account" : "sign out everywhere"}</Button></>}>
       {confirm === "delete" ? <><p>this permanently deletes your account, signs out every device and removes your workspaces from the dashboard. active plans and dusk cloud must be cancelled before deletion can finish.</p><div className="mt-4"><Field label="type your email to confirm" htmlFor="delete-email"><input id="delete-email" type="email" className="field" value={confirmEmail} disabled={busy !== null} autoComplete="off" onChange={(e) => setConfirmEmail(e.target.value)} /></Field></div></> : <p>every app and browser signs out, this one too.</p>}

@@ -48,13 +48,12 @@ function Rail({ at }: { at: number }) {
 /** dusk cloud first and chosen, this computer as the free way; the plan sits inside the cloud card, priced monthly */
 function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCatalog; home: Home; setHome(h: Home): void; plan: PaidPlan; setPlan(p: PaidPlan): void }) {
   const cloud = home === "cloud";
-  const ring = "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
   const plans = (["starter", "pro"] as const).flatMap((id) => { const b = bundleOf(catalog, id); return b ? [{ id, b }] : []; });
   return (
     <fieldset className="min-w-0">
       <legend className="sr-only">where your bots live</legend>
-      <div className={cx("rounded-[22px] p-2 transition-[box-shadow,background-color] duration-150", cloud ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-card bg-card")}>
-        <label htmlFor="home-cloud" className={cx("block cursor-pointer rounded-[16px]", ring)}>
+      <div className={cx("rounded-[22px] p-2 transition-[background-color] duration-150", cloud ? "bg-card-2" : "hover-card bg-card")}>
+        <label htmlFor="home-cloud" className="focus-tint block cursor-pointer rounded-[16px]">
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">
             <img src={meadow} alt="" width={800} height={354} className="h-[84px] w-full object-cover object-bottom" draggable={false} />
@@ -72,7 +71,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           </div>
         )}
       </div>
-      <label htmlFor="home-free" className={cx("mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? "bg-card shadow-[inset_0_0_0_2px_var(--ink)]" : "hover-card bg-card", ring)}>
+      <label htmlFor="home-free" className={cx("mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? "bg-card-2" : "hover-card bg-card", "focus-tint")}>
         <input id="home-free" type="radio" name="home" value="free" checked={home === "free"} onChange={() => setHome("free")} className="sr-only" />
         <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -158,7 +157,7 @@ export function Onboarding() {
   const chosen = catalog ? bundleOf(catalog, plan) : null;
   const price = chosen && catalog ? per(chosen.monthly, interval, catalog) : null;
   const mood: SceneMood = busy ? "thinking" : focused ? "typing" : "idle";
-  const back = (to: Step) => <button type="button" onClick={() => go(to)} className="hover-link -ms-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14 text-ink-3"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back</button>;
+  const back = (to: Step) => <button type="button" onClick={() => go(to)} className="text-link -ms-2 inline-flex h-11 items-center gap-1.5 rounded-full px-2 text-14"><ArrowLeft size={15} strokeWidth={1.75} aria-hidden />back</button>;
   const big = "w-full !h-12 !text-15";
 
   return (
@@ -168,7 +167,7 @@ export function Onboarding() {
       scene={scene}
       snug
       card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
-      aside={<button type="button" onClick={() => void finish()} disabled={busy} className="hover-link -me-2 h-11 rounded-full px-2 text-14 text-ink-3">skip</button>}
+      aside={<button type="button" onClick={() => void finish()} disabled={busy} className="text-link -me-2 h-11 rounded-full px-2 text-14">skip</button>}
     >
       <Rail at={at} />
       {step === "name" ? (
@@ -184,7 +183,7 @@ export function Onboarding() {
                 <span className="block text-14 font-medium text-ink">dusk cloud, {chosen?.name.toLowerCase() ?? "plus"}</span>
                 <span className="num block text-13 text-ink-3">{price ? `${price.amount}${price.unit}, cancel anytime` : <Skeleton className="h-4 w-28" />}</span>
               </span>
-              <button type="button" onClick={() => go("plan")} className="hover-link h-11 shrink-0 rounded-full px-1 text-14 text-ink-3 underline decoration-line-2 underline-offset-4">change</button>
+              <button type="button" onClick={() => go("plan")} className="text-link h-11 shrink-0 rounded-full px-1 text-14">change</button>
             </div>
           )}
           {error && <p id="onb-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}

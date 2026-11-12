@@ -45,7 +45,7 @@ export function UsersPage({ tabs }: { tabs?: ReactNode }) {
               {data.users.map((user) => (
                 <m.tr key={user.id} className="hover-row" layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ layout: { type: "spring", visualDuration: 0.26, bounce: 0 }, opacity: { duration: 0.18 } }}>
                   <Td className="max-w-[320px]">
-                    <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="block min-w-0 rounded-[6px] underline-offset-4 hover:underline">
+                    <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="text-link block min-w-0 rounded-[6px]">
                       <span className="block truncate text-14 text-ink">{user.email}</span>
                       <span className="block truncate text-12 text-ink-3">{user.name ?? "no name"} · {user.methods.join(", ")}{user.optOut ? " · opted out" : ""}</span>
                     </Link>
@@ -84,7 +84,7 @@ export function UserPage({ id }: { id: string }) {
   const now = useNow(60_000);
   return (
     <>
-      <Link to="/admin/people" className="hover-link mb-4 inline-flex items-center gap-1.5 text-13 text-ink-3"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> people</Link>
+      <Link to="/admin/people" className="text-link mb-4 inline-flex items-center gap-1.5 text-13"><ArrowLeft size={14} strokeWidth={1.75} aria-hidden /> people</Link>
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={10} />}
       {data && (
@@ -117,7 +117,7 @@ export function UserPage({ id }: { id: string }) {
           <div className="mt-10 grid grid-cols-2 gap-10 max-lg:grid-cols-1">
             <Section className="!mt-0" title="devices and sessions">
               {data.devices.length ? (
-                <ul className="divide-y divide-line">
+                <ul className="">
                   {data.devices.map((device) => (
                     <li key={device.id} className="flex min-h-12 items-center justify-between gap-3 py-2">
                       <span className="min-w-0"><span className="block truncate text-14 text-ink">{device.name}</span><span className="block text-12 text-ink-3">{device.kind}{device.platform ? ` · ${device.platform}` : ""}{device.appVersion ? ` · ${device.appVersion}` : ""}</span></span>
@@ -129,7 +129,7 @@ export function UserPage({ id }: { id: string }) {
             </Section>
             <Section className="!mt-0" title="workspaces">
               {data.workspaces.length ? (
-                <ul className="divide-y divide-line">
+                <ul className="">
                   {data.workspaces.map((ws) => (
                     <li key={ws.id} className="flex min-h-12 items-center justify-between gap-3 py-2">
                       <span className="min-w-0"><span className="block truncate text-14 text-ink">{ws.name}</span><span className="block text-12 text-ink-3">{ws.kind} · {ws.version || "version unknown"} · {ws.bots} bots · {n(ws.turns30d)} replies in 30 days</span></span>
@@ -141,7 +141,7 @@ export function UserPage({ id }: { id: string }) {
             </Section>
           </div>
 
-          <Section title="timeline" action={<Link to={`/admin/events?account=${encodeURIComponent(data.account.id)}`} className="hover-link text-13 text-ink-3 underline-offset-4 hover:underline">in the events explorer</Link>}>
+          <Section title="timeline" action={<Link to={`/admin/events?account=${encodeURIComponent(data.account.id)}`} className="text-link text-13">in the events explorer</Link>}>
             {data.timeline.length ? (
               <ol className="relative ms-1 border-s border-line">
                 {data.timeline.map((item, i) => (

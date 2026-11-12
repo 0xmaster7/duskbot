@@ -32,7 +32,7 @@ export function Activity({ detail, now, className, style }: { detail: WorkspaceD
       <m.div key={metric} className="mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}><Heatmap days={days} metric={metric} now={now} /></m.div>
       {empty
         ? <div className="mt-5 flex items-center gap-3"><span className="shrink-0" aria-hidden><Mascot body="wisp" color="purple" size={30} state="sleeping" tappable /></span><p className="text-14 text-ink-3">each square is a day. they fill in as your bots get work done.</p></div>
-        : <div className="mt-7 border-t border-line pt-5"><HeatStats days={days} metric={metric} now={now} /></div>}
+        : <div className="mt-7 pt-5"><HeatStats days={days} metric={metric} now={now} /></div>}
     </Card>
   );
 }

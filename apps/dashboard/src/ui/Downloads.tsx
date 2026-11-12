@@ -37,7 +37,7 @@ export function Downloads() {
               target="_blank"
               rel="noreferrer"
               onClick={() => track({ name: "download_click", props: { platform: p, detected_os: detected } })}
-              className={cx("hover-card group flex min-h-14 items-center gap-3.5 rounded-[16px] px-4 py-2.5", yours ? "bg-card shadow-[inset_0_0_0_1.5px_var(--line-2)]" : "bg-card")}
+              className={cx("hover-card group flex min-h-14 items-center gap-3.5 rounded-[16px] px-4 py-2.5", yours ? "bg-card-2" : "bg-card")}
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pop"><Mark platform={p} /></span>
               <span className="min-w-0 flex-1">

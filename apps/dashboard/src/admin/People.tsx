@@ -43,7 +43,7 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading />}
       {data && (data.people.length ? (
-        <ul className={cx("divide-y divide-line", loading && "opacity-70")}>
+        <ul className={cx("", loading && "opacity-70")}>
           {data.people.map((person) => (
             <li key={person.id}>
               <Link to={`/admin/people/visitors?person=${encodeURIComponent(person.id)}`} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
@@ -102,7 +102,7 @@ function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
             <div className="min-w-0">
               <div className="flex flex-wrap gap-1.5">
                 {data.customer && <span className="tag text-accent-ink">customer</span>}
-                {data.account ? <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="tag underline-offset-4 hover:underline">account</Link> : <span className="tag">anonymous</span>}
+                {data.account ? <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="tag">account</Link> : <span className="tag">anonymous</span>}
                 {data.installs > 0 && <span className="tag">{data.installs} app install{data.installs === 1 ? "" : "s"}</span>}
               </div>
               {data.summary && <p className="mt-1.5 text-13">first came from <span className="text-ink">{data.summary.source}</span>{data.summary.campaign ? ` (${data.summary.campaign})` : ""}, {where(data.summary.country, data.summary.city)}, {data.summary.device ?? "unknown device"}. {n(data.summary.visits)} visit{data.summary.visits === 1 ? "" : "s"}, {n(data.summary.pageviews)} page{data.summary.pageviews === 1 ? "" : "s"}.</p>}

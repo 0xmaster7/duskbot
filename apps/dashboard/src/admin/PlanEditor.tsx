@@ -118,7 +118,7 @@ export function PlanEditor({ detail, onChange }: { detail: UserDetail; onChange(
         {comps && <span className="tag" title="no money changes hands for plans set here">payments aren't live: every plan here is a free comp</span>}
       </div>
       <div className="rounded-[18px] bg-pop px-4 py-1">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
           <span className="text-[22px] font-medium tracking-[-0.03em] text-ink">{live ? live.plan ?? "custom" : "free"}</span>
           {live && <Status value={live.status} label={live.cancelAtPeriodEnd ? "cancelling" : live.status.replace(/_/g, " ")} />}
           {live && <span className="text-13 text-ink-3">{endLabel(live)}{live.comp ? " · comp" : ` · ${money(live.totalCents)} a ${live.interval}`}</span>}
@@ -197,7 +197,7 @@ function AuditList({ entries }: { entries: AuditEntry[] }) {
     <div className="mt-1.5 rounded-[18px] bg-pop p-3">
       <h3 className="text-13 font-medium text-ink">changes and notes</h3>
       {entries.length ? (
-        <ol className="mt-1 divide-y divide-line">
+        <ol className="mt-1">
           <AnimatePresence initial={false}>
             {entries.map((entry) => {
               const d = entry.detail;

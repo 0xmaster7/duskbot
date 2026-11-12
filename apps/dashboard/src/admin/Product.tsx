@@ -81,7 +81,7 @@ export function ImproveList({ items, limit }: { items: Improvement[]; limit?: nu
   const shown = limit ? items.slice(0, limit) : items;
   if (!shown.length) return <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">nothing stands out yet. this fills in as more people use dusk bot.</p>;
   return (
-    <ol className="flex flex-col gap-px overflow-hidden rounded-[20px] bg-line">
+    <ol className="flex flex-col gap-1.5 overflow-hidden rounded-[20px]">
       {shown.map((item, i) => (
         <li key={item.title} className="grid grid-cols-[32px_minmax(0,1fr)_auto] items-baseline gap-3 bg-card px-4 py-3.5">
           <span className="font-mono text-14 text-ink-4">{i + 1}</span>
@@ -123,7 +123,7 @@ function ImproveView({ data }: { data: ProductAnswer }) {
           <div className="rounded-[18px] bg-card p-5">
             <h3 className="text-13 text-ink-2">rating by moment, lowest first</h3>
             {likes.feedback.byMoment.length ? (
-              <ul className="mt-2 divide-y divide-line">
+              <ul className="mt-2">
                 {likes.feedback.byMoment.map((row) => <li key={row.moment} className="flex h-10 items-center justify-between gap-3 text-14"><span className="truncate text-ink-2">{words(row.moment)}</span><span className="font-mono num">{row.average} <span className="text-12 text-ink-4">({n(row.count)})</span></span></li>)}
               </ul>
             ) : <p className="mt-2 text-14 text-ink-3">no answers yet. the apps ask after a good stretch of replies, at most once a month.</p>}

@@ -166,9 +166,9 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
     <div className="flex items-center justify-between gap-4 px-3 py-2">
       <span className="text-14 text-ink-2" id="members-label">members</span>
       <div className="flex items-center gap-1" role="group" aria-labelledby="members-label">
-        <button type="button" aria-label="one member fewer" disabled={value <= min} onClick={() => onChange(value - 1)} className="press hover-outline grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Minus size={15} strokeWidth={1.5} /></button>
+        <button type="button" aria-label="one member fewer" disabled={value <= min} onClick={() => onChange(value - 1)} className="press hover-btn grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Minus size={15} strokeWidth={1.5} /></button>
         <output className="num w-9 text-center text-15 font-medium text-ink" aria-live="polite">{value}</output>
-        <button type="button" aria-label="one member more" disabled={value >= max} onClick={() => onChange(value + 1)} className="press hover-outline grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Plus size={15} strokeWidth={1.5} /></button>
+        <button type="button" aria-label="one member more" disabled={value >= max} onClick={() => onChange(value + 1)} className="press hover-btn grid size-9 place-items-center rounded-full bg-card-2 text-ink-2 disabled:opacity-40 max-sm:size-11"><Plus size={15} strokeWidth={1.5} /></button>
       </div>
     </div>
   );

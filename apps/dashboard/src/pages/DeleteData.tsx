@@ -165,7 +165,7 @@ export function DeleteDataAction({ cloud }: { cloud: CloudDesktop }) {
   useEffect(() => { if (shown && takeRetry("ask", cloud.id)) void ask(); }, [shown, ask, cloud.id]);
 
   if (!shown) return null;
-  const quiet = "hover-link mt-1 inline-flex h-8 items-center text-13 font-medium text-ink-2 disabled:opacity-45 max-sm:h-11";
+  const quiet = "text-link mt-1 inline-flex h-8 items-center text-13 disabled:opacity-45 max-sm:h-11";
   return (
     <div className="mt-4" aria-live="polite">
       {state === "sent" ? <p className="text-13 text-ink-2">check your email to confirm. the link works for an hour.</p>

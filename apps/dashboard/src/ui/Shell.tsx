@@ -67,7 +67,7 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
         aria-expanded={open}
         aria-label={`workspace: ${workspace?.name ?? "none yet"}. switch workspace`}
         onClick={() => setOpen((o) => !o)}
-        className="hover-outline flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
+        className="hover-btn flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "no workspace yet"}</span>
@@ -84,7 +84,7 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
               {w.id === workspace?.id && <Check size={15} strokeWidth={1.75} className="text-ink-2" aria-hidden />}
             </button>
           ))}
-          <div className="my-1 h-px bg-line" />
+          <div className="h-2" aria-hidden />
           <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start text-14 text-ink-2">
             <Plus size={16} strokeWidth={1.75} aria-hidden /> add a workspace
           </button>

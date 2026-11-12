@@ -35,12 +35,12 @@ export function Tabs({ label, items }: { label: string; items: Array<{ to: strin
   const { path } = useLocation();
   const line = usePill();
   return (
-    <nav aria-label={label} className="scroll-x mb-8 flex gap-1 border-b border-line max-sm:mb-6">
+    <nav aria-label={label} className="scroll-x mb-8 flex gap-1 max-sm:mb-6">
       {items.map((item) => {
         const active = path === item.to;
         return (
           <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined}
-            className={cx("relative -mb-px inline-flex h-10 shrink-0 items-center px-3 text-14", active ? "font-medium text-ink" : "text-ink-3 hover-link")}>
+            className={cx("relative inline-flex h-10 shrink-0 items-center px-3 text-14", active ? "font-medium text-ink" : "text-ink-3 hover-link")}>
             {item.label}
             {active && <m.span layoutId={line} transition={SPRING} className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-ink" aria-hidden />}
           </Link>
@@ -93,7 +93,7 @@ export function DayBars({ title, days, values, tone = "accent", height = 96 }: {
 export function FunnelStrip({ steps }: { steps: FunnelStep[] }) {
   const signups = steps.find((step) => step.id === "signup")?.count ?? 0;
   return (
-    <ol className="grid grid-cols-7 gap-px overflow-hidden rounded-[20px] bg-line max-xl:grid-cols-4 max-sm:grid-cols-2" aria-label="funnel">
+    <ol className="grid grid-cols-7 gap-1.5 overflow-hidden rounded-[20px] max-xl:grid-cols-4 max-sm:grid-cols-2" aria-label="funnel">
       {steps.map((step, i) => {
         const prev = steps[i - 1];
         const base = step.id === "site" ? Math.max(step.count, 1) : Math.max(signups, 1);

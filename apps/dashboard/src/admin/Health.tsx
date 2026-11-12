@@ -25,7 +25,7 @@ export function HealthPage() {
       {!data && loading && <Loading />}
       {data && (
         <>
-          <ul className="divide-y divide-line">
+          <ul className="">
             <Row label="account service" state="ok">up {duration(data.service.uptimeSec)} · node {data.service.node} · {n(data.service.rssMb)} mb memory</Row>
             <Row label="database" state={data.database.ok ? "ok" : "error"}>{data.database.detail}</Row>
             <Row label="analytics store" state={data.analytics.ok && !data.analytics.failed ? "ok" : "error"}>

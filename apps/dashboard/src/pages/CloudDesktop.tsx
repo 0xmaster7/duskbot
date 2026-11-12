@@ -28,9 +28,9 @@ function Empty() {
     <div className="flex flex-col gap-4">
       <CloudPitch title="keep your bots on 24/7" body="dusk cloud runs your bots all day and all night, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
       <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
-        <SectionTitle id="sizes-title" action={<Link to="/billing" className="hover-link inline-flex h-8 items-center text-13 text-ink-3">plans and billing</Link>}>sizes</SectionTitle>
+        <SectionTitle id="sizes-title" action={<Link to="/billing" className="text-link inline-flex h-8 items-center text-13">plans and billing</Link>}>sizes</SectionTitle>
         {catalog ? (
-          <ul className="divide-y divide-line">
+          <ul className="">
             {catalog.desktops.map((d) => (
               <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[160px_minmax(0,1fr)_200px_auto]">
                 <span className="text-14 font-medium text-ink">{d.name}</span>
@@ -115,7 +115,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
         <div className="mt-auto pt-6">
           <div className="rounded-[16px] bg-btn px-4 py-3.5">
             <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">need more room?</span> {next.name} gives you {botsLine(next.botComputers).toLowerCase()}{next.priority && !current?.priority ? " and priority wake" : ""}.</p>
-            <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="hover-link mt-2 inline-flex h-8 items-center text-13 font-medium text-ink-2 disabled:opacity-45">upgrade to {next.name}</button>
+            <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="text-link mt-2 inline-flex h-8 items-center text-13 disabled:opacity-45">upgrade to {next.name}</button>
           </div>
         </div>
       )}
@@ -217,14 +217,14 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>
-          <dl className="divide-y divide-line">
+          <dl className="">
             <KV k="runs on" v={cloud.placement === "shared" ? "shared, own sandbox" : "its own machine"} />
             <KV k="bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
             <KV k="created" v={longDate(cloud.createdAt)} />
             {sub && <KV k={sub.cancelAt ? "ends" : "renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
-          {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">to remove it, cancel it in <Link to="/billing" className="hover-link underline decoration-line-2 underline-offset-4">plans and billing</Link>.</p>}
+          {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">to remove it, cancel it in <Link to="/billing" className="text-link">plans and billing</Link>.</p>}
         </Card>
         {catalog ? <Size cloud={cloud} catalog={catalog} /> : <Skeleton className="h-[220px] !rounded-card" />}
       </div>

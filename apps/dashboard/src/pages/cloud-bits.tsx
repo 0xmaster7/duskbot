@@ -138,7 +138,7 @@ export function CloudPitch({ source = "dash_cloud", title = "keep your bots on w
         {(action !== false || link) && (
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
             {action === false ? null : action ?? <Button variant="primary" onClick={() => setOpen(true)}>get dusk cloud</Button>}
-            {link && <Link to={link.to} className="hover-link inline-flex h-9 items-center text-14 text-ink-3 max-sm:h-11">{link.label}</Link>}
+            {link && <Link to={link.to} className="text-link inline-flex h-9 items-center text-14 max-sm:h-11">{link.label}</Link>}
           </div>
         )}
       </div>

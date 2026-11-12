@@ -86,7 +86,7 @@ export function LivePage() {
               </Suspense>
               <div className="mt-3 flex items-center gap-3 px-1">
                 <button type="button" onClick={() => { if (playing) setPlaying(false); else { setReplay((at) => at ?? data.now - span); setPlaying(true); } }} aria-label={playing ? "pause the replay" : "replay the last 30 minutes"}
-                  className="press hover-outline grid size-10 shrink-0 place-items-center rounded-full bg-btn text-ink">{playing ? <Pause size={16} strokeWidth={1.75} /> : <Play size={16} strokeWidth={1.75} />}</button>
+                  className="press hover-btn grid size-10 shrink-0 place-items-center rounded-full bg-btn text-ink">{playing ? <Pause size={16} strokeWidth={1.75} /> : <Play size={16} strokeWidth={1.75} />}</button>
                 <label className="sr-only" htmlFor="replay-at">replay time</label>
                 <input id="replay-at" type="range" className="range flex-1" min={data.now - span} max={data.now} step={15_000} value={replay ?? data.now}
                   onChange={(e) => { setPlaying(false); const v = Number(e.target.value); setReplay(v >= data.now - 10_000 ? null : v); }} style={{ ["--fill" as string]: `${(((replay ?? data.now) - (data.now - span)) / span) * 100}%` }}

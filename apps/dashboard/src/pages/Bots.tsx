@@ -103,7 +103,7 @@ export function BotPage({ id }: { id: string }) {
                     <Stat label="tokens" value={compact(usage?.tokens ?? 0)} />
                     <Stat label="spend" value={usd(usage?.costUsd ?? 0)} />
                   </div>
-                  <dl className="mt-5 divide-y divide-line border-t border-line">
+                  <dl className="mt-5">
                     <KV k="model" v={bot.model ?? "not set"} />
                     <KV k="engine" v={bot.engine ?? "not set"} />
                   </dl>
@@ -111,7 +111,7 @@ export function BotPage({ id }: { id: string }) {
                 <Card>
                   <SectionTitle action={<ComputerActions bot={bot} computer={computer} />}>computer</SectionTitle>
                   {computer ? (
-                    <dl className="divide-y divide-line">
+                    <dl className="">
                       <KV k="state" v={<StatePill state={computer.state} />} />
                       <KV k="where" v={bot.computer ? PLACE[bot.computer] : computer.kind} />
                       <KV k="memory" v={computer.memoryBytes !== null ? `${bytes(computer.memoryBytes)}${computer.memoryLimitBytes ? ` of ${bytes(computer.memoryLimitBytes)}` : ""}` : "n/a"} />
@@ -123,7 +123,7 @@ export function BotPage({ id }: { id: string }) {
               <Card>
                 <SectionTitle>routines</SectionTitle>
                 {bot.routines.length ? (
-                  <ul className="divide-y divide-line">
+                  <ul className="">
                     {bot.routines.map((r) => (
                       <li key={r.id} className="flex items-center gap-4 py-3">
                         <div className="min-w-0 flex-1">

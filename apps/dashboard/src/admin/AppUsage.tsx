@@ -16,7 +16,7 @@ function RankedList({ title, rows, features = false }: { title: string; rows: Co
   return (
     <Section title={title} className="!mt-0 min-w-0">
       {rows.length ? (
-        <ol className="divide-y divide-line">
+        <ol className="">
           {rows.map((row) => (
             <li key={row.key} className="relative flex min-h-12 items-center justify-between gap-3 py-3 text-14">
               <span className="truncate text-ink-2" title={row.key}>{features ? row.key.replace(/_/g, " ") : row.key}</span>

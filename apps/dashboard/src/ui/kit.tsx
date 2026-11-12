@@ -13,9 +13,9 @@ export function Card({ children, className, as: Tag = "section", style, ...rest 
 type Variant = "primary" | "outline" | "ghost" | "danger";
 const VARIANT: Record<Variant, string> = {
   primary: "bg-primary text-primary-ink hover-primary",
-  outline: "bg-btn text-ink hover-outline",
+  outline: "bg-btn text-ink hover-btn",
   ghost: "text-ink-2 hover-ghost",
-  danger: "bg-btn text-bad hover-outline",
+  danger: "bg-btn text-bad hover-btn",
 };
 
 export function Button({ variant = "outline", size = "md", className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" }) {

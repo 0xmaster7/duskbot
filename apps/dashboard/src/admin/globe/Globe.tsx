@@ -26,7 +26,6 @@ function loadDots() {
   return dotsPromise ??= import("./land-dots.json").then(module => decodeDots(module.default as number[]));
 }
 
-const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-[3px]";
 
 export default function Globe(props: GlobeProps) {
   const { points, mode, selected, onSelect, className, summary } = props;
@@ -290,7 +289,7 @@ export default function Globe(props: GlobeProps) {
       role="application"
       aria-label={summary}
       aria-roledescription="globe"
-      className={`relative w-full overflow-hidden rounded-[24px] ${mode === "3d" ? "mx-auto aspect-square max-h-[640px] max-w-[640px] touch-none" : "aspect-[2/1] bg-card"} ${focusRing} ${className ?? ""}`}
+      className={`relative w-full overflow-hidden rounded-[24px] ${mode === "3d" ? "mx-auto aspect-square max-h-[640px] max-w-[640px] touch-none" : "aspect-[2/1] bg-card"} ${className ?? ""}`}
       onClick={event => {
         if (event.target === canvas.current || event.target === event.currentTarget) {
           if (!suppressClick.current) onSelect?.(null);
@@ -307,8 +306,8 @@ export default function Globe(props: GlobeProps) {
           aria-label={`${point.label}, ${point.detail}`}
           aria-pressed={selected === point.id}
           onClick={() => onSelect?.(point.id)}
-          className={`group absolute grid size-[34px] place-items-center rounded-full bg-pop ${focusRing}`}
-          style={{ display: "none", transform: "translate(-50%, -50%)", boxShadow: point.customer ? "0 0 0 2px var(--accent), var(--pop-shadow)" : "var(--pop-shadow)" }}
+          className={`group absolute grid size-[34px] place-items-center rounded-full bg-pop`}
+          style={{ display: "none", transform: "translate(-50%, -50%)", boxShadow: "var(--pop-shadow)" }}
         >
           <span
             aria-hidden="true"
@@ -325,7 +324,7 @@ export default function Globe(props: GlobeProps) {
               type="button"
               aria-label={button.label}
               onClick={() => controls.current?.zoom(button.delta)}
-              className={`grid size-11 place-items-center rounded-full bg-pop text-xl text-ink-2 ${focusRing}`}
+              className={`grid size-11 place-items-center rounded-full bg-pop text-xl text-ink-2`}
               style={{ boxShadow: "var(--pop-shadow)" }}
             >{button.text}</button>
           ))}

@@ -77,7 +77,7 @@ export function duration(ms: number | null) {
 export function Avatar({ seed, size = 32, customer }: { seed: string; size?: number; customer?: boolean }) {
   const { body, ink } = avatarOf(seed);
   return (
-    <span className={cx("grid shrink-0 place-items-center rounded-full bg-card", customer && "ring-2 ring-accent ring-offset-2 ring-offset-bg")} style={{ width: size + 8, height: size + 8 }} aria-hidden>
+    <span className={cx("grid shrink-0 place-items-center rounded-full bg-card", customer && "bg-wash-sky")} style={{ width: size + 8, height: size + 8 }} aria-hidden>
       <Mascot body={body} color={ink} size={size} still />
     </span>
   );
@@ -230,12 +230,12 @@ export function SalesChart({ data, notes, visitors, onNote, empty }: { data: Ser
             {money.renewal[at]! > 0 && <Row dot="var(--viz-renewal)" label="renewals" value={usd(money.renewal[at]!)} />}
             {money.refund[at]! < 0 && <Row dot="var(--viz-refund)" label="refunds" value={usd(money.refund[at]!)} />}
             <Row dot="var(--coral)" label="new customers" value={n(data.paid[at]!)} />
-            <div className="mt-1.5 border-t border-line pt-1.5">
+            <div className="mt-1.5 pt-1.5">
               {visitors && <Row dot="var(--viz-visitors)" label="visitors" value={n(data.visitors[at]!)} />}
               <Row label="signups" value={n(data.signups[at]!)} />
               {data.waitlist[at]! > 0 && <Row label="waitlist" value={n(data.waitlist[at]!)} />}
             </div>
-            {visibleNotes.filter((note) => noteIndex(note.at) === at).map((note) => <div key={note.id} className="mt-1.5 border-t border-line pt-1.5 text-12 text-ink-2">{note.text}</div>)}
+            {visibleNotes.filter((note) => noteIndex(note.at) === at).map((note) => <div key={note.id} className="mt-1.5 pt-1.5 text-12 text-ink-2">{note.text}</div>)}
           </m.div>
         )}
       </AnimatePresence>
@@ -323,7 +323,7 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
           return (
             <m.li key={`${tab}:${row.key}`} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.28, bounce: 0 }, opacity: { duration: 0.18 } }}>
               <button type="button" disabled={!onPick} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick ? on : undefined} title={`${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}${got ? `, ${usd(got)} revenue` : ""}`}
-                className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "ring-2 ring-accent" : onPick && "hover-ghost")}>
+                className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "bg-card-2" : onPick && "hover-ghost")}>
                 <m.span className={cx("absolute inset-0", byMoney && earned ? "bg-wash-lime" : "bg-wash-sky")} initial={{ clipPath: "inset(0% 100% 0% 0% round 10px)" }} animate={{ clipPath: `inset(0% ${(100 - bar).toFixed(2)}% 0% 0% round 10px)` }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} aria-hidden />
                 {row.signups > 0 && <m.span className="absolute inset-0 bg-wash-pink" initial={{ clipPath: "inset(0% 100% 0% 0% round 0px 10px 10px 0px)" }} animate={{ clipPath: `inset(0% ${(100 - bar).toFixed(2)}% 0% ${(bar - coral).toFixed(2)}% round 0px 10px 10px 0px)` }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} aria-hidden />}
                 <span className="relative min-w-0 flex-1 truncate text-ink">{label ? label(tab, row.key) : row.key}</span>
@@ -337,8 +337,8 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
         </AnimatePresence>
         {!rows.length && <li className="px-2.5 py-6 text-center text-13 text-ink-3">nothing in this window yet.</li>}
       </ul>}
-      {more && !panels?.[tab] ? <Link to={more} className="hover-link mx-auto mt-1.5 inline-flex h-8 items-center gap-1.5 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em] text-ink-3"><Maximize size={13} strokeWidth={1.75} aria-hidden /> details</Link>
-        : !panels?.[tab] && rows.length > limit && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1.5 h-8 px-3 text-12 text-ink-3">{all ? "show fewer" : `show all ${rows.length}`}</button>}
+      {more && !panels?.[tab] ? <Link to={more} className="text-link mx-auto mt-1.5 inline-flex h-8 items-center gap-1.5 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em]"><Maximize size={13} strokeWidth={1.75} aria-hidden /> details</Link>
+        : !panels?.[tab] && rows.length > limit && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1.5 h-8 px-3 text-12">{all ? "show fewer" : `show all ${rows.length}`}</button>}
     </section>
   );
 }

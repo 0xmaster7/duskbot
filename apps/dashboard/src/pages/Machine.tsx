@@ -65,7 +65,7 @@ export function MachineView({ detail, now, limit, region }: { detail: WorkspaceD
         <SectionTitle id="computers-title" action={<span className="num text-13 text-ink-3">{running} running{limit !== undefined ? ` · ${computers?.computers.length ?? 0} of ${limit === null ? "unlimited" : limit}` : ""}</span>}>bot computers</SectionTitle>
         {limit !== undefined && limit !== null && <Bar value={((computers?.computers.length ?? 0) / Math.max(1, limit)) * 100} className="-mt-1 mb-3" label="bot computers used" />}
         {computers?.computers.length ? (
-          <ul className="divide-y divide-line">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
+          <ul className="">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
         ) : (
           <p className="text-14 text-ink-3">{computers?.provider === "none" ? "no bot computers here. give a bot a computer in the app's bot settings." : "no bot computers yet. they appear once a bot uses its computer."}</p>
         )}
@@ -73,7 +73,7 @@ export function MachineView({ detail, now, limit, region }: { detail: WorkspaceD
       <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card>
           <SectionTitle action={m.update?.available ? <Badge tone="accent">update {m.update.latest} ready</Badge> : <Badge>up to date</Badge>}>server</SectionTitle>
-          <dl className="divide-y divide-line">
+          <dl className="">
             <KV k="machine uptime" v={duration(m.uptimeSec)} />
             <KV k="dusk bot running for" v={duration(m.processUptimeSec)} />
             <KV k="host" v={`${m.host.hostname} · ${m.host.platform} ${m.host.arch}`} />
@@ -86,7 +86,7 @@ export function MachineView({ detail, now, limit, region }: { detail: WorkspaceD
         </Card>
         <Card>
           <SectionTitle>services</SectionTitle>
-          <ul className="divide-y divide-line">
+          <ul className="">
             {m.services.map((s) => (
               <li key={s.id} className="flex items-center gap-3 py-2.5">
                 <span className={cx("live-dot", s.state === "running" ? "text-good" : s.state === "stopped" ? "text-bad" : "text-ink-4")} aria-hidden />

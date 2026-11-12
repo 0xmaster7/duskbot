@@ -65,7 +65,7 @@ export function RetentionPage({ tabs }: { tabs?: ReactNode }) {
                         <div className="flex items-center gap-3">
                           <Avatar seed={user.id} size={24} customer={user.customer} />
                           <div className="min-w-0 max-w-[280px]">
-                            <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="block truncate rounded-[6px] text-14 text-ink underline-offset-4 hover:underline">{user.email}</Link>
+                            <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="text-link block truncate rounded-[6px] text-14">{user.email}</Link>
                             <span className="block truncate text-12 text-ink-3">{user.name ?? <Nil />}</span>
                           </div>
                         </div>
