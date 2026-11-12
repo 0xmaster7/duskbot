@@ -105,6 +105,7 @@ export function createAdmin(options: AdminOptions) {
       placement: c.placement, region: c.region, regionLabel: regionLabel(c.region, !!c.backend), status, setupStep: c.setupStep, backend: c.backend ?? null, origin: c.origin,
       spec: c.spec, createdAt: c.createdAt, provisionedAt: c.provisionedAt ?? null, powerSince: c.powerSince, lastReportAt: view.lastReportAt,
       suspended: c.suspended !== null, ended: !!c.ended, destroyAt: c.destroyAt, error: c.error, subscription: sub ? { status: sub.status, periodEnd: sub.currentPeriodEnd } : null,
+      egress: view.egress ? { bytes: view.egress.bytes, state: view.egress.state } : null,
       actions: {
         pause: c.suspended === null && usable && ["running", "sleeping"].includes(c.status),
         resume: c.suspended !== null ? c.status === "suspended" && usable : usable && ["stopped", "sleeping"].includes(c.status),
@@ -311,7 +312,12 @@ export function createAdmin(options: AdminOptions) {
   async function infraAnswer() {
     const time = now(), start = Date.UTC(new Date(time).getUTCFullYear(), new Date(time).getUTCMonth(), 1);
     const rows = options.infra ? await options.infra.store.range(dayKey(start), dayKey(time)) : [];
-    return { now: time, collected: !!options.infra, ...marginReport({ now: time, customers: deep.customers(), rows }) };
+    const egress = new Map<string, "slowed" | "paused">();
+    for (const c of allClouds()) {
+      const state = c.managed ? billing.clouds.view(c).egress?.state : undefined;
+      if (state === "paused" || state === "slowed" && egress.get(c.accountId) !== "paused") egress.set(c.accountId, state);
+    }
+    return { now: time, collected: !!options.infra, ...marginReport({ now: time, customers: deep.customers(), rows, egress }) };
   }
 
   async function health() {

@@ -5,7 +5,7 @@ import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/
 import { desktopMonthly, desktopOf, dollars, gb, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
-import { longDate } from "../lib/format";
+import { longDate, MONTH_NAMES } from "../lib/format";
 import { SETUP_LABELS } from "../data/live";
 import { SETUP_STEPS } from "../data/wire";
 import { Link } from "../lib/router";
@@ -206,7 +206,13 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <p className="mt-1 text-13 text-ink-3">waking it usually fixes this. if it does not, <a href="mailto:hello@dusk.bot" className="text-link">write to us</a> and we look at it right away.</p>
         </Card>
       )}
-      {asleep && (
+      {cloud.egressLimit && (
+        <Card className="!py-4" aria-live="polite">
+          <p className="text-14 text-ink">{egressNotice(cloud.egressLimit)}</p>
+          <p className="mt-1 text-13 text-ink-3">chat, browsing and your apps use very little. a proxy, a file host or a big upload loop is what gets here. <a href="mailto:hello@dusk.bot" className="text-link">write to us</a> if that looks wrong.</p>
+        </Card>
+      )}
+      {asleep && cloud.egressLimit?.state !== "paused" && (
         <Card className="flex flex-wrap items-center gap-5">
           <Mascot color="silver" size={40} state="sleeping" />
           <div className="min-w-0 flex-1">
@@ -257,4 +263,10 @@ export function CloudDesktopPage() {
       {cloud.status === "provisioning" ? <SettingUp cloud={cloud} /> : <Live cloud={cloud} />}
     </div>
   );
+}
+
+/** the 1st, in utc: the day the month's limits lift */
+export function egressNotice(limit: NonNullable<CloudDesktop["egressLimit"]>): string {
+  const day = new Date(limit.until), date = `${MONTH_NAMES[day.getUTCMonth()]!.toLowerCase()} ${day.getUTCDate()}`;
+  return limit.state === "paused" ? `your dusk cloud sent a lot of data this month, so it is paused until ${date}.` : `your dusk cloud sent a lot of data this month, so its connection is slowed until ${date}.`;
 }

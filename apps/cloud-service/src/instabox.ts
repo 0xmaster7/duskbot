@@ -4,7 +4,9 @@
 // a machine's unique name is what keeps a retried create from making a second one; a suspend keeps memory and processes,
 // a stopped machine boots fresh, a paused one cannot be stopped; a public port answers 503 while its machine is paused by
 // us and does not wake it; exec runs `bash -lc` as the machine user (passwordless sudo) and is never retried here;
-// DELETE needs X-Confirm-Delete; there is no purge of stopped disks and no region.
+// DELETE needs X-Confirm-Delete; there is no purge of stopped disks and no region. Snapshots (docs/pricing.md, read
+// 2026-11-13) are free and outlive their machine; a paused machine cannot be saved, a stopped one saves at once. There is
+// no network limit in the API (create and PATCH take none): a machine's upload is capped near 50 Mbit/s by its host.
 import { randomUUID } from "node:crypto";
 import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";
@@ -18,6 +20,8 @@ export const INSTABOX_SIZES = [
 ] as const;
 /** cents per vCPU-hour and per GiB-hour of memory, billed per second while running (pricing.md, read 2026-11-11) */
 export const INSTABOX_PRICES = { vcpuCents: 0.4, memGiBCents: 0.225 } as const;
+/** /data per GiB-month, billed while the machine exists; the workspace's included pool is not counted, so this is an upper bound */
+export const INSTABOX_DISK_CENTS_PER_GIB_MONTH = 8;
 export const INSTABOX_HOME_PORT = 8080;
 /** starts (create, start, resume, wake) a minute per workspace, by plan (limits.md) */
 export const INSTABOX_STARTS_PER_MINUTE = { pro: 30, builder: 50, team: 100 } as const;
@@ -44,6 +48,7 @@ export function instaboxCostProfile(options: { plan?: InstaboxPlan; heldProbabil
   const included = { minute, hour: minute * 60, day: minute * 60 * 24 };
   return {
     computeCentsPerHour: instaboxHourlyCents,
+    diskCentsPerHour: spec => spec.diskGb * INSTABOX_DISK_CENTS_PER_GIB_MONTH / 730,
     floorCentsPerHour: Math.min(...INSTABOX_SIZES.map(z => z.vcpu * INSTABOX_PRICES.vcpuCents + (z.memMiB / 1024) * INSTABOX_PRICES.memGiBCents)),
     included, hardCap: included,
     startCents: used => (["minute", "hour", "day"] as const).some(w => used[w] + 1 > included[w]) ? Number.POSITIVE_INFINITY : 0,
@@ -61,6 +66,8 @@ const MACHINE_ID = /^m_[a-z0-9]{26}$/;
 const OPERATION_ID = /^op_[a-z0-9]{26}$/;
 const CLOUD_ID = /^c[0-9a-f]{24}$/;
 const LIVE_SNAPSHOT = /^live-([a-z0-9]{26})-(\d{13})$/;
+const SNAPSHOT_ID = /^sn_[a-z0-9]{26}$/;
+const SNAPSHOT_NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const time = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
 
 export class InstaboxError extends ProviderError {
@@ -263,6 +270,16 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
     await call("PATCH", `/v1/machines/${m.id}`, { body: { metadata: { ...m.metadata, "omb.setup": "running" } }, idempotent: true });
   }
 
+  function snapshotOf(value: unknown): { id: string; name: string; status: string } | null {
+    const v = value as Record<string, unknown> | null;
+    return v && typeof v.id === "string" && SNAPSHOT_ID.test(v.id) && typeof v.status === "string" ? { id: v.id, name: typeof v.name === "string" ? v.name : "", status: v.status } : null;
+  }
+  async function snapshotNamed(name: string) {
+    const data = await call("GET", "/v1/snapshots");
+    for (const value of data?.snapshots ?? []) { const snap = snapshotOf(value); if (snap?.name === name) return snap; }
+    return null;
+  }
+
   const provider: MachineProvider = {
     name: "managed",
     scope: options.scope,
@@ -285,8 +302,11 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
       }
       if (!m) {
         const size = instaboxSize(input.spec, sizes);
-        const metadata = { "omb.cloud": input.cloudId, "omb.scope": options.scope, "omb.attempt": String(attempt), "omb.setup": "pending" };
-        const body = { name, templateId: template, vcpus: size.vcpu, memMiB: size.memMiB,
+        // from an archived home's snapshot: its disks are the set-up home, so no setup runs and its /data comes back whole
+        const archived = input.snapshotId ?? null;
+        if (archived !== null && !SNAPSHOT_ID.test(archived)) throw new Error("Invalid InstaBox snapshot id.");
+        const metadata = { "omb.cloud": input.cloudId, "omb.scope": options.scope, "omb.attempt": String(attempt), "omb.setup": archived ? "done" : "pending" };
+        const body = { name, ...(archived ? { snapshotId: archived } : { templateId: template }), vcpus: size.vcpu, memMiB: size.memMiB,
           autoSuspendAfterSeconds: idlePause * 60, vault: false, secrets: [], metadata };
         try { await call("POST", "/v1/machines", { body, idempotent: true, timeoutMs: 90_000 }); }
         catch (error) {
@@ -403,6 +423,41 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
       const n = (v: unknown) => typeof v === "number" && Number.isFinite(v) ? v : 0;
       return { from: time(data.from) ?? 0, to: time(data.to) ?? 0, runningSeconds: n(data.runningSeconds), vcpuSeconds: n(data.vcpuSeconds), memGiBSeconds: n(data.memGiBSeconds),
         diskGiBSeconds: n(data.diskGiBSeconds), egressBytes: n(data.egressBytes) };
+    },
+    async archive(serverId, name) {
+      if (!SNAPSHOT_NAME.test(name)) throw new Error("Invalid InstaBox snapshot name.");
+      let m = await get(serverId);
+      if (!m) return null;
+      let snap = await snapshotNamed(name);
+      if (!snap) {
+        // a paused machine can be neither saved nor stopped: resumed first; a stopped one saves at once, with nothing copied
+        if (m.state === "suspended") { await call("POST", `/v1/machines/${serverId}/resume`, { body: {}, idempotent: true }); m = await settle(serverId, awake); }
+        if (m.state !== "stopped") {
+          if (awake(m)) await exec(serverId, "sync", 30).catch(() => {});
+          await call("POST", `/v1/machines/${serverId}/stop`, { body: {}, idempotent: true });
+          await settle(serverId, x => x.state === "stopped");
+        }
+        try { snap = snapshotOf(await call("POST", `/v1/machines/${serverId}/snapshots`, { body: { name, description: "dusk bot: a home kept after its plan ended" }, idempotent: `dusk-snap-${name}` })); }
+        catch (error) {
+          // a lost answer retried: the name is taken by the snapshot the first request made
+          if (!(error instanceof InstaboxError && error.status === 409)) throw error;
+          snap = await snapshotNamed(name);
+        }
+        if (!snap) throw new RetryableCloudError("InstaBox snapshot not found after saving it.");
+      }
+      const end = Date.now() + settleMs * 5;
+      while (snap.status === "pending") {
+        if (Date.now() > end) throw new RetryableCloudError("InstaBox snapshot still saving.");
+        await sleep(pollMs);
+        snap = snapshotOf(await call("GET", `/v1/snapshots/${snap.id}`, { missingOk: true }));
+        if (!snap) throw new RetryableCloudError("InstaBox snapshot vanished while saving.");
+      }
+      if (snap.status !== "ready") throw new InstaboxError(409, "snapshot_failed");
+      return { id: snap.id };
+    },
+    async deleteSnapshot(snapshotId) {
+      if (!SNAPSHOT_ID.test(snapshotId)) throw new Error("Invalid InstaBox snapshot id.");
+      await call("DELETE", `/v1/snapshots/${snapshotId}`, { headers: { "x-confirm-delete": snapshotId }, idempotent: `dusk-snap-delete-${snapshotId}`, missingOk: true });
     },
     // the clouds service never reaches this: managed machines are deleted only by the gated reconciler, through requestDelete
     async destroy() { throw new Error("InstaBox machines are deleted only by the retention reconciler."); },

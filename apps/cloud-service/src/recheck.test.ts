@@ -108,7 +108,8 @@ function blackout(provider: ReturnType<F["instance"]>["provider"], id: string, u
   if (unlisted) provider.listed = async x => x === id ? false : listed(x);
   return () => { provider.machine = machine; provider.listed = listed; };
 }
-const holds = (f: F) => [...f.api.machines.values()].some(x => x.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`));
+/** the unbacked data is still somewhere: on a machine, or in a provider snapshot of one */
+const holds = (f: F) => [...f.api.machines.values(), ...f.api.snapshots.values()].some(x => x.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`));
 
 for (const count of [1, 2, 3]) {
   it(`${count} 404s inside 30 minutes, then an answer: no rebuild`, async () => {
@@ -138,7 +139,7 @@ it("3 404s spread just under 30 minutes and unlisted: still no rebuild", async (
   expect(c.managed!.attempt).toBe(0);
 });
 
-it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: rebuilt, original kept asleep, never deleted while paid", async () => {
+it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: rebuilt, the original saved whole as a snapshot before its disk is deleted", async () => {
   const f = await fixture(); const { service: s, provider, audit } = f.instance();
   const { c, original } = await withUnbackedData(f, s);
   const restore = blackout(provider, original, true);
@@ -150,8 +151,9 @@ it("confirmed lost (404 and unlisted past 30 minutes) but the disk comes back: r
   for (let day = 0; day < 60; day++) { f.advance(DAY_MS); if (c.status === "sleeping") await wake(f, s, c); await sleepCycle(f, s, c); for (let n = 0; n < 3; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await s.reconcile(); } }
   expect(f.api.deletes()).toHaveLength(0);
   expect(holds(f)).toBe(true);
-  expect(c.managed!.retired.map(r => r.serverId)).toContain(original);
-  expect(f.api.machines.get(original)!.state).toBe("suspended");
+  const retired = c.managed!.retired.find(r => r.serverId === original)!;
+  expect(f.api.snapshots.get(retired.snapshotId!)!.volume.has(`data/${CLOUD_HOME.dataName}/precious.json`)).toBe(true);
+  expect(f.api.machines.has(original)).toBe(false);
   expect(audit.entries(c.id).map(e => e.action)).not.toContain("delete_requested");
 });
 

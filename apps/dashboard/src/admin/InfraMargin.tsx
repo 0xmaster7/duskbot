@@ -33,7 +33,7 @@ function Row({ c, compact }: { c: InfraCustomer; compact?: boolean }) {
           <Avatar seed={c.accountId} size={22} customer />
           <span className="min-w-0">
             <span className="block truncate text-13 font-medium text-ink">{personName(c.accountId, c.email)}</span>
-            <span className="block truncate text-12 text-ink-4">{c.plan}{compact && c.mrr > 0 ? `, ${usd(c.mrr)}/mo` : ""} · {c.awakeHours}h awake</span>
+            <span className="block truncate text-12 text-ink-4">{c.plan}{compact && c.mrr > 0 ? `, ${usd(c.mrr)}/mo` : ""} · {c.awakeHours}h awake · {c.egressGb} gb out{c.egressState && <span className="text-warn"> · {c.egressState}</span>}</span>
           </span>
         </span>
         {!compact && <span className={cx("text-end font-mono text-13 num max-md:hidden", c.mrr > 0 ? "font-medium text-money" : "text-ink-4")}>{c.mrr > 0 ? usd(c.mrr) : "-"}</span>}

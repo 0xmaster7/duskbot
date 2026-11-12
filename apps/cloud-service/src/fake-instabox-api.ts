@@ -18,7 +18,8 @@ export interface FakeExec { machine: FakeMachine; cmd: string }
 
 export async function startFakeInstaboxApi(options: { now?: () => number; key?: string; setupPolls?: number } = {}) {
   const now = options.now ?? Date.now, key = options.key ?? `ibk_${"t".repeat(52)}`;
-  const machines = new Map<string, FakeMachine>(), operations = new Map<string, Record<string, unknown>>(), snapshots = new Map<string, { id: string; name: string; status: string; createdAt: number; source: string }>();
+  const machines = new Map<string, FakeMachine>(), operations = new Map<string, Record<string, unknown>>(), snapshots = new Map<string, { id: string; name: string; status: string; createdAt: number; source: string; volume: Map<string, Buffer>; files: Map<string, Buffer>; diskGiB: number }>();
+  const egress = new Map<string, number>(), saved = new Set<string>();
   const requests: Array<{ method: string; path: string; body: unknown; headers: Record<string, string | string[] | undefined> }> = [];
   const idem = new Map<string, unknown>();
   let failNext = 0, limitNext = 0, busyNext = 0, startsBlockedUntil = 0, coldResume = false, refuseResume: string | null = null, growNeedsStop = false, usedGiB = 0;
@@ -95,8 +96,10 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     if (path === "/v1/usage" && method === "GET") return send(res, 200, { machines: machines.size, limits: { maxMachines: 500 } });
     const op = /^\/v1\/operations\/(op_[a-z2-7]{26})$/.exec(path);
     if (op) { const found = operations.get(op[1]!); return found ? send(res, 200, found) : error(res, 404, "not_found"); }
-    if (path === "/v1/snapshots" && method === "GET") return send(res, 200, { snapshots: [...snapshots.values()].map(s => ({ ...s, createdAt: iso(s.createdAt) })) });
+    const snapView = (s: { id: string; name: string; status: string; createdAt: number; source: string }) => ({ id: s.id, name: s.name, status: s.status, createdAt: iso(s.createdAt), sourceMachineId: s.source });
+    if (path === "/v1/snapshots" && method === "GET") return send(res, 200, { snapshots: [...snapshots.values()].map(snapView) });
     const snap = /^\/v1\/snapshots\/(sn_[a-z2-7]{26})$/.exec(path);
+    if (snap && method === "GET") { const found = snapshots.get(snap[1]!); return found ? send(res, 200, snapView(found)) : error(res, 404, "not_found"); }
     if (snap && method === "DELETE") { if (req.headers["x-confirm-delete"] !== snap[1]) return error(res, 409, "delete_confirmation_required"); snapshots.delete(snap[1]!); res.writeHead(204); res.end(); return; }
     if (path === "/v1/machines" && method === "POST") {
       const prior = idem.get(String(idemKey));
@@ -108,6 +111,11 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
       const m: FakeMachine = { id: ident("m"), name: body?.name ?? `box-${randomBytes(4).toString("hex")}`, state: "running", ready: true, metadata: body?.metadata ?? {}, vcpus: body?.vcpus ?? 4, memMiB: body?.memMiB ?? 8192,
         template: body?.snapshotId ? null : body?.templateId ?? "agent-browser", snapshotId: body?.snapshotId ?? null, autoSuspendAfterSeconds: body?.autoSuspendAfterSeconds ?? 1800,
         createdAt: now(), updatedAt: now(), files: new Map(), volume: new Map(), memory: new Set(), ports: new Map(), leases: new Map(), processesPreserved: null, runningMs: 0, runningSince: now(), setupPolls: 0, diskGiB: 20 };
+      if (body?.snapshotId) {
+        const from = snapshots.get(body.snapshotId);
+        if (!from) return error(res, 404, "not_found");
+        m.volume = new Map(from.volume); m.files = new Map(from.files); m.diskGiB = from.diskGiB;
+      }
       machines.set(m.id, m);
       const answer = operation(m, "create");
       idem.set(String(idemKey), answer);
@@ -188,12 +196,13 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     if (lease && method === "DELETE") { m.leases.delete(lease[1]!); res.writeHead(204); res.end(); return; }
     if (action === "snapshots" && method === "POST") {
       if ([...snapshots.values()].some(s => s.name === body?.name)) return error(res, 409, "name_taken");
-      const s = { id: ident("sn"), name: body.name, status: "ready", createdAt: now(), source: m.id }; snapshots.set(s.id, s);
-      return send(res, 201, { ...s, createdAt: iso(s.createdAt) });
+      if (m.state === "suspended") return error(res, 409, "operation_conflict");
+      const s = { id: ident("sn"), name: body.name, status: "ready", createdAt: now(), source: m.id, volume: new Map(m.volume), files: new Map(m.files), diskGiB: m.diskGiB }; snapshots.set(s.id, s); saved.add(m.id);
+      return send(res, 201, snapView(s));
     }
     if (action === "usage" && method === "GET") {
       const ms = m.runningMs + (m.runningSince !== null ? now() - m.runningSince : 0);
-      return send(res, 200, { from: iso(0), to: iso(now()), runningSeconds: Math.round(ms / 1000), vcpuSeconds: Math.round(ms / 1000) * m.vcpus, memGiBSeconds: ms / 1000 * m.memMiB / 1024, diskGiBSeconds: 0, egressBytes: 0 });
+      return send(res, 200, { from: iso(0), to: iso(now()), runningSeconds: Math.round(ms / 1000), vcpuSeconds: Math.round(ms / 1000) * m.vcpus, memGiBSeconds: ms / 1000 * m.memMiB / 1024, diskGiBSeconds: 0, egressBytes: egress.get(m.id) ?? 0 });
     }
     return error(res, 404, "not_found");
   });
@@ -216,11 +225,16 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     /** GiB of data on every machine's /data, for shrinks */
     diskUsed(gib: number) { usedGiB = gib; },
     onExec(fn: typeof handler) { handler = fn; },
+    /** what the machine has uploaded this month, as the meter reads it */
+    egress(machineId: string, bytes: number) { egress.set(machineId, bytes); },
     /** the machine is lost without anyone deleting it through the API */
     lose(machineId: string) { machines.delete(machineId); },
     /** the machine paused itself (idle, or our lease lapsed) */
     autoPause(machineId: string) { const x = machines.get(machineId); if (x && x.state === "running") { settle(x); x.state = "suspended"; x.ready = false; } },
-    deletes: () => requests.filter(r => r.method === "DELETE" && r.path.startsWith("/v1/machines/")),
+    /** deletes that lose data: a machine never saved as a snapshot, or a snapshot */
+    deletes: () => requests.filter(r => r.method === "DELETE" && (r.path.startsWith("/v1/snapshots/") || r.path.startsWith("/v1/machines/") && !saved.has(r.path.split("/")[3]!))),
+    /** every machine delete, saved first or not */
+    machineDeletes: () => requests.filter(r => r.method === "DELETE" && r.path.startsWith("/v1/machines/")),
     close: () => new Promise<void>(resolve => server.close(() => resolve())),
   };
 }

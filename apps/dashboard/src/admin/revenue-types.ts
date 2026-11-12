@@ -51,6 +51,8 @@ export interface PersonBilling {
 export interface InfraCustomer {
   accountId: string; email: string | null; plan: string; status: string; mrr: number; feeCents: number;
   computeCents: number; diskCents: number; costCents: number; projectedCents: number; awakeHours: number; marginCents: number; margin: number | null;
+  /** internet upload this month, and whether the egress guard slowed or paused one of its clouds */
+  egressGb: number; egressState: "slowed" | "paused" | null;
 }
 export interface InfraReport {
   now: number; collected: boolean; month: string; days: number; elapsed: number;

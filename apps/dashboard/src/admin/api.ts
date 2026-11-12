@@ -81,6 +81,8 @@ export interface CloudRow {
   setupStep: string | null; backend: string | null; origin: string | null; spec: { vcpu: number; ramGb: number; diskGb: number }; createdAt: number; provisionedAt: number | null;
   powerSince: number; lastReportAt: number | null; suspended: boolean; ended: boolean; destroyAt: number | null; error: string | null;
   subscription: { status: string; periodEnd: number | null } | null; actions: { pause: boolean; resume: boolean; delete: boolean };
+  /** internet upload this month and what the egress guard did (managed clouds) */
+  egress: { bytes: number; state: "ok" | "slowed" | "paused" } | null;
 }
 export interface TimelineItem { name: string; at: number; props: Record<string, string | number | boolean>; source: "event" | "record" }
 export interface UserDetail {

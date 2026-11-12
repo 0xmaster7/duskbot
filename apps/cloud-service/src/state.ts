@@ -3,6 +3,7 @@ import type {} from "../../dashboard/server/clouds/types.ts";
 import type { PowerMemory } from "./power/rails.ts";
 import type { PlannedRun } from "./power/schedule.ts";
 import type { HomeUpdateState } from "./home-update.ts";
+import type { EgressState } from "./egress.ts";
 
 /** one managed home's lifecycle record (lifecycle.ts) */
 export interface HomeLifecycleState {
@@ -14,7 +15,7 @@ export interface HomeLifecycleState {
   /** the generation the running machine came back from, for the notice */
   restoredFrom?: { file: string; at: number } | null;
   sleptAt: number | null;
-  sleepReason: "idle" | "plan" | "owner" | "operator" | null;
+  sleepReason: "idle" | "plan" | "owner" | "operator" | "egress" | null;
   /** when the home was told of the owner's pause (its open apps show it asleep); the machine stops a grace later */
   sleepNoticeAt?: number | null;
   nextDueAt: number | null;
@@ -49,7 +50,16 @@ export interface HomeLifecycleState {
   deletedAt: number | null;
   backupsDeleteAfter: number | null;
   /** machinees this cloud had before a recovery, stopped, deleted once the new one has its own verified backup */
-  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number }>;
+  retired: Array<{ serverId: string; at: number; deletion: { operationId: string | null; at: number } | null; backedUp?: number;
+    /** its provider snapshot, taken before its machine was deleted; dropped with the cloud */
+    snapshotId?: string | null; archivedAt?: number | null; archiveTryAt?: number | null }>;
+  /** the home saved as a provider snapshot after its plan ended, its machine (and the disk we paid for) deleted; a new
+   *  plan within retention boots a machine from it. `serverId`: the machine it came from, until that one is deleted */
+  archive?: { snapshotId: string; at: number; serverId: string | null; from?: string } | null;
+  /** the snapshot the next machine boots from (a revived archive) */
+  restoreSnapshot?: string | null;
+  /** this month's internet upload and what the egress guard did about it (egress.ts) */
+  egress?: EgressState | null;
   recoveries: number;
   hold: boolean;
   /** first setups that failed on their machine */

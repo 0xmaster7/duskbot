@@ -8,6 +8,8 @@ export interface BillingConfig {
   desktops: Record<"shared_s" | "shared_m" | "dedicated", DesktopOption>;
   dedicated: DedicatedPricing;
   poolQuotas: Record<"shared_s" | "shared_m", { netMbps: number; pids: number }>;
+  /** a managed cloud's internet upload a calendar month (UTC), in GB: the owner is alerted, then it is slowed, then paused */
+  egressGb: Record<"shared_s" | "shared_m" | "dedicated", { alert: number; slow: number; pause: number }>;
   appAllowances: Record<"shared_s" | "shared_m" | "dedicated", { computerHours: number; voiceCharacters: number }>;
   trial: null;
   bundles: Array<Pick<BundleView, "id" | "label" | "cart" | "highlights">>;
@@ -57,6 +59,9 @@ export const BILLING_CONFIG: BillingConfig = {
     vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 },
     sizes: [{ vcpu: 2, ramGb: 4 }, { vcpu: 4, ramGb: 8 }, { vcpu: 8, ramGb: 16 }] },
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
+  // InstaBox bills upload past the workspace's shared 1 TB at $0.02/GB and a machine can send ~50 Mbit/s (~16 TB a month):
+  // chat, browsing, connectors and updates send a few GB a month, so these only ever meet a proxy, a file host or a loop
+  egressGb: { shared_s: { alert: 25, slow: 50, pause: 100 }, shared_m: { alert: 50, slow: 100, pause: 200 }, dedicated: { alert: 100, slow: 200, pause: 400 } },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },
   trial: null,
   // free $0, plus $20 (a cloud machine), pro $50 (a bigger one and a work license for one person), team $119; the starter id sells as Plus

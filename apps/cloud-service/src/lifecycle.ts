@@ -21,6 +21,7 @@ import { ManagedCloudError } from "../../dashboard/server/clouds/managed.ts";
 import type { HomeClient, StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import type { HomeLifecycleState } from "./state.ts";
 import type { HomeUpdates } from "./home-update.ts";
+import { createEgressGuard } from "./egress.ts";
 
 /** how long open apps have between the owner's pause notice and the machine stopping (the reconciler's next pass or so) */
 export const OWNER_SLEEP_GRACE_MS = 10_000;
@@ -159,6 +160,8 @@ export function createLifecycle(deps: LifecycleDeps) {
   const state = (c: StoredCloud): HomeLifecycleState => (c.managed ??= freshManagedState());
   const rails = deps.rails ?? DEFAULT_RAILS;
   const pool = () => deps.starts?.view() ?? { used: { minute: 0, hour: 0, day: 0 }, blockedUntil: null };
+  const egress = createEgressGuard({ provider, now, save: c => deps.save(c), log: (c, action, reason, detail) => log(c, action, "reconciler", reason, detail),
+    alert: (_c, text) => console.warn(`managed: ALERT ${text}`) });
   /** the home's power memory (its starts, stops, failed starts and activity), checked on every read */
   function memory(c: StoredCloud): PowerMemory {
     const b = state(c), m = b.power ?? freshMemory(now());
@@ -173,8 +176,9 @@ export function createLifecycle(deps: LifecycleDeps) {
   function spendInit(c: StoredCloud): SpendInit {
     const b = state(c), fresh = c.status === "provisioning" && b.attempt === 0 && !c.serverId;
     // a home already running before its book opened: what it spent so far this month is priced as always-on
-    return { rate: rateOf(c.spec), up: !fresh, bytes: b.backups.reduce((n, g) => n + g.bytes, 0), prepaid: fresh, before: !fresh };
+    return { rate: rateOf(c.spec), up: !fresh, bytes: b.backups.reduce((n, g) => n + g.bytes, 0), prepaid: fresh, before: !fresh, disk: c.serverId ? diskOf(c.spec) : 0 };
   }
+  const diskOf = (spec: StoredCloud["spec"]) => deps.costProfile.diskCentsPerHour?.(spec) ?? 0;
   const spendView = (c: StoredCloud) => deps.spend ? deps.spend.view(c.id, () => spendInit(c)) : null;
   const spendNote = (c: StoredCloud, ev: Parameters<SpendLedger["record"]>[2]) => deps.spend?.record(c.id, () => spendInit(c), ev);
   /** what the provider says about the home's own machine: billed unless it is stopped or gone */
@@ -211,6 +215,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       else {
         const spec = kind === "resize" ? c.desiredSpec : c.spec;
         if (deps.spend.book(c.id).current?.rate !== rateOf(spec)) spendNote(c, { e: "rate", rate: rateOf(spec) });
+        if (deps.spend.book(c.id).current?.disk !== diskOf(spec)) spendNote(c, { e: "disk", rate: diskOf(spec) });
         spendNote(c, { e: "start", kind, cents: worst });
       }
     }
@@ -349,7 +354,7 @@ export function createLifecycle(deps: LifecycleDeps) {
         boot = image.claimBootFile({ cloudId: c.id, claim, redeem: `${deps.dashboardUrl}/v1/managed/claims/redeem` });
       }
       const server = await start(c, b.attempt > 0 ? "recover" : "create", () => provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData: image.setupScript({ releaseKeys: deps.releaseKeys, requireSigned: settings.requireSigned }),
-        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot] }));
+        ttlSeconds: settings.leaseSeconds, attempt: b.attempt, files: [boot], snapshotId: b.restoreSnapshot ?? null }));
       c.serverId = server.id; b.upstream = server.origin ?? null; c.origin = null; b.installed = null; b.leaseAt = now(); b.setupSince = now();
       log(c, "create", "reconciler", b.attempt ? "recovery" : "paid", { attempt: b.attempt });
       c.setupStep = "storage"; deps.save(c); return;
@@ -390,6 +395,13 @@ export function createLifecycle(deps: LifecycleDeps) {
     c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
     log(c, "running", "reconciler", b.restoredFrom ? "recovered" : "provisioned");
     if (b.restoredFrom && b.attempt > 0) notice(c, "recovered", b.restoredFrom.file ? b.restoredFrom.at : null);
+    if (b.restoreSnapshot) {
+      // back from its archive: the snapshot has done its job
+      const snapshotId = b.restoreSnapshot;
+      b.restoreSnapshot = null; if (b.archive?.snapshotId === snapshotId) b.archive = null;
+      await provider.deleteSnapshot(snapshotId).then(() => log(c, "snapshot_deleted", "reconciler", "restored", { snapshot: snapshotId }),
+        () => console.warn(`managed: snapshot ${snapshotId} of ${c.id} was restored but could not be deleted`));
+    }
     deps.save(c);
   }
 
@@ -557,6 +569,20 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (op && op.status !== "completed") return;
     }
     if (b.deletion && (await provider.machine(b.deletion.serverId)) !== null) return;
+    if (b.archive) {
+      // the archived home is the data now: the same record check as before a machine's delete
+      if (!rereadStored(c)) return;
+      const again = verdictFor(c);
+      if (!again.delete) { log(c, "delete_refused", "reconciler", again.reason); return; }
+      if (again.reason === "retention_over" && !neverSetUp(c) && !finalBackupOpens(c)) return;
+      await provider.deleteSnapshot(b.archive.snapshotId);
+      log(c, "snapshot_deleted", "reconciler", verdict.reason, { snapshot: b.archive.snapshotId });
+      b.archive = null; deps.save(c);
+    }
+    for (const old of b.retired) if (old.snapshotId) {
+      await provider.deleteSnapshot(old.snapshotId);
+      log(c, "snapshot_deleted", "reconciler", "retired_with_cloud", { snapshot: old.snapshotId }); old.snapshotId = null;
+    }
     for (const old of b.retired) if (!old.deletion) {
       const answer = await provider.requestDelete(old.serverId);
       old.deletion = { operationId: answer.operationId, at: now() };
@@ -584,18 +610,54 @@ export function createLifecycle(deps: LifecycleDeps) {
     deps.save(c);
   }
 
-  /** a machine a recovery replaced, or a second one the sweep found: kept asleep (its disk costs nothing up to the plan's
-   *  storage) and never deleted here, only with its cloud. Its data cannot be read while it sleeps, so the operator decides. */
+  /** a machine a recovery replaced, or a second one the sweep found: its data cannot be read here and may be newer than
+   *  the backup the recovery used, so it is saved whole as a provider snapshot (free) for the operator, kept until the
+   *  cloud is deleted, and the machine and the disk we pay for are deleted. */
   async function retiredStep(c: StoredCloud) {
     const b = state(c);
     for (const old of b.retired) {
-      if (old.deletion) continue;
-      const s = await provider.machine(old.serverId);
-      if (s?.state !== "running") continue;
-      if (deps.spend) spendNote(c, { e: "extra", cents: extraMachineCents(c), why: "retired_running" });
-      console.warn(`managed: ALERT cloud ${c.id}: replaced machine ${old.serverId} was found running; it is paused and charged to the home`);
-      await provider.power(old.serverId, "off"); log(c, "retired_stopped", "reconciler", "kept", { old: old.serverId });
+      if (old.deletion || old.archiveTryAt != null && now() - old.archiveTryAt < HOUR) continue;
+      old.archiveTryAt = now(); deps.save(c);
+      try {
+        // a paused one is resumed to be saved: a start of a second machine, charged to the home like its keep-alive
+        const snap = await start(c, "recover", () => provider.archive(old.serverId, snapshotName(old.serverId)), null, true);
+        if (snap) { old.snapshotId = snap.id; old.archivedAt = now(); deps.save(c); }
+        const answer = snap ? await provider.requestDelete(old.serverId) : { operationId: null };
+        old.deletion = { operationId: answer.operationId, at: now() };
+        log(c, "retired_deleted", "reconciler", snap ? "archived" : "gone", { old: old.serverId, snapshot: snap?.id ?? null });
+        deps.save(c);
+      } catch (error) {
+        if (error instanceof StartHeldError) continue;
+        log(c, "retired_archive_failed", "reconciler", error instanceof ProviderError ? error.code : "retry", { old: old.serverId });
+      }
     }
+  }
+  const snapshotName = (serverId: string) => `dusk-${serverId.slice(2)}`;
+
+  /** a plan that ended, with its final backup taken: the home saved whole as a provider snapshot (free) and its machine
+   *  deleted, so the retention months cost no disk; a new plan in time boots a machine from it */
+  async function archiveEnded(c: StoredCloud) {
+    const b = state(c), serverId = c.serverId!;
+    if (b.archive?.serverId !== serverId) {
+      const snap = await start(c, "wake", () => provider.archive(serverId, snapshotName(serverId)));
+      if (!snap) return;
+      b.archive = { snapshotId: snap.id, at: now(), serverId, from: serverId }; spendMark(c, false);
+      log(c, "archived", "reconciler", "plan_ended", { snapshot: snap.id }); deps.save(c);
+    }
+    const answer = await provider.requestDelete(serverId);
+    log(c, "archive_machine_deleted", "reconciler", "plan_ended", { operation: answer.operationId });
+    b.archive!.serverId = null; if (deps.spend) spendNote(c, { e: "disk", rate: 0 });
+    c.serverId = null; c.origin = null; b.upstream = null; c.status = "stopped"; deps.save(c);
+  }
+
+  /** a new plan for an archived home: a machine booted from its snapshot, with no setup and no restore */
+  function restoreArchive(c: StoredCloud) {
+    const b = state(c);
+    renewed(c);
+    b.attempt++; b.restoreSnapshot = b.archive!.snapshotId; b.restoreFrom = null; b.restoredFrom = null; b.claim = null; b.upstream = null; b.setupSince = now();
+    c.serverId = null; c.origin = null; c.status = "provisioning"; c.setupStep = "reserving"; c.wantPower = "on"; c.attempts = 0; c.nextAttemptAt = 0; c.error = null;
+    log(c, "restore_archive", "billing", "plan_renewed", { snapshot: b.restoreSnapshot });
+    deps.save(c);
   }
 
   /** a machine is lost only after repeated direct 404s spread over `lostAfterMs` and its absence from the account's list */
@@ -637,6 +699,9 @@ export function createLifecycle(deps: LifecycleDeps) {
     await reconcileStep(c);
     const b = state(c);
     if (b.limitStreak || b.setupRetries) { b.limitStreak = 0; b.setupRetries = 0; deps.save(c); }
+    if (c.status === "running" || c.status === "sleeping") {
+      await egress.step(c, c.status === "running" && b.wakeStartedAt === null).catch(error => console.warn(`managed: the egress check of ${c.id} failed: ${(error as Error).message}`));
+    }
   }
 
   async function reconcileStep(c: StoredCloud): Promise<void> {
@@ -649,6 +714,7 @@ export function createLifecycle(deps: LifecycleDeps) {
     if (c.status === "provisioning") return provisionStep(c, entitlement.active);
     if (c.setupStep !== null && entitlement.active && c.suspended === null) return c.status === "error" ? setupErrored(c) : resumeSetup(c);
     if (!c.serverId) {
+      if (entitlement.active && b.archive && b.archive.serverId === null && c.suspended === null) return restoreArchive(c);
       // an ended plan with no machine (a rebuild held for want of a plan) still gets its notices and keeps its old disks
       if (!entitlement.active) { if (c.status !== "stopped") { c.status = "stopped"; deps.save(c); } await planEnded(c, entitlement, verdict, false); await retiredStep(c); }
       return;
@@ -678,6 +744,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (s.state === "stopped") {
         c.status = "stopped";
         await retiredStep(c);
+        if (covered && !b.hold && c.suspended === null && verdict.earliestAt !== null) return archiveEnded(c);
         // asleep with no final backup as new as its data: woken once to take it (a start costs nothing, only seconds)
         // each such wake that brought no backup doubles the wait to the next, up to a day: a home whose backup cannot succeed
         // (too large, refused) is not woken every few minutes until the operator looks
@@ -697,6 +764,12 @@ export function createLifecycle(deps: LifecycleDeps) {
 
     const up = s.state === "running";
     if (s.state === "error") { await start(c, "recover", () => provider.power(c.serverId!, "on")).catch(() => {}); b.wakeStartedAt = now(); log(c, "resume", "reconciler", "provider_error"); deps.save(c); return; }
+    if (s.state === "stopped" && egress.paused(c)) {
+      // paused for its upload: no wake of any kind until the month ends
+      if (c.status !== "sleeping" || b.stayReason !== "egress_paused") { c.status = "sleeping"; b.stayReason = "egress_paused"; deps.save(c); }
+      await retiredStep(c);
+      return;
+    }
     const resizeKey = `${c.desiredSpec.vcpu}-${c.desiredSpec.ramGb}-${c.desiredSpec.diskGb}`;
     const resizeWanted = (c.desiredSpec.vcpu !== c.spec.vcpu || c.desiredSpec.ramGb !== c.spec.ramGb || c.desiredSpec.diskGb !== c.spec.diskGb) && b.resizeBlocked !== resizeKey;
     if (s.state === "stopped" && resizeWanted) {
@@ -727,6 +800,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       return;
     }
     if (!up) return;
+    if (egress.paused(c)) return sleepNow(c, "egress", "reconciler");
     if (!c.origin || !b.upstream) publish(c, b.upstream ?? c.origin ?? await provider.origin(c.serverId));
     if (b.wakeStartedAt !== null || c.status !== "running") {
       // a resume that kept memory finds the home running (the start command says so); a cold boot starts it
@@ -825,7 +899,7 @@ export function createLifecycle(deps: LifecycleDeps) {
   /** only a paid, unsuspended home that is up or idle-asleep: never one stopped for its plan, an operator or a delete */
   function edgeWakeable(c: StoredCloud): boolean {
     return (c.status === "running" || c.status === "sleeping") && !c.ended && c.suspended === null && (c.destroyAt === null || c.destroyAt > now())
-      && deps.entitlement(c).active && !(state(c).deleteRequest?.confirmedAt && state(c).deleteRequest?.cancelledAt === null) && state(c).deletion === null;
+      && deps.entitlement(c).active && !egress.paused(c) && !(state(c).deleteRequest?.confirmedAt && state(c).deleteRequest?.cancelledAt === null) && state(c).deletion === null;
   }
   return {
     redeemClaim,
@@ -851,6 +925,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       return { ok: true, status: 202 };
     },
     reconcile,
+    egress: (c: StoredCloud) => egress.view(c),
     verdict: (c: StoredCloud) => verdictFor(c),
     /** its data is still kept: within retention, with no deletion under way */
     revivable(c: StoredCloud) {

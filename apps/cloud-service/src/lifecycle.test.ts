@@ -176,12 +176,17 @@ it("keeps an ended plan's home asleep for 30 days with notices, then deletes it 
   expect(f.notices.map(n => n.kind)).toEqual(["ended", "left_7"]);
   expect(f.api.deletes()).toHaveLength(0);
   expect(c.status).toBe("stopped");
-  // no wake was needed for it: the home stayed asleep the whole retention period
-  expect(f.audit.entries(c.id).filter(e => e.action === "wake")).toHaveLength(0);
+  // kept as a free provider snapshot, its machine and the disk we pay for deleted at once
+  const archive = c.managed!.archive!;
+  expect(c.serverId).toBeNull();
+  expect(f.api.snapshots.get(archive.snapshotId)!.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
+  expect(f.api.machines.size).toBe(0);
+  expect(f.api.machineDeletes()).toHaveLength(1);
   f.advance(0.2 * DAY_MS);
   await f.settle(c, c => c.status === "destroyed");
   expect(f.api.deletes()).toHaveLength(1);
-  expect(f.alerts).toEqual(expect.arrayContaining(["delete_requested:retention_over", "deleted:retention_over"]));
+  expect(f.api.snapshots.size).toBe(0);
+  expect(f.alerts).toEqual(expect.arrayContaining(["snapshot_deleted:retention_over", "deleted:retention_over"]));
   expect(f.notices.at(-1)!.kind).toBe("deleted");
   expect(f.workspaces.remove).toHaveBeenCalledWith("workspace-1");
   // the backups outlive the machine for the tail, then go
@@ -200,7 +205,7 @@ it("an ended plan's home that paused itself with no final backup is woken once t
   for (let n = 0; n < 10; n++) { f.advance(30 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   const wakes = f.audit.entries(c.id).filter(e => e.action === "wake");
   expect(wakes.map(e => e.reason)).toEqual(["final_backup"]);
-  expect(f.api.machines.get(c.serverId!)!.state).toBe("suspended");
+  expect(c.managed!.archive).toMatchObject({ serverId: null });
   expect(c.managed!.backups.at(-1)!.snapshotAt).toBeGreaterThanOrEqual(c.managed!.lastStopAt!);
   f.advance(46 * DAY_MS);
   await f.settle(c, c => c.status === "destroyed");
@@ -232,10 +237,19 @@ it("a new subscription within retention revives the paused home with its data; o
   f.subscriptions.push(next);
   expect(f.service.revive(c.id, next.id, plan)).toBe(true);
   await f.settle(c, c => c.status === "running", 20, 1_000);
-  expect(c.serverId).toBe(serverId);
-  expect(f.api.machines.get(serverId)!.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
+  // a new machine booted from the archive's snapshot: no setup ran on it, its data is the old disk's
+  expect(c.serverId).not.toBe(serverId);
+  expect(f.api.machines.has(serverId)).toBe(false);
+  const create = f.api.requests.filter(r => r.method === "POST" && r.path === "/v1/machines").at(-1)!.body as Record<string, unknown>;
+  expect(create).toMatchObject({ snapshotId: expect.stringMatching(/^sn_/) });
+  expect(create.templateId).toBeUndefined();
+  expect(f.api.machines.get(c.serverId!)!.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
   expect(f.notices.map(n => n.kind)).toContain("resumed");
-  expect(f.api.deletes()).toHaveLength(0);
+  expect(f.notices.map(n => n.kind)).not.toContain("recovered");
+  // the snapshot did its job and is gone; nothing else was deleted
+  expect(c.managed!.archive).toBeNull();
+  expect(f.api.snapshots.size).toBe(0);
+  expect(f.api.deletes().map(d => d.path)).toEqual([expect.stringMatching(/^\/v1\/snapshots\/sn_/)]);
 
   const other = await f.paid("acct_2");
   other.sub.status = "ended"; other.sub.currentPeriodEnd = f.now(); other.sub.lastEventAt = f.now();
@@ -338,7 +352,7 @@ it("a plan upgrade resizes the machine in place: its disk kept, booted on the ne
   expect(f.service.managed!.resizing(c)).toBe(false);
 });
 
-it("a replaced machine that answers again is paused and kept, never deleted", async () => {
+it("a replaced machine that answers again is saved as a snapshot, then its machine and disk are deleted", async () => {
   const f = await homeFixture();
   const { c } = await f.paid();
   f.advance(DAY_MS); f.power.idle = true; f.power.busy = [];
@@ -352,14 +366,15 @@ it("a replaced machine that answers again is paused and kept, never deleted", as
   for (let n = 0; n < 40 && !(c.status === "running" && c.serverId !== original); n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
   expect(c.serverId).not.toBe(original);
   expect(c.managed!.retired.map(r => r.serverId)).toContain(original);
-  // it answers again, still running: paused and charged to the home; nothing deleted
+  // it answers again, still running: saved whole, then deleted; its snapshot stays for the operator
   f.provider.machine = machine; f.provider.listed = listed;
   for (let n = 0; n < 6; n++) { f.advance(11 * 60_000); c.nextAttemptAt = 0; await f.service.reconcile(); }
-  expect(f.api.machines.get(original)!.state).toBe("suspended");
-  expect(f.audit.entries(c.id).map(e => e.action)).toContain("retired_stopped");
   for (let day = 0; day < 20; day++) { f.advance(DAY_MS); c.nextAttemptAt = 0; await f.service.reconcile(); }
+  const retired = c.managed!.retired.find(r => r.serverId === original)!;
+  expect(f.audit.entries(c.id).map(e => e.action)).toContain("retired_deleted");
+  expect(f.api.snapshots.get(retired.snapshotId!)!.volume.get(`data/${CLOUD_HOME.dataName}/bots.json`)!.toString()).toContain("Test bot");
+  expect(f.api.machines.has(original)).toBe(false);
   expect(f.api.deletes()).toHaveLength(0);
-  expect(f.api.machines.has(original)).toBe(true);
   // a backup still opens with this service's key only
   expect(f.backups.read(c.id, homeBackupKey(BACKUP_SECRET, c.id), c.managed!.backups.at(-1)!.file).includes("Test bot")).toBe(true);
 });

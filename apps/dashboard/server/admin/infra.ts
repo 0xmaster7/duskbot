@@ -132,16 +132,16 @@ const pct = (part: number, whole: number) => whole > 0 ? Math.round(part / whole
 
 /** this month's InstaBox cost against MRR. Margin compares a full month of MRR, less Dodo's fee, with the month-to-date
  *  cost scaled to the whole month. */
-export function marginReport(input: { now: number; customers: readonly MarginCustomer[]; rows: readonly InfraDay[]; worst?: number }) {
+export function marginReport(input: { now: number; customers: readonly MarginCustomer[]; rows: readonly InfraDay[]; worst?: number; egress?: ReadonlyMap<string, "slowed" | "paused"> }) {
   const at = input.now, start = Date.UTC(new Date(at).getUTCFullYear(), new Date(at).getUTCMonth(), 1), end = Date.UTC(new Date(at).getUTCFullYear(), new Date(at).getUTCMonth() + 1, 1);
   const elapsed = Math.min(1, Math.max(DAY, at - start) / (end - start));
   const monthDays = new Set<string>(), rows = input.rows.filter(row => row.day >= dayKey(start) && row.day < dayKey(end));
-  const byAccount = new Map<string, { compute: number; disk: number; running: number; vcpu: number; diskGiB: number }>();
+  const byAccount = new Map<string, { compute: number; disk: number; running: number; vcpu: number; diskGiB: number; egress: number }>();
   const byCloud = new Map<string, { running: number; days: number }>();
   for (const row of rows) {
     monthDays.add(row.day);
-    const a = byAccount.get(row.accountId) ?? { compute: 0, disk: 0, running: 0, vcpu: 0, diskGiB: 0 };
-    a.compute += row.computeCents; a.disk += row.diskCents; a.running += row.runningSeconds; a.vcpu += row.vcpuSeconds; a.diskGiB += row.diskGiBSeconds;
+    const a = byAccount.get(row.accountId) ?? { compute: 0, disk: 0, running: 0, vcpu: 0, diskGiB: 0, egress: 0 };
+    a.egress += row.egressBytes; a.compute += row.computeCents; a.disk += row.diskCents; a.running += row.runningSeconds; a.vcpu += row.vcpuSeconds; a.diskGiB += row.diskGiBSeconds;
     byAccount.set(row.accountId, a);
     const c = byCloud.get(row.cloudId) ?? { running: 0, days: 0 };
     c.running += row.runningSeconds; c.days++;
@@ -155,7 +155,7 @@ export function marginReport(input: { now: number; customers: readonly MarginCus
     const costCents = Math.round((cost?.compute ?? 0) + (cost?.disk ?? 0)), projectedCents = Math.round(((cost?.compute ?? 0) + (cost?.disk ?? 0)) / elapsed);
     return { accountId, email: customer?.email ?? null, plan: customer?.plan ?? "none", status: customer?.status ?? "none", mrr, feeCents: fee,
       computeCents: Math.round(cost?.compute ?? 0), diskCents: Math.round(cost?.disk ?? 0), costCents, projectedCents,
-      awakeHours: Math.round((cost?.running ?? 0) / 360) / 10, marginCents: mrr - fee - projectedCents, margin: pct(mrr - fee - projectedCents, mrr) };
+      awakeHours: Math.round((cost?.running ?? 0) / 360) / 10, egressGb: Math.round((cost?.egress ?? 0) / 1e8) / 10, egressState: input.egress?.get(accountId) ?? null, marginCents: mrr - fee - projectedCents, margin: pct(mrr - fee - projectedCents, mrr) };
   }).sort((a, b) => b.mrr - a.mrr || b.costCents - a.costCents);
   const sum = (pick: (row: typeof customers[number]) => number) => customers.reduce((total, row) => total + pick(row), 0);
   const mrr = sum(row => row.mrr), fees = sum(row => row.feeCents), projected = sum(row => row.projectedCents);

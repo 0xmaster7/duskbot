@@ -172,11 +172,12 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         reconcile: c => lifecycle.reconcile(c),
         retryAt: (c, error) => lifecycle.retryAt(c, error),
         view(c): Partial<CloudDesktopView> {
-          const m = c.managed, retained = lifecycle.verdict(c);
+          const m = c.managed, retained = lifecycle.verdict(c), egress = lifecycle.egress(c);
           return { provider: "managed", lastBackupAt: m?.backups.at(-1)?.at ?? null,
             deleteScheduledAt: m?.deleteRequest?.confirmedAt && m.deleteRequest.cancelledAt === null ? m.deleteRequest.executeAfter : null,
             deleteAskedAt: m?.deleteRequest && !m.deleteRequest.confirmedAt && m.deleteRequest.cancelledAt === null && (m.deleteRequest.tokenExpiresAt ?? 0) > ctx.now() ? m.deleteRequest.requestedAt : null,
-            waking: c.status === "sleeping" && (c.wantPower === "on" || m?.wakeStartedAt != null),
+            waking: c.status === "sleeping" && (c.wantPower === "on" || m?.wakeStartedAt != null) && egress?.state !== "paused",
+            egress: egress && { bytes: egress.bytes, state: egress.state === "alerted" ? "ok" : egress.state, until: egress.until },
             ...(c.status !== "destroyed" ? { destroyAt: retained.earliestAt } : {}) };
         },
         afterPass: clouds => sweep.sweep(clouds),

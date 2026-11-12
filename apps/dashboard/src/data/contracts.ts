@@ -194,6 +194,8 @@ export interface CloudDesktop extends MachineSpec {
   deleteScheduledAt?: number | null;
   /** the owner asked to delete its data; the emailed link stays valid for an hour after */
   deleteAskedAt?: number | null;
+  /** it uploaded so much this month that its connection is slowed, or it is paused, until `until` */
+  egressLimit?: { state: "slowed" | "paused"; until: number } | null;
 }
 
 export type CheckoutRequest =

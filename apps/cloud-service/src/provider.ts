@@ -20,6 +20,8 @@ export interface MachineCreateInput extends CreateServerInput {
   files?: Array<{ path: string; content: string }>;
   ttlSeconds: number | null;
   attempt?: number;
+  /** boot from this provider snapshot (a home archived when its plan ended) instead of a fresh template: already set up */
+  snapshotId?: string | null;
 }
 /** what the provider measured for one machine over a window */
 export interface MachineUsage { from: number; to: number; runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number }
@@ -41,6 +43,11 @@ export interface MachineProvider extends CloudProvider {
   requestDelete(serverId: string): Promise<{ operationId: string | null; gone: boolean }>;
   limits(): Promise<{ nextStartCents: number | null } | null>;
   usage(serverId: string, from?: number): Promise<MachineUsage | null>;
+  /** the machine stopped and saved whole (system disk and /data) as a provider snapshot named `name`; the same name again
+   *  finds the one already made. null: the machine is gone */
+  archive(serverId: string, name: string): Promise<{ id: string } | null>;
+  /** a snapshot deleted; one already gone is no error */
+  deleteSnapshot(snapshotId: string): Promise<void>;
 }
 
 export class ProviderError extends Error {

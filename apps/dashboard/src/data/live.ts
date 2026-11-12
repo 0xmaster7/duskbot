@@ -112,6 +112,7 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
     ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
     ...(cloud.revivedAt ? { revivedAt: cloud.revivedAt } : {}),
+    ...(cloud.egress && cloud.egress.state !== "ok" && cloud.egress.until !== null ? { egressLimit: { state: cloud.egress.state, until: cloud.egress.until } } : {}),
     ...(cloud.provider === "managed" ? { provider: "managed" as const, lastBackupAt: cloud.lastBackupAt ?? null, deleteScheduledAt: cloud.deleteScheduledAt ?? null, deleteAskedAt: cloud.deleteAskedAt ?? null } : {}),
   };
 }
