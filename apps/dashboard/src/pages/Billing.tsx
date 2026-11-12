@@ -256,7 +256,7 @@ export function BillingPage() {
         {card("starter", 1)}
         {card("pro", 2)}
       </div>
-      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel anytime."} personal use is free.{free ? ` work use is free until ${longDate(free)}.` : ""} need a dedicated machine? <a href={CONTACT} className="text-link">talk to us</a>.</p>
+      <p className="mt-3 text-13 text-ink-4">{interval === "year" ? "billed yearly, two months free." : "billed monthly, cancel any time."} personal use is free.{free ? ` work use is free until ${longDate(free)}.` : ""} need a dedicated machine? <a href={CONTACT} className="text-link">talk to us</a>.</p>
 
       {work && (
         <div className="surface mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">

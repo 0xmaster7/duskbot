@@ -8,8 +8,8 @@ const licenseKinds = { personal: "none", starter: "solo", team: "team" } as cons
 const desktopIds = { none: "none", shared_s: "shared-s", shared_m: "shared-m", dedicated: "dedicated" } as const;
 const desktopKinds = { none: "none", "shared-s": "shared_s", "shared-m": "shared_m", dedicated: "dedicated" } as const;
 const bundleBlurbs = {
-  free: "for personal use on your mac or your own vps",
-  starter: "work license and dusk cloud, on 24/7",
+  free: "for personal use on your computer or your own vps",
+  starter: "dusk cloud, on 24/7",
   pro: "more room and priority for serious bots",
   team: "a dedicated machine for the whole team",
 };
@@ -113,7 +113,7 @@ export function cloudFromWire(cloud: CloudDesktopView): CloudDesktop | null {
     id: cloud.id, name: cloud.name, status, tier: desktopIds[cloud.kind], placement: cloud.placement === "pool" ? "shared" : "dedicated", region: cloud.region,
     ...cloud.machine, workspaceId: cloud.workspaceId, createdAt: cloud.createdAt,
     progress: status === "provisioning" && cloud.setupStep !== null ? { step: SETUP_LABELS[cloud.setupStep], value: (SETUP_STEPS.indexOf(cloud.setupStep) + 0.5) / 4 } : null,
-    error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us to sort it out." : cloud.error,
+    error: cloud.status === "payment_problem" ? "the last payment did not go through. update your card to wake it." : cloud.status === "suspended" ? "it is paused. write to us at hello@dusk.bot to sort it out." : cloud.error,
     botComputers: { used: 0, limit: cloud.botComputers }, uptimeSec: null,
     ...(cloud.status === "checkout" ? { awaitingPayment: true } : {}),
     ...(cloud.revivedAt ? { revivedAt: cloud.revivedAt } : {}),

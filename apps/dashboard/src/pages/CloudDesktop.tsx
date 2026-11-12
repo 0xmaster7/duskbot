@@ -204,7 +204,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
       {cloud.status === "error" && (
         <Card className="!py-4" aria-live="polite">
           <p className="text-14 text-bad">{cloud.error ?? "it stopped answering."}</p>
-          <p className="mt-1 text-13 text-ink-3">waking it usually fixes this. if it does not, write to us and we look at it right away.</p>
+          <p className="mt-1 text-13 text-ink-3">waking it usually fixes this. if it does not, <a href="mailto:hello@dusk.bot" className="text-link">write to us</a> and we look at it right away.</p>
         </Card>
       )}
       {asleep && (

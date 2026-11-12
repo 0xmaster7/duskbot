@@ -112,7 +112,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
           })}
         </div>
       </fieldset>
-      <p className="mt-4 text-13 text-ink-3">on 24/7, cancel anytime.</p>
+      <p className="mt-4 text-13 text-ink-3">on 24/7, cancel any time.</p>
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}
