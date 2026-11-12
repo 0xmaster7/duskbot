@@ -56,7 +56,7 @@ export async function collectBrevo(input: { apiKey: string; now: number; fetch: 
   const headers = { "api-key": input.apiKey, accept: "application/json" };
   const base = "https://api.brevo.com/v3";
   const [today, month, account] = await Promise.all([
-    getJson(input.fetch, `${base}/smtp/statistics/aggregatedReport?days=1`, { headers }, "brevo"),
+    getJson(input.fetch, `${base}/smtp/statistics/aggregatedReport?startDate=${dayKey(input.now)}&endDate=${dayKey(input.now)}`, { headers }, "brevo"),
     getJson(input.fetch, `${base}/smtp/statistics/aggregatedReport?startDate=${dayKey(monthStart(input.now))}&endDate=${dayKey(input.now)}`, { headers }, "brevo")
       .catch(() => null),
     getJson(input.fetch, `${base}/account`, { headers }, "brevo account").catch(() => null),

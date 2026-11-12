@@ -111,7 +111,7 @@ describe("collectors", () => {
     const fake = (async (url: string) => {
       urls.push(url);
       if (url.endsWith("/account")) return json({ code: "permission_denied" }, 401);
-      return url.includes("days=1") ? json({ requests: 41, delivered: 40, hardBounces: 1, softBounces: 0, blocked: 0 }) : json({ requests: 612 });
+      return url.includes("startDate=2026-11-12&endDate=2026-11-12") ? json({ requests: 41, delivered: 40, hardBounces: 1, softBounces: 0, blocked: 0 }) : json({ requests: 612 });
     }) as unknown as typeof fetch;
     expect(await collectBrevo({ apiKey: "k", now: NOW, fetch: fake })).toEqual({ today: { sent: 41, delivered: 40, bounced: 1, blocked: 0 }, month: { sent: 612 }, plan: null });
     expect(urls.some(url => url.includes("startDate=2026-11-01&endDate=2026-11-12"))).toBe(true);
