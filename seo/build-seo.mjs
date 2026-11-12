@@ -8,6 +8,8 @@ import { createHash } from 'node:crypto';
 import { plan, seoDir, HUBS, TYPES } from './records.mjs';
 import { templates, connector, day } from './templates.mjs';
 import { scene, sceneHtml, signature, altText, sceneId, PROPS } from './art/scene.mjs';
+import { FAMILIES } from './art/card.mjs';
+import { HUB_CARDS, layCard, cardOptions } from './art/cards.mjs';
 const webpDims = (file) => { const b = fs.readFileSync(file), k = b.toString('ascii', 12, 16); if (k === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)]; if (k === 'VP8 ') return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff]; const n = b.readUInt32LE(21); return [1 + (n & 0x3fff), 1 + ((n >> 14) & 0x3fff)]; };
 import { checkPages } from './quality.mjs';
 
@@ -42,9 +44,29 @@ export function writeScenes(site, records) {
   for (const h of Object.values(HUBS)) h.alt = byScene.get(h.at).alt;
   const fileUrl = (f) => 'file://' + f;
   const art = { base: fileUrl(kitDir) + '/', font: fileUrl(path.join(site, 'fonts', 'general-sans.woff2')), mark: fileUrl(path.join(kitDir, 'mark-320.webp')) };
-  const out = scenes.map((s) => { const hero = sceneHtml(s, 'hero', art), og = sceneHtml(s, 'og', art); return { id: s.id, path: s.path, alt: s.alt, hash: hash(hero + og), hero, og }; });
+  // the share card (seo/art/card.mjs): the hubs have their own, every page gets one from its record and its scene
+  const opts = cardOptions(site), seen = new Map(), byPath = new Map(records.map((r) => [r.path, r]));
+  const out = scenes.map((s) => {
+    const hero = sceneHtml(s, 'hero', art), hub = HUB_CARDS[s.path];
+    const card = layCard(hub ? { ...hub, at: s.path, square: true } : cardPage(byPath.get(s.path), s), opts, seen);
+    const r = byPath.get(s.path);
+    if (r) r.cardAlt = card.alt; else for (const h of Object.values(HUBS)) if (h.at === s.path) h.cardAlt = card.alt;
+    return { id: s.id, path: s.path, alt: s.alt, hash: hash(hero), og_hash: hash(card.wide + (card.square || '')), hero, og: card.wide, og_square: card.square };
+  });
   fs.writeFileSync(path.join(seoDir, 'art', 'scenes.json'), JSON.stringify(out));
   return scenes;
+}
+
+// a seo page as a share card: its family from its kind, its bot from its scene, its app or rival on the tile
+const FAMILY_OF = { guide: 'guide', compare: 'compare', integration: 'integration', action: 'action', usecase: 'usecase', role: 'role', routine: 'routine', glossary: 'glossary', tool: 'tool' };
+function cardPage(r, s) {
+  const family = FAMILY_OF[r.kind] || 'guide', fam = FAMILIES[family];
+  const lead = s.bots.find((b) => !fam.avoid.includes(b.colour));
+  const tile = s.tile ? { logo: s.tile.logo, label: s.tile.label || s.tile.name } : {};
+  const app = (tile.label || '').toLowerCase();
+  const label_chip = family === 'integration' && app ? `${app} integration` : family === 'action' && app ? `${app} action` : family === 'compare' && r.path.startsWith('/vs/') ? 'one on one' : undefined;
+  return { at: r.path, family, title: r.og_title || r.h1, bubble: r.art?.bubble || '', line: r.art?.bubble ? '' : r.og_line || '', ...tile, vs: family === 'compare' && !tile.logo && !!tile.label,
+    props: s.props.map((p) => p.name), bot: lead ? `${lead.shape} ${lead.colour}` : undefined, flip: s.flip, ...(label_chip ? { label_chip } : {}) };
 }
 
 export function buildSeo(ctx) {
@@ -82,12 +104,12 @@ export function buildSeo(ctx) {
       { '@context': 'https://schema.org', '@type': 'Article', headline: r.h1, description: r.description, image: `${SITE_URL}/art/seo/${sceneId(r.path)}.webp`,
         datePublished: r.state.live_at || r.created || updated, dateModified: updated, author: org, publisher: org, mainEntityOfPage: `${SITE_URL}${r.path}` }];
     const html = layout({ title: r.title, description: r.description, body, page: r.path.slice(1), at: r.path, section: r.hub, kind: `p-doc p-seo p-seo-${r.kind}`,
-      og: 'seo', ogImage: `/art/seo/og/${sceneId(r.path)}.jpg`, ogType: 'article', ogAlt: r.alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
+      og: 'seo', ogImage: `/art/seo/og/${sceneId(r.path)}.jpg`, ogType: 'article', ogAlt: r.cardAlt || r.alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
     rendered.push({ r, html, related });
   }
   const hubPages = hubs.map((h) => {
     const { body, pages } = t.hubPage(h);
-    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: `/art/seo/og/${sceneId(h.at)}.jpg`, ogAlt: h.alt,
+    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: `/art/seo/og/${sceneId(h.at)}.jpg`, ogSquare: `/art/seo/og/${sceneId(h.at)}-sq.jpg`, ogAlt: HUBS[h.id]?.cardAlt || h.cardAlt || h.alt,
       styles: ['seo.css'], jsonld: [crumb([['Dusk Bot', '/'], [h.nav[0].toUpperCase() + h.nav.slice(1), h.at]])], noindex: preview && !pages.some((o) => o.indexable) });
     return { h, html, pages };
   });
@@ -116,7 +138,7 @@ export function buildSeo(ctx) {
   const gonePaths = [...JSON.parse(fs.readFileSync(path.join(seoDir, 'planned.json'), 'utf8')).paths, ...Object.keys(fs.existsSync(rejectedFile) ? JSON.parse(fs.readFileSync(rejectedFile, 'utf8')).paths : {})];
   for (const at of gonePaths) if (!byPath.has(at)) unwrite(at);
   for (const h of Object.values(HUBS)) if (!hubs.some((x) => x.at === h.at)) unwrite(h.at);
-  for (const { r, html } of rendered) if (r.built) write(r.path, html, { index: r.indexable, group: r.state.cohort, lastmodKey: hash(JSON.stringify({ ...r, state: undefined, alt: undefined })) });
+  for (const { r, html } of rendered) if (r.built) write(r.path, html, { index: r.indexable, group: r.state.cohort, lastmodKey: hash(JSON.stringify({ ...r, state: undefined, alt: undefined, cardAlt: undefined })) });
   for (const { h, html, pages } of hubPages) write(h.at, html, { index: pages.some((o) => o.indexable), group: 'hubs' });
 
   // pruned pages: merged ones send people on, removed ones answer 410

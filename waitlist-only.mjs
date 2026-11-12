@@ -24,7 +24,7 @@ fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'index.html'), html);
 
 // every file the page and its stylesheets point at
-const want = new Set(['favicon.ico', 'site.webmanifest', 'art/og-waitlist.jpg', 'art/icon-512.png', 'art/icon-maskable-512.png']);
+const want = new Set(['favicon.ico', 'site.webmanifest', 'art/og/waitlist.jpg', 'art/icon-512.png', 'art/icon-maskable-512.png']);
 for (const m of html.matchAll(/(?:href|src|content)="(?:https:\/\/dusk\.bot)?\/([^"?#]+\.[a-z0-9]{2,12})/gi)) want.add(m[1]);
 for (const f of [...want].filter((f) => f.endsWith('.css'))) {
   for (const m of fs.readFileSync(path.join(src, f), 'utf8').matchAll(/url\("?\/([^")?#]+)/g)) want.add(m[1]);

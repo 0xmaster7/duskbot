@@ -3,7 +3,7 @@
 // three of the pixel bots, an app tile (the official mark from art/logos, or a plain tile with the name) and a short chat
 // bubble. which pieces and where comes from the page's address, so a page keeps its picture from build to build and no two
 // pages share one. a record can name its own pieces under "art". sceneHtml() lays a scene out as a page that
-// seo/art/render.py photographs: the hero (1320 by 528, and 660 wide for phones) and the share card (1200 by 630).
+// seo/art/render.py photographs: the hero (1320 by 528, and 660 wide for phones). the share card is card.mjs's.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -125,34 +125,32 @@ function groundSvg(s, w, h) {
   return `<svg class="ground" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" shape-rendering="crispEdges" preserveAspectRatio="none">${rects}</svg>`;
 }
 
-// the page render.py photographs. mode "hero" is the page picture, "og" the share card with the title on it
-export function sceneHtml(s, mode, { base, font, mark }) {
-  const W = mode === 'og' ? 1200 : 1320, H = mode === 'og' ? 630 : 528, groundH = mode === 'og' ? 150 : 132;
-  const card = mode === 'og';
-  // the stage is where the bots and objects stand: the whole width for the hero, right of the card for the share picture
-  const stage = card ? [800, W - 30] : [40, W - 40];
+// the page render.py photographs: the page picture
+export function sceneHtml(s, mode, { base, font }) {
+  const W = 1320, H = 528, groundH = 132;
+  // the stage is where the bots and objects stand: the whole width
+  const stage = [40, W - 40];
   const span = stage[1] - stage[0];
   const floor = H - groundH + 30;
   const items = [];
-  const scale = card ? 0.62 : 0.7;
+  const scale = 0.7;
   const propEls = s.props.map((p, i) => {
     const h = Math.round(Math.min(p.size[1], 420) * scale * (i ? 0.8 : 1)), w = Math.round(p.size[0] * h / p.size[1]);
     return { w, h, html: (x) => `<img class="prop" src="${p.file}" style="left:${x}px;top:${floor - h + 14}px;width:${w}px;height:${h}px" alt="">` };
   });
-  const botEls = s.bots.map((b, i) => { const size = card ? 100 : [136, 118, 104][i] || 104; return { bot: true, w: size, h: size, html: (x) => `<div class="bot" style="left:${x}px;top:${floor - size * 0.9}px">${botSvg(b.shape, b.colour, size)}</div>` }; });
-  const tileSize = card ? 128 : 150;
+  const botEls = s.bots.map((b, i) => { const size = [136, 118, 104][i] || 104; return { bot: true, w: size, h: size, html: (x) => `<div class="bot" style="left:${x}px;top:${floor - size * 0.9}px">${botSvg(b.shape, b.colour, size)}</div>` }; });
+  const tileSize = 150;
   const tileEl = s.tile ? { w: tileSize, h: tileSize, html: (x) => `<div class="tile" style="left:${x}px;top:${floor - tileSize - 4}px;width:${tileSize}px;height:${tileSize}px">${s.tile.logo ? `<img src="${s.tile.logo}" alt="">` : `<span class="${s.tile.label.length <= 3 ? 'big' : s.tile.label.length <= 9 ? 'mid' : ''}">${escHtml(s.tile.label)}</span>`}</div>` } : null;
   // along the ground: an object at each end, the bots between, the app tile among them
   const middle = [...botEls]; if (tileEl) middle.splice(Math.min(1 + (s.side === 'left' ? 1 : 0), middle.length), 0, tileEl);
-  const row = card ? [tileEl || propEls[0], botEls[0]].filter(Boolean) : (s.side === 'left' ? [propEls[0], ...middle, propEls[1]] : [propEls[1], ...middle, propEls[0]]).filter(Boolean);
+  const row = (s.side === 'left' ? [propEls[0], ...middle, propEls[1]] : [propEls[1], ...middle, propEls[0]]).filter(Boolean);
   const total = row.reduce((n, e) => n + e.w, 0), gap = Math.max(12, (span - total) / (row.length + 1));
   let x = stage[0] + gap, bubbleAt = null;
   for (const e of row) { items.push(e.html(Math.round(x))); if (e.bot && bubbleAt === null) bubbleAt = [x, e.h]; x += e.w + gap; }
   let bubble = '';
-  if (s.bubble && bubbleAt && !card) bubble = `<div class="bubble" style="left:${Math.round(Math.min(Math.max(bubbleAt[0] - 12, 16), W - 440))}px;top:${Math.round(floor - bubbleAt[1] * 0.9 - 92)}px">${escHtml(s.bubble)}</div>`;
+  if (s.bubble && bubbleAt) bubble = `<div class="bubble" style="left:${Math.round(Math.min(Math.max(bubbleAt[0] - 12, 16), W - 440))}px;top:${Math.round(floor - bubbleAt[1] * 0.9 - 92)}px">${escHtml(s.bubble)}</div>`;
   const clouds = s.clouds.slice(0, 2).map((c, i) => `<img class="cloud" src="cloud-${i ? 'pink' : 'lemon'}.png" style="left:${Math.round(40 + c * (W - 320))}px;top:${Math.round(24 + i * 54 + c * 30)}px" alt="">`).join('');
   const sky = SKIES[s.sky];
-  const title = card ? `<div class="card"><div class="cbots">${s.bots.slice(0, 3).map((b) => botSvg(b.shape, b.colour, 78)).join('')}</div><div class="brand"><img src="${mark}" alt="">dusk bot</div><h1 class="${s.title.length > 46 ? 'long' : s.title.length > 28 ? 'mid' : ''}">${escHtml(s.title)}</h1>${s.line ? `<p>${escHtml(s.line)}</p>` : ''}</div>` : '';
   return `<!doctype html><meta charset="utf-8"><base href="${base}"><style>
 @font-face { font-family: "General Sans"; src: url("${font}"); font-weight: 200 700; }
 * { box-sizing: border-box; margin: 0; }
@@ -162,18 +160,11 @@ body { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; back
 .prop, .cloud { position: absolute; image-rendering: pixelated; }
 .cloud { width: 180px; height: 60px; }
 .bot { position: absolute; }
-.bot svg, .cbots svg { display: block; overflow: visible; }
+.bot svg { display: block; overflow: visible; }
 .tile { position: absolute; display: grid; place-items: center; border-radius: 28%; background: #fff; box-shadow: 0 10px 0 rgba(27,27,31,0.08); }
 .tile img { width: 56%; height: 56%; object-fit: contain; }
 .tile span.big { font-size: 64px; } .tile span.mid { font-size: 27px; }
 .tile span { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; text-align: center; padding: 10px; line-height: 1.05; }
 .bubble { position: absolute; max-width: 400px; padding: 14px 20px; border-radius: 24px 24px 24px 6px; background: #fff; font-size: 26px; font-weight: 500; letter-spacing: -0.02em; box-shadow: 0 8px 0 rgba(27,27,31,0.07); }
-.card { position: absolute; z-index: 2; left: 60px; bottom: 60px; width: 720px; padding: 40px 48px 44px; border-radius: 40px; background: #fff; }
-.cbots { position: absolute; right: 52px; bottom: calc(100% - 18px); display: flex; gap: 12px; z-index: -1; }
-.brand { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 550; letter-spacing: -0.02em; }
-.brand img { width: 42px; height: 42px; border-radius: 22%; }
-h1 { margin-top: 28px; font-size: 64px; line-height: 1; letter-spacing: -0.05em; font-weight: 500; }
-h1.mid { font-size: 54px; } h1.long { font-size: 44px; line-height: 1.05; }
-p { margin-top: 18px; font-size: 28px; line-height: 1.25; letter-spacing: -0.02em; color: #4b4b55; }
-</style><img class="sky" src="strip-${s.sky}.webp" alt="">${clouds}${groundSvg(s, W, groundH)}${items.join('')}${bubble}${title}`;
+</style><img class="sky" src="strip-${s.sky}.webp" alt="">${clouds}${groundSvg(s, W, groundH)}${items.join('')}${bubble}`;
 }

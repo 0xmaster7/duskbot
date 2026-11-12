@@ -126,5 +126,28 @@ for (const file of pages.filter((f) => f.endsWith('.html'))) {
 }
 console.log(`structured data: ${blocks} blocks checked`);
 
+// share cards: every page names a card that is on disk, at the size it says, under 150 kb, with alt text and an x card
+let cards = 0;
+const jpegSize = (b) => { for (let i = 2; i < b.length;) { const m = b[i + 1], len = b.readUInt16BE(i + 2); if (m >= 0xc0 && m <= 0xc2) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; i += 2 + len; } return null; };
+for (const file of pages.filter((f) => f.endsWith('.html') && !servedElsewhere(addressOf(f)))) {
+  const at = addressOf(file) || '/', src = fs.readFileSync(file, 'utf8');
+  if (!/<meta property="og:title"/.test(src)) continue;
+  const metas = [...src.matchAll(/<meta (?:property|name)="((?:og|twitter):[\w:]+)" content="([^"]*)">/g)].map((m) => [m[1], m[2]]);
+  const get = (k) => metas.filter(([n]) => n === k).map(([, v]) => v);
+  if (get('twitter:card')[0] !== 'summary_large_image') problems.push(`${at}: twitter:card is not summary_large_image`);
+  if (!get('twitter:image')[0] || get('twitter:image')[0] !== get('og:image')[0]) problems.push(`${at}: twitter:image is missing or not the first og:image`);
+  const images = get('og:image'), widths = get('og:image:width'), heights = get('og:image:height'), alts = get('og:image:alt');
+  if (!images.length || widths.length !== images.length || heights.length !== images.length || alts.length !== images.length) { problems.push(`${at}: each og:image needs its width, height and alt`); continue; }
+  images.forEach((url, i) => {
+    cards++;
+    const p = url.replace(/^https:\/\/[^/]+/, ''), f = fileFor(p);
+    if (!/^https:\/\//.test(url) || !f) return problems.push(`${at}: og:image ${url} is not on the site`);
+    const b = fs.readFileSync(f), size = jpegSize(b);
+    if (!size || `${size[0]}x${size[1]}` !== `${widths[i]}x${heights[i]}`) problems.push(`${at}: og:image ${p} is ${size?.join('x')}, the tags say ${widths[i]}x${heights[i]}`);
+    if (b.length > 150 * 1024) problems.push(`${at}: og:image ${p} is ${Math.round(b.length / 1024)} kb, over 150`);
+  });
+}
+console.log(`share cards: ${cards} checked`);
+
 if (problems.length) { console.error(problems.join('\n')); console.error(`\n${problems.length} broken, ${checked} links checked in ${pages.length} files`); process.exit(1); }
 console.log(`all good: ${checked} links in ${pages.length} files, ${Object.keys(redirects).length} redirects`);
