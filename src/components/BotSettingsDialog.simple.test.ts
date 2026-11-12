@@ -125,7 +125,7 @@ const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
-const { CloudCtaCard, ComputerTab, RunsOnCard, WherePage, cloudCtaStep } = await import("./bot-panel/ComputerTab");
+const { CloudCtaCard, ComputerTab, WherePage, cloudCtaStep } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
@@ -688,13 +688,8 @@ describe("the Computer tab", () => {
   // a screen belongs to a bot whose computer is a VPS or the cloud; one on this computer has none to show
   beforeEach(() => { fixture.otherServer = "Studio VPS"; });
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
-  const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
   const cta = (bot: Bot, stage: Parameters<typeof CloudCtaCard>[0]["stage"], cloudDesktop: Parameters<typeof CloudCtaCard>[0]["cloudDesktop"] = null) =>
     capture(() => CloudCtaCard({ bot, stage, cloudDesktop }));
-  const runsOn = (bot: Bot) => {
-    const card = ofType(computer(bot), RunsOnCard)!;
-    return capture(() => RunsOnCard(card.props as Parameters<typeof RunsOnCard>[0]));
-  };
 
   it("renders the original grey sleeping mascot and caption before the live panel module or status resolves", () => {
     const rendered = computer(cloudBot());
@@ -728,49 +723,22 @@ describe("the Computer tab", () => {
   it("keeps the panel and dropdown in place while its inline viewer owns opening and control", () => {
     const rendered = computer(cloudBot());
     expect(rendered.nodes.find((node) => node.props.inline === true)).toBeDefined();
-    expect(placeSelect(runsOn(cloudBot()))).toBeDefined();
+    expect(has(rendered, "data-panel-select", "place")).toBe(false);
     expect(rendered.nodes.some((node) => node.props.fullscreen !== undefined)).toBe(false);
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleComputer", open: true });
     expect(fixture.dispatch).not.toHaveBeenCalledWith({ type: "toggleSettings", open: false });
   });
 
-  it("leads with one Runs on card above the screen: where the bot runs and whether it is awake", () => {
+  it("on a server leads with the screen, then the move to cloud desktop, with no screen picker, Advanced fold or move back", () => {
     const rendered = computer(cloudBot());
-    const card = rendered.html.indexOf('data-panel-card="runs-on"'), screen = rendered.html.indexOf('data-asleep-mascot=""');
-    expect(card).toBeGreaterThan(-1);
-    expect(screen).toBeGreaterThan(card);
-    expect(rendered.html).toContain(">runs on<");
-    const card2 = runsOn(cloudBot());
-    expect(card2.html).toContain('data-runs-on="vps"');
-    expect(card2.html).toContain(">Studio VPS<");
-    expect(card2.html).toMatch(/data-runs-on-status="(asleep|offline)"/);
-    fixture.otherServer = null;
-    expect(runsOn(cloudBot()).html).toContain(">this PC<");
-    fixture.otherServer = "Studio VPS";
-    const before = fixture.storeState;
-    fixture.storeState = { ...before, config: { cloudHome: true } };
-    try {
-      expect(runsOn(cloudBot()).html).toContain('data-runs-on="cloud"');
-    } finally { fixture.storeState = before; }
-    // the screen picker joined the card: nothing under the screen but its caption, and the rest behind Advanced
-    expect(rendered.html.slice(screen)).not.toContain('data-panel-select="place"');
-    expect(rendered.html).toContain('data-panel-advanced="computer"');
-    expect(rendered.html).not.toMatch(/<details[^>]* open/);
-  });
-
-  it("picks the screen inside the card, naming the VPS's desktop as the VPS, with nothing to add there", () => {
-    fixture.places.browser = [true, false, "not installed"];
-    const select = placeSelect(runsOn(cloudBot()));
-    expect(select.props.value).toBe("cloud");
-    expect(select.props["aria-label"]).toBe("where Scout works");
-    expect((select.props.options as Array<{ value: string; label: string; disabled?: boolean; title?: string }>).map((option) => [option.value, option.label, Boolean(option.disabled), option.title]))
-      .toEqual([["local", "this PC", false, undefined], ["cloud", "your VPS", false, undefined]]);
-    (select.props.onChange as (value: string) => void)("local");
-    expect(patch).toHaveBeenLastCalledWith({ computer: "local" });
-    patch.mockReset();
-    expect((select.props.options as Array<{ icon?: string }>).map((option) => option.icon)).toEqual(["laptop", "cloud"]);
-    expect((placeSelect(runsOn(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud"]);
-    expect(placeSelect(runsOn(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
+    const screen = rendered.html.indexOf('data-asleep-mascot=""'), card = rendered.html.indexOf('data-panel-card="cloud-desktop"');
+    expect(screen).toBeGreaterThan(-1);
+    expect(card).toBeGreaterThan(screen);
+    expect(rendered.html).toContain("Scout&#x27;s screen · Studio VPS");
+    expect(rendered.html).toContain(">move to cloud desktop<");
+    for (const gone of ['data-panel-card="runs-on"', 'data-panel-select="place"', 'data-panel-advanced="computer"', 'data-panel-action="move-home"', 'data-panel-action="move-vps"']) {
+      expect(rendered.html, gone).not.toContain(gone);
+    }
   });
 
   it("on this computer drops the screen choice and preview, and offers dusk cloud through checkout", () => {
@@ -779,7 +747,8 @@ describe("the Computer tab", () => {
     expect(rendered.html).not.toContain('data-asleep-mascot=""');
     expect(rendered.html).not.toContain('data-panel-screen-of=""');
     expect(rendered.nodes.some((node) => node.props.inline === true)).toBe(false);
-    expect(has(runsOn(cloudBot()), "data-panel-select", "place")).toBe(false);
+    expect(rendered.html).toContain('data-panel-card="dusk-cloud"');
+    expect(rendered.html).not.toContain('data-panel-card="runs-on"');
     const card = cta(cloudBot(), null);
     expect(card.html).toContain('data-cloud-cta="get"');
     expect(card.html).toContain('data-cloud-hop="laptop"');

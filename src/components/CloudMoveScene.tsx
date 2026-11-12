@@ -102,10 +102,12 @@ const BAND_ON = { laptop: { x: 63, y: 42 }, cloud: { x: 182, y: 47 } } as const;
 const bandSpot = (slot: { x: number; y: number }) => `translate(${slot.x - BAND.bot / 2}px, ${slot.y - BAND.bot}px)`;
 
 /** One bot and its way to dusk cloud, as a short band: asleep on this computer, on the cloud, or hopping across. */
-export function CloudHopScene({ bot, on, asleep = false, className }: {
+export function CloudHopScene({ bot, on, asleep = false, sky = true, className }: {
   bot: Pick<Bot, "color" | "mascotBody" | "name">;
   on: "laptop" | "cloud";
   asleep?: boolean;
+  /** false: no sky of its own, the scene sits on its card's surface */
+  sky?: boolean;
   className?: string;
 }) {
   const reduced = useMotionReduced();
@@ -113,7 +115,7 @@ export function CloudHopScene({ bot, on, asleep = false, className }: {
   const peak = `translate(${(from.x + to.x) / 2 - BAND.bot / 2}px, ${Math.min(from.y, to.y) - BAND.bot - 26}px)`;
   const state: MarkState = on === "cloud" ? "happy" : asleep ? "sleeping" : "idle";
   const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={BAND.bot} state={state} trackPointer={false} animated={!reduced} label="" />;
-  return <div aria-hidden="true" data-cloud-hop={on} className={cn("flex w-full justify-center overflow-hidden", className)} style={{ background: SKY }}>
+  return <div aria-hidden="true" data-cloud-hop={on} className={cn("flex w-full justify-center overflow-hidden", className)} style={sky ? { background: SKY } : undefined}>
     <div className="relative shrink-0" style={{ width: BAND.w, height: BAND.h }}>
       <svg width={BAND.w} height={BAND.h} viewBox={`0 0 ${BAND.w} ${BAND.h}`} shapeRendering="crispEdges" className="absolute inset-0">
         <Pixels at={BAND_LAPTOP} pixels={LAPTOP_PX} cell={BAND.cell} />
