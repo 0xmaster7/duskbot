@@ -14,6 +14,7 @@ import {
 import { APP_TOOL_NAMES_ENV, APP_TOOLS_ENV, appToolAnswer, appToolCall, appToolEntries, parseAppToolsEnv } from "./connector-app-tools.ts";
 import { ARGUMENT_REFUSAL, argumentRefusalNote, fitArguments, fittedArgumentsNote } from "./connector-arguments.ts";
 import { annotateFailedCall } from "./connector-scope-hint.ts";
+import { CONNECTOR_ACCOUNTS_ENV, parseConnectorAccountsEnv, withChosenAccounts } from "./connector-account-pick.ts";
 import { withSignedOutHint } from "./connector-signed-out-hint.ts";
 import { AUTH_CONFIG_ID } from "../shared/connector-availability.ts";
 import { fitToolListResult } from "./mcp-tool-schema.ts";
@@ -32,6 +33,7 @@ const SERVICE_SLUGS = parseConnectorServiceSlugsEnv(process.env[CONNECTOR_SERVIC
 const SCHEMA_PROFILE = toolSchemaProfileFromEnv(process.env);
 const TOOL_LIMIT = toolLimitFromEnv(process.env);
 const APP_TOOLS = parseAppToolsEnv(process.env[APP_TOOLS_ENV]);
+const CHOSEN_ACCOUNTS = parseConnectorAccountsEnv(process.env[CONNECTOR_ACCOUNTS_ENV]);
 const APP_TOOL_NAMES = process.env[APP_TOOL_NAMES_ENV] === "dotted" ? "dotted" : "plain";
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 const INITIALIZE_RELAY_TIMEOUT_MS = 1_000;
@@ -284,7 +286,8 @@ async function handle(received: Json): Promise<void> {
     const name = String(given.name ?? "");
     const fitted = SCHEMAS.has(name) ? fitArguments(given.arguments, SCHEMAS.get(name)) : { args: given.arguments, changed: [] };
     changed = fitted.changed;
-    if (changed.length) message = { ...message, params: { ...given, arguments: fitted.args } };
+    const picked = withChosenAccounts(name, fitted.args, CHOSEN_ACCOUNTS);
+    if (changed.length || picked !== fitted.args) message = { ...message, params: { ...given, arguments: picked } };
     const params = (message.params ?? {}) as Json;
     const { requests, badAuthConfig } = /MANAGE_CONNECTIONS$/i.test(name)
       ? connectorAdds(params.arguments)

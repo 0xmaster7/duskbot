@@ -30,6 +30,8 @@ import {
 import { serviceSlugFor, serviceSlugForCandidates } from "./connector-verdict.ts";
 import { parseMcpResponse, withToolsListFallback } from "./connector-tools-list.ts";
 import { brokerAccess, type BrokerAccess } from "./composio-broker-access.ts";
+import { accountsForBot } from "./connector-account-choice.ts";
+import { CONNECTOR_ACCOUNTS_ENV } from "./connector-account-pick.ts";
 export { applyManagedBrokerMessage, brokerAccess, setManagedBrokerAccess, type BrokerAccess } from "./composio-broker-access.ts";
 export { prepareProjectSession, trustedSessionMcpUrl } from "./composio-session.ts";
 
@@ -258,6 +260,7 @@ export async function mcpIntegration(
       + " tools/list falls back to plain-prefix resolution",
     );
   }
+  const chosenAccounts = accountsForBot(context.botId);
   return {
     command: process.execPath,
     args: [SPAWNED_PROXIES.connectors],
@@ -273,6 +276,7 @@ export async function mcpIntegration(
       DUSK_THREAD_ID: context.threadId,
       ...(allowlist?.env ? { [CONNECTOR_ALLOWED_TOOLS_ENV]: allowlist.env } : {}),
       ...(serviceSlugs?.env ? { [CONNECTOR_SERVICE_SLUGS_ENV]: serviceSlugs.env } : {}),
+      ...(Object.keys(chosenAccounts).length ? { [CONNECTOR_ACCOUNTS_ENV]: JSON.stringify(chosenAccounts) } : {}),
     },
   };
 }

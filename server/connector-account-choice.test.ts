@@ -1,0 +1,74 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { accountsForBot, createAccountChoiceRoutes, forgetAccount, readAccountChoices, setAccountChoice } from "./connector-account-choice.ts";
+import { parseConnectorAccountsEnv, withChosenAccounts } from "./connector-account-pick.ts";
+import { PASS } from "./routes/table.ts";
+
+const dirs: string[] = [];
+const fresh = () => { const dir = mkdtempSync(join(tmpdir(), "dusk-accounts-")); dirs.push(dir); return dir; };
+afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+
+describe("account choices", () => {
+  it("a bot's own pick wins over the app's default", () => {
+    const dir = fresh();
+    setAccountChoice({ slug: "gmail", accountId: "ca_work" }, dir);
+    setAccountChoice({ slug: "gmail", accountId: "ca_home", botId: "nova" }, dir);
+    setAccountChoice({ slug: "github", accountId: "ca_gh" }, dir);
+    const choices = readAccountChoices(dir);
+    expect(accountsForBot("nova", choices)).toEqual({ gmail: "ca_home", github: "ca_gh" });
+    expect(accountsForBot("quill", choices)).toEqual({ gmail: "ca_work", github: "ca_gh" });
+  });
+
+  it("clearing a pick falls back to the default, and a removed account is nobody's any more", () => {
+    const dir = fresh();
+    setAccountChoice({ slug: "gmail", accountId: "ca_work" }, dir);
+    setAccountChoice({ slug: "gmail", accountId: "ca_home", botId: "nova" }, dir);
+    setAccountChoice({ slug: "gmail", accountId: null, botId: "nova" }, dir);
+    expect(readAccountChoices(dir).bots).toEqual({});
+    setAccountChoice({ slug: "gmail", accountId: "ca_home", botId: "nova" }, dir);
+    forgetAccount("gmail", "ca_home", dir);
+    expect(accountsForBot("nova", readAccountChoices(dir))).toEqual({ gmail: "ca_work" });
+  });
+
+  it("answers the routes, refusing a bad body", async () => {
+    const dir = fresh();
+    const route = createAccountChoiceRoutes(dir);
+    const answers: Array<[number, unknown]> = [];
+    const ctx = (method: string, path: string, body?: unknown) => ({
+      method, path, res: {} as never, req: {} as never, url: new URL(`http://x${path}`), auth: {} as never,
+      json: ((_res: unknown, status: number, value: unknown) => { answers.push([status, value]); }) as never,
+      readBody: (async () => body) as never,
+    });
+    await route(ctx("PUT", "/api/connectors/gmail/account-choice", { accountId: "ca_work" }));
+    await route(ctx("PUT", "/api/connectors/gmail/account-choice", { accountId: "bad id!" }));
+    await route(ctx("GET", "/api/connectors/account-choices"));
+    expect(answers.map(([status]) => status)).toEqual([200, 400, 200]);
+    expect(answers[2]![1]).toEqual({ defaults: { gmail: "ca_work" }, bots: {} });
+    expect(await route(ctx("DELETE", "/api/connectors/gmail/accounts/ca_work"))).toBe(PASS);
+    expect(readAccountChoices(dir).defaults).toEqual({});
+  });
+});
+
+describe("withChosenAccounts", () => {
+  const call = { tools: [{ tool_slug: "GMAIL_SEND_EMAIL", arguments: {} }, { tool_slug: "GOOGLECALENDAR_LIST", arguments: {} }, { tool_slug: "GMAIL_FETCH", account: "personal" }] };
+
+  it("names the bot's account on every multi-execute call that names none", () => {
+    expect(withChosenAccounts("COMPOSIO_MULTI_EXECUTE_TOOL", call, { gmail: "ca_work" })).toEqual({
+      tools: [{ tool_slug: "GMAIL_SEND_EMAIL", arguments: {}, account: "ca_work" }, call.tools[1], call.tools[2]],
+    });
+  });
+
+  it("leaves other tools and empty picks alone", () => {
+    expect(withChosenAccounts("COMPOSIO_SEARCH_TOOLS", call, { gmail: "ca_work" })).toBe(call);
+    expect(withChosenAccounts("COMPOSIO_MULTI_EXECUTE_TOOL", call, {})).toBe(call);
+  });
+
+  it("reads only a well-formed env", () => {
+    expect(parseConnectorAccountsEnv('{"gmail":"ca_work"}')).toEqual({ gmail: "ca_work" });
+    expect(parseConnectorAccountsEnv("{nope")).toEqual({});
+    expect(parseConnectorAccountsEnv('{"gmail":"bad id"}')).toEqual({});
+  });
+});
