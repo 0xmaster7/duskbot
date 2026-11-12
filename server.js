@@ -15,6 +15,8 @@ if (!/^[a-z0-9-]+$/.test(site)) throw new Error(`bad site name ${site}`);
 const root = path.join(here, 'public', site);
 // a one-page site (the waitlist on dusk.bot before launch): every page address that is not there goes home
 const HOME_ONLY = process.env.DUSK_HOME_ONLY === '1';
+// a staging copy (preview) is never indexed: search engines only see dusk.bot
+const NO_INDEX = process.env.DUSK_NO_INDEX === '1';
 if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`no such site: ${root}`);
 const port = Number(process.env.PORT) || 3000;
 
@@ -179,6 +181,7 @@ const server = http.createServer((req, res) => {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  if (NO_INDEX) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   // /demo/ is the app's own interface running on canned data; the home page shows it in a frame, and its
   // code highlighter writes style attributes
   const demo = (req.url || '').startsWith('/demo/');
@@ -199,6 +202,10 @@ const server = http.createServer((req, res) => {
   if (urlPath === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     return res.end('ok\n');
+  }
+  if (NO_INDEX && urlPath === '/robots.txt') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+    return res.end('User-agent: *\nDisallow: /\n');
   }
   let file = resolveFile(urlPath), status = 200;
   // a page has one address, without the slash at its end (the demo keeps its own: its files sit beside it)
