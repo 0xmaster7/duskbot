@@ -6,8 +6,8 @@
 // The export's shape, the repairs for what a chat window does to it and its credential refusal adapt an MIT-licensed
 // importer; see NOTICE.
 import {
-  AGENT_MAX_SKILLS, PACKAGE_FORMAT, PACKAGE_MAX_CONNECTIONS, PACKAGE_VERSION, SEED_FILE_MAX_BYTES,
-  parsePackageDocument, utf8Bytes, type PackageDocument, type PackageRoutineSchedule,
+  AGENT_MAX_SKILLS, PACKAGE_FORMAT, PACKAGE_MAX_CONNECTIONS, PACKAGE_VERSION, SEED_FILE_MAX_BYTES, SEED_MAX_BYTES, SEED_MAX_FILES,
+  isSeedPath, packageRoutineScheduleSchema, parsePackageDocument, utf8Bytes, type PackageDocument, type PackageRoutineSchedule,
 } from "./package-format.ts";
 import { BOT_PROFILE_LIMITS } from "./bot-profile.ts";
 import { redactSecretsInText } from "./redact.ts";
@@ -80,11 +80,17 @@ export interface GrokSkill { name: string; description: string; instructions: st
 export interface GrokRoutine {
   name: string; instruction: string; trigger: string; cron: string; when: string; timeZone: string;
   paused: boolean; skills: string[]; details: string;
+  /** A schedule already in dusk bot's shape (another app's own routine file), used when it is valid. */
+  schedule?: PackageRoutineSchedule;
 }
 export interface GrokApp { name: string; mcpUrl: string; transport: string; headerNames: string[] }
 export interface GrokBot {
   name: string; title: string; description: string; instructions: string;
   memories: string[]; userFacts: string[]; skills: GrokSkill[]; routines: GrokRoutine[]; apps: GrokApp[];
+  /** Memory files read from another app's folder, by seed path (MEMORY.md, memory/<topic>.md). */
+  memoryFiles?: Record<string, string>;
+  /** A colour it already had, when it is one of dusk bot's. */
+  color?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -318,6 +324,10 @@ const CLOCK_TRIGGERS = new Set(["", "schedule", "scheduled", "time", "cron", "in
 /** The schedule in the routine's own zone, or the person's when it names one nothing here can read, from its cron or its
  * words when those are a cron. Null for anything else: a routine with no readable clock. */
 function routineSchedule(routine: GrokRoutine, timeZone: string): PackageRoutineSchedule | null {
+  if (routine.schedule) {
+    const own = packageRoutineScheduleSchema.safeParse(routine.schedule);
+    if (own.success) return own.data;
+  }
   if (!CLOCK_TRIGGERS.has(routine.trigger)) return null;
   for (const expression of [routine.cron, routine.when].filter(Boolean)) {
     for (const zone of [routine.timeZone || timeZone, timeZone]) {
@@ -371,6 +381,10 @@ const VALID_HEADER = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/;
 /** Where a Bot's event routines are kept for rebuilding: a topic of the new bot's memory. */
 export const GROK_NOTES_FILE = "memory/grok-bot-event-routines.md";
 
+/** The app a bot comes from: its name as people know it, and a slug for file names. */
+export interface MoveFrom { name: string; key: string }
+export const GROK_FROM: MoveFrom = { name: "Grok Bot", key: "grok-bot" };
+
 export interface GrokMovePlan {
   name: string;
   packageId: string;
@@ -393,33 +407,36 @@ const dedupe = (lines: string[], seen: Set<string>) => lines.filter((line) => {
   return true;
 });
 
-function memoryNotes(bot: GrokBot): { count: number; text: string | null } {
+function memoryNotes(bot: GrokBot, from: MoveFrom): { count: number; text: string | null } {
   const seen = new Set<string>();
   const facts = dedupe(bot.memories.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
   const about = dedupe(bot.userFacts.map((line) => line.replace(/\s*\n\s*/g, " ")), seen);
   const count = facts.length + about.length;
   if (!count) return { count, text: null };
   const part = (heading: string, items: string[]) => (items.length ? `## ${heading}\n\n${items.map((item) => `- ${item}`).join("\n")}\n\n` : "");
-  return { count, text: `# Notes from Grok Bot\n\n${part("What I remember", facts)}${part("About the person", about)}`.trimEnd() + "\n" };
+  return { count, text: `# Notes from ${from.name}\n\n${part("What I remember", facts)}${part("About the person", about)}`.trimEnd() + "\n" };
 }
 
-function eventNotes(name: string, routines: readonly GrokRoutine[]): string {
+function eventNotes(name: string, from: MoveFrom, routines: readonly GrokRoutine[]): string {
   const sections = routines.flatMap((routine) => [
     `## ${routine.name || "routine"}`, "",
     `- Trigger: ${routine.trigger || "unknown"}`,
     `- Details: ${routine.details || routine.when || "n/a"}`, "",
     routine.instruction, "",
   ]);
-  return [`# ${name}: Grok Bot routines that run on an event`, "",
+  return [`# ${name}: ${from.name} routines that run on an event`, "",
     "These start on something happening instead of a schedule, so they were not turned into routines. Set up each one again here.", "",
     ...sections].join("\n");
 }
 
-/** One Grok Bot as one bot in a openmaus.package v2 file, and how much of it comes over. `takenServers` holds server names
- * already here: one of those is skipped, never overwritten or shared. */
-export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenServers?: ReadonlySet<string> } = {}): GrokMovePlan {
+/** One Grok Bot (or a bot from another app, `from`) as one bot in a openmaus.package v2 file, and how much of it comes
+ * over. `takenServers` holds server names already here: one of those is skipped, never overwritten or shared. */
+export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenServers?: ReadonlySet<string>; from?: MoveFrom } = {}): GrokMovePlan {
   const timeZone = options.timeZone?.trim() || "UTC";
-  const name = clip(bot.name || "Grok Bot", 100);
+  const from = options.from ?? GROK_FROM;
+  const grok = from.key === GROK_FROM.key;
+  const notesFile = grok ? GROK_NOTES_FILE : `memory/${from.key}-event-routines.md`;
+  const name = clip(bot.name || from.name, 100);
   const agentKey = slug(name, 60) || "grok-bot";
   const soul = fitBytes(bot.instructions.trim(), BOT_PROFILE_LIMITS.soul);
 
@@ -466,13 +483,22 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
     });
   }
 
-  const memory = memoryNotes(bot);
+  const memory = memoryNotes(bot, from);
   const seed: Record<string, string> = {};
-  if (memory.text && utf8Bytes(memory.text) <= SEED_FILE_MAX_BYTES) seed["MEMORY.md"] = memory.text;
-  if (unscheduled.length) {
-    const notes = eventNotes(name, unscheduled);
-    if (utf8Bytes(notes) <= SEED_FILE_MAX_BYTES) seed[GROK_NOTES_FILE] = notes;
+  let seedBytes = 0;
+  const plant = (path: string, text: string) => {
+    const bytes = utf8Bytes(text);
+    if (!isSeedPath(path) || seed[path] !== undefined || bytes > SEED_FILE_MAX_BYTES || seedBytes + bytes > SEED_MAX_BYTES || Object.keys(seed).length >= SEED_MAX_FILES) return false;
+    seed[path] = text;
+    seedBytes += bytes;
+    return true;
+  };
+  if (unscheduled.length) plant(notesFile, eventNotes(name, from, unscheduled));
+  let memoryFiles = 0;
+  for (const [path, text] of Object.entries(bot.memoryFiles ?? {})) {
+    if (text.trim() && plant(path, text)) memoryFiles += 1;
   }
+  const notesPlanted = memory.text ? plant(seed["MEMORY.md"] === undefined ? "MEMORY.md" : `memory/notes-from-${from.key}.md`, memory.text) : false;
 
   const connectionKeys = new Set<string>();
   const connections: NonNullable<PackageDocument["package"]["connections"]> = [];
@@ -487,14 +513,15 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
     connections.push({
       key: uniqueSlug(proposed, proposed, connectionKeys, 28),
       label,
-      reason: clip(`${name} used ${label} in Grok Bot.`, 240),
+      reason: clip(`${name} used ${label} in ${from.name}.`, 240),
       mcp: { transport: app.transport === "sse" || /\/sse\/?$/.test(new URL(address).pathname) ? "sse" : "http", url: address, valueNames: app.headerNames.filter((header) => VALID_HEADER.test(header)).slice(0, 32) },
     });
   }
 
   const description = bot.description.trim();
-  const summary = clip(description || bot.title || `${name}, brought over from Grok Bot.`, 2_000);
-  const hash = shortHash(`${name}\n${soul}`);
+  const summary = clip(description || bot.title || `${name}, brought over from ${from.name}.`, 2_000);
+  // Grok Bot's ids predate other apps and stay as they were, so a bot moved before is still known as moved.
+  const hash = shortHash(grok ? `${name}\n${soul}` : `${from.key}\n${name}\n${soul}`);
   const packageId = `${agentKey}-${hash.toString(16).padStart(8, "0").slice(0, 6)}`;
   const draft: PackageDocument = {
     format: PACKAGE_FORMAT,
@@ -506,7 +533,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
       tagline: clip(oneLine(summary), 160),
       summary,
       category: "Imported",
-      author: { name: "Grok Bot" },
+      author: { name: from.name },
       license: "See source",
       outcomes: [clip(`${name} runs in dusk bot with your own engine and apps.`, 240)],
       setupMinutes: 5,
@@ -518,7 +545,7 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
         ...(bot.title ? { title: clip(bot.title, 200) } : {}),
         ...(description ? { description: clip(description, 4_000) } : {}),
         ...(soul ? { soul } : {}),
-        appearance: { color: BOT_COLORS[hash % BOT_COLORS.length]! },
+        appearance: { color: (BOT_COLORS as readonly string[]).includes(bot.color ?? "") ? bot.color as typeof BOT_COLORS[number] : BOT_COLORS[hash % BOT_COLORS.length]! },
         ...(skills.length ? { skills: skills.map((skill) => skill.name) } : {}),
         ...(connections.length ? { connections: connections.map((connection) => connection.key) } : {}),
         ...(Object.keys(seed).length ? { seed: { memory: seed } } : {}),
@@ -536,8 +563,8 @@ export function grokMovePlan(bot: GrokBot, options: { timeZone?: string; takenSe
   }
   return {
     name, packageId, document, skills: planned, routines: routines.length,
-    notes: seed[GROK_NOTES_FILE] ? unscheduled.length : 0,
-    memories: seed["MEMORY.md"] ? memory.count : 0,
+    notes: seed[notesFile] ? unscheduled.length : 0,
+    memories: (notesPlanted ? memory.count : 0) + memoryFiles,
     apps,
   };
 }

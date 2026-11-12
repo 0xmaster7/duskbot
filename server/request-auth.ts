@@ -522,6 +522,8 @@ function mutatingPublicRoute(method: string, path: string): boolean {
   if (upper === "GET" && (/^\/api\/webhooks\/[\w-]+\/address$/.test(path) || /^\/api\/(?:bots\/[\w-]+\/)?local-computer$/.test(path))) return true;
   // Hands out what a Grok Bot wrote about the person, from their Downloads folder.
   if (upper === "GET" && path === "/api/setup-import/grok") return true;
+  // Hands out other agent apps' bots: their personas, memory and routines.
+  if (upper === "GET" && path === "/api/setup-import/bots") return true;
   // Drives a bot's browser: a WebSocket upgrade is a GET, but what it carries is input.
   if (/^\/api\/bots\/[\w-]+\/browser\/stream$/.test(path)) return true;
   if (["GET", "HEAD", "OPTIONS"].includes(upper)) return false;
