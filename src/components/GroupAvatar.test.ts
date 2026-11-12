@@ -25,9 +25,11 @@ describe("a group's avatar", () => {
     expect(markup).not.toContain("+1");
   });
 
-  it("cuts a ring only where a later face overlaps", () => {
+  it("cuts a ring out of the person's round face where a bot overlaps it, and never out of a pixel bot", () => {
     const markup = renderToStaticMarkup(createElement(GroupAvatar, { members: bots, size: 36, you: { initials: "AR" } }));
-    expect(markup.match(/(?<!-webkit-)mask-image:/g)?.length).toBe(3);
+    expect(markup.match(/(?<!-webkit-)mask-image:/g)?.length).toBe(1);
+    const alone = renderToStaticMarkup(createElement(GroupAvatar, { members: bots, size: 36, you: null }));
+    expect(alone).not.toContain("mask-image");
   });
 
   it("draws the bots alone when nobody is signed in", () => {

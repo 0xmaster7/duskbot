@@ -29,7 +29,7 @@ export function groupCells(count: number, frame: number): Cell[] {
 const MAX_CELLS = 4;
 const round = (n: number) => Math.round(n * 100) / 100;
 
-/** A cell cut where a later cell overlaps it, a gap wider all round, so a thin ring of whatever is behind shows between them. */
+/** The person's round cell cut where a later cell overlaps it, a gap wider all round, so a thin ring of whatever is behind shows between them. */
 function cutMask(cell: Cell, later: readonly Cell[], gap: number): string | undefined {
   const r = cell.size / 2;
   const holes = later.filter((other) => Math.hypot(cell.x + r - (other.x + other.size / 2), cell.y + r - (other.y + other.size / 2)) < r + other.size / 2 + gap);
@@ -40,7 +40,7 @@ function cutMask(cell: Cell, later: readonly Cell[], gap: number): string | unde
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-/** A group chat's avatar at list size, the way Grok draws it: the person's initials first, then up to three members' marks,
+/** A group chat's avatar at list size, the way Grok draws it: the person's initials first, then up to three members' pixel marks as a small cluster,
  * laid out in a `size` square. Static: the room's working faces live on its status line. */
 export function GroupAvatar({ members, size, you, className }: {
   members: readonly Bot[];
@@ -66,7 +66,7 @@ export function GroupAvatar({ members, size, you, className }: {
     <span data-group-avatar="" aria-hidden className={cn("relative block shrink-0", className)} style={{ width: size, height: size }}>
       {faces.map((face, index) => {
         const cell = cells[index]!;
-        const mask = cutMask(cell, cells.slice(index + 1), gap);
+        const mask = face.kind === "you" ? cutMask(cell, cells.slice(index + 1), gap) : undefined;
         const px = round(cell.size);
         return (
           <span

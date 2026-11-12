@@ -11,6 +11,18 @@ describe("pixel still frames", () => {
     expect(kit.eyes).toBe(KIT_EYES);
   });
 
+  it("draws every body on its own grid at every size, so a 20 px row and a 112 px profile show the same sprite", () => {
+    for (const body of DUSK_BODY_IDS) {
+      const native = stillFrame(body, { scale: 1 });
+      for (const size of [14, 16, 20, 24, 28, 30, 32, 36, 44, 56, 64, 96, 112]) {
+        const frame = stillFrame(body, { size });
+        expect(frame.G, `${body} at ${size}`).toBe(native.G);
+        expect(frame.s, `${body} at ${size}`).toBeCloseTo(size / native.G);
+        expect(Array.from(frame.paint), `${body} at ${size}`).toEqual(Array.from(native.paint));
+      }
+    }
+  });
+
   it("puts two eyes inside every body at every size the app draws", () => {
     for (const body of DUSK_BODY_IDS) for (const size of [16, 20, 24, 28, 32, 36, 44, 64, 96, 112]) {
       const { paint } = stillFrame(body, { size });

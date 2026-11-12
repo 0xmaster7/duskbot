@@ -296,7 +296,7 @@ export interface CoreOptions {
   state?: string;
   /** css px per grid pixel; the body is drawn on its own grid */
   scale?: number;
-  /** drawn size in css px: picks the scale and grid that fill it */
+  /** drawn size in css px: the body's own grid, scaled to fill it */
   size?: number;
   seed?: number;
   /** false: the eyes of a state and none of the motion */
@@ -342,8 +342,7 @@ export class PixelCore {
   constructor(o: CoreOptions) {
     const def = (this.def = defOf(o.body));
     const N = def.N;
-    let s = o.scale || 4, G = N;
-    if (o.size) { s = Math.max(1, Math.floor(o.size / N)); G = Math.max(8, R(o.size / s)); }
+    const G = N, s = o.size ? o.size / N : o.scale || 4;
     this.G = G; this.s = s; this.k = N / G;
     // a little room around the body for lean, ears and hops
     this.px = Math.ceil(G * 0.35); this.pt = Math.ceil(G * 0.62);
