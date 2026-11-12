@@ -43,3 +43,15 @@ deploy/.env
 id_rsa
 id_ed25519
 .dusk-scratch
+
+# junk output from a script run with an unset output dir
+/undefined/
+# Apple signing and notarization material (Developer ID .p12 is above; the App Store Connect key is .p8)
+*.p8
+*.cer
+*.mobileprovision
+*.provisionprofile
+# large media belongs outside the repo
+*.mov
+*.mp4
+*.dmg
