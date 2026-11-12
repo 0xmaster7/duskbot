@@ -5,6 +5,7 @@ import {
   addForWeek, dismissAllowance, fetchAllowance, resetIn, resetWhen, saveAllowance, saveAutoTopUp, setSaver, sharePercent, topUpOffer, useLoaded,
   type AllowanceReport,
 } from "@/lib/spend";
+import { useServerHas, whenServerHas } from "@/lib/server-compat";
 import { formatCost } from "@/lib/usage-trace";
 import { api } from "@/state/store";
 import { buttonCls, fieldCls } from "../bot-panel/rows";
@@ -39,9 +40,12 @@ function names(report: AllowanceReport): string {
 
 /** The account's one weekly allowance in dollars: "$1.80 of $6.00 · resets Monday" (tap for %), the one 80% notice
  * with its choices, the soft landing at 100%, Saver mode and auto top-up (off unless the person turns it on). */
+const loadAllowance = () => whenServerHas("allowance", fetchAllowance);
+
 export function AllowanceCard() {
   const [version, setVersion] = useState(0);
-  const loaded = useLoaded(fetchAllowance, version);
+  const supported = useServerHas("allowance");
+  const loaded = useLoaded(loadAllowance, version);
   const [report, setReport] = useState<AllowanceReport | null>(null);
   const [editing, setEditing] = useState<"weekly" | "auto" | null>(null);
   const [percent, setPercent] = useState(false);
@@ -57,6 +61,7 @@ export function AllowanceCard() {
     finally { setBusy(false); }
   };
 
+  if (supported === false) return null;
   if (!shown) return <RowsCard label={t("usage.allowance.title")} data-settings-block="allowance"><NoteRow>{t("common.checking")}</NoteRow></RowsCard>;
   const set = shown.limitUsd !== null;
   const over = shown.level === "over", near = shown.level === "near";
