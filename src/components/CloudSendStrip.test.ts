@@ -67,6 +67,6 @@ it("says nothing without a move, whatever an older desktop's send did, nor in a 
 
 it("still shows a bot's move into a team on My Cloud's page while the one-time move has its own line", async () => {
   await shown({ ...notice, move: { phase: "done", phone: false, held: [] }, teamMove: { bot: { id: "scout", name: "Scout" }, team: { id: "team-acme", name: "Acme" }, phase: "moving" } }, true);
-  expect(html(strip(true))).toContain("Moving Scout to Acme…");
-  expect(html(strip(true))).not.toContain("Everything from this computer is here");
+  expect(html(strip(true))).toContain("moving Scout to Acme…");
+  expect(html(strip(true))).not.toContain("everything from this computer is here");
 });

@@ -114,102 +114,102 @@ describe("Computer panel tab", () => {
     await open(makeBot({ computer: "browser" }));
     expect(document.querySelector('[data-testid="computer-tabs"]')?.getAttribute("role")).toBe("tablist");
     expect(tabListName()).toBe(t("computer.tabsAria"));
-    expect(tabListName()).not.toBe("Bot panel view");
+    expect(tabListName()).not.toBe("bot panel view");
   });
 
   it("stays on Browser through a model change and follows a conversation change", async () => {
     await open(makeBot({ computer: "browser" }));
-    expect(selected()).toBe("Screen");
-    flushSync(() => tab("Browser").click());
+    expect(selected()).toBe("screen");
+    flushSync(() => tab("browser").click());
     await settle();
-    expect(selected()).toBe("Browser");
+    expect(selected()).toBe("browser");
     expect(document.getElementById("computer-panel-tabs-panel-browser")).not.toBeNull();
 
     await open(makeBot({ computer: "browser", modelSelection: { instanceId: "codex", model: "m" } }));
-    expect(selected()).toBe("Browser");
+    expect(selected()).toBe("browser");
     expect(document.getElementById("computer-panel-tabs-panel-browser")).not.toBeNull();
 
     await open(makeBot({ threadId: "thread-2", tasks: [{ threadId: "thread-2", title: "Second", createdAt: 2, approvalMode: "ask" }] } as Partial<Bot>));
-    expect(selected()).toBe("Screen");
+    expect(selected()).toBe("screen");
   });
 
   it("shows the Browser tab with a published page's Open, and hands the page to the browser to open", async () => {
     fixture.browser = true;
     await open(makeBot());
-    expect(selected()).toBe("Screen");
+    expect(selected()).toBe("screen");
     const PAGE = "https://abcdefghijklmnopqrstuvwxyz.page.dusk.bot/";
     flushSync(() => requestPanelPage("scout", PAGE));
     await settle();
-    expect(selected()).toBe("Browser");
+    expect(selected()).toBe("browser");
     expect(fixture.page).toMatchObject({ botId: "scout", url: PAGE });
-    flushSync(() => tab("Screen").click());
+    flushSync(() => tab("screen").click());
     flushSync(() => requestPanelPage("another-bot", PAGE));
     await settle();
-    expect(selected()).toBe("Screen");
+    expect(selected()).toBe("screen");
   });
 
   it("marks the selected trigger and only that one", async () => {
     await open(makeBot({ computer: "browser" }));
     expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["true", "false"]);
 
-    flushSync(() => tab("Browser").click());
+    flushSync(() => tab("browser").click());
     await settle();
     expect(tabs().map((candidate) => candidate.getAttribute("aria-selected"))).toEqual(["false", "true"]);
   });
 
   it("keeps one Tab stop and moves it with the arrow, Home and End keys", async () => {
     await open(makeBot({ computer: "browser" }));
-    expect(tabStops()).toEqual(["Screen"]);
+    expect(tabStops()).toEqual(["screen"]);
 
-    press("Screen", "ArrowRight");
+    press("screen", "ArrowRight");
     await settle();
-    expect(selected()).toBe("Browser");
-    expect(tabStops()).toEqual(["Browser"]);
-    expect(document.activeElement).toBe(tab("Browser"));
+    expect(selected()).toBe("browser");
+    expect(tabStops()).toEqual(["browser"]);
+    expect(document.activeElement).toBe(tab("browser"));
 
-    press("Browser", "ArrowLeft");
+    press("browser", "ArrowLeft");
     await settle();
-    expect(selected()).toBe("Screen");
-    expect(document.activeElement).toBe(tab("Screen"));
+    expect(selected()).toBe("screen");
+    expect(document.activeElement).toBe(tab("screen"));
 
     // Wraps around the row's ends.
-    press("Screen", "ArrowLeft");
+    press("screen", "ArrowLeft");
     await settle();
-    expect(selected()).toBe("Browser");
-    press("Browser", "ArrowRight");
+    expect(selected()).toBe("browser");
+    press("browser", "ArrowRight");
     await settle();
-    expect(selected()).toBe("Screen");
+    expect(selected()).toBe("screen");
 
-    press("Screen", "End");
+    press("screen", "End");
     await settle();
-    expect(selected()).toBe("Browser");
-    expect(document.activeElement).toBe(tab("Browser"));
-    press("Browser", "Home");
+    expect(selected()).toBe("browser");
+    expect(document.activeElement).toBe(tab("browser"));
+    press("browser", "Home");
     await settle();
-    expect(selected()).toBe("Screen");
-    expect(document.activeElement).toBe(tab("Screen"));
+    expect(selected()).toBe("screen");
+    expect(document.activeElement).toBe(tab("screen"));
   });
 
   it("leaves the vertical arrows to the page's scrolling", async () => {
     await open(makeBot({ computer: "browser" }));
-    flushSync(() => tab("Screen").focus());
-    expect(press("Screen", "ArrowDown").defaultPrevented).toBe(false);
-    expect(press("Screen", "ArrowUp").defaultPrevented).toBe(false);
+    flushSync(() => tab("screen").focus());
+    expect(press("screen", "ArrowDown").defaultPrevented).toBe(false);
+    expect(press("screen", "ArrowUp").defaultPrevented).toBe(false);
     await settle();
-    expect(selected()).toBe("Screen");
-    expect(document.activeElement).toBe(tab("Screen"));
+    expect(selected()).toBe("screen");
+    expect(document.activeElement).toBe(tab("screen"));
   });
 
   it("keeps Simple mode to the Screen tab", async () => {
     fixture.advanced = false;
     await open(makeBot());
-    expect(tabLabels()).toEqual(["Screen"]);
-    expect(selected()).toBe("Screen");
+    expect(tabLabels()).toEqual(["screen"]);
+    expect(selected()).toBe("screen");
   });
 
   it("points every selected trigger at its panel and the panel back", async () => {
     await open(makeBot({ computer: "browser" }));
-    for (const label of ["Screen", "Browser"]) {
+    for (const label of ["screen", "browser"]) {
       flushSync(() => tab(label).click());
       await settle();
       const trigger = tab(label);
@@ -221,7 +221,7 @@ describe("Computer panel tab", () => {
 
   it("puts every selected panel in the tab sequence", async () => {
     await open(makeBot({ computer: "browser" }));
-    for (const label of ["Screen", "Browser"]) {
+    for (const label of ["screen", "browser"]) {
       flushSync(() => tab(label).click());
       await settle();
       const panel = document.getElementById(tab(label).getAttribute("aria-controls")!);

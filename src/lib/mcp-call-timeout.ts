@@ -1,7 +1,7 @@
 export const DEFAULT_MCP_CALL_TIMEOUT_MINUTES = 10;
 export const MIN_MCP_CALL_TIMEOUT_MINUTES = 1;
 export const MAX_MCP_CALL_TIMEOUT_MINUTES = 60;
-export const MCP_CALL_TIMEOUT_INPUT_ERROR = "Enter a whole number from 1 to 60.";
+export const MCP_CALL_TIMEOUT_INPUT_ERROR = "enter a whole number from 1 to 60.";
 
 export type McpCallTimeoutInput =
   | { ok: true; minutes: number }

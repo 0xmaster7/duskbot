@@ -109,7 +109,7 @@ describe("the live desktop", () => {
     await wait(1_500);
     expect(fixture.attempts, "no endless reconnect loop").toHaveLength(2);
     expect(props.onUnreachable).toHaveBeenCalledTimes(1);
-    flushSync(() => button("Reconnect")!.click());
+    flushSync(() => button("reconnect")!.click());
     await settle();
     expect(fixture.attempts).toHaveLength(3);
   });
@@ -159,16 +159,16 @@ describe("the live desktop", () => {
     const open = vi.fn();
     draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: vi.fn() });
     // still connecting: the screen is clickable already
-    expect(button("Open")!.disabled).toBe(false);
-    flushSync(() => button("Open")!.click());
+    expect(button("open")!.disabled).toBe(false);
+    flushSync(() => button("open")!.click());
     expect(open).toHaveBeenCalledTimes(1);
     flushSync(() => fixture.attempts[0]!.events.connected());
     draw({ expanded: true, taking: true });
-    const take = button("Take control")!;
+    const take = button("take control")!;
     expect(take.disabled).toBe(true);
     expect(take.querySelector("[data-computer-taking]")).not.toBeNull();
     draw({ taking: false });
-    expect(button("Take control")!.disabled).toBe(false);
+    expect(button("take control")!.disabled).toBe(false);
     expect(document.querySelector("[data-computer-taking]")).toBeNull();
   });
 
@@ -177,15 +177,15 @@ describe("the live desktop", () => {
     const take = vi.fn();
     draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: take });
     flushSync(() => fixture.attempts[0]!.events.connected());
-    flushSync(() => button("Open")!.click());
+    flushSync(() => button("open")!.click());
     expect(open).toHaveBeenCalledTimes(1);
     expect(take).not.toHaveBeenCalled();
     draw({ expanded: true });
     expect(document.querySelector("[data-computer-control=watching]")).not.toBeNull();
     expect(fixture.attempts[0]!.client.viewOnly).toBe(true);
-    expect(button("Keyboard")).toBeUndefined();
+    expect(button("keyboard")).toBeUndefined();
     expect(document.querySelector("header")).toBeNull();
-    flushSync(() => button("Take control")!.click());
+    flushSync(() => button("take control")!.click());
     expect(take).toHaveBeenCalledTimes(1);
     draw({ viewOnly: false });
     expect(fixture.attempts[0]!.client.viewOnly).toBe(false);
@@ -201,7 +201,7 @@ describe("the live desktop", () => {
     draw({ expanded: true });
     await settle();
     expect(fixture.attempts, "growing the view must not reconnect").toHaveLength(1);
-    const field = document.querySelector<HTMLInputElement>("input[aria-label='Text to type on the desktop']")!;
+    const field = document.querySelector<HTMLInputElement>("input[aria-label='text to type on the desktop']")!;
     flushSync(() => {
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
       setter.call(field, "hunter2");
@@ -209,9 +209,9 @@ describe("the live desktop", () => {
     });
     flushSync(() => field.form!.requestSubmit());
     expect(fixture.typed).toEqual(["hunter2"]);
-    flushSync(() => button("Exit fullscreen")!.click());
+    flushSync(() => button("exit fullscreen")!.click());
     expect(props.onExpandedChange).toHaveBeenCalledWith(false);
-    flushSync(() => button("Hand control back")!.click());
+    flushSync(() => button("hand control back")!.click());
     expect(props.onHandBack).toHaveBeenCalledTimes(1);
   });
 

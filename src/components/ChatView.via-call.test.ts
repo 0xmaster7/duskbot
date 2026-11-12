@@ -58,7 +58,7 @@ describe("via call label", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, {
       bot: bot([
         message("m1", "spoken words", { via: "call", callId: "c1" }),
-        message("r1", "Call with Pepper · 0:42", {
+        message("r1", "call with Pepper · 0:42", {
           role: "bot",
           kind: "call",
           call: { callId: "c1", botId: "bot", client: "ios", startedAt: 1_700_000_000_000, endedAt: 1_700_000_042_000, seconds: 42, endReason: "hung-up" },
@@ -66,15 +66,15 @@ describe("via call label", () => {
       ]),
     }));
     expect(markup).toContain('data-testid="call-record"');
-    expect(markup).toContain("Call with Pepper");
+    expect(markup).toContain("call with Pepper");
     expect(markup).toContain("spoken words");
     expect(markup.match(/>via call</g)).toHaveLength(1);
-    expect(markup).not.toContain("Call with Pepper · 0:42");
+    expect(markup).not.toContain("call with Pepper · 0:42");
   });
 });
 
 describe("a call's record at the end of a chat that is still working", () => {
-  const record = message("r1", "Call with Pepper · 0:42", {
+  const record = message("r1", "call with Pepper · 0:42", {
     role: "bot",
     kind: "call",
     call: { callId: "c1", botId: "bot", client: "ios", startedAt: 1_700_000_000_000, endedAt: 1_700_000_042_000, seconds: 42, endReason: "hung-up" },
@@ -91,7 +91,7 @@ describe("a call's record at the end of a chat that is still working", () => {
       record,
     ]);
     expect(markup).toContain('data-testid="call-record"');
-    expect(markup).toContain("Running the tests");
+    expect(markup).toContain("running the tests");
   });
 
   it("shows no working line for a reply that settled just before the call ended, once the turn has ended", () => {
@@ -111,10 +111,10 @@ describe("a call's record at the end of a chat that is still working", () => {
       message("a1", "", { role: "bot", kind: "activity", requestMessageId: "m1", tool: { name: "Read", spoken: "reading a file", itemId: "item-a1" } }),
       record,
     ];
-    expect(drawWorking(work)).toContain('<span class="sr-only"> (Running)</span>');
+    expect(drawWorking(work)).toContain('<span class="sr-only"> (running)</span>');
     const stopped = renderToStaticMarkup(createElement(ChatView, { bot: bot(work) }));
     expect(stopped).toContain('data-testid="call-record"');
-    expect(stopped).toContain("Reading a file");
+    expect(stopped).toContain("reading a file");
     expect(stopped).not.toContain("(Running)");
   });
 
@@ -127,7 +127,7 @@ describe("a call's record at the end of a chat that is still working", () => {
 describe("a call's record in a chat whose older messages are not all loaded", () => {
   const spoken = message("m1", "run the tests", { via: "call", callId: "c1" });
   const step = message("a1", "", { role: "bot", kind: "activity", requestMessageId: "m1", tool: { name: "Bash", spoken: "running the tests", ok: true, itemId: "item-a1" } });
-  const recordFrom = (startedAt: number) => message("r1", "Call with Pepper · 4:10", {
+  const recordFrom = (startedAt: number) => message("r1", "call with Pepper · 4:10", {
     role: "bot",
     kind: "call",
     call: { callId: "c1", botId: "bot", client: "ios", startedAt, endedAt: 1_700_000_000_000, seconds: 250, endReason: "hung-up" },
@@ -139,15 +139,15 @@ describe("a call's record in a chat whose older messages are not all loaded", ()
   it("says its lines may be incomplete when the call began before the oldest loaded message", () => {
     const markup = draw(true);
     expect(markup).toContain('data-testid="call-record"');
-    expect(markup).toContain("Some of this call may be in earlier messages");
+    expect(markup).toContain("some of this call may be in earlier messages");
   });
 
   it("says nothing once the whole conversation is loaded", () => {
-    expect(draw(false)).not.toContain("Some of this call may be in earlier messages");
+    expect(draw(false)).not.toContain("some of this call may be in earlier messages");
   });
 
   it("says nothing when the loaded messages reach back to before the call began, though older ones remain", () => {
     const typedEarlier = message("m0", "typed before the call", { at: began - 1_000 });
-    expect(draw(true, [typedEarlier])).not.toContain("Some of this call may be in earlier messages");
+    expect(draw(true, [typedEarlier])).not.toContain("some of this call may be in earlier messages");
   });
 });

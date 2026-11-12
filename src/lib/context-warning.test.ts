@@ -38,15 +38,15 @@ describe("context warning", () => {
 
     const onCompact = vi.fn();
     const markup = renderToStaticMarkup(createElement(RoomContextWarningsView, { warnings, pendingBotId: null, onCompact }));
-    expect(text(markup)).toBe("Scout's context in this room is 85% full. Compact now Quill's context in this room is 95% full. Compacts before its next turn.");
+    expect(text(markup)).toBe("Scout's context in this room is 85% full. compact now Quill's context in this room is 95% full. compacts before its next turn.");
   });
 
   it("offers Compact now in the 1:1 header, locked while the bot works", () => {
     const idle = renderToStaticMarkup(createElement(ThreadContextWarningView, { name: "Scout", percent: 91, busy: false, pending: false, onCompact: vi.fn() }));
-    expect(text(idle)).toBe("Context 91% Compact now");
+    expect(text(idle)).toBe("context 91% compact now");
     expect(idle).not.toContain("disabled=\"\"");
     const busy = renderToStaticMarkup(createElement(ThreadContextWarningView, { name: "Scout", percent: 91, busy: true, pending: false, onCompact: vi.fn() }));
     expect(busy).toContain("disabled=\"\"");
-    expect(busy).toContain("Stop this bot&#x27;s turn first");
+    expect(busy).toContain("stop this bot&#x27;s turn first");
   });
 });

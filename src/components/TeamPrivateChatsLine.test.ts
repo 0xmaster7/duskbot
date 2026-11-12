@@ -10,22 +10,22 @@ const memory = () => {
 
 describe("who can see a team's private chat", () => {
   it("says it in the header of every private chat", () => {
-    expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).toContain("Private · only you");
+    expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).toContain("private · only you");
     expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).not.toContain("admins");
   });
 
   it("says, once, that nobody else sees it: no other member and no admin", () => {
     const html = renderToStaticMarkup(createElement(TeamPrivateFirstLine, { team: { id: "acme-first-line", name: "Acme" } }));
-    expect(html).toContain("Your chats in Acme are private. Only you can see them: not other members, not Acme&#x27;s admins.");
+    expect(html).toContain("your chats in Acme are private. only you can see them: not other members, not Acme&#x27;s admins.");
   });
 
   it("says, in a team bot's shared chats, that everyone in the team can see them", () => {
-    expect(renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" } }))).toContain("Shared · everyone in Acme can see");
+    expect(renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" } }))).toContain("shared · everyone in Acme can see");
   });
 
   it("says only the people added can see them when the bot is shared that way, never everyone", () => {
     const html = renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" }, onlyPeopleAdded: true }));
-    expect(html).toContain("Shared · only people added and admins can see");
+    expect(html).toContain("shared · only people added and admins can see");
     expect(html).not.toContain("everyone");
   });
 

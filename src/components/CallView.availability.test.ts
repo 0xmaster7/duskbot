@@ -42,8 +42,8 @@ describe("call capability guidance", () => {
       reasonCode: "remote-server",
     }), false, false);
     expect(help).toEqual({
-      label: "Calls where you take turns work with bots on this Mac",
-      reason: "They listen with your Mac's own speech recognition, which only bots on this Mac can use.",
+      label: "calls where you take turns work with bots on this Mac",
+      reason: "they listen with your Mac's own speech recognition, which only bots on this Mac can use.",
     });
     expect(help).not.toHaveProperty("action");
   });
@@ -56,8 +56,8 @@ describe("call capability guidance", () => {
       reasonCode: "remote-server",
     }, platform), false, false);
     expect(help).toEqual({
-      label: "Calls where you take turns work with bots on this computer",
-      reason: "They listen from this computer's own window, so only bots on this computer can use them.",
+      label: "calls where you take turns work with bots on this computer",
+      reason: "they listen from this computer's own window, so only bots on this computer can use them.",
     });
   });
 
@@ -69,8 +69,8 @@ describe("call capability guidance", () => {
       reasonCode: "desktop-app-required",
     }, "other"), false, false);
     expect(help).toEqual({
-      label: "Calls where you take turns need the desktop app",
-      reason: "They listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
+      label: "calls where you take turns need the desktop app",
+      reason: "they listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
     });
   });
 
@@ -81,15 +81,15 @@ describe("call capability guidance", () => {
       onDevice: false,
       reasonCode: "unsupported-platform",
     }, "win32"), false, false);
-    expect(help?.label).toBe("Calls where you take turns need the desktop app");
+    expect(help?.label).toBe("calls where you take turns need the desktop app");
     expect(help).not.toHaveProperty("action");
   });
 
   it("keeps Take turns off on Windows until a Fish Audio key is saved, and says where to add one", () => {
     const fish = capabilities({ available: true, engine: "fish-audio", onDevice: false }, "win32");
     expect(callCapabilityHelp(fish, true, false)).toEqual({
-      label: "Add a Fish Audio key to take turns on calls",
-      reason: "On this computer, Take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in Settings → API keys.",
+      label: "add a Fish Audio key to take turns on calls",
+      reason: "on this computer, take turns hears you through Fish Audio speech-to-text. add a Fish Audio key in settings → API keys.",
     });
     expect(callCapabilityHelp(fish, true, true)).toBeNull();
   });
@@ -100,8 +100,8 @@ describe("call capability guidance", () => {
       engine: "apple-speech",
       onDevice: true,
     }), false, false)).toEqual({
-      label: "Calls aren't available right now",
-      reason: "The speech service is unavailable in this app build. Restart or update dusk bot.",
+      label: "calls aren't available right now",
+      reason: "the speech service is unavailable in this app build. restart or update dusk bot.",
     });
   });
 });

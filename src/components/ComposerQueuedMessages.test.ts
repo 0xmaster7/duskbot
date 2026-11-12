@@ -26,11 +26,11 @@ describe("the queued line", () => {
   const capacity = [{ queueId: "q1", text: "later", reason: "capacity" as const }];
   it("says a free slot elsewhere, and on Starter names the plan and the way to a bigger one", () => {
     const line = (props: object) => renderToStaticMarkup(createElement(QueuedComposerMessages, { items: capacity, onCancel: () => {}, ...props }));
-    expect(line({})).toContain("Starts when this bot has a free thread slot.");
+    expect(line({})).toContain("starts when this bot has a free thread slot.");
     const starter = line({ oneThreadPerBot: true, onSeePlans: () => {} });
-    expect(starter).toContain("Starter runs one thread at a time per bot");
-    expect(starter).toContain("A bigger plan runs more.");
-    expect(starter).toContain("See plans");
+    expect(starter).toContain("starter runs one thread at a time per bot");
+    expect(starter).toContain("a bigger plan runs more.");
+    expect(starter).toContain("see plans");
   });
 });
 
@@ -65,8 +65,8 @@ describe("QueuedComposerMessages", () => {
       items: [{ queueId: "capacity", text: "Run when there is room", reason: "capacity" }],
       onCancel: () => undefined,
     }));
-    expect(markup).toContain("Queued. Starts when this bot has a free thread slot.");
-    expect(markup).toContain('aria-label="Delete queued message 1 of 1"');
+    expect(markup).toContain("queued. starts when this bot has a free thread slot.");
+    expect(markup).toContain('aria-label="delete queued message 1 of 1"');
     expect(markup).not.toMatch(/Send (all |next )?now|what the bot is doing now/);
   });
   it("names a queued picture instead of showing its attachment tag and path", () => {
@@ -92,11 +92,11 @@ describe("QueuedComposerMessages", () => {
     );
 
     expect(markup).toContain('aria-label="1 queued message"');
-    expect(markup).toContain('aria-label="Queued messages"');
+    expect(markup).toContain('aria-label="queued messages"');
     expect(markup).toContain("actually stop at 10\nand use the smaller model");
     expect(markup).toContain("truncate");
-    expect(markup).toContain('aria-label="Add this message to what the bot is doing now"');
-    expect(markup).toContain('aria-label="Delete queued message 1 of 1"');
+    expect(markup).toContain('aria-label="add this message to what the bot is doing now"');
+    expect(markup).toContain('aria-label="delete queued message 1 of 1"');
   });
 
   it("shows an old cited message's words instead of transport metadata", () => {
@@ -119,23 +119,23 @@ describe("QueuedComposerMessages", () => {
       onCancel: () => undefined,
       onEdit: () => undefined,
     }));
-    expect(withEdit).toContain('aria-label="Edit queued message 1 of 2"');
-    expect(withEdit).toContain('aria-label="Edit queued message 2 of 2"');
+    expect(withEdit).toContain('aria-label="edit queued message 1 of 2"');
+    expect(withEdit).toContain('aria-label="edit queued message 2 of 2"');
     const withoutEdit = renderToStaticMarkup(createElement(QueuedComposerMessages, {
       items,
       onCancel: () => undefined,
     }));
-    expect(withoutEdit).not.toContain("Edit queued message");
+    expect(withoutEdit).not.toContain("edit queued message");
   });
 
   it("says the fallback Steer stops the running turn when the engine cannot steer live", () => {
     const base = { items: oneItem, onSteer: () => undefined, onCancel: () => undefined } as const;
     const liveMarkup = renderToStaticMarkup(createElement(QueuedComposerMessages, base));
-    expect(liveMarkup).toContain("aria-label=\"Add this message to what the bot is doing now\"");
+    expect(liveMarkup).toContain("aria-label=\"add this message to what the bot is doing now\"");
     const interruptMarkup = renderToStaticMarkup(
       createElement(QueuedComposerMessages, { ...base, steerInterrupts: true }),
     );
-    expect(interruptMarkup).toContain("aria-label=\"Stop the running turn and send this message now\"");
+    expect(interruptMarkup).toContain("aria-label=\"stop the running turn and send this message now\"");
     expect(interruptMarkup).not.toContain("aria-label=\"Add this message to what the bot is doing now\"");
   });
 
@@ -151,8 +151,8 @@ describe("QueuedComposerMessages", () => {
         onCancel: () => undefined,
       }),
     );
-    expect(markup).toContain("aria-label=\"Add the next queued message to what the bot is doing now\"");
-    expect(markup).not.toContain("Stop the running turn");
+    expect(markup).toContain("aria-label=\"add the next queued message to what the bot is doing now\"");
+    expect(markup).not.toContain("stop the running turn");
   });
 
   it("room chips whose engine cannot steer live say the interrupt truth", () => {
@@ -168,7 +168,7 @@ describe("QueuedComposerMessages", () => {
         onCancel: () => undefined,
       }),
     );
-    expect(markup).toContain("aria-label=\"Stop the running turn and send the next queued message now\"");
+    expect(markup).toContain("aria-label=\"stop the running turn and send the next queued message now\"");
     expect(markup).not.toContain("aria-label=\"Add the next queued message to what the bot is doing now\"");
   });
 
@@ -185,10 +185,10 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup.match(/Add all 2 queued messages to what the bot is doing now/g)).toHaveLength(2);
-    expect(markup.match(/>Send all now</g)).toHaveLength(1);
-    expect(markup).toContain('aria-label="Delete queued message 1 of 2"');
-    expect(markup).toContain('aria-label="Delete queued message 2 of 2"');
+    expect(markup.match(/add all 2 queued messages to what the bot is doing now/g)).toHaveLength(2);
+    expect(markup.match(/>send all now</g)).toHaveLength(1);
+    expect(markup).toContain('aria-label="delete queued message 1 of 2"');
+    expect(markup).toContain('aria-label="delete queued message 2 of 2"');
   });
 
   it("describes room steering as advancing the next queued message", () => {
@@ -204,8 +204,8 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup).toContain('aria-label="Add the next queued message to what the bot is doing now"');
-    expect(markup).toContain("Send next now");
+    expect(markup).toContain('aria-label="add the next queued message to what the bot is doing now"');
+    expect(markup).toContain("send next now");
   });
 
   it("omits Send now when this conversation cannot be interrupted", () => {
@@ -227,7 +227,7 @@ describe("QueuedComposerMessages", () => {
       }),
     );
 
-    expect(markup).toContain("Sending…");
+    expect(markup).toContain("sending…");
     expect(markup).toContain("disabled");
   });
 

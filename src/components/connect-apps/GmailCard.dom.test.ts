@@ -26,7 +26,7 @@ function connectorsWith(over: Partial<Connectors> = {}): Connectors {
 function model(connectors: Connectors, phase: ConnectorPhase, over: Partial<AppPageModel> = {}): AppPageModel {
   return {
     entry: { id: "gmail", kind: "composio", label: "Gmail", description: "Email from Google", categories: ["communication"], icon: { glyph: "envelope" } },
-    composioSlug: "gmail", ways: [], connection: "disconnected", phase, card: GMAIL, connectors, categoryLabel: "Communication",
+    composioSlug: "gmail", ways: [], connection: "disconnected", phase, card: GMAIL, connectors, categoryLabel: "communication",
     usedBy: [], remoteClient: false, onOpenLogins: vi.fn(), onOpenKeys: vi.fn(),
     toolkit: { slug: "gmail", name: "Gmail", description: "Email from Google", category: "email", tools: 63 },
     ...over,
@@ -55,11 +55,11 @@ describe("Gmail connects on one card", () => {
     const connectors = connectorsWith();
     await render(model(connectors, { kind: "connect" }));
     expect(card().getAttribute("data-state")).toBe("idle");
-    expect(card().textContent).toContain("Read and draft first. Nothing is sent without your OK.");
-    expect(card().textContent).toContain("You sign in with Google on its own page. Your password never reaches dusk.");
+    expect(card().textContent).toContain("read and draft first. nothing is sent without your OK.");
+    expect(card().textContent).toContain("you sign in with Google on its own page. dusk never sees your password.");
     expect(primaries()).toHaveLength(1);
     expect(card().contains(primaries()[0]!)).toBe(true);
-    expect(shown(primaries()[0]!)).toBe("Connect Gmail");
+    expect(shown(primaries()[0]!)).toBe("connect Gmail");
     expect(document.querySelector("[data-composio-key]")).toBeNull();
     expect(document.querySelector("[data-toolkit-group]")).toBeNull();
     expect(line()).toBeNull();
@@ -72,15 +72,15 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "connecting" }));
     expect(card().getAttribute("data-state")).toBe("connecting");
     expect(primaries()[0]!.disabled).toBe(true);
-    expect(shown(primaries()[0]!)).toBe("Connecting…");
+    expect(shown(primaries()[0]!)).toBe("connecting…");
     await act(async () => { card().querySelector<HTMLButtonElement>("[data-cancel]")!.click(); });
     expect(connectors.cancel).toHaveBeenCalledWith("gmail");
 
     await render(model(connectors, { kind: "continue", url: null }));
     expect(card().getAttribute("data-state")).toBe("connecting");
-    expect(shown(primaries()[0]!)).toBe("Open page again");
+    expect(shown(primaries()[0]!)).toBe("open page again");
     expect(line()?.getAttribute("role")).toBe("status");
-    expect(said()).toBe("Finish signing in on the page that opened. This updates by itself.");
+    expect(said()).toBe("finish signing in on the page that opened. this updates by itself.");
     await act(async () => { primaries()[0]!.click(); });
     expect(connectors.resume).toHaveBeenCalledWith("gmail");
   });
@@ -90,8 +90,8 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "connected" }, { connection: "connected" }));
     expect(card().getAttribute("data-state")).toBe("connected");
     expect(card().querySelector(".ca-primary")).toBeNull();
-    expect(card().querySelector(".ca-added")?.textContent).toContain("Connected");
-    expect(said()).toBe("Connected. Your bots can read your email and draft replies now.");
+    expect(card().querySelector(".ca-added")?.textContent).toContain("connected");
+    expect(said()).toBe("connected. your bots can read your email and draft replies now.");
     expect(document.querySelector("[data-accounts]"), "the account stays manageable below").not.toBeNull();
   });
 
@@ -101,9 +101,9 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "reconnect", account }));
     expect(card().getAttribute("data-state")).toBe("error");
     expect(line()?.getAttribute("role")).toBe("alert");
-    expect(said()).toBe("Your Gmail sign-in expired. Reconnect to keep using it.");
+    expect(said()).toBe("your Gmail sign-in expired. reconnect to keep using it.");
     expect(primaries()).toHaveLength(1);
-    expect(shown(primaries()[0]!)).toBe("Reconnect");
+    expect(shown(primaries()[0]!)).toBe("reconnect");
     await act(async () => { primaries()[0]!.click(); });
     expect(connectors.connect).toHaveBeenCalledWith("gmail", "work", account);
   });
@@ -120,11 +120,11 @@ describe("Gmail connects on one card", () => {
       const page = model(connectors, { kind: "connect" });
       await render(page);
       expect(primaries()).toHaveLength(1);
-      expect(shown(primaries()[0]!)).toBe("Connect Gmail");
-      expect(card().textContent).toContain("You sign in to Composio once, then to Google.");
+      expect(shown(primaries()[0]!)).toBe("connect Gmail");
+      expect(card().textContent).toContain("you sign in to Composio once, then to Google.");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.authorizeComposio).toHaveBeenCalledWith("gmail");
-      const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "Use my own Composio API key")!;
+      const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "use my own Composio API key")!;
       await act(async () => { own.click(); });
       expect(page.onOpenKeys).toHaveBeenCalled();
     });
@@ -132,13 +132,13 @@ describe("Gmail connects on one card", () => {
     it("authorizing waits on Composio's page; then the same button connects Gmail", async () => {
       await render(model(via(false, { step: "authorizing" }), { kind: "connect" }));
       expect(card().getAttribute("data-state")).toBe("connecting");
-      expect(shown(primaries()[0]!)).toBe("Waiting for Composio…");
+      expect(shown(primaries()[0]!)).toBe("waiting for Composio…");
 
       const connectors = via(true);
       await render(model(connectors, { kind: "connect" }));
       expect(card().getAttribute("data-state")).toBe("idle");
-      expect(said()).toBe("Composio is ready. Now pick your Google account.");
-      expect(shown(primaries()[0]!)).toBe("Connect Gmail");
+      expect(said()).toBe("Composio is ready. now pick your Google account.");
+      expect(shown(primaries()[0]!)).toBe("connect Gmail");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.connect).toHaveBeenCalledWith("gmail");
     });
@@ -148,9 +148,9 @@ describe("Gmail connects on one card", () => {
       await render(model(connectors, { kind: "failed", why: "cancelled" }));
       expect(card().getAttribute("data-state")).toBe("error");
       expect(line()?.getAttribute("role")).toBe("alert");
-      expect(said()).toBe("The sign-in page closed before Gmail connected.");
+      expect(said()).toBe("the sign-in page closed before Gmail connected.");
       expect(primaries()).toHaveLength(1);
-      expect(shown(primaries()[0]!)).toBe("Retry");
+      expect(shown(primaries()[0]!)).toBe("retry");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.connect).toHaveBeenCalledWith("gmail");
     });
@@ -159,7 +159,7 @@ describe("Gmail connects on one card", () => {
       await render(model(via(true, { step: "done" }), { kind: "connected" }, { connection: "connected" }));
       expect(card().getAttribute("data-state")).toBe("connected");
       expect(primaries()).toHaveLength(0);
-      expect(said()).toBe("Connected. Your bots can read your email and draft replies now.");
+      expect(said()).toBe("connected. your bots can read your email and draft replies now.");
     });
   });
 
@@ -171,6 +171,6 @@ describe("Gmail connects on one card", () => {
     });
     await render(page);
     expect(document.querySelector("[data-gmail-card]")).toBeNull();
-    expect(document.querySelector("[data-app-page] .ca-detail-header .ca-primary")?.textContent).toContain("Connect Slack");
+    expect(document.querySelector("[data-app-page] .ca-detail-header .ca-primary")?.textContent).toContain("connect Slack");
   });
 });

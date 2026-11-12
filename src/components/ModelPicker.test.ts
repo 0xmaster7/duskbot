@@ -82,9 +82,9 @@ describe("EffortRow", () => {
         selection: { instanceId: "codex", model: "gpt-5.6", effort: value || undefined } });
     }
     const markup = renderToStaticMarkup(createElement(EffortRow, { bot: bot(), compact: true }));
-    expect(markup).toContain('aria-label="Reasoning effort"');
+    expect(markup).toContain('aria-label="reasoning effort"');
     expect(markup).not.toContain("<button");
-    expect([...markup.matchAll(/<option[^>]*>([^<]+)</g)].map((match) => match[1])).toEqual(["Default", "None", "Low", "High"]);
+    expect([...markup.matchAll(/<option[^>]*>([^<]+)</g)].map((match) => match[1])).toEqual(["default", "none", "low", "high"]);
   });
   it("can apply effort to the pinned thread and bot default together", () => {
     fixture.instances = [engine(["high"])];
@@ -111,33 +111,33 @@ describe("EffortRow", () => {
   it("offers only the levels the selected engine accepts, plus Default", () => {
     const markup = renderEffort([engine(["low", "medium", "high"])]);
 
-    expect(levelButtons(markup).map((button) => button.label)).toEqual(["Default", "Low", "Medium", "High"]);
-    expect(markup).not.toContain(">X-High<");
+    expect(levelButtons(markup).map((button) => button.label)).toEqual(["default", "low", "medium", "high"]);
+    expect(markup).not.toContain(">x-high<");
     expect(markup).not.toContain(">Max<");
   });
 
   it("keeps Default and None apart — Default sends no level, None sends one", () => {
     const markup = renderEffort([engine(["none", "low"])]);
 
-    expect(levelButtons(markup).map((button) => button.label)).toEqual(["Default", "None", "Low"]);
+    expect(levelButtons(markup).map((button) => button.label)).toEqual(["default", "none", "low"]);
   });
 
   it("marks the active level, and Default when the bot carries no level", () => {
     const pressed = (markup: string) => levelButtons(markup).find((button) => button.pressed)?.label;
 
-    expect(pressed(renderEffort([engine(["low", "high"])], "high"))).toBe("High");
-    expect(pressed(renderEffort([engine(["low", "high"])]))).toBe("Default");
+    expect(pressed(renderEffort([engine(["low", "high"])], "high"))).toBe("high");
+    expect(pressed(renderEffort([engine(["low", "high"])]))).toBe("default");
   });
 
   it("renames xhigh, the one level that does not capitalize cleanly", () => {
-    expect(renderEffort([engine(["xhigh"])])).toContain(">X-High<");
+    expect(renderEffort([engine(["xhigh"])])).toContain(">x-high<");
   });
 });
 
 
 describe("OpenCode model variants", () => {
   const variants = [
-    { id: "none", label: "None" }, { id: "minimal", label: "Minimal" },
+    { id: "none", label: "none" }, { id: "minimal", label: "Minimal" },
     { id: "default", label: "Default" }, { id: "deep/custom", label: "Deep custom" },
   ];
   const opencode = (): InstanceInfo => ({ ...engine(), instanceId: "opencode", driverKind: "opencodeGo",
@@ -159,18 +159,18 @@ describe("OpenCode model variants", () => {
     const markup = renderToStaticMarkup(createElement(ModelVariantRow, { bot: { ...selected("removed"), busy: true }, compact: true }));
     expect(markup).toContain('disabled=""');
     expect(markup).toContain("removed (unverified)");
-    expect(markup).toContain("Use session setting");
+    expect(markup).toContain("use session setting");
   });
 
   it("offers exact advertised ids without assuming that omission means none or default", () => {
     const markup = render();
     expect(levelButtons(markup)).toEqual([
-      { label: "None", pressed: false }, { label: "Minimal", pressed: false },
+      { label: "none", pressed: false }, { label: "Minimal", pressed: false },
       { label: "OpenCode default", pressed: false }, { label: "Deep custom", pressed: false },
     ]);
-    expect(markup).toContain("No variant selected.");
+    expect(markup).toContain("no variant selected.");
     expect(fixture.dispatch).not.toHaveBeenCalled();
-    expect(levelButtons(render("none")).find((button) => button.pressed)?.label).toBe("None");
+    expect(levelButtons(render("none")).find((button) => button.pressed)?.label).toBe("none");
   });
 
   it.each(variants)("persists $id only to the pinned conversation and clears legacy effort", (option) => {
@@ -198,13 +198,13 @@ describe("OpenCode model variants", () => {
     fixture.modelVariantSessions["thread-atlas"] = { instanceId: "opencode", model: "provider/model", turnId: "turn", startedAt: "2026-09-15T00:00:00Z", acceptingUpdates: false,
       variants: { options: [{ id: "minimal", label: "Session minimal" }], currentValue: "minimal" } };
     expect(levelButtons(render()).map((button) => button.label)).toEqual(["Session minimal"]);
-    expect(render()).toContain("No variant selected. Session: Session minimal.");
+    expect(render()).toContain("no variant selected. session: Session minimal.");
     expect(levelButtons(render()).some((button) => button.pressed)).toBe(false);
     expect(fixture.instances[0].models.options[0].variants).toEqual(variants);
     fixture.modelVariantSessions["thread-atlas"].variants = { options: [] };
     expect(render()).toBe("");
     expect(render("none")).toContain("is unavailable");
-    expect(render("none")).not.toContain('aria-label="Reasoning variant"');
+    expect(render("none")).not.toContain('aria-label="reasoning variant"');
   });
 
   it("ignores another conversation, account, or model's session choices and preserves unavailable saved ids", () => {
@@ -215,7 +215,7 @@ describe("OpenCode model variants", () => {
     expect(levelButtons(render())).toHaveLength(4);
     fixture.modelVariantSessions["thread-atlas"] = { ...session, model: "other-model" };
     expect(levelButtons(render())).toHaveLength(4);
-    expect(render("removed")).toContain("Saved variant “removed” has not been checked in this session.");
+    expect(render("removed")).toContain("saved variant “removed” has not been checked in this session.");
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
@@ -277,7 +277,7 @@ describe("ModelPicker trigger", () => {
       const markup = renderToStaticMarkup(createElement(ModelPicker, { bot: { ...bot(), busy: true }, threadId }));
       expect(tooltipLines(markup)).toEqual([
         "Codex · GPT-5.6",
-        `Stop this ${threadId ? "thread" : "bot"}'s turn before changing its model`,
+        `stop this ${threadId ? "thread" : "bot"}'s turn before changing its model`,
       ]);
     }
   });
@@ -353,7 +353,7 @@ describe("Claude provider and account selection", () => {
     const onSelect = vi.fn();
     const dropdown = ClaudeAccountSelect({ accounts: [personal, work], selectedId: work.instanceId, onSelect });
     const markup = renderToStaticMarkup(dropdown);
-    expect(markup).toContain('aria-label="Account"');
+    expect(markup).toContain('aria-label="account"');
     expect(markup).toContain('<option value="claude-personal">Personal</option>');
     expect(markup).toContain('<option value="claude-work" selected="">Work</option>');
     const select = Children.toArray(dropdown.props.children)[1] as ReactElement<{ onChange: (event: ChangeEvent<HTMLSelectElement>) => void }>;
@@ -366,9 +366,9 @@ describe("organisation policy", () => {
   it("shows an engine the organisation disallows as managed and dimmed, not hidden", () => {
     const blocked: InstanceInfo = { ...engine(), policy: { organizationName: "Fixture Agency", reason: "Fixture Agency allows only company models on this computer. Choose a Company model for this bot." } };
     const markup = renderToStaticMarkup(createElement(ModelEngineRail, { instances: [blocked], onSelect: () => {} }));
-    expect(markup).toContain('aria-label="OpenAI · Managed by Fixture Agency"');
+    expect(markup).toContain('aria-label="OpenAI · managed by Fixture Agency"');
     expect(markup).toContain("opacity-40");
     const allowed = renderToStaticMarkup(createElement(ModelEngineRail, { instances: [engine()], onSelect: () => {} }));
-    expect(allowed).not.toContain("Managed by");
+    expect(allowed).not.toContain("managed by");
   });
 });

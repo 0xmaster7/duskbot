@@ -32,7 +32,7 @@ describe("ToolActivity: a clipped step", () => {
     expect(api).toHaveBeenCalledTimes(1);
     expect(api.mock.calls[0]![0]).toBe("/api/threads/th1/messages/m1/tool");
     expect(shown()).toBe(whole);
-    expect(host.textContent).not.toContain("Loading the full result");
+    expect(host.textContent).not.toContain("loading the full result");
     await toggle(false);
     await toggle(true);
     expect(api).toHaveBeenCalledTimes(1);
@@ -45,10 +45,10 @@ describe("ToolActivity: a clipped step", () => {
     render({ output: preview, clipped: true });
     await toggle(true);
     expect(shown()).toBe(preview);
-    expect(host.textContent).toContain("Loading the full result");
+    expect(host.textContent).toContain("loading the full result");
     await act(async () => fail(new Error("offline")));
     expect(shown()).toBe(preview);
-    expect(host.textContent).toContain("Showing the start of the result only");
+    expect(host.textContent).toContain("showing the start of the result only");
   });
 
   it("cancels the request when closed mid-load, and asks again on reopen", async () => {

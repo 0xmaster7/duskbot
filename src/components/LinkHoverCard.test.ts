@@ -57,7 +57,7 @@ describe("LinkHoverCard", () => {
     expect(card()).toBeNull();
     act(() => { vi.advanceTimersByTime(50); });
     expect(card()?.getAttribute("role")).toBe("tooltip");
-    expect(card()?.textContent).toContain("Pull request #2547");
+    expect(card()?.textContent).toContain("pull request #2547");
     expect(card()?.textContent).toContain("goatedgrokbotalternative/duskbot");
     expect(card()?.textContent).toContain("github.com");
     expect(link().getAttribute("aria-describedby")).toBe(card()?.id);
@@ -122,7 +122,7 @@ describe("LinkPreviewCard", () => {
   it("titles a commit by its short sha", () => {
     const href = "https://github.com/a/app/commit/68189cf0a1b2";
     const html = renderToStaticMarkup(createElement(LinkPreviewCard, { href, github: parseGithubUrl(href) }));
-    expect(html).toContain("Commit 68189cf");
+    expect(html).toContain("commit 68189cf");
     expect(html).toContain("a/app");
   });
 });

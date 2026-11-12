@@ -24,11 +24,11 @@ beforeEach(() => { setLocale("en"); vi.useFakeTimers({ now: NOW, toFake: ["Date"
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); vi.useRealTimers(); });
 
 it("says who it waits on and counts down to the next look", () => {
-  expect(reconnectText(VIEW, NOW)).toEqual({ title: "Reconnecting to Garage server", next: "Next try in 8s." });
+  expect(reconnectText(VIEW, NOW)).toEqual({ title: "reconnecting to Garage server", next: "next try in 8s." });
   expect(secondsLeft(VIEW, NOW + 7_400)).toBe(1);
   expect(secondsLeft(VIEW, NOW + 20_000), "never below zero").toBe(0);
-  expect(reconnectText({ ...VIEW, checking: true, nextAt: null }, NOW).next).toBe("Looking for it now…");
-  expect(reconnectText(null).title).toBe("Opening…");
+  expect(reconnectText({ ...VIEW, checking: true, nextAt: null }, NOW).next).toBe("looking for it now…");
+  expect(reconnectText(null).title).toBe("opening…");
 });
 
 it("shows the last-seen chats read only, Try now, and the other workspaces to open", async () => {
@@ -36,23 +36,23 @@ it("shows the last-seen chats read only, Try now, and the other workspaces to op
   root = createRoot(host);
   await act(async () => { root!.render(createElement(ReconnectScreen, { bridge })); });
   await settle();
-  expect(host.querySelector("[role='status']")?.textContent).toBe("Reconnecting to Garage server");
-  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("Next try in 8s.");
+  expect(host.querySelector("[role='status']")?.textContent).toBe("reconnecting to Garage server");
+  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("next try in 8s.");
   await act(async () => { vi.advanceTimersByTime(3_000); });
-  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("Next try in 5s.");
+  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("next try in 5s.");
   const frame = host.querySelector("[data-reconnect-frame]")!;
   expect(frame.textContent).toContain("Flights to Goa");
-  expect(frame.textContent, "an untitled chat still has a name").toContain("New conversation");
+  expect(frame.textContent, "an untitled chat still has a name").toContain("new conversation");
   expect(frame.textContent).toContain("Launch room");
   expect(frame.querySelectorAll("button, a, input"), "nothing in the frame does anything").toHaveLength(0);
   host.querySelector<HTMLButtonElement>("[data-reconnect-retry]")!.click();
   await settle();
   expect(bridge.retry).toHaveBeenCalledTimes(1);
-  expect([...host.querySelectorAll("[data-reconnect-open]")].map((button) => button.textContent)).toEqual(["This computer", "Office"]);
+  expect([...host.querySelectorAll("[data-reconnect-open]")].map((button) => button.textContent)).toEqual(["this computer", "Office"]);
   host.querySelector<HTMLButtonElement>("[data-reconnect-open='office']")!.click();
   expect(bridge.open).toHaveBeenCalledWith("office");
   await push({ ...VIEW, checking: true, nextAt: null });
-  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("Looking for it now…");
+  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("looking for it now…");
   expect(host.querySelector<HTMLButtonElement>("[data-reconnect-retry]")?.disabled).toBe(true);
 });
 
@@ -63,5 +63,5 @@ it("with nothing kept yet there is no list, only the wait", async () => {
   await settle();
   expect(host.querySelector("[data-reconnect-frame]")).toBeNull();
   expect(host.querySelector("[data-reconnect-places]")).toBeNull();
-  expect(host.querySelector("[role='status']")?.textContent).toBe("Reconnecting to Garage server");
+  expect(host.querySelector("[role='status']")?.textContent).toBe("reconnecting to Garage server");
 });

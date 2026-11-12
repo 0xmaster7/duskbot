@@ -67,8 +67,8 @@ describe("a message still on its way", () => {
   it("marks the person's unsent bubble as sending, and only that one", () => {
     const pending: Bot = { ...bot, messages: [...bot.messages, { id: "optimistic-s1", role: "user", kind: "text", at: 3, text: "are you there?", sendId: "s1" }] };
     const html = renderToStaticMarkup(createElement(ChatView, { bot: pending }));
-    expect(html.match(/data-sending="Sending…"/g)).toHaveLength(1);
-    const mark = html.indexOf('data-sending="Sending…"');
+    expect(html.match(/data-sending="sending…"/g)).toHaveLength(1);
+    const mark = html.indexOf('data-sending="sending…"');
     expect(html.indexOf("are you there?")).toBeGreaterThan(mark);
     expect(html.indexOf("hello from me")).toBeLessThan(mark);
   });

@@ -17,7 +17,7 @@ const bot = { id: "bot-1", name: "Scout" } as Bot;
 function message(extra: Partial<NonNullable<Message["card"]>> = {}): Message {
   return {
     id: "approval-1", at: 1, role: "bot", kind: "options",
-    card: { title: "Approval needed", subtitle: commandAllowlist.command, options: ["Allow", "Deny"],
+    card: { title: "Approval needed", subtitle: commandAllowlist.command, options: ["allow", "deny"],
       tool: "Bash", requestId: "request-1", allowSession: true, commandAllowlist, ...extra },
   };
 }
@@ -47,7 +47,7 @@ describe("remembering exact command approvals", () => {
   });
 
   it("keeps the provider summary when there is no exact command to remember", () => {
-    const summary = "Review the proposed file changes.";
+    const summary = "review the proposed file changes.";
     const pending = pendingApprovals([message({ subtitle: summary, commandAllowlist: undefined })])[0]!;
     expect(renderToStaticMarkup(createElement(PendingApprovalPanel, { pending, count: 1, index: 0 }))).toContain(summary);
   });
@@ -55,15 +55,15 @@ describe("remembering exact command approvals", () => {
   it("forwards eligibility supplied by the server without deriving a grant from the tool label", () => {
     expect(pendingApprovals([message()])[0]?.commandAllowlist).toEqual(commandAllowlist);
     expect(pendingApprovals([message({ commandAllowlist: undefined })])[0]?.commandAllowlist).toBeUndefined();
-    expect(view({ commandAllowlist: undefined }).html).not.toContain("Always allow this command");
+    expect(view({ commandAllowlist: undefined }).html).not.toContain("always allow this command");
   });
 
   it("answers and remembers in one action without a separate preference update", () => {
     const result = view();
-    expect(result.html).toContain("Always allow this command");
+    expect(result.html).toContain("always allow this command");
     expect(result.html).toContain("/work/project");
-    expect(result.html).not.toContain("Always allow this session");
-    result.buttons.find((button) => button.props["aria-label"] === "Always allow this command")!.props.onClick!();
+    expect(result.html).not.toContain("always allow this session");
+    result.buttons.find((button) => button.props["aria-label"] === "always allow this command")!.props.onClick!();
     expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
       type: "decideRequest", threadId: "thread-1", requestId: "request-1", behavior: "allow", rememberCommand: true,
       alwaysAllow: undefined, always: undefined,
@@ -71,7 +71,7 @@ describe("remembering exact command approvals", () => {
   });
 
   it("keeps Allow once and Deny from saving a grant", () => {
-    for (const [label, behavior] of [["Allow once", "allow"], ["Deny", "deny"]]) {
+    for (const [label, behavior] of [["allow once", "allow"], ["deny", "deny"]]) {
       fixture.dispatch.mockClear();
       view().buttons.find((button) => button.props.children === label)!.props.onClick!();
       expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
@@ -83,13 +83,13 @@ describe("remembering exact command approvals", () => {
   it.each([false, null])("keeps bot-wide grants unavailable without owner/admin authority (%s)", (admin) => {
     fixture.admin = admin;
     const result = view();
-    expect(result.html).not.toContain("Always allow this command");
-    expect(result.html).toContain("Always allow this session");
-    expect(result.html).toContain("Allow once");
+    expect(result.html).not.toContain("always allow this command");
+    expect(result.html).toContain("always allow this session");
+    expect(result.html).toContain("allow once");
   });
 
   it("preserves session approval for requests without an exact command", () => {
-    view({ commandAllowlist: undefined }).buttons.find((button) => button.props["aria-label"] === "Always allow this session")!.props.onClick!();
+    view({ commandAllowlist: undefined }).buttons.find((button) => button.props["aria-label"] === "always allow this session")!.props.onClick!();
     expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
       behavior: "allow", always: true, rememberCommand: undefined,
     }));
@@ -97,8 +97,8 @@ describe("remembering exact command approvals", () => {
 
   it("keeps peer grants separate from provider command rules", () => {
     const result = view({ allowKey: "peer:teammate" });
-    expect(result.html).not.toContain("Always allow this command");
-    result.buttons.find((button) => button.props.children === "Always allow")!.props.onClick!();
+    expect(result.html).not.toContain("always allow this command");
+    result.buttons.find((button) => button.props.children === "always allow")!.props.onClick!();
     expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
       alwaysAllow: { botId: bot.id, key: "peer:teammate" }, always: undefined, rememberCommand: undefined,
     }));
@@ -118,25 +118,25 @@ describe("remembering exact command approvals", () => {
       pending, count: 1, index: 0, botName: "Scout", actions: slot("primary"), more: slot("more"),
     }));
     const details = html.indexOf('id="approval-details-');
-    const hidden = html.slice(details, html.indexOf("</div>", html.indexOf("Cancel turn")));
-    expect(hidden).toContain("Cancel turn");
+    const hidden = html.slice(details, html.indexOf("</div>", html.indexOf("cancel turn")));
+    expect(hidden).toContain("cancel turn");
     const row = html.slice(0, details) + html.slice(details + hidden.length);
-    expect(row).toContain(">Deny</button>");
-    expect(row).toContain(">Allow once</button>");
-    expect(row).toContain('aria-label="Always allow this command"');
-    expect(row).toContain(">Always allow</button>");
-    expect(row).not.toContain("Cancel turn");
+    expect(row).toContain(">deny</button>");
+    expect(row).toContain(">allow once</button>");
+    expect(row).toContain('aria-label="always allow this command"');
+    expect(row).toContain(">always allow</button>");
+    expect(row).not.toContain("cancel turn");
     // grok's order: the bare refusal, the quiet standing yes, then the one primary
-    expect(row.indexOf(">Deny<")).toBeLessThan(row.indexOf(">Always allow<"));
-    expect(row.indexOf(">Always allow<")).toBeLessThan(row.indexOf(">Allow once<"));
+    expect(row.indexOf(">deny<")).toBeLessThan(row.indexOf(">always allow<"));
+    expect(row.indexOf(">always allow<")).toBeLessThan(row.indexOf(">allow once<"));
   });
 
   it("never offers always allow on code or a real send", () => {
     for (const tool of ["COMPOSIO_PROXY_EXECUTE", "SLACK_SEND_MESSAGE"]) {
       const result = view({ tool, commandAllowlist: undefined, allowSession: undefined, allowKey: undefined,
-        heldCode: "approval.held.outbound", outboundRequest: { tool, app: "Slack", calls: [{ app: "Slack", label: "Send" }] } });
-      expect(result.html).toContain("Allow once");
-      expect(result.html).not.toContain("Always allow");
+        heldCode: "approval.held.outbound", outboundRequest: { tool, app: "Slack", calls: [{ app: "Slack", label: "send" }] } });
+      expect(result.html).toContain("allow once");
+      expect(result.html).not.toContain("always allow");
     }
   });
 

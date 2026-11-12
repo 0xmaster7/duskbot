@@ -12,8 +12,8 @@ describe("RenameTitle", () => {
       showEditButton: true,
     }));
 
-    expect(markup).not.toContain("Open Maus&#x27;s profile");
-    expect(markup).toContain('aria-label="Rename Maus"');
+    expect(markup).not.toContain("open Maus&#x27;s profile");
+    expect(markup).toContain('aria-label="rename Maus"');
   });
 
   it("exposes the profile button when onActivate is provided", () => {
@@ -24,6 +24,6 @@ describe("RenameTitle", () => {
       showEditButton: true,
     }));
 
-    expect(markup).toContain("Open Maus&#x27;s profile");
+    expect(markup).toContain("open Maus&#x27;s profile");
   });
 });

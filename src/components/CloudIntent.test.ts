@@ -39,17 +39,17 @@ beforeEach(() => {
 
 it("asks with /setup in front, offers ideas, and says plainly how to skip", () => {
   const { html } = render();
-  expect(html).toContain("What should the Cloud do while you&#x27;re away?");
+  expect(html).toContain("what should the cloud do while you&#x27;re away?");
   expect(html).toContain("/setup");
-  for (const idea of ["News digest", "Watch a page", "Research roundup", "Plan my day"]) expect(html).toContain(idea);
-  expect(html).toContain("Skip for now");
-  expect(html).toContain("Esc");
-  expect(html).toContain("You can come back to it any time");
+  for (const idea of ["news digest", "watch a page", "research roundup", "plan my day"]) expect(html).toContain(idea);
+  expect(html).toContain("skip for now");
+  expect(html).toContain("esc");
+  expect(html).toContain("you can come back to it any time");
   expect(html).not.toContain('aria-modal="true"');
 });
 
 it("Skip for now steps aside at once and is kept in the Cloud's record, so no device asks again", async () => {
-  const skip = render().nodes.find(node => node.type === "button" && text(node) === "Skip for now")!;
+  const skip = render().nodes.find(node => node.type === "button" && text(node) === "skip for now")!;
   skip.props.onClick!();
   expect(dismissCloudIntent).toHaveBeenCalledOnce();
   await Promise.resolve();
@@ -57,7 +57,7 @@ it("Skip for now steps aside at once and is kept in the Cloud's record, so no de
 });
 
 it("sends nothing while the box is empty", () => {
-  const send = render().nodes.find(node => node.type === "button" && (node.props as { "aria-label"?: string })["aria-label"] === "Start setting it up")!;
+  const send = render().nodes.find(node => node.type === "button" && (node.props as { "aria-label"?: string })["aria-label"] === "start setting it up")!;
   expect((send.props as { disabled?: boolean }).disabled).toBe(true);
   send.props.onClick!();
   expect(store.dispatch).not.toHaveBeenCalled();

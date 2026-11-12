@@ -97,13 +97,12 @@ export function costOf(node: TraceNode): number | null {
 }
 
 const ACTION_PREFIX = /^(?:mcp__.+?__|[a-z][a-z0-9_-]{0,31}__)?(?:agent_browser_|browser_|computer_)?/i;
-const sentence = (words: string) => words ? words[0]!.toLocaleUpperCase() + words.slice(1) : words;
 
 /** What a tool did, in words: a browser or computer step names its action, other tools their kind. */
 export function toolLabel(tool: Pick<TraceTool, "name" | "icon">): string {
   if (tool.icon === "browser" || tool.icon === "computer" || tool.icon === "phone") {
     const action = tool.name.replace(ACTION_PREFIX, "").replace(/[_-]+/g, " ").trim().toLowerCase();
-    if (action) return sentence(action);
+    if (action) return action;
   }
   return toolStepLabel({ name: tool.name, summary: undefined });
 }

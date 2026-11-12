@@ -41,37 +41,37 @@ describe("HtmlPreviewFrame", () => {
     expect(markup).toContain("srcDoc=");
     expect(markup).not.toMatch(/\ssrc="/);
     expect(markup).toContain('referrerPolicy="no-referrer"');
-    expect(markup).toContain('title="Preview of report.html"');
+    expect(markup).toContain('title="preview of report.html"');
   });
 });
 
 describe("file chip preview button", () => {
   it("offers a page preview for HTML and keeps the table preview for CSV", () => {
-    expect(chip("report.html")).toContain("Preview page: report.html");
-    expect(chip("report.html")).not.toContain("Preview table:");
-    expect(chip("data.csv")).toContain("Preview table: data.csv");
+    expect(chip("report.html")).toContain("preview page: report.html");
+    expect(chip("report.html")).not.toContain("preview table:");
+    expect(chip("data.csv")).toContain("preview table: data.csv");
     expect(chip("notes.txt")).not.toMatch(/Preview (page|table):/);
   });
 
   it("offers no preview for files outside a message or not shared privately", () => {
-    expect(chip("report.html", {}, false)).not.toContain("Preview page:");
-    expect(chip("report.html", { private: false })).not.toContain("Preview page:");
+    expect(chip("report.html", {}, false)).not.toContain("preview page:");
+    expect(chip("report.html", { private: false })).not.toContain("preview page:");
   });
 });
 
 describe("HTML file chip (#4406)", () => {
   it("opens the preview from the file name and keeps saving on its own button", () => {
     const html = chip("report.html");
-    expect(html).toMatch(/aria-label="Preview page: report.html"[^>]*>[^]*report\.html/);
-    expect(html).not.toMatch(/<button[^>]*aria-label="Save a copy of report.html"[^>]*class="flex min-h-10/);
-    expect(html).toMatch(/class="table-action" aria-label="Save a copy of report.html"/);
+    expect(html).toMatch(/aria-label="preview page: report.html"[^>]*>[^]*report\.html/);
+    expect(html).not.toMatch(/<button[^>]*aria-label="save a copy of report.html"[^>]*class="flex min-h-10/);
+    expect(html).toMatch(/class="table-action" aria-label="save a copy of report.html"/);
   });
 
   it("leaves other files as they were: the name saves, the side button previews", () => {
     const csv = chip("data.csv");
-    expect(csv).toMatch(/aria-label="Save a copy of data.csv"/);
-    expect(csv).toContain("Preview table: data.csv");
-    expect(csv).not.toContain("Preview page:");
+    expect(csv).toMatch(/aria-label="save a copy of data.csv"/);
+    expect(csv).toContain("preview table: data.csv");
+    expect(csv).not.toContain("preview page:");
   });
 });
 
@@ -81,7 +81,7 @@ describe("OpenInBrowserButton", () => {
 
   it("shows on the desktop app that holds the file", () => {
     vi.stubGlobal("window", { duskDesktop: { openHtmlInBrowser: async () => true } });
-    expect(button()).toContain('aria-label="Open report.html in your browser"');
+    expect(button()).toContain('aria-label="open report.html in your browser"');
   });
 
   it("is hidden in a web browser and when the window shows another computer", () => {

@@ -30,14 +30,14 @@ describe("SkillRequestPreview", () => {
         referencesSha256: "b".repeat(64),
       }),
     }));
-    expect(html).toContain("Review the complete SKILL.md and its reference files");
+    expect(html).toContain("review the complete SKILL.md and its reference files");
     expect(html).toContain("references/edge-cases.md");
     expect(html).toContain("Receipts over 50 need a manager.");
   });
 
   it("keeps the SKILL.md-only card unchanged", () => {
     const html = renderToStaticMarkup(createElement(SkillRequestPreview, { request: request() }));
-    expect(html).toContain("Review the complete SKILL.md before");
+    expect(html).toContain("review the complete SKILL.md before");
     expect(html).not.toContain("reference files");
   });
 });

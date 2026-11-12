@@ -3,7 +3,7 @@ import type { RoutineSchedule } from "@/lib/routines";
 import { cronScheduleLabel } from "../../shared/cron-label";
 import { limitResetWhen } from "@/lib/limit-resets";
 
-export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const DAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 export function niceTime(at: number): string {
   return new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -20,10 +20,10 @@ export function whenLabel(at: number): string {
 }
 
 export function intervalLabel(minutes: number): string {
-  if (minutes < 60) return `Every ${minutes} min`;
-  if (minutes === 60) return "Every hour";
-  if (minutes % 60 === 0) return `Every ${minutes / 60} hr`;
-  return `Every ${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
+  if (minutes < 60) return `every ${minutes} min`;
+  if (minutes === 60) return "every hour";
+  if (minutes % 60 === 0) return `every ${minutes / 60} hr`;
+  return `every ${Math.floor(minutes / 60)} hr ${minutes % 60} min`;
 }
 
 function intervalRestrictions(schedule: Extract<RoutineSchedule, { type: "interval" }>): string[] {
@@ -55,11 +55,11 @@ export function scheduleLabel(schedule: RoutineSchedule | { type: "once"; at: nu
   }
   const days = schedule.weekdays;
   const label = days.length === 7
-    ? "Every day"
+    ? "every day"
     : days.join(",") === "1,2,3,4,5"
-      ? "Every weekday"
+      ? "every weekday"
       : days.length === 1
-        ? `Weekly on ${DAY_NAMES[days[0]!]}`
+        ? `weekly on ${DAY_NAMES[days[0]!]}`
         : days.map((day) => DAY_NAMES[day]).join(", ");
   return `${label} at ${niceTime(atLocalTime(Date.now(), schedule.time))}`;
 }

@@ -308,7 +308,7 @@ export function createVpsLink(deps) {
           if (got.state === "linked") { pending.state = "linking"; write(); await finish(pending, got, abort.signal); continue; }
           if (got.state === "expired" || got.state === "cancelled") {
             state.pending = null;
-            lastError = got.state === "expired" ? "This command expired before your server used it. Make a new one." : null;
+            lastError = got.state === "expired" ? "this command expired before your server used it. make a new one." : null;
             write();
             break;
           }
@@ -316,10 +316,10 @@ export function createVpsLink(deps) {
           else if (streamed || recovered) onChange(view());
         } catch (error) {
           if (abort.signal.aborted) break;
-          if (error?.status === 404) { state.pending = null; lastError = "This command expired. Make a new one."; write(); break; }
+          if (error?.status === 404) { state.pending = null; lastError = "this command expired. make a new one."; write(); break; }
           failures += 1;
           const contact = liveFor(pending.id);
-          contact.error = "Setup updates paused. Reconnecting to your server.";
+          contact.error = "setup updates paused. reconnecting to your server.";
           if (!contact.updatedAt) contact.updatedAt = now();
           onChange(view());
           await sleep(Math.min(15_000, 500 * 2 ** Math.min(failures, 5)), undefined, { signal: abort.signal }).catch(() => {});
@@ -337,7 +337,7 @@ export function createVpsLink(deps) {
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(typeof body?.error === "string" ? body.error : `Your server answered ${response.status}.`), { status: response.status });
+    if (!response.ok) throw Object.assign(new Error(typeof body?.error === "string" ? body.error : `your server answered ${response.status}.`), { status: response.status });
     return body;
   }
 
@@ -629,7 +629,7 @@ export function createVpsLink(deps) {
       signal: AbortSignal.timeout(120_000),
     });
     const parsed = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : `Your server answered ${response.status}.`), { status: response.status });
+    if (!response.ok) throw Object.assign(new Error(typeof parsed?.error === "string" ? parsed.error : `your server answered ${response.status}.`), { status: response.status });
     return parsed;
   }
   function needLink() {
@@ -681,7 +681,7 @@ export function createVpsLink(deps) {
       if (cli) {
         const abort = new AbortController();
         const flowId = `local-${randomBytes(9).toString("base64url")}`;
-        const flow = { flowId, phase: "waiting", authorizationUrl: null, abort, message: "Finish signing in to Claude in your browser." };
+        const flow = { flowId, phase: "waiting", authorizationUrl: null, abort, message: "finish signing in to Claude in your browser." };
         signIns.set(flowId, flow);
         deps.localCredentials.claudeToken(cli, abort.signal).then(async (token) => {
           if (!CLAUDE_TOKEN.test(token)) throw new Error("Claude did not give this app a sign-in.");
@@ -693,7 +693,7 @@ export function createVpsLink(deps) {
           // the sign-in on the server instead: a link to open and a code to paste back here
           try {
             const { auth } = await serverCall(link, "POST", `/api/instances/${encodeURIComponent(instanceId)}/auth/start`, {});
-            Object.assign(flow, { server: auth.flowId, authorizationUrl: auth.authorizationUrl, needsCode: auth.phase === "waiting", phase: auth.phase === "succeeded" ? "succeeded" : "waiting", message: "Open the link, sign in, then paste the code here." });
+            Object.assign(flow, { server: auth.flowId, authorizationUrl: auth.authorizationUrl, needsCode: auth.phase === "waiting", phase: auth.phase === "succeeded" ? "succeeded" : "waiting", message: "open the link, sign in, then paste the code here." });
           } catch (fallback) {
             flow.phase = "failed"; flow.message = plain(fallback, "Claude could not sign in. Try again.");
           }
@@ -807,7 +807,7 @@ export function createVpsLink(deps) {
     const opened = await deps.backups.open(entry.file);
     const upload = await localRequest("/api/workspace-backup/upload", { method: "POST", headers: { "content-type": "application/octet-stream", "content-length": String(opened.size) }, body: opened.body, duplex: "half", signal: AbortSignal.timeout(30 * 60_000) });
     const uploaded = await upload.json().catch(() => ({}));
-    if (!upload.ok) throw new Error(typeof uploaded?.error === "string" ? uploaded.error : "The backup could not be read.");
+    if (!upload.ok) throw new Error(typeof uploaded?.error === "string" ? uploaded.error : "the backup could not be read.");
     const staged = await local("POST", "/api/workspace-backup/preview", { id: uploaded.id, password: await unprotect(entry.passwordP) });
     await local("POST", "/api/workspace-backup/restore", { id: staged.id, confirmation: "REPLACE" });
   }
@@ -885,7 +885,7 @@ export function createVpsLink(deps) {
           moveTo("done", "done", forgot ? {} : { kept: true });
           return;
         } else if (seen.phase === "home-again" || seen.phase === "back" || seen.phase === "keeping") {
-          moveTo(kept.step, "failed", { error: "The move stopped and your bots stayed on this Mac." });
+          moveTo(kept.step, "failed", { error: "the move stopped and your bots stayed on this Mac." });
           return;
         }
       } catch (error) {
@@ -957,7 +957,7 @@ export function createVpsLink(deps) {
     }));
     if (state.pending) follow();
     if (state.move && state.move.status === "running" && state.move.step !== "backup") watchMove();
-    if (state.move && state.move.status === "running" && state.move.step === "backup") moveTo("backup", "failed", { error: "The app closed while saving the backup. Nothing on this Mac changed." });
+    if (state.move && state.move.status === "running" && state.move.step === "backup") moveTo("backup", "failed", { error: "the app closed while saving the backup. nothing on this Mac changed." });
   }
 
   /** whether `identity` is the one pinned for the linked server at `origin`: null for an origin no link has. A link made

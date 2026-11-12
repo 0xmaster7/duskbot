@@ -80,7 +80,7 @@ function teamSessionOf(value: unknown): TeamSession | null {
   return typeof team.id === "string" && typeof team.name === "string" && typeof team.role === "string" ? { id: team.id, name: team.name, role: team.role } : null;
 }
 
-export const SERVICE_TRUST_REASON = "This server does not treat this computer as its owner. Sign in or pair this browser to continue.";
+export const SERVICE_TRUST_REASON = "this server does not treat this computer as its owner. sign in or pair this browser to continue.";
 
 export function isConnected(state: SessionState | null): boolean {
   return state?.kind === "session" || (state?.kind === "loopback" && state.trust !== "service");
@@ -106,7 +106,7 @@ export function takeBrowserSignInFromLocation(): string | null {
   return m ? m[1] : null;
 }
 
-export const BROWSER_SIGN_IN_FAILED = "This sign-in link has expired or was already used. On My Cloud, choose “Use in your browser” again.";
+export const BROWSER_SIGN_IN_FAILED = "this sign-in link has expired or was already used. on my cloud, choose “use in your browser” again.";
 
 /** Never trusted on its own; the one-time code still goes to the address itself. */
 export function takeInvitedEmailFromLocation(): string | null {
@@ -120,7 +120,7 @@ export function takeInvitedEmailFromLocation(): string | null {
 }
 
 export function defaultDeviceLabel(userAgent: string = navigator.userAgent): string {
-  const browser = /Edg\//.test(userAgent) ? "Edge" : /OPR\//.test(userAgent) ? "Opera" : /Chrome\//.test(userAgent) ? "Chrome" : /Firefox\//.test(userAgent) ? "Firefox" : /Safari\//.test(userAgent) ? "Safari" : "Browser";
+  const browser = /Edg\//.test(userAgent) ? "Edge" : /OPR\//.test(userAgent) ? "Opera" : /Chrome\//.test(userAgent) ? "Chrome" : /Firefox\//.test(userAgent) ? "Firefox" : /Safari\//.test(userAgent) ? "Safari" : "browser";
   const os = /iPhone/.test(userAgent) ? "iPhone" : /iPad/.test(userAgent) ? "iPad" : /Android/.test(userAgent) ? "Android" : /Mac OS X/.test(userAgent) ? "Mac" : /Windows/.test(userAgent) ? "Windows" : /Linux/.test(userAgent) ? "Linux" : "";
   return os ? `${browser} on ${os}` : browser;
 }

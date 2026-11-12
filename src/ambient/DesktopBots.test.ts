@@ -12,13 +12,13 @@ describe("the ⌘Q pill", () => {
   });
 
   it("names one, a few, or counts many, with the platform's key", () => {
-    expect(quitHintText(["Scout"], true, "en")).toBe("Scout is working. Hold ⌘Q to quit.");
-    expect(quitHintText(["Scout", "Echo"], false, "en")).toBe("Scout and Echo are working. Hold Ctrl+Q to quit.");
-    expect(quitHintText(["A", "B", "C", "D"], true, "en")).toBe("4 bots are working. Hold ⌘Q to quit.");
+    expect(quitHintText(["Scout"], true, "en")).toBe("Scout is working. hold ⌘Q to quit.");
+    expect(quitHintText(["Scout", "Echo"], false, "en")).toBe("Scout and Echo are working. hold Ctrl+Q to quit.");
+    expect(quitHintText(["A", "B", "C", "D"], true, "en")).toBe("4 bots are working. hold ⌘Q to quit.");
   });
 });
 
-describe("Stop Bot and Stop All Bots", () => {
+describe("stop Bot and Stop All Bots", () => {
   const bots = [
     { id: "scout", name: "Scout", threadId: "s1", busy: true, tasks: [{ threadId: "s1", busy: false }, { threadId: "s2", busy: true }, { threadId: "s3", busy: true }] },
     { id: "echo", name: "Echo", threadId: "e1", busy: true },
@@ -51,8 +51,8 @@ describe("Stop Bot and Stop All Bots", () => {
 describe("the asks main closes banners by", () => {
   it("splits the loaded bots into those waiting on the person and the rest", () => {
     const bot = (id: string, fields: Record<string, unknown> = {}) => ({ id, name: id, threadId: `${id}-t`, messages: [], busy: false, ...fields }) as never;
-    const asking = bot("scout", { messages: [{ id: "m1", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r1", tool: "Bash" } }] });
-    const answered = bot("echo", { messages: [{ id: "m2", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["Allow", "Deny"], requestId: "r2", tool: "Bash", answered: "allow" } }] });
+    const asking = bot("scout", { messages: [{ id: "m1", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["allow", "deny"], requestId: "r1", tool: "Bash" } }] });
+    const answered = bot("echo", { messages: [{ id: "m2", at: 1, role: "bot", kind: "options", card: { title: "Run", subtitle: "npm test", options: ["allow", "deny"], requestId: "r2", tool: "Bash", answered: "allow" } }] });
     const elsewhere = bot("nova", { tasks: [{ threadId: "n2", openAsks: 1 }] });
     expect(askReport([asking, answered, elsewhere, bot("idle")])).toEqual({ waiting: ["scout", "nova"], settled: ["echo", "idle"] });
   });

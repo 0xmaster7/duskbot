@@ -334,7 +334,7 @@ describe("a v1 live view whose stream dropped", () => {
   it("stops for good when its browser closed unused, without a notice, and does not start it again on focus", () => {
     const { client, handlers } = open();
     latest().emit("ready", { viewerId: "v1" });
-    latest().fail({ type: "error", retryable: false, asleep: true, message: "This browser closed after it sat unused, to save memory." });
+    latest().fail({ type: "error", retryable: false, asleep: true, message: "this browser closed after it sat unused, to save memory." });
     vi.advanceTimersByTime(30_000);
     page.dispatchEvent(new Event("focus"));
     expect(FixtureEventSource.instances).toHaveLength(1);
@@ -385,7 +385,7 @@ describe("a v1 live view whose stream dropped", () => {
     const source = latest();
     source.emit("ready", { viewerId: "gone-viewer" });
     source.emit("control", { held: true, owned: true, controlling: true });
-    post.mockRejectedValueOnce(Object.assign(new Error("This browser view is no longer available. Reopen the browser panel."), { status: 404 }));
+    post.mockRejectedValueOnce(Object.assign(new Error("this browser view is no longer available. Reopen the browser panel."), { status: 404 }));
     client.transport.send({ type: "mouse", action: "down", x: 4, y: 5, button: "left", buttons: 1, clickCount: 1, modifiers: 0 });
     await vi.advanceTimersByTimeAsync(0);
     expect(source.close).toHaveBeenCalledOnce();
@@ -483,7 +483,7 @@ describe("the v1 input queue", () => {
     for (let n = 0; n < 40; n++) queue.enqueue(key("keyDown", String(n)));
     queue.enqueue(up);
     queue.enqueue({ type: "reload" });
-    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("Reconnect the view before typing again") }));
+    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("reconnect the view before typing again") }));
     first.resolve(); await queue.drain();
     expect(send.mock.calls.map(([body]) => body)).toEqual([key("keyDown", "held"), key("keyUp", "held"), up, { type: "reload" }]);
     queue.clear(); queue.enqueue(key("keyDown", "after reconnect")); await queue.drain();

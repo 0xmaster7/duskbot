@@ -20,12 +20,12 @@ export function ConnectionDetail({ label, value }: { label: string; value: strin
       <div className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{label}</div>
       <div className="min-w-0 truncate font-mono text-[12px] leading-4 text-ink-secondary">{revealed ? value : addressPreview(value)}</div>
       <button type="button" onClick={() => setRevealed((current) => !current)} className="ui-button shrink-0">
-        {revealed ? "Hide" : "Reveal"}
+        {revealed ? "hide" : "reveal"}
       </button>
       <button
         type="button"
         onClick={copy}
-        aria-label={copyState === "failed" ? t("common.copyFailed") : `Copy ${label}`}
+        aria-label={copyState === "failed" ? t("common.copyFailed") : `copy ${label}`}
         className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.06] hover:text-ink outline-none focus-visible:outline-2 focus-visible:outline-focus"
       >
         {copyState === "copied" ? <Check size={13} className="text-success" /> : copyState === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}

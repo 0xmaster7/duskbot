@@ -94,14 +94,14 @@ describe("the inbox's words", () => {
   it("keys a password, a sign-in and an app to connect by what the line waits on the person for", () => {
     const secret: InboxRow = { ...news, kind: "ask", tab: "needs-you", secret: { target: "custom", label: "Stripe key", description: "", placeholder: "", helpUrl: "", requestKey: "k" } as unknown as InboxRow["secret"] };
     const signIn: InboxRow = { ...news, kind: "ask", tab: "needs-you", signIn: { url: "https://shop.test", site: "shop.test", place: "browser" } as InboxRow["signIn"] };
-    const connect: InboxRow = { ...news, kind: "ask", tab: "needs-you", connector: { label: "Gmail", description: "Read mail", resumeKey: "r1" } as InboxRow["connector"] };
+    const connect: InboxRow = { ...news, kind: "ask", tab: "needs-you", connector: { label: "Gmail", description: "read mail", resumeKey: "r1" } as InboxRow["connector"] };
     expect(answerKindOf(secret)).toBe("password");
     expect(answerKindOf(signIn)).toBe("sign-in");
     expect(answerKindOf(connect)).toBe("connect");
     expect(answerKindOf({ ...signIn, signIn: { ...signIn.signIn!, done: true } })).toBe("none");
     expect(answerKindOf({ ...secret, secret: { ...secret.secret!, provided: true } })).toBe("none");
-    expect(headlineOf(signIn)).toBe("Sign in to shop.test");
-    expect(headlineOf(connect)).toBe("Connect Gmail");
+    expect(headlineOf(signIn)).toBe("sign in to shop.test");
+    expect(headlineOf(connect)).toBe("connect Gmail");
   });
 });
 
@@ -109,7 +109,7 @@ describe("the inbox tab", () => {
   it("is a tab with its count that closes, and lists three-line rows a search filters", async () => {
     await mount();
     const chip = document.querySelector("[data-inbox-tab-chip]")!;
-    expect(chip.textContent).toContain("Inbox");
+    expect(chip.textContent).toContain("inbox");
     expect(chip.querySelector("[data-inbox-tab-count]")!.textContent).toBe("2");
     expect(listed()).toEqual(["q1", "q2", "n1"]);
     const first = document.querySelector('[data-inbox-row="q1"]')!;
@@ -121,8 +121,8 @@ describe("the inbox tab", () => {
     expect(listed()).toEqual(["n1"]);
     await type(document.querySelector<HTMLInputElement>('input[type="search"]')!, "nothing like it");
     expect(listed()).toEqual([]);
-    expect(document.body.textContent).toContain("Nothing in the inbox matches.");
-    await click('[aria-label="Close inbox"]');
+    expect(document.body.textContent).toContain("nothing in the inbox matches.");
+    await click('[aria-label="close inbox"]');
     expect(currentInboxPanel().open).toBe(false);
   });
 });
@@ -130,7 +130,7 @@ describe("the inbox tab", () => {
 describe("a line read in full", () => {
   it("shows where it is with steps up and down, the way it came, and the bot's words before it in context", async () => {
     server.context = [
-      { id: "m0", role: "user", kind: "text", text: "Set up self-hosting", at: AT - 10 },
+      { id: "m0", role: "user", kind: "text", text: "set up self-hosting", at: AT - 10 },
       { id: "m1", role: "bot", kind: "text", text: "Grilling round 1. **A small team** first.", at: AT - 5 },
     ];
     await mount();
@@ -142,13 +142,13 @@ describe("a line read in full", () => {
     const words = document.querySelector("[data-inbox-words]")!;
     expect(words.textContent).toContain("Grilling round 1.");
     expect(words.querySelector("strong")?.textContent, "drawn as the chat's Markdown").toBe("A small team");
-    expect(words.textContent, "what the person said is not the bot's").not.toContain("Set up self-hosting");
-    await click('[aria-label="Next"]');
+    expect(words.textContent, "what the person said is not the bot's").not.toContain("set up self-hosting");
+    await click('[aria-label="next"]');
     expect(currentInboxPanel().reading).toBe("q2");
     expect(document.querySelector("[data-inbox-position]")!.textContent).toBe("2 of 3");
-    await click('[aria-label="Previous"]');
+    await click('[aria-label="previous"]');
     expect(currentInboxPanel().reading).toBe("q1");
-    await click('[aria-label="Back to the list"]');
+    await click('[aria-label="back to the list"]');
     expect(currentInboxPanel().reading).toBeNull();
   });
 
@@ -157,12 +157,12 @@ describe("a line read in full", () => {
     await click('[data-inbox-row="q1"] > button');
     const options = [...document.querySelectorAll<HTMLElement>("[data-inbox-option]")];
     expect(options.map((option) => option.dataset.inboxOption)).toEqual(["Small team", "Enterprise", "Solo developer"]);
-    expect(options[0]!.querySelector("[data-inbox-recommended]")?.textContent).toBe("Recommended");
+    expect(options[0]!.querySelector("[data-inbox-recommended]")?.textContent).toBe("recommended");
     expect(options[1]!.textContent).toContain("On-prem or private VPC");
     expect(document.querySelector<HTMLButtonElement>("[data-inbox-send]")!.disabled, "nothing to send yet").toBe(true);
     await act(async () => { document.dispatchEvent(new KeyboardEvent("keydown", { key: "2", bubbles: true })); });
     expect(options[1]!.getAttribute("aria-checked")).toBe("true");
-    await type(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Add a note"]')!, "Mostly agencies");
+    await type(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="add a note"]')!, "Mostly agencies");
     await click("[data-inbox-send]");
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "decideRequest", threadId: "plan-thread", requestId: "req-q1", behavior: "answer" }));
     const sent = dispatch.mock.calls.find(([action]) => action.type === "decideRequest")![0].message as string;
@@ -195,7 +195,7 @@ describe("a line read in full", () => {
     const rows: InboxRow[] = [
       { ...base, id: "pw", secret: { target: "customSecret", label: "Stripe key", description: "For the billing report", placeholder: "sk_live_…", helpUrl: "", requestKey: "k", reason: "To read invoices" } as unknown as InboxRow["secret"] },
       { ...base, id: "si", signIn: { url: "https://shop.test", site: "shop.test", place: "browser", reason: "To see the order" } as InboxRow["signIn"] },
-      { ...base, id: "co", connector: { label: "Gmail", description: "Read mail", resumeKey: "r1", status: "required" } as InboxRow["connector"] },
+      { ...base, id: "co", connector: { label: "Gmail", description: "read mail", resumeKey: "r1", status: "required" } as InboxRow["connector"] },
     ];
     setInboxView(placeView(rows));
     await mount();

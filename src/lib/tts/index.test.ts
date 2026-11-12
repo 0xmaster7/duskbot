@@ -487,7 +487,7 @@ describe("prefetch window", () => {
     FakeAudio.latest!.onerror?.();
     await expect(speaking).resolves.toBeUndefined();
 
-    expect(speaker.state).toEqual({ status: "idle", error: "The generated voice clip couldn't be played." });
+    expect(speaker.state).toEqual({ status: "idle", error: "the generated voice clip couldn't be played." });
     expect(gates[1]!.signal?.aborted).toBe(true);
     expect(gates[2]!.signal?.aborted).toBe(true);
     expect(playedUrls).toEqual(["blob:block-1"]);

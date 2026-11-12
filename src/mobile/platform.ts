@@ -189,7 +189,7 @@ export function webPlatform(): MobilePlatform {
     share: typeof navigator !== "undefined" && "share" in navigator
       ? async (data) => { await navigator.share(data).catch(() => {}); }
       : undefined,
-    deviceName: () => (/iphone/i.test(navigator.userAgent) ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android phone" : "Phone browser"),
+    deviceName: () => (/iphone/i.test(navigator.userAgent) ? "iPhone" : /android/i.test(navigator.userAgent) ? "android phone" : "phone browser"),
     appVersion: typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev",
   };
 }

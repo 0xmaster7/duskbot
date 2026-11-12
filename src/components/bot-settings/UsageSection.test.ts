@@ -28,7 +28,7 @@ describe("bot settings usage card", () => {
     const shown = text(renderToStaticMarkup(createElement(UsageSection, {
       bot: bot({ input: 12_000, cachedInput: 10_000, output: 500, costUsd: 0.25, turns: 3 }),
     })));
-    for (const english of ["Usage", "All bots", "Turns", "Cost "]) expect(shown).not.toContain(english);
+    for (const english of ["usage", "all bots", "turns", "Cost "]) expect(shown).not.toContain(english);
     for (const german of ["Nutzung", "Alle Bots", "Neue Tokens", "Kosten"]) expect(shown).toContain(german);
   });
 
@@ -36,12 +36,12 @@ describe("bot settings usage card", () => {
     const shown = text(renderToStaticMarkup(createElement(UsageSection, {
       bot: bot({ input: 12_000, cachedInput: 10_000, output: 500, costUsd: null, turns: 3 }),
     })));
-    expect(shown).toContain("New tokens 2.5k");
+    expect(shown).toContain("new tokens 2.5k");
   });
 
   it("says so in the app language when nothing is recorded yet", () => {
     setLocale("de");
     const shown = text(renderToStaticMarkup(createElement(UsageSection, { bot: bot() })));
-    expect(shown).not.toContain("No usage recorded yet");
+    expect(shown).not.toContain("no usage recorded yet");
   });
 });

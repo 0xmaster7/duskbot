@@ -51,7 +51,7 @@ describe("the room's queue", () => {
       { botId: "first", threadId: "other-thread", state: "queued", position: 2, of: 2 },
     ] } })));
     const rows = [...host.querySelectorAll('[data-testid="room-queue"] li')].map((li) => li.textContent);
-    expect(rows).toEqual(["Second: Queued · waiting for First (2 of 3)", "Third: Queued · waiting for First (3 of 3)"]);
+    expect(rows).toEqual(["Second: queued · waiting for First (2 of 3)", "Third: queued · waiting for First (3 of 3)"]);
   });
 
   it("shows nothing when nobody waits in the open thread", () => {

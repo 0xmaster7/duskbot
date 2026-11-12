@@ -42,17 +42,17 @@ afterEach(async () => { await act(async () => root?.unmount()); root = null; });
 describe("the browser blocker card", () => {
   it("says what stuck and offers Take over, Skip and Stop", async () => {
     const buttons = await show(failedTurnTool("stopped: the same browser step did nothing 3 times on shop.example.com", { blocker: { kind: "loop", site: "shop.example.com" } }));
-    expect(document.body.textContent).toContain("Stopped so it doesn't keep trying");
-    expect(document.body.textContent).toContain("The same browser step did nothing 3 times in a row on shop.example.com.");
-    expect(buttons.map((button) => button.textContent)).toEqual(["Take over", "Skip", "Stop"]);
+    expect(document.body.textContent).toContain("stopped so it doesn't keep trying");
+    expect(document.body.textContent).toContain("the same browser step did nothing 3 times in a row on shop.example.com.");
+    expect(buttons.map((button) => button.textContent)).toEqual(["take over", "skip", "stop"]);
     await act(async () => buttons[1]!.click());
-    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "send", botId: "echo", threadId: "main", text: "Skip that step and carry on with the rest." }));
+    expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "send", botId: "echo", threadId: "main", text: "skip that step and carry on with the rest." }));
     expect(document.querySelector("[data-chat-error]")).toBeNull();
   });
 
   it("offers no take-over where the site itself said no", async () => {
     const buttons = await show(failedTurnTool("stopped: bank.example.com was tried again", { blocker: { kind: "credentials", site: "bank.example.com" } }));
     expect(document.body.textContent).toContain("bank.example.com refused the sign-in details, so it won't try them again.");
-    expect(buttons.map((button) => button.textContent)).toEqual(["Skip", "Stop"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["skip", "stop"]);
   });
 });

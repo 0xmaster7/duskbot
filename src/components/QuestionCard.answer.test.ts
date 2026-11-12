@@ -68,7 +68,7 @@ describe("answersInOneTap", () => {
 describe("QuestionCard answered in one step", () => {
   it("sends a pick at once, shows it on its way while the others wait, and settles when it lands", () => {
     mount(card([plan]));
-    expect(button("Submit answer")).toBeUndefined();
+    expect(button("submit answer")).toBeUndefined();
     act(() => choice("Pro").click());
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch.mock.calls[0]![0]).toMatchObject({ type: "decideRequest", threadId: "t1", requestId: "req-1", behavior: "answer" });
@@ -78,7 +78,7 @@ describe("QuestionCard answered in one step", () => {
     act(() => choice("Free").click());
     expect(dispatch, "one answer at a time").toHaveBeenCalledTimes(1);
     mount(card([plan], { answered: "answer", answeredText: "The user answered your questions.\n\nQ: Which plan should the workspace use?\nA: Pro" }));
-    expect(host.querySelector('[data-ask-card="answered"]')?.textContent).toContain("You chose: Pro");
+    expect(host.querySelector('[data-ask-card="answered"]')?.textContent).toContain("you chose: Pro");
   });
 
   it("takes no letter key: a choice is pressed", () => {
@@ -102,7 +102,7 @@ describe("QuestionCard answered in one step", () => {
     act(() => choice("Lint").click());
     act(() => choice("Unit tests").click());
     expect(dispatch).not.toHaveBeenCalled();
-    act(() => button("Done")!.click());
+    act(() => button("done")!.click());
     expect(dispatch.mock.calls[0]![0].message).toContain("A: Lint, Unit tests");
   });
 
@@ -136,7 +136,7 @@ describe("QuestionCard answered in one step", () => {
     mount(card([plan]));
     act(() => choice("Pro").click());
     act(() => dispatch.mock.calls[0]![0].onError());
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Couldn't send your answer. Try again.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("couldn't send your answer. try again.");
     expect(choice("Free").disabled).toBe(false);
     act(() => choice("Free").click());
     expect(dispatch).toHaveBeenCalledTimes(2);

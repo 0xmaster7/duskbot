@@ -117,7 +117,7 @@ function render(forBot: Bot, options: { contained?: boolean; thread?: boolean } 
   function Capture() {
     fixture.index = 0;
     tree = options.contained
-      ? ModelPicker({ bot: forBot, contained: true, label: "Default model", ...(options.thread ? { threadId: forBot.threadId } : {}) })
+      ? ModelPicker({ bot: forBot, contained: true, label: "default model", ...(options.thread ? { threadId: forBot.threadId } : {}) })
       : ModelPicker({ bot: forBot, threadId: forBot.threadId });
     fixture.own = fixture.index;
     return tree;
@@ -178,10 +178,10 @@ describe("the model picker in Simple mode", () => {
     expect(region(html, "data-current-model", 'data-simple-provider="claude"')).toContain(">Opus 5.5</span>");
     expect(labels(opened)).toEqual(["Sonnet 5.5", "Haiku 4.5"]);
     const bottom = region(html, "data-simple-effort-band");
-    for (const step of ["Low", "Medium", "High", "X-High", "Max"]) expect(bottom).toContain(`>${step}</button>`);
-    expect(bottom).toContain(">Thinking</span>");
-    expect(bottom).toContain("Manage AI accounts");
-    expect(html).not.toContain(">Quick</button>");
+    for (const step of ["low", "medium", "high", "x-high", "max"]) expect(bottom).toContain(`>${step}</button>`);
+    expect(bottom).toContain(">thinking</span>");
+    expect(bottom).toContain("manage AI accounts");
+    expect(html).not.toContain(">quick</button>");
     expect(html).not.toContain("new chats too");
   });
 
@@ -238,7 +238,7 @@ describe("the model picker in Simple mode", () => {
 
   it("names models without a second line; a blurb is only the row's tooltip", () => {
     const html = menu(open(bot()).html);
-    const blurb = "Fast and smart. Good for most work.";
+    const blurb = "fast and smart. good for most work.";
     expect(html).not.toContain(`>${blurb}<`);
     expect(html).toContain(`title="Sonnet 5.5 · ${blurb}"`);
   });
@@ -252,17 +252,17 @@ describe("the model picker in Simple mode", () => {
     expect(group(opened, "claude")!.body).toMatchObject({ toggle: "more", total: 15 });
     expect(list(opened).search).toBe(true);
     const html = menu(opened.html);
-    expect(html).toContain("Show all 15 models");
+    expect(html).toContain("show all 15 models");
     expect(html).not.toContain("scroll-pt-8");
     expect(html.indexOf("data-simple-model-search")).toBeLessThan(html.indexOf("data-current-model"));
-    expect(html).toContain('aria-label="Search models"');
+    expect(html).toContain('aria-label="search models"');
 
     toggle(opened);
     const all = render(forBot);
     expect(labels(all)).toHaveLength(14);
     expect(labels(all).slice(0, 4)).toEqual(suggested);
     expect(menu(all.html)).toContain('aria-expanded="true"');
-    expect(menu(all.html)).toContain("Show suggested only");
+    expect(menu(all.html)).toContain("show suggested only");
     expect(menu(all.html)).toContain("sticky bottom-0");
     expect(menu(all.html)).toMatch(/data-simple-models="true" class="[^"]*scroll-pt-8 scroll-pb-12/);
     expect(menu(all.html).match(/data-simple-models="true" class="([^"]*)"/)![1]).not.toMatch(/(^|\s)p[tbxy]?-/);
@@ -276,7 +276,7 @@ describe("the model picker in Simple mode", () => {
     pane(searched)!.props.onQuery("zzz");
     const none = render(forBot);
     expect(list(none).groups).toEqual([]);
-    expect(menu(none.html)).toContain("Nothing matches “zzz”");
+    expect(menu(none.html)).toContain("nothing matches “zzz”");
   });
 
   it("folds an opened list back from the same row", () => {
@@ -317,8 +317,8 @@ describe("the model picker in Simple mode", () => {
     expect(labels(all)).toEqual(["Model 2", "Model 3", "Model 4", "Model 5", "Model 6", "llama4 (Ollama)", "qwen3 (Ollama)"]);
     expect(group(all, "claude")!.body).toMatchObject({ localFrom: 5 });
     const html = region(menu(all.html), 'data-simple-provider="claude"', "data-simple-effort-band");
-    expect(html.indexOf(">Local models</div>")).toBeGreaterThan(html.indexOf(">Model 6</span>"));
-    expect(html.indexOf(">Local models</div>")).toBeLessThan(html.indexOf(">llama4 (Ollama)</span>"));
+    expect(html.indexOf(">local models</div>")).toBeGreaterThan(html.indexOf(">Model 6</span>"));
+    expect(html.indexOf(">local models</div>")).toBeLessThan(html.indexOf(">llama4 (Ollama)</span>"));
   });
 
   it("keeps a signed-out engine's local model on top, with a way to sign in for its own", () => {
@@ -328,7 +328,7 @@ describe("the model picker in Simple mode", () => {
     expect(list(opened).current).toMatchObject({ label: "qwen3 (Ollama)", warning: false });
     expect(group(opened, "claude")!.body).toMatchObject({ kind: "models", rows: [], signInForOwn: true });
     const html = menu(opened.html);
-    expect(html).toContain("Sign in for Claude&#x27;s own models");
+    expect(html).toContain("sign in for Claude&#x27;s own models");
     expect(html).not.toContain(">Opus 5.5<");
 
     pane(opened)!.props.onSetUp(instance("claude"), false);
@@ -345,11 +345,11 @@ describe("the model picker in Simple mode", () => {
     const opened = open(bot("xhigh"));
     expect(thinking(opened).levels).toEqual(["low", "medium", "high", "xhigh", "max"]);
     const bottom = region(menu(opened.html), "data-simple-effort-band");
-    expect(bottom).toMatch(/aria-pressed="true"[^>]*>X-High<\/button>/);
+    expect(bottom).toMatch(/aria-pressed="true"[^>]*>x-high<\/button>/);
     expect(bottom).toContain('role="group" aria-labelledby=');
     expect(bottom).toMatch(/data-simple-effort="true"[^>]*class="[^"]*rounded-full bg-ink\/\[0.05\] p-\[3px\]/);
-    expect(bottom).toContain('title="High thinking. Higher is slower but more careful."');
-    expect(bottom).toMatch(/title="The model decides how hard to think."[^>]*>Use default<\/button>/);
+    expect(bottom).toContain('title="high thinking. higher is slower but more careful."');
+    expect(bottom).toMatch(/title="the model decides how hard to think."[^>]*>use default<\/button>/);
     thinking(opened).onReset();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({
       type: "setModel", botId: "scout", threadId: "thread-scout", updateBotDefault: true,
@@ -358,8 +358,8 @@ describe("the model picker in Simple mode", () => {
     fixture.values = [];
     const atDefault = region(menu(open(bot()).html), "data-simple-effort-band");
     expect(atDefault).not.toContain('aria-pressed="true"');
-    expect(atDefault).not.toContain("Use default");
-    expect(atDefault).toContain('title="The model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">Default</span>');
+    expect(atDefault).not.toContain("use default");
+    expect(atDefault).toContain('title="the model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">default</span>');
   });
 
   it("names the model on the Simple chip, quiet until hovered; thinking and route stay in its tooltip and the menu", () => {
@@ -367,7 +367,7 @@ describe("the model picker in Simple mode", () => {
     const markup = renderToStaticMarkup(chip);
     expect(markup).not.toContain("data-model-effort");
     expect(markup.replace(/title="[^"]*"/, "")).not.toContain("High");
-    expect(String(chip.props.title)).toContain("High thinking");
+    expect(String(chip.props.title)).toContain("high thinking");
     expect(String(chip.props.title)).not.toContain("effort");
     expect(String(chip.props.className)).toContain("h-8");
     expect(String(chip.props.className)).toContain("rounded-full");
@@ -413,7 +413,7 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [claude(false)];
     const chip = render(bot()).nodes.find((node) => node.props["data-tour"] === "model")!;
     expect(renderToStaticMarkup(chip)).toContain("data-model-attention");
-    expect(String(chip.props.title).split("\n")).toContain("Sign-in required");
+    expect(String(chip.props.title).split("\n")).toContain("sign-in required");
     fixture.instances = [claude()];
     expect(renderToStaticMarkup(render(bot()).nodes.find((node) => node.props["data-tour"] === "model")!)).not.toContain("data-model-attention");
   });
@@ -472,7 +472,7 @@ describe("the model picker in Simple mode", () => {
   it("opens the same floating menu from bot settings' Default model, without a second Thinking control, and edits the bot's default", () => {
     const opened = open(bot(), { contained: true });
     const simple = pane(opened)!;
-    expect(opened.html).toContain("Default model");
+    expect(opened.html).toContain("default model");
     expect(simple.props.thinking).toBeNull();
     expect(menu(opened.html)).not.toContain('data-simple-effort="true"');
     const content = opened.nodes.find((node) => node.props["data-model-picker-content"] !== undefined)!;
@@ -495,7 +495,7 @@ describe("the model picker in Simple mode", () => {
     } };
     const opened = open(forBot, { contained: true });
     const simple = pane(opened)!;
-    expect(opened.html).toContain("Use session setting");
+    expect(opened.html).toContain("use session setting");
     expect((simple.props as { onResetVariant?: () => void }).onResetVariant).toBeTypeOf("function");
     (simple.props as { onResetVariant: () => void }).onResetVariant();
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -551,11 +551,11 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [claude(false)];
     const forBot = bot();
     const opened = open(forBot);
-    expect(list(opened).current).toMatchObject({ label: "Opus 5.5", meta: "Sign-in required", warning: true });
+    expect(list(opened).current).toMatchObject({ label: "Opus 5.5", meta: "sign-in required", warning: true });
     expect(group(opened, "claude")!.body).toEqual({ kind: "signIn" });
     const html = menu(opened.html);
     expect(html).toContain('title="Claude needs to be set up before you can use it."');
-    expect(html).toContain(">Sign in</span>");
+    expect(html).toContain(">sign in</span>");
     expect(html).not.toContain(">Sonnet 5.5<");
 
     pane(opened)!.props.onSetUp(instance("claude"), false);
@@ -563,7 +563,7 @@ describe("the model picker in Simple mode", () => {
     expect(pane(full)).toBeUndefined();
     expect(full.nodes.some((node) => node.type === ModelEngineRail)).toBe(true);
     const back = full.nodes.find((node) => node.props["data-model-back"] !== undefined)!;
-    expect(menu(full.html)).toContain(">Back</span>");
+    expect(menu(full.html)).toContain(">back</span>");
     click(back);
     expect(pane(render(forBot))).toBeDefined();
   });
@@ -573,10 +573,10 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [claude(), missing];
     const forBot = bot(undefined, "cursor", "auto");
     const opened = open(forBot);
-    expect(list(opened).current).toMatchObject({ meta: "Setup required", warning: true });
+    expect(list(opened).current).toMatchObject({ meta: "setup required", warning: true });
     expect(list(opened).groups.map((entry) => [entry.label, entry.body.kind])).toEqual([["Cursor", "setUp"], ["Claude", "models"]]);
     const html = region(menu(opened.html), 'data-simple-provider="cursor"', 'data-simple-provider="claude"');
-    expect(html).toContain(">Set up</span>");
+    expect(html).toContain(">set up</span>");
     expect(html).toContain("data-simple-set-up");
     pane(opened)!.props.onSetUp(missing, false);
     const full = render(forBot);
@@ -610,7 +610,7 @@ describe("the model picker in Simple mode", () => {
       pane(open(forBot))!.props.onSetUp(missing, false);
       fixture.instances = [claude(), cursor];
       const full = render(forBot);
-      expect(menu(full.html)).toContain(updatesDefault ? "every thread that uses the bot&#x27;s model" : "This thread only.");
+      expect(menu(full.html)).toContain(updatesDefault ? "every thread that uses the bot&#x27;s model" : "this thread only.");
       (full.nodes.find((node) => node.type === ModelRow)!.props.onPick as () => void)();
       expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
         type: "setModel", threadId: "thread-scout", updateBotDefault: updatesDefault,
@@ -631,9 +631,9 @@ describe("the model picker in Simple mode", () => {
   it("says so when there is no provider at all, and still names the bot's model", () => {
     fixture.instances = [];
     const opened = open(bot());
-    expect(list(opened).current).toMatchObject({ label: "claude-opus-5-5", meta: "Unavailable", warning: true });
-    expect(menu(opened.html)).toContain("No model providers are available.");
-    expect(menu(opened.html)).toContain("Manage AI accounts");
+    expect(list(opened).current).toMatchObject({ label: "claude-opus-5-5", meta: "unavailable", warning: true });
+    expect(menu(opened.html)).toContain("no model providers are available.");
+    expect(menu(opened.html)).toContain("manage AI accounts");
   });
 
   it("asks a provider with nothing to list to check again", async () => {
@@ -644,8 +644,8 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [claude(), plan];
     const opened = open(bot());
     const html = region(menu(opened.html), 'data-simple-provider="chatgpt"', "data-simple-effort-band");
-    expect(html).toContain("No models to show here yet.");
-    expect(html).toContain(">Check again</span>");
+    expect(html).toContain("no models to show here yet.");
+    expect(html).toContain(">check again</span>");
     pane(opened)!.props.onCheckAgain(plan);
     await vi.waitFor(() => expect(fixture.refreshModels).toHaveBeenCalledWith("chatgpt"));
     expect(fixture.refreshInstances).toHaveBeenCalled();
@@ -667,13 +667,13 @@ describe("the model picker in Simple mode", () => {
     await vi.waitFor(() => expect(fixture.refreshModels).toHaveBeenCalledWith("chatgpt"));
     const reading = menu(render(forBot).html);
     const html = region(reading, 'data-simple-provider="chatgpt"', 'data-simple-provider="chatgpt-work"');
-    expect(html).toContain("Loading OpenAI models…");
+    expect(html).toContain("loading OpenAI models…");
     expect(html).toContain('role="status"');
-    expect(html).not.toContain("Check again");
+    expect(html).not.toContain("check again");
     expect(other(reading)).toMatch(/data-simple-refresh="true"[^>]* disabled=""/);
     expect(other(reading)).toContain("animate-spin");
     arrive();
-    await vi.waitFor(() => expect(region(menu(render(forBot).html), 'data-simple-provider="chatgpt"', 'data-simple-provider="chatgpt-work"')).toContain("Check again"));
+    await vi.waitFor(() => expect(region(menu(render(forBot).html), 'data-simple-provider="chatgpt"', 'data-simple-provider="chatgpt-work"')).toContain("check again"));
     expect(other(menu(render(forBot).html))).not.toMatch(/data-simple-refresh="true"[^>]* disabled=""/);
   });
 
@@ -717,8 +717,8 @@ describe("the model picker in Simple mode", () => {
     const opened = open(bot());
     expect(group(opened, "openai")!.body).toEqual({ kind: "policy", organization: "Acme" });
     const html = region(menu(opened.html), 'data-simple-provider="openai"', "data-simple-effort-band");
-    expect(html).toContain("Managed by Acme");
-    expect(html).toContain("Bots cannot use this model provider while this computer is connected to Acme.");
+    expect(html).toContain("managed by Acme");
+    expect(html).toContain("bots cannot use this model provider while this computer is connected to Acme.");
     expect(html).not.toContain("data-simple-set-up");
     expect(html).not.toContain("GPT-5.6");
     pane(opened)!.props.onPick(blocked, "gpt-5.6");
@@ -787,9 +787,9 @@ describe("the model picker in Simple mode", () => {
     expect(row.type).toBe(ModelVariantRow);
     expect(row.props).toMatchObject({ compact: true, quiet: true });
     const bottom = region(menu(opened.html), "data-simple-effort-band");
-    expect(bottom).toContain('aria-label="Reasoning variant"');
-    expect(bottom.indexOf(">Thinking</span>")).toBeGreaterThan(-1);
-    expect(bottom.indexOf(">Thinking</span>")).toBeLessThan(bottom.indexOf("<select"));
+    expect(bottom).toContain('aria-label="reasoning variant"');
+    expect(bottom.indexOf(">thinking</span>")).toBeGreaterThan(-1);
+    expect(bottom.indexOf(">thinking</span>")).toBeLessThan(bottom.indexOf("<select"));
     expect(bottom).toContain("bg-ink/[0.05]");
     expect(bottom).not.toContain("data-simple-effort=");
   });
@@ -807,7 +807,7 @@ describe("the model picker in Simple mode", () => {
     const band = (model: string) => region(menu(open(bot(undefined, "opencodeGo", model)).html), "data-simple-effort-band");
     const offered = band("github-copilot/gpt-5.3-codex");
     expect([...offered.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map((match) => match[1]))
-      .toEqual(["Use session setting", "Low", "Medium", "High", "Xhigh", "OpenCode default"]);
+      .toEqual(["use session setting", "Low", "Medium", "High", "Xhigh", "OpenCode default"]);
     fixture.values = [];
     const plain = band("github-copilot/gemini-3.8-flash");
     expect(plain).toContain("data-simple-effort-band");
@@ -822,7 +822,7 @@ describe("a thread's picker and its bot's model", () => {
   const haiku = { instanceId: "claude", model: "claude-haiku-4-5-20251001" };
   function scout(threadModel: typeof opus | null, others: Array<{ threadId: string; model: typeof opus | null }> = []) {
     const profile: Bot = { ...bot(), tasks: [
-      { threadId: "thread-scout", title: "This one", createdAt: 1, modelSelection: threadModel ?? opus, followsBotModel: threadModel === null },
+      { threadId: "thread-scout", title: "this one", createdAt: 1, modelSelection: threadModel ?? opus, followsBotModel: threadModel === null },
       ...others.map(({ threadId, model }) => ({ threadId, title: threadId, createdAt: 1, modelSelection: model ?? opus, followsBotModel: model === null })),
     ] };
     fixture.bots = [profile];
@@ -833,7 +833,7 @@ describe("a thread's picker and its bot's model", () => {
     const opened = open(scout(haiku));
     expect(list(opened).follow).toBe(true);
     const html = menu(opened.html);
-    expect(html).toContain("Use Scout&#x27;s model");
+    expect(html).toContain("use Scout&#x27;s model");
     expect(html).toContain('title="Claude · Opus 5.5"');
     expect(html).toContain('data-follow-bot-model="true" aria-pressed="false"');
     expect(region(html, "data-follow-bot-model", 'role="separator"')).toContain(">Opus 5.5</span>");
@@ -850,7 +850,7 @@ describe("a thread's picker and its bot's model", () => {
     expect(list(opened).follow).toBe(false);
     expect(list(opened).current!.meta).toBe("Scout's model");
     expect(menu(opened.html)).not.toContain("data-follow-bot-model");
-    expect(render(scout(null)).nodes.find((node) => node.props["data-tour"] === "model")!.props.title).toContain("Uses Scout's model");
+    expect(render(scout(null)).nodes.find((node) => node.props["data-tour"] === "model")!.props.title).toContain("uses Scout's model");
   });
 
   it("offers nothing a server too old to say whether a thread follows its bot could not do", () => {
@@ -884,7 +884,7 @@ describe("a thread's picker and its bot's model", () => {
     expect(closed.html).toContain("data-thread-models-notice");
     expect(closed.html).toContain("menu-surface");
     expect(closed.html).toContain("1 thread uses its own model.");
-    expect(closed.html).toContain("Switch it too");
+    expect(closed.html).toContain("switch it too");
     open(forBot);
     expect(render(forBot).html).not.toContain("data-thread-models-notice");
   });
@@ -898,14 +898,14 @@ describe("a thread's picker and its bot's model", () => {
 
 describe("every capability of the picker stays reachable", () => {
   const withLocal = claude(true, [...claudeModels, { id: "ollama::qwen3", label: "qwen3 (Ollama)", custom: true }]);
-  const updated: InstanceInfo = { ...withLocal, snapshot: { ...withLocal.snapshot, update: { title: "Update Claude", message: "A newer CLI is out.", command: "claude update" } } };
+  const updated: InstanceInfo = { ...withLocal, snapshot: { ...withLocal.snapshot, update: { title: "update Claude", message: "A newer CLI is out.", command: "claude update" } } };
   const missing: InstanceInfo = { ...cursor, snapshot: { state: "unavailable", reason: "`cursor-agent` isn't installed" } };
   const managed: InstanceInfo = { ...openaiKey, policy: { organizationName: "Acme", reason: "Company models only." } };
   const signedOutWork: InstanceInfo = { ...claude(false), instanceId: "claude-work", displayName: "Work" };
   const plan: InstanceInfo = { ...engine("chatgpt", "codex", "ChatGPT plan", "subscription", []), snapshot: { state: "available", version: "1.0.0", authenticated: true, chatgptPlan: true } };
   const rich = () => [updated, signedOutWork, missing, managed, plan, local];
   function followed(): Bot {
-    const profile: Bot = { ...bot("high"), tasks: [{ threadId: "thread-scout", title: "This one", createdAt: 1,
+    const profile: Bot = { ...bot("high"), tasks: [{ threadId: "thread-scout", title: "this one", createdAt: 1,
       modelSelection: { instanceId: "claude", model: "claude-sonnet-5-5" }, followsBotModel: false }] };
     fixture.bots = [profile];
     return { ...profile, modelSelection: { instanceId: "claude", model: "claude-sonnet-5-5", effort: "high" } };
@@ -923,17 +923,17 @@ describe("every capability of the picker stays reachable", () => {
     const props = pane(opened)!.props;
     const before = {
       "chip names the model, says it opens a dialog, and carries model, effort and follow in its tooltip":
-        chip.props["aria-haspopup"] === "dialog" && String(chip.props.title).includes("High thinking") && String(chip.props.title).includes("This thread's own model"),
+        chip.props["aria-haspopup"] === "dialog" && String(chip.props.title).includes("high thinking") && String(chip.props.title).includes("this thread's own model"),
       "current model with its check": html.includes("data-current-model") && simple.current?.label === "Sonnet 5.5",
-      "use the bot's model": simple.follow && html.includes("Use Scout&#x27;s model"),
+      "use the bot's model": simple.follow && html.includes("use Scout&#x27;s model"),
       "the follow row carries the bot's model, once": region(html, "data-follow-bot-model", 'role="separator"').includes(">Opus 5.5</span>") && !labels(opened, "claude").includes("Opus 5.5"),
       "every ready provider's models at once": labels(opened, "claude").length > 0 && labels(opened, "pi").length > 0,
-      "local models beside a provider's own": html.includes(">Local models</div>") && labels(opened, "claude").includes("qwen3 (Ollama)"),
+      "local models beside a provider's own": html.includes(">local models</div>") && labels(opened, "claude").includes("qwen3 (Ollama)"),
       "show every model of a provider": html.includes("data-simple-show-all"),
       "a signed-out account signs in": body("claude-work") === "signIn",
-      "a managed provider says who manages it": body("openai") === "policy" && html.includes("Managed by Acme"),
+      "a managed provider says who manages it": body("openai") === "policy" && html.includes("managed by Acme"),
       "a provider with nothing listed checks again": body("chatgpt") === "empty" && html.includes("data-simple-refresh"),
-      "thinking levels in the provider's own names, and back to Default": html.includes(">X-High</button>") && html.includes(">Use default</button>"),
+      "thinking levels in the provider's own names, and back to Default": html.includes(">x-high</button>") && html.includes(">use default</button>"),
       "AI accounts in Settings": html.includes("data-simple-manage"),
     };
     expect(missingFrom(before)).toEqual([]);
@@ -946,18 +946,18 @@ describe("every capability of the picker stays reachable", () => {
     const behind = {
       "the full picker opens in place, with a way back": pane(full) === undefined && fullHtml.includes("data-model-back"),
       "engine rail with API keys": full.nodes.some((node) => node.type === ModelEngineRail) && fullHtml.includes(">API keys<"),
-      "this thread or the bot's default": fullHtml.includes("Only this thread") && fullHtml.includes("Thread + bot default"),
-      "engine status and refresh": fullHtml.includes("Sign-in required") && fullHtml.includes("data-model-refresh"),
+      "this thread or the bot's default": fullHtml.includes("only this thread") && fullHtml.includes("thread + bot default"),
+      "engine status and refresh": fullHtml.includes("sign-in required") && fullHtml.includes("data-model-refresh"),
       "the account select": fullHtml.includes('<option value="claude-work" selected="">Work</option>'),
       "install and sign-in help": full.nodes.some((node) => node.type === EngineSetup),
-      "providers and accounts, and API keys": fullHtml.includes("Model providers and accounts") && fullHtml.includes("data-model-add-api-keys"),
+      "providers and accounts, and API keys": fullHtml.includes("model providers and accounts") && fullHtml.includes("data-model-add-api-keys"),
     };
     expect(missingFrom(behind)).toEqual([]);
 
     fixture.values = [];
     const onMissing = open({ ...forBot, modelSelection: { instanceId: "cursor", model: "auto" } });
     expect(group(onMissing, "cursor")?.body.kind).toBe("setUp");
-    expect(list(onMissing).current).toMatchObject({ meta: "Setup required", warning: true });
+    expect(list(onMissing).current).toMatchObject({ meta: "setup required", warning: true });
   });
 
   it.each([false])("on a paired desktop (Advanced: %s), still picks models but leaves provider settings to the host", (advanced) => {
@@ -968,13 +968,13 @@ describe("every capability of the picker stays reachable", () => {
     try {
       const html = menu(open(forBot).html);
       expect(html).toContain("Sonnet 5.5");
-      for (const hostOnly of ["data-simple-manage", "Model providers and accounts", "data-model-add-api-keys"]) {
+      for (const hostOnly of ["data-simple-manage", "model providers and accounts", "data-model-add-api-keys"]) {
         expect(html, hostOnly).not.toContain(hostOnly);
       }
       // Nothing follows the thinking levels, so no divider hangs under them.
       if (!advanced) {
         const band = region(html, "data-simple-effort-band");
-        expect(band).toContain(">X-High</button>");
+        expect(band).toContain(">x-high</button>");
         expect(band).not.toContain('role="separator"');
       }
     } finally {

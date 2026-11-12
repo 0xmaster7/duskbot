@@ -53,7 +53,7 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 it("starts only on request on Grok's own route, and never opens a page on the person's behalf", async () => {
   expect(render()[0]!.props["data-device-sign-in"]).toBe("grok");
-  expect(text(button())).toContain("Sign in to Grok");
+  expect(text(button())).toContain("sign in to Grok");
   expect(fixture.api).not.toHaveBeenCalled();
   fixture.api.mockResolvedValueOnce({ auth: waiting }).mockResolvedValueOnce({ auth: { ...waiting, phase: "succeeded" } });
   await button().props.onClick!();
@@ -75,14 +75,14 @@ it("cancels the same flow, then offers one action: try again", async () => {
   fixture.api.mockResolvedValueOnce({ auth: waiting }).mockResolvedValueOnce({ ok: true });
   await button().props.onClick!();
   await flush();
-  expect(text(button())).toContain("Cancel sign-in");
+  expect(text(button())).toContain("cancel sign-in");
   await button().props.onClick!();
   await flush();
   expect(fixture.api).toHaveBeenLastCalledWith("/api/instances/grok/auth/cancel", { method: "POST", body: JSON.stringify({ flowId: "grok-flow" }) });
   expect(fixture.values[0]).toMatchObject({ phase: "cancelled", flowId: null });
   const buttons = render().filter((node) => node.type === "button");
   expect(buttons).toHaveLength(1);
-  expect(text(buttons[0])).toContain("Try again");
+  expect(text(buttons[0])).toContain("try again");
   expect(fixture.track).not.toHaveBeenCalled();
 });
 
@@ -91,7 +91,7 @@ it("shows a failed start in one line and offers to try again", async () => {
   await button().props.onClick!();
   await flush();
   const tree = render();
-  expect(tree.filter((node) => node.type === "button").map(text)).toEqual([expect.stringContaining("Try again")]);
+  expect(tree.filter((node) => node.type === "button").map(text)).toEqual([expect.stringContaining("try again")]);
   expect(text(tree.find((node) => (node.props as { role?: string }).role === "alert"))).toContain("Grok is not installed on this server.");
   fixture.api.mockResolvedValueOnce({ auth: waiting });
   await button().props.onClick!();

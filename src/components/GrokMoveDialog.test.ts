@@ -23,7 +23,7 @@ const EXPORT = JSON.stringify({ format: GROK_EXPORT_FORMAT, version: 1, bots: [{
   ],
   apps: [{ name: "Cursor GitHub (connect_github)" }, { name: "Linear", mcp_url: "https://mcp.linear.app/mcp" }],
 }] });
-const FILES_STAY = "Files on Grok Bot's computer don't come over. Add any your Bot needs.";
+const FILES_STAY = "files on Grok bot's computer don't come over. add any your bot needs.";
 const QUIET = JSON.stringify({ format: GROK_EXPORT_FORMAT, bots: [{ name: "Quiet", instructions: "Just chat." }] });
 
 let root: Root;
@@ -41,17 +41,17 @@ const paste = async (reply: string) => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(box, reply);
     box.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  await act(async () => button("Continue")!.click());
+  await act(async () => button("continue")!.click());
   await tick();
 };
 const importIt = async () => {
-  await act(async () => button("Import")!.click());
+  await act(async () => button("import")!.click());
   await tick();
 };
 const counts = () => Object.fromEntries([...host.querySelectorAll("dl > div")].map((row) => [row.querySelector("dt")!.textContent, Number(row.querySelector("dd")!.textContent)]));
 /** Nothing a person doesn't need: no memory text, no schedule, no routine or app names, no section words. */
 const plain = () => {
-  for (const word of [MEMORY, "Prefers mornings", WHEN, "Asia/Calcutta", "Job apply morning batch", "Job Search:", "connect_github", "Cursor GitHub", "Linear", "Ping", "Answer the ping", "Would import", "Skipped", "Conflicts", "Worth checking", "See what it said"]) {
+  for (const word of [MEMORY, "Prefers mornings", WHEN, "Asia/Calcutta", "Job apply morning batch", "Job Search:", "connect_github", "Cursor GitHub", "Linear", "Ping", "Answer the ping", "Would import", "skipped", "Conflicts", "Worth checking", "See what it said"]) {
     expect(shown(), word).not.toContain(word);
   }
 };
@@ -76,18 +76,18 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-describe("Move from Grok Bot", () => {
+describe("move from Grok bot", () => {
   it("the preview names the Bot and counts it, says routines are paused and how many apps, and writes nothing", async () => {
     await open();
-    expect(shown()).toContain("Copy the message");
+    expect(shown()).toContain("copy the message");
     await paste(`Sure, here it is:\n\`\`\`json\n${EXPORT}\n\`\`\`\nAnything else?`);
     expect(host.querySelector('[data-grok-move="preview"]')).not.toBeNull();
-    expect(shown()).toContain("What would come over");
+    expect(shown()).toContain("what would come over");
     expect(host.querySelector("h3")?.textContent).toBe("Job Search");
-    expect(counts()).toEqual({ Skills: 2, Routines: 1, Memories: 2, "Routines saved as notes": 1 });
-    expect(shown()).toContain("Routines come over paused.");
+    expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
+    expect(shown()).toContain("routines come over paused.");
     expect(shown()).toContain("2 apps need connecting again here");
-    expect(shown()).toContain("A safety check keeps these skills off: Quick installer");
+    expect(shown()).toContain("a safety check keeps these skills off: Quick installer");
     expect(shown()).not.toContain(FILES_STAY);
     plain();
     expect(f.api.mock.calls.map(([path]) => path).filter((path) => path.startsWith("/api/teams/import") || path.includes("/skills/"))).toEqual([]);
@@ -99,16 +99,16 @@ describe("Move from Grok Bot", () => {
     await importIt();
     expect(host.querySelector('[data-grok-move="report"]')).not.toBeNull();
     expect(host.querySelector("h3")?.textContent).toBe("Job Search is here");
-    expect(counts()).toEqual({ Skills: 2, Routines: 1, Memories: 2, "Routines saved as notes": 1 });
-    expect(shown()).toContain("Routines are paused. Turn each one off in Grok Bot, then on here.");
+    expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
+    expect(shown()).toContain("routines are paused. turn each one off in Grok bot, then on here.");
     expect(shown()).toContain("2 apps need connecting again here");
     const lines = [...host.querySelectorAll("[data-grok-move-body] p")].map((line) => line.textContent);
-    expect(lines.indexOf(FILES_STAY)).toBe(lines.indexOf("Routines are paused. Turn each one off in Grok Bot, then on here.") + 1);
+    expect(lines.indexOf(FILES_STAY)).toBe(lines.indexOf("routines are paused. turn each one off in Grok bot, then on here.") + 1);
     plain();
     expect(f.api.mock.calls.map(([path]) => path)).toContain("/api/bots/b1/skills/greet");
     expect(f.track).toHaveBeenCalledOnce();
-    expect(button("Move another Bot")).toBeDefined();
-    expect(button("Done")).toBeDefined();
+    expect(button("move another bot")).toBeDefined();
+    expect(button("done")).toBeDefined();
   });
 
   it("hides what a Bot doesn't have, and the lines about it", async () => {
@@ -137,8 +137,8 @@ describe("Move from Grok Bot", () => {
     root = createRoot(host);
     await open();
     await paste(QUIET);
-    expect(shown()).toContain("Already here: Quiet");
-    expect(button("Import")!.disabled).toBe(true);
+    expect(shown()).toContain("already here: Quiet");
+    expect(button("import")!.disabled).toBe(true);
   });
 
   it("ends on the report: no sign-in, no setup steps, no links out", async () => {
@@ -168,9 +168,9 @@ describe("Move from Grok Bot", () => {
       ? { files: [{ name: "grok-bot-export-drew.json", modifiedAt: 1, text: EXPORT }], bots: ["Job Search", "Scout"] }
       : path === "/api/mcp/servers" ? { servers: [] } : {}));
     await open();
-    expect(shown()).toContain("Found in Downloads: Job Search");
-    expect(shown()).toContain("Your Bots on this computer: Job Search, Scout");
-    await act(async () => button("Use these")!.click());
+    expect(shown()).toContain("found in downloads: Job Search");
+    expect(shown()).toContain("your bots on this computer: Job Search, Scout");
+    await act(async () => button("use these")!.click());
     await tick();
     expect(host.querySelector('[data-grok-move="preview"]')).not.toBeNull();
   });
@@ -190,7 +190,7 @@ describe("Move from Grok Bot", () => {
 
 describe("a file dragged over the dialog, with the chat box behind it", () => {
   const onAdd = vi.fn();
-  const OVERLAY = "Drop to attach";
+  const OVERLAY = "drop to attach";
   const behindIt = vi.fn();
   const upload = vi.fn();
   const DRAGS = ["dragenter", "dragover", "dragleave", "drop"];
@@ -249,7 +249,7 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
     expect(onReport.text).not.toHaveBeenCalled();
     expect(step()).toBe("report");
 
-    await act(async () => button("Move another Bot")!.click());
+    await act(async () => button("move another bot")!.click());
     const again = fileOf(QUIET);
     await drag("drop", again);
     expect(again.text).toHaveBeenCalledOnce();

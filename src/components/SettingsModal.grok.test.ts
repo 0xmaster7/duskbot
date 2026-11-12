@@ -85,32 +85,32 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(html).toContain('data-icon-name="settings-gear"');
     expect(html).toContain('data-icon-name="cloud-download"');
     expect(current(html)).toBe("general");
-    expect(title(html)).toBe("General");
+    expect(title(html)).toBe("general");
   });
 
   it("opens General as you, how it looks, typing and sending, notifications and import, with data sharing under advanced", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["You", "How it looks", "Typing and sending", "Notifications", "Bring your stuff", "Data sharing"]);
+    expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "bring your stuff", "data sharing"]);
     expect(markers(html)).toEqual([]);
     expect(html).toContain('data-panel-page="import"');
     expect(markers(open("import"))).toEqual(["import"]);
-    for (const label of ["Theme", "Language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
-    expect(html).toContain('role="radiogroup" aria-label="Accent"');
-    expect(html).toContain("Play Sound for Notifications");
-    expect(html).toContain('aria-label="Notification Sound"');
-    expect(html).toContain("Open Blip");
-    expect(html).not.toContain("Advanced mode");
+    for (const label of ["theme", "language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
+    expect(html).toContain('role="radiogroup" aria-label="accent"');
+    expect(html).toContain("play sound for notifications");
+    expect(html).toContain('aria-label="notification sound"');
+    expect(html).toContain("open blip");
+    expect(html).not.toContain("advanced mode");
   });
 
   it("hides the ping picker while notification sounds are off", () => {
     fixture.sounds = false;
-    expect(open("general")).not.toContain('aria-label="Notification Sound"');
+    expect(open("general")).not.toContain('aria-label="notification sound"');
   });
 
   it("opens Advanced features on one titled group of its rarer pages, with no shortcuts to places the sidebar already has", () => {
     const html = open("advanced");
-    expect(title(html)).toBe("Advanced features");
-    expect(groups(html)).toEqual(["Everything else"]);
+    expect(title(html)).toBe("advanced features");
+    expect(groups(html)).toEqual(["everything else"]);
     expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual([]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
       .toEqual(["apps", "team", "data", "builder"]);
@@ -121,14 +121,14 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens an Advanced features page under it, with a way back", () => {
     const html = open("apps");
     expect(current(html)).toBe("advanced");
-    expect(title(html)).toBe("Apps and tools");
-    expect(html).toContain('aria-label="Back to Advanced features"');
+    expect(title(html)).toBe("apps and tools");
+    expect(html).toContain('aria-label="back to advanced features"');
   });
 
   it("gives providers and keys their own Models pane, with Jev set up in the group chat instead", () => {
     const html = open("engines");
     expect(current(html)).toBe("models");
-    expect(title(html)).toBe("Models");
+    expect(title(html)).toBe("models");
     expect(html).not.toContain("data-settings-back");
     expect(markers(html)).toEqual(["engines"]);
     expect(html).toContain('data-panel-page="keys"');
@@ -140,9 +140,9 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("opens Usage & Billing as Grok's pane: the limits, an empty state when none report, then the plan", () => {
     const html = open("usage");
     expect(current(html)).toBe("usage");
-    expect(title(html)).toBe("Usage &amp; Billing");
-    expect(html).toContain("No usage limits to show");
-    expect(html).toContain("Usage breakdown");
+    expect(title(html)).toBe("usage &amp; billing");
+    expect(html).toContain("no usage limits to show");
+    expect(html).toContain("usage breakdown");
     expect(markers(open("cloudAccount"))).toContain("cloudAccount");
   });
 
@@ -157,9 +157,9 @@ describe("Settings, drawn as Grok Bot's", () => {
   });
 
   it("keeps how sending works on General, and who you are only on the account row", () => {
-    expect(open("general")).toContain("Sending while a bot works");
+    expect(open("general")).toContain("sending while a bot works");
     const bots = open("bots");
-    expect(bots).not.toContain("Sending while a bot works");
+    expect(bots).not.toContain("sending while a bot works");
     expect(bots).not.toContain('data-settings-block="profile"');
   });
 
@@ -194,7 +194,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true }, environments: {} } });
     expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
-    expect(groups(open("general"))).toEqual(["How it looks", "Notifications"]);
+    expect(groups(open("general"))).toEqual(["how it looks", "notifications"]);
     expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");
   });

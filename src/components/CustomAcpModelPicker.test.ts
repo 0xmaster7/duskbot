@@ -122,7 +122,7 @@ it.each(["zcode", "codebuddy", "qoder", "qodercn"])("uses model-specific thinkin
   const row = ModelVariantRow({ bot: selected, threadId: selected.threadId, updateBotDefault: true, compact: true });
   const picker = elements(row).find((entry) => entry.type === Select)!;
   const markup = renderToStaticMarkup(createElement(ModelVariantRow, { bot: selected, threadId: selected.threadId, compact: true }));
-  expect(markup).toContain('aria-label="Reasoning variant"');
+  expect(markup).toContain('aria-label="reasoning variant"');
   expect(markup).toContain(">Low</option>");
   expect(markup).toContain(">Max</option>");
   expect(markup).not.toContain(">High</option>");

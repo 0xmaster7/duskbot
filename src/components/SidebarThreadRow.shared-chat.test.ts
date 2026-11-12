@@ -24,9 +24,9 @@ it("shows a team's shared chat by its name, in the person's language", async () 
   setLocale("de");
   expect(localizedTaskTitle("Shared chat")).toBe("Gemeinsamer Chat");
   setLocale("en");
-  expect(localizedTaskTitle("Shared chat")).toBe("Shared chat");
+  expect(localizedTaskTitle("Shared chat")).toBe("shared chat");
   await draw({ threadId: "main", title: "Shared chat", sharedChat: true });
-  expect(host.textContent).toContain("Shared chat");
+  expect(host.textContent).toContain("shared chat");
 });
 
 it("offers no rename on it, by the menu or a double click", async () => {

@@ -40,7 +40,7 @@ export function parseOwnClouds(input: unknown): MobileCloud[] {
     if (!object(entry) || typeof entry.id !== "string" || !CLOUD_ID.test(entry.id) || seen.has(entry.id)) continue;
     if (entry.role !== "owner" || (entry.teamId !== null && entry.teamId !== undefined) || entry.managed === false || typeof entry.status !== "string") continue;
     seen.add(entry.id);
-    const name = typeof entry.name === "string" && entry.name.trim() ? entry.name.trim().slice(0, 40) : "My Cloud";
+    const name = typeof entry.name === "string" && entry.name.trim() ? entry.name.trim().slice(0, 40) : "my cloud";
     const asleep = entry.status === "ready" && object(entry.power) && (entry.power.state === "asleep" || entry.power.state === "waking");
     clouds.push({ id: entry.id, name, status: entry.status, origin: httpsOrigin(entry.origin), primary: entry.primary === true, asleep });
   }

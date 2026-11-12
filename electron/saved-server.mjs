@@ -50,9 +50,9 @@ export async function serverOpens(entry, { fetch: fetchImpl, dialog, forget, tim
     first = false;
     if (answers) return true;
     const { response } = await dialog.showMessageBox({
-      type: "warning", buttons: ["Try again", "Remove from list", "Cancel"], defaultId: 0, cancelId: 2,
+      type: "warning", buttons: ["try again", "remove from list", "cancel"], defaultId: 0, cancelId: 2,
       message: `${entry.name} isn't answering`,
-      detail: `Nothing answers at ${new URL(entry.origin).host}. If that server is gone for good, remove it from your list. Your bots elsewhere aren't affected.`,
+      detail: `nothing answers at ${new URL(entry.origin).host}. if that server is gone for good, remove it from your list. your bots elsewhere aren't affected.`,
     });
     if (response === 1) { await forget(entry.id); return false; }
     if (response !== 0) return false;

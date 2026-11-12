@@ -71,21 +71,21 @@ beforeEach(() => {
 describe("Company models in the connected Organisation panel", () => {
   it("lists each Company engine's readiness and reuses the engine install action without a personal sign-in", () => {
     const html = render().html;
-    expect(html).toContain("Approved models: 1");
-    expect(html).toContain("Ready on this computer");
-    expect(html).toContain("Set up Codex");
+    expect(html).toContain("approved models: 1");
+    expect(html).toContain("ready on this computer");
+    expect(html).toContain("set up Codex");
     expect(html).toContain("npm i -g @openai/codex");
     expect(html).toContain("run through the Codex app on this computer");
     expect(html).toContain("you don’t need to sign in to a personal account");
-    expect(html).not.toMatch(/Sign in to Codex/);
-    expect(html).toContain("Not configured");
+    expect(html).not.toMatch(/sign in to Codex/);
+    expect(html).toContain("not configured");
   });
 
   it("counts only bots that cannot run, names them, and changes nothing until clicked", async () => {
     const view = render();
-    expect(view.html).toContain("Can’t run now: Scout, Maus");
+    expect(view.html).toContain("can’t run now: Scout, Maus");
     expect(view.html).not.toContain("Writer");
-    const action = view.nodes.find((node) => node.type === "button" && node.props.children === "Use Company · Fixture Company · Claude for 2 bots that can’t run");
+    const action = view.nodes.find((node) => node.type === "button" && node.props.children === "use Company · Fixture Company · Claude for 2 bots that can’t run");
     expect(action).toBeDefined();
     expect(view.html).not.toMatch(/role="dialog"/);
     expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -94,27 +94,27 @@ describe("Company models in the connected Organisation panel", () => {
       [{ type: "setModel", botId: "b1", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
       [{ type: "setModel", botId: "b3", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
     ]);
-    expect(render().html).toContain("Now using Company · Fixture Company · Claude: Scout, Maus");
+    expect(render().html).toContain("now using Company · Fixture Company · Claude: Scout, Maus");
   });
 
   it("names only bots the server kept on the Company model", async () => {
     fixture.kept = new Set(["b3"]);
-    const use = () => render().nodes.find((node) => node.type === "button" && String(node.props.children).startsWith("Use "))!;
+    const use = () => render().nodes.find((node) => node.type === "button" && String(node.props.children).startsWith("use "))!;
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches.mock.calls).toEqual([["b1"], ["b3"]]);
     const html = render().html;
-    expect(html).toContain("Now using Company · Fixture Company · Claude: Maus");
-    expect(html).not.toContain("Now using Company · Fixture Company · Claude: Scout");
+    expect(html).toContain("now using Company · Fixture Company · Claude: Maus");
+    expect(html).not.toContain("now using Company · Fixture Company · Claude: Scout");
     fixture.values = []; fixture.kept = new Set(); fixture.flushBotPatches.mockClear();
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches).toHaveBeenCalledTimes(2);
-    expect(render().html).not.toContain("Now using");
+    expect(render().html).not.toContain("now using");
   });
 
   it("offers nothing when every bot already runs", () => {
     fixture.bots = [bot("b2", "Writer", "grok"), bot("b4", "Clerk", "company.fixture.anthropic")];
     expect(render().html).not.toContain("bots that can’t run");
-    expect(buttons().some((node) => String(node.props.children).startsWith("Use "))).toBe(false);
+    expect(buttons().some((node) => String(node.props.children).startsWith("use "))).toBe(false);
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
@@ -125,7 +125,7 @@ describe("Company models in the connected Organisation panel", () => {
     fixture.bots = [bot("b2", "Writer", "grok")];
     const view = render();
     expect(view.html).toContain("does not allow the Claude engine");
-    const action = view.nodes.find((node) => node.type === "button" && node.props.children === "Use Company · Fixture Company · OpenRouter for 1 bot that can’t run");
+    const action = view.nodes.find((node) => node.type === "button" && node.props.children === "use Company · Fixture Company · OpenRouter for 1 bot that can’t run");
     action!.props.onClick!(); await flush();
     expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "setModel", botId: "b2", selection: { instanceId: "company.fixture.openrouter", model: "fixture/router" } });
   });

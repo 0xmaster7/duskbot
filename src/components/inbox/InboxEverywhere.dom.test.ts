@@ -26,7 +26,7 @@ const AT = Date.now() - 60_000;
 const approval: InboxRow = {
   id: "card-a", kind: "ask", tab: "needs-you", unread: true, at: AT, from: { name: "Eli", botId: "eli" }, workingFor: { botId: "mira", name: "Mira" },
   origin: { botId: "eli", threadId: "eli-pricing", title: "Pricing work", messageId: "card-a" }, text: "Run: rm -rf ./build",
-  card: { title: "Approval needed", subtitle: "Run: rm -rf ./build", options: ["Allow", "Deny"], requestId: "req-a", tool: "Bash", requestType: "permission" },
+  card: { title: "Approval needed", subtitle: "Run: rm -rf ./build", options: ["allow", "deny"], requestId: "req-a", tool: "Bash", requestType: "permission" },
 };
 const question: InboxRow = {
   id: "card-q", kind: "ask", tab: "needs-you", unread: false, at: AT - 1, from: { name: "Eli", botId: "eli" },
@@ -142,16 +142,16 @@ describe("a place's inbox in the panel", () => {
   });
 
   it("lists each bot at work once, with a jump, leaving out what the inbox already asks", async () => {
-    const working = { threadId: "eli-work", title: "Writing the page", createdAt: 1, busy: true, activity: "working" as const };
+    const working = { threadId: "eli-work", title: "writing the page", createdAt: 1, busy: true, activity: "working" as const };
     const asking = { threadId: "eli-pricing", title: "Pricing work", createdAt: 2, activity: "waiting-on-you" as const };
-    const told = { threadId: "noa-main", title: "Told already", createdAt: 3, unread: true };
-    const toldAndWorking = { threadId: "line-thread", title: "Told and still working", createdAt: 4, unread: true, busy: true };
-    const lineThere = { ...news, id: "line-t", origin: { botId: "eli", threadId: "line-thread", title: "Told and still working" } };
+    const told = { threadId: "noa-main", title: "told already", createdAt: 3, unread: true };
+    const toldAndWorking = { threadId: "line-thread", title: "told and still working", createdAt: 4, unread: true, busy: true };
+    const lineThere = { ...news, id: "line-t", origin: { botId: "eli", threadId: "line-thread", title: "told and still working" } };
     await panel([approval, news, lineThere], [bot({ tasks: [working, asking, told, toldAndWorking] as Bot["tasks"] })]);
     const section = document.querySelector<HTMLElement>("[data-inbox-active]")!;
     const rows = [...section.querySelectorAll<HTMLElement>("button[aria-label]")];
-    expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · Working"]);
-    expect(section.textContent).not.toContain("Writing the page");
+    expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · working"]);
+    expect(section.textContent).not.toContain("writing the page");
     expect(section.textContent).not.toContain("Pricing work");
     await act(async () => { rows[0]!.click(); });
     expect(dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "eli", threadId: "eli-work" });

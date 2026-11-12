@@ -52,14 +52,14 @@ const header = (markup: string) => /<div[^>]*data-roomhead-row[\s\S]*?(?=<div[^>
 
 // Every control the header shows today, by what marks it in the markup.
 const CONTROLS = {
-  threads: 'aria-label="All threads"',
-  find: 'aria-label="Find in conversation"',
-  export: 'aria-label="Export conversation"',
+  threads: 'aria-label="all threads"',
+  find: 'aria-label="find in conversation"',
+  export: 'aria-label="export conversation"',
   turnLimit: 'data-testid="conversation-turn-limit"',
   usage: 'data-testid="group-usage-chip"',
-  folder: 'title="Group working folder"',
-  responder: 'aria-label="Default responder"',
-  members: 'aria-label="Manage members: 9 bots in this group"',
+  folder: 'title="group working folder"',
+  responder: 'aria-label="default responder"',
+  members: 'aria-label="manage members: 9 bots in this group"',
 };
 const shown = (markup: string) => Object.entries(CONTROLS).filter(([, mark]) => markup.includes(mark)).map(([name]) => name);
 const BULLETIN = "Desk HQ: the recruiting desk&#x27;s room.";
@@ -79,7 +79,7 @@ describe("the room header", () => {
     expect(head.match(/<button/g)).toHaveLength(1);
     expect(head).toContain("data-room-name=");
     expect(head).toContain("chat-head-pill");
-    expect(head).toContain('aria-label="Open settings for Desk HQ"');
+    expect(head).toContain('aria-label="open settings for Desk HQ"');
     expect(head).toMatch(/data-roomhead-row="true" class="[^"]*justify-center/);
     expect(head).toMatch(/data-group-avatar="" aria-hidden="true" class="[^"]*" style="width:24px;height:24px"/);
     expect(head.match(/data-group-avatar-cell=/g)).toHaveLength(4);

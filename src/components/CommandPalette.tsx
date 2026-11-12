@@ -149,22 +149,22 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
     void import("./SettingsModal").then(({ openSettings }) => dispatch(openSettings(pane))).catch(() => dispatch(settings("general")));
   const currentBot = state.bots.find((entry) => entry.id === state.selectedId);
   const commands: Command[] = [
-    { id: "new-bot", name: "New Bot", icon: "plus", run: () => openCreateBot() },
+    { id: "new-bot", name: "new bot", icon: "plus", run: () => openCreateBot() },
     { id: "new-group", name: t("sidebar.newChannel.title"), icon: "people", run: () => openNewGroup() },
-    { id: "shortcuts", name: "Keyboard shortcuts", detail: "Help", icon: "keyboard", run: () => dispatch({ type: "toggleShortcuts", open: true }) },
-    { id: "settings-general", name: "Settings: General", detail: "Settings", icon: "settings-gear", run: () => dispatch(settings("general")) },
-    { id: "settings-texting", name: "Settings: Texting", detail: "Settings", icon: "chat-bubbles", run: () => dispatch(settings("texting")) },
-    { id: "settings-computer", name: "Settings: Computer", detail: "Settings", icon: "display", run: () => dispatch(settings("computer")) },
-    { id: "settings-updates", name: "Settings: Updates", detail: "Settings", icon: "refresh", run: () => dispatch(settings("updates")) },
-    { id: "settings-permissions", name: "Settings: Permissions", detail: "Settings", icon: "lock", run: () => dispatch(settings("permissions")) },
-    { id: "settings-models", name: "Settings: Models", detail: "Settings", icon: "sparkle", run: settingsPane("models") },
-    { id: "settings-usage", name: "Settings: Usage & Billing", detail: "Settings", icon: "chart-bars", run: settingsPane("usage") },
-    { id: "settings-advanced", name: "Settings: Advanced features", detail: "Settings", icon: "sliders", run: settingsPane("advanced") },
-    ...(currentBot ? [{ id: "bot-settings", name: "Bot Settings", detail: currentBot.name, icon: "settings-gear" as const, run: () => openBotSettingsPage(dispatch, currentBot.id) }] : []),
-    { id: "connect-apps", name: "Connect Apps", detail: "Search across apps and skills", icon: "storefront", run: () => dispatch(settings("apps")) },
-    { id: "theme-system", name: "Theme: System", detail: "Settings · Appearance", icon: "display", run: () => applySkinChoice("system") },
-    { id: "theme-dark", name: "Theme: Dark", detail: "Settings · Appearance", icon: "moon", run: () => applySkinChoice(THEME_SKINS.dark) },
-    { id: "theme-light", name: "Theme: Light", detail: "Settings · Appearance", icon: "sun", run: () => applySkinChoice(THEME_SKINS.light) },
+    { id: "shortcuts", name: "keyboard shortcuts", detail: "help", icon: "keyboard", run: () => dispatch({ type: "toggleShortcuts", open: true }) },
+    { id: "settings-general", name: "settings: general", detail: "settings", icon: "settings-gear", run: () => dispatch(settings("general")) },
+    { id: "settings-texting", name: "settings: texting", detail: "settings", icon: "chat-bubbles", run: () => dispatch(settings("texting")) },
+    { id: "settings-computer", name: "settings: computer", detail: "settings", icon: "display", run: () => dispatch(settings("computer")) },
+    { id: "settings-updates", name: "settings: updates", detail: "settings", icon: "refresh", run: () => dispatch(settings("updates")) },
+    { id: "settings-permissions", name: "settings: permissions", detail: "settings", icon: "lock", run: () => dispatch(settings("permissions")) },
+    { id: "settings-models", name: "settings: models", detail: "settings", icon: "sparkle", run: settingsPane("models") },
+    { id: "settings-usage", name: "settings: usage & billing", detail: "settings", icon: "chart-bars", run: settingsPane("usage") },
+    { id: "settings-advanced", name: "settings: advanced features", detail: "settings", icon: "sliders", run: settingsPane("advanced") },
+    ...(currentBot ? [{ id: "bot-settings", name: "bot settings", detail: currentBot.name, icon: "settings-gear" as const, run: () => openBotSettingsPage(dispatch, currentBot.id) }] : []),
+    { id: "connect-apps", name: "connect apps", detail: "search across apps and skills", icon: "storefront", run: () => dispatch(settings("apps")) },
+    { id: "theme-system", name: "theme: system", detail: "settings · appearance", icon: "display", run: () => applySkinChoice("system") },
+    { id: "theme-dark", name: "theme: dark", detail: "settings · appearance", icon: "moon", run: () => applySkinChoice(THEME_SKINS.dark) },
+    { id: "theme-light", name: "theme: light", detail: "settings · appearance", icon: "sun", run: () => applySkinChoice(THEME_SKINS.light) },
   ];
   // With nothing typed: the bots, those with news first, then grok's short list; the rest wait for a query.
   const shownCommands = q ? ranked(commands, (command) => command.name, q) : commands.filter((command) => IDLE_COMMANDS.has(command.id));
@@ -275,19 +275,19 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label={t("sidebar.search")}
-            placeholder="Search"
+            placeholder="search"
             className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[14px] leading-[22px] tracking-[-0.15px] text-ink outline-none placeholder:text-ink/56"
           />
         </div>
         {entries.length === 0 ? (
           <div role="status" className="flex min-h-0 flex-1 items-center justify-center px-4 text-center">
-            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">No results</span>
+            <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">no results</span>
           </div>
         ) : (
           <div
             id={listId}
             role="listbox"
-            aria-label="Results"
+            aria-label="results"
             className="min-h-0 flex-1 overflow-y-auto [mask-image:linear-gradient(transparent_0px,black_0px,black_calc(100%-24px),transparent_100%)]"
           >
             <div className="flex flex-col gap-0.5 p-2">
@@ -301,7 +301,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                     <>
                       {unread && <span role="img" aria-label={t("sidebar.grok.unreadActivity")} className="flex size-2 shrink-0 items-center"><span className="size-2 rounded-full bg-accent-text" /></span>}
                       {/* grok's rows carry no keycap; the shortcut stays, read out only */}
-                      {key && <span className="sr-only">Command {key}</span>}
+                      {key && <span className="sr-only">command {key}</span>}
                     </>);
                 }
                 if (entry.kind === "room") {

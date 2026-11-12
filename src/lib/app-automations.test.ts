@@ -23,28 +23,28 @@ const automation = (overrides: Partial<AppTrigger> = {}, runs: RoutineRun[] = []
 
 describe("an app-event automation in plain words", () => {
   it("reads as one sentence: who it is from and what the bot does", () => {
-    expect(automationSentence(automation(), "Scout")).toBe("When you get an email from Acme, Scout drafts a reply with the order status");
-    expect(automationSentence(automation({ filter: { from: "Acme", subject: "order" } }), "Scout")).toBe("When you get an email from Acme about “order”, Scout drafts a reply with the order status");
-    expect(automationSentence(automation({ app: "slack", appName: "Slack", event: "SLACK_CHANNEL_MESSAGE_RECEIVED", eventName: "New message", filter: undefined, config: { channel_id: "sales" }, prompt: "Log the lead in the CRM." }), "Ledger"))
-      .toBe("When a new Slack message arrives in #sales, Ledger logs the lead in the CRM");
+    expect(automationSentence(automation(), "Scout")).toBe("when you get an email from Acme, Scout drafts a reply with the order status");
+    expect(automationSentence(automation({ filter: { from: "Acme", subject: "order" } }), "Scout")).toBe("when you get an email from Acme about “order”, Scout drafts a reply with the order status");
+    expect(automationSentence(automation({ app: "slack", appName: "Slack", event: "SLACK_CHANNEL_MESSAGE_RECEIVED", eventName: "new message", filter: undefined, config: { channel_id: "sales" }, prompt: "Log the lead in the CRM." }), "Ledger"))
+      .toBe("when a new Slack message arrives in #sales, Ledger logs the lead in the CRM");
     expect(automationSentence(automation({ app: "hubspot", appName: "Hubspot", event: "HUBSPOT_DEAL_STAGE_UPDATED_TRIGGER", eventName: "Deal stage updated", filter: undefined, prompt: "Post a kickoff note." }), "Ops"))
-      .toBe("When “Deal stage updated” happens in Hubspot, Ops posts a kickoff note");
+      .toBe("when “Deal stage updated” happens in Hubspot, Ops posts a kickoff note");
   });
 
   it("leaves technical words a bot put at the end of its instructions out of the sentence", () => {
     expect(automationSentence(automation({ prompt: "Draft a reply to the email in the event data. Do not send it." }), "Scout"))
-      .toBe("When you get an email from Acme, Scout drafts a reply to the email");
-    expect(automationSentence(automation({ prompt: "Add the lead from the webhook payload" }), "Scout")).toBe("When you get an email from Acme, Scout adds the lead");
-    expect(automationSentence(automation({ prompt: "Log the order in the payload" }), "Scout")).toBe("When you get an email from Acme, Scout logs the order");
-    expect(automationSentence(automation({ prompt: "Summarize the event for me" }), "Scout")).toBe("When you get an email from Acme, Scout summarizes the event for you");
+      .toBe("when you get an email from Acme, Scout drafts a reply to the email");
+    expect(automationSentence(automation({ prompt: "Add the lead from the webhook payload" }), "Scout")).toBe("when you get an email from Acme, Scout adds the lead");
+    expect(automationSentence(automation({ prompt: "Log the order in the payload" }), "Scout")).toBe("when you get an email from Acme, Scout logs the order");
+    expect(automationSentence(automation({ prompt: "Summarize the event for me" }), "Scout")).toBe("when you get an email from Acme, Scout summarizes the event for you");
     const [hook] = automationsFrom({ routines: [], webhooks: [{ id: "h", endpointId: "wh_1", name: "Sales form", prompt: "Draft a follow-up from the webhook data.", botId: "scout", runOn: "maus", enabled: true, createdAt: 0, updatedAt: 0, deliveryCount: 0 }], runs: [] });
-    expect(automationSentence(hook!, "Scout")).toBe("When your sales form sends something, Scout drafts a follow-up");
+    expect(automationSentence(hook!, "Scout")).toBe("when your sales form sends something, Scout drafts a follow-up");
   });
 
   it("says it checks every 15 minutes and waits for the first email, then shows the last run", () => {
-    expect(statusLine(automation(), NOW)).toBe("On · checks every 15 minutes · waiting for the first email");
-    expect(statusLine(automation({ lastEventAt: NOW - 60_000 }, [run("completed", NOW - 60_000)]), NOW)).toMatch(/^On · last ran today .+ · checks every 15 minutes$/);
-    expect(statusLine(automation({ delivery: "instant", event: "SLACK_X" }), NOW)).toBe("On · waiting for the first one");
+    expect(statusLine(automation(), NOW)).toBe("on · checks every 15 minutes · waiting for the first email");
+    expect(statusLine(automation({ lastEventAt: NOW - 60_000 }, [run("completed", NOW - 60_000)]), NOW)).toMatch(/^on · last ran today .+ · checks every 15 minutes$/);
+    expect(statusLine(automation({ delivery: "instant", event: "SLACK_X" }), NOW)).toBe("on · waiting for the first one");
   });
 
   it("needs the person when the app connection expired, with Reconnect as the fix", () => {
@@ -57,7 +57,7 @@ describe("an app-event automation in plain words", () => {
     expect(skippedToday(trigger({ skipped: { day: today, dailyLimit: 12, queueFull: 0, expired: 0, tooMany: 1 } }), NOW)).toBe("13 skipped today: daily limit");
     expect(skippedToday(trigger({ skipped: { day: "2026-10-17", dailyLimit: 12, queueFull: 0, expired: 0, tooMany: 0 } }), NOW)).toBeNull();
     expect(statusLine(automation({ skipped: { day: today, dailyLimit: 3, queueFull: 0, expired: 0, tooMany: 0 } }), NOW)).toContain("3 skipped today: daily limit");
-    expect(attemptLine({ id: "a", triggerId: "acme", eventId: "m", at: NOW, outcome: "started", preview: "From Ada · Order #1042" })).toEqual({ mark: "✓", text: "Started a run · From Ada · Order #1042" });
+    expect(attemptLine({ id: "a", triggerId: "acme", eventId: "m", at: NOW, outcome: "started", preview: "from Ada · Order #1042" })).toEqual({ mark: "✓", text: "started a run · from Ada · Order #1042" });
     expect(attemptLine({ id: "b", triggerId: "acme", eventId: "n", at: NOW, outcome: "filtered" }).mark).toBe("·");
   });
 

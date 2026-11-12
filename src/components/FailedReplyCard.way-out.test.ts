@@ -47,27 +47,27 @@ afterEach(async () => { await act(async () => root?.unmount()); root = null; });
 describe("a failure card always offers a way on", () => {
   it("out of credits: Switch AI, which opens the bot's AI settings", async () => {
     const buttons = await show(failed("Your credit balance is too low: insufficient credits"), vi.fn());
-    expect(labels(buttons)).toEqual(["Switch AI"]);
+    expect(labels(buttons)).toEqual(["switch AI"]);
     await act(async () => buttons[0]!.click());
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleSettings", open: true, section: "model", botId: "echo" }));
   });
 
-  it("a usage limit with no known reset: Switch AI", async () => {
-    expect(labels(await show(failed("You've hit your usage limit")))).toEqual(["Switch AI"]);
+  it("a usage limit with no known reset: switch AI", async () => {
+    expect(labels(await show(failed("You've hit your usage limit")))).toEqual(["switch AI"]);
   });
 
   it("a usage limit with a known reset keeps its continue action", async () => {
     const buttons = labels(await show(failed("You've hit your usage limit", { limitResetsAt: Date.now() + 3_600_000 })));
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]).not.toBe("Switch AI");
+    expect(buttons[0]).not.toBe("switch AI");
   });
 
   it("a failure nothing can retry: Switch AI instead of nothing", async () => {
-    expect(labels(await show(failed("API Error: 529 Overloaded")))).toEqual(["Switch AI"]);
+    expect(labels(await show(failed("API Error: 529 Overloaded")))).toEqual(["switch AI"]);
   });
 
   it("a failure that can be retried keeps Try again alone", async () => {
-    expect(labels(await show(failed("API Error: 529 Overloaded"), vi.fn()))).toEqual(["Try again"]);
+    expect(labels(await show(failed("API Error: 529 Overloaded"), vi.fn()))).toEqual(["try again"]);
   });
 });
 
@@ -77,25 +77,25 @@ describe("the card says what really stopped the reply", () => {
   it("a plain server cause is said as it is, not as Something went wrong", async () => {
     await show(failed("The workspace was restored from a backup before this finished."), vi.fn());
     expect(text()).toContain("The workspace was restored from a backup before this finished.");
-    expect(text()).not.toContain("Something went wrong");
+    expect(text()).not.toContain("something went wrong");
   });
 
   it("a turn a restart cut says so, and Try again warns before it can repeat what already ran", async () => {
     const onRetry = vi.fn();
     const buttons = await show(failed("Interrupted by another dusk bot restart after resuming once; not resumed again. Some of its steps may already have taken effect."), onRetry);
     expect(text()).toContain("dusk bot restarted while this was running");
-    expect(labels(buttons)).toEqual(["Try again"]);
+    expect(labels(buttons)).toEqual(["try again"]);
     await act(async () => buttons[0]!.click());
     expect(onRetry).not.toHaveBeenCalled();
     expect(text()).toContain("could happen twice");
     const confirm = [...document.querySelectorAll<HTMLButtonElement>("[data-chat-error] button:not([aria-label])")];
-    expect(labels(confirm)).toEqual(["Try again anyway", "Don't retry"]);
+    expect(labels(confirm)).toEqual(["try again anyway", "don't retry"]);
     await act(async () => confirm[0]!.click());
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("names what a cut turn had already done outside", async () => {
     await show(failed("Interrupted by a dusk bot restart after it already sent an email (gmail_send); not resumed, so nothing is done twice."), vi.fn());
-    expect(text()).toContain("Already done: sent an email (gmail_send)");
+    expect(text()).toContain("already done: sent an email (gmail_send)");
   });
 });

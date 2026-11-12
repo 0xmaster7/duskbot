@@ -62,7 +62,7 @@ describe("profileLabel", () => {
   it("prefers the name, then the email, then You", () => {
     expect(profileLabel({ name: "Omkar", email: "o@x.dev" })).toBe("Omkar");
     expect(profileLabel({ email: "o@x.dev" })).toBe("o@x.dev");
-    expect(profileLabel(undefined)).toBe("You");
+    expect(profileLabel(undefined)).toBe("you");
   });
 });
 
@@ -72,7 +72,7 @@ describe("the sidebar profile for a signed-in visitor", () => {
       { name: "Owner", email: "owner@example.test", avatarUrl: "/owner.png" },
       null,
     );
-    expect(profileLabel(visible)).toBe("You");
+    expect(profileLabel(visible)).toBe("you");
     expect(profileInitials(visible)).toBe("?");
     expect(visible?.avatarUrl).toBeUndefined();
   });
@@ -111,7 +111,7 @@ describe("outward links", () => {
 
 describe("the phone entries", () => {
   const admin: PhonePairingAccess = { session: { kind: "session", id: "s", label: "Mac", scopes: ["admin", "client"], expiresAt: 1 }, pairingCodes: true };
-  const chatOnly: PhonePairingAccess = { session: { kind: "session", id: "s", label: "Phone", scopes: ["client"], expiresAt: 1 }, pairingCodes: true };
+  const chatOnly: PhonePairingAccess = { session: { kind: "session", id: "s", label: "phone", scopes: ["client"], expiresAt: 1 }, pairingCodes: true };
   const signedIn = { status: "connected", account: { id: "a", email: "p@example.test" } } as const;
   const paid = (tier: string, machine?: CloudMachine): CloudAccountState => ({ ...signedIn, entitlement: { plan: "pro", tier, status: "active", expiresAt: null, version: 1 }, ...(machine ? { machine } : {}) });
   const ready: CloudMachine = { status: "ready", origin: "https://home-7f3k2.fly.dev" };
@@ -124,44 +124,44 @@ describe("the phone entries", () => {
   const shown = (...args: Parameters<typeof items>) => items(...args).list.map((item) => [item.label, item.subtitle ?? null, ...(item.note ? [item.note] : [])]);
 
   it("on this computer: offers pairing without a separate download entry", () => {
-    expect(shown("computer", null)).toEqual([["Connect your phone", "to this computer"]]);
+    expect(shown("computer", null)).toEqual([["connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is Ready: both, the Cloud first", () => {
     for (const tier of ["personal", "pro", "max"]) {
       expect(shown("computer", null, paid(tier, ready))).toEqual([
-        ["Connect your phone", "to the Cloud (always on)"],
-        ["Connect your phone", "to this computer"],
+        ["connect your phone", "to the cloud (always on)"],
+        ["connect your phone", "to this computer"],
       ]);
     }
   });
 
   it("on this computer, free or signed out: only this computer", () => {
     for (const account of [free, { status: "signed-out" } as CloudAccountState, null]) {
-      expect(shown("computer", null, account)).toEqual([["Connect your phone", "to this computer"]]);
+      expect(shown("computer", null, account)).toEqual([["connect your phone", "to this computer"]]);
     }
     expect(shown("computer", null, { ...paid("pro", ready), entitlement: { plan: "pro", status: "inactive", expiresAt: null, version: 2 } }))
-      .toEqual([["Connect your phone", "to this computer"]]);
+      .toEqual([["connect your phone", "to this computer"]]);
     expect(shown("computer", null, { status: "unavailable", lastPlan: { tier: "pro", active: true }, machine: ready }))
-      .toEqual([["Connect your phone", "to this computer"]]);
+      .toEqual([["connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is not Ready: only this computer, and a hint", () => {
     for (const machine of [undefined, { status: "provisioning" }, { status: "stopped", origin: ready.origin }, { status: "failed", origin: ready.origin }] as Array<CloudMachine | undefined>) {
       expect(shown("computer", null, paid("pro", machine))).toEqual([
-        ["Connect your phone", "to this computer", "The Cloud shows here once it's ready."],
+        ["connect your phone", "to this computer", "the cloud shows here once it's ready."],
       ]);
     }
   });
 
   it("on the person's own Cloud: unchanged, one Connect your phone to My Cloud", () => {
-    expect(shown("cloud", admin)).toEqual([["Connect your phone", "to the Cloud"]]);
-    expect(shown("cloud", admin, paid("max", ready))).toEqual([["Connect your phone", "to the Cloud"]]);
-    expect(shown("cloud", admin, paid("max"))).toEqual([["Connect your phone", "to the Cloud"]]);
+    expect(shown("cloud", admin)).toEqual([["connect your phone", "to the cloud"]]);
+    expect(shown("cloud", admin, paid("max", ready))).toEqual([["connect your phone", "to the cloud"]]);
+    expect(shown("cloud", admin, paid("max"))).toEqual([["connect your phone", "to the cloud"]]);
   });
 
   it("on another server: to this server, and gone for a session that cannot make a pairing code", () => {
-    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the bots here"]]);
+    expect(shown("server", admin, paid("pro", ready))).toEqual([["connect your phone", "to the bots here"]]);
     expect(shown("server", chatOnly)).toEqual([]);
     expect(shown("server", { ...admin, pairingCodes: false })).toEqual([]);
     expect(shown("cloud", chatOnly)).toEqual([]);
@@ -223,7 +223,7 @@ describe("choosing where the phone connects", () => {
   });
 });
 
-describe("Phone pairing", () => {
+describe("phone pairing", () => {
   const render = (connect?: PhoneAppConnect[]) => {
     vi.stubGlobal("window", { addEventListener: () => {}, removeEventListener: () => {} });
     vi.stubGlobal("document", { body: {} });
@@ -237,17 +237,17 @@ describe("Phone pairing", () => {
 
   it("offers phone pairing without upstream application downloads", () => {
     const html = render([to("here", "to this computer")]);
-    expect(html).toContain("Connect your phone");
-    expect(html).toContain("Show a one-time code to scan or type on your phone");
+    expect(html).toContain("connect your phone");
+    expect(html).toContain("show a one-time code to scan or type on your phone");
     expect(html).toContain("to this computer");
     expect(html).not.toContain("apps.apple.com");
-    expect(html).not.toContain("Download the APK");
+    expect(html).not.toContain("download the APK");
     expect(html).not.toContain("data-phone-app=\"ios\"");
     expect(html).not.toContain("data-phone-app=\"android\"");
   });
 
   it("offers every destination the menu does, in the same order", () => {
-    const html = render([to("cloud", "to the Cloud (always on)"), to("here", "to this computer")]);
+    const html = render([to("cloud", "to the cloud (always on)"), to("here", "to this computer")]);
     expect(html.indexOf('data-phone-app-connect="cloud"')).toBeGreaterThan(-1);
     expect(html.indexOf('data-phone-app-connect="cloud"')).toBeLessThan(html.indexOf('data-phone-app-connect="here"'));
   });
@@ -283,7 +283,7 @@ describe("profileMenuItems", () => {
   });
 
   it("keeps the update entry beside settings", () => {
-    const update = { key: "update", label: "Check for updates", onSelect: noop };
+    const update = { key: "update", label: "check for updates", onSelect: noop };
     expect(build({ update }).map((item) => item.key)).toEqual(["usage", "phone-app", "support", "settings", "update", "account"]);
   });
 
@@ -312,8 +312,8 @@ describe("Simple mode's account menu", () => {
   const build = (patch: Partial<Parameters<typeof profileMenuItems>[0]> = {}) => profileMenuItems({
     phone: simplePhoneItems({ connected: false, onGetApp: noop }),
     usage: true,
-    update: { key: "update", label: "Check for updates", onSelect: noop },
-    account: "dusk bot Cloud",
+    update: { key: "update", label: "check for updates", onSelect: noop },
+    account: "dusk cloud",
     simple: { tools, places: placeMenuItems(place(), { owner: null, onCloudSettings: noop }) },
     onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
     ...patch,
@@ -336,26 +336,26 @@ describe("Simple mode's account menu", () => {
 
   it("raises an update that is ready or failed to its own top row with a pill, and keeps it out of support", () => {
     const update = { key: "update", label: "Restart to update to dusk bot 0.2.0", subtitle: "notes", attention: true, onSelect: noop };
-    const items = build({ update, updateTop: { label: "Update ready", action: "Restart" } });
+    const items = build({ update, updateTop: { label: "update ready", action: "restart" } });
     expect(groups(items)[0]).toEqual(["update"]);
-    expect(items[0]).toMatchObject({ label: "Update ready", subtitle: undefined, attention: false });
-    expect(renderToStaticMarkup(createElement("div", null, items[0]!.trailing))).toContain(">Restart</span>");
+    expect(items[0]).toMatchObject({ label: "update ready", subtitle: undefined, attention: false });
+    expect(renderToStaticMarkup(createElement("div", null, items[0]!.trailing))).toContain(">restart</span>");
     expect(items[1]!.separatorBefore).toBe(true);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).not.toContain("update");
   });
 
   it("raises a newer server and nothing else", () => {
-    expect(simpleUpdateTop({ source: "server", phase: "available" })).toEqual({ label: "Update ready", action: "Install" });
-    expect(simpleUpdateTop({ source: "server", phase: "reload" })).toEqual({ label: "Update ready", action: "Restart" });
+    expect(simpleUpdateTop({ source: "server", phase: "available" })).toEqual({ label: "update ready", action: "install" });
+    expect(simpleUpdateTop({ source: "server", phase: "reload" })).toEqual({ label: "update ready", action: "restart" });
     for (const phase of ["idle", "checking", "up-to-date"] as const) expect(simpleUpdateTop({ source: "server", phase })).toBeNull();
     expect(simpleUpdateTop({ source: "server", phase: "error" })).toBeNull();
     expect(simpleUpdateTop(null)).toBeNull();
   });
 
   it("gives the usage row a trailing meta and a chevron, with the reset as its second line", () => {
-    const usage = build({ usageSummary: { value: "12% used", weekly: true, resets: "Resets in 3 days" } })[0]!;
-    expect(usage).toMatchObject({ label: "Weekly usage", value: "12% used", subtitle: "Resets in 3 days", chevron: true });
-    expect(build()[0]).toMatchObject({ label: "Usage", chevron: true });
+    const usage = build({ usageSummary: { value: "12% used", weekly: true, resets: "resets in 3 days" } })[0]!;
+    expect(usage).toMatchObject({ label: "weekly usage", value: "12% used", subtitle: "resets in 3 days", chevron: true });
+    expect(build()[0]).toMatchObject({ label: "usage", chevron: true });
     expect(build()[0]!.value).toBeUndefined();
   });
 
@@ -376,17 +376,17 @@ describe("Simple mode's account menu", () => {
 
   it("names the account button after the person and whatever its dot is raised for", () => {
     expect(accountLabel("You", { automationsNeedYou: false, update: null })).toBe("You");
-    expect(accountLabel("Ada", { automationsNeedYou: true, update: "Update failed. Try again." })).toBe("Ada · Automations need you · Update failed. Try again.");
+    expect(accountLabel("Ada", { automationsNeedYou: true, update: "Update failed. Try again." })).toBe("Ada · automations need you · Update failed. Try again.");
   });
 
   it("adds the move to My Cloud: a short warning once failing, shared with automations, and a quiet segment on its way", () => {
-    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "failed" })).toBe("Omkar · Your move to dusk cloud needs you");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "failed" })).toBe("Omkar · Your move and routines need you");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: "Update ready", move: "failed" })).toBe("Omkar · Your move and routines need you · Update ready");
-    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "sending" })).toBe("Omkar · Moving to dusk cloud…");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "sending" })).toBe("Omkar · Automations need you · Moving to dusk cloud…");
+    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "failed" })).toBe("Omkar · your move to dusk cloud needs you");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "failed" })).toBe("Omkar · your move and routines need you");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: "update ready", move: "failed" })).toBe("Omkar · your move and routines need you · update ready");
+    expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "sending" })).toBe("Omkar · moving to dusk cloud…");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "sending" })).toBe("Omkar · automations need you · moving to dusk cloud…");
     expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: "done" })).toBe("Omkar");
-    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "done" })).toBe("Omkar · Automations need you");
+    expect(accountLabel("Omkar", { automationsNeedYou: true, update: null, move: "done" })).toBe("Omkar · automations need you");
     expect(accountLabel("Omkar", { automationsNeedYou: false, update: null, move: null })).toBe("Omkar");
   });
 
@@ -412,7 +412,7 @@ describe("Simple mode's account menu", () => {
       ["archived"],
       ["place", "switch-place", "account"],
     ]);
-    expect(groups(build({ move, update, updateTop: { label: "Update ready", action: "Restart" } })).slice(0, 2)).toEqual([["cloud-move"], ["update"]]);
+    expect(groups(build({ move, update, updateTop: { label: "update ready", action: "restart" } })).slice(0, 2)).toEqual([["cloud-move"], ["update"]]);
     expect(groups(build({ move: [] }))[0]).toEqual(["usage", "phone-app", "support", "settings"]);
   });
 
@@ -426,11 +426,11 @@ describe("Simple mode's account menu", () => {
     const failed = build({ move: failing });
     expect(groups(failed)[0]).toEqual(["cloud-move"]);
     expect(shape(failed[0]!)).toEqual({ lines: 1, wrap: true, icon: true });
-    expect(failed[0]!.note).toBe("Something got in the way. Your bots are safe here.");
+    expect(failed[0]!.note).toBe("something got in the way. your bots are safe here.");
   });
 
   it("puts the move's row first in Advanced's account menu too, under its own divider", () => {
-    const move = [{ key: "cloud-move", label: "Moving to dusk cloud…", title: "Moving your bots to dusk cloud… 34 of 120 chats", onSelect: noop }];
+    const move = [{ key: "cloud-move", label: "moving to dusk cloud…", title: "moving your bots to dusk cloud… 34 of 120 chats", onSelect: noop }];
     expect(groups(build({ simple: undefined, move }))).toEqual([["cloud-move"], ["usage", "phone-app", "support", "settings", "update"], ["account"]]);
     expect(groups(build({ simple: undefined }))).toEqual([["usage", "phone-app", "support", "settings", "update"], ["account"]]);
   });
@@ -447,7 +447,7 @@ describe("Simple mode's account menu", () => {
   it("ticks the current place and switches through the same native menu as the server pill", () => {
     const here = place();
     const items = placeMenuItems(here, { owner: null, onCloudSettings: noop });
-    expect(items.map((item) => [item.key, item.label])).toEqual([["place", "This computer"], ["switch-place", "Switch to…"]]);
+    expect(items.map((item) => [item.key, item.label])).toEqual([["place", "This computer"], ["switch-place", "switch to…"]]);
     expect(items[0]!.trailing).toBeTruthy();
     items[0]!.onSelect();
     items[1]!.onSelect();
@@ -457,7 +457,7 @@ describe("Simple mode's account menu", () => {
   it("names My Cloud and opens its settings when it is the window's only place, and offers nothing without either", () => {
     const onCloudSettings = vi.fn();
     const home = placeMenuItems(place({ switchable: false, cloudHome: true, onLine: "always on" }), { owner: "ada@example.test", onCloudSettings });
-    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["My Cloud", "always on · ada@example.test’s Cloud"]]);
+    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["my cloud", "always on · ada@example.test’s cloud"]]);
     home[0]!.onSelect();
     expect(onCloudSettings).toHaveBeenCalledOnce();
     expect(placeMenuItems(place({ bridge: undefined, switchable: false }), { owner: null, onCloudSettings })).toEqual([]);
@@ -481,8 +481,8 @@ describe("the usage meta", () => {
 
   it("reads the tightest weekly window, then the 5-hour one, with when it resets", () => {
     const report = { providers: [provider({ weekly: window(12, "2026-10-30T12:00:00Z") }), provider({ weekly: window(31.6, "2026-10-28T12:00:00Z") }), provider({ ok: false, weekly: window(90) })] };
-    expect(planUsageSummary(report, now)).toEqual({ value: "32% used", weekly: true, resets: "Resets tomorrow" });
-    expect(planUsageSummary({ providers: [provider({ fiveHour: window(40, "2026-10-27T15:00:00Z") })] }, now)).toEqual({ value: "40% used", weekly: false, resets: "Resets in 3 hours" });
+    expect(planUsageSummary(report, now)).toEqual({ value: "32% used", weekly: true, resets: "resets tomorrow" });
+    expect(planUsageSummary({ providers: [provider({ fiveHour: window(40, "2026-10-27T15:00:00Z") })] }, now)).toEqual({ value: "40% used", weekly: false, resets: "resets in 3 hours" });
   });
 
   it("falls back to a plan's monthly budget when it has no rolling window", () => {
@@ -498,7 +498,7 @@ describe("the usage meta", () => {
   });
 
   it("says when a reset is days away, and nothing once it has passed", () => {
-    expect(resetsIn(now + 3 * 86_400_000, now)).toBe("Resets in 3 days");
+    expect(resetsIn(now + 3 * 86_400_000, now)).toBe("resets in 3 days");
     expect(resetsIn(now - 1, now)).toBeUndefined();
     expect(resetsIn(null, now)).toBeUndefined();
   });
@@ -520,7 +520,7 @@ describe("grok's profile menu", () => {
   it("leads with the automation the avatar's red dot is for, so the dot always has somewhere to go", () => {
     const onNeedsYou = vi.fn();
     const items = grokProfileMenuItems({ ...base, onNeedsYou });
-    expect(items[0]).toMatchObject({ key: "needs-you", label: "Automations need you", attention: true, attentionTone: "danger" });
+    expect(items[0]).toMatchObject({ key: "needs-you", label: "automations need you", attention: true, attentionTone: "danger" });
     expect(items[1]).toMatchObject({ key: "mobile", separatorBefore: true });
     items[0]!.onSelect();
     expect(onNeedsYou).toHaveBeenCalledOnce();
@@ -531,14 +531,14 @@ describe("grok's profile menu", () => {
     expect(items.map((item) => item.key)).toEqual(["mobile", "support", "settings", "sign-in"]);
     expect(items[0]!.separatorBefore).toBeUndefined();
     // signed out, the account button's last row is the sign-in, by name
-    expect(items.at(-1)).toMatchObject({ label: "Sign in", separatorBefore: true });
+    expect(items.at(-1)).toMatchObject({ label: "sign in", separatorBefore: true });
   });
 
   it("puts the account dashboard right under the phone row when the menu can open it", () => {
     const onDashboard = vi.fn();
     const items = grokProfileMenuItems({ ...base, onDashboard });
     expect(items.map((item) => item.key)).toEqual(["mobile", "dashboard", "support", "settings", "sign-in"]);
-    expect(items[1]).toMatchObject({ label: "Account dashboard" });
+    expect(items[1]).toMatchObject({ label: "account dashboard" });
     items[1]!.onSelect();
     expect(onDashboard).toHaveBeenCalledOnce();
   });

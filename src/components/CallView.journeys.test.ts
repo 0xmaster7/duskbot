@@ -95,8 +95,8 @@ const noKey = { configured: false, voice: "marin", readTypedReplies: true, idleM
 const CLOUD = { cloudHome: true, tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const SERVER = { tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const THIS_COMPUTER = { tts: { configured: true, ready: true, voice: "voice-1" }, live: noKey } as AppState["config"];
-const KEY_NEEDED = "Live calls use your own OpenAI key. Add it in Settings → API keys.";
-const APP_REFUSED = "The app didn't let this page use the microphone. Open it in your web browser to make the Live call.";
+const KEY_NEEDED = "live calls use your own OpenAI key. add it in settings → API keys.";
+const APP_REFUSED = "the app didn't let this page use the microphone. open it in your web browser to make the live call.";
 
 function Page({ config, children }: { config: AppState["config"]; children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { ...initialState, config, bots: [ada] });
@@ -134,15 +134,15 @@ const text = () => container.textContent ?? "";
 
 async function firstLiveCall() {
   const button = callButton();
-  expect(button?.getAttribute("aria-label")).toBe("Live call with Ada");
+  expect(button?.getAttribute("aria-label")).toBe("live call with Ada");
   expect(button?.querySelector(".bg-warning")).toBeNull();
   press(button);
   await vi.waitFor(() => expect(text()).toContain(KEY_NEEDED));
   expect(getUserMedia).toHaveBeenCalledTimes(1);
   expect(requests.map(({ path, method }) => `${method} ${path}`)).toEqual(["POST /api/live/session"]);
-  expect(text()).not.toContain("Call unavailable");
+  expect(text()).not.toContain("call unavailable");
   expect(container.querySelector("input")).toBeNull();
-  const openApiKeys = Array.from(container.querySelectorAll("button")).find((item) => item.textContent?.trim() === "Open API keys");
+  const openApiKeys = Array.from(container.querySelectorAll("button")).find((item) => item.textContent?.trim() === "open API keys");
   press(openApiKeys ?? null);
   expect(text()).not.toContain(KEY_NEEDED);
 
@@ -151,7 +151,7 @@ async function firstLiveCall() {
   await vi.waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
   await vi.waitFor(() => expect(requests.filter(({ path }) => path === "/api/live/session")).toHaveLength(2));
   expect(liveMedia()).toMatchObject({ phase: "starting", botId: "ada", threadId: "thread-ada" });
-  await vi.waitFor(() => expect(text()).toContain("Live with Ada"));
+  await vi.waitFor(() => expect(text()).toContain("live with Ada"));
   expect(text()).not.toContain(KEY_NEEDED);
   expect(text()).not.toContain("Choose This computer");
   expect(requests.filter(({ path }) => path === "/api/config")).toEqual([]);
@@ -159,13 +159,13 @@ async function firstLiveCall() {
 }
 
 function expectTurnsDisabled(reason: string) {
-  press(container.querySelector('[aria-label="Call mode"]'));
+  press(container.querySelector('[aria-label="call mode"]'));
   const [turns, live] = menuItems();
-  expect(turns?.textContent).toContain("Take turns");
+  expect(turns?.textContent).toContain("take turns");
   expect(turns?.getAttribute("aria-disabled")).toBe("true");
   expect(turns?.textContent).toContain(reason);
   expect(turns?.getAttribute("aria-checked")).toBe("false");
-  expect(live?.textContent).toContain("Live");
+  expect(live?.textContent).toContain("live");
   expect(live?.hasAttribute("aria-disabled")).toBe(false);
   expect(live?.getAttribute("aria-checked")).toBe("true");
   expect(text()).not.toContain("Choose This computer");
@@ -183,7 +183,7 @@ function expectTurnsDisabled(reason: string) {
   expect(callMode()).toBe(mode);
   expect(currentCall()).toBeNull();
   expect(getUserMedia).not.toHaveBeenCalled();
-  press(container.querySelector('[aria-label="Call mode"]'));
+  press(container.querySelector('[aria-label="call mode"]'));
   expect(menuItems()).toHaveLength(0);
 }
 
@@ -241,29 +241,29 @@ describe("calling a bot off the Mac", () => {
   it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
     open(desktopApp("darwin", "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
+    expectTurnsDisabled("calls where you take turns work with bots on this Mac. they listen with your Mac's own speech recognition, which only bots on this Mac can use.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it works on This computer", async (platform) => {
     open(desktopApp(platform, "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
+    expectTurnsDisabled("calls where you take turns work with bots on this computer. they listen from this computer's own window, so only bots on this computer can use them.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with no Fish Audio key, the call is Live, Take turns asks for the key, and Live points to API keys", async (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat(THIS_COMPUTER);
-    expectTurnsDisabled("Add a Fish Audio key to take turns on calls. On this computer, Take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in Settings → API keys.");
+    expectTurnsDisabled("add a Fish Audio key to take turns on calls. on this computer, take turns hears you through Fish Audio speech-to-text. add a Fish Audio key in settings → API keys.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with a Fish Audio key, Take turns is on and says where the voice goes", (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat({ ...THIS_COMPUTER, savedKeys: { fishAudioKey: { configured: true } } } as AppState["config"]);
-    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
-    press(container.querySelector('[aria-label="Call mode"]'));
+    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
+    press(container.querySelector('[aria-label="call mode"]'));
     const [turns] = menuItems();
     expect(turns?.hasAttribute("aria-disabled")).toBe(false);
     expect(turns?.textContent).toContain("Fish Audio turns what you say into text, so your voice goes to Fish Audio.");
@@ -281,9 +281,9 @@ describe("calling a bot off the Mac", () => {
     press(callButton());
     await vi.waitFor(() => expect(text()).toContain(APP_REFUSED));
     expect(getUserMedia).toHaveBeenCalledTimes(1);
-    expect(Array.from(container.querySelectorAll("button"), (button) => button.textContent?.trim())).toContain("Open in browser");
+    expect(Array.from(container.querySelectorAll("button"), (button) => button.textContent?.trim())).toContain("open in browser");
     expect(text()).not.toContain(KEY_NEEDED);
-    expect(container.querySelector('input[aria-label="OpenAI API key for Live calls"]')).toBeNull();
+    expect(container.querySelector('input[aria-label="OpenAI API key for live calls"]')).toBeNull();
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
     expect(invoked.map(({ channel }) => channel)).not.toContain("credential:set");
   });
@@ -293,7 +293,7 @@ describe("calling a bot off the Mac", () => {
     expect(globalThis.navigator.mediaDevices).toBeUndefined();
     chat(SERVER);
     press(callButton());
-    await vi.waitFor(() => expect(text()).toContain("Live calls need a microphone, and this window can't use one. Open dusk bot at a secure https address to make the call."));
+    await vi.waitFor(() => expect(text()).toContain("live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call."));
     expect(text()).not.toContain("WebRTC");
     expect(text()).not.toContain(KEY_NEEDED);
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
@@ -302,10 +302,10 @@ describe("calling a bot off the Mac", () => {
   it("on This computer in the Mac app, Take turns stays the default and a picked mode is kept", () => {
     open(desktopApp("darwin", "this-computer"));
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
-    press(container.querySelector('[aria-label="Call mode"]'));
+    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
+    press(container.querySelector('[aria-label="call mode"]'));
     expect(menuItems().map((item) => [item.getAttribute("aria-disabled"), item.getAttribute("aria-checked")])).toEqual([[null, "true"], [null, "false"]]);
-    press(container.querySelector('[aria-label="Call mode"]'));
+    press(container.querySelector('[aria-label="call mode"]'));
 
     press(callButton());
     expect(currentCall()).toBe("ada");
@@ -314,9 +314,9 @@ describe("calling a bot off the Mac", () => {
 
     setCallMode("live");
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("Live call with Ada");
+    expect(callButton()?.getAttribute("aria-label")).toBe("live call with Ada");
     setCallMode("turns");
     chat(THIS_COMPUTER);
-    expect(callButton()?.getAttribute("aria-label")).toBe("Call Ada");
+    expect(callButton()?.getAttribute("aria-label")).toBe("call Ada");
   });
 });

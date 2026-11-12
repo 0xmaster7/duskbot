@@ -21,7 +21,7 @@ describe("SidebarSectionHeader", () => {
     expect(html).toContain('aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"');
     expect(html).toContain('aria-hidden="true"');
     expect(html).not.toContain('role="button"');
-    expect(html).not.toContain("Delete Work department");
+    expect(html).not.toContain("delete Work department");
     expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("gi-chevron-down"));
     expect(html).not.toContain("uppercase");
   });
@@ -102,20 +102,20 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     expect(html).toContain('data-sidebar-section-line=""');
     expect(html).toMatch(/text-\[12px\][^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
-    expect(html).toContain('aria-label="Actions for Work" title="Actions for Work" aria-haspopup="menu" aria-expanded="false"');
-    expect(html).toMatch(/aria-label="Actions for Work"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
-    expect(html).not.toMatch(/aria-label="Actions for Work"[^>]*class="[^"]*\bgroup-hover\//);
-    expect(html).not.toContain("Delete Work department");
+    expect(html).toContain('aria-label="actions for Work" title="actions for Work" aria-haspopup="menu" aria-expanded="false"');
+    expect(html).toMatch(/aria-label="actions for Work"[^>]*class="absolute [^"]*\bpointer-events-none\b[^"]*\bopacity-0\b[^"]*\bgroup-has-\[:focus-visible\]\/section:opacity-100\b[^"]*\btouch:opacity-100\b/);
+    expect(html).not.toMatch(/aria-label="actions for Work"[^>]*class="[^"]*\bgroup-hover\//);
+    expect(html).not.toContain("delete Work department");
     expect(html).not.toContain("gi-grip-vertical");
     expect(html).not.toContain("gi-trash");
     expect(html).toMatch(/<span class="absolute flex h-4 w-3 items-center justify-center text-ink-secondary opacity-0 transition-opacity duration-\[120ms\] ease-out group-hover\/section:opacity-100 group-focus-within\/section:opacity-100 touch:opacity-100 -right-px rotate-90"><svg [^>]*class="[^"]*\bui-icon\b[^"]*" data-icon-name="chevron-right"/);
-    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("Actions for Work"));
+    expect(html.indexOf(">Work</span>")).toBeLessThan(html.indexOf("actions for Work"));
     const button = { id: "dots" };
-    const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "Actions for Work")!;
+    const dots = nodes(element.props.children).find((node) => node.props["aria-label"] === "actions for Work")!;
     (dots.props.onClick as (event: { currentTarget: unknown }) => void)({ currentTarget: button });
     expect(onMenu).toHaveBeenCalledExactlyOnceWith(button);
     expect(renderToStaticMarkup(line({ onMenu, menuOpen: true }))).toContain('aria-haspopup="menu" aria-expanded="true"');
-    expect(renderToStaticMarkup(line())).not.toContain("Actions for Work");
+    expect(renderToStaticMarkup(line())).not.toContain("actions for Work");
   });
 
   it("shows how many rows a collapsed section holds, crossfading to the chevron on hover or focus, and no count while open", () => {

@@ -100,8 +100,8 @@ describe("attachment preview surfaces", () => {
     expect(html).toContain("aspect-ratio:1.3333333333333333");
     expect(html).toContain("data-reserved=\"default\"");
     expect(html).toContain("object-contain");
-    expect(html).toContain("Loading Launch artwork.png");
-    expect(html).toContain("Preview attached image Launch artwork.png");
+    expect(html).toContain("loading Launch artwork.png");
+    expect(html).toContain("preview attached image Launch artwork.png");
     expect(html).toContain("/api/attachments/123e4567-e89b-12d3-a456-426614174000.png");
     expect(html).toContain("loading=\"lazy\"");
     expect(html).not.toContain("fetchPriority=\"high\"");
@@ -124,8 +124,8 @@ describe("attachment preview surfaces", () => {
       openUrl: "https://assets.example/preview.png?signature=abc",
     }));
 
-    expect(html).toContain("External image hidden for privacy");
-    expect(html).toContain("Load image");
+    expect(html).toContain("external image hidden for privacy");
+    expect(html).toContain("load image");
     expect(html).not.toContain("src=\"https://assets.example/preview.png?signature=abc\"");
     expect(html).toContain("https://assets.example/preview.png?signature=abc");
   });
@@ -136,7 +136,7 @@ describe("attachment preview surfaces", () => {
       name: "Result image",
     }));
 
-    expect(html).toContain("External image hidden for privacy");
+    expect(html).toContain("external image hidden for privacy");
     expect(html).not.toContain("src=\"//assets.example/preview.png\"");
   });
 
@@ -153,7 +153,7 @@ describe("attachment preview surfaces", () => {
     }));
 
     expect(html).toContain("Final report.pdf");
-    expect(html).toContain("Unavailable");
+    expect(html).toContain("unavailable");
     expect(html).not.toContain("type=\"button\"");
   });
 
@@ -162,7 +162,7 @@ describe("attachment preview surfaces", () => {
       files: [{ path: "/store/123e4567-e89b-42d3-a456-426614174000.pdf", name: "Final report.pdf", private: true }],
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain("Save a copy of Final report.pdf");
+    expect(html).toContain("save a copy of Final report.pdf");
     expect(html).toContain("type=\"button\"");
   });
 });
@@ -173,10 +173,10 @@ describe("Show in folder for a file outside the workspace", () => {
   it("offers the reveal only for an absolute local path, and only in the local desktop app", () => {
     vi.stubGlobal("window", { duskDesktop: { revealInFolder: vi.fn(), remoteClient: { active: false } } });
     try {
-      expect(render("/Users/maus/_draft/ollama-gen.js")).toContain("Show in folder");
-      expect(render("C:\\Users\\Maus\\_draft\\ollama-gen.js")).toContain("Show in folder");
+      expect(render("/Users/maus/_draft/ollama-gen.js")).toContain("show in folder");
+      expect(render("C:\\Users\\Maus\\_draft\\ollama-gen.js")).toContain("show in folder");
       for (const filePath of ["_draft/ollama-gen.js", "\\\\server\\share\\ollama-gen.js"]) {
-        expect(render(filePath)).not.toContain("Show in folder");
+        expect(render(filePath)).not.toContain("show in folder");
         expect(render(filePath)).toContain(`>${filePath}</code>`);
       }
     } finally {
@@ -198,7 +198,7 @@ describe("a failed save", () => {
   it("explains a file outside the working folder instead of echoing the server", () => {
     const server = "the linked file is outside this conversation's workspace";
     expect(saveFailureText({ reason: server, outsideWorkspace: true }))
-      .toBe("This file is outside this chat's working folder, so it can't be saved from here");
+      .toBe("this file is outside this chat's working folder, so it can't be saved from here");
     expect(saveFailureText({ reason: "the linked file is unavailable", outsideWorkspace: false }))
       .toBe("the linked file is unavailable");
   });

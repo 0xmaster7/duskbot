@@ -46,32 +46,32 @@ describe("the room card", () => {
     const plan = bridge();
     await show(plan);
     expect(card()?.getAttribute("data-cloud-room-card")).toBe("upgrade");
-    expect(text()).toBe("This Cloud is short on room3 tasks waited 6 minutes for memory today.Pro has twice the memory. $49 a month. Today you pay only for the rest of this month.UpgradeNot now");
-    await click(button("Upgrade"));
+    expect(text()).toBe("this cloud is short on room3 tasks waited 6 minutes for memory today.Pro has twice the memory. $49 a month. today you pay only for the rest of this month.upgradenot now");
+    await click(button("upgrade"));
     expect(plan.upgradePreview).toHaveBeenCalledExactlyOnceWith("pro", "app_room");
     expect(plan.upgrade).not.toHaveBeenCalled();
-    await click(button("Upgrade to Pro"));
+    await click(button("upgrade to Pro"));
     expect(plan.upgrade).toHaveBeenCalledExactlyOnceWith("pro", "app_room");
     expect(card()?.getAttribute("data-cloud-room-card")).toBe("upgraded");
-    expect(text()).toContain("You're on Pro now. This Cloud gets its new size the next time it's not busy.");
-    await click(button("Restart now"));
+    expect(text()).toContain("you're on Pro now. this cloud gets its new size the next time it's not busy.");
+    await click(button("restart now"));
     expect(plan.restartNow).toHaveBeenCalledOnce();
-    expect(text()).toBe("Restarting this Cloud with its new size. It's back in about a minute.");
+    expect(text()).toBe("restarting this cloud with its new size. it's back in about a minute.");
   });
 
   it("forgets an upgrade once the session that made it ends, so Restart now never reaches another account's Cloud", async () => {
     const plan = bridge();
     await show(plan);
-    await click(button("Upgrade"));
-    await click(button("Upgrade to Pro"));
-    expect(button("Restart now")).toBeTruthy();
+    await click(button("upgrade"));
+    await click(button("upgrade to Pro"));
+    expect(button("restart now")).toBeTruthy();
     snapshot = { status: "none" };
     await act(async () => { window.dispatchEvent(new Event("focus")); });
     await settle();
     snapshot = { status: "paid", tier: "starter", usage };
     await act(async () => { window.dispatchEvent(new Event("focus")); });
     await settle();
-    expect(button("Restart now")).toBeUndefined();
+    expect(button("restart now")).toBeUndefined();
     expect(card()).toBeNull();
   });
 
@@ -90,7 +90,7 @@ describe("the room card", () => {
     await act(async () => { root.render(createElement(CloudRoomCard)); });
     await settle();
     expect(card()).not.toBeNull();
-    await click(button("Not now"));
+    await click(button("not now"));
     expect(plan.roomNotNow).toHaveBeenCalledExactlyOnceWith("offer-1");
     expect(card()).toBeNull();
     expect(plan.upgradePreview).not.toHaveBeenCalled();
@@ -101,9 +101,9 @@ describe("the room card", () => {
     snapshot = { status: "paid", tier: "max", usage: { ...usage, tier: "max", upgrades: [] }, room: { id: "tip-1", cause: { kind: "disk", usedGb: 87.5, capGb: 100 }, tip: true } };
     await show(plan);
     expect(card()?.getAttribute("data-cloud-room-card")).toBe("tip");
-    expect(text()).toBe("This Cloud is almost out of space87.5 GB of 100 GB used.You're on the biggest plan. To free up space, delete files and folders you no longer need.Got it");
-    expect(button("Upgrade")).toBeUndefined();
-    await click(button("Got it"));
+    expect(text()).toBe("this cloud is almost out of space87.5 GB of 100 GB used.you're on the biggest plan. to free up space, delete files and folders you no longer need.got it");
+    expect(button("upgrade")).toBeUndefined();
+    await click(button("got it"));
     expect(plan.roomNotNow).toHaveBeenCalledExactlyOnceWith("tip-1");
     await act(async () => root.unmount()); root = createRoot(container);
     snapshot = { status: "paid", tier: "starter", usage: { ...usage, meters: [{ kind: "computerHours", used: 95, max: 100 }] }, room: { ...memory, id: "offer-2" } };

@@ -23,9 +23,9 @@ const note = {
 describe("VoiceNoteBubble", () => {
   it("renders a paused player with the metadata duration estimate and no autoplay", () => {
     const markup = renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: note }));
-    expect(markup).toContain('aria-label="Play voice note"');
+    expect(markup).toContain('aria-label="play voice note"');
     expect(markup).toContain('type="range"');
-    expect(markup).toContain('aria-label="Seek voice note"');
+    expect(markup).toContain('aria-label="seek voice note"');
     expect(markup).toContain('max="4.2"');
     // paused at the start it shows the note's length, as grok's does
     expect(markup).toContain("0:04");
@@ -53,15 +53,15 @@ describe("VoiceNoteBubble", () => {
       createElement(VoiceNoteBubble, { attachment: { ...note, text: "Deploy is green, every check passed." } }),
     );
     expect(markup).toMatch(/<button[^>]*data-test-voice-note-transcript=""[^>]*aria-expanded="false"/);
-    expect(markup).toContain("Transcript");
+    expect(markup).toContain("transcript");
     expect(markup).not.toContain("Deploy is green");
   });
 
   it("shows no disclosure for a note without words, as every note stored before the transcript field", () => {
     const markup = renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: note }));
     expect(markup).not.toContain("data-test-voice-note-transcript");
-    expect(markup).not.toContain("Transcript");
-    expect(renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: { ...note, text: "   " } }))).not.toContain("Transcript");
+    expect(markup).not.toContain("transcript");
+    expect(renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: { ...note, text: "   " } }))).not.toContain("transcript");
   });
 
   it("cannot be played while this window is on a Live call, and says why", () => {
@@ -69,10 +69,10 @@ describe("VoiceNoteBubble", () => {
     void startLiveCall({ botId: "b1", threadId: "t1" });
     try {
       const markup = renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: note }));
-      expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="Voice notes can&#x27;t play during a Live call."/);
+      expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="voice notes can&#x27;t play during a live call."/);
     } finally {
       resetLiveMedia();
     }
-    expect(renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: note }))).toContain('aria-label="Play voice note"');
+    expect(renderToStaticMarkup(createElement(VoiceNoteBubble, { attachment: note }))).toContain('aria-label="play voice note"');
   });
 });

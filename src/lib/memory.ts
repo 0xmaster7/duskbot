@@ -107,8 +107,7 @@ export function tidySummary(report: TidyReport): string {
   if (report.duplicates) parts.push(`merged ${report.duplicates} duplicate${report.duplicates === 1 ? "" : "s"}`);
   if (report.superseded) parts.push(`crossed out ${report.superseded} contradicted note${report.superseded === 1 ? "" : "s"}`);
   if (report.organized) parts.push(`filed ${report.organized} note${report.organized === 1 ? "" : "s"} into topics`);
-  const head = parts.length ? parts.join(", ") : "nothing to tidy";
-  return head.charAt(0).toUpperCase() + head.slice(1);
+  return parts.length ? parts.join(", ") : "nothing to tidy";
 }
 
 
@@ -161,7 +160,7 @@ export function fileLabel(path: string): string {
 }
 
 export function journalSummary(row: MemoryJournalRow, botName: string): string {
-  const who = row.actor === "bot" ? botName : row.actor === "import" ? "An import" : row.actor === "upkeep" ? "Memory upkeep" : "You";
+  const who = row.actor === "bot" ? botName : row.actor === "import" ? "an import" : row.actor === "upkeep" ? "memory upkeep" : "you";
   const file = fileLabel(row.path);
   const isIndex = row.path === MEMORY_INDEX;
   const topic = isIndex ? file : row.path.startsWith("memory/log/") ? `the ${file} log` : `the ${file} topic`;
@@ -190,9 +189,9 @@ export function journalSource(row: MemoryJournalRow): string | null {
 }
 
 export function fileManagerLabel(platform: string | undefined): string {
-  if (platform === "darwin") return "Show in Finder";
-  if (platform === "win32") return "Show in Explorer";
-  return "Show in file manager";
+  if (platform === "darwin") return "show in finder";
+  if (platform === "win32") return "show in explorer";
+  return "show in file manager";
 }
 
 export function topicFileName(input: string): string | null {

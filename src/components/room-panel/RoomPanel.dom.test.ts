@@ -116,7 +116,7 @@ describe("the Room panel's card", () => {
     expect($("#room-panel-title")?.textContent).toBe("Desk HQ");
     expect($("[data-room-panel]")?.textContent).toContain("The recruiting desk");
     expect(rowValue('[data-panel-page="responder"]')).toBe("Desk Manager");
-    expect(rowValue('[data-panel-page="folder"]')).toBe("Its own folder");
+    expect(rowValue('[data-panel-page="folder"]')).toBe("its own folder");
     expect(rowValue('[data-panel-page="instructions"]')).toBeNull();
     expect(rowValue('[data-panel-row="members"]')).toBe("4");
     expect($('[data-room-panel] textarea, [data-room-panel] input')).toBeNull();
@@ -128,14 +128,14 @@ describe("the Room panel's card", () => {
     expect(rowValue('[data-panel-page="responder"]')).toBe("Jev decides");
     expect(rowValue('[data-panel-page="folder"]')).toBe("recruiting");
     render(room({ defaultResponder: { kind: "auto", fallbackBotId: "lead", by: "dusk" } }));
-    expect(rowValue('[data-panel-page="responder"]')).toBe("Let dusk decide");
+    expect(rowValue('[data-panel-page="responder"]')).toBe("dusk decides");
     render(room({ defaultResponder: { kind: "member", botId: "lead", leader: true } }));
     expect(rowValue('[data-panel-page="responder"]')).toBe("Desk Manager leads");
     render(room({ defaultResponder: { kind: "everyone" } }));
-    expect(rowValue('[data-panel-page="responder"]')).toBe("Everyone at once");
+    expect(rowValue('[data-panel-page="responder"]')).toBe("everyone at once");
     render(room({ defaultResponder: { kind: "mentions" }, bulletin: "" }));
-    expect(rowValue('[data-panel-page="responder"]')).toBe("Only who I @mention");
-    expect(rowValue('[data-panel-page="instructions"]')).toBe("None");
+    expect(rowValue('[data-panel-page="responder"]')).toBe("only who i @mention");
+    expect(rowValue('[data-panel-page="instructions"]')).toBe("none");
   });
 });
 
@@ -143,7 +143,7 @@ describe("the tabs", () => {
   it("are the bot panel's Details, Computer and Advanced", () => {
     render(room());
     const tabs = [...document.querySelectorAll("[data-panel-tab]")].map((tab) => [tab.textContent, tab.getAttribute("aria-selected")]);
-    expect(tabs).toEqual([["Details", "true"], ["Computer", "false"], ["Advanced", "false"]]);
+    expect(tabs).toEqual([["details", "true"], ["computer", "false"], ["advanced", "false"]]);
   });
 
   it("keep each bot's model one level down, with no room-wide picker", async () => {
@@ -172,7 +172,7 @@ describe("the tabs", () => {
     expect(fixture.find).toHaveBeenCalledWith("desk-thread");
     click($('[data-panel-row="delete"]'));
     expect(fixture.dispatch.mock.calls.some(([action]) => action.type === "deleteGroup")).toBe(false);
-    const confirm = [...document.querySelectorAll("button")].find((button) => button.textContent === "Delete group chat" && !button.hasAttribute("data-panel-row"));
+    const confirm = [...document.querySelectorAll("button")].find((button) => button.textContent === "delete group chat" && !button.hasAttribute("data-panel-row"));
     click(confirm ?? null);
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "deleteGroup", groupId: "desk" });
   });
@@ -210,7 +210,7 @@ describe("the room's settings pages", () => {
 describe("Name and description", () => {
   it("are rows on their page, edited together in one small form", () => {
     renderPage(createElement(RoomAboutModal, { group: room(), onClose: vi.fn() }));
-    expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("NameDesk HQ");
+    expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("nameDesk HQ");
     click(modal("about")!.querySelector('[data-sheet-row="name"]'));
     const form = modal("room-about-form")!;
     const [name, description] = [...form.querySelectorAll("input")];
@@ -224,16 +224,16 @@ describe("Name and description", () => {
   });
 });
 
-describe("Who responds", () => {
+describe("who responds", () => {
   it("offers a leader, everyone, Dusk deciding and Jev deciding, and who leads under the leader", () => {
     renderPage(createElement(RoomResponderModal, { group: room(), members: fixtureBots, onClose: vi.fn() }));
     expect(modal("responder")).not.toBeNull();
     const choices = [...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), words(row), row.getAttribute("aria-checked")]);
     expect(choices).toEqual([
-      ["leader", "LeaderDesk Manager gets your message and hands out the work", "true"],
-      ["everyone", "Everyone at onceEvery bot answers, side by side", "false"],
-      ["dusk", "Let dusk decideA quick model of your AI picks who answers", "false"],
-      ["auto", "Jev decidesPicks the right bot for each message", "false"],
+      ["leader", "leaderDesk Manager gets your message and hands out the work", "true"],
+      ["everyone", "everyone at onceevery bot answers, side by side", "false"],
+      ["dusk", "dusk decidesa quick model of your AI picks who answers", "false"],
+      ["auto", "Jev decidespicks the right bot for each message", "false"],
       ["leader:lead", "Desk Manager", "true"],
       ["leader:bench", "Vendor Bench", "false"],
       ["leader:paper", "Paperwork", "false"],
@@ -282,7 +282,7 @@ describe("Who responds", () => {
     fixture.config = { ...jev(true), decider: { provider: "gateway", model: "typesafe-ai/jev", api: "decisions", configured: true, enabled: true, jobs: { roomRouting: true } } } as ConfigStatus;
     fixture.api.mockResolvedValue({ source: "gateway", models: [{ id: "typesafe-ai/jev", name: "Jev", group: "recommended", api: "decisions" }] });
     renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }), members: fixtureBots, onClose: vi.fn() }));
-    expect(words($('[data-sheet-row="jev-ready"]'))).toBe("Jev: typesafe-ai/jev via Vercel AI GatewayChange");
+    expect(words($('[data-sheet-row="jev-ready"]'))).toBe("Jev: typesafe-ai/jev via Vercel AI Gatewaychange");
     expect($('[data-sheet-row="jev-key"]')).toBeNull();
     click($('[data-jev-action="change"]'));
     expect($('[data-sheet-row="jev-key"]')).not.toBeNull();
@@ -333,7 +333,7 @@ describe("Jev setup in Who responds", () => {
     click($('[data-jev-action="test"]'));
     await settle();
     expect(fixture.api).toHaveBeenCalledWith("/api/decider/test", { method: "POST", body: JSON.stringify({ provider: "gateway", key: "bad" }) });
-    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("That key was refused. Check it and paste it again.");
+    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("that key was refused. check it and paste it again.");
     expect($('[data-sheet-row="jev-model"]')).toBeNull();
   });
 
@@ -342,12 +342,12 @@ describe("Jev setup in Who responds", () => {
     setInput($<HTMLInputElement>('[data-sheet-row="jev-key"] input')!, "vck_unit_key");
     click($('[data-jev-action="test"]'));
     await settle();
-    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("Works · 210 ms");
+    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("works · 210 ms");
     const select = $('[data-settings-select="jev-model"]')!;
     expect(words(select)).toContain("Jev");
     click(select);
     const options = [...document.querySelectorAll('[role="option"]')].map((option) => words(option));
-    expect(options).toEqual(["Jev", "GPT-5 nano", "Custom model"]);
+    expect(options).toEqual(["Jev", "GPT-5 nano", "custom model"]);
     click([...document.querySelectorAll('[role="option"]')][1]!);
     click($('[data-jev-action="save"]'));
     await settle();
@@ -373,7 +373,7 @@ describe("Jev setup in Who responds", () => {
   });
 });
 
-describe("Working folder", () => {
+describe("working folder", () => {
   it("offers plain choices, with the lock line only once the folder is fixed", () => {
     renderPage(createElement(RoomFolderModal, { key: "a", group: room(), onClose: vi.fn() }));
     expect(modal("folder")).not.toBeNull();
@@ -384,11 +384,11 @@ describe("Working folder", () => {
     renderPage(createElement(RoomFolderModal, { key: "b", group: room({ cwd: "/Users/ada/code/recruiting", pinnedCwd: "/Users/ada/code/recruiting" }), onClose: vi.fn() }));
     expect($('[data-panel-choice="pick"]')?.textContent).toContain("~/code/recruiting");
     expect($('[data-panel-choice="pick"]')?.getAttribute("aria-checked")).toBe("true");
-    expect($("[data-folder-locked]")?.textContent).toBe("Fixed for this group chat after its first turn.");
+    expect($("[data-folder-locked]")?.textContent).toBe("fixed for this group chat after its first turn.");
   });
 });
 
-describe("Instructions", () => {
+describe("instructions", () => {
   const field = () => $<HTMLTextAreaElement>('[data-panel-modal="instructions"] textarea');
 
   it("keep the draft when the page closes, and save with Save", () => {
@@ -404,12 +404,12 @@ describe("Instructions", () => {
   });
 });
 
-describe("Members", () => {
+describe("members", () => {
   it("opens Manage members", () => {
     render(room());
     click($('[data-panel-row="members"]'));
     const dialog = $('[role="dialog"][data-panel-modal="members"]');
-    expect(dialog?.querySelector("h2")?.textContent).toBe("Manage members");
+    expect(dialog?.querySelector("h2")?.textContent).toBe("manage members");
     expect(dialog?.textContent).toContain("Desk HQ");
   });
 });
@@ -434,7 +434,7 @@ describe("Escape", () => {
 
   it("closes from the ✕ too", () => {
     render(room());
-    click($('[data-room-panel] [aria-label="Close"]'));
+    click($('[data-room-panel] [aria-label="close"]'));
     expect(seen.open).toBeNull();
     expect(document.activeElement).toBe(opener);
   });

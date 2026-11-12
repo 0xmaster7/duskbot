@@ -22,7 +22,7 @@ const nodes = (value: ReactNode): Node[] => Children.toArray(value).flatMap((chi
 
 const greeting: Message = { id: "g1", role: "bot", kind: "text", at: 1, text: "Hi, I'm Ava. What would you like me to do?", setupOffer: true } as Message;
 const bot = (extra: Partial<Bot> = {}): Bot => ({ id: "b1", threadId: "t1", name: "Ava", title: "", description: "", soul: "",
-  modelSelection: { instanceId: "claude", model: "claude-sonnet-5" }, tasks: [{ threadId: "t1", title: "New thread", createdAt: 1 }], ...extra }) as Bot;
+  modelSelection: { instanceId: "claude", model: "claude-sonnet-5" }, tasks: [{ threadId: "t1", title: "new thread", createdAt: 1 }], ...extra }) as Bot;
 const CANNED: Message = { id: "m2", role: "bot", kind: "text", at: 2, text: "Great. Tell me what you'd like help with." } as Message;
 
 function renderOffer(message: Message, transcript: Message[] = [message]) {
@@ -32,7 +32,7 @@ function renderOffer(message: Message, transcript: Message[] = [message]) {
   const all = nodes(tree);
   return { html, card: all.find((node) => node.props["data-setup-card"] !== undefined),
     choices: all.filter((node) => node.props["data-ask-choice"] !== undefined),
-    close: all.find((node) => node.props["aria-label"] === "Close") };
+    close: all.find((node) => node.props["aria-label"] === "close") };
 }
 const press = (node: Node | undefined) => (node!.props.onClick as () => void)();
 const key = (card: Node | undefined, value: string) => {
@@ -70,16 +70,16 @@ describe("the setup card under a new bot's greeting", () => {
 
   it("asks what to help with first, with the greeting's own answers lettered in order, then Something else", () => {
     const view = renderOffer(offered);
-    expect(view.html).toContain("What should I help you with first?");
-    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|Something else"]);
+    expect(view.html).toContain("what should i help you with first?");
+    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|something else"]);
   });
 
   it("offers its own answers on an older greeting that carries none", () => {
-    expect(renderOffer(greeting).choices.map((node) => label(node).split("|")[1])).toEqual(["Research and digging into topics", "Keeping an eye on things for me", "Email, calendar and messages", "Bookings, shopping and errands", "Data, spreadsheets and reports", "Something else"]);
+    expect(renderOffer(greeting).choices.map((node) => label(node).split("|")[1])).toEqual(["research and digging into topics", "keeping an eye on things for me", "email, calendar and messages", "bookings, shopping and errands", "data, spreadsheets and reports", "something else"]);
   });
 
   it("is not shown for a bot given a role or instructions, when the AI cannot set the bot up, or once closed", () => {
-    fixture.bots = [bot({ soul: "Only water the garden." })];
+    fixture.bots = [bot({ soul: "only water the garden." })];
     expect(renderOffer(offered).html).toBe("");
     fixture.bots = [bot({ description: "Files bugs." })];
     expect(renderOffer(offered).html).toBe("");
@@ -87,7 +87,7 @@ describe("the setup card under a new bot's greeting", () => {
     fixture.instances = [{ instanceId: "claude", capabilities: { agentsMcp: false } }];
     expect(renderOffer(offered).html).toBe("");
     fixture.instances = [{ instanceId: "plain", capabilities: {} }, { instanceId: "claude", capabilities: { agentsMcp: true } }];
-    fixture.bots = [bot({ tasks: [{ threadId: "t1", title: "New thread", createdAt: 1, modelSelection: { instanceId: "plain", model: "m" } }] })];
+    fixture.bots = [bot({ tasks: [{ threadId: "t1", title: "new thread", createdAt: 1, modelSelection: { instanceId: "plain", model: "m" } }] })];
     expect(renderOffer(offered).html).toBe("");
     expect(renderOffer({ ...offered, setupOffer: undefined } as Message).html).toBe("");
   });
@@ -122,20 +122,20 @@ describe("the setup card under a new bot's greeting", () => {
   it("settles once answered: the answers go quiet and the answer shows", () => {
     const picked = { id: "u1", role: "user", kind: "text", at: 2, text: "Watch the news", setupRequest: true } as Message;
     const settled = renderOffer(offered, [offered, picked]);
-    expect(settled.html).toContain("Your answer");
+    expect(settled.html).toContain("your answer");
     expect(settled.html).toContain("Watch the news");
     expect(settled.choices.every((node) => node.props.disabled === true)).toBe(true);
     expect(settled.close).toBeUndefined();
     expect(settled.card!.props.onKeyDown).toBeUndefined();
     fixture.bots = [bot({ soul: "Watches the news." })];
-    expect(renderOffer(offered, [offered, picked]).html, "the answer stays after the bot is set up").toContain("Your answer");
+    expect(renderOffer(offered, [offered, picked]).html, "the answer stays after the bot is set up").toContain("your answer");
   });
 
   it("settles quietly, with no answer, when the person writes something else first", () => {
     for (const text of ["What's the weather in Paris?", "/learn the inbox"]) {
       const view = renderOffer(offered, [offered, { id: "u1", role: "user", kind: "text", at: 2, text } as Message]);
-      expect(view.html).toContain("What should I help you with first?");
-      expect(view.html).not.toContain("Your answer");
+      expect(view.html).toContain("what should i help you with first?");
+      expect(view.html).not.toContain("your answer");
       expect(view.choices.every((node) => node.props.disabled === true)).toBe(true);
     }
     fixture.instances = [{ instanceId: "claude", capabilities: { agentsMcp: false } }];
@@ -150,15 +150,15 @@ describe("the setup card under a new bot's greeting", () => {
   });
 
   it("says why when a pick is refused", async () => {
-    fixture.api.mockRejectedValue(new Error("This bot is already set up."));
+    fixture.api.mockRejectedValue(new Error("this bot is already set up."));
     press(renderOffer(offered).choices[0]);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(renderOffer(offered).html).toContain("This bot is already set up.");
+    expect(renderOffer(offered).html).toContain("this bot is already set up.");
   });
 });
 
 describe("while the bot waits for what to set itself up for", () => {
-  const waiting = bot({ tasks: [{ threadId: "t1", title: "New thread", createdAt: 1, setupRequest: { at: 2 } }] });
+  const waiting = bot({ tasks: [{ threadId: "t1", title: "new thread", createdAt: 1, setupRequest: { at: 2 } }] });
 
   it("says so above the message box, with an x that stops it", async () => {
     const chip = renderChip(waiting);
@@ -169,17 +169,17 @@ describe("while the bot waits for what to set itself up for", () => {
   });
 
   it("asks for the job in the message box", () => {
-    expect(setupRequestPlaceholder(waiting, "t1")).toBe("Tell Ava what you'd like help with");
+    expect(setupRequestPlaceholder(waiting, "t1")).toBe("tell Ava what you'd like help with");
   });
 
   it("is only the presser's where people share the place", () => {
-    const theirs = bot({ tasks: [{ threadId: "t1", title: "New thread", createdAt: 1, setupRequest: { at: 2, by: "member-a" } }] });
+    const theirs = bot({ tasks: [{ threadId: "t1", title: "new thread", createdAt: 1, setupRequest: { at: 2, by: "member-a" } }] });
     fixture.reactor = "member-b";
     expect(renderChip(theirs).html).toBe("");
     expect(setupRequestPlaceholder(theirs, "t1")).toBeUndefined();
     fixture.reactor = "member-a";
     expect(renderChip(theirs).html).toContain("Ava is ready to be set up");
-    expect(setupRequestPlaceholder(theirs, "t1")).toBe("Tell Ava what you'd like help with");
+    expect(setupRequestPlaceholder(theirs, "t1")).toBe("tell Ava what you'd like help with");
   });
 
   it("shows nothing in a conversation that is not waiting", () => {

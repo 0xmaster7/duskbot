@@ -55,7 +55,7 @@ describe("BotListItem", () => {
   describe("the record of a live call that ended last", () => {
     const at = (minute: number) => new Date(2026, 9, 6, 10, minute).getTime();
     const record = {
-      id: "r1", role: "bot", kind: "call", at: at(2), text: "Call with Atlas · 1:42",
+      id: "r1", role: "bot", kind: "call", at: at(2), text: "call with Atlas · 1:42",
       call: { callId: "c1", botId: "atlas", client: "ios", startedAt: at(0), endedAt: at(2), seconds: 102, endReason: "hung-up" },
     };
     const spoken = { id: "u1", role: "user", kind: "text", text: "what is the weather", at: at(0), via: "call", callId: "c1" };
@@ -69,15 +69,15 @@ describe("BotListItem", () => {
         messages: [spoken, { id: "b1", role: "bot", kind: "text", text: "Sunny in Pune.", at: at(1) }, record] as Bot["messages"],
       }));
       expect(markup).toContain("Sunny in Pune.");
-      expect(markup).not.toContain("Call with Atlas");
+      expect(markup).not.toContain("call with Atlas");
     });
 
     it("previews a failed turn's row when the record follows it", () => {
       const markup = draw(bot({
-        messages: [spoken, { id: "e1", role: "bot", kind: "activity", at: at(1), tool: { name: "error: This computer isn't a place on your dusk cloud: its bots run in the cloud.", ok: false } }, record] as Bot["messages"],
+        messages: [spoken, { id: "e1", role: "bot", kind: "activity", at: at(1), tool: { name: "error: this computer isn't a place on your dusk cloud: its bots run in the cloud.", ok: false } }, record] as Bot["messages"],
       }));
-      expect(markup).toContain("This computer isn&#x27;t a place on your dusk cloud: its bots run in the cloud.");
-      expect(markup).not.toContain("Call with Atlas");
+      expect(markup).toContain("this computer isn&#x27;t a place on your dusk cloud: its bots run in the cloud.");
+      expect(markup).not.toContain("call with Atlas");
     });
 
     it("times the open row by the last reply, not by the hang-up", () => {
@@ -94,10 +94,10 @@ describe("BotListItem", () => {
     const markup = renderRow(bot({
       messages: [
         { id: "u1", role: "user", kind: "text", text: "check the site", at: 1 },
-        { id: "e1", role: "bot", kind: "activity", at: 2, tool: { name: "error: This computer isn't a place on your dusk cloud: its bots run in the cloud.", ok: false } },
+        { id: "e1", role: "bot", kind: "activity", at: 2, tool: { name: "error: this computer isn't a place on your dusk cloud: its bots run in the cloud.", ok: false } },
       ] as Bot["messages"],
     }));
-    expect(markup).toContain("This computer isn&#x27;t a place on your dusk cloud: its bots run in the cloud.");
+    expect(markup).toContain("this computer isn&#x27;t a place on your dusk cloud: its bots run in the cloud.");
     expect(markup).not.toContain("error:");
   });
 
@@ -107,7 +107,7 @@ describe("BotListItem", () => {
         { id: "u1", role: "user", kind: "text", text: "list the files", at: 1 },
         {
           id: "c1", role: "bot", kind: "options", at: 2,
-          card: { title: "Approval needed", subtitle: "ls -la", options: ["Allow", "Deny"], requestId: "r1", tool: "Bash", ...card },
+          card: { title: "Approval needed", subtitle: "ls -la", options: ["allow", "deny"], requestId: "r1", tool: "Bash", ...card },
         },
       ] as Bot["messages"],
     });
@@ -118,21 +118,21 @@ describe("BotListItem", () => {
 
     it("says Allowed once it was allowed", () => {
       const markup = renderRow(approval({ answered: "allow" }));
-      expect(markup).toContain("Allowed");
+      expect(markup).toContain("allowed");
       expect(markup).not.toContain("Approval needed");
     });
 
     it("says Denied once it was denied, or closed by Stop", () => {
       for (const answered of ["deny", "unavailable"]) {
         const markup = renderRow(approval({ answered, dismissed: answered === "unavailable" }));
-        expect(markup).toContain("Denied");
+        expect(markup).toContain("denied");
         expect(markup).not.toContain("Approval needed");
       }
     });
 
     it("says it got no answer in time once nothing can answer it", () => {
       const markup = renderRow(approval({ expired: true, options: [] }));
-      expect(markup).toContain("No answer in time");
+      expect(markup).toContain("no answer in time");
       expect(markup).not.toContain("Approval needed");
     });
   });
@@ -141,7 +141,7 @@ describe("BotListItem", () => {
     const markup = renderRow(bot({ chiefOfStaff: true }));
 
     expect(markup).toContain('data-sidebar-bot-row="atlas"');
-    expect(markup).not.toContain('aria-label="Archive Atlas"');
+    expect(markup).not.toContain('aria-label="archive Atlas"');
   });
 
 
@@ -180,13 +180,13 @@ describe("BotListItem", () => {
 
     const markup = renderRow(bot());
     expect(markup).toContain('data-testid="live-call-badge"');
-    expect(markup).toContain('aria-label="On a Live call"');
+    expect(markup).toContain('aria-label="on a live call"');
     expect(markup.indexOf('data-testid="live-call-badge"')).toBeGreaterThan(markup.indexOf(">Atlas<"));
     expect(renderRow(bot({ id: "other" }))).not.toContain('data-testid="live-call-badge"');
 
     const icons = renderRow(bot(), "icons");
     expect(icons).toContain('data-testid="live-call-badge"');
-    expect(icons).toContain('aria-label="Atlas · On a Live call"');
+    expect(icons).toContain('aria-label="Atlas · on a live call"');
   });
 
   it("marks an idle bot waiting on a teammate with a quiet dot, never the work signals", () => {
@@ -194,7 +194,7 @@ describe("BotListItem", () => {
     expect(markup).toContain('data-testid="teammate-wait-dot"');
     expect(markup).not.toContain('data-testid="working-dot"');
     expect(markup).not.toContain("animate-status-pulse");
-    expect(markup).toContain("Waiting on a teammate…");
+    expect(markup).toContain("waiting on a teammate…");
   });
 
 });
@@ -222,11 +222,11 @@ describe("archive / delete confirmation", () => {
     const copy = botConfirmCopy("delete", "Willow");
 
     expect(copy.title).toContain("Willow");
-    expect(copy.body).toBe("Its chats, memory, files and private desktop go too. This can't be undone.");
+    expect(copy.body).toBe("its chats, memory, files and private desktop go too. this can't be undone.");
     expect(copy.tone).toBe("danger");
   });
 
-  it("renders as an alert dialog with Cancel and the action button", () => {
+  it("renders as an alert dialog with cancel and the action button", () => {
     const markup = renderToStaticMarkup(createElement(ConfirmDialogCard, {
       open: true,
       ...botConfirmCopy("delete", "Willow"),
@@ -235,9 +235,9 @@ describe("archive / delete confirmation", () => {
     }));
 
     expect(markup).toContain('role="alertdialog"');
-    expect(markup).toContain("Delete Willow?");
-    expect(markup).toContain(">Cancel</button>");
-    expect(markup).toContain(">Delete</button>");
+    expect(markup).toContain("delete Willow?");
+    expect(markup).toContain(">cancel</button>");
+    expect(markup).toContain(">delete</button>");
     expect(markup).toContain("bg-danger");
   });
 });
@@ -249,8 +249,8 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain("Deleting the bot and its desktop…");
-    expect(markup).toContain('title="Deleting this bot and any desktop it owns"');
+    expect(markup).toContain("deleting the bot and its desktop…");
+    expect(markup).toContain('title="deleting this bot and any desktop it owns"');
     expect(markup).toContain('disabled=""');
     expect(markup).toContain('aria-busy="true"');
   });
@@ -261,7 +261,7 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain(">Delete</span></button>");
+    expect(markup).toContain(">delete</span></button>");
     expect(markup).not.toContain('disabled=""');
   });
 });

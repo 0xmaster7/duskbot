@@ -23,9 +23,9 @@ describe("PageBoundary", () => {
     const root = createRoot(host);
     flushSync(() => root.render(createElement(PageBoundary, null, createElement(Broken))));
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(host.textContent).toContain("This page hit an error.");
+    expect(host.textContent).toContain("this page hit an error.");
     expect(host.textContent).toContain("desktop.shown is not a function");
-    expect(host.querySelector("button")?.textContent).toBe("Reload");
+    expect(host.querySelector("button")?.textContent).toBe("reload");
     root.unmount();
     host.remove();
   });

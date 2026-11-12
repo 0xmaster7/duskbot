@@ -39,7 +39,7 @@ describe("a turn the trial's Claude credit refused", () => {
     setLocale("de");
     const usedUp = show(stored("used_up"));
     expect(usedUp.html).toContain("Dein Claude-Guthaben der Testphase ist aufgebraucht.");
-    expect(usedUp.html).not.toContain("Your trial Claude credit is used up");
+    expect(usedUp.html).not.toContain("your trial Claude credit is used up");
     expect(usedUp.buttons).toEqual(["Eigene KI verbinden"]);
     expect(show(stored("ended")).html).toContain("Das Claude-Guthaben der Testphase ist in der Cloud nicht mehr verfügbar.");
     expect(show(stored("too_low")).html).toContain("reicht für diesen Chat nicht aus");
@@ -53,14 +53,14 @@ describe("a turn the trial's Claude credit refused", () => {
       const { html, buttons } = show(stored(kind));
       expect(html).toContain(`role="note" data-trial-credit-notice="${kind}"`);
       expect(html).not.toMatch(/danger|gi-triangle-alert|gi-alert-triangle/);
-      expect(buttons).toEqual(["Connect your own AI"]);
+      expect(buttons).toEqual(["connect your own AI"]);
     }
     for (const kind of ["paused", "too_low"] as const) expect(show(stored(kind), vi.fn()).html).toContain("danger");
   });
 
   it("is told apart by its words alone, whichever engine the turn ran on", () => {
     const html = renderToStaticMarkup(createElement(FailedTurnRow, { tool: stored("used_up"), engine: undefined }));
-    expect(html).toContain("Your trial Claude credit is used up. Sign in with your own Claude or ChatGPT account, or add an API key, to keep your bots working.");
-    expect(html).toContain("Connect your own AI");
+    expect(html).toContain("your trial Claude credit is used up. sign in with your own Claude or ChatGPT account, or add an API key, to keep your bots working.");
+    expect(html).toContain("connect your own AI");
   });
 });

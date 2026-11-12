@@ -37,7 +37,7 @@ const gate = (children: ReactNode = createElement(Probe)) => createElement(Platf
 const mount = (children?: ReactNode, strict = false) => act(async () => {
   root = createRoot(host); root.render(strict ? createElement(StrictMode, null, gate(children)) : gate(children));
 });
-const heading = () => expect(host.querySelector("h1")?.textContent).toBe("Log in to dusk");
+const heading = () => expect(host.querySelector("h1")?.textContent).toBe("log in to dusk");
 const type = (selector: string, value: string) => act(async () => {
   const field = host.querySelector<HTMLInputElement>(selector)!;
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(field, value);
@@ -79,7 +79,7 @@ it("handles auth links, leaves pairing links to ConnectionGate and says why a si
   fetcher.mockResolvedValue(response({ v: 1, providers: [], signupOpen: true }));
   await mount(); heading(); expect(listener?.("duskbot://pair?code=abc")).toBe(false);
   await act(async () => { expect(listener?.("duskbot://auth?code=abc&state=bad")).toBe(true); });
-  expect(host.querySelector("[role=alert]")?.textContent).toContain("This sign-in expired. Please start again.");
+  expect(host.querySelector("[role=alert]")?.textContent).toContain("this sign-in expired. please start again.");
 });
 it("signs in with an emailed code typed into one field", async () => {
   fetcher.mockImplementation(async input => {
@@ -89,7 +89,7 @@ it("signs in with an emailed code typed into one field", async () => {
     return response({ cloudContractVersion: 1, accessToken: token, expiresAt: Date.now() + 60_000, device: { id: "phone" }, account });
   });
   await mount(); await typeEmail(); await submit();
-  expect(host.querySelector("h1")?.textContent).toBe("Check your email");
+  expect(host.querySelector("h1")?.textContent).toBe("check your email");
   await type("input[autocomplete=one-time-code]", "1234 5678");
   expect(host.textContent).toBe(signedIn);
 });
@@ -103,7 +103,7 @@ it("says a wrong code next to the code field, in the danger colour", async () =>
   await mount(); await typeEmail(); await submit();
   await type("input[autocomplete=one-time-code]", "11111111");
   const alert = host.querySelector("[role=alert]")!;
-  expect(alert.textContent).toContain("That code isn't right");
+  expect(alert.textContent).toContain("that code isn't right");
   expect(alert.className).toContain("text-danger");
   expect(host.querySelector("input[autocomplete=one-time-code]")?.getAttribute("aria-invalid")).toBe("true");
 });
@@ -119,21 +119,21 @@ it("an iPhone offers another company's sign-in only beside Sign in with Apple, a
 it("shows only the sign-in buttons the service has switched on, all with the same weight", async () => {
   fetcher.mockResolvedValue(providers("google", "apple"));
   await mount();
-  const shown = [...host.querySelectorAll("button")].filter(button => button.textContent?.startsWith("Continue with"));
-  expect(shown.map(button => button.textContent)).toEqual(["Continue with Apple", "Continue with Google"]);
+  const shown = [...host.querySelectorAll("button")].filter(button => button.textContent?.startsWith("continue with"));
+  expect(shown.map(button => button.textContent)).toEqual(["continue with Apple", "continue with Google"]);
   expect(new Set(shown.map(button => button.className)).size).toBe(1);
 });
 it("shows no provider button the service cannot vouch for, so none leads nowhere", async () => {
   fetcher.mockRejectedValue(new TypeError("offline"));
   await mount(); heading();
-  expect(buttons().some(text => text.startsWith("Continue with"))).toBe(false);
+  expect(buttons().some(text => text.startsWith("continue with"))).toBe(false);
   expect(host.querySelector("input[type=email]")).not.toBeNull();
 });
 it("the sign-in screen links the terms and the privacy policy", async () => {
   fetcher.mockResolvedValue(providers());
   await mount();
-  expect(buttons()).toEqual(expect.arrayContaining(["Terms of use", "Privacy policy"]));
-  await act(async () => { [...host.querySelectorAll("button")].find(button => button.textContent === "Privacy policy")!.click(); });
+  expect(buttons()).toEqual(expect.arrayContaining(["terms of use", "privacy policy"]));
+  await act(async () => { [...host.querySelectorAll("button")].find(button => button.textContent === "privacy policy")!.click(); });
   expect(platform.openExternal).toHaveBeenCalledWith("https://dusk.bot/privacy");
 });
 it("an account signed out or deleted elsewhere is dropped when the app comes back", async () => {

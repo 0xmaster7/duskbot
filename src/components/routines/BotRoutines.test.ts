@@ -83,11 +83,11 @@ describe("a bot's routines in its panel", () => {
     fixture.state.routines = [{ ...routine, resultsThreadId: "thread-r", checks: ["mail"] }];
     fixture.state.routineRuns = [{ id: "run-1", routineId: "routine-1", routineName: "Morning summary", target: "bot", botId: "bot-a", runOn: "maus", scheduledFor: now - 60_000, startedAt: now - 60_000, status: "completed", manual: false, output: "Three new emails, none urgent.", threadId: "thread-x", createdAt: now - 60_000 }];
     mount();
-    expect(row("routine-1").textContent).toBe("Morning summaryEvery day at 9 AM");
+    expect(row("routine-1").textContent).toBe("Morning summaryevery day at 9 AM");
     expect(row("routine-1").querySelector("[role=switch]")!.getAttribute("aria-checked")).toBe("true");
     open("routine-1");
     const text = row("routine-1").textContent!;
-    for (const part of ["When", "Every day at 9 AM", "next:", "What to do", "Send me a summary of my inbox.", "Works on", "This computer", "Results go to", "Inbox digests", "Uses", "new mail", "Recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
+    for (const part of ["when", "every day at 9 AM", "next:", "what to do", "Send me a summary of my inbox.", "works on", "this computer", "results go to", "Inbox digests", "uses", "new mail", "recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
     flushSync(() => row("routine-1").querySelector<HTMLButtonElement>("[data-routine-run]")!.click());
     expect(fixture.dispatch).toHaveBeenCalled();
   });
@@ -113,10 +113,10 @@ describe("a bot's routines in its panel", () => {
     open("routine-1");
     flushSync(() => action("routine-1", "edit").click());
     const form = row("routine-1").querySelector("form")!;
-    expect(form.querySelector("[data-panel-select=routine-when]")!.textContent).toContain("Every day");
+    expect(form.querySelector("[data-panel-select=routine-when]")!.textContent).toContain("every day");
     flushSync(() => type(form.querySelector("textarea")!, "   "));
     flushSync(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-    expect(form.querySelector("[role=alert]")!.textContent).toBe("Say what it should do.");
+    expect(form.querySelector("[role=alert]")!.textContent).toBe("say what it should do.");
     expect(writes()).toEqual([]);
   });
 
@@ -153,7 +153,7 @@ describe("a bot's routines in its panel", () => {
     fixture.state.routines = [{ ...routine, enabled: false, nextRunAt: null }];
     fixture.api.mockRejectedValue(new Error("The assigned bot no longer exists"));
     mount();
-    expect(row("routine-1").textContent).toContain("Paused");
+    expect(row("routine-1").textContent).toContain("paused");
     flushSync(() => row("routine-1").querySelector<HTMLButtonElement>("[role=switch]")!.click());
     await vi.waitFor(() => expect(row("routine-1").querySelector("[role=alert]")?.textContent).toBe("The assigned bot no longer exists"));
     expect(row("routine-1").querySelector("[role=switch]")!.getAttribute("aria-checked")).toBe("false");
@@ -164,7 +164,7 @@ describe("a bot's routines in its panel", () => {
     mount();
     expect(row("routine-1").querySelector("[role=switch]")).toBeNull();
     open("routine-1");
-    expect(row("routine-1").textContent).toContain("Its time has passed. Edit it to pick a new time.");
+    expect(row("routine-1").textContent).toContain("its time has passed. edit it to pick a new time.");
   });
 
   it("lists the bot's other automations too: a webhook copies its address, an app event runs through its own routes", async () => {
@@ -172,9 +172,9 @@ describe("a bot's routines in its panel", () => {
     applyAppTriggerSnapshot({ triggers: [acme], attempts: [], service: { available: true, plan: "desktop", eventsPerDay: 500, eventsToday: 0 } });
     fixture.api.mockImplementation(async (path: unknown) => (String(path).endsWith("/address") ? { credential: { url: "https://hooks.example/wh_abc?key=s" } } : {}));
     mount();
-    expect(row("hook-1").textContent).toContain("When another app sends something");
+    expect(row("hook-1").textContent).toContain("when another app sends something");
     open("hook-1");
-    flushSync(() => [...row("hook-1").querySelectorAll("button")].find((button) => button.textContent === "Copy address")!.click());
+    flushSync(() => [...row("hook-1").querySelectorAll("button")].find((button) => button.textContent === "copy address")!.click());
     await vi.waitFor(() => expect(copied.texts).toEqual(["https://hooks.example/wh_abc?key=s"]));
     open("acme");
     flushSync(() => action("acme", "run").click());
@@ -192,7 +192,7 @@ describe("a bot's routines in its panel", () => {
   it("says what a routine is when the bot has none and points to the chat, with no add button", () => {
     fixture.state.routines = [];
     mount();
-    expect(container.textContent).toContain("Ask it in chat to set one up");
+    expect(container.textContent).toContain("ask it in chat to set one up");
     expect(container.querySelector("[data-panel-action=new-routine]")).toBeNull();
   });
 });

@@ -54,7 +54,7 @@ describe("the desktop place menu", () => {
     const host = document.body.appendChild(document.createElement("div"));
     root = createRoot(host);
     flushSync(() => root!.render(createElement(PlaceChip, { bot, live: false, task: { surface: "browser", surfaceAuto: true }, onPin })));
-    const row = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find((el) => el.textContent?.startsWith("Browser"));
+    const row = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find((el) => el.textContent?.startsWith("browser"));
     expect(row).toBeDefined();
     flushSync(() => row!.click());
     expect(onPin).toHaveBeenCalledWith("browser");

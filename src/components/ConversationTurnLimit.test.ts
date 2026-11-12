@@ -33,7 +33,7 @@ describe("conversation turn limit", () => {
       createElement(ConversationTurnLimit, { group: room([{ threadId: "launch", title: "Launch", createdAt: 1 }]) }),
     ));
     expect(markup).toContain('data-testid="conversation-turn-limit"');
-    expect(markup).toContain("Default (5 min)");
+    expect(markup).toContain("default (5 min)");
     expect(markup).toContain("30 minutes");
     expect(markup).toContain("selected");
     expect(markup).toContain('value="default"');

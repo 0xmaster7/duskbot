@@ -178,16 +178,16 @@ describe("Computer panel tabs", () => {
       const row = rendered.nodes.find((node) => Children.toArray(node.props.children)
         .some((child) => isValidElement(child) && (child as Node).props["data-testid"] === "computer-tabs"))!;
       expect(String(row.props.className).split(" ")).toEqual(expect.arrayContaining(["relative", "flex", "justify-center"]));
-      const close = rendered.nodes.find((node) => node.props["aria-label"] === "Close the Screen panel")!;
+      const close = rendered.nodes.find((node) => node.props["aria-label"] === "close the screen panel")!;
       expect(String(close.props.className).split(" ")).toEqual(expect.arrayContaining(["absolute", "right-0"]));
     }
   });
 
   it("shows Screen in Simple mode, and Browser only for a bot that works in its browser", () => {
-    expect(tabs(render(makeBot()))).toEqual(["Screen"]);
+    expect(tabs(render(makeBot()))).toEqual(["screen"]);
     fixture.values = [];
     phaseIndex = -1;
-    expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["Screen", "Browser"]);
+    expect(tabs(render(makeBot({ computer: "browser" })))).toEqual(["screen", "browser"]);
   });
 
   it("reads a Routines view stored by Advanced as the Computer tab in Simple", () => {
@@ -204,7 +204,7 @@ describe("Simple Browser tab with the browser off", () => {
     fixture.view.current = "browser";
     fixture.config = { features: { browser: false }, browserEngine: { kind: "engine" } };
     const rendered = render(makeBot());
-    expect(rendered.html).toContain("The browser is off");
+    expect(rendered.html).toContain("the browser is off");
     expect(rendered.html).not.toContain("BROWSER-PANEL");
     (browserSwitch(rendered).props.onClick as () => void)();
     await vi.waitFor(() => expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { features: { browser: true } } }));
@@ -246,13 +246,13 @@ describe("Simple Browser tab with the browser off", () => {
     fixture.view.current = "browser";
     fixture.config = { features: { browser: false }, browserEngine: { kind: "engine" } };
     const rendered = render(makeBot());
-    expect(rendered.html).toContain("The browser is off");
+    expect(rendered.html).toContain("the browser is off");
     expect(browserSwitch(rendered).props.checked).toBe(false);
   });
 });
 
 function browserSwitch(rendered: ReturnType<typeof render>) {
-  return rendered.nodes.find((node) => node.props["aria-label"] === "Let Scout use a browser")!;
+  return rendered.nodes.find((node) => node.props["aria-label"] === "let Scout use a browser")!;
 }
 
 describe("Choosing a place in the panel", () => {
@@ -260,9 +260,9 @@ describe("Choosing a place in the panel", () => {
     fixture.config = { ...fixture.config, vps: { configured: false } };
     fixture.seed = { phase: "vps-unconfigured", resolved: { botId: "scout", threadId: "thread-scout", computer: "cloud", cloudBackend: "vps" } };
     const admin = render(makeBot({ computer: "cloud" }));
-    expect(admin.html).toContain("Connect your own machine in Settings to give bots their own private desktops.");
+    expect(admin.html).toContain("connect your own machine in settings to give bots their own private desktops.");
     expect(admin.html).not.toMatch(/\x42oat|API key|paid service/);
-    const action = admin.button("Add your VPS")!;
+    const action = admin.button("add your VPS")!;
     (action.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "computer" });
 
@@ -270,8 +270,8 @@ describe("Choosing a place in the panel", () => {
     fixture.values = [];
     phaseIndex = -1;
     const user = render(makeBot({ computer: "cloud" }));
-    expect(user.html).toContain("Ask an Admin to change it.");
-    expect(user.button("Add your VPS")).toBeUndefined();
+    expect(user.html).toContain("ask an admin to change it.");
+    expect(user.button("add your VPS")).toBeUndefined();
   });
 
 });
@@ -282,7 +282,7 @@ describe("A chat pinned to a place", () => {
     text(rendered.nodes.find((node) => node.props["data-testid"] === "place-pinned-note")!.props.children);
 
   it("names the place in the grid's words, without pointing Simple at a composer chip it no longer has", () => {
-    expect(note(render(pinned()))).toBe("This chat is pinned to “Cloud desktop”.");
+    expect(note(render(pinned()))).toBe("this chat is pinned to “cloud desktop”.");
 
   });
 
@@ -293,20 +293,20 @@ describe("A chat pinned to a place", () => {
 
   it("leads a person's pin back to the grid's choice, which Simple has no composer chip for", () => {
     const button = unpin(render(pinned()))!;
-    expect(text(button.props.children)).toBe("Use Auto");
+    expect(text(button.props.children)).toBe("use auto");
     expect(button.props.disabled).toBe(false);
     (button.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "updateTask", botId: "scout", threadId: "thread-scout", patch: { surface: null } });
 
     fresh();
-    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("Use This Mac");
+    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("use this Mac");
 
   });
 
   it("waits out a running turn, as the server refuses a busy chat's place change", () => {
     const button = unpin(render(pinnedOn(undefined, { busy: true })))!;
     expect(button.props.disabled).toBe(true);
-    expect(button.props.title).toBe("Wait for the current turn to finish");
+    expect(button.props.title).toBe("wait for the current turn to finish");
   });
 
   it("says nothing of a pin Auto recorded, one matching Works on, or one Off overrides", () => {
@@ -325,14 +325,14 @@ describe("Technical controls", () => {
 
   it("hides technical controls", () => {
     const simple = render(cloud());
-    expect(simple.nodes.some((node) => node.props.title === "Bot settings")).toBe(false);
-    expect(simple.html).not.toContain("Works on");
-    expect(simple.buttons.some((node) => text(node.props.children).startsWith("Routines"))).toBe(false);
+    expect(simple.nodes.some((node) => node.props.title === "bot settings")).toBe(false);
+    expect(simple.html).not.toContain("works on");
+    expect(simple.buttons.some((node) => text(node.props.children).startsWith("routines"))).toBe(false);
 
   });
 
   it("hides the VM settings link in Simple", () => {
-    expect(render(makeBot({ computer: "vm" })).html).not.toContain("Private desktop settings");
+    expect(render(makeBot({ computer: "vm" })).html).not.toContain("private desktop settings");
   });
 
   it("shows Take control, Full screen and Sleep under a ready cloud screen", () => {
@@ -340,7 +340,7 @@ describe("Technical controls", () => {
     const simple = render(cloud());
     const row = simple.nodes.find((node) => node.props["data-testid"] === "computer-actions")!;
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
-      .toEqual(["Take control", "Full screen", "Sleep"]);
+      .toEqual(["take control", "full screen", "sleep"]);
 
   });
 
@@ -353,11 +353,11 @@ describe("Technical controls", () => {
     };
     const vm = () => makeBot({ computer: "vm" });
     const simple = render(vm());
-    expect(simple.html).not.toContain("Open two desktops");
-    expect(simple.html).not.toContain("Delete this bot");
+    expect(simple.html).not.toContain("open two desktops");
+    expect(simple.html).not.toContain("delete this bot");
     const row = simple.nodes.find((node) => node.props["data-testid"] === "computer-actions")!;
     expect(nodes(row.props.children).filter((node) => node.type === "button").map((node) => text(node.props.children)))
-      .toEqual(["Take control", "Full screen"]);
+      .toEqual(["take control", "full screen"]);
 
   });
 
@@ -366,8 +366,8 @@ describe("Technical controls", () => {
     const vps = () => makeBot({ computer: "cloud", cloudBackend: "vps" });
     const simple = render(vps());
     expect(simple.html).toContain("Scout&#x27;s desktop needs a setup step first.");
-    expect(simple.button("Open VPS settings")).toBeDefined();
-    (simple.button("Open VPS settings")!.props.onClick as () => void)();
+    expect(simple.button("open VPS settings")).toBeDefined();
+    (simple.button("open VPS settings")!.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings", open: true }));
 
   });

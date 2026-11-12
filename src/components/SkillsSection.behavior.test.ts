@@ -50,7 +50,7 @@ beforeEach(() => {
 
 describe("Skills library review and assignment controls", () => {
   it("shows verified full source and requires explicit approval before enabling", async () => {
-    named(render(), "Enable order-audit").props.onClick!();
+    named(render(), "enable order-audit").props.onClick!();
     await flush();
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith("/api/skills-library/order-audit");
@@ -58,15 +58,15 @@ describe("Skills library review and assignment controls", () => {
     const dialog = nodes((viewer.type as (props: Props) => ReactNode)(viewer.props));
     expect(dialog.find((node) => node.type === "pre")!.props.children).toBe(source);
     expect(fixture.modal).toHaveBeenCalledOnce();
-    expect(button(dialog, "Enable reviewed skill")).toBeDefined();
-    button(dialog, "Enable reviewed skill").props.onClick!();
+    expect(button(dialog, "enable reviewed skill")).toBeDefined();
+    button(dialog, "enable reviewed skill").props.onClick!();
     await flush();
     expect(fetch).toHaveBeenCalledWith("/api/skills-library/order-audit", expect.objectContaining({ method: "PATCH", body: '{"enabled":true}' }));
   });
 
   it("does not approve missing or integrity-rejected source", async () => {
     vi.mocked(fetch).mockResolvedValue(response({ error: "Skill integrity mismatch" }, false) as Response);
-    named(render(), "Enable order-audit").props.onClick!();
+    named(render(), "enable order-audit").props.onClick!();
     await flush();
     expect(fixture.values[5]).toBeNull();
     expect(fixture.values[2]).toBe("Skill integrity mismatch");
@@ -74,7 +74,7 @@ describe("Skills library review and assignment controls", () => {
   });
 
   it("makes a reviewed skill available to every bot from the library", async () => {
-    named(render(), "Every bot").props.onClick!();
+    named(render(), "every bot").props.onClick!();
     await flush();
     expect(fetch).toHaveBeenCalledWith("/api/skills-library/order-audit", expect.objectContaining({
       method: "PATCH",
@@ -96,15 +96,15 @@ describe("Skills library review and assignment controls", () => {
       }
       return response({ skills: rows }) as Response;
     }).mockImplementationOnce(() => delayed);
-    const buttons = render().filter((node) => node.type === "button" && node.props.children === "Assign");
+    const buttons = render().filter((node) => node.type === "button" && node.props.children === "assign");
     buttons[0]!.props.onClick!();
     buttons[1]!.props.onClick!();
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(render().filter((node) => node.props.children === "Assign").every((node) => node.props.disabled)).toBe(true);
+    expect(render().filter((node) => node.props.children === "assign").every((node) => node.props.disabled)).toBe(true);
     unblock(response({ skills: rows }) as Response);
     await flush();
     expect(writes).toEqual([["alpha"]]);
-    render().filter((node) => node.type === "button" && node.props.children === "Assign")[1]!.props.onClick!();
+    render().filter((node) => node.type === "button" && node.props.children === "assign")[1]!.props.onClick!();
     await flush();
     expect(writes).toEqual([["alpha"], ["alpha", "beta"]]);
   });
@@ -113,7 +113,7 @@ describe("Skills library review and assignment controls", () => {
     // Hook call order: useManagedSkills owns 0-8 and the assignment guard ref (9); the section owns 10-13.
     fixture.values = [[{ ...skill(), origin: "library" }], ["order-audit"], [], "", [], false, "", "", null, { current: false }, null, "", false, ""];
     fixture.request.mockImplementation(async (_url, options) => options?.method ? {} : { text: source });
-    named(render(true), "Enable order-audit").props.onClick!();
+    named(render(true), "enable order-audit").props.onClick!();
     await flush();
     expect(fixture.request).toHaveBeenCalledTimes(1);
     expect(fixture.request).toHaveBeenCalledWith("/api/skills-library/order-audit");
@@ -125,13 +125,13 @@ describe("Skills library review and assignment controls", () => {
   });
 
   it("shows a skill from this computer with this bot's switch, and no way to delete the one copy every bot shares", async () => {
-    const imported = { name: "pdf", description: "Works with PDFs", enabled: true, source: "~/.claude/skills/pdf", warnings: [], origin: "imported" };
+    const imported = { name: "pdf", description: "works with PDFs", enabled: true, source: "~/.claude/skills/pdf", warnings: [], origin: "imported" };
     fixture.values = [[imported], [], [], "", [], false, "", "", null, { current: false }, null, "", false, ""];
     fixture.request.mockImplementation(async (_url, options) => options?.method ? {} : { text: source });
     const tree = render(true);
     expect(tree.find((node) => node.props["aria-label"] === "Remove pdf")).toBeUndefined();
     expect(tree.some((node) => node.props.children === "this computer")).toBe(true);
-    named(tree, "Disable pdf").props.onClick!();
+    named(tree, "disable pdf").props.onClick!();
     await flush();
     expect(fixture.request).toHaveBeenCalledWith("/api/bots/bot/skills/pdf", expect.objectContaining({ method: "PATCH", body: '{"enabled":false}' }));
   });

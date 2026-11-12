@@ -67,7 +67,7 @@ describe("pinned circle frame", () => {
     expect(clipped).toContain(`border-radius:${radius}`);
     expect(clipped).not.toContain("rounded-full");
     expect(markup).not.toContain("rounded-full");
-    expect(markup).not.toContain("Expand Atlas threads");
+    expect(markup).not.toContain("expand Atlas threads");
   });
 
   it("draws the selection ring on the same crop as the frame", () => {
@@ -87,7 +87,7 @@ describe("pinned circle section", () => {
   const atlas = bot({
     tasks: [
       { threadId: "thread-atlas", title: "Current", createdAt: 2 },
-      { threadId: "thread-earlier", title: "Earlier", createdAt: 1 },
+      { threadId: "thread-earlier", title: "earlier", createdAt: 1 },
     ] as Bot["tasks"],
   });
   const beacon = bot({ id: "beacon", threadId: "thread-beacon", name: "Beacon" });
@@ -96,28 +96,28 @@ describe("pinned circle section", () => {
     const markup = renderThreads(true, [atlas, beacon]);
     expect(markup).toContain('data-sidebar-pinned-circle-threads=""');
     expect(markup).toContain('aria-expanded="false"');
-    expect(markup).toContain("Expand Pinned");
+    expect(markup).toContain("expand pinned");
     expect(markup).not.toContain("Atlas");
     expect(markup).not.toContain("Beacon");
     expect(markup).not.toContain("data-sidebar-pinned-circles");
-    expect(markup).not.toContain("Drag to reorder");
+    expect(markup).not.toContain("drag to reorder");
   });
 
   it("opens the same pinned bots as rows, in circle order, with the thread menu", () => {
     const markup = renderThreads(false, [atlas, beacon]);
     expect(markup).toContain('aria-expanded="true"');
-    expect(markup).toContain("Collapse Pinned");
+    expect(markup).toContain("collapse pinned");
     expect(markup.indexOf("Atlas")).toBeLessThan(markup.indexOf("Beacon"));
-    expect(markup).toContain('aria-label="Actions for Atlas"');
-    expect(markup).not.toContain("Expand Atlas threads");
+    expect(markup).toContain('aria-label="actions for Atlas"');
+    expect(markup).not.toContain("expand Atlas threads");
     expect(markup).not.toContain("data-sidebar-pinned-circles");
-    expect(markup).not.toContain("Drag to reorder");
+    expect(markup).not.toContain("drag to reorder");
   });
 
   it("draws no thread disclosure on a circle with several conversations", () => {
     const markup = renderCircle(atlas);
-    expect(markup).not.toContain("Expand Atlas threads");
-    expect(markup).not.toContain("New thread");
+    expect(markup).not.toContain("expand Atlas threads");
+    expect(markup).not.toContain("new thread");
     expect(markup).not.toContain("data-sidebar-thread-row");
   });
 });

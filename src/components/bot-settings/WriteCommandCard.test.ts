@@ -11,11 +11,11 @@ const { WriteCommandCard } = await import("./WriteCommandCard");
 describe("WriteCommandCard", () => {
   it("offers a name, a description, and instructions with an {input} hint, and starts unsaveable", () => {
     const markup = renderToStaticMarkup(createElement(WriteCommandCard, { bot: { id: "b1" } as Bot, taken: [], onSaved: () => {} }));
-    expect(markup).toContain("Write a command");
-    expect(markup).toContain('aria-label="Command name"');
-    expect(markup).toContain('aria-label="What it does"');
-    expect(markup).toContain('aria-label="Instructions"');
+    expect(markup).toContain("write a command");
+    expect(markup).toContain('aria-label="command name"');
+    expect(markup).toContain('aria-label="what it does"');
+    expect(markup).toContain('aria-label="instructions"');
     expect(markup).toContain("{input}");
-    expect(markup).toMatch(/<button type="submit" disabled=""[^>]*>Save command<\/button>/);
+    expect(markup).toMatch(/<button type="submit" disabled=""[^>]*>save command<\/button>/);
   });
 });

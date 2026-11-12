@@ -79,15 +79,15 @@ describe("connecting an AI on the first screen", () => {
     const listed = () => [...host.querySelectorAll("[aria-expanded]")].map((node) => node.textContent);
     const before = listed();
     const checkAgain = async () => {
-      const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Check again")!;
+      const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "check again")!;
       await act(async () => { button.click(); });
     };
     f.fail = true;
     await checkAgain();
-    expect(text()).toContain("Couldn't check your AI connections");
+    expect(text()).toContain("couldn't check your AI connections");
     expect(listed()).toEqual(before);
     await checkAgain();
-    expect(text()).not.toContain("Couldn't check your AI connections");
+    expect(text()).not.toContain("couldn't check your AI connections");
   });
 
   it("leads with one recommended way, then lists every other way, with no status list and no engine talk", async () => {
@@ -97,7 +97,7 @@ describe("connecting an AI on the first screen", () => {
     const rows = [...host.querySelectorAll("button[aria-expanded]")].map((node) => node.textContent);
     expect(rows).toHaveLength(2);
     expect(rows).toContain("Codex");
-    expect(text()).not.toContain("Other ways");
+    expect(text()).not.toContain("other ways");
     for (const word of [/\bengines?\b/i, /\bReady\b/, /Needs setup/i, /to set up/i, /provider/i]) expect(text()).not.toMatch(word);
   });
 
@@ -110,10 +110,10 @@ describe("connecting an AI on the first screen", () => {
       signsIn(engine("kimi", "kimiAgent", "Kimi", false)),
       engine("codex", "codex", "Codex", false),
       { ...engine("droid", "droidAgent", "Droid", false), install: { docsUrl: "https://example.test", server: { package: "droid" } } },
-      { ...engine("local", "openai-compat", "Local models", false), access: "custom" },
+      { ...engine("local", "openai-compat", "local models", false), access: "custom" },
     ];
     const setup = (id: string) => host.querySelector(`[data-engine-setup="${id}"]`);
-    const plain = (name: string) => `Use the ${name} account you already have. You sign in on their own website, so your password stays with them.`;
+    const plain = (name: string) => `use the ${name} account you already have. you sign in on their own website, so your password stays with them.`;
     await show();
     expect(setup("claude")?.getAttribute("data-description")).toBe(plain("Claude"));
     await otherWays();
@@ -129,7 +129,7 @@ describe("connecting an AI on the first screen", () => {
       await openRow(name);
       expect(setup(id)?.hasAttribute("data-description"), `${name} is finished in Terminal: its setup keeps its own instructions`).toBe(false);
     }
-    await openRow("Local models");
+    await openRow("local models");
     expect(setup("local")?.getAttribute("data-intent")).toBe("inject");
     expect(setup("local")?.hasAttribute("data-description")).toBe(false);
   });
@@ -139,7 +139,7 @@ describe("connecting an AI on the first screen", () => {
     await show();
     expect(host.querySelector("[data-ai-connected]")?.textContent).toContain("Claude");
     expect(host.querySelector("[data-ai-recommended]")).toBeNull();
-    expect(text()).not.toContain("Other ways");
+    expect(text()).not.toContain("other ways");
   });
 
   it("says Connected only after the AI answered a test message, and plainly while it checks", async () => {
@@ -149,9 +149,9 @@ describe("connecting an AI on the first screen", () => {
     await show();
     expect(f.checks).toEqual(["/api/instances/claude/check"]);
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
-    expect(host.querySelector("[data-ai-checking]")?.textContent).toBe("Checking that Claude answers…");
+    expect(host.querySelector("[data-ai-checking]")?.textContent).toBe("checking that Claude answers…");
     await act(async () => { answer({ ok: true }); });
-    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("Connected · Claude");
+    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("connected · Claude");
     expect(host.querySelector("[data-ai-checking]")).toBeNull();
   });
 
@@ -160,7 +160,7 @@ describe("connecting an AI on the first screen", () => {
     f.instances = [engine("claude", "claudeAgent", "Claude", true), engine("codex", "codex", "Codex", false), engine("kimi", "kimiAgent", "Kimi", false)];
     await show();
     expect(host.querySelector("[data-ai-silent] [data-ai-reason]")?.textContent).toBe("Claude didn't answer within 90 seconds.");
-    expect(host.querySelector("[data-ai-silent]")?.textContent).toContain("Or connect another AI below.");
+    expect(host.querySelector("[data-ai-silent]")?.textContent).toContain("or connect another AI below.");
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
     expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("codex");
     await otherWays();
@@ -170,7 +170,7 @@ describe("connecting an AI on the first screen", () => {
     f.check = () => Promise.resolve({ ok: true });
     await show();
     expect(f.checks).toEqual(["/api/instances/claude/check", "/api/instances/grok/check"]);
-    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("Connected · Grok");
+    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("connected · Grok");
   });
 
   it("says the plain reason a check gave, and Check again sends a new test message", async () => {
@@ -181,12 +181,12 @@ describe("connecting an AI on the first screen", () => {
     expect(text()).not.toContain("is signed in but didn't answer");
     let answer!: (value: object) => void;
     f.check = () => new Promise((resolve) => { answer = resolve; });
-    const again = [...host.querySelectorAll<HTMLButtonElement>("[data-ai-silent] button")].find((button) => button.textContent === "Check again")!;
+    const again = [...host.querySelectorAll<HTMLButtonElement>("[data-ai-silent] button")].find((button) => button.textContent === "check again")!;
     await act(async () => { again.click(); });
     expect(f.checks).toEqual(["/api/instances/claude/check", "/api/instances/claude/check"]);
-    expect(host.querySelector("[data-ai-checking]")?.textContent).toBe("Checking that Claude answers…");
+    expect(host.querySelector("[data-ai-checking]")?.textContent).toBe("checking that Claude answers…");
     await act(async () => { answer({ ok: true }); });
-    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("Connected · Claude");
+    expect(host.querySelector("[data-ai-connected]")?.textContent).toBe("connected · Claude");
   });
 
   it("shows what the server's own test found, without sending another", async () => {
@@ -198,7 +198,7 @@ describe("connecting an AI on the first screen", () => {
     // With no reason given, the plain line.
     f.instances = [{ ...engine("claude", "claudeAgent", "Claude", true), aiTest: "failed" }];
     await show();
-    expect(host.querySelector("[data-ai-reason]")?.textContent).toBe("Claude is signed in but didn't answer. Try another way.");
+    expect(host.querySelector("[data-ai-reason]")?.textContent).toBe("Claude is signed in but didn't answer. try another way.");
   });
 
   it("asks for the person's own AI when only OpenCode's free model works, and says the free model is a backup", async () => {
@@ -207,7 +207,7 @@ describe("connecting an AI on the first screen", () => {
     await show();
     expect(f.checks).toEqual([]);
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
-    expect(host.querySelector("[data-ai-backup]")?.textContent).toBe("OpenCode's free model is ready as a backup. For the best answers, connect an AI you already use.");
+    expect(host.querySelector("[data-ai-backup]")?.textContent).toBe("OpenCode's free model is ready as a backup. for the best answers, connect an AI you already use.");
     expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("claude");
   });
 
@@ -229,7 +229,7 @@ describe("connecting an AI on the first screen", () => {
     await act(async () => { root.render(createElement(ConnectAiDialog, { tested: null, onClose })); });
     const dialog = host.querySelector<HTMLElement>("[data-connect-ai]")!;
     expect(dialog.getAttribute("role")).toBe("dialog");
-    expect(dialog.querySelector("h2")?.textContent).toBe("Connect an AI");
+    expect(dialog.querySelector("h2")?.textContent).toBe("connect an AI");
     expect(dialog.querySelector("[data-ai-recommended]")).not.toBeNull();
     await act(async () => { dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
     expect(onClose).toHaveBeenCalledOnce();

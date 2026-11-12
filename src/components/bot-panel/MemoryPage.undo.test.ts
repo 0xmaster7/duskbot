@@ -60,15 +60,15 @@ const forgetFirst = async () => {
   await settle();
 };
 const undo = async () => {
-  const button = [...toast()!.querySelectorAll("button")].find((candidate) => candidate.textContent === "Undo")!;
+  const button = [...toast()!.querySelectorAll("button")].find((candidate) => candidate.textContent === "undo")!;
   await act(async () => button.click());
   await settle();
 };
 
-it("Forget offers Undo, which brings the note back over exactly the version the forget left", async () => {
+it("forget offers Undo, which brings the note back over exactly the version the forget left", async () => {
   await forgetFirst();
   expect(files["MEMORY.md"]).not.toContain("durian");
-  expect(toast()?.textContent).toContain("Note forgotten");
+  expect(toast()?.textContent).toContain("note forgotten");
   await undo();
   expect(puts.at(-1)).toEqual({ text: "# Memory\n- Ada likes durian\n- Ada runs on Sundays\n", expectedHash: hash("# Memory\n- Ada runs on Sundays\n") });
   expect(files["MEMORY.md"]).toContain("Ada likes durian");
@@ -82,5 +82,5 @@ it("never writes over a note saved since: the undo says it couldn't, and the new
   await undo();
   expect(files["MEMORY.md"]).toContain("Lisbon");
   expect(files["MEMORY.md"]).not.toContain("durian");
-  expect(toast()?.textContent).toContain("Memory changed since, so the note couldn't come back.");
+  expect(toast()?.textContent).toContain("memory changed since, so the note couldn't come back.");
 });

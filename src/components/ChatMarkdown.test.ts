@@ -63,10 +63,10 @@ describe("soft line breaks", () => {
 describe("spoilers", () => {
   it("hides only double-tilde spans, not text between ranges written with a single tilde", () => {
     const ranges = renderToStaticMarkup(createElement(ChatMarkdown, { text: "Episodes 77~82 first, then 77~80." }));
-    expect(ranges).not.toContain("Reveal spoiler");
+    expect(ranges).not.toContain("reveal spoiler");
     expect(ranges).toContain("Episodes 77~82 first, then 77~80.");
     const spoiler = renderToStaticMarkup(createElement(ChatMarkdown, { text: "The answer is ~~42~~." }));
-    expect(spoiler).toContain("Reveal spoiler");
+    expect(spoiler).toContain("reveal spoiler");
   });
 });
 
@@ -359,7 +359,7 @@ describe("repaired tables", () => {
         text, message: { threadId: "thread-1", messageId: "message-1" },
       }));
       expect(html).not.toContain("<table");
-      expect(html).toContain("Loading ");
+      expect(html).toContain("loading ");
       expect(preview.mock.calls[0][0].sourceOffset).toBe(text.indexOf("!["));
     } finally {
       preview.mockRestore();
@@ -535,7 +535,7 @@ describe("#Title thread links in markdown", () => {
   it("links a known title in prose as a button that opens the thread", () => {
     const markup = render("I opened #QA PR 245 for the review.");
     expect(markup).toContain('<button type="button" data-thread-link="qa-245"');
-    expect(markup).toContain('title="Open #QA PR 245"');
+    expect(markup).toContain('title="open #QA PR 245"');
     expect(markup).toContain(">#QA PR 245</button>");
     expect(markup).not.toContain('data-thread-link="short"');
   });
@@ -591,7 +591,7 @@ describe("a Use my Mac link in an older bot message", () => {
 describe("application and rejected Markdown links", () => {
   it.each([
     ["[Open Chief](obsidian://open?vault=botbrain&file=agents%2Fchief)", "obsidian://open?vault=botbrain&file=agents%2Fchief"],
-    ["[Open Chief](obsidian://open?vault=botbrain&file=agents%2Fchief)", "obsidian://open?vault=botbrain&file=agents%2Fchief"],
+    ["[Open Chief](OBSIDIAN://open?vault=botbrain&file=agents%2fchief)", "OBSIDIAN://open?vault=botbrain&file=agents%2fchief"],
     ["[Open Chief](ObSiDiAn://open?vault=Bot%20Brain&file=agents%2FChief%20Notes%23Inbox)", "ObSiDiAn://open?vault=Bot%20Brain&file=agents%2FChief%20Notes%23Inbox"],
     ["[Open Chief](obsidian&#58;//open?vault=botbrain&amp;file=agents%2Fchief)", "obsidian://open?vault=botbrain&file=agents%2Fchief"],
     ["[Open Chief][chief]\n\n[chief]: obsidian://open?vault=botbrain&file=agents%2Fchief", "obsidian://open?vault=botbrain&file=agents%2Fchief"],
@@ -610,7 +610,7 @@ describe("application and rejected Markdown links", () => {
     "",
     "   ",
     "javascript:alert(1)",
-    "javascript:alert(1)",
+    "JaVaScRiPt:alert(1)",
     "javascript&#58;alert(1)",
     "java&#x09;script:alert(1)",
     "java&#x0a;script:alert(1)",
@@ -634,7 +634,7 @@ describe("application and rejected Markdown links", () => {
       text: "![Note](obsidian://open?vault=botbrain&file=agents%2Fchief)",
     }));
     expect(host.querySelector("img, a, button")).toBeNull();
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Image unavailable");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("image unavailable");
   });
 });
 
@@ -737,8 +737,8 @@ describe("ChatMarkdown attachments", () => {
       text: "![Launch art](https://assets.example/hero.png)",
     }));
 
-    expect(html).toContain("External image hidden for privacy");
-    expect(html).toContain("Load image");
+    expect(html).toContain("external image hidden for privacy");
+    expect(html).toContain("load image");
     expect(html).not.toContain("src=\"https://assets.example/hero.png\"");
   });
 
@@ -748,7 +748,7 @@ describe("ChatMarkdown attachments", () => {
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
 
-    expect(html).toContain("External image hidden for privacy");
+    expect(html).toContain("external image hidden for privacy");
     expect(html).not.toContain("src=\"//assets.example/hero.png\"");
   });
 
@@ -757,7 +757,7 @@ describe("ChatMarkdown attachments", () => {
       text: "[macOS](file:///Users/milind/report.md) [Windows](C:/Users/Maus/report.md)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain('title="Save a copy"');
+    expect(html).toContain('title="save a copy"');
     expect(html).not.toContain("/Users/milind/report.md");
     expect(html).not.toContain("C:/Users/Maus/report.md");
   });
@@ -782,7 +782,7 @@ describe("ChatMarkdown attachments", () => {
       }));
       expect(html).toContain('data-github-ref="pull"');
       expect(html).toContain("<span>#7</span>");
-      expect(html).toContain('title="Save a copy"');
+      expect(html).toContain('title="save a copy"');
       expect(save).toHaveBeenCalledWith("/store/delivered-report.pdf", "report.pdf", message);
       expect(html).not.toContain("/store/delivered-report.pdf");
       expect(html).not.toContain("/work/report.pdf");
@@ -799,9 +799,9 @@ describe("ChatMarkdown attachments", () => {
         text: "[Report](C:\\Users\\Maus\\.duskbot\\report.md)\n\n![Chart](C:\\Users\\Maus\\.duskbot\\chart.png)",
         message: { threadId: "thread-1", messageId: "message-1" },
       }));
-      expect(html).toContain('title="Save a copy"');
+      expect(html).toContain('title="save a copy"');
       expect(html).not.toContain('href=""');
-      expect(html).not.toContain("Image unavailable");
+      expect(html).not.toContain("image unavailable");
       expect(save.mock.calls[0]?.[0]).toBe("C:\\Users\\Maus\\.duskbot\\report.md");
       expect(preview.mock.calls[0]?.[0].filePath).toBe("C:\\Users\\Maus\\.duskbot\\chart.png");
     } finally {
@@ -829,7 +829,7 @@ describe("ChatMarkdown attachments", () => {
     }));
 
     expect(html).toContain("Download the report");
-    expect(html).toContain("Unavailable legacy file reference");
+    expect(html).toContain("unavailable legacy file reference");
     expect(html).not.toContain("href=\"/workspace/final-report.pdf\"");
     expect(html).not.toContain("type=\"button\"");
   });
@@ -851,7 +851,7 @@ describe("ChatMarkdown attachments", () => {
       const html = renderToStaticMarkup(createElement(ChatMarkdown, {
         text: "[post](Instagram/04_post/)", message: { threadId: "thread-1", messageId: "message-1" },
       }));
-      expect(html).toContain("aria-label=\"Files in 04_post\"");
+      expect(html).toContain("aria-label=\"files in 04_post\"");
       expect(html).toContain("cover.png");
       expect(html).toContain("2 KB");
     } finally {
@@ -884,9 +884,9 @@ describe("ChatMarkdown attachments", () => {
       vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: false } } });
       try {
         const html = render(true);
-        expect(html).toContain("This file is outside this chat&#x27;s working folder, so it can&#x27;t be saved from here");
+        expect(html).toContain("this file is outside this chat&#x27;s working folder, so it can&#x27;t be saved from here");
         expect(html).not.toContain("the linked file is outside");
-        expect(html).toContain("Show in folder");
+        expect(html).toContain("show in folder");
         expect(html).not.toContain("<code");
       } finally {
         vi.unstubAllGlobals();
@@ -897,7 +897,7 @@ describe("ChatMarkdown attachments", () => {
       vi.stubGlobal("window", { duskDesktop: { revealInFolder, remoteClient: { active: true } } });
       try {
         const html = render(true);
-        expect(html).not.toContain("Show in folder");
+        expect(html).not.toContain("show in folder");
         expect(html).toMatch(/<code[^>]*select-all[^>]*>C:\\Users\\Maus\\_draft\\ollama-gen\.js<\/code>/);
       } finally {
         vi.unstubAllGlobals();
@@ -919,7 +919,7 @@ describe("ChatMarkdown attachments", () => {
       try {
         const html = render(false);
         expect(html).toContain("the linked file is outside this conversation&#x27;s workspace");
-        expect(html).not.toContain("Show in folder");
+        expect(html).not.toContain("show in folder");
         expect(html).not.toContain(filePath);
       } finally {
         vi.unstubAllGlobals();
@@ -932,7 +932,7 @@ describe("ChatMarkdown attachments", () => {
       text: "[Download the report](/workspace/final-report.pdf)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain('title="Save a copy"');
+    expect(html).toContain('title="save a copy"');
     expect(html).not.toContain("/workspace/final-report.pdf");
     expect(html).toContain("type=\"button\"");
   });
@@ -954,7 +954,7 @@ describe("ChatMarkdown attachments", () => {
       text: "![Generated preview](/workspace/output.png)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain("Loading Generated preview");
+    expect(html).toContain("loading Generated preview");
     expect(html).not.toContain("src=\"/workspace/output.png\"");
   });
 });
@@ -963,7 +963,7 @@ describe("a fence's wrap directive", () => {
   it("the fence info parser is order independent and case insensitive", () => {
     expect(parseFenceInfo("wrap", "text")).toEqual({ lang: "text", wrap: true });
     expect(parseFenceInfo("text", "wrap")).toEqual({ lang: "text", wrap: true });
-    expect(parseFenceInfo("text", "wrap")).toEqual({ lang: "text", wrap: true });
+    expect(parseFenceInfo("text", "WRAP")).toEqual({ lang: "text", wrap: true });
     expect(parseFenceInfo("wrap", undefined)).toEqual({ lang: "", wrap: true });
     expect(parseFenceInfo("text", undefined)).toEqual({ lang: "text", wrap: false });
   });
@@ -1113,23 +1113,23 @@ describe("mermaid diagrams", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
       text: "```mermaid\nflowchart LR\n  Ship-->Sea\n```",
     }));
-    expect(html).toContain('aria-label="Copy diagram source"');
+    expect(html).toContain('aria-label="copy diagram source"');
     expect(html).toContain("flowchart LR");
   });
 
   it("matches the fence tag case-insensitively", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
-      text: "```mermaid\nflowchart LR\n  Ship-->Sea\n```",
+      text: "```Mermaid\nflowchart LR\n  Ship-->Sea\n```",
     }));
-    expect(html).toContain('aria-label="Copy diagram source"');
+    expect(html).toContain('aria-label="copy diagram source"');
   });
 
   it("keeps ordinary fenced code on the highlighter path", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
       text: "```ts\nconst sea = true;\n```",
     }));
-    expect(html).not.toContain("Copy diagram source");
-    expect(html).toContain('aria-label="Copy code"');
+    expect(html).not.toContain("copy diagram source");
+    expect(html).toContain('aria-label="copy code"');
   });
 });
 
@@ -1174,14 +1174,14 @@ describe("the code block", () => {
     expect(html).not.toContain('aria-label="Wrap long lines"');
     const plate = html.match(/<div data-code-plate="[^"]*" class="([^"]*)"/)?.[1] ?? "";
     expect(plate.split(" ")).toEqual(expect.arrayContaining(["opacity-0", "group-hover/code:opacity-100", "focus-within:opacity-100", "touch:opacity-100"]));
-    expect(html).toContain('aria-label="Copy code"');
+    expect(html).toContain('aria-label="copy code"');
     expect(html).not.toContain('aria-label="More"');
   });
 
   it("gives a diagram the same plate instead of its header", () => {
     const html = simple(() => renderToStaticMarkup(createElement(ChatMarkdown, { text: "```mermaid\ngraph TD; A-->B\n```" })));
     expect(html).toContain("data-code-plate");
-    expect(html).toContain('aria-label="Copy diagram source"');
+    expect(html).toContain('aria-label="copy diagram source"');
     expect(html).not.toContain('title="Mermaid diagram"');
   });
 });

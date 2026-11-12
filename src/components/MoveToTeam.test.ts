@@ -47,19 +47,19 @@ const line = (move: TeamMoveView, onChange = vi.fn()) => () => TeamMoveLine({ mo
 
 it("says how the move goes on My Cloud's page: on its way with nothing to press, failed with Try again, done with Open it there", async () => {
   const moving: TeamMoveView = { bot: { id: "scout", name: "Scout" }, team: ACME, phase: "moving" };
-  expect(html(line(moving))).toContain("Moving Scout to Acme…");
+  expect(html(line(moving))).toContain("moving Scout to Acme…");
   expect(tree(line(moving)).some((node) => node.type === "button")).toBe(false);
   const failed = { ...moving, phase: "failed" as const };
-  expect(html(line(failed))).toContain("Couldn't move Scout. It's still here, unchanged.");
+  expect(html(line(failed))).toContain("couldn't move Scout. it's still here, unchanged.");
   const changed = vi.fn();
-  button(line(failed, changed), "Try again")!.props.onClick!(); await flush();
+  button(line(failed, changed), "try again")!.props.onClick!(); await flush();
   expect(page.teamRetry).toHaveBeenCalledOnce();
   expect(changed).toHaveBeenCalledWith({ bot: SCOUT, team: ACME, phase: "moving" });
   const done = { ...moving, phase: "done" as const };
   expect(html(line(done))).toContain("Scout is in Acme now, with your chats.");
-  button(line(done), "Open Scout in Acme")!.props.onClick!();
+  button(line(done), "open Scout in Acme")!.props.onClick!();
   expect(page.openTeam).toHaveBeenCalledWith("team-acme");
-  button(line(done, changed), "Close")!.props.onClick!(); await flush();
+  button(line(done, changed), "close")!.props.onClick!(); await flush();
   expect(page.dismiss).toHaveBeenCalledWith("team-move");
   expect(changed).toHaveBeenLastCalledWith(null);
 });
@@ -69,7 +69,7 @@ it("the strip shows a bot's move into a team on My Cloud's page only", async () 
   page.notice = vi.fn().mockResolvedValue(value);
   const strip = (cloudHome: boolean) => () => CloudSendStrip({ cloudHome });
   html(strip(true)); for (const effect of f.effects) effect(); await flush();
-  expect(html(strip(true))).toContain("Moving Scout to Acme…");
+  expect(html(strip(true))).toContain("moving Scout to Acme…");
   expect(html(strip(false))).toBe("");
 });
 
@@ -93,11 +93,11 @@ it("the bot menu has one Move to item per team, none without a team or for a bot
   html(menu); for (const effect of f.effects) effect(); await flush();
   html(menu);
   hook.items(SCOUT, item);
-  expect(items.map((entry) => [entry.label, entry.opts?.disabled])).toEqual([["Move to Acme", false], ["Move to Beta", true]]);
+  expect(items.map((entry) => [entry.label, entry.opts?.disabled])).toEqual([["move to Acme", false], ["move to Beta", true]]);
   items.length = 0;
   hook.items({ ...SCOUT, movedTo: { team: ACME, state: "moving", at: 1 } } as Bot, item);
   expect(items).toEqual([]);
-  blocked = "Your Chief of Staff stays on My Cloud";
+  blocked = "your chief of staff stays on my cloud";
   hook.items(SCOUT, item);
   expect(items[0]!.opts).toEqual({ disabled: true, hint: blocked });
   blocked = undefined;
@@ -105,11 +105,11 @@ it("the bot menu has one Move to item per team, none without a team or for a bot
   hook.items(SCOUT, item);
   items[0]!.onClick!();
   const confirm = html(menu);
-  for (const said of ["Move Scout to Acme?", "Everyone in Acme can use Scout. Your chats stay private. You can't move it back.", "Move to Acme"]) expect(confirm).toContain(said);
+  for (const said of ["move Scout to Acme?", "everyone in Acme can use Scout. your chats stay private. you can't move it back.", "move to Acme"]) expect(confirm).toContain(said);
   expect(page.moveToTeam, "nothing moves until the confirm").not.toHaveBeenCalled();
 });
 
-it("Move to Acme in the confirm asks main to move the bot, with a real click; nothing moves without one", async () => {
+it("move to Acme in the confirm asks main to move the bot, with a real click; nothing moves without one", async () => {
   const items: Array<{ onClick?: () => void }> = [];
   const menu = () => useMoveToTeam({ blocked: () => undefined });
   f.index = 0; let hook = menu(); for (const effect of f.effects) effect(); await flush();

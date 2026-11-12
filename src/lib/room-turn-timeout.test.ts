@@ -10,7 +10,7 @@ describe("room turn timeout input", () => {
     (value) => {
       expect(parseRoomTurnTimeoutMinutes(value)).toEqual({
         ok: false,
-        error: "Enter a whole number from 1 to 1,440.",
+        error: "enter a whole number from 1 to 1,440.",
       });
     },
   );

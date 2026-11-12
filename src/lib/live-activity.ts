@@ -25,10 +25,10 @@ const FALLBACK_LABELS: Array<[RegExp, LocaleKey]> = [
   [/\b(?:ask_bot|send_message)\b/i, "chat.activity.askTeammate"],
 ];
 
-function sentenceCase(value: string): string {
+function narration(value: string): string {
   const trimmed = value.trim().replace(/[.\s]+$/, "");
   if (!trimmed) return t("chat.activity.thinking");
-  return `${trimmed[0].toUpperCase()}${trimmed.slice(1)}`;
+  return trimmed;
 }
 
 export function liveActivityLabel(message?: Message): string {
@@ -158,7 +158,7 @@ export function toolActivityPhrases(tool: ActivityTool): LiveActivityPhrases {
   const step = tool.step ? liveStatusPhrases(stepStatus(tool.step)) : null;
   if (step) return step;
   const spoken = tool.spoken?.trim();
-  if (spoken) return { phase: `spoken:${spoken}`, phrases: [sentenceCase(spoken)] };
+  if (spoken) return { phase: `spoken:${spoken}`, phrases: [narration(spoken)] };
 
   const toolName = tool.name.replace(/^mcp__[^_]+__/, "").split(":", 1)[0] ?? "";
   for (const [pattern, key] of FALLBACK_LABELS) {

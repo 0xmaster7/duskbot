@@ -83,7 +83,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
   const signInOpen = state.computerControl?.[bot.id]?.help?.place === "browser";
   const scopedThread = browserScope(state.config?.team, bot.threadId).threadId;
   keepNow.current = kept || signInOpen;
-  const profileName = bot.browserProfile === "guest" ? "Temporary browser"
+  const profileName = bot.browserProfile === "guest" ? "temporary browser"
     : state.config?.browserProfiles?.find((profile) => profile.id === bot.browserProfile)?.name ?? `${bot.name}’s own browser`;
   useEffect(() => { if (showProfiles) profilesDialog.current?.showModal(); else profilesDialog.current?.close(); }, [showProfiles]);
   useEffect(() => {
@@ -227,7 +227,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
       setMaximized(false);
     }
     const request = leaving ? document.exitFullscreen() : panel.current?.requestFullscreen();
-    void request?.catch(() => setError(leaving ? "Could not leave full screen. Press Esc instead." : "Full screen is unavailable in this browser."));
+    void request?.catch(() => setError(leaving ? "could not leave full screen. press esc instead." : "full screen is unavailable in this browser."));
   };
   const toggleMaximize = () => {
     if (fullscreen && document.fullscreenElement === panel.current) {
@@ -347,7 +347,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
       {asleep || heldElsewhere || gone || !connected || starting ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/95 p-6 text-center text-[13px] text-ink-secondary">
           {asleep ? <Moon size={24} /> : heldElsewhere ? <Hand size={24} /> : gone ? <Globe size={24} /> : <Loader2 size={24} className="animate-spin" />}
-          <span>{asleep ? t("browser.panel.asleep") : heldElsewhere ? BROWSER_HELD_ELSEWHERE : gone ? t("browser.panel.disconnected") : !starting ? t("browser.panel.opening") : stream ? "Starting the browser…" : t("browser.live.botBusy", { name: bot.name })}</span>
+          <span>{asleep ? t("browser.panel.asleep") : heldElsewhere ? BROWSER_HELD_ELSEWHERE : gone ? t("browser.panel.disconnected") : !starting ? t("browser.panel.opening") : stream ? "starting the browser…" : t("browser.live.botBusy", { name: bot.name })}</span>
           {asleep ? <button type="button" disabled={asleep === "waking"} className="rounded-lg border border-transparent px-3 py-1.5 text-[12px] text-ink hover:bg-inset disabled:opacity-60" onClick={wake}>{t(asleep === "waking" ? "browser.panel.waking" : "browser.panel.wake")}</button>
             : gone ? <button type="button" className="rounded-lg border border-transparent px-3 py-1.5 text-[12px] text-ink hover:bg-inset" onClick={reconnect}>{t("browser.panel.reconnect")}</button> : null}
         </div>

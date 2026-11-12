@@ -48,11 +48,11 @@ describe("lazyScreen", () => {
   it("renders nothing before its chunk arrives, then the screen", async () => {
     let arrive!: (component: typeof Label) => void;
     const load = vi.fn((): Loaded => new Promise((resolve) => (arrive = resolve)));
-    const Screen = lazyScreen("Routines", load);
-    expect(render(createElement(Screen, { text: "Routines" }))).toBe("<div></div>");
+    const Screen = lazyScreen("routines", load);
+    expect(render(createElement(Screen, { text: "routines" }))).toBe("<div></div>");
     arrive(Label);
     await settle();
-    expect(document.body.innerHTML).toBe("<div><p>Routines</p></div>");
+    expect(document.body.innerHTML).toBe("<div><p>routines</p></div>");
     expect(load).toHaveBeenCalledTimes(1);
   });
 
@@ -91,12 +91,12 @@ describe("lazyScreen", () => {
     const load = vi.fn((): Loaded => Promise.reject(new TypeError("Failed to fetch dynamically imported module")));
     const Screen = lazyScreen("TeamMapPage", load);
     await expect(Screen.preload()).rejects.toThrow(TypeError);
-    render(createElement("main", null, "chat", createElement(Screen, { text: "Team map" })));
+    render(createElement("main", null, "chat", createElement(Screen, { text: "team map" })));
     await settle();
     expect(document.querySelector("main")!.outerHTML).toBe("<main>chat</main>");
     const notice = document.querySelector<HTMLElement>('[role="alert"]');
     expect(notice?.textContent).toContain("didn’t load");
-    expect(document.body.textContent).not.toContain("Team map");
+    expect(document.body.textContent).not.toContain("team map");
     expect(errors).not.toHaveBeenCalled();
     expect(warnings).toHaveBeenCalledTimes(2);
     expect(String(warnings.mock.calls[0]![0])).toContain("TeamMapPage");
@@ -130,14 +130,14 @@ describe("lazyScreen", () => {
       .mockRejectedValueOnce(new TypeError("Failed to fetch dynamically imported module"))
       .mockResolvedValue(Label);
     const Screen = lazyScreen("TriggersPage", load);
-    render(createElement(Screen, { text: "Triggers" }));
+    render(createElement(Screen, { text: "triggers" }));
     await settle();
     expect(document.querySelector('[role="alert"]')).not.toBeNull();
     render(createElement("p"));
     expect(document.querySelector('[role="alert"]')).toBeNull();
-    render(createElement(Screen, { text: "Triggers" }));
+    render(createElement(Screen, { text: "triggers" }));
     await settle();
-    expect(document.body.textContent).toBe("Triggers");
+    expect(document.body.textContent).toBe("triggers");
     expect(document.querySelector('[role="alert"]')).toBeNull();
     expect(load).toHaveBeenCalledTimes(2);
   });
@@ -156,7 +156,7 @@ describe("lazyScreen", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     let fail!: (error: Error) => void;
     const Screen = lazyScreen("RoomPanel", (): Loaded => new Promise((_, reject) => (fail = reject)));
-    render(createElement(Screen, { text: "Activity" }));
+    render(createElement(Screen, { text: "activity" }));
     render(createElement("p", null, "chat"));
     fail(new TypeError("Failed to fetch dynamically imported module"));
     await settle();

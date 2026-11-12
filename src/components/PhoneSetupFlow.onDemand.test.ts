@@ -104,8 +104,8 @@ afterEach(() => {
 async function startPairing(fake: ReturnType<typeof desktop>) {
   (globalThis as { duskDesktop?: unknown }).duskDesktop = fake.bridge;
   flushSync(() => root.render(createElement(PhoneSetupFlow)));
-  await vi.waitFor(() => expect(button("Pair")?.disabled).toBe(false));
-  button("Pair")!.click();
+  await vi.waitFor(() => expect(button("pair")?.disabled).toBe(false));
+  button("pair")!.click();
 }
 
 describe("pairing on a computer that holds no HTTPS address yet", () => {
@@ -115,17 +115,17 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
 
     await vi.waitFor(() => expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce());
     expect(fake.bridge.companion.start).toHaveBeenCalledOnce();
-    expect(text()).toContain("Creating secure remote access");
+    expect(text()).toContain("creating secure remote access");
     expect(fake.bridge.companion.pairing).not.toHaveBeenCalled();
 
     fake.finishPrepare("ready");
     await vi.waitFor(
-      () => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull(),
+      () => expect(host.querySelector('[aria-label="device pairing QR code"]')).not.toBeNull(),
       { timeout: 5_000 },
     );
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
-    flushSync(() => button("Reveal")!.click());
-    expect(text()).toContain(`Pairing address${HOSTED}`);
+    flushSync(() => button("reveal")!.click());
+    expect(text()).toContain(`pairing address${HOSTED}`);
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledTimes(2);
   });
 
@@ -136,13 +136,13 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
 
     fake.finishPrepare("full");
     await vi.waitFor(() => expect(text()).toContain(FULL));
-    expect(text()).toContain("Secure access needs attention");
-    expect(button("Try secure access again")).not.toBeNull();
-    expect(button("Use Wi-Fi")).not.toBeNull();
+    expect(text()).toContain("secure access needs attention");
+    expect(button("try secure access again")).not.toBeNull();
+    expect(button("use Wi-Fi")).not.toBeNull();
     expect(fake.bridge.companion.pairing).not.toHaveBeenCalled();
 
-    flushSync(() => button("Use Wi-Fi")!.click());
-    await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
+    flushSync(() => button("use Wi-Fi")!.click());
+    await vi.waitFor(() => expect(host.querySelector('[aria-label="device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();
     expect(fake.bridge.requireUserPresence, "one check covers the whole flow").toHaveBeenCalledOnce();
@@ -160,10 +160,10 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
       () => expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledTimes(2),
       { timeout: 5_000 },
     );
-    expect(text()).toContain("Creating secure remote access");
+    expect(text()).toContain("creating secure remote access");
     fake.finishPrepare("ready");
     await vi.waitFor(
-      () => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull(),
+      () => expect(host.querySelector('[aria-label="device pairing QR code"]')).not.toBeNull(),
       { timeout: 5_000 },
     );
   });
@@ -175,7 +175,7 @@ describe("pairing on a computer that already holds its HTTPS address", () => {
     fake.alreadyHosted();
     await startPairing(fake);
 
-    await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
+    await vi.waitFor(() => expect(host.querySelector('[aria-label="device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
   });
@@ -191,11 +191,11 @@ describe("the person at the computer confirms it is them first", () => {
     await vi.waitFor(() => expect(fake.bridge.requireUserPresence).toHaveBeenCalledOnce());
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(fake.bridge.companion.pairing).not.toHaveBeenCalled();
-    expect(host.querySelector('[aria-label="Device pairing QR code"]')).toBeNull();
-    expect(button("Pair")).not.toBeNull();
+    expect(host.querySelector('[aria-label="device pairing QR code"]')).toBeNull();
+    expect(button("pair")).not.toBeNull();
 
-    button("Pair")!.click();
-    await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
+    button("pair")!.click();
+    await vi.waitFor(() => expect(host.querySelector('[aria-label="device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.requireUserPresence).toHaveBeenCalledTimes(2);
     expect(fake.bridge.requireUserPresence).toHaveBeenCalledWith("show a code that links a phone");
   });

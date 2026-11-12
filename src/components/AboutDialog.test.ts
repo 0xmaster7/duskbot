@@ -19,20 +19,20 @@ afterEach(() => {
   setLocale("en");
 });
 
-describe("About", () => {
+describe("about", () => {
   it("is Grok's About: a close at the corner and Copy version info, no Close button under it", () => {
     const html = about({ location: { host: "bots.example.test" } });
     expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-label="Close"');
-    expect(html).toContain(">Copy version info</button>");
-    expect(html).not.toContain(">Close</button>");
+    expect(html).toContain('aria-label="close"');
+    expect(html).toContain(">copy version info</button>");
+    expect(html).not.toContain(">close</button>");
   });
 
   it("says source-available, never open source or Apache, and links the license and the bundled notices", () => {
     const html = about({ location: { host: "bots.example.test" } });
     expect(html).toContain("source-available. free for personal use.");
     expect(html).not.toMatch(/open.?source|apache|github/i);
-    for (const label of ["Docs", "Releases", "License", "Third-party notices"]) expect(html).toContain(`>${label}</`);
+    for (const label of ["docs", "releases", "license", "third-party notices"]) expect(html).toContain(`>${label}</`);
     expect(html).toContain('href="/third-party-notices.txt"');
   });
 
@@ -42,33 +42,33 @@ describe("About", () => {
 
   it("in the app on this computer, shows the app's own version on one line", () => {
     const html = about({ duskDesktop: { platform: "darwin", app: { version: "0.1.127", ownPage: true } }, location: { host: "127.0.0.1:8799" } });
-    expect(html).toContain(">Version 0.1.127 · macOS</p>");
-    expect(html).not.toContain("Connected to");
+    expect(html).toContain(">version 0.1.127 · macOS</p>");
+    expect(html).not.toContain("connected to");
   });
 
   it("in the app on another server, shows the app's own version and names that server with the version it runs", () => {
     const html = about({ duskDesktop: { platform: "darwin", app: { version: "0.1.127", ownPage: false } }, location: { host: "bots.example.test" } });
-    expect(html).toContain(">Version 0.1.127 · macOS</p>");
-    expect(html).toContain(`>Connected to bots.example.test · version ${appVersion()}</p>`);
+    expect(html).toContain(">version 0.1.127 · macOS</p>");
+    expect(html).toContain(`>connected to bots.example.test · version ${appVersion()}</p>`);
   });
 
   it("in a browser, keeps the page's version on one line", () => {
     const html = about({ location: { host: "bots.example.test" } });
-    expect(html).toContain(`>Version ${appVersion()}</p>`);
-    expect(html).not.toContain("Connected to");
+    expect(html).toContain(`>version ${appVersion()}</p>`);
+    expect(html).not.toContain("connected to");
   });
 
   it("in an app too old to say which version it is, keeps the page's version as before", () => {
     const html = about({ duskDesktop: { platform: "darwin" }, location: { host: "bots.example.test" } });
-    expect(html).toContain(`>Version ${appVersion()} · macOS</p>`);
-    expect(html).not.toContain("Connected to");
+    expect(html).toContain(`>version ${appVersion()} · macOS</p>`);
+    expect(html).not.toContain("connected to");
   });
 
   it("names the server as it was saved, in the person's language", () => {
     const app = { version: "0.1.127", ownPage: false };
     expect(aboutVersionLines({ app, bundle: "0.1.116", platform: "macOS", server: "Office Mac" })).toEqual([
-      "Version 0.1.127 · macOS",
-      "Connected to Office Mac · version 0.1.116",
+      "version 0.1.127 · macOS",
+      "connected to Office Mac · version 0.1.116",
     ]);
     setLocale("de");
     expect(aboutVersionLines({ app, bundle: "0.1.116", platform: "macOS", server: "Office Mac" })).toEqual([

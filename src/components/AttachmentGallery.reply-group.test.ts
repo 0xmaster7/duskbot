@@ -47,7 +47,7 @@ describe("the group beneath a reply", () => {
   });
 
   it("shows six, then +N more", () => {
-    expect(html.match(/aria-label="Save a copy of /g)).toHaveLength(6);
+    expect(html.match(/aria-label="save a copy of /g)).toHaveLength(6);
     expect(html).toContain("+3 more");
   });
 
