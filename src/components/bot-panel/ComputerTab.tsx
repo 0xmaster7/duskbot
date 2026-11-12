@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 
 import { cloudMoveStage, openCloudMove, runsOnHost, type CloudMoveStage, type RunsOnHost } from "@/lib/cloud-move";
@@ -18,7 +18,7 @@ import type { SimplePageId } from "./page-registry";
 import type { InlineReport } from "../ComputerPanel";
 import { deviceWord } from "../vps-link/parts";
 import { Card, NoteRow, RadioRow } from "./rows";
-import { CloudHopScene } from "../CloudMoveScene";
+import { CloudRestScene } from "../CloudMoveScene";
 import { mdPrimaryCls } from "../ui/GrokDialog";
 import { CloudDesktopListRow, useCloudDesktop, type CloudDesktopRow } from "./CloudDesktop";
 import { AsleepMascot, COMPUTER_FRAME_CLASS, COMPUTER_SCREEN_ASPECT, COMPUTER_WAKE_BUTTON_CLASS, ComputerWaking } from "./ComputerScreenMascot";
@@ -181,24 +181,40 @@ const quietCls = "inline-flex h-7 cursor-pointer items-center rounded-full px-2.
 const isLocalHost = (host: RunsOnHost) => host.kind === "mac" || host.kind === "pc";
 
 
-/** Moving a bot from a server to cloud desktop: the same small sky as dusk cloud's card, its mascot hopping over when the
- * button is pointed at, one line and the one primary action. */
-function CloudDesktopCta({ bot, stage, label }: { bot: Bot; stage: CloudMoveStage | null; label: string }) {
-  const [hopping, setHopping] = useState(false);
-  const there = stage === "moved" || stage === "open";
-  const moving = stage === "preparing" || stage === "moving" || stage === "coming-back";
-  const preview = (on: boolean) => (event: { pointerType: string }) => { if (event.pointerType === "mouse") setHopping(on); };
+
+/** The one move to the cloud, as a calm card on a soft blue tint: the bot resting on its cloud between a sun and a moon
+ * (24/7), a short title and one line under it, and the primary button. */
+function cloudCta({ bot, anchor, step, title, body, button, awake, setAwake }: { bot: Bot; anchor: string; step: string; title: string; body: string; button: ReactNode; awake: boolean; setAwake: (on: boolean) => void }) {
   return (
-    <section data-panel-card="cloud-desktop" data-cloud-cta={there ? "open" : moving ? "moving" : "move"} className="mt-3 overflow-hidden rounded-[16px] first:mt-0 bg-[color-mix(in_srgb,#9fdcf5_28%,transparent)]">
-      <CloudHopScene bot={bot} on={there || moving || hopping ? "cloud" : "laptop"} sky={false} className="pt-2" />
-      <div className="flex flex-col items-center gap-2.5 px-4 pb-4 pt-1 text-center">
-        <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink">{t(there ? "runsOn.cloudDesktopLineThere" : "runsOn.cloudDesktopLine", { name: bot.name })}</p>
-        <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={moving}
-          onClick={() => openCloudMove("cloud")} onPointerEnter={preview(true)} onPointerLeave={preview(false)}
-          onFocus={() => setHopping(true)} onBlur={() => setHopping(false)}>{label}</button>
+    <section data-panel-card={anchor} data-cloud-cta={step}
+      onPointerEnter={() => setAwake(true)} onPointerLeave={() => setAwake(false)}
+      className="mt-3 overflow-hidden rounded-[16px] first:mt-0 bg-[color-mix(in_srgb,#9fdcf5_24%,transparent)]">
+      <div className="relative flex justify-center pt-3">
+        <CloudRestScene bot={bot} awake={awake} />
+        <span className="absolute left-4 top-3 rounded-full bg-[color-mix(in_srgb,var(--color-composer)_80%,transparent)] px-2 py-0.5 text-[11px] font-medium leading-4 text-ink">24/7</span>
+      </div>
+      <div className="flex flex-col gap-3 px-4 pb-4 pt-2">
+        <div className="min-w-0">
+          <p className="m-0 text-pretty text-[14px] font-medium leading-5 tracking-[-0.01em] text-ink">{title}</p>
+          <p className="m-0 mt-1 text-pretty text-[12px] leading-4 text-ink-secondary">{body}</p>
+        </div>
+        {button}
       </div>
     </section>
   );
+}
+
+/** Moving a bot from a server to cloud desktop. */
+function CloudDesktopCta({ bot, stage, label }: { bot: Bot; stage: CloudMoveStage | null; label: string }) {
+  const there = stage === "moved" || stage === "open";
+  const moving = stage === "preparing" || stage === "moving" || stage === "coming-back";
+  const [awake, setAwake] = useState(false);
+  return cloudCta({
+    bot, anchor: "cloud-desktop", step: there ? "open" : moving ? "moving" : "move", awake, setAwake,
+    title: t(there ? "runsOn.ctaDesktop.titleThere" : "runsOn.ctaDesktop.title", { name: bot.name }),
+    body: t(there ? "runsOn.ctaDesktop.bodyThere" : "runsOn.ctaDesktop.body"),
+    button: <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={moving} onClick={() => openCloudMove("cloud")}>{label}</button>,
+  });
 }
 
 export type CloudCtaStep = "get" | "move" | "moving" | "switch";
@@ -211,11 +227,11 @@ export function cloudCtaStep(stage: CloudMoveStage | null): CloudCtaStep {
   return "move";
 }
 
-/** dusk cloud for a bot on this computer: its mascot asleep on the laptop, or on the cloud, and the one next step. */
+/** dusk cloud for a bot on this computer: the bot on its cloud, and the one next step. */
 export function CloudCtaCard({ bot, stage, cloudDesktop }: { bot: Bot; stage: CloudMoveStage | null; cloudDesktop: CloudDesktopRow | null }) {
   const { dispatch } = useStore();
-  const [hopping, setHopping] = useState(false);
   const step = cloudCtaStep(stage);
+  const device = deviceWord();
   const signedOut = cloudDesktop?.account ? cloudPlanView(cloudDesktop.account).kind === "signed-out" : false;
   const act = () => {
     if (step === "get") dispatch({ type: "openCloudAdd", source: "app_bot_panel", ...(signedOut ? { signIn: true as const } : {}) });
@@ -223,19 +239,14 @@ export function CloudCtaCard({ bot, stage, cloudDesktop }: { bot: Bot; stage: Cl
     else openCloudMove("cloud");
   };
   const label = t(step === "get" ? "runsOn.getCloud" : step === "switch" ? "runsOn.switchCloud" : step === "moving" ? "runsOn.movingCloud" : "runsOn.moveDuskCloud");
-  // pointing at the button previews the hop; a tap on touch would leave it stuck, so only a mouse does
-  const preview = (on: boolean) => (event: { pointerType: string }) => { if (event.pointerType === "mouse") setHopping(on); };
-  return (
-    <section data-panel-card="dusk-cloud" data-cloud-cta={step} className="mt-3 overflow-hidden rounded-[16px] first:mt-0 bg-[color-mix(in_srgb,#9fdcf5_28%,transparent)]">
-      <CloudHopScene bot={bot} on={step === "switch" || step === "moving" || hopping ? "cloud" : "laptop"} asleep={step === "get"} sky={false} className="pt-2" />
-      <div className="flex flex-col items-center gap-2.5 px-4 pb-4 pt-1 text-center">
-        <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink">{t(step === "switch" ? "runsOn.cloudLineThere" : "runsOn.cloudLine", { name: bot.name })}</p>
-        <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={step === "moving"}
-          onClick={act} onPointerEnter={preview(true)} onPointerLeave={preview(false)}
-          onFocus={() => setHopping(true)} onBlur={() => setHopping(false)}>{label}</button>
-      </div>
-    </section>
-  );
+  const there = step === "switch";
+  const [awake, setAwake] = useState(false);
+  return cloudCta({
+    bot, anchor: "dusk-cloud", step, awake, setAwake,
+    title: t(there ? "runsOn.cta.titleThere" : "runsOn.cta.title", { name: bot.name }),
+    body: t(there ? "runsOn.cta.bodyThere" : "runsOn.cta.body", { name: bot.name, device }),
+    button: <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={step === "moving"} onClick={act}>{label}</button>,
+  });
 }
 
 /** One small disclosure for what a person rarely needs: the computer's own words for a problem, and its settings. */

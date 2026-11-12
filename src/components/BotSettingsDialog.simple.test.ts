@@ -751,8 +751,8 @@ describe("the Computer tab", () => {
     expect(rendered.html).not.toContain('data-panel-card="runs-on"');
     const card = cta(cloudBot(), null);
     expect(card.html).toContain('data-cloud-cta="get"');
-    expect(card.html).toContain('data-cloud-hop="laptop"');
-    expect(card.html).toContain(">keep Scout working 24/7 on dusk cloud<");
+    expect(card.html).toContain('data-cloud-rest=""');
+    expect(card.html).toContain(">Scout, always on<");
     expect(card.html).toContain(">get dusk cloud<");
     click(find(card, "data-panel-action", "move-cloud"));
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
@@ -764,11 +764,10 @@ describe("the Computer tab", () => {
     const desktop = { openHome } as unknown as Parameters<typeof CloudCtaCard>[0]["cloudDesktop"];
     const ready = cta(cloudBot(), "ready", desktop);
     expect(ready.html).toContain(">move to dusk cloud<");
-    expect(ready.html).toContain('data-cloud-hop="laptop"');
+    expect(ready.html).toContain('data-cloud-rest=""');
     const moved = cta(cloudBot(), "moved", desktop);
     expect(moved.html).toContain(">switch to dusk cloud<");
-    expect(moved.html).toContain('data-cloud-hop="cloud"');
-    expect(moved.html).toContain(">Scout works 24/7 on dusk cloud<");
+    expect(moved.html).toContain(">Scout is on dusk cloud<");
     click(find(moved, "data-panel-action", "move-cloud"));
     expect(openHome).toHaveBeenCalledTimes(1);
     expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "openCloudAdd" }));

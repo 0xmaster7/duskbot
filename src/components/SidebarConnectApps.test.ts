@@ -30,7 +30,7 @@ describe("the Connect apps faces", () => {
     expect(html).toContain('class="ms-1.5 flex shrink-0 items-center"');
     const faces = [...html.matchAll(/data-app-face="[^"]+" class="([^"]*)"/g)].map(([, classes]) => classes!);
     expect(faces).toHaveLength(3);
-    for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px");
+    for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-composer p-px");
     expect(faces[0]).not.toContain("-ms-");
     expect(faces[1]).toContain("-ms-[6px]");
     // at rest they sit straight; only the hovered pill fans them, as grok's does

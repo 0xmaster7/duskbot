@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { PixelIcon } from "../ui/PixelIcon";
 import { t } from "@/lib/i18n";
 import { reportsUsage, usageRows, useEngineLimits, windowLabel, type EngineLimit } from "@/lib/limit-resets";
 import { NEAR_LIMIT_PERCENT } from "../../../shared/limit-reset";
@@ -32,11 +33,11 @@ function windowLine(window: Parameters<typeof windowLabel>[0], resetsAt: number 
 
 const usedOf = (left: number) => 100 - left;
 
-/** Grok's 4px meter: a 6% ink track and the switch blue fill, amber near the limit. */
+/** Grok's 4px meter: a 6% ink track and the switch blue fill, red only at the limit. */
 export function UsageBar({ used, warn, className }: { used: number; warn?: boolean; className?: string }) {
   return (
     <div aria-hidden="true" data-usage-meter="" className={cn("h-1 overflow-hidden rounded-full bg-ink/[0.06]", className)}>
-      <div className={cn("h-full rounded-full", warn ? "bg-warning" : "bg-accent-border")} style={{ width: `${Math.min(100, Math.max(0, used))}%` }} />
+      <div className={cn("h-full rounded-full", warn ? "bg-danger" : "bg-accent-border")} style={{ width: `${Math.min(100, Math.max(0, used))}%` }} />
     </div>
   );
 }
@@ -106,11 +107,11 @@ export function UsageMeterRow({ engine }: { engine: string | undefined }) {
           <div className="text-[13px] leading-[18px] tracking-[0.015em] text-ink">{t("nativeUsage.rowTitle")}</div>
           <div className="truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{hint}</div>
         </div>
-        <span className={cn("shrink-0 text-[13px] leading-[18px] tabular-nums", lead.tone === "fine" ? "text-ink-secondary" : "text-warning")}>
+        <span className={cn("shrink-0 text-[13px] leading-[18px] tabular-nums", lead.tone === "out" ? "text-danger" : "text-ink-secondary")}>
           {lead.tone === "out" ? t("nativeUsage.atLimit") : `${usedOf(lead.left)}% ${t("nativeUsage.used")}`}
         </span>
       </div>
-      <UsageBar used={usedOf(lead.left)} warn={lead.tone !== "fine"} />
+      <UsageBar used={usedOf(lead.left)} warn={lead.tone === "out"} />
     </div>
   );
 }
@@ -130,8 +131,8 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
   const reset = limit.resetsAt !== null && limit.resetsAt > now ? resetsIn(limit.resetsAt, now) : null;
   return (
     <div role="status" data-usage-banner={out ? "danger" : "warning"}
-      className={cn("flex items-center gap-2.5 rounded-[14px] py-2 pe-2 ps-3.5", out ? "bg-danger/[0.07]" : "bg-warning/[0.08]")}>
-      <Icon name="chart-bars" size={14} className={cn("shrink-0", out ? "text-danger" : "text-warning")} />
+      className={cn("flex items-center gap-2.5 rounded-[14px] py-2 pe-2 ps-3", out ? "bg-danger/[0.07]" : "bg-ink/[0.04]")}>
+      <PixelIcon name={out ? "batteryFull" : "battery"} />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">
           {out ? t("nativeUsage.banner.out", { engine: limit.name }) : t("nativeUsage.banner.near", { engine: limit.name, percent: used })}

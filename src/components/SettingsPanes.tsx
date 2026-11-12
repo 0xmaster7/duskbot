@@ -41,6 +41,8 @@ import { PeopleSection } from "./PeopleSection";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { BatteryCard } from "./usage/BatteryCard";
+import { ProviderSummary } from "./usage/ProviderSummary";
+import { UsageGraph } from "./usage/UsageGraph";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { RoutineWakeRow } from "./routines/RoutineWakeRow";
@@ -54,7 +56,6 @@ import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
-import { UsageMeterCard } from "./native/UsageMeter";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
 import {
   ExperimentalFeaturesRow, FollowUpRow, LanguageRow, QuickUpdatesRow, SendKeyRow, TalkingStyleRow,
@@ -449,13 +450,8 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
   if (at === "plan") return <div data-settings-block="cloudAccount" className="flex flex-col gap-5">{cloudAccount}</div>;
   return (
     <>
-      {limits.length ? (
-        <SettingsGroup block="usage" footnote={t("settings.usage.footnote")}>
-          <div data-usage-cards="" className="flex flex-col gap-3">{limits.map((limit) => <UsageMeterCard key={limit.engine} limit={limit} />)}</div>
-        </SettingsGroup>
-      ) : null}
-      {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
-      {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /></AdminOnly>}
+      <ProviderSummary limits={limits} />
+      {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /><UsageGraph /></AdminOnly>}
       {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
       {((!limits.length && !usage) || usage || has("usage")) && (
         <RowsCard label={t("settings.docs.usageMore")} data-settings-block={!limits.length && !usage ? "usage" : undefined}>
@@ -463,6 +459,7 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
           {(usage || has("usage")) && <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />}
         </RowsCard>
       )}
+      {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
       {has("cloudAccount") && (
         <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount" footnote={<CloudPlanFootnote />}>
           <SettingsRows>
