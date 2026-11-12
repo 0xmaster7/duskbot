@@ -42,7 +42,6 @@ import { PeopleSection } from "./PeopleSection";
 import { PlaceLookRows } from "./PlaceLookCard";
 import { PlanUsageSummary } from "./PlanUsage";
 import { BatteryCard } from "./usage/BatteryCard";
-import { AllowanceCard } from "./usage/AllowanceCard";
 import { ProviderSummary } from "./usage/ProviderSummary";
 import { UsageGraph } from "./usage/UsageGraph";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
@@ -454,7 +453,7 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
   return (
     <>
       <ProviderSummary limits={limits} />
-      {has("usage") && <AdminOnly note="settings.adminOnly.usage"><UsageGraph /><AllowanceCard /><BatteryCard version={0} /></AdminOnly>}
+      {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /><UsageGraph /></AdminOnly>}
       {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
       {((!limits.length && !usage) || usage || has("usage")) && (
         <RowsCard label={t("settings.docs.usageMore")} data-settings-block={!limits.length && !usage ? "usage" : undefined}>
