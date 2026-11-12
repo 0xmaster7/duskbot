@@ -418,12 +418,11 @@ export function BackButton({ onBack, label = t("common.back") }: { onBack: () =>
 }
 
 /** A pane's header: its title, or a page's title behind a back chevron. */
-export function PaneHeader({ title, onBack, backLabel, headingId, lead, children }: { title: ReactNode; onBack?: () => void; backLabel?: string; headingId?: string; lead?: ReactNode; children?: ReactNode }) {
+export function PaneHeader({ title, onBack, backLabel, headingId, children }: { title: ReactNode; onBack?: () => void; backLabel?: string; headingId?: string; children?: ReactNode }) {
   return (
     <header className="settings-pane-header">
       <div className="flex min-w-0 items-center gap-1.5">
         {onBack && <BackButton onBack={onBack} label={backLabel} />}
-        {lead}
         <h2 id={headingId} className={cn("settings-pane-title truncate outline-none", onBack && "ps-0")}>{title}</h2>
       </div>
       {children}

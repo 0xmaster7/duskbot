@@ -15,7 +15,7 @@ const clock = (at: number, day: number) => sameDay(at, day)
 export function LateRoutineCard({ late, now, onStart, onNotNow }: { late: LateRoutineRun; now: number; onStart: () => void; onNotNow: () => void }) {
   const device = deviceWord();
   const missed = late.ranAt === null;
-  return <NoticeCard titleId="late-routine-title" notice="late-routine" icon={AlarmClock}
+  return <NoticeCard titleId="late-routine-title" notice="late-routine" icon={AlarmClock} pixel="clock"
     title={t(missed ? "routines.late.titleMissed" : "routines.late.title", { name: late.name })} onDismiss={onNotNow}>
     <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">
       {missed ? t("routines.late.bodyMissed", { due: clock(late.dueAt, now), device })

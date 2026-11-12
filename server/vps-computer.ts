@@ -32,7 +32,7 @@ import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import { admitVpsDesktop, desktopLimitArgs, desktopLimits, desktopUpdateArgs, type VpsDesktopLimits } from "./vps-capacity.ts";
 import {
   BOT_DESKTOP_IMAGE, BOT_DESKTOP_LABEL, BOT_DESKTOP_VERSION, botDesktopIsHardened, botDesktopLabelsMatch, botDesktopMountsAreSafe, botDesktopNetworkIsPrivate,
-  botDesktopEnvIsStale, containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
+  containerBotDesktopMode, containerDesktopKind, preferredVpsDesktop, provisionBotDesktop, type BotDesktopProgress, type VpsDesktopKind,
 } from "./bot-desktop.ts";
 import { DATA_DIR, isValidSshAlias, vpsSshAlias, type AppConfig } from "./config.ts";
 import { augmentedPath } from "./env-path.ts";
@@ -125,8 +125,6 @@ const PREPARATION_LOCK_TIMEOUT_MS = SCREENSHOT_BUDGET_MS + LOCK_ACQUIRE_TIMEOUT_
 type VpsScreenshot = { png: string; format: "png" | "jpeg" };
 const pendingScreenshots = new Map<string, Promise<VpsScreenshot>>();
 const viewerConnections = new Map<string, { privateIp: string; password: string }>();
-/** bot desktops (by `${alias}:${name}`, their container id) whose image never got its mode: recreated on their next wake */
-const staleEnvDesktops = new Map<string, string>();
 
 function invalidateVpsStatus(key: string): void {
   statusCache.delete(key);
@@ -573,8 +571,6 @@ async function computeVpsComputerStatus(
       ? "hardened" : "unsafe";
 
     const connectionKey = `${alias}:${status.container_name}`;
-    if (status.container_id && status.desktop === "bot-desktop" && botDesktopEnvIsStale(detail?.Config?.Env)) staleEnvDesktops.set(connectionKey, status.container_id);
-    else staleEnvDesktops.delete(connectionKey);
     const privateIp = Object.values(detail?.NetworkSettings?.Networks ?? {})[0]?.IPAddress;
     const password = viewerPassword(detail?.Config?.Env);
     if (status.managed && privateIp && privateDockerIpv4(privateIp) && password) {
@@ -1049,21 +1045,13 @@ export async function vpsComputerAction(
       const containerRef = before.container_id ?? before.container_name;
       const admit = <T>(start: (limits: VpsDesktopLimits) => Promise<T>) => admitVpsDesktop({ alias, containerName: before.container_name, shared: botId.startsWith("computer_"),
         local: isThisServerVps(alias), environmentId: vpsEnvironmentId(), docker: (args, timeoutMs) => run(args, timeoutMs), requireAllowed }, start);
-      const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
-        containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
-        labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit,
-      });
-      // a stopped box this app made that its image cannot start: remove the container (never its home volume), make it anew
-      const stale = before.container === "stopped" && before.managed && before.imageMatches && before.desktop === "bot-desktop" &&
-        Boolean(before.container_id) && staleEnvDesktops.get(key) === before.container_id;
-      const remake = async () => {
-        await run(["rm", "-f", before.container_id!]);
-        staleEnvDesktops.delete(key);
-        await botDesktop();
-      };
-      const wake = () => stale ? remake() : admit(limits => run(desktopUpdateArgs(containerRef, limits), 30_000).catch(() => {}).then(() => run(["start", containerRef])));
+      const wake = () => admit(limits => run(desktopUpdateArgs(containerRef, limits), 30_000).catch(() => {}).then(() => run(["start", containerRef])));
       if (action === "provision") {
         if (before.container === "missing" || before.container === "stopped") guard.onStarting?.();
+        const botDesktop = () => provisionBotDesktop((args, timeoutMs) => run(args, timeoutMs), {
+          containerName: before.container_name, imageId: before.image ? before.image_id : null, hostKey: alias,
+          labels: vpsOwnershipLabels(before.container_name), viewerSecret: randomBytes(18).toString("base64url"), onProgress: guard.onProgress, admit,
+        });
         if (before.container === "missing") {
           if (before.desktop === "bot-desktop") await botDesktop();
           else {
@@ -1076,13 +1064,13 @@ export async function vpsComputerAction(
             await admit(limits => run(vpsContainerRunArgs(before.container_name, imageRef!, undefined, limits)));
           }
         } else {
-          if (!stale) assertUsableContainer(before);
+          assertUsableContainer(before);
           if (before.container === "stopped") await wake();
         }
       } else if (action === "start") {
         if (before.container === "missing") throw Object.assign(new Error("No VPS container exists for this bot"), { status: 409 });
         if (before.container === "running") throw Object.assign(new Error("The VPS container is already running"), { status: 409 });
-        if (!stale) assertUsableContainer(before);
+        assertUsableContainer(before);
         guard.onStarting?.();
         await wake();
       } else if (action === "remove") {

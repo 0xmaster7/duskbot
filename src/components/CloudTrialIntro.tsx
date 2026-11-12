@@ -14,7 +14,7 @@ export function CloudTrialIntroCard({ offer, onStart, onHowTo, onSignIn, onNotNo
 }) {
   const view = cloudIntroView(offer);
   if (!view) return null;
-  return <NoticeCard titleId="cloud-intro-title" notice="cloud-intro" icon={Cloud} title={t("cloudIntro.title")} onDismiss={onDismiss}>
+  return <NoticeCard titleId="cloud-intro-title" notice="cloud-intro" icon={Cloud} pixel="cloud" title={t("cloudIntro.title")} onDismiss={onDismiss}>
     <Tag className="mt-2">{view.badge}</Tag>
     <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">{t("cloudIntro.body")}</p>
     <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-ink">

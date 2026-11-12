@@ -8110,5 +8110,13 @@
   "routineRun.review": "review",
   "routineRun.openRunFor": "{action} for {name}",
   "runsOn.cloudDesktopLine": "keep {name} working 24/7 on cloud desktop",
-  "runsOn.cloudDesktopLineThere": "{name} works 24/7 on cloud desktop"
+  "runsOn.cloudDesktopLineThere": "{name} works 24/7 on cloud desktop",
+  "runsOn.cta.title": "{name}, always on",
+  "runsOn.cta.body": "dusk cloud keeps {name} working while this {device} sleeps.",
+  "runsOn.cta.titleThere": "{name} is on dusk cloud",
+  "runsOn.cta.bodyThere": "it keeps working while this {device} sleeps.",
+  "runsOn.ctaDesktop.title": "{name}, on cloud desktop",
+  "runsOn.ctaDesktop.body": "a desktop we run for you, on around the clock.",
+  "runsOn.ctaDesktop.titleThere": "{name} is on cloud desktop",
+  "runsOn.ctaDesktop.bodyThere": "open it to see its screen."
 }
