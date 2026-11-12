@@ -10,7 +10,7 @@ reruns and recovery. It
 builds macOS (arm64 + x64, signed, notarized, stapled), Windows, and Ubuntu
 from a single pinned commit, verifies every artifact the way a user would
 receive it, and assembles the canonical draft in
-[dusk bot releases](https://github.com/goatedgrokbotalternative/duskbot/releases).
+[dusk bot releases](https://github.com/DuskBotAI/duskbot/releases).
 Tick **publish** to publish the release immediately, or leave it unticked to
 review the draft first.
 
@@ -45,7 +45,7 @@ scripts/publish-downloads.sh v0.1.142            # DRY_RUN=1 first to only verif
 ```
 
 It downloads the release, checks every installer against the run's signed `SHA256SUMS`, uploads the installers to
-the public `goatedgrokbotalternative/duskbot-releases` release (stable `/releases/latest/download/` names that
+the public `DuskBotAI/duskbot-releases` release (stable `/releases/latest/download/` names that
 dusk.bot/download links to), then puts `latest.json` and `SHA256SUMS` on dusk.bot through the deployd landing site.
 Desktop apps read `https://dusk.bot/releases/latest.json` once a day, accept it only when a pinned release key
 signed it (server/update-check.ts), and show a notification that opens dusk.bot/download. Nothing installs itself.

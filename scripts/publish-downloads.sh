@@ -3,15 +3,15 @@
 # /releases/latest/download/ links), and the signed latest.json and SHA256SUMS on dusk.bot through the deployd landing
 # site. run on the Mac after Release published v<version>.
 #   scripts/publish-downloads.sh v0.1.142
-# env: DUSK_DOWNLOADS_REPO (public, default goatedgrokbotalternative/duskbot-releases), DUSK_SOURCE_REPO (private, the
+# env: DUSK_DOWNLOADS_REPO (public, default DuskBotAI/duskbot-releases), DUSK_SOURCE_REPO (private, the
 # release's home), DEPLOYD_DIR (default ~/Desktop/code/deployd), DRY_RUN=1 to stop before uploading.
 set -euo pipefail
 
 TAG="${1:?usage: publish-downloads.sh v<version>}"
 VERSION="${TAG#v}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG" >&2; exit 2; }
-SOURCE="${DUSK_SOURCE_REPO:-goatedgrokbotalternative/duskbot}"
-DOWNLOADS="${DUSK_DOWNLOADS_REPO:-goatedgrokbotalternative/duskbot-releases}"
+SOURCE="${DUSK_SOURCE_REPO:-DuskBotAI/duskbot}"
+DOWNLOADS="${DUSK_DOWNLOADS_REPO:-DuskBotAI/duskbot-releases}"
 DEPLOYD="${DEPLOYD_DIR:-$HOME/Desktop/code/deployd}"
 work=$(mktemp -d "${TMPDIR:-/tmp}/dusk-publish.XXXXXX")
 trap 'rm -rf "$work"' EXIT

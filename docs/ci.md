@@ -375,7 +375,7 @@ per merge group, the main lane, and the same `CI` check name.
 
 GitHub offers the queue only to repositories an organization owns ("Pull
 request merge queues are available in any public repository owned by an
-organization", GitHub's docs, October 2026). `goatedgrokbotalternative/duskbot` is
+organization", GitHub's docs, October 2026). `DuskBotAI/duskbot` is
 owned by a user account, so the rule below appears only after the repository
 moves to an organization (such as `SupaMaus`). Then:
 

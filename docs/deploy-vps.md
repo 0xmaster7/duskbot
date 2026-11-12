@@ -103,7 +103,7 @@ One container for the server plus Caddy for HTTPS at `https://maus.example.com`.
 3. **Get the deploy files and set the name:**
 
    ```sh
-   git clone https://github.com/goatedgrokbotalternative/duskbot && cd duskbot/deploy
+   git clone https://github.com/DuskBotAI/duskbot && cd duskbot/deploy
    cp .env.example .env
    nano .env                # DOMAIN=maus.example.com ; ENGINES=@anthropic-ai/claude-code @openai/codex
    ```

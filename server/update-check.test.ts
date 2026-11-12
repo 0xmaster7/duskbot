@@ -35,12 +35,12 @@ describe("server update check", () => {
   });
 
   it("identifies only this fork as its release repository", () => {
-    expect(LATEST_RELEASE_URL).toBe("https://api.github.com/repos/goatedgrokbotalternative/duskbot/releases/latest");
+    expect(LATEST_RELEASE_URL).toBe("https://api.github.com/repos/DuskBotAI/duskbot/releases/latest");
   });
 
   it("never checks public feeds or suggests upstream install commands for any installation the desktop app does not own", async () => {
     const fetchRelease = vi.fn(async () => new Response(JSON.stringify({
-      tag_name: "v999.0.0", html_url: "https://github.com/goatedgrokbotalternative/duskbot/releases/tag/v999.0.0",
+      tag_name: "v999.0.0", html_url: "https://github.com/DuskBotAI/duskbot/releases/tag/v999.0.0",
     })));
     vi.stubGlobal("fetch", fetchRelease);
     const installs: InstallKind[] = ["managed", "docker", "podman", "npm", "git", "unknown"];

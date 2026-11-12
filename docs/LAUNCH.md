@@ -10,7 +10,7 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 | Release pipeline | CI and release workflows, signed update manifest, update notice, download publishing script | Apple and GitHub secrets, public downloads repo, first release |
 | Hosted services | Health check, data export, CSP, proxy-safe rate limits, config template, backup, log rotation, uptime checks | Deploy with real keys, install backup and monitor, staging |
 | Observability | Scrubbing error reporter in the account service, its page, desktop, server and phone app (all off without a DSN) | Pick and create the error tracker, set the DSN, desktop Settings toggle |
-| Legal and trust | Terms, Privacy, License, Security drafts (Markdown in `docs/legal`, HTML on dusk.bot), security.txt, account export | Legal review, fill the placeholders, privacy@ and security@ mailboxes |
+| Legal and trust | Terms, privacy, cookies, refunds, acceptable use, subprocessors, license and security policies (Markdown in `docs/legal`, live on dusk.bot), security.txt, account export | Processor DPAs, privacy@ and security@ mailboxes |
 | Product polish | No-AI screen copy, dashboard offline and error states, landing site, installer docs | The items under "Polish not done" |
 | Security | Rate-limit bypass, workspace claim takeover, installer https pinning, link service bind, dependency advisories, history secret scan | Redeploy the link service, the CI reds listed below |
 
@@ -41,7 +41,8 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
    `bot.dusk.app`. Export it from Keychain as .p12 with a strong password.
 2. **App Store Connect API key** for notarization: Users and Access > Integrations > App Store Connect API >
    Team Key, role Developer. Download the .p8 once; note Key ID and Issuer ID.
-3. In **github.com/goatedgrokbotalternative/duskbot > Settings > Secrets and variables > Actions** add:
+3. In **github.com/DuskBotAI/duskbot > Settings > Secrets and variables > Actions** add (as of 12 November 2026 the
+   repo has no Actions secrets at all, so `release.yml` cannot sign, notarize or write `latest.json` yet):
    `MAC_CERT_P12_BASE64` (`base64 -i DeveloperID.p12 | pbcopy`), `MAC_CERT_PASSWORD`,
    `APPLE_API_KEY_P8_BASE64` (`base64 -i AuthKey_XXXX.p8 | pbcopy`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`,
    `DUSK_RELEASE_SIGNING_KEY` (the private half of the pinned key `rel-2026-11`; if you no longer have it, make a new
@@ -56,7 +57,7 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 6. **Windows signing** (decision): builds are unsigned, so SmartScreen warns "unknown publisher". Options: Azure
    Trusted Signing (about USD 10 a month, needs a verified organization) or an OV/EV certificate. Wire it into
    `release.yml`'s Windows job when chosen.
-7. **Public downloads repo**: `gh repo create goatedgrokbotalternative/duskbot-releases --public --description "dusk bot downloads"`.
+7. **Public downloads repo**: `gh repo create DuskBotAI/duskbot-releases --public --description "dusk bot downloads"`.
 8. **First release**: Actions > Prepare next release > patch; merge the PR; when the draft is ready, review and
    publish it; then on the Mac `DRY_RUN=1 scripts/publish-downloads.sh v<version>` and without `DRY_RUN`. Then
    remove the "Downloads open with the first public release" line from
@@ -221,8 +222,9 @@ Silence or test:
 
 ### Done
 
-- Drafts in `docs/legal/{terms,privacy,license,security}.md`, each opening with "Draft for legal review", published as
-  https://dusk.bot/terms, /privacy, /license and /security (built from the Markdown by
+- Final policies in `docs/legal/{terms,privacy,cookies,refunds,acceptable-use,subprocessors,license,security}.md`, each
+  with an effective date (12 November 2026), live at https://dusk.bot/terms, /privacy, /cookies, /refunds,
+  /acceptable-use, /subprocessors, /license and /security (built from the Markdown by
   `deployd/sites/dusk/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, InstaBox (cloud desktops, on AWS us-west-2), Dodo
   Payments, Brevo, Composio, Apple APNs, Google FCM, Spaceship (registrar), Let's Encrypt and the error tracker; AI model
   providers are the user's own relationship.
@@ -236,14 +238,13 @@ Silence or test:
 
 ### Owner
 
-1. Lawyer review of all four documents; fill every `[placeholder]`: legal entity and address, governing law and
-   courts, effective date, refund policy, retention periods (cloud desktop after a plan ends, access logs), minimum
-   age, data center region, each provider's processing locations and transfer mechanism, error tracker choice.
+1. The policies are final and carry no placeholders. When something they describe changes (a new provider, a new
+   retention period, the error tracker choice), edit the Markdown, bump "Last updated" and redeploy the pages.
 2. Sign the processors' DPAs (Contabo, Cloudflare, Brevo, Dodo, Composio, InstaBox, the error tracker). InstaBox
    replaced the earlier cloud desktop provider: its DPA is new and still unsigned.
 3. Decide whether naming InstaBox publicly on /privacy is fine now (apps/cloud-service/README.md planned it for "once
    there are EU customers"; the privacy page names it today).
-4. After review: replace the drafts in `docs/legal`, run `sites/dusk/deploy.sh landing`, and bump security.txt's
+4. After any policy edit: run `sites/dusk/deploy.sh landing`, and bump security.txt's
    Expires yearly.
 
 ## 5. Product polish

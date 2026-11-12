@@ -2,7 +2,7 @@ import { createPublicKey, verify } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join, sep } from "node:path";
 
-export const LATEST_RELEASE_URL = "https://api.github.com/repos/goatedgrokbotalternative/duskbot/releases/latest";
+export const LATEST_RELEASE_URL = "https://api.github.com/repos/DuskBotAI/duskbot/releases/latest";
 
 /** "managed" is a hosted or Cloud server that is updated for its owner. */
 export type InstallKind = "desktop" | "managed" | "docker" | "podman" | "npm" | "git" | "unknown";
