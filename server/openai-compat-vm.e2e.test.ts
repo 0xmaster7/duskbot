@@ -110,7 +110,8 @@ beforeAll(async () => {
     res.writeHead(200, { "content-type": "text/event-stream" });
     if (toolResult) {
       res.end(frame({ content: "Selection acknowledged; waiting for the new surface." }, "stop") + "data: [DONE]\n\n");
-    } else if (pendingSelect) {
+    } else if (pendingSelect && toolNames(request).includes("agents_select_computer")) {
+      // only the turn itself is offered the pick; a side call (a title, a summary) without tools just gets text
       const call = { index: 0, id: "select-call", type: "function", function: { name: "agents_select_computer", arguments: JSON.stringify({ surface: pendingSelect.surface }) } };
       pendingSelect = null;
       res.end(frame({ tool_calls: [call] }, "tool_calls") + "data: [DONE]\n\n");
@@ -201,9 +202,11 @@ describe("openai-compat Local VM tools", () => {
     const { bot } = await api("POST", "/api/bots", { name: "openai select vm" });
     await api("PATCH", `/api/bots/${bot.id}/model`, { instanceId: "openaiCompat", model: "fixture-model" });
     pendingSelect = { surface: "vm" };
+    // the turn's own rounds: side calls (a title) carry no tools
+    const turns = () => requests.filter(request => toolNames(request).length > 0);
     await api("POST", `/api/bots/${bot.id}/messages`, { text: "Open a browser on my Local VM." });
     try {
-      await until(() => requests.length, count => count >= 3);
+      await until(() => turns().length, count => count >= 3);
     } catch (error) {
       const state = await api("GET", "/api/bots");
       const current = state.bots.find((item: any) => item.id === bot.id);
@@ -214,12 +217,12 @@ describe("openai-compat Local VM tools", () => {
       throw error;
     }
     await idle(bot.id);
-    const continuation = requests[2];
-    expect(toolNames(continuation), JSON.stringify({ tools: toolNames(continuation), requests: requests.length })).toContain("computer_screenshot");
-    expect(toolNames(requests[0])).toContain("agents_select_computer");
+    const [selecting, , continuation] = turns();
+    expect(toolNames(continuation), JSON.stringify({ tools: toolNames(continuation), requests: turns().length })).toContain("computer_screenshot");
+    expect(toolNames(selecting)).toContain("agents_select_computer");
     // The continuation is listed the agents tools its request was, select_computer too: the route refuses a second pick.
     const agentsTools = (request: ChatRequest | undefined) => toolNames(request).filter((name) => name.startsWith("agents_"));
-    expect(agentsTools(continuation)).toEqual(agentsTools(requests[0]));
+    expect(agentsTools(continuation)).toEqual(agentsTools(selecting));
     expect(toolNames(continuation)).toContain("agents_select_computer");
     const shown = (await api("GET", "/api/bots")).bots.find((item: any) => item.id === bot.id).messages;
     expect(shown.filter((message: any) => message.card)).toEqual([]);
