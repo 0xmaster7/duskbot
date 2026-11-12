@@ -2938,6 +2938,7 @@ app.whenReady().then(async () => {
   startupScreen = hiddenStart ? null : createStartupScreen({
     BrowserWindow, iconPath: APP_ICON, isQuitting: () => desktopShutdownStarted,
     onQuit: () => app.quit(),
+    onRetry: () => { app.relaunch(); app.quit(); },
     onHide: desktopTray ? (win) => desktopTray.hide(win) : undefined,
     isHidden: () => desktopTray?.isHidden() ?? false,
     onShow: (win) => desktopTray?.windowShown(win),
@@ -3236,6 +3237,10 @@ app.whenReady().then(async () => {
     if (desktopTray?.show()) return;
     if (appWindows().length === 0) openWindowForLink();
   });
+}).catch((error) => {
+  slog(`startup failed: ${error?.stack ?? error}`);
+  if (!startupScreen) throw error;
+  startupScreen.fail(error);
 }).finally(() => allWindowsClosedQuit.settleStartup());
 
 const allWindowsClosedQuit = createAllWindowsClosedQuit({

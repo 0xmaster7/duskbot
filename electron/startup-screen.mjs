@@ -1,11 +1,21 @@
 import { fileURLToPath } from 'node:url';
-import { BOOT_MASCOT_CSS, bootMascotSvg } from './startup-mascot.mjs';
+import { cloudSvg, flowersSvg, hillsSvg, logoSvg, meadowSvg, puffSvg, sprite, starsSvg } from './startup-art.mjs';
 
 /** How long a page that shows its own waiting mascot keeps the splash up before it takes over. */
 export const BOOT_SHELL_HANDOFF_MS = 600;
-/** The ring gets this long to close before the app shows anyway. */
+/** The meadow gets this long to finish blooming before the app shows anyway. */
 export const RING_CLOSE_LIMIT_MS = 900;
 export const CROSSFADE_MS = 280;
+export const SLOW_AFTER_MS = 8_000;
+export const STUCK_AFTER_MS = 45_000;
+
+export const STATUS_LINES = Object.freeze([
+  "waking the bots…", "brewing coffee for kit…", "finding your chats…", "fluffing the clouds…",
+  "watering the meadow…", "dusting off your projects…", "teaching kit to sit…", "tidying the sky…",
+]);
+export const SLOW_LINES = Object.freeze([
+  "still going, first opens take a little longer…", "nearly there, kit's on it…", "everything's fine, just a slow morning…",
+]);
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -22,42 +32,161 @@ async function crossfade(win, splash) {
   }
 }
 
-export function startupScreenHtml() {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>OpenMaus Bot</title><style>
-  *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Segoe UI,system-ui,sans-serif;color:#f5f5f5;background:transparent}
-  main{height:100%;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #ffffff16;border-radius:20px;background:radial-gradient(ellipse at 50% 22%,#242529 0,#161719 54%,#111214 100%);-webkit-app-region:drag}
-  .ring{position:relative;width:104px;height:104px;display:grid;place-items:center;margin-bottom:16px}
-  .ring>svg:first-child{position:absolute;inset:0;transform:rotate(-90deg)}
-  .ring circle{fill:none;stroke-width:2.5}.ring .track{stroke:#ffffff12}.ring .fill{stroke:#e8e9ec;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}
-  h1{font-size:25px;line-height:1.25;font-weight:600;letter-spacing:-.6px;margin:0 0 26px}
-  .status{display:flex;align-items:center;gap:9px;color:#999da5;font-size:12px;line-height:18px}
-  button{position:absolute;right:13px;top:13px;width:30px;height:30px;display:grid;place-items:center;padding:0;color:#999da5;border:0;border-radius:7px;background:transparent;cursor:pointer;-webkit-app-region:no-drag}
-  button:hover{color:#fff;background:#ffffff10}button:focus-visible{outline:2px solid #1686ff;outline-offset:2px}button svg{pointer-events:none}
-  ${BOOT_MASCOT_CSS}
-  </style></head><body><main><button aria-label="Close" onclick="window.startupScreen.close()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><div class="ring"><svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true"><circle class="track" cx="52" cy="52" r="50"/><circle class="fill" cx="52" cy="52" r="50" pathLength="100"/></svg>${bootMascotSvg({ size: 64, id: 'splash-mascot' })}</div><h1>OpenMaus Bot</h1><div class="status" role="status">Opening your workspace…</div></main><script>${RING_SCRIPT}</script></body></html>`;
+const W = 440, H = 300, GROUND = 248, CLOUD = { x: 256, y: 112 };
+const BOTS = [
+  { name: "pip", colour: "#286ef9", ground: 104, spot: 264, delay: 700 },
+  { name: "mochi", colour: "#f12b93", ground: 158, spot: 312, delay: 1300 },
+  { name: "loaf", colour: "#fb7c01", ground: 212, spot: 360, delay: 1900 },
+];
+const BOT_CELL = 3, BOT_SIZE = 16 * BOT_CELL, ON_CLOUD = CLOUD.y + 8 - BOT_SIZE;
+const KIT = { x: 352, cell: 4 };
+
+function sceneSvg() {
+  const bots = BOTS.map(({ name, colour, ground, spot, delay }, i) =>
+    `<g transform="translate(${spot} ${ON_CLOUD})"><g class="bot" style="--c:${colour};--dx:${ground - spot}px;--dy:${GROUND - BOT_SIZE - ON_CLOUD}px;--delay:${delay}ms;--blink:${(3.7 + i * 0.9).toFixed(1)}s">`
+    + `${sprite(name, BOT_CELL)}</g></g>`).join("");
+  return `<svg class="scene" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" aria-hidden="true">`
+    + `<rect class="sky1" width="${W}" height="120"/><rect class="sky2" y="120" width="${W}" height="48"/>`
+    + `<rect class="sky3" y="168" width="${W}" height="40"/><rect class="sky4" y="208" width="${W}" height="${GROUND - 208}"/>`
+    + `<g class="stars">${starsSvg()}</g>`
+    + `<g class="puff" transform="translate(0 150)"><g class="drift">${puffSvg()}</g></g>`
+    + `<g class="hills">${hillsSvg({ bottom: GROUND })}</g>`
+    + `<g class="meadow">${meadowSvg({ top: GROUND })}</g>`
+    + `<g class="flowers">${flowersSvg({ top: GROUND })}</g>`
+    + `<g class="raft"><g transform="translate(${CLOUD.x} ${CLOUD.y})">${cloudSvg()}</g>${bots}</g>`
+    + `<g transform="translate(${KIT.x} ${GROUND - 16 * KIT.cell})"><g class="kit">${sprite("kit", KIT.cell, "var(--kit-eye)")}</g></g>`
+    + `</svg>`;
 }
 
-// the ring creeps on its own so it never stalls, never passes 94% until main says the app is ready, then closes the circle
-const RING_SCRIPT = `(() => {
-  const fill = document.querySelector('.ring .fill'), start = performance.now();
-  let shown = 0, goal = 0, finished = null, finish = null;
+export function startupScreenHtml() {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>Dusk Bot</title><style>
+  :root{--ease-out:cubic-bezier(.23,1,.32,1);--ease-in-out:cubic-bezier(.77,0,.175,1);--line:220ms;
+    --ink:#0f2a3d;--ink-2:#2c4a5f;--focus:#286ef9;--eye:#ffffff;--kit:#d0cefb;--kit-eye:#241f45;
+    --sky-1:#c2ecfc;--sky-2:#cdf0fd;--sky-3:#dbf3fd;--sky-4:#eaf6fd;--hill:#a9e2f7;--grass:#c9f63f;--speck:#b6e52e;
+    --cloud-top:#fffdf3;--cloud-under:#fff3a0;--puff-top:#fff8fb;--puff-under:#ffc4dd;
+    --pink:#ffc4dd;--lemon:#fff3a0;--petal:#fffdf5;--lilac:#d0cefb;--pink-deep:#f47fb4;--lemon-deep:#f2cf2c;--stem:#8fc21c}
+  @media(prefers-color-scheme:dark){:root{--sky-1:#bdb8f5;--sky-2:#d0cefb;--sky-3:#f1cbe6;--sky-4:#ffd9e6;--hill:#a3c6f3;
+    --grass:#c2ef3a;--speck:#a9d827;--puff-top:#fffbea;--puff-under:#fff3a0;--ink-2:#2b3f5c}}
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  main{position:relative;width:100%;height:100%;overflow:hidden;border-radius:20px;background:var(--sky-1);-webkit-app-region:drag}
+  .scene{position:absolute;left:0;top:0}
+  .sky1{fill:var(--sky-1)}.sky2{fill:var(--sky-2)}.sky3{fill:var(--sky-3)}.sky4{fill:var(--sky-4)}
+  .hills{fill:var(--hill)}.meadow .grass{fill:var(--grass)}.meadow .speck{fill:var(--speck)}
+  .stars{fill:#fffdf5;opacity:0}
+  @media(prefers-color-scheme:dark){.stars{opacity:1}.star{animation:twinkle 2.8s steps(1,end) var(--d) infinite}}
+  @keyframes twinkle{0%,70%{opacity:1}71%,85%{opacity:.35}}
+  .drift{animation:drift 40s linear -14s infinite}
+  @keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(${W + 10}px)}}
+  .bot .body{fill:var(--c)}.kit .body{fill:var(--kit)}
+  .bot,.kit,.flower{transform-box:fill-box;transform-origin:50% 100%}
+  .bot{animation:hop 900ms var(--delay) both}
+  .bot .eyes,.kit .eyes{transform-box:fill-box;transform-origin:50% 100%;animation:blink var(--blink,4.4s) steps(1,end) infinite}
+  @keyframes hop{
+    0%{transform:translate(var(--dx),var(--dy));animation-timing-function:var(--ease-out)}
+    10%{transform:translate(var(--dx),var(--dy)) scale(1.14,.82);animation-timing-function:var(--ease-out)}
+    48%{transform:translate(calc(var(--dx)*.32),-58px) scale(.92,1.1);animation-timing-function:cubic-bezier(.5,0,.75,.4)}
+    76%{transform:translate(0,0) scale(1.14,.84);animation-timing-function:var(--ease-out)}
+    100%{transform:none}}
+  @keyframes blink{0%,93%{transform:scaleY(1)}94%,97%{transform:scaleY(.25)}}
+  .raft{animation:bob 2.4s var(--ease-in-out) 3s infinite alternate}
+  @keyframes bob{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+  .kit{animation:wake 1600ms var(--ease-in-out) 200ms both}
+  .kit .eyes{animation:open 1800ms steps(1,end) both,blink 4.4s steps(1,end) 1.8s infinite}
+  @keyframes wake{0%,30%{transform:scale(1.08,.84)}55%{transform:translateX(-6px) scale(1.22,.8)}78%{transform:scale(.95,1.06)}100%{transform:none}}
+  @keyframes open{0%,62%{transform:scaleY(.25)}100%{transform:none}}
+  .flower{opacity:0;transform:translateY(4px) scale(.6);transition:opacity 240ms var(--ease-out),transform 320ms var(--ease-out)}
+  .flower.on{opacity:1;transform:none}
+  .done .raft{animation:cheer 420ms var(--ease-out)}
+  @keyframes cheer{40%{transform:translateY(-12px)}100%{transform:none}}
+  .failed .bot,.failed .raft,.failed .drift,.stuck .raft{animation:none}
+  .failed .kit{animation:none;transform:scale(1.08,.84)}.failed .kit .eyes{animation:none;transform:scaleY(.25)}
+  @media(prefers-reduced-motion:reduce){
+    .bot,.raft,.drift,.kit,.kit .eyes,.bot .eyes,.star,.done .raft{animation:none!important}
+    .flower,.flower.on{transform:none}}
+  header{position:absolute;left:24px;top:22px;display:flex;align-items:center;gap:11px}
+  .logo{display:block;flex:none}
+  h1{margin:0;font-size:17px;line-height:1.2;font-weight:700;letter-spacing:-.2px}
+  .talk{position:absolute;left:24px;top:72px;width:226px;-webkit-app-region:no-drag}
+  .line{margin:0;font-size:14.5px;line-height:1.4;font-weight:600;color:var(--ink-2);min-height:2.8em;transition:opacity var(--line) ease,transform var(--line) var(--ease-out)}
+  .line.out{opacity:0;transform:translateY(-4px)}
+  .trouble{display:none}
+  .stuck .trouble,.failed .trouble{display:block}.stuck .line,.failed .line{display:none}
+  h2{margin:0 0 6px;font-size:16px;line-height:1.3;font-weight:700}
+  .why{margin:0;font-size:13px;line-height:1.45;font-weight:560;color:var(--ink-2)}
+  .detail{margin:8px 0 0;font:500 11.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-user-select:text;user-select:text}
+  .detail:empty{display:none}
+  .actions{display:flex;gap:8px;margin-top:16px}
+  button{font:inherit;cursor:pointer;border:0;-webkit-app-region:no-drag}
+  .actions button{height:38px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:650;transition:background-color 150ms ease,transform 120ms var(--ease-out)}
+  .actions .go{background:var(--ink);color:#f6fbff}.actions .stop{background:#0f2a3d14;color:var(--ink)}
+  @media(hover:hover) and (pointer:fine){.actions .go:hover{background:#1f4460}.actions .stop:hover{background:#0f2a3d24}.close:hover{background:#0f2a3d14;color:var(--ink)}}
+  .actions button:active{transform:scale(.97)}
+  button:disabled{cursor:default;opacity:.6}
+  button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .close{position:absolute;right:14px;top:14px;width:32px;height:32px;display:grid;place-items:center;padding:0;border-radius:9px;background:transparent;color:var(--ink-2);transition:background-color 150ms ease,color 150ms ease}
+  .close svg{pointer-events:none}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  </style></head><body><main>${sceneSvg()}
+  <header>${logoSvg()}<h1>dusk bot</h1></header>
+  <button class="close" aria-label="Close" data-act="close"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+  <section class="talk"><p class="line" aria-hidden="true">${STATUS_LINES[0]}</p><p class="sr status" role="status">opening dusk bot</p>
+  <div class="trouble" role="alert"><h2></h2><p class="why"></p><p class="detail"></p><div class="actions"><button class="go" data-act="retry">try again</button><button class="stop" data-act="quit">quit</button></div></div></section>
+  </main><script>${PAGE_SCRIPT}</script></body></html>`;
+}
+
+// the meadow creeps on its own so it never stalls and never passes 94% until main says the app is ready
+const PAGE_SCRIPT = `(() => {
+  const body = document.body, flowers = [...document.querySelectorAll('.flower')], line = document.querySelector('.line');
+  const status = document.querySelector('.status'), trouble = document.querySelector('.trouble');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, start = performance.now();
+  const lines = ${JSON.stringify(STATUS_LINES)}, slow = ${JSON.stringify(SLOW_LINES)};
+  let shown = 0, goal = 0, finished = null, finish = null, pool = lines, at = 0, pinned = false, over = false;
   const frame = now => {
-    if (finish) shown += (1 - shown) * 0.14;
+    if (finish) shown += (1 - shown) * 0.16;
     else shown += Math.max(0, Math.min(0.94, Math.max(goal, 0.9 * (1 - Math.exp(-(now - start) / 2600)))) - shown) * 0.06;
     if (finish && 1 - shown < 0.004) shown = 1;
-    fill.style.strokeDashoffset = String(100 - shown * 100);
-    if (shown === 1) { setTimeout(finish, 160); return; }
+    flowers.forEach((f, i) => { if (shown >= (i + 1) / (flowers.length + 1)) f.classList.add('on'); });
+    if (shown === 1) { flowers.forEach(f => f.classList.add('on')); body.classList.add('done'); setTimeout(finish, reduce ? 120 : 420); return; }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
-  window.ring = {
+  const write = text => {
+    if (line.textContent === text) return;
+    line.classList.add('out');
+    setTimeout(() => { line.textContent = text; line.classList.remove('out'); }, 220);
+  };
+  const rotate = setInterval(() => { if (!pinned && !over) write(pool[at = (at + 1) % pool.length]); }, 2400);
+  const slowly = setTimeout(() => { if (over) return; pool = slow; at = 0; if (!pinned) write(slow[0]); }, ${SLOW_AFTER_MS});
+  const trouble_ = (kind, title, why, detail = '') => {
+    if (over) return;
+    over = kind === 'failed'; clearInterval(rotate); clearTimeout(slowly);
+    trouble.querySelector('h2').textContent = title;
+    trouble.querySelector('.why').textContent = why;
+    trouble.querySelector('.detail').textContent = detail;
+    trouble.querySelector('.detail').title = detail;
+    body.classList.remove('stuck'); body.classList.add(kind);
+    status.textContent = title;
+    trouble.querySelector('.go').focus();
+  };
+  const stuck = setTimeout(() => { if (!finish) trouble_('stuck', 'this is taking longer than usual', 'you can keep waiting, or start dusk bot again.'); }, ${STUCK_AFTER_MS});
+  document.addEventListener('click', event => {
+    const act = event.target.closest?.('[data-act]')?.dataset.act;
+    if (!act) return;
+    if (act === 'retry') { event.target.disabled = true; event.target.textContent = 'starting again…'; }
+    window.startupScreen?.[act]?.();
+  });
+  window.meadow = {
     to: value => { goal = Math.max(goal, value); },
-    done: () => finished ??= new Promise(resolve => { finish = resolve; }),
+    done: () => finished ??= new Promise(resolve => { clearTimeout(stuck); finish = resolve; }),
+    say: text => { pinned = true; status.textContent = text; write(text); },
+    fail: detail => trouble_('failed', "dusk bot couldn't open", 'something stopped it while it was starting. try again, or restart your computer if it keeps happening.', detail || ''),
   };
 })();`;
 
 export function createStartupScreen({
-  BrowserWindow, iconPath, platform = process.platform, isQuitting, onQuit,
+  BrowserWindow, iconPath, platform = process.platform, isQuitting, onQuit, onRetry,
   onHide, isHidden = () => false, onShow, onFinished,
 }) {
   let disposed = false, revealed = false, fallback, resolveReady;
@@ -65,10 +194,10 @@ export function createStartupScreen({
   const canFade = win => platform !== "linux" && typeof win.setOpacity === "function";
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const splash = new BrowserWindow({
-    width: 440, height: 300, resizable: false, maximizable: false,
+    width: W, height: H, resizable: false, maximizable: false,
     fullscreenable: false, frame: false, transparent: true,
     backgroundColor: "#00000000", show: false, icon: iconPath,
-    title: "OpenMaus Bot", autoHideMenuBar: true,
+    title: "Dusk Bot", autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true, sandbox: true, nodeIntegration: false,
       preload: fileURLToPath(new URL("./startup-screen-preload.cjs", import.meta.url)),
@@ -91,7 +220,10 @@ export function createStartupScreen({
   });
   // Renderer window.close() bypasses BrowserWindow's cancellable close path, so the page asks for the native one.
   splash.webContents.on("ipc-message", (_event, channel) => {
-    if (channel === "startup-screen:close" && !disposed) splash.close();
+    if (disposed) return;
+    if (channel === "startup-screen:close") splash.close();
+    else if (channel === "startup-screen:quit") onQuit();
+    else if (channel === "startup-screen:retry") (onRetry ?? onQuit)();
   });
   let shown = false;
   const showSplash = () => {
@@ -108,19 +240,19 @@ export function createStartupScreen({
   splash.once("closed", resolveReady);
   // The splash stays until the main window replaces it: as the only window, destroying it would quit the app.
   splash.webContents.once("render-process-gone", resolveReady);
-  let said = null;
-  const say = () => {
-    if (said === null || disposed || splash.isDestroyed()) return;
-    void splash.webContents.executeJavaScript(`(() => { const line = document.querySelector('.status'); if (line?.lastChild) line.lastChild.textContent = ${JSON.stringify(said)}; })()`).catch(() => {});
+  const page = (code) => disposed || splash.isDestroyed() ? Promise.resolve() : splash.webContents.executeJavaScript(code).catch(() => {});
+  let said = null, failure = null;
+  const tell = () => {
+    if (said !== null) void page(`window.meadow?.say(${JSON.stringify(said)})`);
+    if (failure !== null) void page(`window.meadow?.fail(${JSON.stringify(failure)})`);
   };
-  splash.webContents.on("did-finish-load", say);
+  splash.webContents.on("did-finish-load", tell);
   const startupFallback = setTimeout(resolveReady, 10_000);
   startupFallback.unref?.();
   void splash.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupScreenHtml()))
     .catch(resolveReady);
-  const ring = (code) => splash.isDestroyed() ? Promise.resolve() : splash.webContents.executeJavaScript(code).catch(() => {});
   const attach = (win, { maximized = false } = {}) => {
-    void ring("window.ring?.to(0.55)");
+    void page("window.meadow?.to(0.55)");
     const reveal = () => {
       if (revealed || win.isDestroyed() || isQuitting()) return;
       revealed = true;
@@ -132,13 +264,13 @@ export function createStartupScreen({
       } else {
         if (maximized) win.maximize();
         if (minimized) { win.showInactive(); win.minimize(); }
-        else if (canFade(win) && splash.isVisible?.()) { void closeRingThenFade(win); return; }
+        else if (canFade(win) && splash.isVisible?.()) { void bloomThenFade(win); return; }
         else { win.show(); win.focus(); }
       }
       dispose();
     };
-    const closeRingThenFade = async (win) => {
-      await Promise.race([ring("window.ring?.done()"), wait(RING_CLOSE_LIMIT_MS)]);
+    const bloomThenFade = async (win) => {
+      await Promise.race([page("window.meadow?.done()"), wait(RING_CLOSE_LIMIT_MS)]);
       if (win.isDestroyed() || isQuitting()) { dispose(); return; }
       win.setOpacity(0); win.show(); win.focus();
       await crossfade(win, splash);
@@ -146,7 +278,7 @@ export function createStartupScreen({
       dispose();
     };
     win.webContents.on("did-finish-load", () => {
-      void ring("window.ring?.to(0.8)");
+      void page("window.meadow?.to(0.8)");
       if (revealed || win.isDestroyed() || isQuitting()) return;
       void win.webContents.executeJavaScript(`new Promise(resolve => {
         const root = document.getElementById('root');
@@ -164,7 +296,13 @@ export function createStartupScreen({
     fallback = setTimeout(reveal, 10_000);
     fallback.unref?.();
   };
-  /** The line under the name, in place of "Opening your workspace…". */
-  const status = (text) => { said = String(text); say(); };
-  return { ready, attach, dispose, status, window: splash };
+  /** The line under the name, in place of the rotating ones. */
+  const status = (text) => { said = String(text); tell(); };
+  /** Startup gave up: the card says so and offers try again and quit instead of waiting forever. */
+  const fail = (error) => {
+    failure = String(error?.message ?? error ?? "").slice(0, 200);
+    showSplash();
+    tell();
+  };
+  return { ready, attach, dispose, status, fail, window: splash };
 }
