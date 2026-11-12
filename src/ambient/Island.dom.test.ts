@@ -50,7 +50,7 @@ it("puts the asking bots first, answers each ask below the mascots for that bot 
   await act(async () => root.unmount());
 });
 
-it("opens into a grid of mascots with their names, the newest line in a tip just under the one pointed at, and a click opens that bot", async () => {
+it("opens into a grid of mascots with their names, no tip under the one pointed at, and a click opens that bot", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const opened: string[] = [];
   const bridge: AmbientBridge = {
@@ -71,15 +71,10 @@ it("opens into a grid of mascots with their names, the newest line in a tip just
   expect(host.querySelector(".amb-row, .amb-chat")).toBeNull();
   const mascot = strip.querySelector<HTMLButtonElement>('[data-row="Bot3"] .amb-strip-bot')!;
   expect(mascot.getAttribute("aria-label")).toBe("Open Bot3. 1h");
-  // happy-dom lays nothing out: the mascot on the second row of a grid scrolled down a little
-  Object.defineProperties(mascot, { offsetLeft: { get: () => 150 }, offsetTop: { get: () => 52 }, offsetWidth: { get: () => 44 }, offsetHeight: { get: () => 44 } });
-  Object.defineProperties(strip, { scrollTop: { get: () => 10 }, clientWidth: { get: () => 400 }, offsetLeft: { get: () => 10 } });
+  // pointing at a mascot shows no tip: in the grid it would cover the next row or run past the panel's edge
   await act(async () => mascot.dispatchEvent(new PointerEvent("pointerover", { bubbles: true })));
-  const tip = host.querySelector<HTMLElement>(".amb-tip");
-  expect(tip?.textContent).toBe("said 3");
-  expect([tip?.style.left, tip?.style.top]).toEqual(["172px", "88px"]);
-  await act(async () => mascot.dispatchEvent(new PointerEvent("pointerout", { bubbles: true })));
   expect(host.querySelector(".amb-tip")).toBeNull();
+  expect(host.querySelector(".amb-panel")!.textContent).not.toContain("said");
   await act(async () => mascot.click());
   expect(opened).toEqual(["Bot3"]);
   // the notch is never outlined while it is open: its hit target is gone

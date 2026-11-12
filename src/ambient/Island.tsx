@@ -253,9 +253,6 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   );
 }
 
-/** Under the pointer, a bot shows its newest line in a small tip just below it, kept this far inside the panel's edges. */
-const TIP_EDGE = 112;
-
 /** The open island: every bot as a mascot in a grid that wraps onto as many rows as it needs (past four it scrolls), the
  * most urgent first, each with its state as the dock shows it (blue working, green unseen reply, a numbered bubble for
  * asks, "!" for a failure). A click opens that bot in the app; an ask waiting on the person is answered below the grid,
@@ -278,28 +275,12 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
   // asks are answered here even for a bot the person is watching in the app, as the rows did
   const asking = all.map((shown) => byId.get(shown.id) ?? shown).filter((bot) => bot.status === "needs-you");
 
-  const strip = useRef<HTMLUListElement>(null);
+  // no line under a hovered mascot: in a grid a tip either covers the next row or runs past the panel's clipped edge
   const now = useNow(open);
-  const [tip, setTip] = useState<{ id: string; text: string; x: number; y: number } | null>(null);
-  const showTip = (bot: AmbientBot, target: HTMLElement) => {
-    const row = strip.current;
-    if (!row || !bot.line) return;
-    // the button's offsetParent is the wrap too (the grid is not positioned), so only the grid's scroll is taken off
-    const x = target.offsetLeft + target.offsetWidth / 2;
-    const y = target.offsetTop - row.scrollTop + target.offsetHeight + 2;
-    setTip({ id: bot.id, text: bot.line, x: Math.round(Math.min(Math.max(x, TIP_EDGE), row.offsetLeft + row.clientWidth - TIP_EDGE)), y: Math.round(y) });
-  };
-  const hideTip = (id: string) => setTip((was) => (was?.id === id ? null : was));
-  useEffect(() => { if (!open) setTip(null); }, [open]);
 
   return (
     <div className="amb-panel-body amb-strip-wrap">
-      <ul
-        ref={strip}
-        className="amb-strip"
-        aria-label={say(labels, "island")}
-        onScroll={() => setTip(null)}
-      >
+      <ul className="amb-strip" aria-label={say(labels, "island")}>
         {all.map((shown, index) => {
           const bot = byId.get(shown.id) ?? shown;
           const news = newsOf(bot, seen);
@@ -314,10 +295,6 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
                 className="amb-strip-bot"
                 aria-label={[say(labels, "open", { name: bot.name }), state].filter(Boolean).join(". ")}
                 onClick={() => openChat(bot)}
-                onPointerEnter={(event) => showTip(bot, event.currentTarget)}
-                onPointerLeave={() => hideTip(bot.id)}
-                onFocus={(event) => showTip(bot, event.currentTarget)}
-                onBlur={() => hideTip(bot.id)}
               >
                 <span className="amb-strip-mark">
                   <span className="amb-lift">
@@ -338,7 +315,6 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
           </button>
         </li>
       </ul>
-      {tip && <span className="amb-tip" aria-hidden dir="auto" style={{ left: tip.x, top: tip.y }}>{tip.text}</span>}
       <AnimatePresence initial={false}>
         {asking.map((bot) => (
           <Reveal key={bot.id} className="amb-tray-wrap">

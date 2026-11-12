@@ -96,12 +96,6 @@
   display: grid; place-items: center; width: 36px; height: 36px; margin: 2px 6px 26px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--amb-ink-3);
   transition: color var(--amb-fast) ease, background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out);
 }
-/* whose mascot is under the pointer, in a small tip just below it (placed by the page) */
-.amb-tip {
-  position: absolute; top: 0; z-index: 2; translate: -50% 0; width: max-content; max-width: 220px; padding: 4px 8px; border-radius: 8px; overflow: hidden;
-  background: #1f1f1f; color: var(--amb-ink-2); font-size: 11px; line-height: 15px; font-weight: 450; white-space: normal; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; pointer-events: none;
-}
 /* an ask waiting on the person, under the mascots: whose, what, and its answers */
 .amb-ask { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; border-top: 0.5px solid transparent; }
 .amb-ask-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; font-size: 13px; line-height: 17px; color: var(--amb-ink); }
