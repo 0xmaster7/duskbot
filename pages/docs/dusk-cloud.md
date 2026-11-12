@@ -14,7 +14,7 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 - **nothing to look after.** no server, no updates, no keeping a laptop open. daily backups included.
 - **a real browser for every bot.** bots get their own desktop to sign in to sites and click through, and you can watch.
 - **your phone just works.** pair it with the cloud and it answers even when your computer is off.
-- **private to you.** your cloud has its own storage that no one else can reach, and your ai sign-in stays yours. plus and pro run on shared hardware; a team plan gets a machine of its own.
+- **private to you.** your cloud has its own storage that no one else can reach, and your ai sign-in stays yours. plus and pro each run in a sandbox of their own; a team plan gets a whole machine.
 
 ## what it costs
 
