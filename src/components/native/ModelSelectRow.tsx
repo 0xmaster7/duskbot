@@ -8,8 +8,8 @@ import { ModelPicker } from "../ModelPicker";
 export const MODEL_PILL = cn(
   "[&_[data-tour=model]]:-my-[3px]! [&_[data-tour=model]]:-me-[5px]! [&_[data-tour=model]]:h-6! [&_[data-tour=model]]:max-w-[180px]! [&_[data-tour=model]]:gap-1! [&_[data-tour=model]]:rounded-lg! [&_[data-tour=model]]:border [&_[data-tour=model]]:border-transparent",
   "[&_[data-tour=model]]:py-0.5! [&_[data-tour=model]]:ps-1.5! [&_[data-tour=model]]:pe-1! [&_[data-tour=model]]:text-ink! [&_[data-tour=model]]:tracking-[-0.08px] [&_[data-tour=model]]:duration-100!",
-  "[&_[data-tour=model]]:hover:bg-ink/[0.06] [&_[data-tour=model]]:aria-expanded:bg-ink/[0.06] [&_[data-tour=model]]:focus-visible:outline-none [&_[data-tour=model]]:focus-visible:ring-2 [&_[data-tour=model]]:focus-visible:ring-focus",
-  "[&_[data-tour=model]]:disabled:opacity-50 [&_[data-tour=model]]:disabled:hover:bg-transparent",
+  "[&_[data-tour=model]]:aria-expanded:bg-ink/[0.06] [&_[data-tour=model]]:focus-visible:outline-none [&_[data-tour=model]]:focus-visible:ring-2 [&_[data-tour=model]]:focus-visible:ring-focus",
+  "[&_[data-tour=model]]:disabled:opacity-50",
   "[&_[data-tour=model]>span:first-child]:hidden [&_[data-tour=model]_[data-usage-bars]]:hidden",
   "[&_[data-tour=model]>svg:last-child]:ms-0! [&_[data-tour=model]>svg:last-child]:size-2.5! [&_[data-tour=model]>svg:last-child]:text-ink/[0.66]!",
 );
