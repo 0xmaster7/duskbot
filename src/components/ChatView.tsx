@@ -58,7 +58,7 @@ import { showWorkingDots } from "@/lib/turn-tail";
 import { useTypingHold } from "@/hooks/use-typing-hold";
 import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
-import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState } from "@/lib/reply-life";
+import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/reply-life";
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
@@ -1056,8 +1056,16 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   if (live.label) shownLabel.current.label = live.label;
   const turnLabel = live.label ?? shownLabel.current.label;
   const presence = useHeldPresence(bot.busy && bot.activity !== "waiting-on-you" ? presenceKind({ writing, activity: live.status?.activity, worked }) : null);
-  const lifeBeat = useReplyLife(presenceVisible && !teammatesWorking && presence === "waiting" ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
-  const presenceMarkState = presence === "typing" || writing ? TYPING_MARK : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
+  // grok's mark opens every turn the same way, mascot then dots then mascot with the first words, even when a step has
+  // already started
+  const openingEnd = bot.busy && bot.turnStartedAt
+    ? bot.turnStartedAt + lifeDraw(presenceSeed, "mount", STATUS_MOUNT_MS) + lifeSpan(presenceSeed, 0) + lifeSpan(presenceSeed, 1)
+    : null;
+  const opening = !useReached(openingEnd) && openingEnd !== null && presence === "working";
+  const lifeBeat = useReplyLife(presenceVisible && !teammatesWorking && (presence === "waiting" || opening) ? [{ key: bot.id, seed: presenceSeed, typing: writing }] : NO_LIFE).get(bot.id);
+  const presenceMarkState = presence === "typing" || writing ? TYPING_MARK
+    : opening ? lifeMarkState("thinking", lifeBeat)
+    : presence === "working" ? workingMark(live.status?.activity) : lifeMarkState(statusMarkState, lifeBeat);
   useThinkingMoment(markRef, presenceMarkState === LIFE_MASCOT_STATE);
 
   // while the turn runs its notices stay in the chat; once it ends, what it left is one card above the composer
@@ -1301,7 +1309,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             {...now}
             // grok shows no steps in the chat: the list under the line only with tool calls shown
             card={showToolCalls ? now.card : undefined}
-            phrases={teammatesWorking ? undefined : writing ? typingPhrases : turnLabel ? [turnLabel] : now.phrases}
+            phrases={teammatesWorking ? undefined : writing ? typingPhrases : opening ? undefined : turnLabel ? [turnLabel] : now.phrases}
             phase={writing ? TYPING_PHASE : turnLabel ? `label:${turnLabel}` : now.phase}
             seed={presenceSeed}
             since={busySince}

@@ -140,6 +140,24 @@ describe("the working line", () => {
     expect(statusLine()).not.toBe("");
   });
 
+  it("opens the same way when a step starts at once: mascot, dots, then the mascot with the bot's words", () => {
+    vi.setSystemTime(started);
+    const markState = () => host.querySelector(".turn-presence [data-state]")?.getAttribute("data-state");
+    engine({ type: "turn.started" });
+    render(busyBot([ask]));
+    engine({ type: "turn.progress", activity: "tool", tool: "set_status", label: "Comparing standing desks" } as Partial<RuntimeEvent>);
+    engine({ type: "item.started", itemType: "tool", itemId: "w1", title: "WebSearch" } as Partial<RuntimeEvent>);
+    act(() => void vi.advanceTimersByTime(STATUS_MOUNT_MS.max + 10));
+    expect(markState(), "the bot as itself first, not at work yet").toBe(LIFE_MASCOT_STATE);
+    expect(statusLine()).toBe("");
+    act(() => void vi.advanceTimersByTime(LIFE_MASCOT_MS.max + 20));
+    expect(markState(), "then the dots, though a step is running").toBe("thinking");
+    expect(statusLine()).toBe("");
+    act(() => void vi.advanceTimersByTime(LIFE_DOTS_MS.max + STATUS_QUIET_MS.max));
+    expect(markState(), "then at work").not.toBe("thinking");
+    expect(statusLine()).toBe("Comparing standing desks");
+  });
+
   it("types as the bot itself, never the dots", () => {
     const markState = () => host.querySelector(".turn-presence [data-state]")?.getAttribute("data-state");
     engine({ type: "turn.started" });
