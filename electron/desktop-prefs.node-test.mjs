@@ -318,9 +318,9 @@ test("production wiring: main answers this computer's page, My Cloud's own page 
   options.languageChanged("en", windows[0].webContents);
   assert.deepEqual(sent, [["home", "desktop-language:changed", "en"], ["rail", "desktop-language:changed", "en"]], "every other open window hears the pick, and the window's rail");
   const navigate = main.slice(main.indexOf("function navigateMainWindow(url) {"), main.indexOf("\n}\n", main.indexOf("function navigateMainWindow(url) {")) + 3);
-  const load = vm.runInNewContext(`${navigate}; navigateMainWindow`, { mainWindow: { isDestroyed: () => false, loadURL: async url => { if (url.endsWith("fail")) throw new Error("ERR_CONNECTION_REFUSED"); } } });
+  const load = vm.runInNewContext(`${navigate}; navigateMainWindow`, { servePlaceFrom: async () => {}, mainWindow: { isDestroyed: () => false, loadURL: async url => { if (url.endsWith("fail")) throw new Error("ERR_CONNECTION_REFUSED"); } } });
   assert.equal(await load(`${LOCAL}/ok`), true); assert.equal(await load(`${LOCAL}/fail`), false, "a failed load answers false, never throws");
-  assert.equal(await vm.runInNewContext(`${navigate}; navigateMainWindow`, { mainWindow: null })(`${LOCAL}/`), false, "no window");
+  assert.equal(await vm.runInNewContext(`${navigate}; navigateMainWindow`, { servePlaceFrom: async () => {}, mainWindow: null })(`${LOCAL}/`), false, "no window");
 });
 
 test("the window's rail of places is shown until the person hides it, and the choice survives a restart", () => {

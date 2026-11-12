@@ -109,6 +109,9 @@ export default defineConfig({
     // clients that resolve IPv4 first
     host: "127.0.0.1",
     port: Number(process.env.DUSK_UI_PORT) || 5199,
+    // the desktop window also runs this dev UI on a server's origin (electron/local-ui.mjs), so the client is told
+    // where hot reload lives instead of reaching for the page's host
+    hmr: { protocol: "ws", host: "127.0.0.1", clientPort: Number(process.env.DUSK_UI_PORT) || 5199 },
     // packager output lands inside the repo — its HTML files must never
     // trigger dev full-page reloads
     watch: {
