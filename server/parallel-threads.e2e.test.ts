@@ -9,8 +9,9 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { cloudPairingSignature, cloudRequestSignature } from "./cloud-home.ts";
-import { CONTROL_BUSY } from "./control-client.ts";
+import { CONTROL_BUSY, createControlClient } from "./control-client.ts";
 import { BROWSER_HANDED_OVER, browserBusyText } from "./host/browser-seats.ts";
+import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
@@ -31,6 +32,7 @@ class Fixture {
   chat: Server | null = null;
   chatInFlight: { thread: string; release: () => void }[] = [];
   extraEnv: Record<string, string> = {};
+  extraConfig: Record<string, unknown> = {};
   readonly role: Role;
   constructor(role: Role) {
     this.role = role;
@@ -98,6 +100,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-ac
         heldAcp: { driver: "customAcp", displayName: "Held ACP", config: { cli: acp } },
       },
       openaiCompat: { key: "synthetic-fixture-key", url: chatUrl, model: "fixture-model" },
+      ...this.extraConfig,
     }));
     const port = await freePortBlock([0, 1]);
     this.base = `http://127.0.0.1:${port}`;
@@ -294,40 +297,20 @@ describe.skipIf(process.platform === "win32").each(["desktop", "home"] as const)
 });
 
 // one relay stands in for the admin's retired desktop provider proxy; a picture stands in for the desktop.
-const FRAME = Buffer.from("/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
 describe.each(["desktop", "team"] as const)("two threads of a bot on the team's shared computer on a %s server", (role) => {
   let f: Fixture;
-  const servers: Server[] = [];
+  let vps: Awaited<ReturnType<typeof createTeamVpsFixture>> | undefined;
   afterEach(async () => {
     await f?.stop();
-    for (const server of servers.splice(0)) { server.closeAllConnections(); server.close(); }
+    await vps?.close();
+    vps = undefined;
   });
 
   it("both run from the start, and only the one that reaches for the screen second waits, saying so", async () => {
-    const boxes: Array<{ id: string; state: string; name?: string }> = [];
-    const relay = createServer((req, res) => {
-      const path = new URL(req.url ?? "/", "http://relay.test").pathname.replace(/^\/relay\/api\/box\/v1/, "");
-      let raw = "";
-      req.on("data", (chunk) => { raw += chunk; });
-      req.on("end", () => {
-        const answer = (status: number, payload: unknown) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(payload)); };
-        if (path === "/boxes" && req.method === "GET") return answer(200, { ok: true, boxes, pageInfo: { nextCursor: null } });
-        if (path === "/boxes" && req.method === "POST") { const box = { id: "bx_23456789", state: "ready" }; boxes.push(box); return answer(201, { ok: true, box }); }
-        const [, id = "", verb = ""] = /^\/boxes\/([^/]+)(?:\/(.+))?$/.exec(path) ?? [];
-        const box = boxes.find((candidate) => candidate.id === id);
-        if (!box) return answer(404, { ok: false, code: "not_found", message: "Not found" });
-        if (!verb && req.method === "PATCH") { box.name = JSON.parse(raw).name; return answer(200, { ok: true, box }); }
-        if (!verb && req.method === "GET") return answer(200, { ok: true, box });
-        if (verb === "desktop") return answer(200, { desktopUrl: `https://desktop.invalid/${box.id}` });
-        if (verb === "commands") return answer(200, { exitCode: 0, stdout: "captured", stderr: "" });
-        if (verb === "artifacts") { res.writeHead(200, { "content-type": "image/jpeg", "content-length": String(FRAME.length) }); return res.end(FRAME); }
-        return answer(404, { ok: false, code: "not_found", message: "Not found" });
-      });
-    });
-    servers.push(relay);
-    await new Promise<void>((resolve) => relay.listen(0, "127.0.0.1", resolve));
+    vps = await createTeamVpsFixture({ screens: true });
     f = new Fixture(role);
-    f.extraEnv = { DUSK_COMPUTER_CALL_WAIT_MS: "500" };
+    f.extraConfig = { vps: { sshAlias: "fixture-vps" } };
+    f.extraEnv = { DUSK_COMPUTER_CALL_WAIT_MS: "500", DUSK_EXTRA_PATH: vps.localVm.binDir, CONTAINER_HOST: vps.localVm.host, CONTAINER_SSHKEY: vps.localVm.sshKey };
     await f.start();
     const requestId = randomUUID();
     const made = await f.api("POST", "/api/team-computers", { requestId, name: "Ops desktop", acknowledgeCost: true });
@@ -343,20 +326,20 @@ describe.each(["desktop", "team"] as const)("two threads of a bot on the team's 
     expect((await busyThreads(f, botId)).sort(), "neither has touched the computer, so neither waited for it").toEqual([...threads].sort());
     expect((await rows(f, threads[1]!)).filter((name) => name.startsWith("Waiting for its turn"))).toEqual([]);
 
-    const screenshot = (threadId: string) => {
+    // a computer call first asks the turn's control gate whether the screen is its to use
+    const screen = (threadId: string) => {
       const env = f.servers(threadId).computer.env;
-      return internal(f, "/api/internal/computer/mcp", env.DUSK_MCP_TOKEN_COMPUTER, { method: "tools/call", params: { name: "screenshot", arguments: {} } });
+      return createControlClient({ url: env.DUSK_CONTROL_URL, token: env.DUSK_CONTROL_TOKEN }).state(true);
     };
-    let first = await screenshot(threads[0]!);
-    for (let attempt = 0; attempt < 40 && first.body.result?.isError; attempt++) first = await screenshot(threads[0]!);
-    expect(first.body.result.isError, JSON.stringify(first.body)).toBeFalsy();
-    const second = await screenshot(threads[1]!);
-    expect(second.body.result).toEqual({ isError: true, content: [{ type: "text", text: CONTROL_BUSY }] });
+    let first = await screen(threads[0]!);
+    for (let attempt = 0; attempt < 40 && first.held; attempt++) first = await screen(threads[0]!);
+    expect(first, JSON.stringify(first)).toEqual({ held: false, helpOpen: false });
+    expect(await screen(threads[1]!)).toEqual({ held: true, helpOpen: false, blockedReason: CONTROL_BUSY });
     expect((await rows(f, threads[1]!)).find((name) => name.startsWith("Waiting for its turn on this computer")), "the person sees why").toContain("Scout is running");
     expect((await busyThreads(f, botId)).sort()).toEqual([...threads].sort());
 
     f.finish(threads[0]!);
-    await expect.poll(async () => (await screenshot(threads[1]!)).body.result.isError, { timeout: 30_000, interval: 200 }).toBeFalsy();
+    await expect.poll(async () => (await screen(threads[1]!)).held, { timeout: 30_000, interval: 200 }).toBe(false);
     f.release();
     await expect.poll(async () => (await botRow(f, botId)).busy, { timeout: 20_000, interval: 100 }).toBe(false);
   }, 120_000);
