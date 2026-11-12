@@ -16,6 +16,7 @@ import { BarRow, ChartCard, StackedBars } from "./charts";
 import { CohortHeat, LineChart, MoneyDelta, MovementChart, Sparkline, monthName } from "./RevenueCharts";
 import { AdminHeader, Failed, Loading, n, SearchBox } from "./ui";
 import { STATUS } from "./PersonBilling";
+import { InfraMargin } from "./InfraMargin";
 import type { BreakdownRow, CustomerRow, FeedItem, FeedKind, Health, RevenueFunnelStep, RiskRow, SubscriptionReport } from "./revenue-types";
 
 const DAY = 86_400_000;
@@ -532,6 +533,7 @@ export function RevenuePage() {
               </div>
             </>
           )}
+          <InfraMargin />
           <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
             <Card title="revenue funnel" action={<Segmented label="people first seen in" value={days} onChange={setDays} options={DAYS.map(([value, label]) => ({ value, label }))} />}>
               <RevenueFunnel steps={data.funnel.steps} />

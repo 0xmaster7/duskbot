@@ -48,3 +48,14 @@ export interface PersonBilling {
   events: Array<{ id: string; at: number; type: string; label: string; emoji: string; amountCents: number | null; mrrCents: number | null; previousMrrCents: number | null; plan: string | null; reason: string | null }>;
   cancelAtPeriodEnd: boolean; currentPeriodEnd: number | null;
 }
+export interface InfraCustomer {
+  accountId: string; email: string | null; plan: string; status: string; mrr: number; feeCents: number;
+  computeCents: number; diskCents: number; costCents: number; projectedCents: number; awakeHours: number; marginCents: number; margin: number | null;
+}
+export interface InfraReport {
+  now: number; collected: boolean; month: string; days: number; elapsed: number;
+  totals: { mrr: number; feeCents: number; computeCents: number; diskCents: number; costCents: number; projectedCents: number; marginCents: number; margin: number | null; unbilledCents: number; clouds: number };
+  customers: InfraCustomer[]; worst: InfraCustomer[];
+  awake: Array<{ label: string; clouds: number }>;
+  assumptions: { dodo: { rate: number; fixedCents: number }; diskCentsPerGiBMonth: number; diskUpperBound: boolean };
+}

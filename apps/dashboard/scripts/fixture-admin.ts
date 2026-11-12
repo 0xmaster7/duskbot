@@ -6,6 +6,7 @@ import type { createDashboardApp } from "../server/app.ts";
 import { memoryWaitlist, type WaitlistEntry } from "../server/admin/waitlist.ts";
 import { BILLING_CONFIG } from "../server/billing/plans.ts";
 import { draft, ledgerId } from "../server/billing/ledger.ts";
+import { costOf } from "../server/admin/infra.ts";
 import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
@@ -66,6 +67,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
   const paused = billing.clouds.list(accounts[1]!.id)[0];
   if (paused) await billing.clouds.power(paused.accountId, paused.id, "off").catch(() => {});
 
+  await seedInfra(app, now);
   await seedWeb(app, accounts, now);
   await seedUsage(app, accounts, now);
   await seedHistoricEvents(app, now);
@@ -86,6 +88,19 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
       if (i % 2 === 0 && rand() < 0.7) await analytics.record("app_active", { accountId: account.id, at: t + 3_600_000, props: { platform: i % 4 === 0 ? "darwin" : "win32", appVersion: "0.2.15" } });
     }
   }
+}
+
+/** made-up InstaBox usage for each cloud this month: some barely wake, some stay up most of the day */
+async function seedInfra(app: ReturnType<typeof createDashboardApp>, now: number) {
+  const start = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), 1);
+  const rows = app.billing.clouds.all?.().filter(c => c.status !== "destroyed").flatMap((c, k) => {
+    const hours = [0.5, 2, 3, 6, 9, 14, 20][k % 7]!;
+    return Array.from({ length: Math.floor((now - start) / DAY) + 1 }, (_, d) => {
+      const running = Math.round(hours * (0.6 + rand() * 0.8) * 3600), used = { runningSeconds: running, vcpuSeconds: running * c.spec.vcpu, memGiBSeconds: running * c.spec.ramGb, diskGiBSeconds: 86_400 * c.spec.diskGb, egressBytes: 0 };
+      return { day: new Date(start + d * DAY).toISOString().slice(0, 10), cloudId: c.id, accountId: c.accountId, serverId: `fixture-${c.id}`, ...used, ...costOf(used), collectedAt: now };
+    });
+  }) ?? [];
+  await app.infra.store.put(rows);
 }
 
 /** the fake provider pays everything at once; spread the payments over when each person would have paid, then add
