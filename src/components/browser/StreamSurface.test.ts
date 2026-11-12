@@ -179,7 +179,7 @@ describe("what the page asks of the person", () => {
     await show(control("you"));
     await act(async () => events().onDownload?.({ fileName: "report.csv", sizeBytes: 8, url: "/api/bots/pepper/browser/download/d1" }));
     expect(host.textContent).toContain("downloaded report.csv");
-    await act(async () => button("Save").click());
+    await act(async () => button("save").click());
     expect(clicked).toEqual([{ href: "/api/bots/pepper/browser/download/d1", download: "report.csv" }]);
     expect(host.textContent).not.toContain("downloaded report.csv");
   });

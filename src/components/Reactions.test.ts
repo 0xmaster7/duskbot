@@ -181,7 +181,7 @@ describe("reaction chips under a message", () => {
     await render(createElement(ReactionChips, { threadId: "t1", message: reacted }));
     expect(host.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("reactions");
     expect(chips().map((chip) => [chip.tagName, chip.textContent, chip.getAttribute("aria-label"), chip.getAttribute("aria-pressed"), chip.getAttribute("title")])).toEqual([
-      ["BUTTON", "👍2", "thumbs up: yes, go ahead: You, alice@example.test", "true", "You, alice@example.test"],
+      ["BUTTON", "👍2", "thumbs up: yes, go ahead: you, alice@example.test", "true", "you, alice@example.test"],
       ["BUTTON", "❤️", "heart: Bob", "false", "Bob"],
     ]);
   });
@@ -202,7 +202,7 @@ describe("reaction chips under a message", () => {
     await render(createElement(ReactionChips, { threadId: "t1", message: reacted, canReact: false }));
     expect(host.querySelectorAll("button")).toHaveLength(0);
     expect(chips().map((chip) => [chip.getAttribute("role"), chip.getAttribute("aria-label")])).toEqual([
-      ["img", "thumbs up: yes, go ahead: You, alice@example.test"],
+      ["img", "thumbs up: yes, go ahead: you, alice@example.test"],
       ["img", "heart: Bob"],
     ]);
   });

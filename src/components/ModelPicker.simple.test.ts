@@ -178,7 +178,7 @@ describe("the model picker in Simple mode", () => {
     expect(region(html, "data-current-model", 'data-simple-provider="claude"')).toContain(">Opus 5.5</span>");
     expect(labels(opened)).toEqual(["Sonnet 5.5", "Haiku 4.5"]);
     const bottom = region(html, "data-simple-effort-band");
-    for (const step of ["Low", "Medium", "High", "x-high", "Max"]) expect(bottom).toContain(`>${step}</button>`);
+    for (const step of ["low", "medium", "high", "x-high", "max"]) expect(bottom).toContain(`>${step}</button>`);
     expect(bottom).toContain(">thinking</span>");
     expect(bottom).toContain("manage AI accounts");
     expect(html).not.toContain(">quick</button>");
@@ -328,7 +328,7 @@ describe("the model picker in Simple mode", () => {
     expect(list(opened).current).toMatchObject({ label: "qwen3 (Ollama)", warning: false });
     expect(group(opened, "claude")!.body).toMatchObject({ kind: "models", rows: [], signInForOwn: true });
     const html = menu(opened.html);
-    expect(html).toContain("Sign in for Claude&#x27;s own models");
+    expect(html).toContain("sign in for Claude&#x27;s own models");
     expect(html).not.toContain(">Opus 5.5<");
 
     pane(opened)!.props.onSetUp(instance("claude"), false);
@@ -345,11 +345,11 @@ describe("the model picker in Simple mode", () => {
     const opened = open(bot("xhigh"));
     expect(thinking(opened).levels).toEqual(["low", "medium", "high", "xhigh", "max"]);
     const bottom = region(menu(opened.html), "data-simple-effort-band");
-    expect(bottom).toMatch(/aria-pressed="true"[^>]*>X-High<\/button>/);
+    expect(bottom).toMatch(/aria-pressed="true"[^>]*>x-high<\/button>/);
     expect(bottom).toContain('role="group" aria-labelledby=');
     expect(bottom).toMatch(/data-simple-effort="true"[^>]*class="[^"]*rounded-full bg-ink\/\[0.05\] p-\[3px\]/);
-    expect(bottom).toContain('title="High thinking. higher is slower but more careful."');
-    expect(bottom).toMatch(/title="the model decides how hard to think."[^>]*>Use default<\/button>/);
+    expect(bottom).toContain('title="high thinking. higher is slower but more careful."');
+    expect(bottom).toMatch(/title="the model decides how hard to think."[^>]*>use default<\/button>/);
     thinking(opened).onReset();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({
       type: "setModel", botId: "scout", threadId: "thread-scout", updateBotDefault: true,
@@ -359,7 +359,7 @@ describe("the model picker in Simple mode", () => {
     const atDefault = region(menu(open(bot()).html), "data-simple-effort-band");
     expect(atDefault).not.toContain('aria-pressed="true"');
     expect(atDefault).not.toContain("use default");
-    expect(atDefault).toContain('title="the model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">Default</span>');
+    expect(atDefault).toContain('title="the model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">default</span>');
   });
 
   it("names the model on the Simple chip, quiet until hovered; thinking and route stay in its tooltip and the menu", () => {
@@ -367,7 +367,7 @@ describe("the model picker in Simple mode", () => {
     const markup = renderToStaticMarkup(chip);
     expect(markup).not.toContain("data-model-effort");
     expect(markup.replace(/title="[^"]*"/, "")).not.toContain("High");
-    expect(String(chip.props.title)).toContain("High thinking");
+    expect(String(chip.props.title)).toContain("high thinking");
     expect(String(chip.props.title)).not.toContain("effort");
     expect(String(chip.props.className)).toContain("h-8");
     expect(String(chip.props.className)).toContain("rounded-full");
@@ -833,7 +833,7 @@ describe("a thread's picker and its bot's model", () => {
     const opened = open(scout(haiku));
     expect(list(opened).follow).toBe(true);
     const html = menu(opened.html);
-    expect(html).toContain("Use Scout&#x27;s model");
+    expect(html).toContain("use Scout&#x27;s model");
     expect(html).toContain('title="Claude · Opus 5.5"');
     expect(html).toContain('data-follow-bot-model="true" aria-pressed="false"');
     expect(region(html, "data-follow-bot-model", 'role="separator"')).toContain(">Opus 5.5</span>");
@@ -923,9 +923,9 @@ describe("every capability of the picker stays reachable", () => {
     const props = pane(opened)!.props;
     const before = {
       "chip names the model, says it opens a dialog, and carries model, effort and follow in its tooltip":
-        chip.props["aria-haspopup"] === "dialog" && String(chip.props.title).includes("High thinking") && String(chip.props.title).includes("this thread's own model"),
+        chip.props["aria-haspopup"] === "dialog" && String(chip.props.title).includes("high thinking") && String(chip.props.title).includes("this thread's own model"),
       "current model with its check": html.includes("data-current-model") && simple.current?.label === "Sonnet 5.5",
-      "use the bot's model": simple.follow && html.includes("Use Scout&#x27;s model"),
+      "use the bot's model": simple.follow && html.includes("use Scout&#x27;s model"),
       "the follow row carries the bot's model, once": region(html, "data-follow-bot-model", 'role="separator"').includes(">Opus 5.5</span>") && !labels(opened, "claude").includes("Opus 5.5"),
       "every ready provider's models at once": labels(opened, "claude").length > 0 && labels(opened, "pi").length > 0,
       "local models beside a provider's own": html.includes(">local models</div>") && labels(opened, "claude").includes("qwen3 (Ollama)"),

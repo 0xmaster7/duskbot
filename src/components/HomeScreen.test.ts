@@ -35,7 +35,7 @@ it("while the Admin sets My Cloud up, the screen says so plainly, with its step,
   expect(homeScreenText({ screen: "setup", step: "starting", slow: true }).body).toMatch(/taking longer than usual/);
   const steps = renderToStaticMarkup(createElement(CloudSetupSteps, { step: "checking" }));
   expect(steps).toContain('data-cloud-setup="checking"');
-  expect(steps).toMatch(/aria-current="step"[^>]*>Checking it&#x27;s ready</);
+  expect(steps).toMatch(/aria-current="step"[^>]*>checking it&#x27;s ready</);
   for (const words of Object.values(setup)) expect(String(words)).not.toMatch(/Server menu|choose it again|DNS|resolv|ERR_/i);
 });
 

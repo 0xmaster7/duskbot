@@ -100,14 +100,14 @@ describe("a new install's first run", () => {
     expect(button("start")!.disabled, "nothing to start until there is a job").toBe(true);
 
     await press("watch a price");
-    expect(composer().value).toContain("AirPods pro");
-    expect(composer().value.slice(composer().selectionStart, composer().selectionEnd), "the example is selected to type over").toBe("AirPods pro");
+    expect(composer().value).toContain("AirPods Pro");
+    expect(composer().value.slice(composer().selectionStart, composer().selectionEnd), "the example is selected to type over").toBe("AirPods Pro");
     expect(host.querySelector("[data-job=price]")?.getAttribute("aria-pressed")).toBe("true");
     await press("start");
 
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true, outbound: { policy: "ask", dailyCap: 25 } } });
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
-    expect(sent()).toEqual([expect.objectContaining({ botId: "maus", text: expect.stringContaining("AirPods pro"), sendId: expect.any(String) })]);
+    expect(sent()).toEqual([expect.objectContaining({ botId: "maus", text: expect.stringContaining("AirPods Pro"), sendId: expect.any(String) })]);
     expect(introStaged("maus"), "the job is the first thing in the chat, not a staged greeting").toBe(false);
     await act(async () => {});
     expect(saved()).toEqual([{ onboarding: expect.objectContaining({ version: WELCOME_VERSION, hintsSeen: [MET_CHIEF_HINT] }) }]);

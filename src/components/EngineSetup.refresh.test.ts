@@ -45,7 +45,7 @@ it("disables recheck while a probe is running", async () => {
   refresh.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
   mount();
   act(() => button("check again").click());
-  expect(button("Checking").disabled).toBe(true);
+  expect(button("checking").disabled).toBe(true);
   await act(async () => finish());
   expect(button("check again").disabled).toBe(false);
 });

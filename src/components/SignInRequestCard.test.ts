@@ -69,12 +69,12 @@ beforeEach(() => {
 describe("SignInRequestCard while it waits", () => {
   it("is grok's action card: the place in the titlebar, Action needed, the step and the bot's reason, Skip, I'm done and Take over", () => {
     const html = view();
-    expect(html).toMatch(/text-\[13px\] font-medium[^"]*">Browser</);
+    expect(html).toMatch(/text-\[13px\] font-medium[^"]*">browser</);
     expect(html).toContain("action needed");
-    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>Sign in to example\.com</);
+    expect(html).toMatch(/data-testid="sign-in-site"[^>]*>sign in to example\.com</);
     expect(html).toContain("The report is behind a login.");
     expect(html).not.toContain("— Pepper");
-    for (const label of [">skip<", ">I&#x27;m done<", ">take over<"]) expect(html).toContain(label);
+    for (const label of [">skip<", ">i&#x27;m done<", ">take over<"]) expect(html).toContain(label);
     expect(html.indexOf(">skip<")).toBeLessThan(html.indexOf(">take over<"));
     expect(html).not.toContain("shadow-(--shadow-float)");
     expect(html).not.toContain("<input");
@@ -107,7 +107,7 @@ describe("SignInRequestCard while it waits", () => {
     ["local", "on this computer, in the browser Pepper is using"],
   ])("names the place for %s on Take over", (place, words) => {
     expect(view({ place })).toContain(words);
-    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(Computer|This computer)</);
+    expect(view({ place })).toMatch(/text-\[13px\] font-medium[^"]*">(computer|this computer)</);
   });
 
   it("says the host computer, not this one, where this computer is somewhere else", () => {
@@ -123,7 +123,7 @@ describe("SignInRequestCard while it waits", () => {
   });
 
   it("open on this computer explains where to sign in instead", () => {
-    button(tree({ place: "local" }), "Open").props.onClick!();
+    button(tree({ place: "local" }), "open").props.onClick!();
     expect(dispatch).not.toHaveBeenCalled();
     // explained (the second useState) turns on
     expect(fixture.setters[1]).toHaveBeenCalledWith(true);
@@ -137,11 +137,11 @@ describe("SignInRequestCard while it waits", () => {
     expect(fixture.setters[2]).toHaveBeenCalledWith(true);
     fixture.setters = []; fixture.states = { 2: true };
     const html = view();
-    expect(html).toContain("Save the username and password for example.com.");
+    expect(html).toContain("save the username and password for example.com.");
     expect(html).toContain('type="password"');
     expect(html).toMatch(/type="password" autocomplete="new-password"/iu);
     expect(html).toContain("save and continue");
-    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
+    expect(html).not.toMatch(/>i&#x27;m done<|>take over</);
     expect(saveLoginFromCard).not.toHaveBeenCalled();
   });
 
@@ -206,9 +206,9 @@ describe("SignInRequestCard once settled", () => {
   it("folds into grok's one row, Done and the step, and opens to what happened", () => {
     const html = view({ done: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain("Done · sign in to example.com");
+    expect(html).toContain("done · sign in to example.com");
     expect(html).toContain('aria-expanded="false"');
-    expect(html).not.toMatch(/>I&#x27;m done<|>Take over</);
+    expect(html).not.toMatch(/>i&#x27;m done<|>take over</);
     expect(detailText({ done: true, resumed: true })).toContain("signed in to example.com · Pepper is continuing");
   });
 
@@ -235,7 +235,7 @@ describe("SignInRequestCard once settled", () => {
   it("stops offering anything once superseded", () => {
     const html = view({ superseded: true });
     expect(html).toContain("superseded by a newer request · sign in to example.com");
-    expect(html).not.toMatch(/>I&#x27;m done<|>Take over<|>Skip</);
+    expect(html).not.toMatch(/>i&#x27;m done<|>take over<|>skip</);
   });
 });
 
@@ -251,7 +251,7 @@ describe("SignInBanner", () => {
     const { html, nodes } = banner();
     expect(html).toContain("<b>Pepper</b> needs you to sign in to example.com");
     expect(html).not.toContain("take control");
-    button(nodes, "Done").props.onClick!();
+    button(nodes, "done").props.onClick!();
     await settle();
     expect(answerSignIn).toHaveBeenCalledExactlyOnceWith(help, "done");
   });

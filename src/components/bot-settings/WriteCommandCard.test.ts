@@ -16,6 +16,6 @@ describe("WriteCommandCard", () => {
     expect(markup).toContain('aria-label="what it does"');
     expect(markup).toContain('aria-label="instructions"');
     expect(markup).toContain("{input}");
-    expect(markup).toMatch(/<button type="submit" disabled=""[^>]*>Save command<\/button>/);
+    expect(markup).toMatch(/<button type="submit" disabled=""[^>]*>save command<\/button>/);
   });
 });

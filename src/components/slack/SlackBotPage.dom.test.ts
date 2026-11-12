@@ -92,9 +92,9 @@ describe("a bot's Slack setup", () => {
     expect(host.textContent).toContain("one more step. Slack has no way to do this for us.");
     expect(host.querySelector("a")?.getAttribute("href")).toBe(status.appTokenUrl);
     expect(host.textContent).toContain("connections:write");
-    expect(button("Save").disabled).toBe(true);
+    expect(button("save").disabled).toBe(true);
     write("app token", "xapp-fixture");
-    await click("Save");
+    await click("save");
     expect(fixture.api).toHaveBeenCalledWith("/api/slack/bots/b1/app-token", { method: "POST", body: JSON.stringify({ token: "xapp-fixture" }) });
     expect(host.textContent).toContain("online as @scout in Acme");
     expect(host.innerHTML).not.toContain("xapp-fixture");
@@ -137,7 +137,7 @@ describe("a bot's Slack setup", () => {
     status.state = "online";
     await mount();
     await click("remove from Slack");
-    expect(host.textContent).toContain("remove Scout from Slack? Its Slack app is deleted.");
+    expect(host.textContent).toContain("remove Scout from Slack? its Slack app is deleted.");
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(fixture.api.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
     await click("cancel");

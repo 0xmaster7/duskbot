@@ -127,7 +127,7 @@ it("when the person steps away from the welcome, it is the welcome's steps in sh
   ({ html } = render());
   expect(statuses()).toEqual({ cloud: "done", move: "skipped", engine: "todo", files: "todo" });
   expect(html).toContain("2 of 4 done");
-  expect(html).toContain("You&#x27;re on this step");
+  expect(html).toContain("you&#x27;re on this step");
   f.state.activeView = "routines";
   ({ html } = render());
   expect(html).toContain("required. cloud bots use your own Claude or ChatGPT account, or an API key.");

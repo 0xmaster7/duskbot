@@ -68,7 +68,7 @@ describe("computer inventory request wiring", () => {
     expect(request).toBeNull();
     expect(confirm).toHaveBeenCalledOnce();
     expect(confirm).toHaveBeenCalledWith(
-      "delete Research's private desktop? Its durable folder and website sign-ins are kept. Apps installed inside the desktop and files outside the durable folder are deleted.",
+      "delete Research's private desktop? its durable folder and website sign-ins are kept. apps installed inside the desktop and files outside the durable folder are deleted.",
     );
   });
 
@@ -358,7 +358,7 @@ describe("Local VM idle timeout setting", () => {
     expect(row).toContain("30 minutes");
     expect(row).not.toContain("<input");
     const field = renderToStaticMarkup(createElement(LocalVmIdleTimeoutField, { value: "30", disabled: false, error: "", onChange: () => {} }));
-    expect(field).toMatch(/<label[^>]*>[\s\S]*Stop idle desktops after[\s\S]*<input[^>]*id="local-vm-idle-timeout"/);
+    expect(field).toMatch(/<label[^>]*>[\s\S]*stop idle desktops after[\s\S]*<input[^>]*id="local-vm-idle-timeout"/);
     expect(field).toContain('min="5"');
     expect(field).toContain('max="1440"');
     expect(field).toContain('value="30"');

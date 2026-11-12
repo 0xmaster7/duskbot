@@ -33,10 +33,10 @@ describe("GoalRunCard", () => {
     }));
 
     expect(markup).toContain("Write and polish the launch announcement");
-    expect(markup).toContain("Working");
+    expect(markup).toContain("working");
     expect(markup).toContain("Luna is reviewing the second draft.");
     expect(markup).toContain("Sprout coordinating · turn 3 of 12");
-    expect(markup).toContain('aria-label="Goal: Working"');
+    expect(markup).toContain('aria-label="goal: working"');
     expect(markup).not.toMatch(/accent|shadow|border-/);
   });
 

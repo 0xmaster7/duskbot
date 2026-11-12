@@ -263,7 +263,7 @@ it("keeps its keys to itself over Settings, which listens on the window, and Esc
 it("draws what else its opener offers in the header, with only Done at its foot", async () => {
   await open(editable, { headerMenu: createElement("button", { type: "button", "data-more": true }, "More") });
   expect(dialog()!.querySelector("header [data-more]")).not.toBeNull();
-  expect([...dialog()!.querySelectorAll("footer button")].map((button) => button.textContent)).toEqual(["Done"]);
+  expect([...dialog()!.querySelectorAll("footer button")].map((button) => button.textContent)).toEqual(["done"]);
 });
 
 it("is not there off a team", () => {

@@ -71,7 +71,7 @@ describe("the setup card under a new bot's greeting", () => {
   it("asks what to help with first, with the greeting's own answers lettered in order, then Something else", () => {
     const view = renderOffer(offered);
     expect(view.html).toContain("what should i help you with first?");
-    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|Something else"]);
+    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|something else"]);
   });
 
   it("offers its own answers on an older greeting that carries none", () => {

@@ -52,14 +52,14 @@ describe("the cancel sheet", () => {
     await click(button("cancel trial"));
     expect(sheet()!.getAttribute("aria-modal")).toBe("true");
     expect(sheet()!.querySelector("h2")?.textContent).toBe("cancel your trial");
-    expect(text()).toContain(`Your trial runs until ${day(END)}. Cancel now and nothing is charged.`);
+    expect(text()).toContain(`your trial runs until ${day(END)}. cancel now and nothing is charged.`);
     expect(sheet()!.querySelector("legend")?.textContent).toBe("before you go: what's the main reason?");
     expect(chips()).toEqual([["missing a feature", "false"], ["too expensive", "false"], ["hard to set up", "false"], ["didn't work as i expected", "false"],
       ["not using it right now", "false"], ["something else", "false"]]);
     expect(document.activeElement?.textContent).toBe("missing a feature");
-    expect([...sheet()!.querySelectorAll("label")].map(label => label.textContent)).toEqual(["What did you expect Dusk to do? (optional)", "What could we have done better? (optional)"]);
+    expect([...sheet()!.querySelectorAll("label")].map(label => label.textContent)).toEqual(["what did you expect dusk to do? (optional)", "what could we have done better? (optional)"]);
     const call = sheet()!.querySelector<HTMLAnchorElement>(`a[href="${CLOUD_CALL_URL}"]`)!;
-    expect([call.textContent, call.getAttribute("target"), call.parentElement!.textContent]).toEqual(["book 30 minutes with Milind", "_blank", "Rather talk it through? Book 30 minutes with Milind"]);
+    expect([call.textContent, call.getAttribute("target"), call.parentElement!.textContent]).toEqual(["book 30 minutes with Milind", "_blank", "rather talk it through? book 30 minutes with Milind"]);
     // One tap picks a reason; the same tap again lets it go.
     await click(button("too expensive"));
     await click(button("too expensive"));
@@ -68,8 +68,8 @@ describe("the cancel sheet", () => {
     await write("what did you expect", "To answer my email by itself.");
     await click(button("cancel my trial"));
     expect(actions.cancel).toHaveBeenCalledExactlyOnceWith({ answer: "setup", expected: "To answer my email by itself." });
-    expect(sheet()!.querySelector("[role='status']")?.textContent).toBe(`Cancelled. Your trial ends on ${day(END)}, and nothing is charged.`);
-    expect(text()).toContain("The Cloud stops then. Its files are kept 3 days, then deleted.");
+    expect(sheet()!.querySelector("[role='status']")?.textContent).toBe(`cancelled. your trial ends on ${day(END)}, and nothing is charged.`);
+    expect(text()).toContain("the cloud stops then. its files are kept 3 days, then deleted.");
     expect(text()).toContain("thanks. Milind and Omkar read every answer, and we'll write back if it's something we can build.");
     expect(changed).not.toHaveBeenCalled();
     // Changed your mind? Keep my plan: renewal back on, the sheet closes and the plan is read again.
@@ -86,12 +86,12 @@ describe("the cancel sheet", () => {
     await click(button("cancel trial"));
     await click(button("cancel my trial"));
     expect(actions.cancel).toHaveBeenLastCalledWith(null);
-    await click(button("Done"));
+    await click(button("done"));
     await click(button("cancel trial"));
     await write("what could we have done better", "Tell me sooner what it needs.");
     await click(button("cancel my trial"));
     expect(actions.cancel).toHaveBeenLastCalledWith({ answer: null, improve: "Tell me sooner what it needs." });
-    await click(button("Done"));
+    await click(button("done"));
     const failing = actionsFor({ cancel: { outcome: "failed", state: { status: "connected" } } });
     await show(createElement(CloudCancelPlan, { renewal: trial, actions: failing }));
     await click(button("cancel trial"));
@@ -115,7 +115,7 @@ describe("the cancel sheet", () => {
     await click(button("cancel trial"));
     await click(button("cancel my trial"));
     expect(sheet()!.querySelector("[role='status']")?.textContent).toBe("the cloud page's billing opened in your browser. you can do it there.");
-    await click(button("Done"));
+    await click(button("done"));
     expect([sheet(), changed.mock.calls.length]).toEqual([null, 0]);
   });
 
@@ -126,14 +126,14 @@ describe("the cancel sheet", () => {
     expect(button("cancel trial")).toBeUndefined();
     await click(button("cancel plan"));
     expect(sheet()!.querySelector("h2")?.textContent).toBe("cancel your plan");
-    expect(text()).toContain(`Your plan runs until ${day(END)}. Cancel now and you won't be charged again. Acme's Cloud stops then, for everyone in the team.`);
+    expect(text()).toContain(`your plan runs until ${day(END)}. cancel now and you won't be charged again. Acme's cloud stops then, for everyone in the team.`);
     await click(button("cancel my plan"));
-    expect(sheet()!.querySelector("[role='status']")?.textContent).toBe(`Cancelled. Your plan ends on ${day(END)}. You won't be charged again.`);
-    expect(text()).toContain("Acme's Cloud stops then, for everyone in the team. Its files are kept 1 day, then deleted.");
+    expect(sheet()!.querySelector("[role='status']")?.textContent).toBe(`cancelled. your plan ends on ${day(END)}. you won't be charged again.`);
+    expect(text()).toContain("Acme's cloud stops then, for everyone in the team. its files are kept 1 day, then deleted.");
     expect(text()).not.toContain("Thanks.");
     const { stopsLine, endedLine } = await import("./CloudCancelPlan");
-    expect(stopsLine({ ...paid, team: undefined, keptDays: 0.5 })).toBe("The Cloud stops then. Its files are kept 12 hours, then deleted.");
-    expect(stopsLine({ ...paid, team: undefined, keptDays: 0 })).toBe("The Cloud stops then. Its files are deleted when it stops.");
+    expect(stopsLine({ ...paid, team: undefined, keptDays: 0.5 })).toBe("the cloud stops then. its files are kept 12 hours, then deleted.");
+    expect(stopsLine({ ...paid, team: undefined, keptDays: 0 })).toBe("the cloud stops then. its files are deleted when it stops.");
     expect(stopsLine({ ...paid, team: undefined, keptDays: null })).toBe("the cloud stops then.");
     expect(endedLine({ ...paid, cancelled: true, renewsAt: null, endsAt: null })).toBe("cancelled. your plan ends with the period you paid for. you won't be charged again.");
   });
@@ -142,7 +142,7 @@ describe("the cancel sheet", () => {
     const actions = actionsFor(), changed = vi.fn();
     await show(createElement(CloudCancelPlan, { renewal: cancelledTrial, actions, onChanged: changed }));
     expect(container.querySelector("[data-cloud-cancel]")?.getAttribute("data-cloud-cancel")).toBe("cancelled");
-    expect(container.querySelector("[role='status']")?.textContent).toBe(`Cancelled. Your trial ends on ${day(END)}, and nothing is charged.`);
+    expect(container.querySelector("[role='status']")?.textContent).toBe(`cancelled. your trial ends on ${day(END)}, and nothing is charged.`);
     expect(button("cancel trial")).toBeUndefined();
     await click(button("keep my plan"));
     expect([actions.keep.mock.calls.length, changed.mock.calls.length]).toEqual([1, 1]);
@@ -214,7 +214,7 @@ describe("the plan cards", () => {
     await click(button("cancel trial"));
     await click(button("cancel my trial"));
     expect(plan.cancel).toHaveBeenCalledExactlyOnceWith(null);
-    await click(button("Done"));
+    await click(button("done"));
     expect(plan.state).toHaveBeenCalledTimes(2);
     expect(container.querySelector("[data-cloud-cancel]")?.getAttribute("data-cloud-cancel")).toBe("cancelled");
     expect(button("keep my plan")).toBeTruthy();

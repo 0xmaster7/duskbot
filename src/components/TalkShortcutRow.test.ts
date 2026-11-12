@@ -58,7 +58,7 @@ describe("TalkShortcutRow", () => {
   it("shows the switch on with the key in its subtitle, and turns it off", async () => {
     await show();
     expect(host.textContent).toContain("talk to dusk from any app");
-    expect(host.textContent).toContain("Hold ⌃⌥Space, speak, let go");
+    expect(host.textContent).toContain("hold ⌃⌥Space, speak, let go");
     await click(toggle());
     expect(bridge.set).toHaveBeenCalledWith({ enabled: false });
     expect(toggle().getAttribute("aria-checked")).toBe("false");
@@ -71,7 +71,7 @@ describe("TalkShortcutRow", () => {
     const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((element) => element.textContent === "⌃⇧Space")!;
     await click(option);
     expect(bridge.set).toHaveBeenCalledWith({ key: "ctrl-shift-space" });
-    expect(host.textContent).toContain("Hold ⌃⇧Space");
+    expect(host.textContent).toContain("hold ⌃⇧Space");
   });
 
   it("shows nothing when the setting can't be read, and says so when a change fails, keeping the row as it was", async () => {

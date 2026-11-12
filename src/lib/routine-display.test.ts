@@ -23,7 +23,7 @@ describe("where a routine runs", () => {
 
   it("on a desktop, a routine starts while Dusk is open there", () => {
     expect(routineRunsOn({ roomGoal: false, cloudHome: false })).toEqual({
-      label: "This computer", hint: "starts while Dusk is open here.",
+      label: "this computer", hint: "starts while Dusk is open here.",
     });
     expect(routineRunsOn({ roomGoal: false, runOn: "cloud", cloudHome: false })).toEqual({
       label: "cloud desktop", hint: "runs the whole job on the bot's cloud desktop while Dusk is open.",

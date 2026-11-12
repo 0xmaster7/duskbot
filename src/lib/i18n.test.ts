@@ -193,7 +193,7 @@ describe("loading a language", () => {
     });
     const page = await import("./i18n");
     expect(await page.loadLocale("fr")).toBe("en");
-    expect(page.t("rail.thisComputer")).toBe("This computer");
+    expect(page.t("rail.thisComputer")).toBe("this computer");
     offline = false;
     expect(await page.loadLocale("fr")).toBe("fr");
     expect(page.t("rail.thisComputer")).toBe("Cet ordinateur");

@@ -67,7 +67,7 @@ describe("shared with the cloud", () => {
     expect(row("confirm-deletes").textContent).toContain("3 files were removed from this folder here. remove them from the cloud too?");
     expect(row("missing").textContent).toContain("can't find this folder. was it moved?");
     expect(row("problem").textContent).toContain("My Cloud's disk had an error.");
-    for (const status of ["synced", "copying", "problem"]) expect(buttons(row(status)).map((node) => node.getAttribute("aria-label"))).toEqual([`More for Folder ${status}`]);
+    for (const status of ["synced", "copying", "problem"]) expect(buttons(row(status)).map((node) => node.getAttribute("aria-label"))).toEqual([`more for Folder ${status}`]);
     await click("get more space", row("waiting"));
     expect(bridge.moreSpace).toHaveBeenCalledOnce();
     await click("keep them", row("confirm-deletes"));
@@ -86,7 +86,7 @@ describe("shared with the cloud", () => {
     await click("stop sharing", row("missing"));
     expect(dialog()?.textContent).toContain("stop sharing “Folder missing”?");
     expect(dialog()?.textContent).toContain("the cloud's copy goes to its trash for 30 days.");
-    await click("cancel", dialog()!);
+    await click("Cancel", dialog()!);
     expect(dialog()).toBeNull();
     expect(bridge.stopSharing).not.toHaveBeenCalled();
     await click("stop sharing", row("missing"));
@@ -137,7 +137,7 @@ describe("add a folder", () => {
     await click("add a folder");
     expect(dialog()?.textContent).toContain("share “Plans” with the cloud?");
     expect(dialog()?.textContent).toContain("120 files · 3 MB. the cloud keeps a synced copy its bots can read.");
-    await click("cancel", dialog()!);
+    await click("Cancel", dialog()!);
     expect(bridge.share).not.toHaveBeenCalled();
     bridge.pickFolder.mockResolvedValue(check("Plans", { files: 50_000, partial: true }));
     await click("add a folder");

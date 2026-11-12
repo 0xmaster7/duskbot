@@ -84,7 +84,7 @@ describe("move from Grok bot", () => {
     expect(host.querySelector('[data-grok-move="preview"]')).not.toBeNull();
     expect(shown()).toContain("what would come over");
     expect(host.querySelector("h3")?.textContent).toBe("Job Search");
-    expect(counts()).toEqual({ Skills: 2, Routines: 1, Memories: 2, "routines saved as notes": 1 });
+    expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
     expect(shown()).toContain("routines come over paused.");
     expect(shown()).toContain("2 apps need connecting again here");
     expect(shown()).toContain("a safety check keeps these skills off: Quick installer");
@@ -99,7 +99,7 @@ describe("move from Grok bot", () => {
     await importIt();
     expect(host.querySelector('[data-grok-move="report"]')).not.toBeNull();
     expect(host.querySelector("h3")?.textContent).toBe("Job Search is here");
-    expect(counts()).toEqual({ Skills: 2, Routines: 1, Memories: 2, "routines saved as notes": 1 });
+    expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
     expect(shown()).toContain("routines are paused. turn each one off in Grok bot, then on here.");
     expect(shown()).toContain("2 apps need connecting again here");
     const lines = [...host.querySelectorAll("[data-grok-move-body] p")].map((line) => line.textContent);
@@ -108,7 +108,7 @@ describe("move from Grok bot", () => {
     expect(f.api.mock.calls.map(([path]) => path)).toContain("/api/bots/b1/skills/greet");
     expect(f.track).toHaveBeenCalledOnce();
     expect(button("move another bot")).toBeDefined();
-    expect(button("Done")).toBeDefined();
+    expect(button("done")).toBeDefined();
   });
 
   it("hides what a Bot doesn't have, and the lines about it", async () => {
@@ -205,7 +205,7 @@ describe("a file dragged over the dialog, with the chat box behind it", () => {
   };
   const drag = async (type: string, file?: File) => {
     const event = new Event(type, { bubbles: true, cancelable: true });
-    Object.defineProperty(event, "dataTransfer", { value: { types: ["files"], files: file ? [file] : [] } });
+    Object.defineProperty(event, "dataTransfer", { value: { types: ["Files"], files: file ? [file] : [] } });
     await act(async () => { (host.querySelector("[data-grok-move]") ?? document.body).dispatchEvent(event); });
     await tick();
     return event;

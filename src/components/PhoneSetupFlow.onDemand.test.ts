@@ -125,7 +125,7 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
     );
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
     flushSync(() => button("Reveal")!.click());
-    expect(text()).toContain(`Pairing address${HOSTED}`);
+    expect(text()).toContain(`pairing address${HOSTED}`);
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledTimes(2);
   });
 

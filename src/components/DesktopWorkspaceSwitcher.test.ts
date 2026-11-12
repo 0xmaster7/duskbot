@@ -24,17 +24,17 @@ const visibleText = (html: string) => html.replace(/<span class="sr-only">.*?<\/
 it("says My Cloud while a Cloud home is showing, in a browser too, never always on without the plan to say so, and nothing more elsewhere", () => {
   vi.stubGlobal("window", {});
   const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true }));
-  expect(visibleText(browser)).toBe("My Cloud");
+  expect(visibleText(browser)).toBe("my cloud");
   expect(browser).toContain("data-cloud-home-indicator");
   expect(browser).not.toContain("<button");
   const compact = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, compact: true }));
-  expect(compact).toContain('title="My Cloud"');
-  expect(compact).toContain('<span class="sr-only">My Cloud</span>');
+  expect(compact).toContain('title="my cloud"');
+  expect(compact).toContain('<span class="sr-only">my cloud</span>');
 
   vi.stubGlobal("window", { duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
   const desktop = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true }));
-  expect(visibleText(desktop)).toBe("My Cloud");
-  expect(desktop).toContain('aria-label="switch server: My Cloud"');
+  expect(visibleText(desktop)).toBe("my cloud");
+  expect(desktop).toContain('aria-label="switch server: my cloud"');
   expect(desktop).toContain("data-cloud-home-indicator");
   const elsewhere = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher));
   expect(elsewhere).not.toContain("always on");
@@ -44,11 +44,11 @@ it("says My Cloud while a Cloud home is showing, in a browser too, never always 
 it("names whose Cloud a browser signed in to under My Cloud, quietly", () => {
   vi.stubGlobal("window", {});
   const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test" }));
-  expect(visibleText(browser)).toBe("My Cloudada@example.test’s cloud");
-  expect(browser).toContain('title="My Cloud · ada@example.test’s cloud"');
+  expect(visibleText(browser)).toBe("my cloudada@example.test’s cloud");
+  expect(browser).toContain('title="my cloud · ada@example.test’s cloud"');
   expect(browser).toContain('<span class="block truncate text-[12px] font-normal text-ink-secondary">ada@example.test’s cloud</span>');
   const compact = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test", compact: true }));
-  expect(compact).toContain('<span class="sr-only">My Cloud · ada@example.test’s cloud</span>');
+  expect(compact).toContain('<span class="sr-only">my cloud · ada@example.test’s cloud</span>');
   expect(renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { owner: "ada@example.test" }))).toBe("");
 });
 
@@ -88,6 +88,6 @@ it("draws Simple mode's switcher as a rounded pill that names the server in full
 
   vi.stubGlobal("window", {});
   const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { inline: true, pill: true, cloudHome: true }));
-  expect(visibleText(browser)).toBe("My Cloud");
+  expect(visibleText(browser)).toBe("my cloud");
   expect(browser).toMatch(/class="[^"]*\bh-8\b[^"]*\brounded-full\b/);
 });

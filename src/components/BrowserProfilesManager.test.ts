@@ -32,7 +32,7 @@ beforeEach(() => {
 describe("browser profile manager", () => {
   it("renders on the web without an Electron bridge and never exposes internal partition ids", () => {
     const html = list();
-    expect(html).toContain("New profile");
+    expect(html).toContain("new profile");
     expect(html).toContain('data-panel-page="profile:work"');
     expect(html).toContain("Work");
     expect(html).toContain("used by Pepper, Scout");
@@ -71,7 +71,7 @@ describe("browser profile manager", () => {
   it("offers each profile Built-in or My Chrome, and lists a built-in profile's signed-in sites with who shares them", () => {
     expect(list()).toContain("built-in");
     const html = page();
-    expect(html).toMatch(/role="combobox"[^>]*aria-label="browser"[\s\S]*?Built-in/);
+    expect(html).toMatch(/role="combobox"[^>]*aria-label="browser"[\s\S]*?built-in/);
     expect(html).toContain("signed-in sites");
     expect(html).toContain("Pepper, Scout share this browser: signing out here signs all of them out.");
     expect(html).not.toContain("act inside your real Chrome");
@@ -80,7 +80,7 @@ describe("browser profile manager", () => {
   it("says plainly that a My Chrome profile's bots act in the person's real, signed-in Chrome", () => {
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
     const html = page();
-    expect(html).toMatch(/role="combobox"[^>]*aria-label="browser"[\s\S]*?My Chrome/);
+    expect(html).toMatch(/role="combobox"[^>]*aria-label="browser"[\s\S]*?my Chrome/);
     expect(html).toContain("bots on this profile act inside your real Chrome, signed in as you");
     expect(html).toContain("chrome://inspect/#remote-debugging");
     expect(html).not.toContain("signed-in sites");

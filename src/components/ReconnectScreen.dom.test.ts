@@ -48,7 +48,7 @@ it("shows the last-seen chats read only, Try now, and the other workspaces to op
   host.querySelector<HTMLButtonElement>("[data-reconnect-retry]")!.click();
   await settle();
   expect(bridge.retry).toHaveBeenCalledTimes(1);
-  expect([...host.querySelectorAll("[data-reconnect-open]")].map((button) => button.textContent)).toEqual(["This computer", "Office"]);
+  expect([...host.querySelectorAll("[data-reconnect-open]")].map((button) => button.textContent)).toEqual(["this computer", "Office"]);
   host.querySelector<HTMLButtonElement>("[data-reconnect-open='office']")!.click();
   expect(bridge.open).toHaveBeenCalledWith("office");
   await push({ ...VIEW, checking: true, nextAt: null });

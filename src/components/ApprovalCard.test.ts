@@ -44,13 +44,13 @@ describe("ApprovalCard decided by voice", () => {
   });
 
   it("says a card was decided by voice on a Live call", () => {
-    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("allow", "call") }))).toMatch(/Allowed.*by voice/);
-    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("deny", "call") }))).toMatch(/Denied.*by voice/);
+    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("allow", "call") }))).toMatch(/allowed.*by voice/);
+    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("deny", "call") }))).toMatch(/denied.*by voice/);
   });
 
   it("says a card was decided by a 👍 or 👎 on it", () => {
-    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("allow", "reaction") }))).toMatch(/Allowed.*by reaction/);
-    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("deny", "reaction") }))).toMatch(/Denied.*by reaction/);
+    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("allow", "reaction") }))).toMatch(/allowed.*by reaction/);
+    expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("deny", "reaction") }))).toMatch(/denied.*by reaction/);
     expect(renderToStaticMarkup(createElement(ApprovalCard, { message: bash("allow", "reaction") }))).not.toContain("by voice");
   });
 
@@ -361,7 +361,7 @@ describe("ApprovalCard learned skills", () => {
       { message, requestId: "skill-update-request", tool: "stage_skill", detail: message.card!.subtitle },
       "Mochi",
     );
-    expect(spoken).toContain("Should I update it?");
+    expect(spoken).toContain("should i update it?");
 
     message.card!.answered = "allow";
     expect(renderToStaticMarkup(createElement(ApprovalCard, { message }))).toContain("skill updated");
@@ -546,9 +546,9 @@ describe("ApprovalCard outbound holds", () => {
   it("settles into one quiet line", () => {
     const html = renderToStaticMarkup(createElement(ApprovalCard, { bot, message: outboundMessage("allow") }));
     expect(html).toContain('data-approval-row="settled"');
-    expect(html).toContain("Send to Linear</span>");
+    expect(html).toContain("send to Linear</span>");
     expect(html).toContain("· Create linear comment ×2");
-    expect(html).not.toContain("· Allowed");
+    expect(html).not.toContain("· allowed");
     expect(html).not.toContain("issueId");
     expect(html).not.toContain("always asks first");
   });
@@ -613,7 +613,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
     expect(markup).toContain(">updated routine<");
     expect(markup).toContain(">Check before dentist<");
     expect(markup).toMatch(/title="Check before dentist, today 2:30/);
-    expect(markup).toContain(">Undo<");
+    expect(markup).toContain(">undo<");
     expect(markup).not.toContain(">details<");
     expect(markup).not.toContain("30 14 * * 3");
     expect(markup).not.toContain("waiting for your confirmation");
@@ -635,12 +635,12 @@ describe("ApprovalCard for a change that applied on its own", () => {
     const markup = render(undone);
     expect(markup).toContain(">updated routine<");
     expect(markup).toContain(">Backlog review<");
-    expect(markup).toContain("· Undone");
-    expect(markup).not.toContain(">Undo<");
+    expect(markup).toContain("· undone");
+    expect(markup).not.toContain(">undo<");
     const run = render(routineCard({ action: "run_now", routineId: "routine-1", expectedUpdatedAt: 1 }, { name: "Backlog review" }));
     expect(run).toContain(">ran routine<");
     expect(run).toContain(">Backlog review<");
-    expect(run).not.toContain(">Undo<");
+    expect(run).not.toContain(">undo<");
   });
 
   it("names profile fields, the model, and the skill in plain words", () => {
@@ -654,7 +654,7 @@ describe("ApprovalCard for a change that applied on its own", () => {
     }));
     expect(profile).toContain(">updated settings<");
     expect(profile).not.toContain("title, standing instructions");
-    expect(profile).toContain(">Undo<");
+    expect(profile).toContain(">undo<");
     const model = render(applied({
       tool: "update_model",
       modelRequest: {
@@ -682,17 +682,17 @@ describe("ApprovalCard for a change that applied on its own", () => {
       undo: { created: ["b2"], before: [], revisions: {} } } }));
     expect(team).toContain(">set up the team<");
     expect(team).toContain(">Mira, Ada<");
-    expect(team).toContain(">Undo<");
+    expect(team).toContain(">undo<");
     const deleted = render(applied({ tool: "delete_bot", teamSetupRequest: { ...setup, operations: [], deletion: { botId: "b3", name: "Ada", expectedRevision: "r" },
       result: { state: "applied", newTeams: [], bots: [{ id: "b3", name: "Ada", action: "deleted" }] } } }));
     expect(deleted).toContain(">deleted<");
     expect(deleted).toContain(">Ada<");
-    expect(deleted).not.toContain(">Undo<");
+    expect(deleted).not.toContain(">undo<");
     const memory = render(applied({ tool: "propose_team_memory", subtitle: "person: Ada Lovelace — Runs the payroll review.",
       teamMemoryRequest: { section: "", entryId: "e", kind: "person", revision: "v1" } }));
     expect(memory).toContain(">saved to department memory<");
     expect(memory).toContain(">person: Ada Lovelace<");
-    expect(memory).toContain(">Undo<");
+    expect(memory).toContain(">undo<");
     expect(memory).not.toContain("Remember");
   });
 
@@ -769,13 +769,13 @@ describe("one approval, one card", () => {
   it("settles a command into a quiet line with the outcome", () => {
     const line = renderToStaticMarkup(createElement(ApprovalCard, { bot: { name: "Dev" }, message: command("deny") }));
     expect(line).toContain('data-approval-row="settled"');
-    expect(line).toContain("· Denied");
+    expect(line).toContain("· denied");
   });
 
   it("names code run on Composio plainly and keeps the code behind Details", () => {
     const line = renderToStaticMarkup(createElement(ApprovalCard, { bot: { name: "Ursa" }, message: proxy("allow") }));
-    expect(line).toContain("Run code on Composio</span>");
-    expect(line).not.toContain("· Allowed");
+    expect(line).toContain("run code on Composio</span>");
+    expect(line).not.toContain("· allowed");
     expect(line).not.toContain("Proxy execute");
     expect(line).not.toContain("code_to_execute");
     expect(line).not.toContain("always asks first");
@@ -833,7 +833,7 @@ describe("ApprovalCard MCP server changes", () => {
     at: 1,
     card: {
       title: "turn on linear?",
-      subtitle: "https://mcp.linear.app/mcp\nReached over the internet. Once on, your bots can use its tools.",
+      subtitle: "https://mcp.linear.app/mcp\nreached over the internet. once on, your bots can use its tools.",
       options: ["turn on", "cancel"],
       requestId: "req-mcp",
       tool: "mcp_server",
@@ -855,7 +855,7 @@ describe("ApprovalCard MCP server changes", () => {
     expect(actions).toContain(">turn on</button>");
     expect(actions).toContain(">cancel</button>");
     expect(actions).not.toContain("always allow");
-    expect(spokenApprovalPrompt(pending!, "Kiwi")).toBe("Kiwi: turn on linear? Review the details and choose Turn on or Cancel.");
+    expect(spokenApprovalPrompt(pending!, "Kiwi")).toBe("Kiwi: turn on linear? Review the details and choose turn on or cancel.");
   });
 
   it("keeps the question as the transcript card's heading and says Cancelled after Cancel", () => {

@@ -17,7 +17,7 @@ describe("open System Settings", () => {
     const host = document.createElement("div");
     const root = createRoot(host);
     await act(async () => { root.render(createElement("p", null, withOpenSettings("Dictation needs access.", "speech"))); });
-    expect(host.textContent).toBe("Dictation needs access. Open System Settings");
+    expect(host.textContent).toBe("Dictation needs access. open System Settings");
     await act(async () => { host.querySelector("button")!.click(); });
     expect(permOpenSettings).toHaveBeenCalledWith("speech");
     await act(async () => root.unmount());

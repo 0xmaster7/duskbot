@@ -113,7 +113,7 @@ describe("connecting an AI on the first screen", () => {
       { ...engine("local", "openai-compat", "local models", false), access: "custom" },
     ];
     const setup = (id: string) => host.querySelector(`[data-engine-setup="${id}"]`);
-    const plain = (name: string) => `Use the ${name} account you already have. You sign in on their own website, so your password stays with them.`;
+    const plain = (name: string) => `use the ${name} account you already have. you sign in on their own website, so your password stays with them.`;
     await show();
     expect(setup("claude")?.getAttribute("data-description")).toBe(plain("Claude"));
     await otherWays();

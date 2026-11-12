@@ -127,7 +127,7 @@ describe("a picker that opens before its engine has listed its models", () => {
     readList([sonnet]);
     act(() => root.render(createElement(ModelPicker, { bot: onClaude, threadId: "thread-1" })));
     openPicker();
-    expect(text()).toContain("Loading Claude models");
+    expect(text()).toContain("loading Claude models");
     expect(text()).not.toContain("no local models found");
     await act(async () => arrive());
     expect(text()).toContain("Claude Sonnet 5");

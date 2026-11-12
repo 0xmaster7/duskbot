@@ -165,7 +165,7 @@ describe("choosing a model with the keyboard", () => {
     const low = document.querySelector<HTMLElement>("[data-effort-pill]")!;
     low.focus();
     press("ArrowRight");
-    expect(focused()?.textContent).toBe("Medium");
+    expect(focused()?.textContent).toBe("medium");
     expect(fixture.dispatch).not.toHaveBeenCalled();
     flushSync(() => focused()!.click());
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ selection: expect.objectContaining({ effort: "medium" }) }));

@@ -40,19 +40,19 @@ it("is Create New Bot: a name, the twenty pixel bodies, the colours, and Create 
   flushSync(() => openCreateBot("GOATS"));
   expect(dialog()!.querySelector("h2")!.textContent).toBe("Create New Bot");
   expect(dialog()!.querySelector("input")!.placeholder).toBe("Name your Bot");
-  expect(dialog()!.querySelectorAll('[aria-label$="character shape"]')).toHaveLength(20);
-  expect(dialog()!.querySelectorAll('[aria-label$="character shape"][aria-pressed="true"]')).toHaveLength(1);
-  expect(dialog()!.querySelectorAll('[aria-label$="character color"][aria-pressed="true"]')).toHaveLength(1);
+  expect(dialog()!.querySelectorAll('button[aria-label$="character shape"]')).toHaveLength(20);
+  expect(dialog()!.querySelectorAll('button[aria-label$="character shape"][aria-pressed="true"]')).toHaveLength(1);
+  expect(dialog()!.querySelectorAll('button[aria-label$="character color"][aria-pressed="true"]')).toHaveLength(1);
   expect(button("Create").disabled).toBe(true);
   type("   ");
   expect(button("Create").disabled, "a blank name is no name").toBe(true);
   type("Rex");
   flushSync(() => button("hearty character shape").click());
-  flushSync(() => button("Blue character color").click());
+  flushSync(() => button("blue character color").click());
   flushSync(() => button("Create").click());
   expect(fixture.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "newBot", section: "GOATS", look: { name: "Rex", color: "blue", mascotBody: "hearty" } }));
   expect(dialog(), "it stays until the bot exists").not.toBeNull();
-  expect(button("Creating…").disabled).toBe(true);
+  expect(button("creating…").disabled).toBe(true);
   flushSync(() => fixture.dispatch.mock.calls[0]![0].onCreated({ id: "rex" }));
   expect(dialog(), "it closes once the bot is made").toBeNull();
 });
@@ -71,7 +71,7 @@ it("keeps the name, shape and colour and says why when the bot could not be made
 });
 
 it("closes on Cancel, the close button and Escape without making anything", () => {
-  for (const close of [() => button("Cancel").click(), () => button("Close").click(),
+  for (const close of [() => button("Cancel").click(), () => button("close").click(),
     () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))]) {
     flushSync(() => openCreateBot());
     expect(dialog()).not.toBeNull();

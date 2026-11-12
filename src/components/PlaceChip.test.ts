@@ -68,8 +68,8 @@ describe("PlaceChip composer trigger", () => {
       onPin: () => {},
     } satisfies ComponentProps<typeof PlaceChip>));
     expect(html).toContain('data-testid="place-chip"');
-    expect(html).toContain('aria-label="where this conversation works: This computer"');
-    expect(html).toContain("this computer — From this bot&#x27;s Works on setting");
+    expect(html).toContain('aria-label="where this conversation works: this computer"');
+    expect(html).toContain("this computer — from this bot&#x27;s works on setting");
     expect(html).not.toMatch(/<span class="truncate">This computer<\/span>/);
   });
 });
@@ -91,32 +91,32 @@ describe("the menu's first row", () => {
 
   it("is Auto itself for a bot on Auto, selected while the conversation has no pin", () => {
     const { html, rows: menu } = rows({ bot: { ...bot, computer: undefined } });
-    expect(menu[0]).toEqual({ checked: true, text: "Auto Picks the right place for each task" });
+    expect(menu[0]).toEqual({ checked: true, text: "auto picks the right place for each task" });
     expect(html).not.toContain("follow this bot");
-    expect(html).toContain('aria-label="where this conversation works: Auto"');
+    expect(html).toContain('aria-label="where this conversation works: auto"');
     expect(menu).toHaveLength(5);
-    expect(menu.filter((row) => row.text.startsWith("Auto"))).toHaveLength(1);
+    expect(menu.filter((row) => row.text.startsWith("auto"))).toHaveLength(1);
   });
 
   it("stays Auto, unchecked, when the conversation is pinned elsewhere", () => {
     const { html, rows: menu } = rows({ bot: { ...bot, computer: undefined }, task: { surface: "vm" } });
-    expect(menu[0]).toEqual({ checked: false, text: "Auto Picks the right place for each task" });
-    expect(menu.find((row) => row.checked)?.text).toBe("Private desktop Isolated local desktop");
+    expect(menu[0]).toEqual({ checked: false, text: "auto picks the right place for each task" });
+    expect(menu.find((row) => row.checked)?.text).toBe("private desktop isolated local desktop");
     expect(html).toContain('aria-label="where this conversation works: private desktop"');
   });
 
   it("keeps Auto checked for the place Auto picked, which is no pin of the person's", () => {
     const { html, rows: menu } = rows({ bot: { ...bot, computer: undefined }, task: { surface: "browser", surfaceAuto: true } });
-    expect(menu[0]).toEqual({ checked: true, text: "Auto Picks the right place for each task" });
+    expect(menu[0]).toEqual({ checked: true, text: "auto picks the right place for each task" });
     expect(menu.filter((row) => row.checked)).toHaveLength(1);
     expect(html).toContain('aria-label="where this conversation works: browser"');
-    expect(html).toContain("Browser — From this bot&#x27;s Works on setting");
+    expect(html).toContain("browser — from this bot&#x27;s works on setting");
     expect(html).not.toContain("text-accent hover:text-accent");
   });
 
   it("keeps following the bot's setting when the bot works on a specific place", () => {
     const { html, rows: menu } = rows({ bot: { ...bot, computer: "local" } });
-    expect(menu[0]).toEqual({ checked: true, text: "Follow this bot's setting Currently This computer" });
+    expect(menu[0]).toEqual({ checked: true, text: "follow this bot's setting currently this computer" });
     expect(html).not.toContain("picks the right place for each task");
   });
 });
@@ -166,6 +166,6 @@ describe("J11: the chip names a place's problem in the panel's words", () => {
     const row = html.split('role="menuitemradio"').slice(1).find((entry) => entry.includes("cloud desktop"))!;
     expect(row).toContain('disabled=""');
     expect(row).toContain("not with this model");
-    expect(row).toContain("title=\"grok-4.6 can&#x27;t use a desktop. Choose a model that can, such as Claude or ChatGPT.\"");
+    expect(row).toContain("title=\"grok-4.6 can&#x27;t use a desktop. choose a model that can, such as Claude or ChatGPT.\"");
   });
 });

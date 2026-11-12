@@ -76,8 +76,8 @@ describe("outboundSummary", () => {
 
   it("names a tool with no app by its label", () => {
     const card = outbound(undefined, 'Send a message\n{"to":"x"}');
-    expect(outboundCalls(card)).toEqual([{ app: null, label: "send a message" }]);
-    expect(outboundSummary(card)).toEqual({ headline: "send on your behalf?", summary: "send a message" });
+    expect(outboundCalls(card)).toEqual([{ app: null, label: "Send a message" }]);
+    expect(outboundSummary(card)).toEqual({ headline: "send on your behalf?", summary: "Send a message" });
   });
 
   it("is undefined for a card that is not an outbound hold", () => {

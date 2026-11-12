@@ -47,7 +47,7 @@ it("renders the title, providers and email step, and focuses the email field", a
   const html = renderToStaticMarkup(createElement(AccountGate, { bridge }));
   expect(html).toContain("sign in to dusk bot");
   expect(html).toContain("one account for your bots, your Mac and your cloud desktop.");
-  for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`Continue with ${name}`);
+  for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`continue with ${name}`);
   expect(html).toContain('type="email"'); expect(html).toContain("send code");
   await mount();
   expect(host.querySelector("h1")?.textContent).toBe("sign in to dusk bot");
@@ -56,7 +56,7 @@ it("renders the title, providers and email step, and focuses the email field", a
 
 it.each([["Google", "google"], ["Apple", "apple"], ["X", "x"]] as const)("starts %s browser sign-in", async (name, provider) => {
   await mount();
-  await act(async () => button(`Continue with ${name}`).click());
+  await act(async () => button(`continue with ${name}`).click());
   expect(bridge.browser).toHaveBeenCalledExactlyOnceWith(provider);
 });
 

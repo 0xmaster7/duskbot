@@ -108,7 +108,7 @@ describe("a bot's page in the chat", () => {
     await render(row(payload({ doc: "d1", rev: 1, history: ["d0"] })));
     expect(host.querySelectorAll("[data-app]")).toHaveLength(1);
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v2");
-    expect(card().querySelector("[data-page-updated]")?.textContent).toBe("Updated");
+    expect(card().querySelector("[data-page-updated]")?.textContent).toBe("updated");
     await click("earlier version", card());
     expect(card().querySelector("[data-page-version]")?.textContent).toBe("v1 of 2");
     expect(documents().at(-1)!.searchParams.get("rev")).toBe("0");

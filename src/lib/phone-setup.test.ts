@@ -504,7 +504,7 @@ describe("phone setup flow", () => {
       ),
       "we could not send the code. try again.",
     );
-    expect(message).toBe(`We could not send the code. Try again. Reference: ${requestId}.`);
+    expect(message).toBe(`we could not send the code. try again. reference: ${requestId}.`);
     expect(message).not.toContain("remote method");
     expect(message).not.toContain("companion-account");
   });
@@ -519,7 +519,7 @@ describe("phone setup flow", () => {
         "We could not finish setup. Try again.",
       ),
     ).toBe(
-      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. Reference: ${requestId}.`,
+      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. reference: ${requestId}.`,
     );
   });
 
@@ -533,7 +533,7 @@ describe("phone setup flow", () => {
         ),
         "We could not finish setup. Try again.",
       ),
-    ).toBe(`${busy} Reference: ${requestId}.`);
+    ).toBe(`${busy} reference: ${requestId}.`);
   });
 
   it("replaces arbitrary IPC details with calm setup copy", () => {

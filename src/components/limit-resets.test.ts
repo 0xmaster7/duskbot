@@ -102,8 +102,8 @@ describe("the words", () => {
 
   it("read a limit-reset automation as a sentence, and say when its time is not known", () => {
     const automation = { kind: "schedule" as const, name: "Report", instructions: "Finish the report.", schedule: { type: "limit_reset" as const, engine: "claude", repeat: "once" as const, at: null } };
-    expect(automationSentence(automation, "Scout")).toBe("When your Claude limit resets, Scout finishes the report");
-    expect(automationSentence({ ...automation, schedule: { ...automation.schedule, repeat: "every_reset" } }, "Scout")).toBe("Each time your Claude limit resets, Scout finishes the report");
+    expect(automationSentence(automation, "Scout")).toBe("when your Claude limit resets, Scout finishes the report");
+    expect(automationSentence({ ...automation, schedule: { ...automation.schedule, repeat: "every_reset" } }, "Scout")).toBe("each time your Claude limit resets, Scout finishes the report");
     expect(statusLine({ ...automation, id: "r", botId: "scout", enabled: true, nextRunAt: null, runs: [] }, NOW)).toContain("runs when the limit resets (time not known yet)");
     expect(isDone({ schedule: { ...automation.schedule, at: NOW - 1 } }, NOW)).toBe(true);
     expect(isDone({ schedule: { ...automation.schedule, at: null } }, NOW)).toBe(false);
@@ -191,7 +191,7 @@ describe("the bars", () => {
     hover(spot, "mouse");
     await wait(HOVER_MS);
     const card = document.querySelector<HTMLElement>("[data-usage-card]")!;
-    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftresets 3:40 PM", "Weekly20% leftresets Mon 9:00 AM"]);
+    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftresets 3:40 PM", "weekly20% leftresets Mon 9:00 AM"]);
     expect(card.textContent).not.toContain("check again");
     leave(spot);
     await wait(HOVER_MS);
@@ -201,7 +201,7 @@ describe("the bars", () => {
     hover(spot, "mouse");
     await wait(HOVER_MS);
     const blocked = document.querySelector<HTMLElement>("[data-usage-card]")!;
-    expect(blocked.querySelector('[data-usage-row="5-hour"]')?.textContent).toBe("5-hourAt its limitresets 3:40 PM");
+    expect(blocked.querySelector('[data-usage-row="5-hour"]')?.textContent).toBe("5-hourat its limitresets 3:40 PM");
     expect(blocked.textContent).toContain("clears by itself once Claude replies again.");
     fixture.api.mockClear();
     flushSync(() => blocked.querySelector<HTMLButtonElement>("[data-usage-check]")!.click());
@@ -246,7 +246,7 @@ describe("the chat", () => {
 
   it("offers Retry as before once the reset has passed, or when the engine named no reset", () => {
     const passed = mount(createElement(FailedTurnRow, { tool: failedTurnTool("limit", { limitResetsAt: NOW - 1 }), engine: undefined, botId: "scout", threadId: "t-1", onRetry: vi.fn() }));
-    expect(passed.textContent).toContain("Retry");
+    expect(passed.textContent).toContain("retry");
     expect(passed.textContent).not.toContain("continue at");
   });
 });

@@ -119,7 +119,7 @@ describe("Grok Build device sign-in UI", () => {
     expect(html).toContain("WDJB-MJHT");
     expect(html).toContain('href="https://accounts.x.ai/device"');
     expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain("Enter this one-time code on xAI&#x27;s sign-in page");
+    expect(html).toContain("enter this one-time code on xAI&#x27;s sign-in page");
     expect(html).toContain("open Grok sign-in");
     expect(html).toContain("grok.com subscription");
     expect(html).not.toMatch(/ChatGPT|OpenAI/);

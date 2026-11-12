@@ -68,7 +68,7 @@ describe("the move's words on the account", () => {
     expect(tag).toContain('aria-label="try again to move to dusk cloud"');
     expect(tag).toContain('title="My Cloud did not answer."');
     expect(tag).not.toContain("aria-disabled");
-    expect(html).toMatch(/data-move-retry[^>]*>Try again<\/button>/);
+    expect(html).toMatch(/data-move-retry[^>]*>try again<\/button>/);
     expect(html.indexOf("your move to dusk cloud needs you")).toBeLessThan(html.indexOf(">try again<"));
     // The words shorten before Try again does.
     expect(html).toContain('<span class="truncate">your move to dusk cloud needs you</span>');
@@ -93,7 +93,7 @@ describe("the move's words on the account", () => {
     const tag = tryAgainTag(html);
     expect(tag).toContain('aria-busy="true"');
     expect(tag).toContain('aria-disabled="true"');
-    expect(html).toMatch(/data-move-retry[^>]*>.*animate-spin.*Try again<\/button>/);
+    expect(html).toMatch(/data-move-retry[^>]*>.*animate-spin.*try again<\/button>/);
   });
 
   it("has no Try again on its way, inside a trigger, or when the move allows none", () => {
@@ -112,7 +112,7 @@ describe("the move's row in the account menu", () => {
     const onOpen = vi.fn(), onRetry = vi.fn();
     const items = rows(line({ phase: "copy", failing: { error: "Some of this computer's things did not reach My Cloud." } }), { onOpen, onRetry });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ key: "cloud-move", label: "Try moving to dusk cloud again", title: "something got in the way. your bots are safe here.", disabled: false, keepOpen: true });
+    expect(items[0]).toMatchObject({ key: "cloud-move", label: "try moving to dusk cloud again", title: "something got in the way. your bots are safe here.", disabled: false, keepOpen: true });
     expect(items[0]).toMatchObject({ note: "something got in the way. your bots are safe here.", wrap: true });
     expect(markup(items[0]!.icon)).not.toContain("animate-spin");
     items[0]!.onSelect();
@@ -132,7 +132,7 @@ describe("the move's row in the account menu", () => {
     const failing = line({ phase: "wait", failing: { error: "My Cloud did not answer." } });
     const busy = rows(failing, { retrying: true });
     expect(busy).toHaveLength(1);
-    expect(busy[0]).toMatchObject({ label: "Try moving to dusk cloud again", disabled: true });
+    expect(busy[0]).toMatchObject({ label: "try moving to dusk cloud again", disabled: true });
     expect(markup(busy[0]!.icon)).toContain("animate-spin");
     expect(rows(failing, { unanswered: "dusk bot on this computer did not answer." })[0]!.title).toBe("dusk bot on this computer did not answer.");
     // Main gave no words of its own: the friendly line stays.

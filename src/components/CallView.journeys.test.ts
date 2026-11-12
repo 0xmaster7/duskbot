@@ -241,21 +241,21 @@ describe("calling a bot off the Mac", () => {
   it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
     open(desktopApp("darwin", "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
+    expectTurnsDisabled("calls where you take turns work with bots on this Mac. they listen with your Mac's own speech recognition, which only bots on this Mac can use.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it works on This computer", async (platform) => {
     open(desktopApp(platform, "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
+    expectTurnsDisabled("calls where you take turns work with bots on this computer. they listen from this computer's own window, so only bots on this computer can use them.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with no Fish Audio key, the call is Live, Take turns asks for the key, and Live points to API keys", async (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat(THIS_COMPUTER);
-    expectTurnsDisabled("Add a Fish Audio key to take turns on calls. On this computer, Take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in Settings → API keys.");
+    expectTurnsDisabled("add a Fish Audio key to take turns on calls. on this computer, take turns hears you through Fish Audio speech-to-text. add a Fish Audio key in settings → API keys.");
     await firstLiveCall();
   });
 

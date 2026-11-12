@@ -134,7 +134,7 @@ describe("the row before its frame runs", () => {
   it("shows its text and why when nothing could be stored", () => {
     const markup = renderToStaticMarkup(view(row(htmlPayload({ doc: "", blocked: "too-large" }))));
     expect(markup).toContain('data-app-state="unavailable"');
-    expect(markup).toContain("this app is too large to store");
+    expect(markup).toContain("This app is too large to store");
     expect(markup).toContain("Cups of coffee today");
     expect(markup).not.toContain('aria-label="reload app"');
   });

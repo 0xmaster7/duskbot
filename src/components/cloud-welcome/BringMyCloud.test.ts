@@ -49,7 +49,7 @@ it("asks main to move that one bot by its id, says it is on its way, and holds t
   await draw();
   await act(async () => { moveButton("atlas")!.click(); });
   expect(bridge.teamBringMove).toHaveBeenCalledExactlyOnceWith("atlas");
-  expect(host.querySelector('[data-bring-line="sending"]')?.textContent).toContain("Moving Atlas to Acme");
+  expect(host.querySelector('[data-bring-line="sending"]')?.textContent).toContain("moving Atlas to Acme");
   expect(moveButton("beacon")!.disabled).toBe(true);
 });
 

@@ -28,8 +28,8 @@ describe("a free trial, in one message and at most one next step per state", () 
     expect(unpriced.body).toBe("then Max is charged monthly, plus tax, from Oct 15. the cloud keeps running, so there's nothing to do. to cancel, choose manage subscription before then.");
     expect(unpriced.credit).toBeUndefined();
     expect(cloudTrialView(trial("active"), { ...credit, remainingUsd: 0, state: "used_up" }).credit).toBeUndefined();
-    expect(cloudTrialView(trial("active", { tier: "team-2027" })).body).toContain("Then Cloud is $49/month");
-    expect(cloudTrialView(trial("active", { tier: undefined })).body).toContain("Then your plan is $49/month");
+    expect(cloudTrialView(trial("active", { tier: "team-2027" })).body).toContain("then Cloud is $49/month");
+    expect(cloudTrialView(trial("active", { tier: undefined })).body).toContain("then your plan is $49/month");
     expect(cloudTrialView(trial("active", { amount: 5831 })).body).toContain("$58.31/month");
   });
 
@@ -111,7 +111,7 @@ describe("the plan line and the credit", () => {
     expect(cloudPlanLine(cloudPlanView(connected({ entitlement: { ...personal, status: "inactive" } })))).toBe("Personal · not active right now");
     expect(cloudPlanLine(cloudPlanView({ status: "unavailable", lastPlan: { tier: "personal", active: true } }))).toBe("Personal · checking with dusk cloud…");
     expect(cloudPlanLine(cloudPlanView({ status: "reauth-required", message: "expired", lastPlan: { tier: "personal", active: true } }))).toBe("Personal plan");
-    expect(cloudTrialView(trial("active", { tier: "personal", amount: 2900 })).body).toContain("Then Personal is $29/month plus tax");
+    expect(cloudTrialView(trial("active", { tier: "personal", amount: 2900 })).body).toContain("then Personal is $29/month plus tax");
   });
 
 });
@@ -146,10 +146,10 @@ describe("what is for sale, as the Admin says", () => {
         action: "start free trial", terms: "free for 7 days, then $99/month + tax" },
     ]);
     expect(planCards({ ...OFFER, recommended: "max" }).map(card => card.popular), "never Pro by itself").toEqual([false, false, true]);
-    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["Get Starter", "$15 + tax today, then each month"],
-      ["Get Pro", "$49 + tax today, then each month"], ["Get Max", "$99 + tax today, then each month"]]);
+    expect(planCards(noTrial(OFFER)).map(card => [card.action, card.terms])).toEqual([["get Starter", "$15 + tax today, then each month"],
+      ["get Pro", "$49 + tax today, then each month"], ["get Max", "$99 + tax today, then each month"]]);
     expect(planCards({ plans: [{ tier: "team", label: "Team", amount: 19900 }], recommended: "team" })).toEqual([{ tier: "team", name: "Team", price: "$199", popular: true, current: false,
-      promise: null, action: "Get Team", terms: "$199 + tax today, then each month", rows: [] }]);
+      promise: null, action: "get Team", terms: "$199 + tax today, then each month", rows: [] }]);
     expect(planCards({ plans: [{ tier: "pro", amount: 5831 }], recommended: "pro" })[0]!.price).toBe("$58.31");
   });
 

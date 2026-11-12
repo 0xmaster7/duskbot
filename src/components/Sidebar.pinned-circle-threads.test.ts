@@ -96,7 +96,7 @@ describe("pinned circle section", () => {
     const markup = renderThreads(true, [atlas, beacon]);
     expect(markup).toContain('data-sidebar-pinned-circle-threads=""');
     expect(markup).toContain('aria-expanded="false"');
-    expect(markup).toContain("expand Pinned");
+    expect(markup).toContain("expand pinned");
     expect(markup).not.toContain("Atlas");
     expect(markup).not.toContain("Beacon");
     expect(markup).not.toContain("data-sidebar-pinned-circles");
@@ -106,7 +106,7 @@ describe("pinned circle section", () => {
   it("opens the same pinned bots as rows, in circle order, with the thread menu", () => {
     const markup = renderThreads(false, [atlas, beacon]);
     expect(markup).toContain('aria-expanded="true"');
-    expect(markup).toContain("collapse Pinned");
+    expect(markup).toContain("collapse pinned");
     expect(markup.indexOf("Atlas")).toBeLessThan(markup.indexOf("Beacon"));
     expect(markup).toContain('aria-label="actions for Atlas"');
     expect(markup).not.toContain("expand Atlas threads");

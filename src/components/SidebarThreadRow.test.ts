@@ -67,10 +67,10 @@ describe("sidebar thread visibility", () => {
       current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
     }));
     expect(render()).toContain("next job · queued");
-    expect(render(true)).toContain("next job · Working");
-    expect(render(true)).not.toContain("queued");
+    expect(render(true)).toContain("next job · working");
+    expect(render(true)).not.toContain("· queued");
     expect(render(true, "waiting-on-you")).toContain("next job · waiting");
-    expect(render(true, "waiting-on-you")).not.toContain("queued");
+    expect(render(true, "waiting-on-you")).not.toContain("· queued");
   });
 });
 
@@ -142,7 +142,7 @@ describe("snoozed threads", () => {
     const sentinel = [{ ...rows[0], snoozedUntil: 0 }, ...rows.slice(1)];
     expect(visibleSidebarThreads(sentinel, "8").map((task) => task.threadId)).toEqual(["1", "2", "3", "4", "5", "6", "8"]);
     expect(threadByline({ snoozedUntil: 0 })).toBe("snoozed");
-    expect(threadByline({ archivedAt: 5, snoozedUntil: 0 })).toBe("Archived");
+    expect(threadByline({ archivedAt: 5, snoozedUntil: 0 })).toBe("archived");
     expect(threadByline({})).toBeNull();
   });
   it("wakes a timed snooze once its moment passes, without waiting for a fresh snapshot", () => {
@@ -219,7 +219,7 @@ describe("threads a bot closed", () => {
     expect(markup).not.toContain("opened by");
     expect(markup).toContain('title="Helper 1 · closed"');
     expect(markup).toContain('text-ink-tertiary">Helper 1</span>');
-    expect(render({ threadId: "h", title: "Helper 1", closedBy, busy: true })).toContain('title="Helper 1 · Working"');
+    expect(render({ threadId: "h", title: "Helper 1", closedBy, busy: true })).toContain('title="Helper 1 · working"');
     expect(render({ threadId: "h", title: "Helper 1", closedBy }, true)).not.toContain('text-ink-tertiary">Helper 1</span>');
   });
 });
@@ -485,14 +485,14 @@ describe("archived threads", () => {
     expect(visibleSidebarThreads(rows, "1").map((task) => task.threadId)).toEqual(["0", "1"]);
   });
   it("says Archived under the title and dims the row, behind any live status", () => {
-    expect(threadByline({ archivedAt: 5 })).toBe("Archived");
-    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5 })).toBe("Archived");
+    expect(threadByline({ archivedAt: 5 })).toBe("archived");
+    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5 })).toBe("archived");
     expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 } })).toBe("opened by Scout");
     expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5, closedBy: { botId: "pm", name: "Parker", at: 2 } })).toBe("closed by Parker");
     const markup = render({ threadId: "1", title: "Put away", archivedAt: 5 });
-    expect(markup).toContain("Archived");
+    expect(markup).toContain("archived");
     expect(markup).toContain('text-ink-tertiary">Put away</span>');
-    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · Working · Archived"');
+    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · working · archived"');
   });
   it("treats archivedAt: 0 as archived, because zero is a valid timestamp at the API boundary", () => {
     const rows = [
@@ -500,8 +500,8 @@ describe("archived threads", () => {
       { threadId: "1", title: "Put away", archivedAt: 0 },
     ];
     expect(visibleSidebarThreads(rows, "0").map((task) => task.threadId)).toEqual(["0"]);
-    expect(threadByline({ archivedAt: 0 })).toBe("Archived");
-    expect(render({ threadId: "1", title: "Put away", archivedAt: 0 })).toContain("Archived");
+    expect(threadByline({ archivedAt: 0 })).toBe("archived");
+    expect(render({ threadId: "1", title: "Put away", archivedAt: 0 })).toContain("archived");
   });
 });
 

@@ -320,7 +320,7 @@ describe("the chat header's pill", () => {
     } finally {
       done();
     }
-    const untitled = pill({ bot: { ...withTasks, mainThreadId: "other", tasks: [{ ...withTasks.tasks![0]!, title: "new thread" }, withTasks.tasks![1]!] } });
+    const untitled = pill({ bot: { ...withTasks, mainThreadId: "other", tasks: [{ ...withTasks.tasks![0]!, title: "New thread" }, withTasks.tasks![1]!] } });
     try {
       expect(untitled.header.querySelector("[data-chathead-conversation]")!.textContent).toBe("new conversation");
     } finally {

@@ -63,7 +63,7 @@ beforeEach(() => {
 describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
   it("is a round 32px button labelled More, on the raised surface", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
-    expect(menu.ariaLabel).toBe("More");
+    expect(menu.ariaLabel).toBe("more");
     expect(menu.placement).toBeUndefined();
     expect(menu.trigger).toContain('data-testid="chat-more"');
     expect(menu.trigger).toMatch(/class="[^"]*\bsize-8\b[^"]*\brounded-full\b[^"]*\bbg-composer\b[^"]*\binset-ring\b/);

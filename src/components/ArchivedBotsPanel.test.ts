@@ -37,7 +37,7 @@ describe("ArchivedBotRow", () => {
 
     expect(markup).toContain(">restore</button>");
     expect(markup).toContain('aria-label="delete Waffle"');
-    expect(markup).toContain(">Delete</button>");
+    expect(markup).toContain(">delete</button>");
     expect(markup).toContain("text-danger");
   });
 
@@ -62,6 +62,6 @@ describe("ArchivedBotRow", () => {
     expect(markup.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(2);
     expect(markup).toContain("animate-spin");
     expect(markup).toContain(">restore</button>");
-    expect(markup).toContain(">Delete</button>");
+    expect(markup).toContain(">delete</button>");
   });
 });

@@ -70,11 +70,11 @@ describe("the chat card a bot-made automation leaves", () => {
   it("says what was set up in one sentence, what happens next, and offers Pause, Edit and Undo — never a confirmation", () => {
     const html = render(scheduleCard);
     expect(html).toContain('data-trigger-card="routine-1"');
-    expect(html).toContain(`Set up: ${sentence}`);
-    expect(html).toMatch(/First run (today|tomorrow|[A-Z][a-z]+day) \d/);
+    expect(html).toContain(`set up: ${sentence}`);
+    expect(html).toMatch(/first run (today|tomorrow|[A-Z][a-z]+day) \d/);
     expect(html).not.toContain("next: ");
     expect(html).not.toMatch(/hasn(&#x27;|')t run yet/);
-    for (const label of ["pause", "Edit", "Undo"]) expect(html).toContain(`${label}</button>`);
+    for (const label of ["pause", "edit", "undo"]) expect(html).toContain(`${label}</button>`);
     expect(html).not.toMatch(/TRIGGER ON|Trigger on|Open in Triggers|Confirm/);
   });
 
@@ -83,14 +83,14 @@ describe("the chat card a bot-made automation leaves", () => {
       { id: "run-2", routineId: "routine-1", botId: "bot-1", status: "completed", scheduledFor: now - 60_000, startedAt: now - 60_000, createdAt: now - 60_000, threadId: "exec-2", output: "Three priorities: invoices, hiring, launch.\nMore detail." },
     ];
     const html = render(scheduleCard);
-    expect(html).toMatch(/Last ran today [^<]* ✓ Three priorities: invoices, hiring, launch\. · next: /);
+    expect(html).toMatch(/last ran today [^<]* ✓ Three priorities: invoices, hiring, launch\. · next: /);
     expect(html).not.toContain("More detail.");
-    expect(html).not.toContain("next: ");
+    expect(html).not.toMatch(/>next: /);
   });
 
   it("says Needs you with the plain reason when a run is waiting on the person", () => {
     fixture.state.routineRuns = [{ id: "run-3", routineId: "routine-1", botId: "bot-1", status: "waiting", attention: "Approve the reply to Ada?", scheduledFor: now, createdAt: now }];
-    expect(render(scheduleCard)).toContain("needs you: It&#x27;s waiting for your answer.");
+    expect(render(scheduleCard)).toContain("needs you: it&#x27;s waiting for your answer.");
   });
 
   it("pauses through its own API, applies the answer at once, and says Paused with Resume once paused", async () => {
@@ -115,19 +115,19 @@ describe("the chat card a bot-made automation leaves", () => {
     fixture.state.routines = [{ ...routine, enabled: false, nextRunAt: null, schedule: { type: "once", at: now - 60_000 } }];
     fixture.state.routineRuns = [{ id: "run-4", routineId: "routine-1", botId: "bot-1", status: "completed", scheduledFor: now - 60_000, startedAt: now - 60_000, createdAt: now - 60_000, output: "Sent." }];
     const html = render(scheduleCard);
-    expect(html).toMatch(/>Done · Last ran today [^<]* ✓ Sent\.</);
+    expect(html).toMatch(/>done · last ran today [^<]* ✓ Sent\.</);
     expect(html).not.toMatch(/(Pause|Resume)<\/button>/);
   });
 
   it("undoes through the conversation's undo route with the card's request id", () => {
-    click(scheduleCard, "Undo");
+    click(scheduleCard, "undo");
     expect(fixture.api).toHaveBeenCalledWith("/api/threads/thread-1/undo", { method: "POST", body: JSON.stringify({ requestId: "request-1" }) });
   });
 
   it("opens the routine in its bot's panel from the sentence itself, and Edit opens it in its form there", () => {
-    click(scheduleCard, `Set up: ${sentence}`);
+    click(scheduleCard, `set up: ${sentence}`);
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openRoutine", routineId: "routine-1", botId: "bot-1" });
-    click(scheduleCard, "Edit");
+    click(scheduleCard, "edit");
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "openRoutine", routineId: "routine-1", botId: "bot-1", edit: true });
   });
 
@@ -156,7 +156,7 @@ describe("the chat card a bot-made automation leaves", () => {
 
   it("opens another app's Edit over the whole page, never inside the transcript the card sits in", async () => {
     fixture.state = { ...fixture.state, groups: [], sections: [] };
-    click(webhookCard, "Edit");
+    click(webhookCard, "edit");
     await vi.waitFor(() => expect(document.querySelector("[role=dialog]")).not.toBeNull(), { timeout: 5_000 });
     expect(document.querySelector("[data-trigger-card] [role=dialog]")).toBeNull();
     expect(document.querySelector("[role=dialog]")!.closest("body > div:not(:has([data-trigger-card]))")).not.toBeNull();

@@ -111,6 +111,6 @@ describe("sharing with a preset", () => {
     expect(describePart("presets[new-bot-defaults].bot.soul", document)).toBe("Support agent · standing instructions");
     expect(describePart("presets[new-bot-defaults].skills[follow-up]", document)).toBe("Support agent · skill · follow-up");
     expect(describePart("presets[new-bot-defaults].seed.memory[\"MEMORY.md\"]", document)).toBe("Support agent · starter notes · MEMORY.md");
-    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("New bot defaults preset — empty: give your new bot defaults a name, instructions, skills or notes first");
+    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("new bot defaults preset — empty: give your new bot defaults a name, instructions, skills or notes first");
   });
 });

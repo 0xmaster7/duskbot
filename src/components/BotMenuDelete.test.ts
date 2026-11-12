@@ -38,7 +38,7 @@ describe("delete all threads", () => {
     await deleteAllThreads({ ...bot, busy: true, activity: "working" }, dispatch);
 
     expect(post).toHaveBeenCalledWith("/api/bots/maus/tasks/delete", { method: "POST", body: JSON.stringify({ threadIds: ["open", "pinned"] }) });
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "notice", notice: { kind: "note", botName: null, text: "deleted: 1. Kept because they are running: 1." } });
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "notice", notice: { kind: "note", botName: null, text: "deleted: 1. kept because they are running: 1." } });
   });
 
   it("says nothing when every thread went", async () => {

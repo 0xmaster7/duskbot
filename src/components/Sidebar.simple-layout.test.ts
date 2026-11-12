@@ -195,7 +195,7 @@ describe("Simple-mode sidebar layout", () => {
     expect(menu.props["aria-label"]).toBe("Work");
     expect(menu.props.style).toEqual({ left: 20, top: 304 });
     const words = (node: ReactElement<Props>): string => Children.toArray(node.props.children).map((part) => typeof part === "string" ? part : isValidElement<Props>(part) && part.props["aria-hidden"] !== "true" ? words(part) : "").join("");
-    expect(nodes(menu.props.children).filter((node) => node.props.role === "menuitem").map(words)).toEqual(["rename", "move up", "move down", "Delete"]);
+    expect(nodes(menu.props.children).filter((node) => node.props.role === "menuitem").map(words)).toEqual(["rename", "move up", "move down", "delete"]);
   });
 
   it("starts from the shared order for the departments, and a Simple move is saved for Simple only", () => {
@@ -288,8 +288,8 @@ describe("Simple-mode sidebar layout", () => {
 
   it("New Bot makes a bot at once in both modes, Chief of Staff or not: Simple's + is grok's New Bot, Advanced keeps its menu", () => {
     fixture.state = { ...fixture.state, bots: [bot("atlas", { chiefOfStaff: true }), bot("bea")] };
-    const plus = render().tree.find((node) => node.type === "button" && node.props["aria-label"] === "New Bot")!;
-    expect(plus.props.title).toBe("New Bot");
+    const plus = render().tree.find((node) => node.type === "button" && node.props["aria-label"] === "new bot")!;
+    expect(plus.props.title).toBe("new bot");
     (plus.props.onClick as () => void)();
     expect(fixture.dispatch.mock.calls.map(([action]) => action)).toEqual([{ type: "newBot" }]);
     fixture.dispatch.mockClear();

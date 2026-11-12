@@ -282,7 +282,7 @@ describe("A chat pinned to a place", () => {
     text(rendered.nodes.find((node) => node.props["data-testid"] === "place-pinned-note")!.props.children);
 
   it("names the place in the grid's words, without pointing Simple at a composer chip it no longer has", () => {
-    expect(note(render(pinned()))).toBe("this chat is pinned to “Cloud desktop”.");
+    expect(note(render(pinned()))).toBe("this chat is pinned to “cloud desktop”.");
 
   });
 
@@ -293,13 +293,13 @@ describe("A chat pinned to a place", () => {
 
   it("leads a person's pin back to the grid's choice, which Simple has no composer chip for", () => {
     const button = unpin(render(pinned()))!;
-    expect(text(button.props.children)).toBe("Use Auto");
+    expect(text(button.props.children)).toBe("use auto");
     expect(button.props.disabled).toBe(false);
     (button.props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "updateTask", botId: "scout", threadId: "thread-scout", patch: { surface: null } });
 
     fresh();
-    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("Use This Mac");
+    expect(text(unpin(render(pinnedOn("local")))!.props.children)).toBe("use this Mac");
 
   });
 

@@ -63,7 +63,7 @@ it("offers the three ways in and says plainly whose plan limits apply", () => {
   expect(html).toContain("data-cloud-sign-in");
   for (const label of ["Claude", "use your Claude subscription.", "ChatGPT", "use your ChatGPT plan with Codex.", "use an API key"]) expect(html).toContain(label);
   expect(html).toContain("plan&#x27;s limits apply to bots that work around the clock");
-  expect(html).toContain("Anthropic&#x27;s Claude Max plan or an API key works best");
+  expect(html).toContain("Anthropic&#x27;s Claude max plan or an API key works best");
   expect(html).not.toMatch(/included/i);
   expect(html).not.toContain("data-engine-setup");
 });
@@ -90,7 +90,7 @@ it("picks the person's own engine, never a local-model or read-only one, and say
   expect(cloudEngine([local, company], "claudeAgent")).toBeUndefined();
   store.instances = [codex];
   choose("claude");
-  expect(render().html).toContain("isn&#x27;t available in the Cloud yet");
+  expect(render().html).toContain("isn&#x27;t available in the cloud yet");
 });
 
 it("offers Grok as a third choice when this Cloud computer has the Grok CLI, and opens its code sign-in", () => {

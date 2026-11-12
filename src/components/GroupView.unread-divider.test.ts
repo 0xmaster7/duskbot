@@ -63,7 +63,7 @@ describe("NewMessagesDivider", () => {
     expect(html).toContain('role="separator"');
     expect(html).toContain('aria-label="new messages"');
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain(">New<");
+    expect(html).toContain(">new<");
     expect(html).toContain("text-[11px]");
     expect(html).toContain("text-(--new-ink)");
     expect(html).toContain("--new-ink:var(--grok-new, var(--color-accent-text))");

@@ -123,7 +123,7 @@ describe("QuestionCard", () => {
     expect(markup).toContain("Model");
     expect(markup).toContain("Style");
     expect(markup).toContain("0 of 2 answered");
-    expect(markup).toMatch(/<button type="button" disabled=""[^>]*>Submit answers</);
+    expect(markup).toMatch(/<button type="button" disabled=""[^>]*>submit answers</);
   });
 
   it("offers no free text on an options-only question", () => {
@@ -138,7 +138,7 @@ describe("QuestionCard", () => {
     expect(render(message())).toContain('role="radiogroup"');
     const multi = render(message({ questionRequest: { version: 1, questions: [{ question: "Which stores?", multiSelect: true, options: [{ label: "Instamart" }] }] } }));
     expect(multi).toContain('role="checkbox"');
-    expect(multi).toContain(">Done<");
+    expect(multi).toContain(">done<");
   });
 
   it("offers the full question when a long one leads the card", () => {
@@ -185,8 +185,8 @@ describe("a settled question", () => {
   });
 
   it("has its own calm line when Stop ended the work that asked, when it expired, and when it closed unanswered", () => {
-    expect(render(asked({ answered: "unavailable", dismissed: true, stopped: true }))).toMatch(/data-tone="stopped"[\s\S]*Stopped before you answered/);
-    expect(render(asked({ expired: true }))).toMatch(/data-tone="expired"[\s\S]*Expired before anyone answered/);
+    expect(render(asked({ answered: "unavailable", dismissed: true, stopped: true }))).toMatch(/data-tone="stopped"[\s\S]*stopped before you answered/);
+    expect(render(asked({ expired: true }))).toMatch(/data-tone="expired"[\s\S]*expired before anyone answered/);
     const closed = render(asked({ answered: "unavailable" }));
     expect(closed).toContain("closed without an answer");
     expect(closed).not.toContain("details");
@@ -222,6 +222,6 @@ describe("settledQuestionLine", () => {
   });
 
   it("says Answered when there is no text to show", () => {
-    expect(settledQuestionLine([model], undefined)).toEqual({ label: "Answered", value: "" });
+    expect(settledQuestionLine([model], undefined)).toEqual({ label: "answered", value: "" });
   });
 });

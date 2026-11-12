@@ -65,9 +65,9 @@ describe("the Wi-Fi pairing panel on a Windows Public network", () => {
     const html = render({});
     expect(html).toContain("role=\"note\"");
     expect(html).toContain(
-      "Windows has this computer&#x27;s Wi-Fi network set to Public, so its firewall may block your phone.",
+      "Windows has this computer&#x27;s Wi-Fi network set to public, so its firewall may block your phone.",
     );
-    expect(html).toContain("Network &amp; internet → Wi-Fi and set the network profile type to Private.");
+    expect(html).toContain("network &amp; internet → Wi-Fi and set the network profile type to private.");
   });
 
   it("says nothing for a hosted QR, a Private network or an expired code", () => {

@@ -35,7 +35,7 @@ describe("Settings → Engines → ChatGPT accounts", () => {
     const html = render(false);
     expect(html).toContain('data-account="codex" data-account-state="signedOut"');
     expect(html).toContain("not signed in");
-    expect(html.match(/<button[^>]*>Sign in<\/button>/g)).toHaveLength(1);
+    expect(html.match(/<button[^>]*>sign in<\/button>/g)).toHaveLength(1);
     expect(html).not.toContain("provider icon");
     expect(html).not.toContain("check account");
   });
@@ -44,7 +44,7 @@ describe("Settings → Engines → ChatGPT accounts", () => {
     const html = render(true, { email: "ada@example.test", signOut: true });
     expect(html).toContain('data-account-state="signedIn"');
     expect(html).toContain("ada@example.test");
-    expect(html).not.toMatch(/<button[^>]*>Sign in<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*>sign in<\/button>/);
     expect(render(true)).toContain(">signed in<");
   });
 
@@ -127,7 +127,7 @@ describe("Settings → Engines → setup cards", () => {
     expect(unsupported).not.toContain("add another Claude account");
     expect(unsupported).not.toContain("add another ChatGPT account");
     expect(unsupported).toContain("Not supported on this server");
-    expect(unsupported).not.toMatch(/<button[^>]*>Sign in<\/button>/);
+    expect(unsupported).not.toMatch(/<button[^>]*>sign in<\/button>/);
   });
 
   it("shows the actual Google account email with an honest fallback", () => {
@@ -277,7 +277,7 @@ describe("Settings → Engines → setup cards", () => {
 
     vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const remote = renderToStaticMarkup(createElement(EnginesSettings));
-    expect(remote).toContain("open Settings → API keys on the computer running Dusk");
+    expect(remote).toContain("open settings → API keys on the computer running Dusk");
     expect(remote).not.toContain("data-key-row");
 
     vi.stubGlobal("window", {});
@@ -372,7 +372,7 @@ describe("Settings → Engines → Claude accounts", () => {
     expect(html).toContain("personal@example.test · Studio");
     expect(html).toContain("not signed in");
     expect(html).toContain("sign-in not confirmed yet");
-    expect(html.match(/<button[^>]*>Sign in<\/button>/g)).toHaveLength(2);
+    expect(html.match(/<button[^>]*>sign in<\/button>/g)).toHaveLength(2);
     for (const gone of ["check account", "Manage account and sign-in", "claude auth login", "Default account"]) expect(html).not.toContain(gone);
   });
 
@@ -421,15 +421,15 @@ describe("Settings → AI in Simple mode", () => {
     const html = simple();
     expect(html).toContain(">your AI</h3>");
     expect(rows(html)).toEqual(["claude", "codex"]);
-    expect(html).toMatch(/data-panel-page="engine:claude"[\s\S]*?>Ready<\/span>/);
-    expect(html).toMatch(/data-panel-page="engine:codex"[\s\S]*?>Sign-in required<\/span>/);
+    expect(html).toMatch(/data-panel-page="engine:claude"[\s\S]*?>ready<\/span>/);
+    expect(html).toMatch(/data-panel-page="engine:codex"[\s\S]*?>sign-in required<\/span>/);
     expect(html).not.toContain("model providers and accounts");
   });
 
   it("puts every other provider behind More AI providers, with the count", () => {
     fixture.instances = [engine("claude", "claudeAgent", true), engine("kimi", "kimiAgent", false), engine("mistral", "mistral", false)];
     const html = simple();
-    expect(html).toMatch(/data-panel-page="more-engines"[\s\S]*?More AI providers \(2\)/);
+    expect(html).toMatch(/data-panel-page="more-engines"[\s\S]*?more AI providers \(2\)/);
     expect(rows(html)).toEqual(["claude"]);
   });
 });

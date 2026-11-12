@@ -194,7 +194,7 @@ describe("isToolStep", () => {
 
 describe("describeRun", () => {
   it("counts repeats and names the tools in order of first use", () => {
-    expect(describeRun([tool("Edit"), tool("Bash"), tool("Edit"), tool("Edit")])).toBe("4 steps · edit ×3, Bash");
+    expect(describeRun([tool("Edit"), tool("Bash"), tool("Edit"), tool("Edit")])).toBe("4 steps · Edit ×3, Bash");
   });
 
   it("names a single repeat without a multiplier", () => {
@@ -214,7 +214,7 @@ describe("describeRun", () => {
 
   it("names steps by the label it is given, counting steps that read the same together", () => {
     const plain = ({ name }: { name: string }) => (name === "Bash" || name.includes(" ") ? "run a command" : name);
-    expect(describeRun([tool("Bash"), tool("ls -la"), tool("Edit")], plain)).toBe("3 steps · Run a command ×2, Edit");
+    expect(describeRun([tool("Bash"), tool("ls -la"), tool("Edit")], plain)).toBe("3 steps · run a command ×2, Edit");
   });
 });
 

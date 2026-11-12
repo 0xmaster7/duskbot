@@ -102,7 +102,7 @@ describe("QuestionCard answered in one step", () => {
     act(() => choice("Lint").click());
     act(() => choice("Unit tests").click());
     expect(dispatch).not.toHaveBeenCalled();
-    act(() => button("Done")!.click());
+    act(() => button("done")!.click());
     expect(dispatch.mock.calls[0]![0].message).toContain("A: Lint, Unit tests");
   });
 

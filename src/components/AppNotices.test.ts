@@ -293,7 +293,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
     offer = { ...PLAIN_OFFER };
     const html = await launch();
     expect(html).toContain("your free trial ends on"); expect(html).toContain("includes $5 of Claude credit: $3.20 left.");
-    expect(html).toContain("Prefer Starter at $15?");
+    expect(html).toContain("prefer Starter at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
     snapshot = { ...snapshot, notice: undefined };
@@ -359,7 +359,7 @@ describe("upstream promotional campaigns", () => {
 
 describe("bots in two places", () => {
   const GARAGE = { key: "server:https://garage.example.test", name: "Garage server", kind: "server" as const };
-  const BODY = "Your bots live in two places, so they can&#x27;t work together. Bring them together on Garage server?";
+  const BODY = "your bots live in two places, so they can&#x27;t work together. bring them together on Garage server?";
   let suggest: { key: string; name: string; kind: "cloud" | "server" } | null;
   let accepted: string[], dismissed: string[];
   beforeEach(() => {
@@ -380,7 +380,7 @@ describe("bots in two places", () => {
     const asking = await settle();
     expect(accepted, "one tap never moves anyone").toEqual([]);
     expect(asking).toContain("move this computer&#x27;s bots to Garage server?");
-    expect(asking, "the undo switch is My Cloud's only").not.toContain("Keep this computer&#x27;s bots on this computer");
+    expect(asking, "the undo switch is My Cloud's only").not.toContain("keep this computer&#x27;s bots on this computer");
     press("move bots");
     await flush();
     expect(accepted).toEqual([GARAGE.key]);
@@ -395,7 +395,7 @@ describe("bots in two places", () => {
     press("bring them together");
     const asking = await settle();
     expect(asking).toContain("move this computer&#x27;s bots to My Cloud?");
-    expect(asking, "My Cloud names the way back").toContain("Keep this computer&#x27;s bots on this computer");
+    expect(asking, "My Cloud names the way back").toContain("keep this computer&#x27;s bots on this computer");
     press("cancel");
     const after = await settle();
     expect(accepted).toEqual([]);

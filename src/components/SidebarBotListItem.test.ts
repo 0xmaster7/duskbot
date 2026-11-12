@@ -261,7 +261,7 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain(">Delete</span></button>");
+    expect(markup).toContain(">delete</span></button>");
     expect(markup).not.toContain('disabled=""');
   });
 });

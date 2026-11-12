@@ -65,7 +65,7 @@ describe("J11: a failed place's row", () => {
 
   it("leads a person's pin back to the grid's choice", () => {
     const pinned = stored({ state: "cc-no-start", params: { bot: "Scout" }, source: "pin" });
-    expect(show(pinned).buttons[0]).toContain("Use Cloud desktop");
+    expect(show(pinned).buttons[0]).toContain("use cloud desktop");
   });
 
   it("gives a User no button that changes a setting, and says who can", () => {

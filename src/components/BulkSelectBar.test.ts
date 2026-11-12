@@ -43,19 +43,19 @@ describe("select mode rows", () => {
 describe("select mode controls", () => {
   it("shows the quick filters and Done", () => {
     const markup = renderToStaticMarkup(createElement(BulkSelectFilters, { rows, selected: new Set<string>(), now: 0, onChange: noop, onDone: noop }));
-    for (const label of ["select all", "older than 30 days", "Archived", "clear", "Done"]) expect(markup).toContain(label);
+    for (const label of ["select all", "older than 30 days", "archived", "clear", "done"]) expect(markup).toContain(label);
   });
   it("disables Delete with nothing selected and shows the count", () => {
     const markup = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set<string>(), freshConversation: true, onChange: noop, onDelete: noop }));
     expect(markup).toContain("0 selected");
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>Delete 0</);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>delete 0</);
   });
   it("enables Delete for a selection and warns when a channel would lose every thread", () => {
     const ok = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set(["b"]), maxDeletable: 1, freshConversation: false, onChange: noop, onDelete: noop }));
     expect(ok).toContain("1 selected");
-    expect(ok).not.toMatch(/<button[^>]*disabled=""[^>]*>Delete 1</);
+    expect(ok).not.toMatch(/<button[^>]*disabled=""[^>]*>delete 1</);
     const over = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set(["a", "b"]), maxDeletable: 1, freshConversation: false, onChange: noop, onDelete: noop }));
-    expect(over).toMatch(/<button[^>]*disabled=""[^>]*>Delete 2</);
+    expect(over).toMatch(/<button[^>]*disabled=""[^>]*>delete 2</);
     expect(over).toContain("a channel keeps at least one thread");
   });
 });

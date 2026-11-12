@@ -828,7 +828,7 @@ describe("ChatMarkdown attachments", () => {
       text: "[Download the report](/workspace/final-report.pdf)",
     }));
 
-    expect(html).toContain("download the report");
+    expect(html).toContain("Download the report");
     expect(html).toContain("unavailable legacy file reference");
     expect(html).not.toContain("href=\"/workspace/final-report.pdf\"");
     expect(html).not.toContain("type=\"button\"");

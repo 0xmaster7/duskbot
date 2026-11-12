@@ -88,7 +88,7 @@ describe("with threads hidden", () => {
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/scout", expect.objectContaining({ body: JSON.stringify({ hidden: true }) }));
     expect(actions()).toEqual([opened("atlas")]);
     fixture.dispatch.mockReset();
-    sidebar().find((node) => node.type === "button" && label(node) === "Undo")!.props.onClick!();
+    sidebar().find((node) => node.type === "button" && label(node) === "undo")!.props.onClick!();
     await flush();
     expect(actions()).toEqual([opened("scout")]);
   });

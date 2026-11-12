@@ -62,7 +62,7 @@ describe("profileLabel", () => {
   it("prefers the name, then the email, then You", () => {
     expect(profileLabel({ name: "Omkar", email: "o@x.dev" })).toBe("Omkar");
     expect(profileLabel({ email: "o@x.dev" })).toBe("o@x.dev");
-    expect(profileLabel(undefined)).toBe("You");
+    expect(profileLabel(undefined)).toBe("you");
   });
 });
 
@@ -72,7 +72,7 @@ describe("the sidebar profile for a signed-in visitor", () => {
       { name: "Owner", email: "owner@example.test", avatarUrl: "/owner.png" },
       null,
     );
-    expect(profileLabel(visible)).toBe("You");
+    expect(profileLabel(visible)).toBe("you");
     expect(profileInitials(visible)).toBe("?");
     expect(visible?.avatarUrl).toBeUndefined();
   });
@@ -124,44 +124,44 @@ describe("the phone entries", () => {
   const shown = (...args: Parameters<typeof items>) => items(...args).list.map((item) => [item.label, item.subtitle ?? null, ...(item.note ? [item.note] : [])]);
 
   it("on this computer: offers pairing without a separate download entry", () => {
-    expect(shown("computer", null)).toEqual([["Connect your phone", "to this computer"]]);
+    expect(shown("computer", null)).toEqual([["connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is Ready: both, the Cloud first", () => {
     for (const tier of ["personal", "pro", "max"]) {
       expect(shown("computer", null, paid(tier, ready))).toEqual([
-        ["Connect your phone", "to the cloud (always on)"],
-        ["Connect your phone", "to this computer"],
+        ["connect your phone", "to the cloud (always on)"],
+        ["connect your phone", "to this computer"],
       ]);
     }
   });
 
   it("on this computer, free or signed out: only this computer", () => {
     for (const account of [free, { status: "signed-out" } as CloudAccountState, null]) {
-      expect(shown("computer", null, account)).toEqual([["Connect your phone", "to this computer"]]);
+      expect(shown("computer", null, account)).toEqual([["connect your phone", "to this computer"]]);
     }
     expect(shown("computer", null, { ...paid("pro", ready), entitlement: { plan: "pro", status: "inactive", expiresAt: null, version: 2 } }))
-      .toEqual([["Connect your phone", "to this computer"]]);
+      .toEqual([["connect your phone", "to this computer"]]);
     expect(shown("computer", null, { status: "unavailable", lastPlan: { tier: "pro", active: true }, machine: ready }))
-      .toEqual([["Connect your phone", "to this computer"]]);
+      .toEqual([["connect your phone", "to this computer"]]);
   });
 
   it("on this computer with a paid Cloud that is not Ready: only this computer, and a hint", () => {
     for (const machine of [undefined, { status: "provisioning" }, { status: "stopped", origin: ready.origin }, { status: "failed", origin: ready.origin }] as Array<CloudMachine | undefined>) {
       expect(shown("computer", null, paid("pro", machine))).toEqual([
-        ["Connect your phone", "to this computer", "the cloud shows here once it's ready."],
+        ["connect your phone", "to this computer", "the cloud shows here once it's ready."],
       ]);
     }
   });
 
   it("on the person's own Cloud: unchanged, one Connect your phone to My Cloud", () => {
-    expect(shown("cloud", admin)).toEqual([["Connect your phone", "to the cloud"]]);
-    expect(shown("cloud", admin, paid("max", ready))).toEqual([["Connect your phone", "to the cloud"]]);
-    expect(shown("cloud", admin, paid("max"))).toEqual([["Connect your phone", "to the cloud"]]);
+    expect(shown("cloud", admin)).toEqual([["connect your phone", "to the cloud"]]);
+    expect(shown("cloud", admin, paid("max", ready))).toEqual([["connect your phone", "to the cloud"]]);
+    expect(shown("cloud", admin, paid("max"))).toEqual([["connect your phone", "to the cloud"]]);
   });
 
   it("on another server: to this server, and gone for a session that cannot make a pairing code", () => {
-    expect(shown("server", admin, paid("pro", ready))).toEqual([["Connect your phone", "to the bots here"]]);
+    expect(shown("server", admin, paid("pro", ready))).toEqual([["connect your phone", "to the bots here"]]);
     expect(shown("server", chatOnly)).toEqual([]);
     expect(shown("server", { ...admin, pairingCodes: false })).toEqual([]);
     expect(shown("cloud", chatOnly)).toEqual([]);
@@ -237,7 +237,7 @@ describe("phone pairing", () => {
 
   it("offers phone pairing without upstream application downloads", () => {
     const html = render([to("here", "to this computer")]);
-    expect(html).toContain("Connect your phone");
+    expect(html).toContain("connect your phone");
     expect(html).toContain("show a one-time code to scan or type on your phone");
     expect(html).toContain("to this computer");
     expect(html).not.toContain("apps.apple.com");
@@ -457,7 +457,7 @@ describe("Simple mode's account menu", () => {
   it("names My Cloud and opens its settings when it is the window's only place, and offers nothing without either", () => {
     const onCloudSettings = vi.fn();
     const home = placeMenuItems(place({ switchable: false, cloudHome: true, onLine: "always on" }), { owner: "ada@example.test", onCloudSettings });
-    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["My Cloud", "always on · ada@example.test’s cloud"]]);
+    expect(home.map((item) => [item.label, item.subtitle])).toEqual([["my cloud", "always on · ada@example.test’s cloud"]]);
     home[0]!.onSelect();
     expect(onCloudSettings).toHaveBeenCalledOnce();
     expect(placeMenuItems(place({ bridge: undefined, switchable: false }), { owner: null, onCloudSettings })).toEqual([]);
@@ -486,7 +486,7 @@ describe("the usage meta", () => {
   });
 
   it("falls back to a plan's monthly budget when it has no rolling window", () => {
-    const report = { providers: [provider({ extra: [{ label: "monthly spend", usedPercent: 9.3 }, { label: "Other", usedPercent: 80 }] })] };
+    const report = { providers: [provider({ extra: [{ label: "Monthly spend", usedPercent: 9.3 }, { label: "Other", usedPercent: 80 }] })] };
     expect(planUsageSummary(report, now)).toEqual({ value: "9% used" });
     expect(planUsageSummary({ providers: [provider({ extra: [{ label: "Other", usedPercent: 80 }] })] }, now)).toBeNull();
   });

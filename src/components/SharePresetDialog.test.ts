@@ -33,7 +33,7 @@ describe("share as preset", () => {
     };
     const words = text(renderToStaticMarkup(createElement(SharePresetContents, { preview, localSkips: [] })));
     for (const line of [
-      "skills · arrive switched off 1 · objection-handling", "Starter notes None", "Pictures None",
+      "skills · arrive switched off 1 · objection-handling", "starter notes none", "pictures none",
       "never included: model choices, folders, where bots work, approval levels, connected apps, MCP servers and routines.",
       "removed what looked like a key or password from: Support agent · standing instructions",
       "Support agent · skill · follow-up — a bot in the department has a different skill with this name",
@@ -43,9 +43,9 @@ describe("share as preset", () => {
   it("previews a preset file's import as preset bots for New bot, with no team members", () => {
     const words = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: teamImportPreview(fixture("library-only.v2.json")), importedNames: [] })));
     expect(words).toContain("preset bots: 1 · appear in new bot");
-    expect(words).toContain("Preset bots (added to New bot) Support agent");
+    expect(words).toContain("preset bots (added to new bot) Support agent");
     expect(words).not.toContain("0 playbooks");
-    expect(words).toContain("Offered skills (not added to any bot) follow-up");
+    expect(words).toContain("offered skills (not added to any bot) follow-up");
     expect(words).toContain("the preset bots appear in new bot, above the built-in roles.");
     expect(words).not.toContain("team members");
     expect(words).not.toContain("group chats");

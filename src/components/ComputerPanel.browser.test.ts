@@ -57,7 +57,7 @@ describe("Browser panel installation access", () => {
     expect(failed).toContain("retry browser installation");
     expect(failed).not.toContain("has its own browser");
     const installing = render({ features: { browser: true }, browserEngine: { kind: "engine", installing: true } });
-    expect(installing).toContain("Installing…");
+    expect(installing).toContain("installing…");
     expect(installing).toContain('disabled=""');
     expect(installing).not.toContain("has its own browser");
   });

@@ -160,7 +160,7 @@ describe("install from Settings on the server", () => {
     const reason = "`kimi` isn't installed, or isn't on this app's PATH.";
     const engine = npmEngine({ state: "unavailable", reason });
     const quiet = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine, quiet: true })));
-    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>Details<\/summary><p[^>]*>`kimi` isn&#x27;t installed/);
+    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>details<\/summary><p[^>]*>`kimi` isn&#x27;t installed/);
     expect(quiet).not.toContain('role="alert"');
     expect(quiet).not.toContain("text-danger");
     expect(quiet).toContain("install Kimi here");
@@ -191,8 +191,8 @@ describe("install from Settings on the server", () => {
     // No npm on the server, so no npm command to paste into a terminal.
     expect(standalone).not.toContain("npm install -g opencode-ai");
     // Decimal megabytes, as macOS and Windows show file sizes: 79,667,571 bytes is about 80 MB.
-    expect(standalone).toContain("About 80 MB download");
-    expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("About 64 MB download");
+    expect(standalone).toContain("about 80 MB download");
+    expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("about 64 MB download");
     const withNpm = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 }, package: "opencode-ai" }));
     expect(withNpm).toContain("prefer a terminal?");
     expect(withNpm).toContain("npm install -g opencode-ai");
@@ -330,7 +330,7 @@ describe("API-key engine setup", () => {
   it("says so in the key row when the provider rejected the saved key", () => {
     const html = render(keyEngine("grok", { state: "available", authenticated: false, reason: "the provider rejected this key." }));
     expect(html).toContain("data-engine-setup-api-key");
-    expect(html).toContain("Didn&#x27;t work: the provider rejected this key.");
+    expect(html).toContain("didn&#x27;t work: the provider rejected this key.");
     expect(render(keyEngine("grok", { state: "unavailable" }))).not.toContain("rejected");
   });
 

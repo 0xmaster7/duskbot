@@ -97,7 +97,7 @@ describe("the X card in Apps", () => {
     await mount({ included: true, usage: USAGE });
     expect(card().dataset.xState).toBe("included");
     expect(text()).toContain("included with your plan");
-    expect(text()).toContain("312 of 5,000 X calls this month. They reset on November 1.");
+    expect(text()).toContain("312 of 5,000 X calls this month. they reset on November 1.");
     expect(field()).toBeNull();
     expect(button("use my own treg key")).toBeDefined();
     expect(onConnection).toHaveBeenLastCalledWith(true);
@@ -161,7 +161,7 @@ describe("the X card in Apps", () => {
     await mount({ own: true, included: true, usage: USAGE, check: { ok: false, check: "treg", message: "treg rejected this key. Copy it again from treg.to." } });
     expect(card().dataset.xState).toBe("own");
     expect(text()).toContain("your own treg key is used first, and calls are billed to your treg balance. your plan's included X calls wait until you remove it.");
-    await click("Test");
+    await click("test");
     expect(text()).toContain("treg rejected this key. Copy it again from treg.to.");
   });
 

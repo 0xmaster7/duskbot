@@ -106,22 +106,22 @@ describe("what Dusk says first", () => {
     ];
     expect(introLines({ name: "Dusk", chief: true })).toEqual(said);
     expect(introLines({ name: "Dusk", chief: true, person: "Ada" })).toEqual(said);
-    expect(introLines({ name: "Dusk", chief: true, team: "Acme" })[1]).toBe(`${said[1]} On Acme, I'm here for you and look after your own bots.`);
+    expect(introLines({ name: "Dusk", chief: true, team: "Acme" })[1]).toBe(`${said[1]} on Acme, i'm here for you and look after your own bots.`);
   });
 
   it("keeps a helper's lines for a Dusk that is not the Chief", () => {
     expect(introLines({ name: "Dusk", chief: false })[0]).toBe("hi! i'm Dusk, your helper for everything here.");
     expect(introLines({ name: "Dusk", chief: false, person: "Ada" })[0]).toBe("hi Ada! i'm Dusk, your helper for everything here.");
     const member = introLines({ name: "Dusk", chief: false, team: "Acme" });
-    expect(member[1]).toBe("Ask me how to do anything here. I can set up bots, apps and routines with you. On Acme, I'm here for you and look after your own bots.");
+    expect(member[1]).toBe("ask me how to do anything here. i can set up bots, apps and routines with you. on Acme, i'm here for you and look after your own bots.");
   });
 
   it("follows up on what it found, never naming the AI it thinks with", () => {
     const none = { apps: [], bots: 0, routines: 0 };
-    expect(followupLine({ ai: "own", ...none })).toBe("I looked around and nothing's waiting on you yet. There's no unfinished work, no other bots or routines, and no apps are connected so far. If you'd like me to keep an eye on your day, I can connect your email and calendar so I can flag what matters each morning. Just say the word, or hand me whatever's on your plate today.");
+    expect(followupLine({ ai: "own", ...none })).toBe("i looked around and nothing's waiting on you yet. there's no unfinished work, no other bots or routines, and no apps are connected so far. if you'd like me to keep an eye on your day, i can connect your email and calendar so i can flag what matters each morning. just say the word, or hand me whatever's on your plate today.");
     expect(followupLine({ ai: "own", apps: [], bots: 1, routines: 3 })).toContain("you have 1 other bot and 3 routines, and no apps are connected so far.");
-    expect(followupLine({ ai: "own", apps: [], bots: 2, routines: 0 })).toContain("You have 2 other bots and no routines,");
-    expect(followupLine({ ai: "own", apps: ["Gmail", "GitHub"], bots: 0, routines: 0 })).toBe("I looked around and nothing's waiting on you yet. I can already use Gmail and GitHub. Hand me whatever's on your plate today, or ask me to set up a bot for something you do every week.");
+    expect(followupLine({ ai: "own", apps: [], bots: 2, routines: 0 })).toContain("you have 2 other bots and no routines,");
+    expect(followupLine({ ai: "own", apps: ["Gmail", "GitHub"], bots: 0, routines: 0 })).toBe("i looked around and nothing's waiting on you yet. i can already use Gmail and GitHub. hand me whatever's on your plate today, or ask me to set up a bot for something you do every week.");
     expect(followupLine({ ai: "own", apps: ["Gmail", "GitHub", "Slack", "Notion", "Linear"], bots: 0, routines: 0 })).toContain("Gmail, GitHub, Slack, and 2 more");
     expect(followupLine({ ai: "none", ...none })).toBe(t("helperIntro.followup.noAi"));
     expect(followupLine({ ai: "backup", ...none })).toContain("free backup model");
@@ -141,7 +141,7 @@ describe("in the chat (Simple mode)", () => {
     expect(first.dataset.chatBubble, "the chat's own Simple bubble").toBe("simple");
     expect(first.className).toContain(SIMPLE_BOT_BUBBLE);
     expect(chips()).toEqual(["apps", "phone", "cloud"]);
-    expect([...host.querySelectorAll("[data-helper-step]")].map((node) => node.textContent)).toEqual(["connect email & calendar", "Connect your phone", "try cloud"]);
+    expect([...host.querySelectorAll("[data-helper-step]")].map((node) => node.textContent)).toEqual(["connect email & calendar", "connect your phone", "try cloud"]);
     expect(f.followups, "only a first run asks for a follow-up").toEqual([]);
   });
 
@@ -244,7 +244,7 @@ describe("as a first run lands in the chat", () => {
     await tick(INTRO_TIMING.followup - 1);
     expect(lines()).toHaveLength(3);
     await tick(1);
-    expect(lines()[3], "the server's counts").toContain("You have 2 other bots and no routines");
+    expect(lines()[3], "the server's counts").toContain("you have 2 other bots and no routines");
     expect(host.querySelector("[data-helper-typing]")).toBeNull();
     expect(chips()).toEqual([]);
     await tick(INTRO_TIMING.chips);

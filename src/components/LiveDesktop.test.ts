@@ -159,8 +159,8 @@ describe("the live desktop", () => {
     const open = vi.fn();
     draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: vi.fn() });
     // still connecting: the screen is clickable already
-    expect(button("Open")!.disabled).toBe(false);
-    flushSync(() => button("Open")!.click());
+    expect(button("open")!.disabled).toBe(false);
+    flushSync(() => button("open")!.click());
     expect(open).toHaveBeenCalledTimes(1);
     flushSync(() => fixture.attempts[0]!.events.connected());
     draw({ expanded: true, taking: true });
@@ -177,7 +177,7 @@ describe("the live desktop", () => {
     const take = vi.fn();
     draw({ originalViewer: true, viewOnly: true, onOpenPreview: open, onTakeControl: take });
     flushSync(() => fixture.attempts[0]!.events.connected());
-    flushSync(() => button("Open")!.click());
+    flushSync(() => button("open")!.click());
     expect(open).toHaveBeenCalledTimes(1);
     expect(take).not.toHaveBeenCalled();
     draw({ expanded: true });
@@ -201,7 +201,7 @@ describe("the live desktop", () => {
     draw({ expanded: true });
     await settle();
     expect(fixture.attempts, "growing the view must not reconnect").toHaveLength(1);
-    const field = document.querySelector<HTMLInputElement>("input[aria-label='Text to type on the desktop']")!;
+    const field = document.querySelector<HTMLInputElement>("input[aria-label='text to type on the desktop']")!;
     flushSync(() => {
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
       setter.call(field, "hunter2");

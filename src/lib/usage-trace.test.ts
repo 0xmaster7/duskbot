@@ -64,9 +64,9 @@ describe("trace helpers", () => {
   });
 
   it("names the groupings that are not a person in plain words", () => {
-    expect(usageGroupLabel("user", { key: "owner", label: "This computer" })).toBe("This computer");
+    expect(usageGroupLabel("user", { key: "owner", label: "this computer" })).toBe("this computer");
     expect(usageGroupLabel("user", { key: "bot", label: "bot to bot" })).toBe("bot to bot");
-    expect(usageGroupLabel("user", { key: "routine:r1", label: "routine: Morning digest" })).toBe("routine: Morning digest");
+    expect(usageGroupLabel("user", { key: "routine:r1", label: "Routine: Morning digest" })).toBe("routine: Morning digest");
     expect(usageGroupLabel("user", { key: "user:ada@example.test", label: "ada@example.test" })).toBe("ada@example.test");
     expect(usageGroupLabel("routine", { key: "manual", label: "not from a routine" })).toBe("not from a routine");
   });
@@ -90,10 +90,10 @@ describe("trace helpers", () => {
 
   it("draws the waterfall with its stat strip, Live badge, time and cost labels, badges and a red error", () => {
     const html = renderToStaticMarkup(createElement(TraceWaterfall, { detail, now: T0 + 51_000 }));
-    for (const text of ["Launch the new pricing page by Friday", "Duration", "51s", "$0.42", "85.2k", "AI steps", "tool uses", "Live",
+    for (const text of ["Launch the new pricing page by Friday", "duration", "51s", "$0.42", "85.2k", "AI steps", "tool uses", "live",
       "Chief", "Writer", "AI step", "search the web", "Rate limited", "used the browser · 3 steps",
-      "6.9s · $0.12", "23s · $0.09", "Slowest", "most expensive", "0s", "20s", "40s", "1m"]) expect(html).toContain(text);
-    expect(html).toMatch(/text-danger[^>]*>Search the web/);
+      "6.9s · $0.12", "23s · $0.09", "slowest", "most expensive", "0s", "20s", "40s", "1m"]) expect(html).toContain(text);
+    expect(html).toMatch(/text-danger[^>]*>search the web/);
     expect(html).toContain("trace-bar-error");
     expect(html.match(/role="treeitem"/g)).toHaveLength(7);
   });

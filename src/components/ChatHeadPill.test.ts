@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 import { initialState, StoreContext, type AppState, type Bot } from "@/state/store";
 import { ChatHeadPill, type ChatHeadPrivacy } from "./ChatHeadPill";
 
-const bot = (threadId: string, title = "new thread"): Bot => ({
+const bot = (threadId: string, title = "New thread"): Bot => ({
   id: "rooms", threadId, mainThreadId: "main", name: "Rooms", title: "", description: "", notifications: true, color: "green", unread: false,
   modelSelection: { instanceId: "claude", model: "test" }, messages: [],
   tasks: [{ threadId: "main", title: "shared chat", createdAt: 1 }, { threadId: "own", title, createdAt: 2 }],

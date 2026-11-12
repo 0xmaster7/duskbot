@@ -23,7 +23,7 @@ describe("the Now card's steps", () => {
     expect(nowSteps(messages, null).map(({ label, state, hover }) => ({ label, state, hover }))).toEqual([
       { label: "searched the web for “Acme construction leads”", state: "done", hover: undefined },
       { label: "read linkedin.com", state: "done", hover: "linkedin.com/company/acme" },
-      { label: "Ran a command", state: "failed", hover: undefined },
+      { label: "ran a command", state: "failed", hover: undefined },
       { label: "running scrape.py", state: "now", hover: "python3 scrape.py --pages 40" },
     ]);
   });
@@ -41,7 +41,7 @@ describe("the Now card's steps", () => {
   });
 
   it("says a finished step it cannot name in plain past words, and keeps an unknown tool's own label", () => {
-    expect(stepLabel({ name: "Bash", ok: true }, "done")).toBe("Ran a command");
+    expect(stepLabel({ name: "Bash", ok: true }, "done")).toBe("ran a command");
     expect(stepLabel({ name: "Grep", ok: true }, "done")).toBe("searched files");
     expect(stepLabel({ name: "mcp__agents__ask_bot", ok: true }, "done")).toBe("asking a teammate");
   });

@@ -123,7 +123,7 @@ describe("the keys page", () => {
     page();
     const azure = row("liveKey")!;
     expect(azure.textContent).toContain("Azure OpenAI key for live calls");
-    expect(azure.textContent).toContain("Required");
+    expect(azure.textContent).toContain("required");
     expect(azure.textContent).not.toContain("optional");
     expect(azure.textContent).not.toContain("separate key");
     expect(azure.textContent).not.toContain("instead of your OpenAI key");

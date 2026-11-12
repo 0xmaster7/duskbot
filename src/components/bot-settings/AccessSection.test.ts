@@ -105,7 +105,7 @@ describe("owner tool selection status", () => {
 
   it("shows corrupt saved restrictions as a blocked setup, never all tools", () => {
     const corrupt = render(makeBot({ toolScope: { allow: "native:*" } } as unknown as Partial<Bot>));
-    expect(corrupt).toContain("this bot&#x27;s saved tool selection is damaged, so the bot can&#x27;t start. Choose its tools again to fix it.");
+    expect(corrupt).toContain("this bot&#x27;s saved tool selection is damaged, so the bot can&#x27;t start. choose its tools again to fix it.");
     expect(corrupt).toContain('role="alert"');
   });
 
@@ -130,7 +130,7 @@ describe("AccessSection always-allowed list", () => {
     const markup = render(makeBot({ busy: true, mcpServers: ["notes"] }));
     expect(markup).toMatch(/<button[^>]*aria-label="let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use notes"/);
     expect(markup).toMatch(/<button[^>]*aria-label="let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use offline"/);
-    expect(markup).toMatch(/<button type="button" disabled=""[^>]*>Use every enabled server<\/button>/);
+    expect(markup).toMatch(/<button type="button" disabled=""[^>]*>use every enabled server<\/button>/);
     expect(markup).toContain("finishes all active tasks");
     expect(markup).toContain("individual tool approvals depend on the model provider and approval mode.");
     const idle = render(makeBot({ mcpServers: ["notes"] }));

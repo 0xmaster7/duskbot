@@ -59,7 +59,7 @@ describe("SecretRequestCard superseded requests", () => {
   it("keeps a retired persisted request visible without accepting a credential", () => {
     const html = view({ target: "boxToken", label: "Retired desktop key" });
     expect(html).toContain("Retired desktop key");
-    expect(html).toContain("this credential request is no longer supported.");
+    expect(html).toContain("This credential request is no longer supported.");
     expect(html).toContain('data-ask-card="settled"');
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<form");
@@ -124,7 +124,7 @@ describe("SecretRequestCard ask card", () => {
   it("folds into one line that names the key once it is saved and the bot resumed", () => {
     const html = view({ provided: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain(">Secrets</span>");
+    expect(html).toContain(">secrets</span>");
     expect(html).toContain("saved · OpenAI API key");
     expect(html).toContain('data-icon-name="key"');
     expect(html).not.toContain("<input");
@@ -284,7 +284,7 @@ describe("SecretRequestCard custom secrets", () => {
     expect(file).toContain("saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
     expect(file).not.toContain("Where to get this key");
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
-    expect(ref).toContain("Dusk gives its own tools a one-use reference. Your bot never sees it");
+    expect(ref).toContain("Dusk gives its own tools a one-use reference. your bot never sees it");
     expect(ref).toContain('data-secret-remember=""');
     expect(ref).toMatch(/type="checkbox"[^>]*checked=""/u);
     expect(ref).toContain("save to vault");

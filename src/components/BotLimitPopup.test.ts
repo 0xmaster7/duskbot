@@ -135,8 +135,8 @@ describe("the bot limit popup", () => {
     await open(bridge({ status: "paid", tier: "starter", usage: STARTER }));
     await key("Tab");
     expect(document.activeElement?.textContent).toBe("not now");
-    await key("tab", { shiftKey: true });
-    await key("tab", { shiftKey: true });
+    await key("Tab", { shiftKey: true });
+    await key("Tab", { shiftKey: true });
     expect(document.activeElement?.getAttribute("aria-label")).toBe("close");
     await key("Escape");
     expect(botLimitShown()).toBe(false);

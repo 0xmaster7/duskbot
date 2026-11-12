@@ -109,7 +109,7 @@ describe("the inbox tab", () => {
   it("is a tab with its count that closes, and lists three-line rows a search filters", async () => {
     await mount();
     const chip = document.querySelector("[data-inbox-tab-chip]")!;
-    expect(chip.textContent).toContain("Inbox");
+    expect(chip.textContent).toContain("inbox");
     expect(chip.querySelector("[data-inbox-tab-count]")!.textContent).toBe("2");
     expect(listed()).toEqual(["q1", "q2", "n1"]);
     const first = document.querySelector('[data-inbox-row="q1"]')!;

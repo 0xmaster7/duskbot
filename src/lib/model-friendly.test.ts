@@ -3,9 +3,9 @@ import { displayModelLabel, modelBlurb, shortModelLabel } from "./model-friendly
 
 describe("model blurbs", () => {
   it("describes the well-known Claude families", () => {
-    expect(modelBlurb({ id: "claude-opus-5-5", label: "Opus 5.5" })).toMatch(/Smartest/);
+    expect(modelBlurb({ id: "claude-opus-5-5", label: "Opus 5.5" })).toMatch(/smartest/);
     expect(modelBlurb({ id: "claude-sonnet-5-5", label: "Sonnet 5.5" })).toMatch(/most work/);
-    expect(modelBlurb({ id: "claude-haiku-4-5-20251001", label: "Haiku 4.5" })).toMatch(/Quickest/);
+    expect(modelBlurb({ id: "claude-haiku-4-5-20251001", label: "Haiku 4.5" })).toMatch(/quickest/);
   });
 
   it("calls small variants light without guessing at unknown models", () => {

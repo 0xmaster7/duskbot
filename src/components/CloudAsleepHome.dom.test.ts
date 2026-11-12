@@ -70,7 +70,7 @@ it("the first key press wakes it once, with a clear waking line; the typed text 
   expect(send).toMatchObject({ botId: "scout", threadId: "t-scout", text: "hi there" });
   expect((send as { sendId: string }).sendId).toMatch(/^[A-Za-z0-9_-]{8,80}$/);
   await push({ screen: "asleep", waking: true, held: "hi there" });
-  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi thereSends when it's awake");
+  expect(host.querySelector("[data-cloud-asleep-held]")?.textContent).toBe("hi theresends when it's awake");
   expect(composer().value).toBe("");
 });
 

@@ -104,7 +104,7 @@ describe("the summary the island and the dock draw", () => {
       bot({ id: "far", avatarUrl: "https://example.com/a.png", avatarCrop: "circle" } as Partial<Bot>),
     ], [], turnLive, "en");
     expect(snapshot.bots.map((entry) => [entry.id, entry.avatar])).toEqual([["nova", "/api/bots/nova/avatar.png"], ["far", null]]);
-    expect(snapshot.labels.idle).toBe("Idle");
+    expect(snapshot.labels.idle).toBe("idle");
     expect(snapshot.lang).toBe("en");
   });
 });

@@ -242,13 +242,13 @@ it("Buy a Cloud, for someone whose Admin sells one Cloud per account: the calm w
   await act(async () => { await Promise.resolve(); });
   const flow = document.querySelector('[data-cloud-add="extra-one"]')!;
   expect(flow.textContent).toContain("one cloud per account for now");
-  expect(flow.textContent).toContain("You have My Cloud.");
+  expect(flow.textContent).toContain("you have My Cloud.");
   expect(cloudAdd.sheet).toHaveBeenCalledWith(true);
 });
 
 it("a circle's letters and words", () => {
   expect(["Client A", "Acme", "  my  cloud ", "Ünïcode Øne", "😀 Fun"].map(placeInitials)).toEqual(["CA", "A", "MC", "ÜØ", "😀F"]);
-  expect(placeLabel(place("local", "This computer", { kind: "computer" }))).toBe("This computer");
+  expect(placeLabel(place("local", "This computer", { kind: "computer" }))).toBe("this computer");
   expect(placeLabel(place("x", "Acme", { attention: true }))).toBe("Acme: needs you");
 });
 
@@ -359,7 +359,7 @@ it("a right-click on a circle opens its place's menu: its colour, saved by main 
   };
   expect(host.querySelector('[data-rail-place="local"] span[style]')?.getAttribute("style"), "this computer's circle wears its colour").toContain("var(--identity-teal)");
   const own = await menuOf("local");
-  expect([own?.getAttribute("aria-label"), own?.querySelector("[aria-checked='true']")?.getAttribute("data-swatch")]).toEqual(["This computer", "green"]);
+  expect([own?.getAttribute("aria-label"), own?.querySelector("[aria-checked='true']")?.getAttribute("data-swatch")]).toEqual(["this computer", "green"]);
   expect(own!.querySelector("[data-swatch='slate']")?.getAttribute("aria-label"), "the plain swatch says what it does").toBe("none");
   await click(own!.querySelector("[data-swatch='slate']"));
   await settle();
@@ -433,7 +433,7 @@ it("a server of the person's own that main offers as home: its menu's one tap st
   await act(async () => { host.querySelector("[data-rail-menu]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
   const menu = await menuOf("garage");
   const row = menu!.querySelector("[data-rail-make-home-start]");
-  expect(row?.textContent).toBe("Make Garage server my homeMoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
+  expect(row?.textContent).toBe("make Garage server my homemoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
   await click(row);
   await settle();
   expect(makeHome).toHaveBeenCalledWith("garage");
@@ -491,7 +491,7 @@ it("a saved account whose sign-in ended: its tile says so, and a click opens the
   Object.assign(window, { duskDesktop: { workspaces, cloudAdd, accounts } });
   workspaces.open.mockResolvedValueOnce({ outcome: "sign-in", email: BOB } as never);
   await mount(createElement(PlacesRail));
-  expect(host.querySelector('[data-rail-place="b1"]')?.getAttribute("title")).toBe(`My Cloud · ${BOB} · Sign in again`);
+  expect(host.querySelector('[data-rail-place="b1"]')?.getAttribute("title")).toBe(`My Cloud · ${BOB} · sign in again`);
   await click(host.querySelector('[data-rail-place="b1"]'));
   await act(async () => { await Promise.resolve(); });
   expect((host.querySelector("#cloud-add-email") as HTMLInputElement | null)?.value).toBe(BOB);

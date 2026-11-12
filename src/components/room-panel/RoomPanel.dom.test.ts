@@ -210,7 +210,7 @@ describe("the room's settings pages", () => {
 describe("Name and description", () => {
   it("are rows on their page, edited together in one small form", () => {
     renderPage(createElement(RoomAboutModal, { group: room(), onClose: vi.fn() }));
-    expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("NameDesk HQ");
+    expect(words(modal("about")!.querySelector('[data-sheet-row="name"]'))).toBe("nameDesk HQ");
     click(modal("about")!.querySelector('[data-sheet-row="name"]'));
     const form = modal("room-about-form")!;
     const [name, description] = [...form.querySelectorAll("input")];
@@ -230,10 +230,10 @@ describe("who responds", () => {
     expect(modal("responder")).not.toBeNull();
     const choices = [...modal("responder")!.querySelectorAll("[data-panel-choice]")].map((row) => [row.getAttribute("data-panel-choice"), words(row), row.getAttribute("aria-checked")]);
     expect(choices).toEqual([
-      ["leader", "LeaderDesk Manager gets your message and hands out the work", "true"],
-      ["everyone", "Everyone at onceEvery bot answers, side by side", "false"],
-      ["dusk", "Dusk decidesA quick model of your AI picks who answers", "false"],
-      ["auto", "Jev decidesPicks the right bot for each message", "false"],
+      ["leader", "leaderDesk Manager gets your message and hands out the work", "true"],
+      ["everyone", "everyone at onceevery bot answers, side by side", "false"],
+      ["dusk", "dusk decidesa quick model of your AI picks who answers", "false"],
+      ["auto", "Jev decidespicks the right bot for each message", "false"],
       ["leader:lead", "Desk Manager", "true"],
       ["leader:bench", "Vendor Bench", "false"],
       ["leader:paper", "Paperwork", "false"],
@@ -282,7 +282,7 @@ describe("who responds", () => {
     fixture.config = { ...jev(true), decider: { provider: "gateway", model: "typesafe-ai/jev", api: "decisions", configured: true, enabled: true, jobs: { roomRouting: true } } } as ConfigStatus;
     fixture.api.mockResolvedValue({ source: "gateway", models: [{ id: "typesafe-ai/jev", name: "Jev", group: "recommended", api: "decisions" }] });
     renderPage(createElement(RoomResponderModal, { group: room({ defaultResponder: { kind: "auto", fallbackBotId: "paper" } }), members: fixtureBots, onClose: vi.fn() }));
-    expect(words($('[data-sheet-row="jev-ready"]'))).toBe("Jev: typesafe-ai/jev via Vercel AI GatewayChange");
+    expect(words($('[data-sheet-row="jev-ready"]'))).toBe("Jev: typesafe-ai/jev via Vercel AI Gatewaychange");
     expect($('[data-sheet-row="jev-key"]')).toBeNull();
     click($('[data-jev-action="change"]'));
     expect($('[data-sheet-row="jev-key"]')).not.toBeNull();

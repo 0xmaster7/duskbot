@@ -25,7 +25,7 @@ describe("screen frame preview", () => {
     expect(html).toContain("role=\"button\"");
     expect(html).toContain("aria-label=\"open image full screen\"");
     expect(html).toContain("src=\"/api/threads/t1/messages/shot%201/image\"");
-    expect(html).toContain("alt=\"Bot&#x27;s screen\"");
+    expect(html).toContain("alt=\"bot&#x27;s screen\"");
     expect(html).toContain("width:min(100%, 307px)");
     expect(html).toContain("aspect-ratio:1.6");
     expect(html).toContain("data-reserved=\"size\"");

@@ -150,7 +150,7 @@ describe("a place's inbox in the panel", () => {
     await panel([approval, news, lineThere], [bot({ tasks: [working, asking, told, toldAndWorking] as Bot["tasks"] })]);
     const section = document.querySelector<HTMLElement>("[data-inbox-active]")!;
     const rows = [...section.querySelectorAll<HTMLElement>("button[aria-label]")];
-    expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · Working"]);
+    expect(rows.map((one) => one.getAttribute("aria-label")), "one row for the bot, named for it, not its thread").toEqual(["Eli · working"]);
     expect(section.textContent).not.toContain("writing the page");
     expect(section.textContent).not.toContain("Pricing work");
     await act(async () => { rows[0]!.click(); });

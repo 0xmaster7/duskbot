@@ -63,7 +63,7 @@ describe("the shelf card", () => {
     ]);
     // A withdrawn install isn't updated, so it isn't told a newer release is coming.
     expect(orgCardNotes(entry({ installed: { installId: "b".repeat(32), release: "1.2.0", status: "withdrawn" } }))).toEqual(["withdrawn by Acme Partners"]);
-    expect(orgContentsLine(entry().contents)).toBe("bots: 3 · skills: 3 · preset bots: 1 · group chats: 1 · routines: 2 · Connections: 1");
+    expect(orgContentsLine(entry().contents)).toBe("bots: 3 · skills: 3 · preset bots: 1 · group chats: 1 · routines: 2 · connections: 1");
     expect(orgContentsLine({ bots: 0, skills: 2, presets: 0, rooms: 0, routines: 0, connections: 0, botNames: [] })).toBe("skills: 2");
   });
 
@@ -81,12 +81,12 @@ describe("the shelf card", () => {
       busy: null, notice: "", error: "", onAdd, onDetails: vi.fn(),
     }));
     const shown = text(markup);
-    for (const line of ["Packages Customer Co shares with you", "Sales desk", "recommended by Acme Partners", "from Acme Partners", "added", "update Dusk to add this"]) {
+    for (const line of ["packages Customer Co shares with you", "Sales desk", "recommended by Acme Partners", "from Acme Partners", "added", "update Dusk to add this"]) {
       expect(shown).toContain(line);
     }
-    expect(markup).toContain('aria-label="Add Sales desk"');
-    expect(markup).not.toContain('aria-label="Add Support desk"');
-    expect(markup).not.toContain('aria-label="Add Future desk"');
+    expect(markup).toContain('aria-label="add Sales desk"');
+    expect(markup).not.toContain('aria-label="add Support desk"');
+    expect(markup).not.toContain('aria-label="add Future desk"');
     expect(onAdd).not.toHaveBeenCalled();
     expect(text(renderToStaticMarkup(createElement(OrgLibraryTab, {
       listing: { organization: { id: "o", name: "Customer Co" }, packages: [] }, busy: null, notice: "", error: "", onAdd, onDetails: vi.fn(),

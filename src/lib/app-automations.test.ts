@@ -43,7 +43,7 @@ describe("an app-event automation in plain words", () => {
 
   it("says it checks every 15 minutes and waits for the first email, then shows the last run", () => {
     expect(statusLine(automation(), NOW)).toBe("on · checks every 15 minutes · waiting for the first email");
-    expect(statusLine(automation({ lastEventAt: NOW - 60_000 }, [run("completed", NOW - 60_000)]), NOW)).toMatch(/^On · last ran today .+ · checks every 15 minutes$/);
+    expect(statusLine(automation({ lastEventAt: NOW - 60_000 }, [run("completed", NOW - 60_000)]), NOW)).toMatch(/^on · last ran today .+ · checks every 15 minutes$/);
     expect(statusLine(automation({ delivery: "instant", event: "SLACK_X" }), NOW)).toBe("on · waiting for the first one");
   });
 

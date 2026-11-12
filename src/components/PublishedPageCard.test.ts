@@ -46,7 +46,7 @@ describe("a published page's card", () => {
       expect(container.textContent).toContain("Bake sale");
       expect(container.textContent).toContain(URL);
       expect(container.textContent).toContain("3 of 5 pages");
-      expect(buttons(container).map((button) => button.textContent)).toEqual(["copy link", "Open", "unpublish"]);
+      expect(buttons(container).map((button) => button.textContent)).toEqual(["copy link", "open", "unpublish"]);
       buttons(container)[1]!.click();
       container.querySelector("a")!.click();
       expect(openExternalLink.mock.calls).toEqual([[URL], [URL]]);

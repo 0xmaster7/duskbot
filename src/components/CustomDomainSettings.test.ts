@@ -65,9 +65,9 @@ describe("copyable DNS record", () => {
     expect(html).toContain("value / IP");
     expect(html).toContain("bots.company.com");
     expect(html).toContain("8.8.8.8");
-    expect(html).toContain('aria-label="copy Type"');
-    expect(html).toContain('aria-label="copy Name / Host"');
-    expect(html).toContain('aria-label="copy Value / IP"');
+    expect(html).toContain('aria-label="copy type"');
+    expect(html).toContain('aria-label="copy name / host"');
+    expect(html).toContain('aria-label="copy value / IP"');
     expect(html.match(/type="button"/g)).toHaveLength(3);
     expect(html).not.toContain("reverse_proxy");
     expect(html).not.toContain("https://bots.company.com");
@@ -76,7 +76,7 @@ describe("copyable DNS record", () => {
   it("never substitutes the tunnel address or a placeholder for a missing server IP", () => {
     const html = renderToStaticMarkup(createElement(CustomDomainDnsRecord, { domain: "bots.company.com" }));
     expect(html).toContain("ask your server administrator");
-    expect(html).not.toContain('aria-label="copy Value / IP"');
+    expect(html).not.toContain('aria-label="copy value / IP"');
     expect(html).not.toContain("127.0.0.1");
   });
 });

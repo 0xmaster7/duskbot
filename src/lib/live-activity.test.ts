@@ -25,7 +25,7 @@ describe("liveActivityLabel", () => {
   });
 
   it("maps common native and MCP tool names when narration is unavailable", () => {
-    expect(liveActivityLabel(activity("Bash: pnpm test"))).toBe("Running a command");
+    expect(liveActivityLabel(activity("Bash: pnpm test"))).toBe("running a command");
     expect(liveActivityLabel(activity("mcp__computer__click"))).toBe("using the screen");
     expect(liveActivityLabel(activity("web_search"))).toBe("searching the web");
     expect(liveActivityLabel(activity("delegate_bot"))).toBe("handing off a task");
@@ -51,12 +51,12 @@ describe("activityStepLabel", () => {
   });
 
   it("never shows a step's arguments", () => {
-    expect(activityStepLabel({ name: "Bash: rm -rf ~/private" })).toBe("Running a command");
-    expect(activityStepLabel({ name: "make_invoice" })).toBe("Working");
+    expect(activityStepLabel({ name: "Bash: rm -rf ~/private" })).toBe("running a command");
+    expect(activityStepLabel({ name: "make_invoice" })).toBe("working");
   });
 
   it("names a step by its tool alone, whatever its arguments say", () => {
-    expect(activityStepLabel({ name: "make_invoice: read the file" })).toBe("Working");
+    expect(activityStepLabel({ name: "make_invoice: read the file" })).toBe("working");
   });
 
   // "Edit" and "editing a file" read the same, so only these cases tell narration from a name-derived label.
@@ -65,7 +65,7 @@ describe("activityStepLabel", () => {
   });
 
   it("falls back to the tool's name when the narration is blank", () => {
-    expect(activityStepLabel({ name: "Bash", spoken: "   " })).toBe("Running a command");
+    expect(activityStepLabel({ name: "Bash", spoken: "   " })).toBe("running a command");
   });
 });
 
@@ -139,11 +139,11 @@ describe("turnNowPhrases: what the status line says is happening now", () => {
   it("names the file being written and how much, from the engine's own report", () => {
     expect(turnNowPhrases({ activity: "write", itemId: "w", file: "index.html", bytes: 14 * 1024 + 9 })).toMatchObject({ phrases: ["writing index.html"], size: "14 KB" });
     expect(turnNowPhrases({ activity: "edit", file: "app.ts", bytes: 3 * 1024 * 1024 + 300_000 })).toMatchObject({ phrases: ["editing app.ts"], size: "3.2 MB" });
-    expect(turnNowPhrases({ activity: "write", bytes: 200 })).toEqual({ phase: "live::Writing a file", phrases: ["writing a file"] });
+    expect(turnNowPhrases({ activity: "write", bytes: 200 })).toEqual({ phase: "live::writing a file", phrases: ["writing a file"] });
   });
 
   it("says commands, searches, reading, thinking and replying in plain words", () => {
-    expect(turnNowPhrases({ activity: "command" })?.phrases[0]).toBe("Running a command");
+    expect(turnNowPhrases({ activity: "command" })?.phrases[0]).toBe("running a command");
     expect(turnNowPhrases({ activity: "web" })?.phrases[0]).toBe("searching the web");
     expect(turnNowPhrases({ activity: "read", file: "notes.md" })?.phrases[0]).toBe("reading notes.md");
     expect(turnNowPhrases({ activity: "thinking" })?.phrases[0]).toBe("thinking");
@@ -152,7 +152,7 @@ describe("turnNowPhrases: what the status line says is happening now", () => {
   });
 
   it("falls back to the running chip, then to nothing, so the line is its timer alone", () => {
-    expect(turnNowPhrases(null, activity("Bash: pnpm test"))?.phrases[0]).toBe("Running a command");
+    expect(turnNowPhrases(null, activity("Bash: pnpm test"))?.phrases[0]).toBe("running a command");
     expect(turnNowPhrases(null, activity("Bash", { ok: true }))).toBeNull();
     expect(turnNowPhrases(null, activity("make_invoice"))).toBeNull();
     expect(turnNowPhrases({ activity: "tool", tool: "make_invoice" })).toBeNull();

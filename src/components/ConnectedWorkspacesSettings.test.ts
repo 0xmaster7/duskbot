@@ -155,7 +155,7 @@ it("confirms before switching to a local environment, and a failed switch says o
   rowButton("switch to Work")!.props.onClick!();
   await flush();
   expect(confirm).toHaveBeenCalled();
-  expect(confirm.mock.calls[0][0]).toBe("switch to Work? The app restarts on that environment. Running turns stop.");
+  expect(confirm.mock.calls[0][0]).toBe("switch to Work? the app restarts on that environment. running turns stop.");
   expect(environments.switch).not.toHaveBeenCalled();
   confirm.mockResolvedValue(true);
   rowButton("switch to Work")!.props.onClick!();

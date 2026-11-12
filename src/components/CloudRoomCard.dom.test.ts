@@ -46,7 +46,7 @@ describe("the room card", () => {
     const plan = bridge();
     await show(plan);
     expect(card()?.getAttribute("data-cloud-room-card")).toBe("upgrade");
-    expect(text()).toBe("this Cloud is short on room3 tasks waited 6 minutes for memory today.Pro has twice the memory. $49 a month. Today you pay only for the rest of this month.UpgradeNot now");
+    expect(text()).toBe("this cloud is short on room3 tasks waited 6 minutes for memory today.Pro has twice the memory. $49 a month. today you pay only for the rest of this month.upgradenot now");
     await click(button("upgrade"));
     expect(plan.upgradePreview).toHaveBeenCalledExactlyOnceWith("pro", "app_room");
     expect(plan.upgrade).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe("the room card", () => {
     snapshot = { status: "paid", tier: "max", usage: { ...usage, tier: "max", upgrades: [] }, room: { id: "tip-1", cause: { kind: "disk", usedGb: 87.5, capGb: 100 }, tip: true } };
     await show(plan);
     expect(card()?.getAttribute("data-cloud-room-card")).toBe("tip");
-    expect(text()).toBe("this Cloud is almost out of space87.5 GB of 100 GB used.You're on the biggest plan. To free up space, delete files and folders you no longer need.Got it");
+    expect(text()).toBe("this cloud is almost out of space87.5 GB of 100 GB used.you're on the biggest plan. to free up space, delete files and folders you no longer need.got it");
     expect(button("upgrade")).toBeUndefined();
     await click(button("got it"));
     expect(plan.roomNotNow).toHaveBeenCalledExactlyOnceWith("tip-1");

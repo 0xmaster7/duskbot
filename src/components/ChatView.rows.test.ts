@@ -140,7 +140,7 @@ describe("chat transcript rows", () => {
     expect(document.querySelectorAll("[data-mid]")).toHaveLength(messages.length);
     expect(document.body.textContent).toContain("today");
     expect(document.body.textContent).toContain("Answer 1");
-    expect(document.body.textContent).toContain("read file 2");
+    expect(document.body.textContent).toContain("Read file 2");
   });
 
   it("renders no row when another bot changes", async () => {

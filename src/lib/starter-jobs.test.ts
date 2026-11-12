@@ -9,7 +9,7 @@ describe("starter jobs", () => {
     expect(STARTER_JOBS.map((job) => t(job.label))).toEqual(["summarize my inbox", "watch a price", "plan a trip", "research a topic"]);
     const price = jobDraft(STARTER_JOBS[1]!, t);
     expect(price.text).toBe("find the best price for AirPods Pro at a few big shops right now, and offer to keep watching it for drops.");
-    expect(price.text.slice(...price.select)).toBe("AirPods pro");
+    expect(price.text.slice(...price.select)).toBe("AirPods Pro");
     const inbox = jobDraft(STARTER_JOBS[0]!, t);
     expect(inbox.select, "a job with nothing to fill in puts the caret at the end").toEqual([inbox.text.length, inbox.text.length]);
   });

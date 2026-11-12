@@ -41,9 +41,9 @@ describe("CallRecordRow", () => {
     expect(markup).toContain('data-testid="call-record"');
     expect(markup).toContain("call with Pepper");
     expect(markup).toContain("1:42");
-    expect(markup).toContain("searching the web");
+    expect(markup).toContain("Searching the web");
     expect(markup).toContain("allowed: run a command · by voice");
-    expect(markup).not.toContain("reading a file");
+    expect(markup).not.toContain("Reading a file");
     expect(markup).not.toContain("secret-query");
     expect(markup).not.toContain("rm -rf build");
   });
@@ -71,12 +71,12 @@ describe("CallRecordRow", () => {
     ];
     const markup = draw(row(), work, { busy: true });
     expect(lineTexts(markup)).toEqual([
-      "Searching the web (Completed)",
-      "running the tests (Failed)",
-      "reading a file (Running)",
+      "Searching the web (completed)",
+      "Running the tests (failed)",
+      "Reading a file (running)",
       "denied: run a command",
     ]);
-    expect(markup).toContain('<span class="sr-only"> (Failed)</span>');
+    expect(markup).toContain('<span class="sr-only"> (failed)</span>');
   });
 
   it("says how a step went in the app's language, the words the tool chip uses", () => {
@@ -89,8 +89,8 @@ describe("CallRecordRow", () => {
     setLocale("zh");
     expect(lineTexts(draw(row(), work, { busy: true }))).toEqual([
       "Searching the web (已完成)",
-      "running the tests (失败)",
-      "reading a file (运行中)",
+      "Running the tests (失败)",
+      "Reading a file (运行中)",
     ]);
   });
 
@@ -117,7 +117,7 @@ describe("CallRecordRow", () => {
       const markup = draw(row(), transcript, { hasMore: true });
       expect(markup).toContain(hint);
       expect(markup).toContain("load earlier messages");
-      expect(markup).toContain("searching the web");
+      expect(markup).toContain("Searching the web");
     });
 
     it("says nothing once everything is loaded", () => {
@@ -138,13 +138,13 @@ describe("CallRecordRow", () => {
 
     it("reads as running, with the working dots, while its chat is busy", () => {
       const markup = draw(row(), work, { busy: true });
-      expect(lineTexts(markup)).toEqual(["reading a file (Running)"]);
+      expect(lineTexts(markup)).toEqual(["Reading a file (running)"]);
       expect(markup).toContain("animate-status-pulse");
     });
 
     it("is neutral once its chat is not: no dots and no announcement of running, a dash instead", () => {
       const markup = draw(row(), work, { busy: false });
-      expect(lineTexts(markup)).toEqual(["reading a file"]);
+      expect(lineTexts(markup)).toEqual(["Reading a file"]);
       expect(markup).not.toContain("animate-status-pulse");
       expect(markup).not.toContain("running");
       expect(markup).toContain("gi-minus");
@@ -157,7 +157,7 @@ describe("CallRecordRow", () => {
         step("a2", "m1", { name: "Bash", spoken: "running the tests", ok: false }),
       ];
       for (const busy of [true, false]) {
-        expect(lineTexts(draw(row(), settled, { busy }))).toEqual(["Searching the web (Completed)", "running the tests (Failed)"]);
+        expect(lineTexts(draw(row(), settled, { busy }))).toEqual(["Searching the web (completed)", "Running the tests (failed)"]);
       }
     });
   });

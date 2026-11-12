@@ -59,7 +59,7 @@ async function type(name: string, value: string) {
 }
 async function openOnePassword() {
   await click("new item");
-  await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((item) => item.getAttribute("aria-label") === "1password")!.click());
+  await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((item) => item.getAttribute("aria-label") === "1Password")!.click());
 }
 async function submit() {
   await act(async () => { document.body.querySelector<HTMLFormElement>("[data-login-form]")!.requestSubmit(); });
@@ -163,13 +163,13 @@ describe("Settings → Logins", () => {
     const field = document.body.querySelector<HTMLInputElement>('input[name="onePasswordToken"]')!;
     expect(field.type).toBe("password");
     await type("onePasswordToken", "ops_fake-typed-token");
-    await click("connect 1password");
+    await click("connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password", { method: "POST", body: JSON.stringify({ sealed: { keyId: "k", encapsulatedKey: "E", ciphertext: "onepassword.connect||token" } }) });
     expect(document.body.querySelector("[data-onepassword]")!.textContent).toContain("connected to Shared with dusk bot · 1 logins with a website");
     expect(document.body.innerHTML).not.toContain("ops_fake-typed-token");
     const row = document.body.querySelector('[data-login-row="example.com"]')!;
-    expect(row.getAttribute("data-login-detail")).toContain("from 1password · all bots");
+    expect(row.getAttribute("data-login-detail")).toContain("from 1Password · all bots");
     expect(row.querySelectorAll("button")).toHaveLength(0);
     await click("disconnect");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
@@ -196,7 +196,7 @@ describe("Settings → Logins", () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(fixture.api).toHaveBeenNthCalledWith(2, "/api/logins/1password/vaults/v1", { method: "PATCH", body: JSON.stringify({ bots: ["quill"] }) });
     expect(row().textContent).toContain("2 logins · Quill");
-    expect(document.body.querySelector('[data-login-row="example.com"]')!.getAttribute("data-login-detail")).toContain("from 1password · Quill");
+    expect(document.body.querySelector('[data-login-row="example.com"]')!.getAttribute("data-login-detail")).toContain("from 1Password · Quill");
   });
 
   it("says why 1Password refused a token", async () => {
@@ -204,7 +204,7 @@ describe("Settings → Logins", () => {
     await render();
     await openOnePassword();
     await type("onePasswordToken", "ops_fake-wrong");
-    await click("connect 1password");
+    await click("connect 1Password");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     expect(document.body.querySelector('[data-panel-modal="onepassword"] [role=alert]')!.textContent).toBe("1Password did not accept the token.");
   });

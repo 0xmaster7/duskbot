@@ -49,18 +49,18 @@ describe("about", () => {
   it("in the app on another server, shows the app's own version and names that server with the version it runs", () => {
     const html = about({ duskDesktop: { platform: "darwin", app: { version: "0.1.127", ownPage: false } }, location: { host: "bots.example.test" } });
     expect(html).toContain(">version 0.1.127 · macOS</p>");
-    expect(html).toContain(`>Connected to bots.example.test · version ${appVersion()}</p>`);
+    expect(html).toContain(`>connected to bots.example.test · version ${appVersion()}</p>`);
   });
 
   it("in a browser, keeps the page's version on one line", () => {
     const html = about({ location: { host: "bots.example.test" } });
-    expect(html).toContain(`>Version ${appVersion()}</p>`);
+    expect(html).toContain(`>version ${appVersion()}</p>`);
     expect(html).not.toContain("connected to");
   });
 
   it("in an app too old to say which version it is, keeps the page's version as before", () => {
     const html = about({ duskDesktop: { platform: "darwin" }, location: { host: "bots.example.test" } });
-    expect(html).toContain(`>Version ${appVersion()} · macOS</p>`);
+    expect(html).toContain(`>version ${appVersion()} · macOS</p>`);
     expect(html).not.toContain("connected to");
   });
 
@@ -72,8 +72,8 @@ describe("about", () => {
     ]);
     setLocale("de");
     expect(aboutVersionLines({ app, bundle: "0.1.116", platform: "macOS", server: "Office Mac" })).toEqual([
-      "version 0.1.127 · macOS",
-      "Verbunden mit Office Mac · version 0.1.116",
+      "Version 0.1.127 · macOS",
+      "Verbunden mit Office Mac · Version 0.1.116",
     ]);
   });
 });

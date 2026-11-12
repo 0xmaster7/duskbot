@@ -73,7 +73,7 @@ describe("local computer UI eligibility", () => {
     expect(localComputerSelectable({ capabilities, providerSupportsLocal: true })).toBe(true);
     expect(localComputerSelectable({ capabilities, providerSupportsLocal: false })).toBe(false);
     expect(localComputerDisabledReason({ capabilities, providerSupportsLocal: true })).toBe(
-      "Bots can't use this PC right now. Restart Dusk, and if that doesn't help, open Settings → Diagnostics.",
+      "bots can't use this PC right now. restart Dusk, and if that doesn't help, open settings → updates → diagnostics.",
     );
   });
 

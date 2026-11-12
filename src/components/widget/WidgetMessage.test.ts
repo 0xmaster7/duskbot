@@ -226,7 +226,7 @@ describe("drawing a widget", () => {
   it("lets a clipped button label be read in full, with a link's address under it", () => {
     mount(row(sample("kitchenSink")));
     expect(button("Send feedback")!.title).toBe("Send feedback");
-    expect(button("open the docs")!.title).toBe("open the docs\nhttps://dusk.bot/docs");
+    expect(button("Open the docs")!.title).toBe("Open the docs\nhttps://dusk.bot/docs");
     mount(row(sample("pullRequests")));
     expect(button("Merge the two ready")!.title).toBe("Merge the two ready");
     expect(button("Fix #719 first")!.title).toBe("Fix #719 first");
@@ -248,8 +248,8 @@ describe("drawing a widget", () => {
     const report = field<HTMLSelectElement>("report");
     expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "Report to")!.htmlFor).toBe(report.id);
     expect(report.getAttribute("aria-label")).toBe("Report to");
-    expect(find('[role="group"][aria-label="runs on"]')).not.toBeNull();
-    expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "runs on")!.htmlFor).toBe("");
+    expect(find('[role="group"][aria-label="Runs on"]')).not.toBeNull();
+    expect(all<HTMLLabelElement>("label").find((label) => label.textContent === "Runs on")!.htmlFor).toBe("");
     const at = field<HTMLButtonElement>("at");
     expect(at.getAttribute("role")).toBe("combobox");
     expect(at.value).toBe("09:00");
@@ -282,7 +282,7 @@ describe("a settled widget", () => {
     const card = find('[data-widget="w1"]')!;
     expect(card.parentElement!.id).toBe(details.getAttribute("aria-controls"));
     expect(card.getAttribute("data-widget-state")).toBe("settled");
-    expect(card.textContent).toContain("new routine: release check");
+    expect(card.textContent).toContain("New routine: release check");
     const controls = all<HTMLInputElement | HTMLSelectElement>("[data-widget-field]");
     expect(controls.length).toBe(5);
     expect(controls.every((control) => control.disabled)).toBe(true);
@@ -525,7 +525,7 @@ describe("pressing", () => {
     expect(all('[role="listitem"]')[2]!.querySelector("button, [role=button]")).toBeNull();
 
     mount(row(sample("kitchenSink")));
-    await press(button("open the docs")!);
+    await press(button("Open the docs")!);
     expect(openExternal).toHaveBeenLastCalledWith("https://dusk.bot/docs");
     expect(fetchMock).not.toHaveBeenCalled();
   });

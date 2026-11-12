@@ -61,7 +61,7 @@ describe("sidebar header", () => {
     const html = render();
     expect(html).not.toContain('aria-label="Inbox"');
     expect(html).not.toContain('aria-label="active threads"');
-    expect(html).toContain(density === "icons" ? 'aria-label="new or share"' : 'aria-label="New Bot"');
+    expect(html).toContain(density === "icons" ? 'aria-label="new or share"' : 'aria-label="new bot"');
     expect(html).not.toMatch(collapse);
     expect(html, "the edge that is dragged, open or as avatars, so the avatars are never a dead end").toMatch(/role="separator" aria-label="resize sidebar"/);
   });
@@ -75,7 +75,7 @@ describe("sidebar top row", () => {
   });
   const topRow = (html: string) => {
     const start = html.indexOf("data-sidebar-top-row");
-    const end = html.includes('aria-label="new or share"') ? html.indexOf('aria-label="new or share"') : html.indexOf('aria-label="New Bot"');
+    const end = html.includes('aria-label="new or share"') ? html.indexOf('aria-label="new or share"') : html.indexOf('aria-label="new bot"');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     return html.slice(start, end);

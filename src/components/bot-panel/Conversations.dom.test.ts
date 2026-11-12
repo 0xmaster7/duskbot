@@ -154,7 +154,7 @@ describe("a bot's conversations in its panel", () => {
     expect(row("launch").querySelector('svg[aria-label="pin"]')).toBeNull();
     expect(row("pricing")).toBeNull();
     click(more());
-    expect(row("pricing").querySelector("[data-thread-working]")!.textContent).toMatch(/^Working·1m 1[23]s$/);
+    expect(row("pricing").querySelector("[data-thread-working]")!.textContent).toMatch(/^working·1m 1[23]s$/);
     expect(host.querySelectorAll("[data-thread-working]")).toHaveLength(1);
   });
 

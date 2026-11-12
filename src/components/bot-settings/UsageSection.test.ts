@@ -36,7 +36,7 @@ describe("bot settings usage card", () => {
     const shown = text(renderToStaticMarkup(createElement(UsageSection, {
       bot: bot({ input: 12_000, cachedInput: 10_000, output: 500, costUsd: null, turns: 3 }),
     })));
-    expect(shown).toContain("New tokens 2.5k");
+    expect(shown).toContain("new tokens 2.5k");
   });
 
   it("says so in the app language when nothing is recorded yet", () => {

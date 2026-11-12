@@ -49,7 +49,7 @@ describe("ConnectorCard ask card", () => {
     expect(html).toContain(`aria-label="${t("connectors.aliasAriaAnother", { service: "GitHub" })}"`);
     expect(html).toContain(t("connectors.aliasNeeded"));
     expect(html).not.toContain("Add an account alias");
-    expect(html.match(/<button[^>]*>(?:(?!<\/button>)[^])*Try again/)?.[0]).toContain('disabled=""');
+    expect(html.match(/<button[^>]*>(?:(?!<\/button>)[^])*try again/)?.[0]).toContain('disabled=""');
 
     const taken = view({ status: "failed", alias: "work", error: 'Account alias "work" is already in use for github' });
     expect(taken).toContain(t("connectors.aliasTaken"));
@@ -63,7 +63,7 @@ describe("ConnectorCard ask card", () => {
   it("reads as a sign-in for an MCP server and as today for a Composio app", () => {
     const mcp = view({ source: "mcp", slug: "linear", label: "Linear" });
     expect(mcp).toContain("sign in to Linear");
-    expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*Sign in<\/button>/);
+    expect(mcp).toMatch(/<button[^>]*>(?:(?!<\/button>)[^])*sign in<\/button>/);
     expect(mcp).not.toMatch(new RegExp(`<button[^>]*>${t("connectors.action.connect")}</button>`));
     expect(mcp).toContain(t("connectors.card.mcpSignInHint"));
     expect(mcp).not.toContain(t("connectors.card.signInHint"));

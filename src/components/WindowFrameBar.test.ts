@@ -85,9 +85,9 @@ describe("the window frame's top bar", () => {
   });
 
   it.each([
-    [{ local: true, name: "Mac mini" }, {}, "This computer"],
+    [{ local: true, name: "Mac mini" }, {}, "this computer"],
     [{ local: true, name: "Lab", localPath: "/Users/me/lab" }, {}, "Lab"],
-    [{ local: false, name: "saved name", home: true }, {}, "My Cloud"],
+    [{ local: false, name: "saved name", home: true }, {}, "my cloud"],
     [{ local: false, name: "Acme", role: "admin" }, { team: { name: "Acme" } }, "Acme"],
     [{ local: false, name: "Office", origin: "https://office.example" }, {}, "Office"],
   ] as const)("names %o as it should", async (shown, config, name) => {

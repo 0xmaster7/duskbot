@@ -282,7 +282,7 @@ describe("VPS computer preparation", () => {
     expect(frame?.textContent).toContain("Scout's computer needs an update");
     expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("its files and website sign-ins are kept.");
     const fix = document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]');
-    expect(fix?.textContent).toBe("Fix");
+    expect(fix?.textContent).toBe("fix");
     flushSync(() => fix!.click());
     await settle();
     expect(fixture.posts).toEqual(["/api/bots/scout/computer/remove", "/api/bots/scout/computer/provision"]);

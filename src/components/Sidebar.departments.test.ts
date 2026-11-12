@@ -136,7 +136,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("Simple's sidebar before anyone drags", () => {
   it("looks as it did: the same sections and rows, nothing marked, each row ready to drag", () => {
     expect(sections()).toEqual([userSectionId("Work"), BOTS_SECTION_ID, CHANNELS_SECTION_ID]);
-    expect(headers().map((props) => props.name)).toEqual(["Work", "Unassigned", "group chats"]);
+    expect(headers().map((props) => props.name)).toEqual(["Work", "unassigned", "group chats"]);
     expect(listed()).toEqual(["dodo", "echo", "atlas", "bea", "cleo"]);
     for (const props of rows()) {
       expect(props.botDrop).toBeNull();
@@ -281,14 +281,14 @@ describe("a section's menu", () => {
   };
 
   it("is grok's: Rename, Move up, Move down and Delete; Unassigned only moves", () => {
-    expect(Object.keys(openMenu("Work"))).toEqual(["Rename", "move up", "move down", "Delete"]);
+    expect(Object.keys(openMenu("Work"))).toEqual(["rename", "move up", "move down", "delete"]);
     expect(openMenu("Work")["move up"]!.disabled).toBe(true);
     fixture.values = [];
-    expect(Object.keys(openMenu("Unassigned"))).toEqual(["move up", "move down"]);
+    expect(Object.keys(openMenu("unassigned"))).toEqual(["move up", "move down"]);
   });
 
   it("renames it in place", async () => {
-    openMenu("Work")["Rename"]!.onClick();
+    openMenu("Work")["rename"]!.onClick();
     const naming = header("Work").naming!;
     expect([naming.value, naming.label]).toEqual(["Work", "rename section"]);
     naming.onCommit("Clients");
@@ -297,16 +297,16 @@ describe("a section's menu", () => {
   });
 
   it("deletes it saying the bots stay, out of any department", () => {
-    openMenu("Work")["Delete"]!.onClick();
+    openMenu("Work")["delete"]!.onClick();
     const dialog = render().find((node) => node.type === ConfirmDialog && node.props.open === true)!;
-    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["delete \u201cWork\u201d", "its bots move to unassigned. no bots are deleted.", "Delete"]);
+    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["delete \u201cWork\u201d", "its bots move to unassigned. no bots are deleted.", "delete"]);
   });
 
   it("is the same menu in Advanced, from a right-click on its name", () => {
     fixture.advanced = true;
     const button = { getBoundingClientRect: () => ({ right: 280, bottom: 300 }), focus: vi.fn(), isConnected: true } as unknown as HTMLButtonElement;
     header("Work").onContextMenu!({ preventDefault: () => {}, clientX: 10, clientY: 10, currentTarget: { querySelector: () => button } } as never);
-    expect(render().filter((node) => node.props.role === "menuitem").map(words)).toEqual(["Rename", "move up", "move down", "Delete"]);
+    expect(render().filter((node) => node.props.role === "menuitem").map(words)).toEqual(["rename", "move up", "move down", "delete"]);
   });
 });
 
@@ -331,7 +331,7 @@ describe("a bot's menu in Simple", () => {
     fixture.state = { ...fixture.state, sections: ["Work", "Home"] };
     const props = menuProps("dodo");
     const items = open(props);
-    expect(items.map(label)).toEqual(["Work", "Home", "Unassigned", "create section"]);
+    expect(items.map(label)).toEqual(["Work", "Home", "unassigned", "create section"]);
     expect(items.map((item) => item.props["aria-checked"])).toEqual([true, false, false, undefined]);
     (items[1]!.props.onClick as () => void)();
     (items[2]!.props.onClick as () => void)();
@@ -363,7 +363,7 @@ describe("deleting a Chief of Staff", () => {
     fixture.state = { ...fixture.state, bots: [chief, bot("bea")] };
     askToDelete(chief);
     const dialog = openDialog()!;
-    expect(dialog.props.body).toBe("It's your Chief of Staff. Archive it instead to keep its chats. Its chats, memory, files and private desktop go too. This can't be undone.");
+    expect(dialog.props.body).toBe("it's your chief of staff. archive it instead to keep its chats. its chats, memory, files and private desktop go too. this can't be undone.");
     const alternative = dialog.props.alternative as { label: string; onClick: () => void };
     expect(alternative.label).toBe("archive instead");
     alternative.onClick();

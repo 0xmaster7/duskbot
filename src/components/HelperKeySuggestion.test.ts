@@ -56,7 +56,7 @@ describe("the add-a-key suggestion card", () => {
     await Promise.resolve();
     expect(fixture.api).toHaveBeenCalledWith("/api/helpers/suggestion/not-now", { method: "POST", body: JSON.stringify({ threadId: "t1", messageId: "m1" }) });
     const answered = render(message("notNow"));
-    expect(answered.html).toContain("Okay, I won&#x27;t ask again.");
+    expect(answered.html).toContain("okay, i won&#x27;t ask again.");
     expect(answered.add).toBeUndefined();
     expect(answered.notNow).toBeUndefined();
   });

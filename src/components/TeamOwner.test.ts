@@ -83,7 +83,7 @@ describe("a teammate's face", () => {
     setTeamPeople(withPicture());
     const fox = bot({ reportsTo: ADA.email, tasks: [{ threadId: "fox-main", title: "Fox" }] as Bot["tasks"] });
     const line = renderToStaticMarkup(withStore({ ...initialState, bots: [fox] } as AppState, createElement(AskingLine, { botId: "fox", threadId: "fox-main" })));
-    expect(line).toMatch(/<img src="\/api\/team\/people\/p_ada\/picture\?v=1"[^>]*style="width:14px;height:14px"[^>]*>Asking Ada/);
+    expect(line).toMatch(/<img src="\/api\/team\/people\/p_ada\/picture\?v=1"[^>]*style="width:14px;height:14px"[^>]*>asking Ada/);
   });
 
   it("is each teammate's face in the @ list, on a Told chip and on a Needs you line from them", () => {

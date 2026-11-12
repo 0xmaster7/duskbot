@@ -57,7 +57,7 @@ describe("QueuedComposerMessages", () => {
   it("shows a queued message's words exactly as typed, with nothing hidden", () => {
     const text = '<data-context>{"cardId":"c_1"}</data-context>\nOnly show last month';
     const markup = renderToStaticMarkup(createElement(QueuedComposerMessages, { items: [{ queueId: "q", text }], onCancel: () => undefined }));
-    expect(markup).toContain("only show last month");
+    expect(markup).toContain("Only show last month");
     expect(markup).toContain("&lt;data-context&gt;");
   });
   it("explains a capacity wait without offering to interrupt another thread", () => {
@@ -131,7 +131,7 @@ describe("QueuedComposerMessages", () => {
   it("says the fallback Steer stops the running turn when the engine cannot steer live", () => {
     const base = { items: oneItem, onSteer: () => undefined, onCancel: () => undefined } as const;
     const liveMarkup = renderToStaticMarkup(createElement(QueuedComposerMessages, base));
-    expect(liveMarkup).toContain("aria-label=\"Add this message to what the bot is doing now\"");
+    expect(liveMarkup).toContain("aria-label=\"add this message to what the bot is doing now\"");
     const interruptMarkup = renderToStaticMarkup(
       createElement(QueuedComposerMessages, { ...base, steerInterrupts: true }),
     );
@@ -151,7 +151,7 @@ describe("QueuedComposerMessages", () => {
         onCancel: () => undefined,
       }),
     );
-    expect(markup).toContain("aria-label=\"Add the next queued message to what the bot is doing now\"");
+    expect(markup).toContain("aria-label=\"add the next queued message to what the bot is doing now\"");
     expect(markup).not.toContain("stop the running turn");
   });
 

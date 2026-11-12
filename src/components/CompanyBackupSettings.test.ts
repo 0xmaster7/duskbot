@@ -228,7 +228,7 @@ describe("optional Company cloud backup settings", () => {
     await ready();
     const html = render().html;
     expect(html).toContain("512 MiB of 1 GiB used or reserved");
-    expect(html).toContain("Up to 5 snapshots kept after a successful backup");
+    expect(html).toContain("up to 5 snapshots kept after a successful backup");
     expect(html).toContain("4 unfinished uploads or cleanups");
     expect(html).toContain(new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(readyEntry.completedAt!)));
     expect(html).toContain(READY_ID);
@@ -250,7 +250,7 @@ describe("optional Company cloud backup settings", () => {
   it("shows restart instructions and no backup actions when a restore is already staged", async () => {
     vi.mocked(bridge.state).mockResolvedValueOnce({ busy: false, pendingRestore: true });
     await ready();
-    expect(render().html).toContain("Fully quit Dusk");
+    expect(render().html).toContain("fully quit Dusk");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -270,7 +270,7 @@ describe("optional Company cloud backup settings", () => {
       expect(render().html).not.toContain("Fully quit Dusk");
       resolveState({ busy: false, pendingRestore: true }); await flush();
     }
-    expect(render().html).toContain("Fully quit Dusk");
+    expect(render().html).toContain("fully quit Dusk");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -429,7 +429,7 @@ describe("optional Company cloud backup settings", () => {
   it("keeps native dialog keyboard events out of the parent Settings shortcut handler", async () => {
     await ready(); button("back up this installation").props.onClick!();
     const dialog = () => render().nodes.find(node => node.type === "dialog")!;
-    for (const key of ["Escape", "tab"]) {
+    for (const key of ["Escape", "Tab"]) {
       const stopPropagation = vi.fn();
       dialog().props.onKeyDown!({ key, stopPropagation });
       expect(stopPropagation).toHaveBeenCalledOnce();
@@ -471,7 +471,7 @@ describe("optional Company cloud backup settings", () => {
     const replace = button("replace installation"); replace.props.onClick!(); replace.props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
-    expect(render().html).toContain("Fully quit Dusk");
+    expect(render().html).toContain("fully quit Dusk");
     expect(window.location.reload).not.toHaveBeenCalled();
     expect([...storage.values()]).not.toContain(PASSWORD);
   });

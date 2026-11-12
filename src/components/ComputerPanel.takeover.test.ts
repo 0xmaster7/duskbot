@@ -348,7 +348,7 @@ describe("taking control of other computers", () => {
     fixture.cloudState = "stopped";
     flushSync(() => fixture.live!.onUnreachable());
     await settle();
-    expect(document.querySelector("button[aria-label='Wake computer']"), document.body.textContent).not.toBeNull();
+    expect(document.querySelector("button[aria-label='wake computer']"), document.body.textContent).not.toBeNull();
     expect(document.querySelector("[data-inline-computer]")?.getAttribute("data-stage")).toBe("asleep");
     expect(fixture.statusReads).toBe(reads + 1);
     expect(fixture.connections).toBe(1);
@@ -393,7 +393,7 @@ describe("taking control of other computers", () => {
     // Auto, the place the server resolves to the bot's own cloud computer
     await open(makeBot({ busy: false }));
     expect(fixture.statusReads).toBe(1);
-    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[aria-label='Wake computer']");
+    const card = document.querySelector<HTMLButtonElement>("[data-inline-computer] button[aria-label='wake computer']");
     expect(card, document.body.innerHTML).not.toBeNull();
     expect(card!.disabled).toBe(false);
     expect(document.body.textContent).not.toMatch(/browser only|Checking/);

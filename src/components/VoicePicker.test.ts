@@ -185,7 +185,7 @@ describe("VoicePicker", () => {
 
   it("shows the library voice being added in the field and holds the field until it is", async () => {
     await mount({ value: STUDIO.id, pending: LIBRARY });
-    expect(trigger().textContent).toBe("Library RachelAdding…");
+    expect(trigger().textContent).toBe("Library Racheladding…");
     expect(trigger().disabled).toBe(true);
     expect(trigger().querySelector(".animate-spin")).not.toBeNull();
   });

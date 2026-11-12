@@ -105,7 +105,7 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector('[role="combobox"]')?.getAttribute("placeholder")).toBe("search across apps and skills");
     expect(dialog().querySelector("[data-bot-templates-link]")?.textContent).toContain("bot templates");
     const chips = [...dialog().querySelectorAll('[data-marketplace-chips] button')].map((chip) => chip.textContent?.replace(/[\uE000-\uF8FF]/gu, ""));
-    expect(chips).toEqual(["all", "password managers", "productivity", "communication", "design", "code", "More"]);
+    expect(chips).toEqual(["all", "password managers", "productivity", "communication", "design", "code", "more"]);
     expect(titles().slice(0, 2), "what is connected leads, then the rest").toEqual(["connected", "recommended for you"]);
     expect(titles()).toContain("password managers");
     expect(dialog().querySelector('#ca-section-connected')?.closest("section")?.querySelector('[data-app-row="slack"]')?.textContent).toContain("connected");
@@ -186,7 +186,7 @@ describe("the Connect Apps window", () => {
     expect([...page.querySelectorAll('[data-toolkit-group="actions"] .ca-card-row')].map((row) => row.textContent))
       .toEqual(["Create record", "Find person", "see all 40 on Composio"]);
     expect(page.querySelector<HTMLAnchorElement>('[data-toolkit-group="actions"] a')?.href).toBe("https://docs.composio.dev/toolkits/attio");
-    expect(page.textContent).toContain("Your account, API key");
+    expect(page.textContent).toContain("your account, API key");
   });
 
   it("sends an app Composio has no managed sign-in for to Composio to set up, then Check again connects it", async () => {
@@ -270,11 +270,11 @@ describe("the Connect Apps window", () => {
       expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
       const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
       expect(step.textContent).toContain("dusk uses Composio to reach Attio. first, let dusk use your free Composio account. you'll sign in once.");
-      expect(step.textContent, "what is shared").toContain("Dusk never sees your Attio password.");
+      expect(step.textContent, "what is shared").toContain("dusk never sees your Attio password.");
       expect(dialog().querySelector("[data-app-page] [data-composio-sign-in]")?.textContent, "authorizing is the first step, said as such").toContain("authorize Composio");
       await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use my own Composio API key")!.click(); });
       expect([...step.querySelectorAll("li")].map((item) => item.textContent?.replace(/^\d/, ""))).toEqual([
-        "Sign up or log in to ComposioOpen Composio", "copy your API key from Settings, API KeysOpen API Keys", "paste it here and Attio connects",
+        "sign up or log in to Composioopen Composio", "copy your API key from settings, API keysopen API keys", "paste it here and Attio connects",
       ]);
       expect([...step.querySelectorAll("a")].map((link) => link.getAttribute("href")))
         .toEqual(["https://dashboard.composio.dev", "https://dashboard.composio.dev/~/project/settings/api-keys"]);
@@ -533,7 +533,7 @@ describe("the Connect Apps window", () => {
       await act(async () => { dialog().querySelector<HTMLButtonElement>("[data-app-page] .ca-primary")!.click(); });
       await flush();
       expect(fixture.opened, "no Composio tab the broker could not use").toEqual([]);
-      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("Dusk uses Composio to reach Attio.");
+      expect(dialog().querySelector("[data-composio-key]")?.textContent).toContain("dusk uses Composio to reach Attio.");
       await paste("ak_good");
       expect(fixture.opened).toEqual(["https://connect.example/attio"]);
     });
@@ -556,7 +556,7 @@ describe("the Connect Apps window", () => {
     expect(dialog().querySelector("[data-accounts]")?.textContent).toContain("add account");
     await act(async () => { row().querySelector<HTMLButtonElement>('[aria-label^="disconnect"]')!.click(); });
     expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/slack/accounts/ca_1", expect.anything());
-    const confirm = row().querySelector<HTMLButtonElement>('[aria-label="confirm disconnecting Linked account"]')!;
+    const confirm = row().querySelector<HTMLButtonElement>('[aria-label="confirm disconnecting linked account"]')!;
     expect(confirm.textContent).toBe("confirm disconnect");
     await act(async () => { confirm.click(); });
     await flush();

@@ -27,7 +27,7 @@ it("on a workspace several people share, knows the viewer's own reactions by the
   await act(async () => root.render(createElement(ReactionChips, { threadId: "t1", message })));
   await act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
   const chips = [...host.querySelectorAll("button")].map((chip) => [chip.textContent, chip.getAttribute("aria-pressed"), chip.getAttribute("title")]);
-  expect(chips).toEqual([["👍", "true", "You"], ["👎", "false", "bob@example.test"]]);
+  expect(chips).toEqual([["👍", "true", "you"], ["👎", "false", "bob@example.test"]]);
   await act(async () => root.unmount());
   host.remove();
 });

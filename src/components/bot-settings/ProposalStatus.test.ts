@@ -23,8 +23,8 @@ const { AccessSection } = await import("./AccessSection");
 const { PermissionsSection } = await import("./PermissionsSection");
 const { VisibilitySection } = await import("./VisibilitySection");
 
-const CHIEF_COPY = "Chief-proposable";
-const OWNER_COPY = "Owner-only";
+const CHIEF_COPY = "chief-proposable";
+const OWNER_COPY = "owner-only";
 
 function makeBot(overrides: Partial<Bot> = {}): Bot {
   return {
@@ -61,7 +61,7 @@ function makeDerived(): ReturnType<typeof import("./useBotSettingsDerived").useB
     browserEnabled: false,
     browserSelectable: false,
     browserDisabledReason: "The built-in browser needs the dusk bot desktop app",
-    sectionName: "general",
+    sectionName: "General",
     currentChief: undefined,
     botRoutines: [],
     activeBotRoutines: 0,
@@ -99,18 +99,18 @@ describe("ProposalStatus", () => {
 
   it("shows markers when a Chief of another section manages this one", () => {
     fixture.bots = [
-      makeBot({ section: "general" }),
-      makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true, managedSections: ["general"] }),
+      makeBot({ section: "General" }),
+      makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true, managedSections: ["General"] }),
     ];
-    expect(renderMarker(makeBot({ section: "general" }), "chief")).toContain(CHIEF_COPY);
+    expect(renderMarker(makeBot({ section: "General" }), "chief")).toContain(CHIEF_COPY);
   });
 
   it("hides markers for a Chief outside the section it does not manage", () => {
     fixture.bots = [
-      makeBot({ section: "general" }),
+      makeBot({ section: "General" }),
       makeBot({ id: "chief-1", name: "Atlas", section: "Elsewhere", chiefOfStaff: true, managedSections: ["Other"] }),
     ];
-    expect(renderMarker(makeBot({ section: "general" }), "chief")).toBe("");
+    expect(renderMarker(makeBot({ section: "General" }), "chief")).toBe("");
   });
 
   it("hides markers when the bot itself is the only Chief", () => {
@@ -131,13 +131,13 @@ describe("ProposalStatus", () => {
   it("matches a Chief across section whitespace", () => {
     fixture.bots = [
       makeBot({ section: " General " }),
-      makeBot({ id: "chief-1", section: "general", chiefOfStaff: true }),
+      makeBot({ id: "chief-1", section: "General", chiefOfStaff: true }),
     ];
     expect(renderMarker(makeBot({ section: " General " }), "chief")).toContain(CHIEF_COPY);
   });
 });
 
-describe("edit Profile boundary markers in sections", () => {
+describe("Edit Profile boundary markers in sections", () => {
   beforeEach(() => {
     vi.stubGlobal("window", {});
     fixture.bots = [];
@@ -150,10 +150,10 @@ describe("edit Profile boundary markers in sections", () => {
       createElement(StoreProvider, null, createElement(AccessSection, { bot: makeBot(), derived: makeDerived() })),
     );
     expect(markup).toContain(
-      'where this bot runs its shell and file tools.</div><div class="mt-1 text-[12px] leading-snug text-ink-secondary">Chief-proposable',
+      'where this bot runs its shell and file tools.</div><div class="mt-1 text-[12px] leading-snug text-ink-secondary">chief-proposable',
     );
     expect(markup).toContain(
-      'where Scout works: chooses for you</div><div class="mt-1 text-[12px] leading-snug text-ink-secondary">Owner-only',
+      'where Scout works: chooses for you</div><div class="mt-1 text-[12px] leading-snug text-ink-secondary">owner-only',
     );
     expect(markup).toContain("inbound triggers wired to this bot.");
   });

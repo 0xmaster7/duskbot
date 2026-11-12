@@ -111,7 +111,7 @@ describe("a call's record at the end of a chat that is still working", () => {
       message("a1", "", { role: "bot", kind: "activity", requestMessageId: "m1", tool: { name: "Read", spoken: "reading a file", itemId: "item-a1" } }),
       record,
     ];
-    expect(drawWorking(work)).toContain('<span class="sr-only"> (Running)</span>');
+    expect(drawWorking(work)).toContain('<span class="sr-only"> (running)</span>');
     const stopped = renderToStaticMarkup(createElement(ChatView, { bot: bot(work) }));
     expect(stopped).toContain('data-testid="call-record"');
     expect(stopped).toContain("reading a file");

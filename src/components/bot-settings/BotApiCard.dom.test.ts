@@ -152,6 +152,6 @@ describe("the Bot API card", () => {
     await mount();
     expect(find("bot-api-local")).not.toBeNull();
     expect(find("bot-api-calls")!.textContent).toContain("What is the pay date?");
-    expect(callWords({ outcome: "rejected", statusCode: 401, repeats: 3 })).toBe("Wrong key (3)");
+    expect(callWords({ outcome: "rejected", statusCode: 401, repeats: 3 })).toBe("wrong key (3)");
   });
 });

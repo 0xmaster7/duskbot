@@ -93,7 +93,7 @@ describe("the working line", () => {
     expect(mascot()!.innerHTML).toMatch(/width(="|: )28px/);
     const row = mascot()!.firstElementChild as HTMLElement;
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
-    expect(row.title).toMatch(/^Working · /);
+    expect(row.title).toMatch(/^working · /);
     expect(mascot()!.querySelector("[data-turn-status] .status-shimmer")).not.toBeNull();
     const slot = () => host.querySelector(".turn-status-slot")!;
     expect(slot().classList).not.toContain("-mt-3");

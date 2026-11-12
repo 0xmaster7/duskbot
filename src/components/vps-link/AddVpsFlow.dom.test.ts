@@ -154,7 +154,7 @@ describe("add your VPS", () => {
     await click(button("skip for now"));
     expect(fake.bridge.preview).toHaveBeenCalledTimes(1);
     await act(async () => { finish({ bots: [], chats: 7, messages: 20, skills: 1, memories: 0, routines: 0, apps: 0, bytes: 1024 }); });
-    expect(text()).toContain("7Chats");
+    expect(text()).toContain("7chats");
     expect(button("move everything here")?.disabled).toBe(false);
   });
 
@@ -174,7 +174,7 @@ describe("add your VPS", () => {
     expect(fake.bridge.preview).toHaveBeenCalledTimes(2);
     expect(button("move everything here")?.disabled).toBe(true);
     await act(async () => { finish({ bots: [], chats: 15, messages: 20, skills: 1, memories: 0, routines: 0, apps: 0, bytes: 1024 }); });
-    expect(text()).toContain("15Chats");
+    expect(text()).toContain("15chats");
     expect(button("move everything here")?.disabled).toBe(false);
   });
 
@@ -191,7 +191,7 @@ describe("add your VPS", () => {
     await act(async () => { oldPreview({ bots: [], chats: 999, messages: 999, skills: 0, memories: 0, routines: 0, apps: 0, bytes: 0 }); });
     await click(button("skip for now"));
     expect(text()).toContain("move everything to New VPS");
-    expect(text()).toContain("14Chats");
+    expect(text()).toContain("14chats");
     expect(text()).not.toContain("999Chats");
   });
 
@@ -212,7 +212,7 @@ describe("add your VPS", () => {
     await act(async () => { finishOld({ bots: [], chats: 999, messages: 999, skills: 0, memories: 0, routines: 0, apps: 0, bytes: 0 }); });
     await click(button("skip for now"));
     expect(second.bridge.preview).toHaveBeenCalledTimes(1);
-    expect(text()).toContain("14Chats");
+    expect(text()).toContain("14chats");
     expect(text()).not.toContain("999Chats");
   });
 
@@ -254,7 +254,7 @@ describe("add your VPS", () => {
     expect(text()).toContain("something got stuck");
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("Unable to locate package curl");
     expect(document.querySelectorAll("[data-vps-command]").length).toBe(1);
-    expect(text()).toContain("Getting the basics didn't work");
+    expect(text()).toContain("getting the basics didn't work");
     expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("stuck");
     expect(button("copy log")).toBeTruthy();
 
@@ -283,7 +283,7 @@ describe("add your VPS", () => {
     await stageShown(4);
     expect(text()).toContain("move everything to My VPS");
     expect(text()).toContain("Pixel");
-    expect(text()).toContain("14Chats");
+    expect(text()).toContain("14chats");
     expect(text()).not.toContain("messages");
     expect(text()).toContain("50 MB");
     await click(button("move everything here"));
@@ -295,10 +295,10 @@ describe("add your VPS", () => {
     expect(document.querySelector("[data-vps-traveler]")?.getAttribute("data-vps-traveler")).toBe("b1");
     await fake.emit({ ...fake.view(), move: { step: "verify", status: "failed", error: "Two chats did not arrive." } });
     expect(text()).toContain("Two chats did not arrive.");
-    expect(text()).toContain("Nothing was removed from this Mac");
+    expect(text()).toContain("nothing was removed from this Mac");
     await fake.emit({ ...fake.view(), stage: "moved", move: { step: "done", status: "done", kept: true } });
     expect(text()).toContain("all moved. your Mac is free.");
-    expect(text()).toContain("A backup stays on this Mac");
+    expect(text()).toContain("a backup stays on this Mac");
     expect(text()).toContain("this Mac kept its copy too");
     await click(button("open My VPS"));
     expect(fake.bridge.open).toHaveBeenCalledTimes(1);
@@ -396,7 +396,7 @@ describe("VPS install output", () => {
     await act(async () => { root.render(createElement(InstallScreen, { view: older, onRetry: () => {} })); });
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("$ install /tmp/verified-build");
     expect(document.querySelector("[data-vps-term]")?.textContent).toContain("SHA256 verified");
-    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("installing dusk bot · Done");
+    expect(document.querySelector("[data-vps-term]")?.textContent).toContain("installing dusk bot · done");
   });
 
   it("keeps unknown progress indeterminate within the original installer layout", async () => {
@@ -482,7 +482,7 @@ describe("the move waiting to try again", () => {
     await settle();
     expect(text()).toContain("copying your bots");
     expect(text()).toContain("My VPS isn't answering yet.");
-    expect(document.querySelector("[data-vps-retry]")?.textContent).toMatch(/^Trying again in 3:4[12]$/);
+    expect(document.querySelector("[data-vps-retry]")?.textContent).toMatch(/^trying again in 3:4[12]$/);
     expect(text()).not.toContain("keep this app open");
     await click(button("try now"));
     expect(fake.bridge.retryMove).toHaveBeenCalledTimes(1);

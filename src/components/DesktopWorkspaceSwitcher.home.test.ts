@@ -42,15 +42,15 @@ it("says always on only when My Cloud's verified plan never sleeps, on its pages
   const label = () => host.querySelector("[data-cloud-home-indicator]")?.textContent ?? "";
   for (const props of [{ cloudHome: true }, {}]) {
     await show(home, props, { status: "paid", tier: "pro" });
-    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("My Cloud · always on"));
+    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("my cloud · always on"));
     await show(home, props, { status: "paid", tier: "starter", sleeps: true });
-    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("My Cloud · sleeps when idle"));
+    await vi.waitFor(() => expect(label(), JSON.stringify(props)).toBe("my cloud · sleeps when idle"));
     for (const plan of [{ status: "checking", tier: "pro" }, { status: "signin" }, { status: "none" }]) {
       await show(home, props, plan);
-      expect(label(), JSON.stringify(plan)).toBe("My Cloud");
+      expect(label(), JSON.stringify(plan)).toBe("my cloud");
     }
     await show(home, props);
-    expect(label(), "no plan to read").toBe("My Cloud");
+    expect(label(), "no plan to read").toBe("my cloud");
   }
 });
 

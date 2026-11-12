@@ -212,7 +212,7 @@ describe("the call mode menu", () => {
     expect(turns).toMatch(/^ aria-checked="false" aria-disabled="true"/);
     expect(turns).not.toContain('disabled=""');
     expect(turns).toContain(">take turns<");
-    expect(turns).toContain("Calls where you take turns need the desktop app. They listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.");
+    expect(turns).toContain("calls where you take turns need the desktop app. they listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.");
     expect(turns).not.toContain("listening stays on this computer");
     expect(live).toMatch(/^ aria-checked="true"/);
     expect(live).not.toMatch(/aria-disabled="true"|disabled=""/);

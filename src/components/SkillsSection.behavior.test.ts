@@ -58,8 +58,8 @@ describe("Skills library review and assignment controls", () => {
     const dialog = nodes((viewer.type as (props: Props) => ReactNode)(viewer.props));
     expect(dialog.find((node) => node.type === "pre")!.props.children).toBe(source);
     expect(fixture.modal).toHaveBeenCalledOnce();
-    expect(button(dialog, "enable reviewed skill")).toBeDefined();
-    button(dialog, "enable reviewed skill").props.onClick!();
+    expect(button(dialog, "Enable reviewed skill")).toBeDefined();
+    button(dialog, "Enable reviewed skill").props.onClick!();
     await flush();
     expect(fetch).toHaveBeenCalledWith("/api/skills-library/order-audit", expect.objectContaining({ method: "PATCH", body: '{"enabled":true}' }));
   });
@@ -113,7 +113,7 @@ describe("Skills library review and assignment controls", () => {
     // Hook call order: useManagedSkills owns 0-8 and the assignment guard ref (9); the section owns 10-13.
     fixture.values = [[{ ...skill(), origin: "library" }], ["order-audit"], [], "", [], false, "", "", null, { current: false }, null, "", false, ""];
     fixture.request.mockImplementation(async (_url, options) => options?.method ? {} : { text: source });
-    named(render(true), "enable order-audit").props.onClick!();
+    named(render(true), "Enable order-audit").props.onClick!();
     await flush();
     expect(fixture.request).toHaveBeenCalledTimes(1);
     expect(fixture.request).toHaveBeenCalledWith("/api/skills-library/order-audit");
@@ -129,9 +129,9 @@ describe("Skills library review and assignment controls", () => {
     fixture.values = [[imported], [], [], "", [], false, "", "", null, { current: false }, null, "", false, ""];
     fixture.request.mockImplementation(async (_url, options) => options?.method ? {} : { text: source });
     const tree = render(true);
-    expect(tree.find((node) => node.props["aria-label"] === "remove pdf")).toBeUndefined();
+    expect(tree.find((node) => node.props["aria-label"] === "Remove pdf")).toBeUndefined();
     expect(tree.some((node) => node.props.children === "this computer")).toBe(true);
-    named(tree, "disable pdf").props.onClick!();
+    named(tree, "Disable pdf").props.onClick!();
     await flush();
     expect(fixture.request).toHaveBeenCalledWith("/api/bots/bot/skills/pdf", expect.objectContaining({ method: "PATCH", body: '{"enabled":false}' }));
   });

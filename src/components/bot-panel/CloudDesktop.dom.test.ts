@@ -99,7 +99,7 @@ describe("the cloud desktop row", () => {
     const bridges = desktop({ keep: { shown: true, on: false, moved: true, coming: false } });
     bridges.cloudAccount.connectHome.mockRejectedValueOnce(new Error("The Cloud didn't answer."));
     await render();
-    expect(row()?.textContent).toContain("Open");
+    expect(row()?.textContent).toContain("open");
     row()!.click();
     await settle();
     expect(bridges.cloudAccount.connectHome).toHaveBeenCalledTimes(1);

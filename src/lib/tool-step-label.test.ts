@@ -5,7 +5,7 @@ describe("toolStepLabel", () => {
   it.each([
     [{ name: "Bash", summary: "pnpm test" }, "run a command"],
     [{ name: "pwd", summary: "pwd" }, "run a command"],
-    [{ name: "Read" }, "Read a file"],
+    [{ name: "Read" }, "read a file"],
     [{ name: "WebSearch" }, "search the web"],
     [{ name: "mcp__dusk__computer_batch" }, "use the screen"],
     [{ name: "mcp__dusk__screenshot" }, "look at the screen"],
@@ -32,7 +32,7 @@ describe("toolStepLabel", () => {
   it("says whose own account a step used, after what it did", () => {
     const whose = { person: "Ada", app: "Notion" };
     expect(toolStepLabel({ name: "mcp__own_apps__NOTION_SEARCH_NOTION_PAGE", whose })).toBe(`${toolStepLabel({ name: "mcp__own_apps__NOTION_SEARCH_NOTION_PAGE" })} · using Ada's Notion`);
-    expect(toolStepLabel({ name: "mcp__mail__read_inbox", whose: { person: "Ada", app: "mail" } })).toBe("read inbox · using Ada's mail");
+    expect(toolStepLabel({ name: "mcp__mail__read_inbox", whose: { person: "Ada", app: "mail" } })).toBe("Read inbox · using Ada's mail");
     expect(toolStepLabel({ name: "Bash", summary: "ls", whose })).toBe("run a command · using Ada's Notion");
   });
 

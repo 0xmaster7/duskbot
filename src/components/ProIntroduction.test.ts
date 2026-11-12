@@ -61,7 +61,7 @@ it("for someone who may buy: what Cloud does, the Admin's lowest price and money
   expect(openExternal).not.toHaveBeenCalled();
   press("sign in to your cloud plan");
   expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_settings", signIn: true });
-  expect(html).toMatch(/class="ui-button ui-button-primary"[^>]*>Start free trial</);
+  expect(html).toMatch(/class="ui-button ui-button-primary"[^>]*>start free trial</);
 });
 
 it("without a trial it says Add a Cloud; signed in, no sign-in link; without the Admin's numbers, no price and no money-back", async () => {

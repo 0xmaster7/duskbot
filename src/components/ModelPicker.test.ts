@@ -84,7 +84,7 @@ describe("EffortRow", () => {
     const markup = renderToStaticMarkup(createElement(EffortRow, { bot: bot(), compact: true }));
     expect(markup).toContain('aria-label="reasoning effort"');
     expect(markup).not.toContain("<button");
-    expect([...markup.matchAll(/<option[^>]*>([^<]+)</g)].map((match) => match[1])).toEqual(["Default", "none", "Low", "High"]);
+    expect([...markup.matchAll(/<option[^>]*>([^<]+)</g)].map((match) => match[1])).toEqual(["default", "none", "low", "high"]);
   });
   it("can apply effort to the pinned thread and bot default together", () => {
     fixture.instances = [engine(["high"])];
@@ -111,7 +111,7 @@ describe("EffortRow", () => {
   it("offers only the levels the selected engine accepts, plus Default", () => {
     const markup = renderEffort([engine(["low", "medium", "high"])]);
 
-    expect(levelButtons(markup).map((button) => button.label)).toEqual(["Default", "Low", "Medium", "High"]);
+    expect(levelButtons(markup).map((button) => button.label)).toEqual(["default", "low", "medium", "high"]);
     expect(markup).not.toContain(">x-high<");
     expect(markup).not.toContain(">Max<");
   });
@@ -119,14 +119,14 @@ describe("EffortRow", () => {
   it("keeps Default and None apart — Default sends no level, None sends one", () => {
     const markup = renderEffort([engine(["none", "low"])]);
 
-    expect(levelButtons(markup).map((button) => button.label)).toEqual(["Default", "none", "Low"]);
+    expect(levelButtons(markup).map((button) => button.label)).toEqual(["default", "none", "low"]);
   });
 
   it("marks the active level, and Default when the bot carries no level", () => {
     const pressed = (markup: string) => levelButtons(markup).find((button) => button.pressed)?.label;
 
-    expect(pressed(renderEffort([engine(["low", "high"])], "high"))).toBe("High");
-    expect(pressed(renderEffort([engine(["low", "high"])]))).toBe("Default");
+    expect(pressed(renderEffort([engine(["low", "high"])], "high"))).toBe("high");
+    expect(pressed(renderEffort([engine(["low", "high"])]))).toBe("default");
   });
 
   it("renames xhigh, the one level that does not capitalize cleanly", () => {
@@ -198,7 +198,7 @@ describe("OpenCode model variants", () => {
     fixture.modelVariantSessions["thread-atlas"] = { instanceId: "opencode", model: "provider/model", turnId: "turn", startedAt: "2026-09-15T00:00:00Z", acceptingUpdates: false,
       variants: { options: [{ id: "minimal", label: "Session minimal" }], currentValue: "minimal" } };
     expect(levelButtons(render()).map((button) => button.label)).toEqual(["Session minimal"]);
-    expect(render()).toContain("No variant selected. Session: Session minimal.");
+    expect(render()).toContain("no variant selected. session: Session minimal.");
     expect(levelButtons(render()).some((button) => button.pressed)).toBe(false);
     expect(fixture.instances[0].models.options[0].variants).toEqual(variants);
     fixture.modelVariantSessions["thread-atlas"].variants = { options: [] };
@@ -277,7 +277,7 @@ describe("ModelPicker trigger", () => {
       const markup = renderToStaticMarkup(createElement(ModelPicker, { bot: { ...bot(), busy: true }, threadId }));
       expect(tooltipLines(markup)).toEqual([
         "Codex · GPT-5.6",
-        `Stop this ${threadId ? "thread" : "bot"}'s turn before changing its model`,
+        `stop this ${threadId ? "thread" : "bot"}'s turn before changing its model`,
       ]);
     }
   });

@@ -62,7 +62,7 @@ describe("a provider refusing a message as too large", () => {
 
   it("is said in the reader's language with the model's name", () => {
     const cause = requestTooLargeMessage("GLM 5.3 Flash");
-    expect(plainErrorLine(cause)).toBe(cause);
+    expect(plainErrorLine(cause)).toBe("this message is too large for GLM 5.3 Flash. start a new chat or pick a model that accepts more.");
     setLocale("de");
     expect(plainErrorLine(cause)).toBe("Diese Nachricht ist zu groß für GLM 5.3 Flash. Starte einen neuen Chat oder wähle ein Modell, das mehr annimmt.");
     setLocale("ja");

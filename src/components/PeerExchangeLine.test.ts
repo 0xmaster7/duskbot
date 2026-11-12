@@ -15,7 +15,7 @@ describe("PeerExchangeLine", () => {
     expect(html).toContain(">Ghosty<");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('aria-label="show messages with Ghosty"');
-    expect(render({ kind: "single", direction: "outbound", peer: { id: "ghosty", name: "Ghosty" } }, true)).toMatch(/>Messaged<.*aria-expanded="true"/);
+    expect(render({ kind: "single", direction: "outbound", peer: { id: "ghosty", name: "Ghosty" } }, true)).toMatch(/>messaged<.*aria-expanded="true"/);
     expect(render({ kind: "single", direction: "inbound", peer: { id: "amy", name: "Amy" } })).toContain(">message from<");
   });
 

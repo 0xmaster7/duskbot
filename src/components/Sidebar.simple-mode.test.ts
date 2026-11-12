@@ -160,7 +160,7 @@ describe("bot-first sidebar", () => {
     expect(waiting).not.toContain('role="status"');
     const working = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, busy: true })));
     expect(working).not.toContain('data-testid="working-dot"');
-    expect(working).toContain('<span class="sr-only">Working</span>');
+    expect(working).toContain('<span class="sr-only">working</span>');
     expect(working).not.toContain('role="status"');
     expect(working).toContain("[--row:var(--color-panel)]");
   });

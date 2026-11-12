@@ -66,7 +66,7 @@ describe("the plain sentence", () => {
     expect(plainWhen({ type: "daily", time: "09:00", weekdays: [0, 1, 2, 3, 4, 5, 6] })).toBe("every day at 9 AM");
     expect(plainWhen({ type: "daily", time: "17:30", weekdays: [5] })).toBe("every Friday at 5:30 PM");
     expect(plainWhen({ type: "interval", everyMinutes: 30, anchorAt: 0 })).toBe("every 30 minutes");
-    expect(plainWhen({ type: "interval", everyMinutes: 120, anchorAt: 0, weekdays: [1, 2, 3, 4, 5] })).toBe("Every 2 hours on weekdays");
+    expect(plainWhen({ type: "interval", everyMinutes: 120, anchorAt: 0, weekdays: [1, 2, 3, 4, 5] })).toBe("every 2 hours on weekdays");
   });
 });
 
@@ -105,7 +105,7 @@ describe("status: Working, Paused, Needs you", () => {
     expect(automationStatus(once(at(-1, 9)), NOW).state).toBe("done");
     expect(automationStatus(once(at(1, 9)), NOW).state).toBe("paused");
     expect(automationStatus(once(at(1, 9), true), NOW).state).toBe("working");
-    expect(statusLine(automation([run("completed", at(0, 9))], { enabled: false, schedule: { type: "once", at: at(0, 9) }, nextRunAt: null }), NOW)).toBe("Done · last ran today 9:00 AM");
+    expect(statusLine(automation([run("completed", at(0, 9))], { enabled: false, schedule: { type: "once", at: at(0, 9) }, nextRunAt: null }), NOW)).toBe("done · last ran today 9:00 AM");
     expect(orderAutomations([once(at(-1, 9)), automation([], { id: "p", enabled: false })]).map((item) => item.id)).toEqual(["p", `once-${at(-1, 9)}`]);
   });
 

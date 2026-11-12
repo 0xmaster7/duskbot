@@ -30,5 +30,5 @@ it("offers no Undo on a department memory notice to a session that may not revie
 
 it("keeps Undo for an admin", () => {
   fixture.admin = true;
-  expect(render()).toContain(">Undo<");
+  expect(render()).toContain(">undo<");
 });

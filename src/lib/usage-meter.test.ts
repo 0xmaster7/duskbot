@@ -67,9 +67,9 @@ describe("upgrade", () => {
   it("says in the confirm what the new plan costs, what today's charge is and when the next payment comes", () => {
     const next = Date.UTC(2026, 10, 18);
     expect(upgradeConfirmBody({ plan: "max", trial: false, price: 9900, chargeNow: 2340, tax: 0, nextBillingAt: next }))
-      .toBe("Max is $99 a month and starts right away. Today you pay $23.40, the difference for the rest of this billing month. From Nov 18 it's $99 a month, plus any tax.");
+      .toBe("Max is $99 a month and starts right away. today you pay $23.40, the difference for the rest of this billing month. from Nov 18 it's $99 a month, plus any tax.");
     expect(upgradeConfirmBody({ plan: "pro", trial: false, price: 4900, chargeNow: 2574, tax: 234 }))
-      .toBe("Pro is $49 a month and starts right away. Today you pay $25.74 with tax, the difference for the rest of this billing month.");
+      .toBe("Pro is $49 a month and starts right away. today you pay $25.74 with tax, the difference for the rest of this billing month.");
     expect(upgradeConfirmBody({ plan: "max", trial: true, price: 9900, chargeNow: 0, tax: 0, nextBillingAt: next }, { now: Date.UTC(2026, 10, 1) }))
       .toBe("your free trial moves to Max now, and nothing is charged today. your first payment on Nov 18 will be $99, plus any tax.");
   });
@@ -81,7 +81,7 @@ describe("upgrade", () => {
     it("promises nothing about today when the first charge is a day away or less, as a 1-day trial's always is", () => {
       for (const left of [DAY, 5 * HOUR]) {
         const said = upgradeConfirmBody(preview(now + left), { now });
-        expect(said).toMatch(/^Your free trial moves to Max now\. Your first payment on Nov \d+ will be \$99, plus any tax\.$/);
+        expect(said).toMatch(/^your free trial moves to Max now\. your first payment on Nov \d+ will be \$99, plus any tax\.$/);
         expect(said).not.toContain("charged today");
       }
       expect(upgradeConfirmBody(preview(), { trialEndsAt: now + DAY, now })).toBe("your free trial moves to Max now. when it ends, Max is $99 a month, plus any tax.");

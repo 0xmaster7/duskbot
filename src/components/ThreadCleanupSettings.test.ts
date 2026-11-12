@@ -35,14 +35,14 @@ describe("ThreadCleanupSettings", () => {
     fixture.threads = { maxConcurrentPerBot: 3, eventLogRetentionDays: 14, eventLogMaxBytes: 52428800 };
     const markup = renderToStaticMarkup(createElement(ThreadCleanupSettings));
     expect(markup.match(/role="switch"[^>]*aria-checked="true"/g)).toHaveLength(2);
-    expect(markup).toContain("After 14 days");
-    expect(markup).toContain("Up to 50 MiB");
+    expect(markup).toContain("after 14 days");
+    expect(markup).toContain("up to 50 MiB");
   });
 
   it("renders a sub-megabyte cap as a fractional MiB value", () => {
     fixture.threads = { maxConcurrentPerBot: 3, eventLogMaxBytes: 262144 };
     const markup = renderToStaticMarkup(createElement(ThreadCleanupSettings));
-    expect(markup).toContain("Up to 0.25 MiB");
+    expect(markup).toContain("up to 0.25 MiB");
   });
 
   it("keeps no help paragraphs", () => {

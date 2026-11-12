@@ -30,7 +30,7 @@ const renderOnCloud = (element: ReturnType<typeof createElement>) => {
   const value = { state: { ...initialState, config }, dispatch: vi.fn(), flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
   return renderToStaticMarkup(createElement(BotEditorStore, { value, children: element }));
 };
-const CLOUD_DISCLOSURE = `A Live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays in the Cloud.`;
+const CLOUD_DISCLOSURE = `a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays in the cloud.`;
 
 afterEach(() => {
   resetLiveMedia();
@@ -88,8 +88,8 @@ describe("LiveCallBar", () => {
   });
 
   it.each([
-    ["refused", "The app didn&#x27;t let this page use the microphone. Open it in your web browser to make the Live call.", "open in browser", "try again"],
-    ["allowed", "Allow microphone access for this app in your computer&#x27;s privacy settings, then try again.", "try again", "open in browser"],
+    ["refused", "the app didn&#x27;t let this page use the microphone. open it in your web browser to make the live call.", "open in browser", "try again"],
+    ["allowed", "allow microphone access for this app in your computer&#x27;s privacy settings, then try again.", "try again", "open in browser"],
   ] as const)("shows a microphone the app %s with its one action", async (pageMic, text, action, other) => {
     vi.stubGlobal("window", { duskDesktop: { speechStop: vi.fn(async () => {}) } });
     configureLiveMedia({
@@ -123,9 +123,9 @@ describe("LiveCallBar", () => {
     configureLiveMedia({ getUserMedia: () => new Promise<MediaStream>(() => {}) });
     void startLiveCall({ botId: bot.id, threadId: bot.threadId });
     const markup = render(createElement(LiveCallBar, { bot }));
-    expect(markup).toContain('title="Mute (⌘⇧M)"');
+    expect(markup).toContain('title="mute (⌘⇧M)"');
     expect(markup).toContain('aria-keyshortcuts="Meta+Shift+M"');
-    expect(markup).toContain('title="Hang up (⌘⇧H)"');
+    expect(markup).toContain('title="hang up (⌘⇧H)"');
     expect(markup).toContain('aria-keyshortcuts="Meta+Shift+H"');
   });
 });
@@ -136,8 +136,8 @@ describe("LiveCallSettings", () => {
     expect(markup).toContain('aria-label="call settings"');
     expect(markup).toContain("Marin (default)");
     expect(markup).toContain("read replies to typed messages");
-    expect(markup).toContain(`When this is off, messages you type during a call and the bot&#x27;s answers to them are not sent to OpenAI.`);
-    expect(markup).toContain(`A Live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays on your computer.`);
+    expect(markup).toContain(`when this is off, messages you type during a call and the bot&#x27;s answers to them are not sent to OpenAI.`);
+    expect(markup).toContain(`a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays on your computer.`);
     expect(markup).toMatch(/<option value="5" selected="">5<\/option>/);
     expect(markup).toContain("change key");
     expect(markup).not.toContain("remove key");
@@ -191,10 +191,10 @@ describe("LiveKeySetup", () => {
   it("says what the key is for, in the app's language", () => {
     const markup = render(createElement(LiveKeySetup, { onSaved: vi.fn() }));
     expect(markup).toContain("live calls use OpenAI GPT-live");
-    expect(markup).toContain(`A Live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays on your computer.`);
+    expect(markup).toContain(`a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays on your computer.`);
     expect(markup).toContain('aria-label="OpenAI API key for live calls"');
     expect(markup).toContain("save and start the call");
-    expect(render(createElement(LiveKeySetup, { onSaved: vi.fn(), compact: true }))).toContain(">Save<");
+    expect(render(createElement(LiveKeySetup, { onSaved: vi.fn(), compact: true }))).toContain(">save<");
   });
 
   it("says the key stays on the Cloud when the chat is on the person's Cloud", () => {

@@ -94,17 +94,17 @@ describe("Company models in the connected Organisation panel", () => {
       [{ type: "setModel", botId: "b1", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
       [{ type: "setModel", botId: "b3", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
     ]);
-    expect(render().html).toContain("Now using Company · Fixture Company · Claude: Scout, Maus");
+    expect(render().html).toContain("now using Company · Fixture Company · Claude: Scout, Maus");
   });
 
   it("names only bots the server kept on the Company model", async () => {
     fixture.kept = new Set(["b3"]);
-    const use = () => render().nodes.find((node) => node.type === "button" && String(node.props.children).startsWith("Use "))!;
+    const use = () => render().nodes.find((node) => node.type === "button" && String(node.props.children).startsWith("use "))!;
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches.mock.calls).toEqual([["b1"], ["b3"]]);
     const html = render().html;
-    expect(html).toContain("Now using Company · Fixture Company · Claude: Maus");
-    expect(html).not.toContain("Now using Company · Fixture Company · Claude: Scout");
+    expect(html).toContain("now using Company · Fixture Company · Claude: Maus");
+    expect(html).not.toContain("now using Company · Fixture Company · Claude: Scout");
     fixture.values = []; fixture.kept = new Set(); fixture.flushBotPatches.mockClear();
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches).toHaveBeenCalledTimes(2);
@@ -114,7 +114,7 @@ describe("Company models in the connected Organisation panel", () => {
   it("offers nothing when every bot already runs", () => {
     fixture.bots = [bot("b2", "Writer", "grok"), bot("b4", "Clerk", "company.fixture.anthropic")];
     expect(render().html).not.toContain("bots that can’t run");
-    expect(buttons().some((node) => String(node.props.children).startsWith("Use "))).toBe(false);
+    expect(buttons().some((node) => String(node.props.children).startsWith("use "))).toBe(false);
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 

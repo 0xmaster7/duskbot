@@ -46,7 +46,7 @@ describe("the sidebar card", () => {
   };
   it("shows the tight allowance, used of included with its bar, when it starts over, Upgrade and a quiet hide", () => {
     const { html, tree, onUpgrade, onHide, onSeeAll } = card();
-    for (const text of ["You&#x27;re close to your plan&#x27;s limit", "cloud desktop hours", "285 of 300 hours", "resets on Nov 1.", "upgrade to Max", "see all usage"]) expect(html).toContain(text);
+    for (const text of ["you&#x27;re close to your plan&#x27;s limit", "cloud desktop hours", "285 of 300 hours", "resets on Nov 1.", "upgrade to Max", "see all usage"]) expect(html).toContain(text);
     expect(html).toContain('role="progressbar"'); expect(html).toContain('aria-valuenow="95"'); expect(html).toContain('data-band="near"');
     expect(html).not.toContain("voice replies");
     button(tree, "upgrade to Max")!.props.onClick();
@@ -56,7 +56,7 @@ describe("the sidebar card", () => {
     expect([onHide, onSeeAll].map(fn => fn.mock.calls.length)).toEqual([1, 1]);
   });
   it("says a limit is reached; with no in-app upgrade it opens the Cloud page; on the top plan there is no Upgrade", () => {
-    expect(card({ band: "full", meters: [{ kind: "x", used: 5_000, max: 5_000, usedUp: true }] }).html).toContain("You&#x27;ve reached your plan&#x27;s limit");
+    expect(card({ band: "full", meters: [{ kind: "x", used: 5_000, max: 5_000, usedUp: true }] }).html).toContain("you&#x27;ve reached your plan&#x27;s limit");
     const browser = card({ usage: usage({ upgrades: [] }) });
     expect(button(browser.tree, "upgrade")).toBeTruthy(); expect(browser.html).not.toContain("upgrade to");
     const top = card({ usage: usage({ tier: "max", upgrades: [] }) });
@@ -71,15 +71,15 @@ describe("settings → general", () => {
   };
   it("lists every allowance with its meter and the plan, and offers each bigger plan", () => {
     const { html, tree, onUpgrade } = section(usage({ tier: "starter", upgrades: [{ tier: "max", amount: 9900 }, { tier: "pro", amount: 4900 }] }));
-    for (const text of ["dusk cloud usage", "What your Starter plan includes this month", "285 of 300 hours", "12,000 of 60,000 characters", "41.2 of 100 GB",
+    for (const text of ["dusk cloud usage", "what your Starter plan includes this month", "285 of 300 hours", "12,000 of 60,000 characters", "41.2 of 100 GB",
       "resets on Nov 1.", "upgrade to Pro · $49/month", "upgrade to Max · $99/month"]) expect(html).toContain(text);
     expect(html.match(/role="progressbar"/g)).toHaveLength(3);
     button(tree, "upgrade to Max")!.props.onClick();
     expect(onUpgrade).toHaveBeenCalledWith("max");
   });
   it("on Max says it is the top plan, and a team's plan changes by writing to us", () => {
-    expect(section(usage({ tier: "max", upgrades: [] })).html).toContain("You&#x27;re on the top plan.");
-    expect(section(usage({ tier: "team", upgrades: [] })).html).toContain("To change your team&#x27;s plan, write to us.");
+    expect(section(usage({ tier: "max", upgrades: [] })).html).toContain("you&#x27;re on the top plan.");
+    expect(section(usage({ tier: "team", upgrades: [] })).html).toContain("to change your team&#x27;s plan, write to us.");
   });
 });
 
@@ -95,7 +95,7 @@ describe("upgrade", () => {
     const asking = render();
     expect(asking.confirming).toBe(true);
     expect(asking.dialog.props).toMatchObject({ open: true, title: "upgrade to Max?", confirmLabel: "upgrade to Max", cancelLabel: "not now" });
-    expect(String(asking.dialog.props.body)).toBe("Max is $99 a month and starts right away. Today you pay $33, the difference for the rest of this billing month. From Nov 18 it's $99 a month, plus any tax.");
+    expect(String(asking.dialog.props.body)).toBe("Max is $99 a month and starts right away. today you pay $33, the difference for the rest of this billing month. from Nov 18 it's $99 a month, plus any tax.");
     // Not now: nothing is sent, the confirm closes.
     asking.dialog.props.onCancel();
     expect(render().confirming).toBe(false);

@@ -47,14 +47,14 @@ it("a free account starts in the Add a Cloud dialog, but only a verified native 
 });
 it("names the verified tier; no tier is today's Pro, and a tier newer than the app reads Cloud", async () => {
   await ready(free);
-  for (const [tier, text] of [[undefined, "Pro active"], ["personal", "Personal active"], ["pro", "Pro active"], ["max", "Max active"], ["team", "cloud active"], ["constructor", "cloud active"]] as const) {
+  for (const [tier, text] of [[undefined, "Pro active"], ["personal", "Personal active"], ["pro", "Pro active"], ["max", "Max active"], ["team", "Cloud active"], ["constructor", "Cloud active"]] as const) {
     push({ ...free, entitlement: { plan: "pro", ...(tier ? { tier } : {}), status: "active", expiresAt: 1_900_000_000_000, version: 3 } });
     expect(render().html).toContain(`${text} · verified by dusk cloud`); expect(render().html).toContain("manage cloud subscription");
   }
   push({ ...free, entitlement: { plan: "pro", tier: "max", status: "inactive", expiresAt: null, version: 4 } });
   expect(render().html).toContain("Max · not active right now"); expect(render().html).not.toContain("Max active");
   expect(render().html).not.toContain("no plan yet"); expect(render().html).not.toContain("add a cloud");
-  expect(cloudPlanLabel()).toBe("Pro"); expect(cloudPlanLabel("toString")).toBe("cloud");
+  expect(cloudPlanLabel()).toBe("Pro"); expect(cloudPlanLabel("toString")).toBe("Cloud");
 });
 it("sign-out requires confirmation and preserves local and organization wording", async () => {
   await ready(free); click("sign out of dusk cloud"); expect(bridge.signOut).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ it("a saved sign-in that may only be locked says the app tries again, with this 
 it("a sign-in that ended asks to sign in again, keeps the plan, and offers nothing to buy", async () => {
   await ready({ status: "reauth-required", message: "expired", account: { id: "fixture", email: "person@example.test" }, lastPlan: { tier: "max", active: true } });
   const { html } = render();
-  all(html, ["max plan", "your sign-in on this computer has ended", "your plan is not affected", "sign in again"]);
+  all(html, ["Max plan", "your sign-in on this computer has ended", "your plan is not affected", "sign in again"]);
   none(html, [...BUY, ...ALARM, "manage cloud subscription"]);
   expect(button("refresh")).toBeUndefined();
   button("sign in again")!.props.onClick!(); await flush();
@@ -140,7 +140,7 @@ it("a payment problem or a stopped Cloud is never 'Free account' with a plan to 
 it("a payment being linked says so, with its date, and asks nobody to pay again", async () => {
   await ready({ ...free, purchase: { state: "confirming", tier: "personal", paidAt: Date.UTC(2026, 9, 2, 12) } });
   const html = render().html;
-  all(html, ["Personal · payment received", "Received Oct 2, 2026", "no need to pay again", "open your plan page"]); none(html, BUY);
+  all(html, ["Personal · payment received", "received Oct 2, 2026", "no need to pay again", "open your plan page"]); none(html, BUY);
   push({ ...free, purchase: { state: "held" } });
   all(render().html, ["dusk cloud · payment received", "linking your payment"]); none(render().html, BUY);
 });
@@ -178,7 +178,7 @@ it("while a saved sign-in is read, nothing is offered and the Cloud link waits",
 it("a saved sign-in that could not be read was removed: one line says so, and Sign in is the next step", async () => {
   await ready({ status: "signed-out", message: "restore-removed" });
   const html = render().html;
-  expect(html).toContain("cloud sign-in couldn&#x27;t be read, so it was removed. Sign in again.");
+  expect(html).toContain("cloud sign-in couldn&#x27;t be read, so it was removed. sign in again.");
   none(html, ["could not be completed", "unlock your system keychain"]);
   expect(button("sign in to your cloud plan")).toBeTruthy();
   none(render({ onAddCloud: vi.fn() }).html, BUY);
@@ -186,7 +186,7 @@ it("a saved sign-in that could not be read was removed: one line says so, and Si
 it("a saved sign-in that can't be read right now says the app tries again by itself, and asks for no sign-out", async () => {
   await ready({ status: "unavailable", message: "restore-failed" });
   const html = render().html;
-  expect(html).toContain("this computer couldn&#x27;t open its saved Cloud sign-in. Unlock your keychain, and the app tries again by itself.");
+  expect(html).toContain("this computer couldn&#x27;t open its saved cloud sign-in. unlock your keychain, and the app tries again by itself.");
   none(html, ["could not be read or cleared", "sign out again", "sign out of dusk cloud, then"]);
 });
 it("a sign-out that could not clear the saved sign-in still asks for it", async () => {
@@ -222,7 +222,7 @@ it("on the person's own Cloud, Settings shows the plan read only, with Manage, a
   plan.state.mockResolvedValueOnce({ status: "checking", tier: "pro" }); f.values = []; view(); f.effects[0](); await flush();
   expect(view().html).toContain("Pro · checking with dusk cloud…");
   plan.state.mockResolvedValueOnce({ status: "signin", tier: "max" }); f.values = []; view(); f.effects[0](); await flush();
-  all(view().html, ["max plan", "this computer needs to sign in to dusk cloud again"]); none(view().html, [...BUY, "could not complete", "switch to this computer"]);
+  all(view().html, ["Max plan", "this computer needs to sign in to dusk cloud again"]); none(view().html, [...BUY, "could not complete", "switch to this computer"]);
   expect(view().nodes.filter(node => node.type === "button" && node.props.children === "sign in again")).toHaveLength(1);
   view().nodes.find(node => node.type === "button" && node.props.children === "sign in again")!.props.onClick!();
   await flush(); expect(plan.signIn).toHaveBeenCalledExactlyOnceWith();
@@ -293,7 +293,7 @@ it("says why a ready Cloud can't be reached when the Admin knows, with no button
   expect(html).not.toContain("the cloud is ready");
   push({ ...pro, machine: { status: "ready", origin, unreachable: { cause: "no_answer", since } } });
   html = render().html;
-  expect(html).toContain("The Cloud hasn&#x27;t answered for a few minutes. Nothing was lost, and we&#x27;ve been told.");
+  expect(html).toContain("the cloud hasn&#x27;t answered for a few minutes. nothing was lost, and we&#x27;ve been told.");
   expect(html).not.toContain(">open the cloud</button>");
   // The Cloud link opens nothing while it can't be reached, and does once it answers again.
   render({ linkRequest: 1 }); f.effects[1](); await flush();
@@ -467,7 +467,7 @@ it("on a Team Cloud, sends people to the Plan page for its people and plan, neve
   const card = onTeam.find(node => node.type === TeamPeopleCard) as unknown as ReactElement<{ team: typeof team }>;
   expect(card.props.team).toBe(team);
   const html = renderToStaticMarkup(createElement(TeamPeopleCard, { team }));
-  all(html, ["people and plan", "Invite people to Acme, change their roles and manage its plan on your Plan page.", 'href="https://cloud.example.com/cloud"', "open your plan page"]);
+  all(html, ["people and plan", "invite people to Acme, change their roles and manage its plan on your plan page.", 'href="https://cloud.example.com/cloud"', "open your plan page"]);
   none(html, ["managed in the Dusk app on your computer"]);
   expect(renderToStaticMarkup(createElement(TeamPeopleCard, { team: { name: "Acme" } }))).not.toContain("href=");
   // My Cloud's own page is unchanged.
@@ -526,7 +526,7 @@ it("on My Cloud, Settings shows the trial and its credit, and its button names t
   const view = () => { f.index = 0; f.effects = []; let tree: ReactNode; function Capture() { tree = CloudPlanOnCloud({ bridge: plan }); return tree; }
     return { html: renderToStaticMarkup(createElement(Capture)), nodes: nodes(tree) }; };
   view(); f.effects[0](); await flush();
-  all(view().html, ["Pro free trial · verified by dusk cloud", "your free trial ends on Oct 15", "Then Pro is $49/month plus tax, charged on Oct 15.", "trial Claude credit: $3.20 of $5 left."]);
+  all(view().html, ["Pro free trial · verified by dusk cloud", "your free trial ends on Oct 15", "then Pro is $49/month plus tax, charged on Oct 15.", "trial Claude credit: $3.20 of $5 left."]);
   view().nodes.find(node => node.type === "button" && node.props.children === "manage subscription")!.props.onClick!();
   await flush(); expect(plan.manage).toHaveBeenCalledExactlyOnceWith();
   plan.state.mockResolvedValueOnce({ status: "paid", tier: "pro" }); f.values = []; view(); f.effects[0](); await flush();
@@ -550,15 +550,15 @@ it("a Team plan has no Cloud of its own: the team's Cloud under its name, Open {
   bridge.openTeam = vi.fn().mockResolvedValue(undefined);
   await ready(onTeam({ status: "ready", origin: "https://dusk-t-2.fly.dev" }));
   let html = render().html;
-  all(html, ['data-cloud-team="true"', "Acme is ready. It keeps your team&#x27;s bots running 24/7", "open Acme"]);
+  all(html, ['data-cloud-team="true"', "Acme is ready. it keeps your team&#x27;s bots running 24/7", "open Acme"]);
   none(html, ["setting up", "reserving your machine", "open the cloud", PHONE, "is not ready yet"]);
   click("open Acme"); await flush();
   expect(bridge.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme"); expect(bridge.connectHome).not.toHaveBeenCalled();
   push(onTeam({ status: "provisioning", setup: { step: "storage" } }));
   html = render().html;
-  all(html, ["setting up your team&#x27;s Cloud", 'data-cloud-setup="storage"', "reserving your machine"]); none(html, ["open Acme", PHONE]);
+  all(html, ["setting up your team&#x27;s cloud", 'data-cloud-setup="storage"', "reserving your machine"]); none(html, ["open Acme", PHONE]);
   push({ ...onTeam(null), teams: undefined });
-  all(render().html, ["Your team&#x27;s Cloud", "setting up your team&#x27;s Cloud"]);
+  all(render().html, ["your team&#x27;s cloud", "setting up your team&#x27;s cloud"]);
   push({ ...onTeam({ status: "ready", origin: "https://dusk-t-2.fly.dev" }), entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: 1_900_000_000_000, version: 3 } });
   all(render().html, ["setting up the cloud", 'data-cloud-phone="steps"']);
 });

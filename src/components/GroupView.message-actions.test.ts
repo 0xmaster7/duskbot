@@ -96,7 +96,7 @@ describe("room message actions", () => {
     })));
     flushSync(() => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
     const items = [...host.querySelectorAll<HTMLButtonElement>("[role=menuitem]")];
-    expect(items.map((item) => item.textContent)).toEqual(["read this aloud", "Pin message"]);
+    expect(items.map((item) => item.textContent)).toEqual(["read this aloud", "pin message"]);
     const speak = items.find((item) => item.textContent === "read this aloud");
     expect(speak?.title).toBe("add an ElevenLabs key in an agent profile to read messages aloud");
     expect(speak?.disabled).toBe(true);

@@ -83,11 +83,11 @@ describe("a bot's routines in its panel", () => {
     fixture.state.routines = [{ ...routine, resultsThreadId: "thread-r", checks: ["mail"] }];
     fixture.state.routineRuns = [{ id: "run-1", routineId: "routine-1", routineName: "Morning summary", target: "bot", botId: "bot-a", runOn: "maus", scheduledFor: now - 60_000, startedAt: now - 60_000, status: "completed", manual: false, output: "Three new emails, none urgent.", threadId: "thread-x", createdAt: now - 60_000 }];
     mount();
-    expect(row("routine-1").textContent).toBe("Morning summaryEvery day at 9 AM");
+    expect(row("routine-1").textContent).toBe("Morning summaryevery day at 9 AM");
     expect(row("routine-1").querySelector("[role=switch]")!.getAttribute("aria-checked")).toBe("true");
     open("routine-1");
     const text = row("routine-1").textContent!;
-    for (const part of ["When", "every day at 9 AM", "next:", "what to do", "Send me a summary of my inbox.", "works on", "This computer", "results go to", "Inbox digests", "uses", "new mail", "recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
+    for (const part of ["when", "every day at 9 AM", "next:", "what to do", "Send me a summary of my inbox.", "works on", "this computer", "results go to", "Inbox digests", "uses", "new mail", "recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
     flushSync(() => row("routine-1").querySelector<HTMLButtonElement>("[data-routine-run]")!.click());
     expect(fixture.dispatch).toHaveBeenCalled();
   });
