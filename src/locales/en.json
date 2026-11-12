@@ -1,6 +1,8 @@
 {
   "updates.updated": "updated to {version}",
   "updates.rolledBack": "update rolled back, nothing lost",
+  "appUpdate.restart": "restart to update",
+  "appUpdate.title": "{version} is downloaded and also installs when you quit",
   "connectedWorkspaces.localTitle": "environments on this computer",
   "connectedWorkspaces.missing": "missing",
   "connectedWorkspaces.current": "current",

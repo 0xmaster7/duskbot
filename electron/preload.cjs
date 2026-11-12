@@ -602,6 +602,16 @@ const bridge = {
       return () => ipcRenderer.removeListener("vps-cloud-move:changed", handler);
     },
   },
+  // This computer's page only: a downloaded update of this app waiting for a restart (electron/app-update.mjs).
+  appUpdate: {
+    state: () => ipcRenderer.invoke("app-update:state"),
+    restart: () => ipcRenderer.invoke("app-update:restart"),
+    onState: cb => {
+      const handler = (_event, state) => cb(state);
+      ipcRenderer.on("app-update:changed", handler);
+      return () => ipcRenderer.removeListener("app-update:changed", handler);
+    },
+  },
   // This computer's page only (never in REMOTE_SAFE, and main refuses any other): bots in two places, brought together on one.
   twoPlaces: {
     state: () => ipcRenderer.invoke("two-places:state"),

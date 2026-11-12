@@ -150,6 +150,8 @@ const __APP_VERSION__: string;
       home?: import("../../electron/home-window.mjs").HomeBridge;
       /** This computer's page while the chosen server isn't answering: its last-seen chats and the next look. */
       reconnect?: import("../../electron/workspace-reconnect.mjs").ReconnectBridge;
+      /** This computer's page only: a downloaded update of this app waiting for a restart. */
+      appUpdate?: import("../../electron/app-update.mjs").AppUpdateBridge;
       desktopNotices?: import("../../electron/desktop-prefs.mjs").DesktopNoticesBridge;
       desktopNotifications?: import("../../electron/desktop-notifications.mjs").DesktopNotificationsBridge;
       /** This computer's own page only: the account's full name, for a first run's profile (system-name.mjs), and its login. */

@@ -1,5 +1,5 @@
 import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
-import { app, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
+import { app, autoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -89,7 +89,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs";
+import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -3188,7 +3188,7 @@ app.whenReady().then(async () => {
     activeRemoteMicrophone: () => activeEnvironment(environmentsState)?.microphone === true,
     askRemoteMicrophone,
     homeOrigin: () => homeWindow.placeOrigin(),
-  }); startDesktopErrorReporting({ app, prefs: desktopPrefs }); if (app.isPackaged) createUpdateNotice({ request: localServerRequest, open: url => void shell.openExternal(url), memory: jsonFile(path.join(app.getPath("userData"), "update-notice.json")), log: slog, notify: ({ title, body, click }) => { if (!Notification.isSupported()) return; const note = new Notification({ title, body }); note.on("click", click); note.show(); } }).start();
+  }); startDesktopErrorReporting({ app, prefs: desktopPrefs }); if (app.isPackaged) startAppUpdates(createUpdateNotice({ request: localServerRequest, open: url => void shell.openExternal(url), memory: jsonFile(path.join(app.getPath("userData"), "update-notice.json")), log: slog, notify: ({ title, body, click }) => { if (!Notification.isSupported()) return; const note = new Notification({ title, body }); note.on("click", click); note.show(); } }));
   session.defaultSession.setPermissionRequestHandler(appPermissions.request);
   session.defaultSession.setPermissionCheckHandler(appPermissions.check);
   // Before the window, so the harness has the CUA descriptor on first render.
@@ -3362,6 +3362,22 @@ const requestSignalQuit = () => {
 };
 process.once("SIGINT", requestSignalQuit);
 process.once("SIGTERM", requestSignalQuit);
+
+// the mac app installs its own updates when it is Developer ID signed (electron/app-update.mjs); elsewhere, and on an
+// unsigned build, the notice says a release is out
+let appUpdater = null;
+function startAppUpdates(notice) {
+  if (process.platform !== "darwin") { notice.start(); return; }
+  const bundle = path.resolve(path.dirname(app.getPath("exe")), "..", "..");
+  const signals = quietSignals({ powerMonitor, window: () => mainWindow, lastInput: () => oneHome.lastInput(), local: localServerRequest, place: () => null,
+    cloudFetch: (...args) => session.defaultSession.fetch(...args), asleep: () => true, busy: () => null });
+  appUpdater = createAppUpdater({ current: app.getVersion(), arch: process.arch, dir: path.join(app.getPath("userData"), "app-update"), signed: () => developerIdSigned(bundle),
+    installer: squirrelInstaller({ autoUpdater }), quiet: () => quietNow(signals), fallback: notice, log: slog,
+    onState: (state) => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("app-update:changed", state); } });
+  appUpdater.start();
+}
+ipcMain.handle("app-update:state", localOnly("app-update:state", () => appUpdater?.state() ?? { ready: null }));
+ipcMain.handle("app-update:restart", localOnly("app-update:restart", () => appUpdater?.restart() ?? false));
 
 app.on("before-quit", (e) => {
   talk.close(); ambientSurfaces.close();

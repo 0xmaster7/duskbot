@@ -47,8 +47,45 @@ scripts/publish-downloads.sh v0.1.142            # DRY_RUN=1 first to only verif
 It downloads the release, checks every installer against the run's signed `SHA256SUMS`, uploads the installers to
 the public `DuskBotAI/duskbot-releases` release (stable `/releases/latest/download/` names that
 dusk.bot/download links to), then puts `latest.json` and `SHA256SUMS` on dusk.bot through the deployd landing site.
-Desktop apps read `https://dusk.bot/releases/latest.json` once a day, accept it only when a pinned release key
-signed it (server/update-check.ts), and show a notification that opens dusk.bot/download. Nothing installs itself.
+Desktop apps read `https://dusk.bot/releases/latest.json` once a day and accept it only when a pinned release key
+signed it.
+
+### How the Mac app updates itself
+
+`electron/app-update.mjs`, packaged Mac builds only:
+
+1. Reads `latest.json`, checks its signature, and when the version is newer reads
+   `https://dusk.bot/releases/<version>/SHA256SUMS` and checks it against the sha256 the signature vouches for.
+2. Downloads `DuskBot-<version>-<arch>.zip` from the public downloads release
+   (`https://github.com/DuskBotAI/duskbot-releases/releases/download/v<version>/...`) into
+   `~/Library/Application Support/<app>/app-update/` and checks it against `SHA256SUMS`.
+3. Hands the zip to Electron's `autoUpdater` (Squirrel.Mac) through a feed on `127.0.0.1` at a random path, open only
+   for that one download. Squirrel.Mac unpacks it and refuses it unless it is signed with the same Developer ID as the
+   running app.
+4. The sidebar shows "restart to update". The update installs when the person clicks it, when they quit, or at a quiet
+   moment: the screen locked or nobody used the Mac or typed in the app for 10 minutes, and nothing running on this
+   computer's server (a turn, a routine, a move, a sign-in) or in a Live call.
+
+Anything that fails on the way, and every build that is not Developer ID signed (`codesign -dv` names no
+`Developer ID Application` authority and team), falls back to the old behaviour: one notification per version that
+opens dusk.bot/download (`electron/update-notice.mjs`). Windows and Linux keep that notification.
+
+What is needed once the Apple certificate exists:
+
+- The `MAC_CERT_P12_BASE64` / `MAC_CERT_PASSWORD` and notarization secrets below, so the release job signs, notarizes
+  and staples. The zips the job makes (`ditto -c -k --sequesterRsrc --keepParent` on the stapled app) are already what
+  Squirrel.Mac takes; nothing else in the build changes.
+- Every release after the first signed one must be signed with a certificate from the same team: Squirrel.Mac compares
+  the new app's designated requirement with the running one's. A new certificate from the same team is fine; another
+  team means one manual download.
+- Builds people installed before the certificate (unsigned or ad hoc) cannot update themselves: they get the
+  notification once and need one manual download of a signed build. From then on updates install themselves.
+- Check one release end to end on a Mac: install version N from the dmg into `/Applications`, publish N+1, wait for the
+  first check (2 minutes after start) or restart the app, and see "restart to update" appear. The log
+  (`~/Library/Logs/<app>/`) says `app update: <version> is ready`.
+- The app must run from a folder the person can write to (`/Applications` for an admin, or `~/Applications`).
+  Squirrel.Mac cannot replace an app run from the dmg itself or one macOS translocated; those report an error in the
+  log and keep the notification.
 
 ## Why the gates exist
 
