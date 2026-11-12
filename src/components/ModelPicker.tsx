@@ -607,9 +607,9 @@ export function ModelPicker({
     <button
       {...triggerProps}
       className={cn(
-        "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary ring-1 ring-inset ring-ink/[0.12] hover:ring-ink/[0.2] disabled:cursor-not-allowed disabled:text-ink-tertiary",
+        "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary ring-1 ring-inset ring-ink/[0.12] disabled:cursor-not-allowed disabled:text-ink-tertiary",
         contained
-          ? "min-w-0 max-w-[58%] transition-colors duration-150 hover:bg-ink/[0.06] hover:text-ink aria-expanded:bg-ink/[0.08] aria-expanded:text-ink disabled:hover:bg-transparent"
+          ? "min-w-0 max-w-[58%]"
           : cn("shrink-0", ELEVATED_FLOAT, ELEVATED_HOVER, "hover:text-ink aria-expanded:text-ink disabled:hover:bg-composer"),
         size === "sm" ? "h-7 pl-2 pr-1.5" : "h-8 pl-2.5 pr-2",
       )}
