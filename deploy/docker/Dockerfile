@@ -170,7 +170,7 @@ ARG ENGINES_CACHE_TAG=""
 RUN echo "engines: ${CLOUD_HOME_ENGINES:-none} ${ENGINES_CACHE_TAG}" \
   && if [ -n "$CLOUD_HOME_ENGINES" ]; then HOME=/tmp/dusk-build-home npm install -g $CLOUD_HOME_ENGINES; fi \
   && rm -rf /tmp/dusk-build-home /tmp/node-compile-cache
-COPY deploy/fly/Caddyfile /app/cloud/Caddyfile
+COPY apps/cloud-service/deploy/Caddyfile /app/cloud/Caddyfile
 # The root supervisor runs /app's code and hands the server its secrets, so
 # no file there may be one `maus` can change: unlike the server image's, these
 # copies stay root's. Only the /data volume is maus's; the launcher refuses to
@@ -184,7 +184,7 @@ COPY --from=build /src/skills ./skills
 RUN export HOME=/tmp/dusk-build-home \
  && chmod go-w /app/cloud /app/cloud/Caddyfile \
  && caddy version \
- && DUSK_CLOUD_PUBLIC_HOST=validate.fly.dev caddy validate --config /app/cloud/Caddyfile --adapter caddyfile \
+ && DUSK_CLOUD_PUBLIC_HOST=validate.example DUSK_CLOUD_UPSTREAM_HOST=upstream.invalid caddy validate --config /app/cloud/Caddyfile --adapter caddyfile \
  && test -f /app/dist-server/cloud-home-start.js \
  && untrusted="$(find /app /usr/local/bin/caddy \( ! -user root -o ! -type l -perm /022 \) -print)" \
  && if [ -n "$untrusted" ]; then echo "not root's, or writable by others:" >&2; echo "$untrusted" >&2; exit 1; fi \
