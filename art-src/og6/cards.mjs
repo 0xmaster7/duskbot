@@ -65,11 +65,12 @@ h1 { font-weight: 600; line-height: 1.02; letter-spacing: -0.045em; text-wrap: b
 
 const S = {};
 const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, x, f(x), o)).join('');
-// 1 home: the liked og3 scene, untouched apart from no text shadow
-{ const G = 530, hl = [hill(600, 560, 40)], f = footOn(G, hl);
-  S.home = page({ G, hills: hl, seed: 'home', title: 'meet dusk bot', line: 'your own team of ai bots, in a chat app.', size: 120,
-    body: crew([['pip', 'blue', 'wink', 104, 240], ['mochi', 'pink', 'heart', 104, 420], ['loaf', 'tangerine', 'big', 104, 780], ['starry', 'sun', 'happy', 104, 960], ['kit', 'violet', 'happy', 200, 600]], f) +
-      bub('you', 'can you sort my inbox?', 'left', '#fff3a0', 368) + bub('kit', 'done. three need you.', 'right', '#ffc4dd', 368) }); }
+// 1 home: the landing hero's title, kit standing in it like a letter (the bot's body box at 0.8em, on the baseline), the
+// rest of the team evenly spaced on the hill, no chat
+{ const G = 540, hl = [hill(600, 560, 40)], f = footOn(G, hl);
+  const kit = botSvg('kit', 'violet', 'open', { grid: 26 }).svg(100).replace(/viewBox="[^"]*"/, 'viewBox="0 0 26 26"').replace(/width="[^"]*" height="[^"]*"/, 'width="0.8em" height="0.8em"').replace('style="', 'style="display:inline-block;vertical-align:-0.11em;margin:0 0.06em;overflow:visible;');
+  S.home = page({ G, hills: hl, seed: 'home-b', title: `meet ${kit} dusk bot`, line: 'your own team of ai bots, in a chat app.', size: 128, top: 92,
+    body: crew([['pip', 'blue', 'wink', 116, 270], ['mochi', 'pink', 'heart', 116, 435], ['loaf', 'tangerine', 'happy', 132, 600], ['starry', 'sun', 'happy', 116, 765], ['goo', 'mint', 'wink', 116, 930]], f) }); }
 // 2 pricing: the whole crew gathered round the sign
 { const G = 540, hl = [hill(600, 560, 44)], f = footOn(G, hl);
   S.pricing = page({ G, hills: hl, seed: 'pricing', title: 'a whole ai team, free on your laptop', line: 'they run on your computer. no meter ticking.', size: 96,
@@ -142,7 +143,7 @@ const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, 
 
 // which pages each card is for, and what it shows
 const META = {
-  home: { core: ['home', 'waitlist'], alt: 'meet dusk bot: a big purple cat bot and four small pixel bots on a hill under a blue pixel sky, chatting "can you sort my inbox?" "done. three need you."' },
+  home: { core: ['home', 'waitlist'], alt: 'meet dusk bot, with the purple cat bot standing in the title between the words, and five pixel bots on a hill under a blue pixel sky' },
   pricing: { core: ['pricing'], alt: 'a whole ai team, free on your laptop: six pixel bots on a hill around a sign saying "free. really."' },
   download: { core: ['download'], alt: 'your new coworkers are ready: five pixel bots popping up from the bottom of a blue pixel sky' },
   docs: { core: ['docs'], alt: 'everything your bots can do: a blue pixel bot reading over a big open notebook, a yellow bot sitting on a stack of books, a magnifying glass' },
