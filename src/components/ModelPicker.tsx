@@ -607,11 +607,11 @@ export function ModelPicker({
     <button
       {...triggerProps}
       className={cn(
-        "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary inset-ring inset-ring-ink/[0.12] disabled:cursor-not-allowed disabled:text-ink-tertiary",
+        "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary inset-ring inset-ring-ink/[0.07] disabled:cursor-not-allowed disabled:text-ink-tertiary",
         contained
           ? "min-w-0 max-w-[58%]"
           : cn("shrink-0", ELEVATED_FLOAT, ELEVATED_HOVER, "hover:text-ink aria-expanded:text-ink disabled:hover:bg-composer"),
-        size === "sm" ? "h-7 pl-2 pr-1.5" : "h-8 pl-2.5 pr-2",
+        size === "sm" ? "h-8 pl-2.5 pr-2" : "h-8 pl-2.5 pr-2",
       )}
     >
       <span className="relative mr-1.5 flex shrink-0 group-disabled:opacity-50">
