@@ -22,7 +22,7 @@ it("shows a bot's room context, compacts on request, and compacts before a turn 
     const read = async () => ((await (await fetch(url + "/api/bots?messages=0")).json()) as { groups: WireGroup[] })
       .groups.find(group => group.id === room.id)!;
     const chips = async () => ((await (await fetch(`${url}/api/threads/${room.activeTaskId}/messages`)).json()) as { messages: Array<{ kind: string; tool?: { name: string } }> })
-      .messages.filter(message => message.kind === "activity" && /compacted/.test(message.tool?.name ?? "")).map(message => message.tool!.name);
+      .messages.filter(message => message.kind === "activity" && /compacted/i.test(message.tool?.name ?? "")).map(message => message.tool!.name);
     const send = async (text: string) => {
       await control("send-channel", "--channel", room.id, "--text", `@Editor ${text}`);
       expect(await control("wait", "--channel", room.id, "--timeout", "30")).toMatchObject({ status: "settled" });
@@ -49,7 +49,7 @@ it("shows a bot's room context, compacts on request, and compacts before a turn 
     expect(requested.status).toBe(202);
     expect(((await requested.json()) as { group: WireGroup }).group.memberContext?.[bot.id]?.compactRequested).toBe(true);
     await send("Tighten the outro.");
-    expect(await chips()).toEqual([expect.stringMatching(/^compacted Editor's context \(\d+% full\)/)]);
+    expect(await chips()).toEqual([expect.stringMatching(/^Compacted Editor's context \(\d+% full\)/)]);
     expect(turns()[2]!.pid).not.toBe(turns()[1]!.pid);
 
     await config({ autoCompact: true });

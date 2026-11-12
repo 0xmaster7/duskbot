@@ -13,6 +13,7 @@ import { expect, it } from "vitest";
 
 import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import type { WireBot, WireGroup } from "../shared/wire.ts";
+import { roomTurnVoiceNote } from "./group-voice.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { withoutTurnClock } from "./testing/turn-clock-text.ts";
 
@@ -153,8 +154,10 @@ async function build(session: Awaited<ReturnType<typeof launchVerificationServer
   };
 }
 
+/** The line every room turn ends with, its voice note included. */
+const tail = (name: string) => `(Reply to the conversation above as ${name}. ${roomTurnVoiceNote({})})`;
 /** A delta turn's text: the note, the lines, and the tail every room turn ends with. */
-const delta = (name: string, ...lines: string[]) => [NOTE, ...lines, "", `(Reply to the conversation above as ${name}.)`].join("\n");
+const delta = (name: string, ...lines: string[]) => [NOTE, ...lines, "", tail(name)].join("\n");
 
 it("leaves a room turn exactly as it was while the setting is off", () => fixture(async (f) => {
   const editor = await f.bot("Editor");
@@ -167,14 +170,14 @@ it("leaves a room turn exactly as it was while the setting is off", () => fixtur
   const [first, second] = f.turns(editor.id);
   // Every turn carries the room's recent transcript, the second on top of
   // the warm session that already holds the first: main's behaviour.
-  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_1"\n\n(Reply to the conversation above as Editor.)`);
+  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_1"\n\n${tail("Editor")}`);
   expect(f.text(second)).toBe([
     `${PERSON}: "@Editor Cut the intro. ALPHA_1"`,
     "Editor: Intro cut. BRAVO_1",
     digest("Editor", "Intro cut."),
     `${PERSON}: "@Editor Trim the middle. CHARLIE_1"`,
     "",
-    "(Reply to the conversation above as Editor.)",
+    tail("Editor"),
   ].join("\n"));
   expect(second!.pid).toBe(first!.pid);
   // One launch, on a session of its own: nothing was resumed by id.
@@ -192,7 +195,7 @@ it("sends a member's next turn only the new lines, in the same session, and star
 
   const [first, second] = f.turns(editor.id);
   // The first turn is today's call: the window, on a session of its own.
-  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_2"\n\n(Reply to the conversation above as Editor.)`);
+  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_2"\n\n${tail("Editor")}`);
   // The second holds only what the session has not been handed: the digest
   // its own first turn left behind, and the new line.
   expect(f.text(second)).toBe(delta("Editor", digest("Editor", "Intro cut."), `${PERSON}: "@Editor Trim the middle. CHARLIE_2"`));
@@ -216,8 +219,8 @@ it("sends a member's next turn only the new lines, in the same session, and star
   const fresh = f.launches(editor.id)[1]!;
   expect(fresh.resume).toBeNull();
   expect(f.sessionOf(fresh)).not.toBe(original);
-  const chips = (await f.messages(bay.activeTaskId)).filter((message) => message.kind === "activity" && /compacted/.test(message.tool?.name ?? ""));
-  expect(chips.map((chip) => chip.tool!.name)).toEqual([expect.stringMatching(/^compacted Editor's context \(\d+% full\): fresh session with the room's recent messages$/)]);
+  const chips = (await f.messages(bay.activeTaskId)).filter((message) => message.kind === "activity" && /compacted/i.test(message.tool?.name ?? ""));
+  expect(chips.map((chip) => chip.tool!.name)).toEqual([expect.stringMatching(/^Compacted Editor's context \(\d+% full\): fresh session with the room's recent messages$/)]);
 
   // And the turn after that is a delta against the fresh session.
   f.replies(editor.id, "Exported. HOTEL_2");
@@ -364,7 +367,7 @@ it("gives a member a line posted while its turn ran once, in its next turn, unde
     digest("Editor", "Middle trimmed."),
     ...`${PERSON}: "@Editor Tighten the outro. ECHO_5"`.split("\n"),
     "",
-    "(Reply to the conversation above as Editor.)",
+    tail("Editor"),
   ]);
   expect(count(f.text(after), "POSTED_5")).toBe(1);
   expect(after.pid).toBe(during.pid);
@@ -393,7 +396,7 @@ it("leaves an engine that does not promise strict resume alone even with the set
     digest("Editor", "Intro cut."),
     `${PERSON}: "@Editor Trim the middle. CHARLIE_6"`,
     "",
-    "(Reply to the conversation above as Editor.)",
+    tail("Editor"),
   ].join("\n"));
   expect(second!.pid).toBe(first!.pid);
   expect(f.launches(editor.id).map((launch) => launch.resume)).toEqual([null]);
@@ -409,7 +412,7 @@ it("sends the whole window again after Claude Code compacted the member's sessio
   await f.send(bay, "@Editor Tighten the outro. ECHO_7");
 
   const [first, second, third] = f.consumed(editor.id);
-  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_7"\n\n(Reply to the conversation above as Editor.)`);
+  expect(f.text(first)).toBe(`${PERSON}: "@Editor Cut the intro. ALPHA_7"\n\n${tail("Editor")}`);
   // The second turn resumed the session with a delta. While it ran, the CLI
   // compacted that session and told the harness through its hooks, which
   // carry the room's thread and the member: both lines land in the room.
