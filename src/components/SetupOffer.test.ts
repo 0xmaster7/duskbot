@@ -70,12 +70,12 @@ describe("the setup card under a new bot's greeting", () => {
 
   it("asks what to help with first, with the greeting's own answers lettered in order, then Something else", () => {
     const view = renderOffer(offered);
-    expect(view.html).toContain("what should i help you with first?");
-    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|something else"]);
+    expect(view.html).toContain("What should I help you with first?");
+    expect(view.choices.map(label)).toEqual(["A|Plan my trips", "B|Watch the news", "C|Something else"]);
   });
 
   it("offers its own answers on an older greeting that carries none", () => {
-    expect(renderOffer(greeting).choices.map((node) => label(node).split("|")[1])).toEqual(["research and digging into topics", "keeping an eye on things for me", "email, calendar and messages", "bookings, shopping and errands", "data, spreadsheets and reports", "something else"]);
+    expect(renderOffer(greeting).choices.map((node) => label(node).split("|")[1])).toEqual(["Research and digging into topics", "Keeping an eye on things for me", "Email, calendar and messages", "Bookings, shopping and errands", "Data, spreadsheets and reports", "Something else"]);
   });
 
   it("is not shown for a bot given a role or instructions, when the AI cannot set the bot up, or once closed", () => {
@@ -122,19 +122,19 @@ describe("the setup card under a new bot's greeting", () => {
   it("settles once answered: the answers go quiet and the answer shows", () => {
     const picked = { id: "u1", role: "user", kind: "text", at: 2, text: "Watch the news", setupRequest: true } as Message;
     const settled = renderOffer(offered, [offered, picked]);
-    expect(settled.html).toContain("your answer");
+    expect(settled.html).toContain("Your answer");
     expect(settled.html).toContain("Watch the news");
     expect(settled.choices.every((node) => node.props.disabled === true)).toBe(true);
     expect(settled.close).toBeUndefined();
     expect(settled.card!.props.onKeyDown).toBeUndefined();
     fixture.bots = [bot({ soul: "Watches the news." })];
-    expect(renderOffer(offered, [offered, picked]).html, "the answer stays after the bot is set up").toContain("your answer");
+    expect(renderOffer(offered, [offered, picked]).html, "the answer stays after the bot is set up").toContain("Your answer");
   });
 
   it("settles quietly, with no answer, when the person writes something else first", () => {
     for (const text of ["What's the weather in Paris?", "/learn the inbox"]) {
       const view = renderOffer(offered, [offered, { id: "u1", role: "user", kind: "text", at: 2, text } as Message]);
-      expect(view.html).toContain("what should i help you with first?");
+      expect(view.html).toContain("What should I help you with first?");
       expect(view.html).not.toContain("your answer");
       expect(view.choices.every((node) => node.props.disabled === true)).toBe(true);
     }
@@ -169,7 +169,7 @@ describe("while the bot waits for what to set itself up for", () => {
   });
 
   it("asks for the job in the message box", () => {
-    expect(setupRequestPlaceholder(waiting, "t1")).toBe("tell Ava what you'd like help with");
+    expect(setupRequestPlaceholder(waiting, "t1")).toBe("Tell Ava what you'd like help with");
   });
 
   it("is only the presser's where people share the place", () => {
@@ -179,7 +179,7 @@ describe("while the bot waits for what to set itself up for", () => {
     expect(setupRequestPlaceholder(theirs, "t1")).toBeUndefined();
     fixture.reactor = "member-a";
     expect(renderChip(theirs).html).toContain("Ava is ready to be set up");
-    expect(setupRequestPlaceholder(theirs, "t1")).toBe("tell Ava what you'd like help with");
+    expect(setupRequestPlaceholder(theirs, "t1")).toBe("Tell Ava what you'd like help with");
   });
 
   it("shows nothing in a conversation that is not waiting", () => {

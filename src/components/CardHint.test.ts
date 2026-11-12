@@ -43,13 +43,13 @@ afterEach(async () => {
 describe("a card's first-time hint", () => {
   it("says one plain line on the first approval card, and marks it seen as the spotlight did", async () => {
     await show("spot.approval");
-    expect(host.textContent).toBe("bots ask before doing anything important.");
+    expect(host.textContent).toBe("Bots ask before doing anything important.");
     expect(f.api).toHaveBeenCalledWith("/api/config", expect.objectContaining({ method: "PUT", body: expect.stringContaining("spot.approval") }));
   });
 
   it("says its line on the first app card, and never once seen", async () => {
     await show("spot.connector");
-    expect(host.textContent).toBe("sign in once in your browser and every bot can use it.");
+    expect(host.textContent).toBe("Sign in once in your browser and every bot can use it.");
     await act(async () => root.unmount());
     root = createRoot(host);
     await show("spot.connector", ["spot.connector"]);

@@ -73,7 +73,7 @@ describe("open on your phone, on a Team Cloud: the phones it opened", () => {
   it("says when there is none yet, and shows the phone that scans the code without a reload", async () => {
     fixture.phones = [];
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
-    await vi.waitFor(() => expect(host.textContent).toContain("no devices paired yet."));
+    await vi.waitFor(() => expect(host.textContent).toContain("No devices paired yet."));
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     flushSync(() => host.querySelector<HTMLButtonElement>("[data-phone-pairing-action]")!.click());
     await vi.waitFor(() => expect(host.querySelector("[data-team-phone-code]")).not.toBeNull());

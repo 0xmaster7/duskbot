@@ -79,7 +79,7 @@ it("handles auth links, leaves pairing links to ConnectionGate and says why a si
   fetcher.mockResolvedValue(response({ v: 1, providers: [], signupOpen: true }));
   await mount(); heading(); expect(listener?.("duskbot://pair?code=abc")).toBe(false);
   await act(async () => { expect(listener?.("duskbot://auth?code=abc&state=bad")).toBe(true); });
-  expect(host.querySelector("[role=alert]")?.textContent).toContain("this sign-in expired. please start again.");
+  expect(host.querySelector("[role=alert]")?.textContent).toContain("This sign-in expired. Please start again.");
 });
 it("signs in with an emailed code typed into one field", async () => {
   fetcher.mockImplementation(async input => {
@@ -103,7 +103,7 @@ it("says a wrong code next to the code field, in the danger colour", async () =>
   await mount(); await typeEmail(); await submit();
   await type("input[autocomplete=one-time-code]", "11111111");
   const alert = host.querySelector("[role=alert]")!;
-  expect(alert.textContent).toContain("that code isn't right");
+  expect(alert.textContent).toContain("That code isn't right");
   expect(alert.className).toContain("text-danger");
   expect(host.querySelector("input[autocomplete=one-time-code]")?.getAttribute("aria-invalid")).toBe("true");
 });

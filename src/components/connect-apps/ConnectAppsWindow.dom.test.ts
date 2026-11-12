@@ -269,7 +269,7 @@ describe("the Connect Apps window", () => {
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
       expect(onClose, "no trip to Settings").not.toHaveBeenCalled();
       const step = dialog().querySelector("[data-app-page='attio'] [data-composio-key]")!;
-      expect(step.textContent).toContain("dusk uses Composio to reach Attio. first, let dusk use your free Composio account. you'll sign in once.");
+      expect(step.textContent).toContain("dusk uses Composio to reach Attio. First, let dusk use your free Composio account. You'll sign in once.");
       expect(step.textContent, "what is shared").toContain("dusk never sees your Attio password.");
       expect(dialog().querySelector("[data-app-page] [data-composio-sign-in]")?.textContent, "authorizing is the first step, said as such").toContain("authorize Composio");
       await act(async () => { [...step.querySelectorAll("button")].find((element) => element.textContent === "use my own Composio API key")!.click(); });
@@ -332,13 +332,13 @@ describe("the Connect Apps window", () => {
         expect(steps()).toEqual(["authorize:done", "connect:current"]);
         expect(dialog().querySelector("[data-via-step=authorize] > span:last-child")?.textContent).toBe("Composio authorized");
         expect(shownLabel()).toBe("connect Attio");
-        expect(dialog().textContent).toContain("now sign in to Attio on Composio's page.");
+        expect(dialog().textContent).toContain("Now sign in to Attio on Composio's page.");
         await act(async () => { primary()!.click(); });
         await flush();
         expect(fixture.api).toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "POST" }));
         expect(fixture.opened).toEqual(["https://connect.composio.dev/link/ln_attio"]);
         expect(shownLabel()).toBe("open page again");
-        expect(line()).toBe("finish signing in on Composio's page. this updates by itself.");
+        expect(line()).toBe("Finish signing in on Composio's page. This updates by itself.");
         await act(async () => { await vi.advanceTimersByTimeAsync(2_100); });
         expect(fixture.api, "waiting only reads").toHaveBeenCalledWith("/api/connectors/composio-connect/apps/attio", expect.objectContaining({ method: "GET" }));
         expect(fixture.api.mock.calls.filter(([path, init]) => path === "/api/connectors/composio-connect/apps/attio" && init?.method === "POST")).toHaveLength(1);
@@ -346,7 +346,7 @@ describe("the Connect Apps window", () => {
         await act(async () => { window.dispatchEvent(new Event("focus")); });
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
         expect(steps()).toEqual(["authorize:done", "connect:done"]);
-        expect(line()).toBe("connected. your bots can use Attio now.");
+        expect(line()).toBe("Connected. Your bots can use Attio now.");
         expect(primary(), "connected: nothing left to click").toBeNull();
         expect(dialog().querySelector("[data-app-page] .ca-detail-header .ca-added")?.textContent).toContain("connected");
         expect(fixture.api, "on for bots").toHaveBeenCalledWith("/api/mcp/servers/composio-connect", { method: "PATCH", body: JSON.stringify({ enabled: true }) });
@@ -394,7 +394,7 @@ describe("the Connect Apps window", () => {
         await waitingThen(() => ({ status: "waiting" }), 0);
         fixture.closed = true;
         await act(async () => { await vi.advanceTimersByTimeAsync(2_100); });
-        expect(line()).toBe("the sign-in page closed before Attio connected.");
+        expect(line()).toBe("The sign-in page closed before Attio connected.");
         expect(shownLabel()).toBe("retry");
       });
 
@@ -402,13 +402,13 @@ describe("the Connect Apps window", () => {
         await waitingThen(() => ({ status: "waiting" }), 0);
         await act(async () => { window.dispatchEvent(new Event("focus")); });
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-        expect(line()).toBe("not connected yet. if you closed Composio's page, open it again.");
+        expect(line()).toBe("Not connected yet. If you closed Composio's page, open it again.");
         expect(shownLabel()).toBe("open page again");
       });
 
       it("the Composio sign-in expired: authorize again", async () => {
-        await waitingThen(() => { throw new ApiError("Composio sign-in expired. authorize Composio again.", 409, { code: "composio_connect_signed_out" }); }, 2_100);
-        expect(line()).toBe("your Composio sign-in expired. authorize Composio again.");
+        await waitingThen(() => { throw new ApiError("Composio sign-in expired. Authorize Composio again.", 409, { code: "composio_connect_signed_out" }); }, 2_100);
+        expect(line()).toBe("Your Composio sign-in expired. Authorize Composio again.");
         expect(shownLabel()).toBe("authorize again");
         expect(steps()).toEqual(["authorize:current", "connect:next"]);
       });
@@ -419,12 +419,12 @@ describe("the Connect Apps window", () => {
         expect(line()).toBe("can't reach Composio right now. trying again…");
         down = false;
         await act(async () => { await vi.advanceTimersByTimeAsync(3_100); });
-        expect(line()).toBe("connected. your bots can use Attio now.");
+        expect(line()).toBe("Connected. Your bots can use Attio now.");
       });
 
       it("never reachable until the link expires: offline, Retry", async () => {
-        await waitingThen(() => { throw new ApiError("couldn't reach Composio.", 502, { code: "composio_unreachable" }); }, 10 * 60_000 + 20_000);
-        expect(line()).toBe("couldn't reach Composio for a while. check your connection and retry.");
+        await waitingThen(() => { throw new ApiError("Couldn't reach Composio.", 502, { code: "composio_unreachable" }); }, 10 * 60_000 + 20_000);
+        expect(line()).toBe("Couldn't reach Composio for a while. Check your connection and retry.");
         expect(shownLabel()).toBe("retry");
       });
 
@@ -450,7 +450,7 @@ describe("the Connect Apps window", () => {
         });
         await act(async () => { primary()!.click(); });
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-        expect(line()).toBe("Composio wasn't authorized. try again.");
+        expect(line()).toBe("Composio wasn't authorized. Try again.");
         expect(shownLabel()).toBe("retry");
       });
 
@@ -461,7 +461,7 @@ describe("the Connect Apps window", () => {
         viaApi({ signedIn: true }, () => ({ status: "waiting" }));
         await remountAt(8);
         expect(shownLabel()).toBe("open page again");
-        expect(line()).toBe("finish signing in on Composio's page. this updates by itself.");
+        expect(line()).toBe("Finish signing in on Composio's page. This updates by itself.");
       });
 
       it("a saved wait is checked before it shows: one Composio no longer has, or one past its deadline, is dropped", async () => {
@@ -513,7 +513,7 @@ describe("the Connect Apps window", () => {
         expect(shownLabel(), "away on the sign-in page: still waiting").toBe("waiting for Composio…");
         await act(async () => { window.dispatchEvent(new Event("focus")); });
         await act(async () => { await vi.advanceTimersByTimeAsync(76_000); });
-        expect(line()).toBe("Composio wasn't authorized. try again.");
+        expect(line()).toBe("Composio wasn't authorized. Try again.");
         expect(shownLabel()).toBe("retry");
         expect(fixture.api, "the sign-in is called off").toHaveBeenCalledWith("/api/mcp/servers/composio-connect/sign-in/f1", { method: "DELETE" });
       });
@@ -522,10 +522,10 @@ describe("the Connect Apps window", () => {
     it("a key Composio refuses says so in one line and connects nothing", async () => {
       await remount({ kind: "detail", id: "attio" }, "unavailable");
       await paste("ak_bad");
-      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio didn't accept that key. copy it again from API keys.");
+      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio didn't accept that key. Copy it again from API keys.");
       expect(fixture.api).not.toHaveBeenCalledWith("/api/connectors/attio/authorize", expect.anything());
       await paste("not a key");
-      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio keys start with ak_. copy it again from API keys.");
+      expect(dialog().querySelector("[data-composio-key] [role=alert] > span")?.textContent).toBe("Composio keys start with ak_. Copy it again from API keys.");
     });
 
     it("with the managed broker, an app it cannot sign in to asks for the person's own key instead of a dead end", async () => {

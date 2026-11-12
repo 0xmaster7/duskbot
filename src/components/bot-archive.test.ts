@@ -64,10 +64,10 @@ describe("archiving a bot", () => {
     expect(archivableChief([chief], "chief"), "the last active bot stays").toBeUndefined();
     expect(archivableChief([dusk, scout], "dusk"), "the place's own Dusk is never deleted or archived").toBeUndefined();
     expect(archivableChief([chief, scout], "scout"), "only a Chief is offered this").toBeUndefined();
-    expect(botConfirmCopy("delete", "Chief", true).body).toContain("archive it instead to keep its chats");
+    expect(botConfirmCopy("delete", "Chief", true).body).toContain("Archive it instead to keep its chats");
     // the Chief's dialog still says deleting is permanent
-    expect(botConfirmCopy("delete", "Chief", true).body).toContain("this can't be undone.");
-    expect(botConfirmCopy("delete", "Scout").body).not.toContain("archive it instead");
+    expect(botConfirmCopy("delete", "Chief", true).body).toContain("This can't be undone.");
+    expect(botConfirmCopy("delete", "Scout").body).not.toContain("Archive it instead");
     fixture.api.mockResolvedValue({ bot: { ...chief, hidden: true, chiefOfStaff: false } });
     await archiveBotWithNotice(chief, { bots: [chief, scout], selectedId: "scout", dispatch: fixture.dispatch, notify: vi.fn() });
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/chief", { method: "PATCH", body: JSON.stringify({ hidden: true, chiefOfStaff: false }) });

@@ -53,8 +53,8 @@ describe("shared with the cloud", () => {
   it("says what sharing does, shows nothing shared yet, and always offers Add a folder", async () => {
     await mount();
     expect(page()).toContain("shared with the cloud");
-    expect(page()).toContain("cloud bots can use these folders, even when this computer is off. they change files here only in folders you let them edit.");
-    expect(page()).toContain("nothing shared yet.");
+    expect(page()).toContain("Cloud bots can use these folders, even when this computer is off. They change files here only in folders you let them edit.");
+    expect(page()).toContain("Nothing shared yet.");
     expect(button("add a folder")).toBeTruthy();
     expect(page()).not.toMatch(/sync/i);
   });
@@ -64,8 +64,8 @@ describe("shared with the cloud", () => {
     expect(row("synced").textContent).toContain("up to date");
     expect(row("copying").textContent).toContain("copying… 400 of 1,200");
     expect(row("waiting").textContent).toContain("waiting for room in the cloud");
-    expect(row("confirm-deletes").textContent).toContain("3 files were removed from this folder here. remove them from the cloud too?");
-    expect(row("missing").textContent).toContain("can't find this folder. was it moved?");
+    expect(row("confirm-deletes").textContent).toContain("3 files were removed from this folder here. Remove them from the cloud too?");
+    expect(row("missing").textContent).toContain("Can't find this folder. Was it moved?");
     expect(row("problem").textContent).toContain("My Cloud's disk had an error.");
     for (const status of ["synced", "copying", "problem"]) expect(buttons(row(status)).map((node) => node.getAttribute("aria-label"))).toEqual([`more for Folder ${status}`]);
     await click("get more space", row("waiting"));
@@ -73,7 +73,7 @@ describe("shared with the cloud", () => {
     await click("keep them", row("confirm-deletes"));
     expect(bridge.answerDeletes).toHaveBeenLastCalledWith("f-confirm-deletes", false);
     await mount({ ...base, shared: [folder("confirm-deletes", { pendingDeletes: 1 }), folder("missing")] });
-    expect(row("confirm-deletes").textContent).toContain("1 file was removed from this folder here. remove it from the cloud too?");
+    expect(row("confirm-deletes").textContent).toContain("1 file was removed from this folder here. Remove it from the cloud too?");
     await click("remove from the cloud", row("confirm-deletes"));
     expect(bridge.answerDeletes).toHaveBeenLastCalledWith("f-confirm-deletes", true);
   });
@@ -85,14 +85,14 @@ describe("shared with the cloud", () => {
     expect(bridge.locate).toHaveBeenCalledWith("f-missing");
     await click("stop sharing", row("missing"));
     expect(dialog()?.textContent).toContain("stop sharing “Folder missing”?");
-    expect(dialog()?.textContent).toContain("the cloud's copy goes to its trash for 30 days.");
+    expect(dialog()?.textContent).toContain("The cloud's copy goes to its trash for 30 days.");
     await click("cancel", dialog()!);
     expect(dialog()).toBeNull();
     expect(bridge.stopSharing).not.toHaveBeenCalled();
     await click("stop sharing", row("missing"));
     await click("stop sharing", dialog()!);
     expect(bridge.stopSharing).toHaveBeenCalledExactlyOnceWith("f-missing");
-    expect(page()).toContain("nothing shared yet.");
+    expect(page()).toContain("Nothing shared yet.");
   });
 
   it("the ⋯ menu opens the folder here or stops sharing it", async () => {
@@ -114,7 +114,7 @@ describe("shared with the cloud", () => {
     expect(page()).not.toContain("almost full");
     await act(async () => emit({ ...base, disk: { ...disk, usedBytes: 9 * GB, freeBytes: GB, warn: true } }));
     expect(page()).toContain("9 GB of 10 GB used in the cloud");
-    expect(page()).toContain("the cloud is almost full.");
+    expect(page()).toContain("The cloud is almost full.");
     await click("get more space");
     expect(bridge.moreSpace).toHaveBeenCalledOnce();
   });
@@ -136,7 +136,7 @@ describe("add a folder", () => {
     await mount();
     await click("add a folder");
     expect(dialog()?.textContent).toContain("share “Plans” with the cloud?");
-    expect(dialog()?.textContent).toContain("120 files · 3 MB. the cloud keeps a synced copy its bots can read.");
+    expect(dialog()?.textContent).toContain("120 files · 3 MB. The cloud keeps a synced copy its bots can read.");
     await click("cancel", dialog()!);
     expect(bridge.share).not.toHaveBeenCalled();
     bridge.pickFolder.mockResolvedValue(check("Plans", { files: 50_000, partial: true }));
@@ -149,11 +149,11 @@ describe("add a folder", () => {
   });
 
   it.each([
-    ["too-broad", "that folder is too big to share. choose a folder inside it, like one in documents."],
-    ["app-data", "that's dusk's own folder. choose another one."],
-    ["already-shared", "this folder is already shared."],
-    ["not-a-folder", "choose a folder."],
-    ["private", "that folder holds private keys or settings, so it isn't shared. choose another one."],
+    ["too-broad", "That folder is too big to share. Choose a folder inside it, like one in documents."],
+    ["app-data", "That's dusk's own folder. Choose another one."],
+    ["already-shared", "This folder is already shared."],
+    ["not-a-folder", "Choose a folder."],
+    ["private", "That folder holds private keys or settings, so it isn't shared. Choose another one."],
   ] as const)("a refused folder (%s) gets one plain sentence and only OK", async (refusal, sentence) => {
     bridge.pickFolder.mockResolvedValue(check("Home", { refusal: refusal as FolderCheck["refusal"] }));
     await mount();
@@ -174,7 +174,7 @@ describe("add a folder", () => {
     expect(document.querySelector('[role="alert"]')?.textContent).toBe("that didn't work: My Cloud is full.");
     bridge.pickFolder.mockRejectedValue(new Error(""));
     await click("add a folder");
-    expect(document.querySelector('[role="alert"]')?.textContent).toBe("that didn't work. try again.");
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe("That didn't work. Try again.");
   });
 });
 
@@ -183,7 +183,7 @@ describe("your bots' work", () => {
     bridge.setOutputs.mockResolvedValue({ ...base, outputs: { ...base.outputs, enabled: true } });
     await mount();
     expect(page()).toContain("save what cloud bots make to this computer");
-    expect(page()).toContain("in documents › dusk, one folder for each bot.");
+    expect(page()).toContain("In documents › dusk, one folder for each bot.");
     expect(button("open folder")).toBeUndefined();
     const toggle = document.querySelector<HTMLButtonElement>('[role="switch"]')!;
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -202,14 +202,14 @@ describe("My Cloud's state", () => {
     await mount();
     expect(bridge.onState).toHaveBeenCalledOnce();
     await act(async () => emit({ ...base, phase: "offline" }));
-    expect(page()).toContain("the cloud can't be reached right now. files carry on when it's back.");
+    expect(page()).toContain("The cloud can't be reached right now. Files carry on when it's back.");
     act(() => root.unmount());
     expect(off).toHaveBeenCalledOnce();
   });
 
   it("asks to sign in again, beside the account it sits under", async () => {
     await mount({ ...base, phase: "signed-out", shared: [folder("synced")] });
-    expect(page()).toContain("sign in to the cloud again to keep sharing files.");
+    expect(page()).toContain("Sign in to the cloud again to keep sharing files.");
     expect(row("synced")).toBeTruthy();
   });
 

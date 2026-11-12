@@ -126,7 +126,7 @@ describe("optional desktop Organisation settings", () => {
     expect(bridge.begin).toHaveBeenCalledExactlyOnceWith({ portalOrigin: "https://dusk.bot" });
     expect(fetch).not.toHaveBeenCalled();
     const progress = render().html;
-    expect(progress).toContain("finish signing in through your browser");
+    expect(progress).toContain("Finish signing in through your browser");
     expect(progress).toContain("connect automatically");
     // the verification code waits behind Security details
     expect(progress).toContain("security details");
@@ -165,7 +165,7 @@ describe("optional desktop Organisation settings", () => {
   it("requires disconnect before reconnecting revoked access and does not promise cloud backups", async () => {
     await ready({ ...connected, status: "reauth-required", cloudBackups: true });
     const html = render().html;
-    expect(html).toContain("disconnect below, then sign in again");
+    expect(html).toContain("Disconnect below, then sign in again");
     expect(html).not.toContain("sign in with your organization");
     expect(html).not.toContain("approved models:");
     expect(html).not.toContain("backup");
@@ -181,7 +181,7 @@ describe("optional desktop Organisation settings", () => {
     expect(bridge.reopen).toHaveBeenCalledOnce();
     expect(bridge.reopen).toHaveBeenCalledWith();
     expect(bridge.begin).not.toHaveBeenCalled();
-    expect(render().html).toContain("finish signing in through your browser");
+    expect(render().html).toContain("Finish signing in through your browser");
     delete bridge.reopen;
     expect(reopen()).toBeUndefined();
     expect(button("cancel sign-in")).toBeDefined();
@@ -209,8 +209,8 @@ describe("optional desktop Organisation settings", () => {
   it("explains a lapsed Admin licence without a sign-in loop and shows Company models unavailable", async () => {
     await ready({ ...connected, status: "license-expired" });
     const html = render().html;
-    expect(html).toContain("your organization&#x27;s dusk bot admin license has expired. contact your admin.");
-    expect(html).not.toContain("disconnect below, then sign in again");
+    expect(html).toContain("Your organization&#x27;s dusk bot admin license has expired. Contact your admin.");
+    expect(html).not.toContain("Disconnect below, then sign in again");
     expect(html).not.toContain("sign in with your organization");
     expect(html).toContain("unavailable until the licence is renewed");
     expect(html).not.toContain("approved models:");
@@ -220,7 +220,7 @@ describe("optional desktop Organisation settings", () => {
   it("says so when a sign-in finds the Admin licence expired", async () => {
     await ready({ status: "signed-out", notice: "license-expired" });
     const html = render().html;
-    expect(html).toContain("license has expired. contact your admin.");
+    expect(html).toContain("license has expired. Contact your admin.");
     expect(html).toContain("sign in with your organization");
   });
 
@@ -234,7 +234,7 @@ describe("optional desktop Organisation settings", () => {
     vi.mocked(bridge.refresh).mockImplementation(() => new Promise(resolve => { resolveRefresh = resolve; }));
     button("refresh").props.onClick!();
     push({ ...connected, status: "reauth-required" }); resolveRefresh(connected); await flush();
-    expect(render().html).toContain("disconnect below, then sign in again");
+    expect(render().html).toContain("Disconnect below, then sign in again");
   });
 
   it("unsubscribes and ignores late results after the panel closes", async () => {
@@ -271,14 +271,14 @@ describe("optional desktop Organisation settings", () => {
     await ready(connected);
     vi.mocked(bridge.refresh).mockRejectedValueOnce(new Error("Fixture refresh failure"));
     button("refresh").props.onClick!(); await flush();
-    expect(render().html).toContain("could not complete this action");
+    expect(render().html).toContain("Could not complete this action");
 
     expect(() => push({ ...connected, providers: [] })).not.toThrow();
-    expect(render().html).toContain("could not complete this action");
+    expect(render().html).toContain("Could not complete this action");
 
     expect(() => push({ ...connected, status: "reauth-required" })).not.toThrow();
-    expect(render().html).not.toContain("could not complete this action");
-    expect(render().html).toContain("disconnect below, then sign in again");
+    expect(render().html).not.toContain("Could not complete this action");
+    expect(render().html).toContain("Disconnect below, then sign in again");
   });
 
   it("can clear an unavailable saved connection instead of trapping the user behind retry", async () => {

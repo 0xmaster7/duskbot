@@ -89,11 +89,11 @@ describe("the working line", () => {
     render(busyBot([ask]));
     expect(mascot()).not.toBeNull();
     const first = statusLine();
-    expect(["working on it", "chipping away", "getting it done", "making progress", "handling it"]).toContain(first);
+    expect(["Working on it", "Chipping away", "Getting it done", "Making progress", "Handling it"]).toContain(first);
     expect(mascot()!.innerHTML).toMatch(/width(="|: )28px/);
     const row = mascot()!.firstElementChild as HTMLElement;
     expect([...row.classList]).toEqual(expect.arrayContaining(["h-9", "ps-2", "gap-[8.5px]"]));
-    expect(row.title).toMatch(/^working · /);
+    expect(row.title).toMatch(/^Working · /);
     expect(mascot()!.querySelector("[data-turn-status] .status-shimmer")).not.toBeNull();
     const slot = () => host.querySelector(".turn-status-slot")!;
     expect(slot().classList).not.toContain("-mt-3");
@@ -104,7 +104,7 @@ describe("the working line", () => {
     expect(mascot(), "a bubble in the middle of a turn is not its end: the line stays").not.toBeNull();
     act(() => void vi.advanceTimersByTime(STATUS_HOLD_MS));
     engine({ type: "turn.progress", activity: "write", itemId: "toolu_write", file: "index.html", bytes: 14 * 1024 + 300 } as Partial<RuntimeEvent>);
-    expect(statusLine()).toBe("writing some code");
+    expect(statusLine()).toBe("Writing some code");
   });
 
   it("stays through the turn's bubbles and leaves only when the turn ends, in 140ms", () => {
@@ -146,7 +146,7 @@ describe("the working line", () => {
     render(busyBot([ask]));
     engine({ type: "content.delta", streamKind: "assistant_text", delta: "Hi" } as Partial<RuntimeEvent>);
     expect(markState()).toBe("streaming");
-    expect(statusLine()).toBe("typing…");
+    expect(statusLine()).toBe("Typing…");
   });
 
   it("shows the bot's own label for its phase, and keeps it until it sets another", () => {
@@ -165,7 +165,7 @@ describe("the working line", () => {
     act(() => void vi.advanceTimersByTime(STATUS_HOLD_MS));
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     render(busyBot([ask], false));
-    expect(host.querySelector(".turn-status-out"), "it leaves").not.toBeNull();
+    expect(host.querySelector(".turn-status-out"), "It leaves").not.toBeNull();
     expect(statusLine(), "with the bot's own words, not a stock phrase").toBe("Drafting the summary");
   });
 });
@@ -180,7 +180,7 @@ describe("each bubble's typing beat", () => {
     const ack = fresh("ack", "On it, checking reviews now.");
     render(busyBot([ask, ack]));
     expect(rows(), "held while the line types").toEqual(["ask"]);
-    expect(statusLine()).toBe("typing…");
+    expect(statusLine()).toBe("Typing…");
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS - 10));
     expect(rows()).toEqual(["ask"]);
     act(() => void vi.advanceTimersByTime(10));
@@ -195,7 +195,7 @@ describe("each bubble's typing beat", () => {
     render(busyBot([ask, fresh("one", "First."), fresh("two", "Second.")]));
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
     expect(rows()).toEqual(["ask", "one"]);
-    expect(statusLine()).toBe("typing…");
+    expect(statusLine()).toBe("Typing…");
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
     expect(rows()).toEqual(["ask", "one", "two"]);
   });
@@ -206,7 +206,7 @@ describe("each bubble's typing beat", () => {
     const last = fresh("last", "It's 441, so yes.");
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     render(busyBot([ask, last], false));
-    expect(statusLine()).toBe("typing…");
+    expect(statusLine()).toBe("Typing…");
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
     expect(host.querySelector(".turn-status-out"), "the line starts leaving").not.toBeNull();
     expect(rows()).toEqual(["ask"]);
@@ -230,7 +230,7 @@ describe("the line's people", () => {
     const waiting = busyBot([ask, intro], false);
     render({ ...waiting, waitingForTeammates: true, tasks: waiting.tasks!.map((task) => ({ ...task, waitingForTeammates: true })) });
     act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
-    expect(statusLine()).toBe("teammates working");
+    expect(statusLine()).toBe("Teammates working");
   });
 });
 
@@ -261,7 +261,7 @@ describe("what the bot is doing right now", () => {
     engine({ type: "item.started", itemType: "tool", itemId: "b1", title: "Bash" } as Partial<RuntimeEvent>);
     engine({ type: "turn.progress", activity: "command", itemId: "b1", target: "scrape.py", quiet: { kind: "idle" } } as Partial<RuntimeEvent>);
     render(busyBot([ask, search, bash]));
-    expect(statusLine()).toBe("running a few commands · idle, no output yet");
+    expect(statusLine()).toBe("Running a few commands · Idle, no output yet");
     expect(toggle(), "the step list unfolds only with tool calls shown").toBeNull();
     expect(steps()).toEqual([]);
   });

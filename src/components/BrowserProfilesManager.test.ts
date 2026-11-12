@@ -46,7 +46,7 @@ describe("browser profile manager", () => {
     expect(html).toContain('value="">own browser</option>');
     expect(html).toContain('value="work" selected="">Work</option>');
     expect(html).toContain('value="guest"');
-    expect(html).toContain("bots on a shared profile use the same logins.");
+    expect(html).toContain("Bots on a shared profile use the same logins.");
     expect(html).not.toMatch(/<details[^>]*\bopen/);
     expect(html.match(/<select[^>]*>/)?.[0]).toContain('disabled=""');
   });
@@ -54,7 +54,7 @@ describe("browser profile manager", () => {
   it("explains busy bot restrictions and deletion effects in accessible controls", () => {
     fixture.bots = [{ ...bot, busy: true }];
     const html = renderToStaticMarkup(createElement(BrowserProfilesManager, { bot }));
-    expect(html).toContain("stop this bot&#x27;s turn before switching browser profiles.");
+    expect(html).toContain("Stop this bot&#x27;s turn before switching browser profiles.");
     expect(html).toContain('aria-label="delete Work"');
     expect(html).toContain("Pepper is still running.");
     expect(html).toContain('maxLength="40"');
@@ -63,9 +63,9 @@ describe("browser profile manager", () => {
   it("keeps a disappeared selection explicit instead of silently displaying another login", () => {
     fixture.profiles = [];
     const html = renderToStaticMarkup(createElement(BrowserProfilesManager, { bot }));
-    expect(html).toContain("this profile was removed.");
+    expect(html).toContain("This profile was removed.");
     expect(html).toContain('value="work" disabled="" selected=""');
-    expect(html).toContain("each bot still has its own browser.");
+    expect(html).toContain("Each bot still has its own browser.");
   });
 
   it("offers each profile Built-in or My Chrome, and lists a built-in profile's signed-in sites with who shares them", () => {
@@ -81,7 +81,7 @@ describe("browser profile manager", () => {
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
     const html = page();
     expect(html).toMatch(/role="combobox"[^>]*aria-label="browser"[\s\S]*?my Chrome/);
-    expect(html).toContain("bots on this profile act inside your real Chrome, signed in as you");
+    expect(html).toContain("Bots on this profile act inside your real Chrome, signed in as you");
     expect(html).toContain("chrome://inspect/#remote-debugging");
     expect(html).not.toContain("signed-in sites");
     const botHtml = renderToStaticMarkup(createElement(BrowserProfilesManager, { bot }));
@@ -91,7 +91,7 @@ describe("browser profile manager", () => {
   it("says on Cloud and servers that My Chrome does not apply, and keeps the built-in browser", () => {
     fixture.myChrome = false;
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
-    expect(list()).toContain("my Chrome is for the desktop app, where bots run on your own computer. anywhere else, such as the cloud, there is no Chrome of yours to use, so every profile uses the built-in browser.");
+    expect(list()).toContain("My Chrome is for the desktop app, where bots run on your own computer. Anywhere else, such as the cloud, there is no Chrome of yours to use, so every profile uses the built-in browser.");
     const html = page();
     expect(html).not.toContain("act inside your real Chrome");
     expect(html).toContain("signed-in sites");

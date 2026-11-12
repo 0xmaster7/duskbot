@@ -117,7 +117,7 @@ describe("goalCoordinatorForComposer", () => {
 
   it("falls back to the in-room Chief for mentions-only goal channels", () => {
     expect(goalCoordinatorForComposer(
-      "finish this",
+      "Finish this",
       members,
       { defaultResponder: { kind: "mentions" } },
     )?.id).toBe("chief");

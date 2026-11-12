@@ -97,7 +97,7 @@ describe("the X card in Apps", () => {
     await mount({ included: true, usage: USAGE });
     expect(card().dataset.xState).toBe("included");
     expect(text()).toContain("included with your plan");
-    expect(text()).toContain("312 of 5,000 X calls this month. they reset on November 1.");
+    expect(text()).toContain("312 of 5,000 X calls this month. They reset on November 1.");
     expect(field()).toBeNull();
     expect(button("use my own treg key")).toBeDefined();
     expect(onConnection).toHaveBeenLastCalledWith(true);
@@ -105,7 +105,7 @@ describe("the X card in Apps", () => {
 
   it("says when the month's included calls are used up and how to keep going, with the key field open", async () => {
     await mount({ included: true, usage: { ...USAGE, calls: 5_000, usedUp: true } });
-    expect(text()).toContain("this month's included X calls are used up. they reset on November 1. add your own treg key to keep going.");
+    expect(text()).toContain("This month's included X calls are used up. They reset on November 1. Add your own treg key to keep going.");
     expect(field()).not.toBeNull();
   });
 
@@ -115,7 +115,7 @@ describe("the X card in Apps", () => {
     await act(async () => root.unmount());
     host.remove();
     await mount({ included: true, usage: { calls: 3, max: 3, usedUp: true, resetsAt: USAGE.resetsAt, trialEndsAt: "2026-10-25T09:00:00.000Z" } });
-    expect(text()).toContain("your free trial's included X calls are used up. your full allowance starts on October 25. add your own treg key to keep going.");
+    expect(text()).toContain("Your free trial's included X calls are used up. Your full allowance starts on October 25. Add your own treg key to keep going.");
   });
 
   it("asks everyone else for a treg key with a link to treg.to, saves it where keys go, tests it once and says it works", async () => {
@@ -160,7 +160,7 @@ describe("the X card in Apps", () => {
   it("says the person's own key is used first when the plan's calls are there too, and Test shows treg's plain reason", async () => {
     await mount({ own: true, included: true, usage: USAGE, check: { ok: false, check: "treg", message: "treg rejected this key. Copy it again from treg.to." } });
     expect(card().dataset.xState).toBe("own");
-    expect(text()).toContain("your own treg key is used first, and calls are billed to your treg balance. your plan's included X calls wait until you remove it.");
+    expect(text()).toContain("Your own treg key is used first, and calls are billed to your treg balance. Your plan's included X calls wait until you remove it.");
     await click("test");
     expect(text()).toContain("treg rejected this key. Copy it again from treg.to.");
   });
@@ -176,7 +176,7 @@ describe("the X card in Apps", () => {
 
   it("removing the only key leaves no X, and the card asks for a key again", async () => {
     await mount({ own: true });
-    expect(text()).toContain("your bots search and read X with your own treg key. calls are billed to your treg balance.");
+    expect(text()).toContain("Your bots search and read X with your own treg key. Calls are billed to your treg balance.");
     await click("remove key");
     expect(card().dataset.xState).toBe("none");
     expect(field()).not.toBeNull();

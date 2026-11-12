@@ -68,7 +68,7 @@ describe("computer inventory request wiring", () => {
     expect(request).toBeNull();
     expect(confirm).toHaveBeenCalledOnce();
     expect(confirm).toHaveBeenCalledWith(
-      "delete Research's private desktop? its durable folder and website sign-ins are kept. apps installed inside the desktop and files outside the durable folder are deleted.",
+      "Delete Research's private desktop? Its durable folder and website sign-ins are kept. Apps installed inside the desktop and files outside the durable folder are deleted.",
     );
   });
 
@@ -135,7 +135,7 @@ describe("Local VM inventory UI", () => {
     expect(markup).toContain("current destination: cloud");
     expect(markup).toContain("current destination: off");
     expect(markup).toContain("in use");
-    expect(markup).toContain("stop this bot&#x27;s turn before deleting its desktop.");
+    expect(markup).toContain("Stop this bot&#x27;s turn before deleting its desktop.");
     expect(markup).toContain("disabled=\"\"");
     expect(markup).not.toMatch(/viewer_url|workspace_path|password=/);
   });
@@ -161,7 +161,7 @@ describe("Local VM inventory UI", () => {
 
     expect(markup).toContain("inventory unavailable");
     expect(markup).toContain("Start docker first");
-    expect(markup).not.toContain("no per-bot desktops have been created");
+    expect(markup).not.toContain("No per-bot desktops have been created");
   });
 
   it("disables deletion while refreshing an existing inventory", () => {
@@ -262,7 +262,7 @@ describe("VPS computer inventory UI", () => {
     const markup = renderCard({ instances: [{ ...ownedVps, inUse: true }] });
 
     expect(markup).toContain("in use");
-    expect(markup).toContain("stop this bot&#x27;s work before removing its desktop.");
+    expect(markup).toContain("Stop this bot&#x27;s work before removing its desktop.");
     expect(markup).toContain("disabled=\"\"");
   });
 

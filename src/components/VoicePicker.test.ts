@@ -161,7 +161,7 @@ describe("VoicePicker", () => {
     await mount({ voices: [], query: "zzzz" });
     expect(options()).toHaveLength(0);
     expect(sheet()!.textContent).toContain("no voices match");
-    expect(sheet()!.textContent).toContain("try another name, or paste a link to the voice.");
+    expect(sheet()!.textContent).toContain("Try another name, or paste a link to the voice.");
   });
 
   it("puts your own voices above the ElevenLabs library and says once what picking a library voice does", async () => {
@@ -172,7 +172,7 @@ describe("VoicePicker", () => {
     const text = sheet()!.querySelector('[role="listbox"]')!.textContent!;
     expect(text.indexOf("your voices")).toBeLessThan(text.indexOf("Studio Voice"));
     expect(text.indexOf("ElevenLabs voice library")).toBeLessThan(text.indexOf("Library Rachel"));
-    expect(text.match(/picking one adds it to your voices\./g)).toHaveLength(1);
+    expect(text.match(/Picking one adds it to your voices\./g)).toHaveLength(1);
 
     await mount({ voices: [STUDIO], query: "stu" });
     expect(sheet()!.textContent).not.toContain("your voices");

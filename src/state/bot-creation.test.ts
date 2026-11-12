@@ -60,7 +60,7 @@ describe("new bot", () => {
     const onError = vi.fn();
     const onCreated = vi.fn();
     dispatch({ type: "newBot", onError, onCreated });
-    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("couldn't make a new bot: offline"));
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("Couldn't make a new bot: offline"));
     expect(onCreated).not.toHaveBeenCalled();
     await flush();
     dispatch({ type: "newBot", onCreated });

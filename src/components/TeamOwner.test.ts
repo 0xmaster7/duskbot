@@ -130,7 +130,7 @@ describe("needs you, on a server older than this page", () => {
   it("counts what bots ask of this person, and hides when nothing does", () => {
     setInboxSupport("no");
     setTeamPeople(asBob([{ kind: "question", id: "q1", at: 1, botId: "fox", threadId: "fox-main", text: "Which landing page?" }]));
-    expect(render()).toContain('aria-label="needs you, 1"');
+    expect(render()).toContain('aria-label="Needs you, 1"');
     setTeamPeople(asBob());
     expect(render()).toBe("");
   });

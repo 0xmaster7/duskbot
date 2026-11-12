@@ -83,7 +83,7 @@ describe("a saved key", () => {
       snapshot: { state: "available", authenticated: false }, models: { default: "m", options: [] } } as unknown as InstanceInfo];
     const html = render({ id: "openai" });
     expect(html).toContain(">didn&#x27;t work<");
-    expect(html).toContain("didn&#x27;t work: the provider rejected this key.");
+    expect(html).toContain("Didn&#x27;t work: The provider rejected this key.");
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("data-key-replace");
   });

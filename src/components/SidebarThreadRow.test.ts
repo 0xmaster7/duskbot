@@ -67,7 +67,7 @@ describe("sidebar thread visibility", () => {
       current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
     }));
     expect(render()).toContain("next job · queued");
-    expect(render(true)).toContain("next job · working");
+    expect(render(true)).toContain("next job · Working");
     expect(render(true)).not.toContain("· queued");
     expect(render(true, "waiting-on-you")).toContain("next job · waiting");
     expect(render(true, "waiting-on-you")).not.toContain("· queued");
@@ -91,9 +91,9 @@ describe("threads waiting on a teammate", () => {
     expect(visibleSidebarThreads(waiting, "0").map((task) => task.threadId)).toEqual(["0", "1", "2", "3", "4", "5", "dispatch"]);
   });
   it("surfaces the live activity label the chat pane derives while the row works", () => {
-    const markup = render({ threadId: "live", title: "Live work", busy: true, activity: "working" }, { activityLabel: "reading a file" });
-    expect(markup).toContain('title="Live work · reading a file"');
-    expect(markup).toContain('aria-label="reading a file"');
+    const markup = render({ threadId: "live", title: "Live work", busy: true, activity: "working" }, { activityLabel: "Reading a file" });
+    expect(markup).toContain('title="Live work · Reading a file"');
+    expect(markup).toContain('aria-label="Reading a file"');
   });
 });
 
@@ -219,7 +219,7 @@ describe("threads a bot closed", () => {
     expect(markup).not.toContain("opened by");
     expect(markup).toContain('title="Helper 1 · closed"');
     expect(markup).toContain('text-ink-tertiary">Helper 1</span>');
-    expect(render({ threadId: "h", title: "Helper 1", closedBy, busy: true })).toContain('title="Helper 1 · working"');
+    expect(render({ threadId: "h", title: "Helper 1", closedBy, busy: true })).toContain('title="Helper 1 · Working"');
     expect(render({ threadId: "h", title: "Helper 1", closedBy }, true)).not.toContain('text-ink-tertiary">Helper 1</span>');
   });
 });
@@ -492,7 +492,7 @@ describe("archived threads", () => {
     const markup = render({ threadId: "1", title: "Put away", archivedAt: 5 });
     expect(markup).toContain("archived");
     expect(markup).toContain('text-ink-tertiary">Put away</span>');
-    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · working · archived"');
+    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · Working · archived"');
   });
   it("treats archivedAt: 0 as archived, because zero is a valid timestamp at the API boundary", () => {
     const rows = [
@@ -596,7 +596,7 @@ describe("refresh permissions", () => {
     openMenu(renderRow(task, "scout", true, { onRefreshPermissions }));
     const offered = buttonWithLabel(renderRow(task, "scout", false, { onRefreshPermissions }), "refresh permissions");
     expect(offered?.props?.disabled).toBe(false);
-    expect(offered?.props?.title).toBe("apply this bot's current approval level and saved approvals to this thread. other threads stay as they are.");
+    expect(offered?.props?.title).toBe("Apply this bot's current approval level and saved approvals to this thread. Other threads stay as they are.");
     (offered!.props!.onClick as () => void)();
     expect(onRefreshPermissions).toHaveBeenCalledTimes(1);
 

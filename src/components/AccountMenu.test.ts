@@ -45,7 +45,7 @@ it("another place's page shows no address, only the row that asks main for the s
 it("what a click or sign-out that didn't go through says, in plain words", () => {
   expect(switchNote({ outcome: "moving" })).toContain("moving to the cloud");
   expect(switchNote({ outcome: "gone" })).toContain("isn't signed in here");
-  expect(switchNote({ outcome: "failed" })).toContain("try again");
+  expect(switchNote({ outcome: "failed" })).toContain("Try again");
   expect(switchNote({ outcome: "switched" })).toBeNull();
   expect(switchNote({ outcome: "signed-out" })).toBeNull();
 });

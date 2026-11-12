@@ -17,9 +17,9 @@ describe("held notes name the buttons the selector shows", () => {
       const label = (mode: string) =>
         approvalModeOptions().find((option) => option.mode === mode)!.label;
 
-      expect(t("approval.held.undelivered"), code).toContain(label("auto"));
-      expect(t("approval.held.sandbox"), code).toContain(label("full"));
-      expect(t("approval.held.undeliveredFull"), code).toContain(label("full"));
+      expect(t("approval.held.undelivered").toLowerCase(), code).toContain(label("auto").toLowerCase());
+      expect(t("approval.held.sandbox").toLowerCase(), code).toContain(label("full").toLowerCase());
+      expect(t("approval.held.undeliveredFull").toLowerCase(), code).toContain(label("full").toLowerCase());
     }
   });
 

@@ -242,7 +242,7 @@ describe("add your VPS", () => {
     expect(fake.bridge.start).toHaveBeenCalledTimes(1);
     expect(document.querySelector("[data-vps-command]")?.textContent).toBe(COMMAND);
     expect(text()).toContain("paste one line on your server");
-    expect(text()).toContain("open your server's terminal");
+    expect(text()).toContain("Open your server's terminal");
     expect(text()).not.toContain("sign in");
     expect(document.querySelector("[data-vps-scene]")?.getAttribute("data-vps-scene")).toBe("waiting");
 
@@ -295,10 +295,10 @@ describe("add your VPS", () => {
     expect(document.querySelector("[data-vps-traveler]")?.getAttribute("data-vps-traveler")).toBe("b1");
     await fake.emit({ ...fake.view(), move: { step: "verify", status: "failed", error: "Two chats did not arrive." } });
     expect(text()).toContain("Two chats did not arrive.");
-    expect(text()).toContain("nothing was removed from this Mac");
+    expect(text()).toContain("Nothing was removed from this Mac");
     await fake.emit({ ...fake.view(), stage: "moved", move: { step: "done", status: "done", kept: true } });
-    expect(text()).toContain("all moved. your Mac is free.");
-    expect(text()).toContain("a backup stays on this Mac");
+    expect(text()).toContain("All moved. Your Mac is free.");
+    expect(text()).toContain("A backup stays on this Mac");
     expect(text()).toContain("this Mac kept its copy too");
     await click(button("open My VPS"));
     expect(fake.bridge.open).toHaveBeenCalledTimes(1);
@@ -440,7 +440,7 @@ describe("Settings > Transfer", () => {
     expect(text()).toContain("2 bots, 14 chats, 3 skills, 2 routines · 1.0 MB");
     expect(text()).toContain("before a move");
     await click(button("move to this Mac"));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("a backup is saved first"));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("A backup is saved first"));
     expect(fake.bridge.moveBack).toHaveBeenCalledTimes(1);
   });
 
@@ -483,7 +483,7 @@ describe("the move waiting to try again", () => {
     expect(text()).toContain("copying your bots");
     expect(text()).toContain("My VPS isn't answering yet.");
     expect(document.querySelector("[data-vps-retry]")?.textContent).toMatch(/^trying again in 3:4[12]$/);
-    expect(text()).not.toContain("keep this app open");
+    expect(text()).not.toContain("Keep this app open");
     await click(button("try now"));
     expect(fake.bridge.retryMove).toHaveBeenCalledTimes(1);
 
@@ -491,7 +491,7 @@ describe("the move waiting to try again", () => {
     expect(document.querySelector("[data-vps-retry]")?.textContent).toBe("trying again…");
     await act(async () => { root.render(createElement(MoveScreen, { view: { ...view, move: { step: "copy", status: "running", chats: { done: 18, total: 18 } } }, preview: null, previewError: "", onReload: () => {}, bridge: fake.bridge, onMove: () => {}, onBack: () => {} })); });
     expect(document.querySelector("[data-vps-retry]")).toBeNull();
-    expect(text()).toContain("keep this app open");
+    expect(text()).toContain("Keep this app open");
   });
 
   it("reads the wait as minutes and seconds", () => {

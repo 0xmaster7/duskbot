@@ -187,18 +187,18 @@ describe("install from Settings on the server", () => {
     });
     const standalone = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 } }));
     expect(standalone).toContain("install OpenCode here");
-    expect(standalone).not.toContain("requires Node.js");
+    expect(standalone).not.toContain("Requires Node.js");
     // No npm on the server, so no npm command to paste into a terminal.
     expect(standalone).not.toContain("npm install -g opencode-ai");
     // Decimal megabytes, as macOS and Windows show file sizes: 79,667,571 bytes is about 80 MB.
-    expect(standalone).toContain("about 80 MB download");
-    expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("about 64 MB download");
+    expect(standalone).toContain("About 80 MB download");
+    expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("About 64 MB download");
     const withNpm = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 }, package: "opencode-ai" }));
     expect(withNpm).toContain("prefer a terminal?");
     expect(withNpm).toContain("npm install -g opencode-ai");
     const neither = render(opencode());
     expect(neither).not.toContain("install OpenCode here");
-    expect(neither).toContain("requires Node.js");
+    expect(neither).toContain("Requires Node.js");
   });
 
   it("finishes the app's own signed-out copy in the app, never in a terminal", () => {
@@ -220,7 +220,7 @@ describe("install from Settings on the server", () => {
     expect(markup).toContain("free models");
     expect(markup).toContain("open API keys");
     expect(markup).toContain("check again");
-    for (const line of ["Terminal", "terminal", "one-line installer", "npm install", "install and sign in on the computer", "sign in to OpenCode"]) {
+    for (const line of ["Terminal", "terminal", "one-line installer", "npm install", "Install and sign in on the computer", "sign in to OpenCode"]) {
       expect(markup).not.toContain(line);
     }
     // A remote client's Settings has no keys, so it names the computer instead of offering the button.
@@ -262,7 +262,7 @@ describe("server device-code sign-in", () => {
     expect(markup).toContain("continue with ChatGPT");
     expect(markup).toContain("separate from dusk cloud and from paying with an API key");
     expect(markup).not.toContain("codex login");
-    expect(markup).not.toContain("device-code login");
+    expect(markup).not.toContain("Device-code login");
   });
 
   it("explains unavailable hosted plan auth without offering a broken login or install", () => {
@@ -321,16 +321,16 @@ describe("API-key engine setup", () => {
     const html = render(keyEngine("grok", { state: "unavailable", reason: "No xAI API key — open Settings → API keys." }));
     expect(html).toContain("data-engine-setup-api-key");
     expect(html).toContain("Grok (API) needs an API key");
-    expect(html).toContain("paste it here. it saves and checks itself");
+    expect(html).toContain("Paste it here. It saves and checks itself");
     expect(html).toContain('data-key-row="xai"');
     expect(html).not.toContain("open API keys");
     expect(html).not.toContain("config.json");
   });
 
   it("says so in the key row when the provider rejected the saved key", () => {
-    const html = render(keyEngine("grok", { state: "available", authenticated: false, reason: "the provider rejected this key." }));
+    const html = render(keyEngine("grok", { state: "available", authenticated: false, reason: "The provider rejected this key." }));
     expect(html).toContain("data-engine-setup-api-key");
-    expect(html).toContain("didn&#x27;t work: the provider rejected this key.");
+    expect(html).toContain("Didn&#x27;t work: The provider rejected this key.");
     expect(render(keyEngine("grok", { state: "unavailable" }))).not.toContain("rejected");
   });
 

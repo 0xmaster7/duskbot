@@ -10,26 +10,26 @@ const render = (tool: Parameters<typeof ToolActivity>[0]["tool"]) => renderToSta
 describe("ToolActivity", () => {
   it("names the step in plain words and keeps the tool's own name in the details", () => {
     const html = render({ name: "mcp__dusk__computer_batch", ok: true, input: '{"actions":[]}' });
-    expect(html).toContain("use the screen · completed · tool details");
-    expect(html).toMatch(/<span class="min-w-0 max-w-\[30rem\] truncate font-medium leading-5">use the screen<\/span>/);
+    expect(html).toContain("Use the screen · Completed · tool details");
+    expect(html).toMatch(/<span class="min-w-0 max-w-\[30rem\] truncate font-medium leading-5">Use the screen<\/span>/);
     expect(html).toContain('data-testid="tool-name"');
     expect(html).toContain("mcp__dusk__computer_batch");
   });
 
   it("shows the line the harness wrote for an MCP server change, with the tool's name in the details", () => {
     const html = render({ name: "mcp__agents__mcp_server", label: "added MCP server linear · turned on · Test: needs sign-in", ok: true });
-    expect(html).toContain("added MCP server linear · turned on · Test: needs sign-in · completed · tool details");
+    expect(html).toContain("added MCP server linear · turned on · Test: needs sign-in · Completed · tool details");
     expect(html).toMatch(/data-testid="tool-name">mcp__agents__mcp_server</);
   });
 
   it("keeps a command off the row, where it reads as a plain step", () => {
     const html = render({ name: "Bash", ok: false, summary: "pnpm test --filter api", input: "pnpm test --filter api" });
-    expect(html).toContain("run a command · failed · tool details");
+    expect(html).toContain("Run a command · Failed · tool details");
     expect(html).not.toContain('title="pnpm test --filter api"');
   });
 
   it("names a Composio slug by its action", () => {
-    expect(render({ name: "GITHUB_GET_A_COMMIT", ok: true })).toContain("get a commit · completed");
+    expect(render({ name: "GITHUB_GET_A_COMMIT", ok: true })).toContain("get a commit · Completed");
   });
 });
 
@@ -42,7 +42,7 @@ describe("ActivityRun", () => {
 
   it("sums a folded run up in plain words", () => {
     const html = renderToStaticMarkup(createElement(ActivityRun, { messages: steps, children: null }));
-    expect(html).toContain("3 steps · run a command ×2, look at the screen");
+    expect(html).toContain("3 steps · Run a command ×2, Look at the screen");
   });
 });
 

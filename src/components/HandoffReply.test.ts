@@ -43,7 +43,7 @@ describe("HandoffChip", () => {
     const markup = render(sent);
     expect(markup).toContain("Sent to Mira");
     expect(markup).toContain("data-handoff-done-when");
-    expect(markup).toContain("done when: the export opens in Numbers");
+    expect(markup).toContain("Done when: the export opens in Numbers");
   });
 
   it("adds no done-when line when the hand-off set none", () => {

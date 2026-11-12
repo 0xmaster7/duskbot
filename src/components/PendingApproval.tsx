@@ -1,4 +1,5 @@
 import { memo, useState, type ReactNode } from "react";
+import { lowerFirst } from "../lib/lower-first";
 import { ChevronDown, Send, ShieldCheck, TriangleAlert } from "../icons";
 import { useStore, type Bot, type Message } from "@/state/store";
 import { cn } from "@/lib/cn";
@@ -82,7 +83,7 @@ export function spokenApprovalPrompt(pending: Pending, requester: string): strin
     const title = pending.message.card?.title.trim() || t("approval.voice.defaultUpdateProfile");
     return t("approval.voice.profile", { requester, title });
   }
-  return t("approval.voice.command", { requester, tool: toolLabel(pending.tool), detail: pending.detail });
+  return t("approval.voice.command", { requester, tool: lowerFirst(toolLabel(pending.tool)), detail: pending.detail });
 }
 
 function label(pending: Pending): string {
@@ -128,7 +129,7 @@ function approvalWords(pending: Pending, botName?: string): { line: string; summ
   if (card?.mcpRequest) return { line: card.title, inline: detail, detail };
   if (isDurable(pending)) return { line: label(pending), detail };
   const action = COMMAND_TOOLS.has(pending.tool) ? t("approval.tool.runCommand") : toolLabel(pending.tool);
-  return { line: botName ? t("approval.card.namedWantsTo", { name: botName, action }) : label(pending), inline: detail, detail };
+  return { line: botName ? t("approval.card.namedWantsTo", { name: botName, action: lowerFirst(action) }) : label(pending), inline: detail, detail };
 }
 
 /** An inbox's copy names the conversation it was asked in, as the way back there. */

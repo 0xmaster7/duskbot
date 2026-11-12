@@ -67,7 +67,7 @@ describe("self-hosted update row", () => {
   });
 
   it("reports a failed check plainly", () => {
-    expect(serverUpdateRow("error", null)).toEqual({ label: "couldn't check for updates. try again." });
+    expect(serverUpdateRow("error", null)).toEqual({ label: "Couldn't check for updates. Try again." });
   });
 });
 

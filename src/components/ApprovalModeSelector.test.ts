@@ -25,7 +25,7 @@ describe("approval mode selector", () => {
       {
         mode: "auto",
         label: "approve for me",
-        description: "uses the provider's automatic review to approve routine actions and ask about others. web search is allowed without asking.",
+        description: "Uses the provider's automatic review to approve routine actions and ask about others. Web search is allowed without asking.",
       },
       {
         mode: "full",
@@ -73,7 +73,7 @@ describe("approval mode selector", () => {
       { mode: "full", label: "auto (full access)" },
     ]);
     expect(options[2].chip).toBe("auto");
-    expect(options[2].description).toContain("automatically approve tool requests");
+    expect(options[2].description).toContain("Automatically approve tool requests");
     expect(approvalModeOptionsFor("antigravityAgent", false).map((option) => option.mode)).toEqual(["ask", "edits", "full"]);
   });
 

@@ -238,7 +238,7 @@ describe("the model picker in Simple mode", () => {
 
   it("names models without a second line; a blurb is only the row's tooltip", () => {
     const html = menu(open(bot()).html);
-    const blurb = "fast and smart. good for most work.";
+    const blurb = "Fast and smart. Good for most work.";
     expect(html).not.toContain(`>${blurb}<`);
     expect(html).toContain(`title="Sonnet 5.5 · ${blurb}"`);
   });
@@ -348,8 +348,8 @@ describe("the model picker in Simple mode", () => {
     expect(bottom).toMatch(/aria-pressed="true"[^>]*>x-high<\/button>/);
     expect(bottom).toContain('role="group" aria-labelledby=');
     expect(bottom).toMatch(/data-simple-effort="true"[^>]*class="[^"]*rounded-full bg-ink\/\[0.05\] p-\[3px\]/);
-    expect(bottom).toContain('title="high thinking. higher is slower but more careful."');
-    expect(bottom).toMatch(/title="the model decides how hard to think."[^>]*>use default<\/button>/);
+    expect(bottom).toContain('title="high thinking. Higher is slower but more careful."');
+    expect(bottom).toMatch(/title="The model decides how hard to think."[^>]*>use default<\/button>/);
     thinking(opened).onReset();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({
       type: "setModel", botId: "scout", threadId: "thread-scout", updateBotDefault: true,
@@ -359,7 +359,7 @@ describe("the model picker in Simple mode", () => {
     const atDefault = region(menu(open(bot()).html), "data-simple-effort-band");
     expect(atDefault).not.toContain('aria-pressed="true"');
     expect(atDefault).not.toContain("use default");
-    expect(atDefault).toContain('title="the model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">default</span>');
+    expect(atDefault).toContain('title="The model decides how hard to think." class="text-[12px] leading-4 text-ink-tertiary">default</span>');
   });
 
   it("names the model on the Simple chip, quiet until hovered; thinking and route stay in its tooltip and the menu", () => {
@@ -610,7 +610,7 @@ describe("the model picker in Simple mode", () => {
       pane(open(forBot))!.props.onSetUp(missing, false);
       fixture.instances = [claude(), cursor];
       const full = render(forBot);
-      expect(menu(full.html)).toContain(updatesDefault ? "every thread that uses the bot&#x27;s model" : "this thread only.");
+      expect(menu(full.html)).toContain(updatesDefault ? "every thread that uses the bot&#x27;s model" : "This thread only.");
       (full.nodes.find((node) => node.type === ModelRow)!.props.onPick as () => void)();
       expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
         type: "setModel", threadId: "thread-scout", updateBotDefault: updatesDefault,
@@ -632,7 +632,7 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [];
     const opened = open(bot());
     expect(list(opened).current).toMatchObject({ label: "claude-opus-5-5", meta: "unavailable", warning: true });
-    expect(menu(opened.html)).toContain("no model providers are available.");
+    expect(menu(opened.html)).toContain("No model providers are available.");
     expect(menu(opened.html)).toContain("manage AI accounts");
   });
 
@@ -644,7 +644,7 @@ describe("the model picker in Simple mode", () => {
     fixture.instances = [claude(), plan];
     const opened = open(bot());
     const html = region(menu(opened.html), 'data-simple-provider="chatgpt"', "data-simple-effort-band");
-    expect(html).toContain("no models to show here yet.");
+    expect(html).toContain("No models to show here yet.");
     expect(html).toContain(">check again</span>");
     pane(opened)!.props.onCheckAgain(plan);
     await vi.waitFor(() => expect(fixture.refreshModels).toHaveBeenCalledWith("chatgpt"));
@@ -718,7 +718,7 @@ describe("the model picker in Simple mode", () => {
     expect(group(opened, "openai")!.body).toEqual({ kind: "policy", organization: "Acme" });
     const html = region(menu(opened.html), 'data-simple-provider="openai"', "data-simple-effort-band");
     expect(html).toContain("managed by Acme");
-    expect(html).toContain("bots cannot use this model provider while this computer is connected to Acme.");
+    expect(html).toContain("Bots cannot use this model provider while this computer is connected to Acme.");
     expect(html).not.toContain("data-simple-set-up");
     expect(html).not.toContain("GPT-5.6");
     pane(opened)!.props.onPick(blocked, "gpt-5.6");

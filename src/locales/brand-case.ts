@@ -73,3 +73,86 @@ export function brandCase(text: string): string {
 export function brandCaseEntry(key: string, value: string): string {
   return EXEMPT_KEYS.some((pattern) => pattern.test(key)) ? value : brandCase(value);
 }
+
+/** last key segments that are labels, whatever their value looks like: headings, buttons, tabs, field names, prompts */
+const LABEL_LEAF = /^(title|heading|label|placeholder|aria\w*|tab|chip|menu|button|name|short|cta|tooltip|\w+(Title|Heading|Label|Placeholder|Name))$/i;
+
+/** button, subject-line and step-name keys, wherever they sit */
+const LABEL_PATH = /(^|\.)(dismiss|copy|subject|step)(\.|$)/;
+
+/** keys that hold a message even when it has no closing full stop ("Resets in 5 days", "No messages yet") */
+const MESSAGE_KEY = /(^|\.)(error|failed|banner|notices?|toasts?|resets?|resetsIn|empty|emptyHint|emptyBody|body|loadError|loadFailed|saveError|deleteError|openFailed)(\.|$)|(Error|Failed|Notice|Banner|Toast|Resets?)$/;
+
+/** prompts the user sends as themselves; these read as typed, not as app messages */
+const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
+
+const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
+
+/** the chat window: banners and notices, composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar, settings and panel labels are not listed, so they stay lowercase. */
+const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status)\./;
+
+/** spoken-only or machine-read text keeps its case in the chat window too */
+const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
+
+/** words that sit between other chat pieces, never at the start of one */
+const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+)$/;
+
+export function isChatEntry(key: string): boolean {
+  return CHAT_KEYS.test(key) && !CHAT_FRAGMENTS.test(key) && !CHAT_QUIET.test(key) && !EXEMPT_KEYS.some((pattern) => pattern.test(key)) && !PROMPT_KEYS.some((pattern) => pattern.test(key));
+}
+
+/**
+ * Whether a string is a full-sentence message (notice, banner, status or reset line, error, toast, empty state,
+ * dialog body, sentence hint, the bots' own system lines) rather than a UI label.
+ * Labels (buttons, nav, row titles, headings, menu items, tabs, chips) stay lowercase.
+ */
+export function isSentenceEntry(key: string, value: string): boolean {
+  if (EXEMPT_KEYS.some((pattern) => pattern.test(key)) || PROMPT_KEYS.some((pattern) => pattern.test(key))) return false;
+  if (isChatEntry(key)) return true;
+  const leaf = key.split(".").pop() ?? key;
+  if (LABEL_LEAF.test(leaf) || LABEL_PATH.test(key)) return false;
+  const words = wordCount(value);
+  if (MESSAGE_KEY.test(key) && words >= 3) return true;
+  if (key.startsWith("server.") && words >= 5) return true;
+  if (/^[^.!?]+\?$/.test(value.trim()) && words <= 6) return false; // a short question is a heading ("send on your behalf?")
+  return words >= 3 && /[.!?]["”’)]*$/.test(value.trim());
+}
+
+const ABBREVIATION_BEFORE = /\b(?:e\.g|i\.e|etc|vs|approx)\.\s*$/i;
+
+/** capitalises the first letter of each sentence, and the pronoun I; names, placeholders, code, links and "dusk" stay as they are */
+export function sentenceCase(text: string): string {
+  const spans = [...text.matchAll(PROTECT)].map((m) => [m.index as number, (m.index as number) + m[0].length] as const);
+  const protectedAt = (index: number) => spans.some(([from, to]) => index >= from && index < to);
+  const chars = text.split("");
+  const starts = [0];
+  // the sentence after a filled-in reason: "could not load: {reason} please try again"
+  for (const m of text.matchAll(/\{(?:reason|detail|error|message|why)\}\s+/g)) starts.push((m.index as number) + m[0].length);
+  for (const m of text.matchAll(/[.!?]["”’)]*\s+/g)) {
+    const at = (m.index as number) + m[0].length;
+    if (!ABBREVIATION_BEFORE.test(text.slice(0, at))) starts.push(at);
+  }
+  for (const start of starts) {
+    const lead = text.slice(start).match(/^[“"'(\[]*/)?.[0].length ?? 0;
+    const at = start + lead;
+    if (protectedAt(at)) continue;
+    const word = text.slice(at).match(/^[a-z][a-z'’]*(?![A-Za-z0-9_@/]|:\S)/)?.[0];
+    if (!word || word === "dusk") continue;
+    chars[at] = chars[at].toUpperCase();
+  }
+  const out = chars.join("");
+  let result = "";
+  let last = 0;
+  const pronoun = (run: string) => run.replace(/\bi(?=['’][a-z]+\b|(?![\w.'’]))/g, "I");
+  for (const [from, to] of spans) {
+    result += pronoun(out.slice(last, from)) + out.slice(from, to);
+    last = to;
+  }
+  return result + pronoun(out.slice(last));
+}
+
+/** the policy for one English entry: lowercase labels, sentence-case messages */
+export function entryCase(key: string, value: string): string {
+  const lowered = brandCaseEntry(key, value);
+  return isSentenceEntry(key, value) ? sentenceCase(lowered) : lowered;
+}

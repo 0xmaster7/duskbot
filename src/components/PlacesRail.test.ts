@@ -201,7 +201,7 @@ it("New organization says plainly why it can't be added: the plan has as many as
   await act(async () => { await Promise.resolve(); });
   const form = document.querySelector('[data-place-add="organization"]')!;
   expect(form, "the only choice opens at once").toBeTruthy();
-  expect(form.querySelector("[data-org-problem]")?.textContent).toBe("your team plan has as many organizations as it can have. email us to add more.");
+  expect(form.querySelector("[data-org-problem]")?.textContent).toBe("Your team plan has as many organizations as it can have. Email us to add more.");
   await type(form.querySelector("input"), "Client K");
   expect(createButton()?.disabled).toBe(true);
   // Closed for a reason this app doesn't know: the neutral word, not the limit.
@@ -210,7 +210,7 @@ it("New organization says plainly why it can't be added: the plan has as many as
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   await act(async () => { await Promise.resolve(); });
-  expect(document.querySelector('[data-place-add="organization"] [data-org-problem]')?.textContent).toBe("new organizations aren't available right now.");
+  expect(document.querySelector('[data-place-add="organization"] [data-org-problem]')?.textContent).toBe("New organizations aren't available right now.");
   await act(async () => root?.unmount()); root = null; document.body.innerHTML = ""; host = document.createElement("div"); document.body.append(host);
   organizations = { canAdd: true, count: 2, max: 10 };
   await mount(createElement(PlacesRail));
@@ -219,9 +219,9 @@ it("New organization says plainly why it can't be added: the plan has as many as
   const again = document.querySelector('[data-place-add="organization"]')!;
   await type(again.querySelector("input"), "Client A");
   for (const [answer, said] of [
-    [{ outcome: "taken" }, "another of your organizations has that name. choose another."],
-    [{ outcome: "blocked", blocked: "rate" }, "too many organizations were added just now. try again in a few minutes."],
-    [{ outcome: "unsupported" }, "nothing was added. try again in a moment."],
+    [{ outcome: "taken" }, "Another of your organizations has that name. Choose another."],
+    [{ outcome: "blocked", blocked: "rate" }, "Too many organizations were added just now. Try again in a few minutes."],
+    [{ outcome: "unsupported" }, "Nothing was added. Try again in a moment."],
   ] as const) {
     cloudAdd.organization.mockResolvedValueOnce(answer);
     await click(createButton());
@@ -231,7 +231,7 @@ it("New organization says plainly why it can't be added: the plan has as many as
   cloudAdd.organization.mockRejectedValueOnce(new Error("main went away"));
   await click(createButton());
   await act(async () => { await Promise.resolve(); });
-  expect(again.querySelector("[data-org-problem]")?.textContent).toBe("nothing was added. try again in a moment.");
+  expect(again.querySelector("[data-org-problem]")?.textContent).toBe("Nothing was added. Try again in a moment.");
   expect(document.querySelector("[data-place-add-sheet]"), "the sheet stays open to try again").toBeTruthy();
 });
 
@@ -242,7 +242,7 @@ it("Buy a Cloud, for someone whose Admin sells one Cloud per account: the calm w
   await act(async () => { await Promise.resolve(); });
   const flow = document.querySelector('[data-cloud-add="extra-one"]')!;
   expect(flow.textContent).toContain("one cloud per account for now");
-  expect(flow.textContent).toContain("you have My Cloud.");
+  expect(flow.textContent).toContain("You have My Cloud.");
   expect(cloudAdd.sheet).toHaveBeenCalledWith(true);
 });
 
@@ -373,7 +373,7 @@ it("a right-click on a circle opens its place's menu: its colour, saved by main 
   expect(host.querySelector("[data-rail-menu]"), "saved: the menu closes, and the circle follows main's list").toBeNull();
   expect(expand.mock.calls.at(-1)).toEqual([false]);
   const locked = await menuOf("acme");
-  expect(locked?.querySelector("[data-rail-menu-note]")?.textContent).toBe("only its admins can change its color.");
+  expect(locked?.querySelector("[data-rail-menu-note]")?.textContent).toBe("Only its admins can change its color.");
   expect([...locked!.querySelectorAll<HTMLButtonElement>("[data-swatch]")].every((swatch) => swatch.disabled), "a member sees it, and can't change it").toBe(true);
   expect(locked!.querySelector("[aria-checked='true']")?.getAttribute("data-swatch")).toBe("violet");
   await act(async () => { locked!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
@@ -400,12 +400,12 @@ it("a Cloud of the person's own that ended says so on its circle, and its menu o
   await act(async () => { host.querySelector("[data-rail-menu]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
   const menu = await menuOf("old");
   await click(menu!.querySelector("[data-rail-remove-ask]"));
-  expect(menu!.querySelector("[data-rail-remove] [role='alertdialog'] p")?.textContent).toBe("remove “Old Cloud” from your list? you can buy a new cloud any time.");
+  expect(menu!.querySelector("[data-rail-remove] [role='alertdialog'] p")?.textContent).toBe("Remove “Old Cloud” from your list? You can buy a new cloud any time.");
   expect(remove).not.toHaveBeenCalled();
   await click(menu!.querySelector("[data-rail-remove-confirm]"));
   await settle();
   expect(remove).toHaveBeenCalledWith("old");
-  expect(host.querySelector("[data-rail-menu] [role='alert']")?.textContent, "the Admin's no, said plainly").toBe("it can't be removed right now: it is running again, or still has a plan.");
+  expect(host.querySelector("[data-rail-menu] [role='alert']")?.textContent, "the Admin's no, said plainly").toBe("It can't be removed right now: it is running again, or still has a plan.");
   remove.mockResolvedValueOnce({ outcome: "removed" });
   await click(host.querySelector("[data-rail-menu] [data-rail-remove-ask]"));
   await click(host.querySelector("[data-rail-menu] [data-rail-remove-confirm]"));
@@ -432,7 +432,7 @@ it("a server of the person's own that main offers as home: its menu's one tap st
   await act(async () => { host.querySelector("[data-rail-menu]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
   const menu = await menuOf("garage");
   const row = menu!.querySelector("[data-rail-make-home-start]");
-  expect(row?.textContent).toBe("make Garage server my homemoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
+  expect(row?.textContent).toBe("make Garage server my homeMoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
   await click(row);
   await settle();
   expect(makeHome).toHaveBeenCalledWith("garage");

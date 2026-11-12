@@ -24,7 +24,7 @@ beforeEach(() => { setLocale("en"); vi.useFakeTimers({ now: NOW, toFake: ["Date"
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); vi.useRealTimers(); });
 
 it("says who it waits on and counts down to the next look", () => {
-  expect(reconnectText(VIEW, NOW)).toEqual({ title: "reconnecting to Garage server", next: "next try in 8s." });
+  expect(reconnectText(VIEW, NOW)).toEqual({ title: "reconnecting to Garage server", next: "Next try in 8s." });
   expect(secondsLeft(VIEW, NOW + 7_400)).toBe(1);
   expect(secondsLeft(VIEW, NOW + 20_000), "never below zero").toBe(0);
   expect(reconnectText({ ...VIEW, checking: true, nextAt: null }, NOW).next).toBe("looking for it now…");
@@ -37,9 +37,9 @@ it("shows the last-seen chats read only, Try now, and the other workspaces to op
   await act(async () => { root!.render(createElement(ReconnectScreen, { bridge })); });
   await settle();
   expect(host.querySelector("[role='status']")?.textContent).toBe("reconnecting to Garage server");
-  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("next try in 8s.");
+  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("Next try in 8s.");
   await act(async () => { vi.advanceTimersByTime(3_000); });
-  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("next try in 5s.");
+  expect(host.querySelector("[data-reconnect-next]")?.textContent).toBe("Next try in 5s.");
   const frame = host.querySelector("[data-reconnect-frame]")!;
   expect(frame.textContent).toContain("Flights to Goa");
   expect(frame.textContent, "an untitled chat still has a name").toContain("new conversation");

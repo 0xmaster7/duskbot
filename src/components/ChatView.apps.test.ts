@@ -70,6 +70,6 @@ describe("words an app sent as the person", () => {
     expect(markup).toContain('data-sent-from-app="a1"');
     expect(markup.indexOf("sent from Coffee counter")).toBeGreaterThan(markup.indexOf("I have had 3 cups"));
     expect(markup.indexOf("sent from Coffee counter")).toBeLessThan(markup.indexOf("typed words"));
-    expect(markup).not.toContain("via call");
+    expect(markup).not.toContain("Via call");
   });
 });

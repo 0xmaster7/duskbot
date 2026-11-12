@@ -73,10 +73,10 @@ describe("move to cloud desktop", () => {
     await render();
     expect(stage()).toBe("buy");
     const text = document.body.textContent ?? "";
-    expect(text).toContain("all 3 bots move together, with their chats, memory, files and routines.");
+    expect(text).toContain("All 3 bots move together, with their chats, memory, files and routines.");
     expect(text).toContain("keeps working while your computer sleeps or is closed");
-    expect(text).toContain("from $19/month + tax.");
-    expect(text).toContain("after you pay, your bots move by themselves.");
+    expect(text).toContain("From $19/month + tax.");
+    expect(text).toContain("After you pay, your bots move by themselves.");
     button("get cloud desktop")!.click();
     await settle();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_computer_move" });

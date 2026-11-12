@@ -61,9 +61,9 @@ describe("NewMessagesDivider", () => {
   it("draws two solid accent hairlines at 20% around a small label, named for screen readers", () => {
     const html = renderToStaticMarkup(createElement(NewMessagesDivider, { fading: false }));
     expect(html).toContain('role="separator"');
-    expect(html).toContain('aria-label="new messages"');
+    expect(html).toContain('aria-label="New messages"');
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain(">new<");
+    expect(html).toContain(">New<");
     expect(html).toContain("text-[11px]");
     expect(html).toContain("text-(--new-ink)");
     expect(html).toContain("--new-ink:var(--grok-new, var(--color-accent-text))");

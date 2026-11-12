@@ -73,7 +73,7 @@ describe("SecretRequestCard superseded requests", () => {
 
   it("stops offering entry and names its replacement once superseded", () => {
     const html = view({ superseded: true });
-    expect(html).toContain("replaced by a newer request · OpenAI API key");
+    expect(html).toContain("Replaced by a newer request · OpenAI API key");
     expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("Save securely");
     expect(html).not.toContain("type=\"password\"");
@@ -124,8 +124,8 @@ describe("SecretRequestCard ask card", () => {
   it("folds into one line that names the key once it is saved and the bot resumed", () => {
     const html = view({ provided: true, resumed: true });
     expect(html).toContain('data-ask-card="settled"');
-    expect(html).toContain(">secrets</span>");
-    expect(html).toContain("saved · OpenAI API key");
+    expect(html).toContain(">Secrets</span>");
+    expect(html).toContain("Saved · OpenAI API key");
     expect(html).toContain('data-icon-name="key"');
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<form");
@@ -149,7 +149,7 @@ describe("SecretRequestCard mailbox", () => {
     expect(html).toContain('value="me@shop.example"');
     expect(html).toContain('type="password"');
     expect(html).toContain("mailbox password");
-    expect(html).toContain("they never see it.");
+    expect(html).toContain("They never see it.");
   });
 
   it("asks for the server only once one could not be found, and other cards have no address field", () => {
@@ -281,21 +281,21 @@ describe("SecretRequestCard custom secrets", () => {
     const file = view({ target: "customSecret", label: "Stripe secret key", reason: "To create test charges.", description: "To create test charges. Scout's commands can read it.", helpUrl: "", delivery: "file" });
     expect(file).toContain("To create test charges.");
     expect(file).not.toContain("Scout&#x27;s commands can read it.");
-    expect(file).toContain("saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
+    expect(file).toContain("Saved to a private file your bot&#x27;s commands can read for 24 hours, then deleted.");
     expect(file).not.toContain("Where to get this key");
     const ref = view({ target: "customSecret", label: "Notion key", reason: "For Notion.", helpUrl: "", delivery: "ref" });
-    expect(ref).toContain("dusk bot gives its own tools a one-use reference. your bot never sees it");
+    expect(ref).toContain("dusk bot gives its own tools a one-use reference. Your bot never sees it");
     expect(ref).toContain('data-secret-remember=""');
     expect(ref).toMatch(/type="checkbox"[^>]*checked=""/u);
-    expect(ref).toContain("save to vault");
+    expect(ref).toContain("Save to vault");
   });
 
   it("settles into Grok's Secrets line: saved, used once, or cancelled", () => {
     const custom = { target: "customSecret", label: "OpenRouter API key", helpUrl: "", delivery: "ref" };
-    expect(view({ ...custom, provided: true, resumed: true, kept: "vault" })).toContain("saved · OpenRouter API key");
-    expect(view({ ...custom, provided: true, resumed: true, kept: "once" })).toContain("used once · OpenRouter API key");
+    expect(view({ ...custom, provided: true, resumed: true, kept: "vault" })).toContain("Saved · OpenRouter API key");
+    expect(view({ ...custom, provided: true, resumed: true, kept: "once" })).toContain("Used once · OpenRouter API key");
     const cancelled = view({ ...custom, dismissed: true, resumed: true });
-    expect(cancelled).toContain("cancelled · OpenRouter API key");
+    expect(cancelled).toContain("Cancelled · OpenRouter API key");
     expect(cancelled).not.toContain("<input");
   });
 });

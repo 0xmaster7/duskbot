@@ -147,8 +147,8 @@ describe("Grok Build device sign-in UI", () => {
 
   it.each([
     ["failed", { message: "Grok sign-in was declined in the browser. Start sign-in again to try once more." }, "declined in the browser"],
-    ["expired", {}, "this code expired"],
-    ["cancelled", {}, "sign-in cancelled"],
+    ["expired", {}, "This code expired"],
+    ["cancelled", {}, "Sign-in cancelled"],
     ["succeeded", {}, "Grok connected"],
   ] as const)("ends a %s sign-in with one plain line and no code", (phase, extra, line) => {
     const html = renderGrok({ ...grok, phase, ...extra });

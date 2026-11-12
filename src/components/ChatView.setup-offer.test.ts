@@ -57,20 +57,20 @@ afterAll(() => {
 describe("the setup card in the chat", () => {
   it("is drawn under a blank bot's greeting and sends a pick's words for this conversation", async () => {
     await draw(profile());
-    expect(card()?.textContent).toContain("what should i help you with first?");
-    expect(firstAnswer()?.textContent).toBe("research and digging into topics");
+    expect(card()?.textContent).toContain("What should I help you with first?");
+    expect(firstAnswer()?.textContent).toBe("Research and digging into topics");
     expect(firstAnswer()?.querySelector("kbd")?.getAttribute("data-letter")).toBe("A");
     sent.length = 0;
     flushSync(() => firstAnswer()!.click());
     await settle();
     const press = sent.find((call) => call.url.endsWith("/api/bots/pepper/setup-request"));
-    expect(press?.init).toMatchObject({ method: "POST", body: JSON.stringify({ threadId: "pepper-thread", text: "research and digging into topics" }) });
+    expect(press?.init).toMatchObject({ method: "POST", body: JSON.stringify({ threadId: "pepper-thread", text: "Research and digging into topics" }) });
   });
 
   it("settles with the person's answer once they have written, and is never shown for a bot with instructions", async () => {
     const said: Message = { id: "u1", parentId: "g1", role: "user", kind: "text", at: greeting.at + 1, text: "hello", setupRequest: true };
     await draw(profile({ messages: [greeting, said], activeLeafId: "u1" }));
-    expect(card()?.textContent).toContain("your answer");
+    expect(card()?.textContent).toContain("Your answer");
     expect(firstAnswer()?.disabled).toBe(true);
     await draw(profile({ soul: "only water the garden." }));
     expect(card()).toBeNull();

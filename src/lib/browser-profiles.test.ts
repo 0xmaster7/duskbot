@@ -15,7 +15,7 @@ describe("browser profile deletion", () => {
       { name: "Personal", browserProfile: "home", busy: true },
     ];
     expect(browserProfileDeletionBlockReason(bots, "work")).toBe(
-      "Researcher is still running. stop that bot before deleting this browser profile.",
+      "Researcher is still running. Stop that bot before deleting this browser profile.",
     );
     expect(browserProfileDeletionBlockReason(bots, "unused")).toBeNull();
   });

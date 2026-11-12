@@ -54,7 +54,7 @@ describe("ThreadRefText", () => {
     const markup = inProvider(createElement(ThreadRefText, { text: "please finish #QA PR 245 first" }));
     expect(markup).toContain("please finish ");
     expect(markup).toContain('<button type="button" data-thread-link="qa-245"');
-    expect(markup).toContain('title="open #QA PR 245"');
+    expect(markup).toContain('title="Open #QA PR 245"');
     expect(markup).toContain(">#QA PR 245</button>");
   });
 
@@ -65,7 +65,7 @@ describe("ThreadRefText", () => {
     fixture.selectedId = "standup";
     const guessed = inProvider(createElement(ThreadRefText, { text: "#QA PR 245" }));
     expect(guessed).toContain('data-thread-link="ada-qa"');
-    expect(guessed).toContain('title="open #QA PR 245"');
+    expect(guessed).toContain('title="Open #QA PR 245"');
   });
 
   it("renders plain text untouched when nothing matches", () => {
@@ -116,8 +116,8 @@ describe("ThreadLink", () => {
 
   it("names the bot in the tooltip only when the title was ambiguous", () => {
     const target = { botId: "ada", threadId: "ada-qa", title: "QA PR 245", botName: "Ada" };
-    expect(renderToStaticMarkup(createElement(ThreadLink, { target, ambiguous: true }, "#QA PR 245"))).toContain('title="open #QA PR 245 on Ada"');
-    expect(renderToStaticMarkup(createElement(ThreadLink, { target, ambiguous: false }, "#QA PR 245"))).toContain('title="open #QA PR 245"');
+    expect(renderToStaticMarkup(createElement(ThreadLink, { target, ambiguous: true }, "#QA PR 245"))).toContain('title="Open #QA PR 245 on Ada"');
+    expect(renderToStaticMarkup(createElement(ThreadLink, { target, ambiguous: false }, "#QA PR 245"))).toContain('title="Open #QA PR 245"');
   });
 
   it("reads a thread link back out of the markdown span props, and nothing out of a plain span", () => {

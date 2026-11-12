@@ -121,7 +121,7 @@ describe("the inbox tab", () => {
     expect(listed()).toEqual(["n1"]);
     await type(document.querySelector<HTMLInputElement>('input[type="search"]')!, "nothing like it");
     expect(listed()).toEqual([]);
-    expect(document.body.textContent).toContain("nothing in the inbox matches.");
+    expect(document.body.textContent).toContain("Nothing in the inbox matches.");
     await click('[aria-label="close inbox"]');
     expect(currentInboxPanel().open).toBe(false);
   });

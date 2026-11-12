@@ -106,14 +106,14 @@ describe("Adding an MCP server from one paste box", () => {
     await click("add server");
     expect(host.querySelector("[data-mcp-editor] input")).toBeNull();
     await type("textarea[aria-label='server link or setup command']", GATEWAY);
-    expect(host.textContent).toContain("ready to add my-mcp (mcp.example.com).");
-    expect(host.textContent).toContain("paste the real value of CF_ID here: the command used a variable from your terminal.");
-    expect(host.textContent).toContain("paste the real value of CF_SECRET here: the command used a variable from your terminal.");
+    expect(host.textContent).toContain("Ready to add my-mcp (mcp.example.com).");
+    expect(host.textContent).toContain("Paste the real value of CF_ID here: the command used a variable from your terminal.");
+    expect(host.textContent).toContain("Paste the real value of CF_SECRET here: the command used a variable from your terminal.");
     expect([...host.querySelectorAll("[data-mcp-editor] input")].map((input) => [input.getAttribute("aria-label"), input.getAttribute("type")]))
       .toEqual([["CF-Access-Client-Id", "password"], ["CF-Access-Client-Secret", "password"]]);
 
     await click("add");
-    expect(host.querySelector("[data-mcp-editor] [role=alert]")?.textContent).toBe("fill in CF-Access-Client-Id, or remove it.");
+    expect(host.querySelector("[data-mcp-editor] [role=alert]")?.textContent).toBe("Fill in CF-Access-Client-Id, or remove it.");
     expect(calls("POST", "/api/mcp/servers")).toEqual([]);
 
     await type("input[aria-label='CF-Access-Client-Id']", ID);
@@ -139,7 +139,7 @@ describe("Adding an MCP server from one paste box", () => {
     await click("add");
     expect(calls("POST", "/api/mcp/servers")[0]?.body).toEqual({ name: "acme", type: "http", url: "https://mcp.acme.example/mcp", headers: {} });
     expect(calls("PATCH")).toEqual([]);
-    expect(host.textContent).toContain("saved, but off: the test failed. Could not reach this address. Check the URL and your network. your bots can use it once it's on.");
+    expect(host.textContent).toContain("Saved, but off: the test failed. Could not reach this address. Check the URL and your network. Your bots can use it once it's on.");
     expect(host.querySelector('[role="switch"][aria-label="turn acme on"]')?.getAttribute("aria-checked")).toBe("false");
     expect(button("fix the keys")).toBeUndefined();
 
@@ -157,7 +157,7 @@ describe("Adding an MCP server from one paste box", () => {
     await type("input[aria-label='CF-Access-Client-Secret']", "wrong-secret-value");
     await click("add");
     expect(host.textContent).toContain(
-      "saved, but off: the test failed. the server didn't accept the keys (HTTP 403). check the values of CF-Access-Client-Id and CF-Access-Client-Secret. your bots can use it once it's on.");
+      "Saved, but off: the test failed. The server didn't accept the keys (HTTP 403). Check the values of CF-Access-Client-Id and CF-Access-Client-Secret. Your bots can use it once it's on.");
     expect(button("try again")).toBeUndefined();
     expect(host.innerHTML).not.toContain("wrong-secret-value");
     expect(host.innerHTML).not.toContain(ID);
@@ -189,7 +189,7 @@ describe("Adding an MCP server from one paste box", () => {
     await click("add server");
     await type("textarea[aria-label='server link or setup command']", "https://mcp.acme.example/mcp");
     await click("add");
-    expect(host.textContent).toContain("the server didn't let it in (HTTP 401). it probably needs a key: add it with fix the keys.");
+    expect(host.textContent).toContain("The server didn't let it in (HTTP 401). It probably needs a key: add it with fix the keys.");
     await click("fix the keys");
     expect([...host.querySelectorAll("[data-mcp-editor] input")].map((input) => input.getAttribute("aria-label"))).toEqual(["header name", "value"]);
     await click("cancel");
@@ -205,7 +205,7 @@ describe("Adding an MCP server from one paste box", () => {
     await click("add server");
     await type("textarea[aria-label='server link or setup command']", "please help me connect my server");
     expect(host.querySelector("[data-mcp-editor] [role=alert]")?.textContent).toBe(
-      "that doesn't look like a server link or a setup command. check you copied all of it, or fill it in yourself under edit details.");
+      "That doesn't look like a server link or a setup command. Check you copied all of it, or fill it in yourself under edit details.");
     expect(button("add")?.disabled).toBe(true);
   });
 
@@ -239,7 +239,7 @@ describe("Adding an MCP server on a Team Cloud", () => {
   it("says everyone on the team can use it, and offers Only for me only for a server with one key", async () => {
     await click("add server");
     await type("textarea[aria-label='server link or setup command']", GATEWAY.replace("$CF_ID", ID).replace("$CF_SECRET", SECRET));
-    expect(host.querySelector("[data-mcp-team-scope]")?.textContent).toBe("everyone on your team can use this.");
+    expect(host.querySelector("[data-mcp-team-scope]")?.textContent).toBe("Everyone on your team can use this.");
     expect(host.querySelector("[data-mcp-team-scope] input")).toBeNull();
     await click("add");
     expect(calls("PUT")).toEqual([]);
@@ -251,7 +251,7 @@ describe("Adding an MCP server on a Team Cloud", () => {
     await type(`input[aria-label='${header}']`, "mail-key-12345");
     await act(async () => host.querySelector<HTMLInputElement>("[data-mcp-team-scope] input[type=checkbox]")!.click());
     await settle();
-    expect(host.querySelector("[data-mcp-team-scope]")?.textContent).toContain("only you can use this. teammates can add their own key from their team page.");
+    expect(host.querySelector("[data-mcp-team-scope]")?.textContent).toContain("Only you can use this. Teammates can add their own key from their team page.");
     await click("add");
     expect(calls("POST", "/api/mcp/servers")[0]?.body.headers).toEqual({ [header]: "" });
     expect(calls("PUT")).toEqual([
@@ -540,7 +540,7 @@ describe("A saved server's switch", () => {
     await click("add server");
     await type("textarea[aria-label='server link or setup command']", "https://mcp.acme.example/mcp");
     await click("add");
-    expect(host.querySelector("[data-mcp-testing]")?.textContent?.trim()).toBe("off until it passes a test: testing it now.");
+    expect(host.querySelector("[data-mcp-testing]")?.textContent?.trim()).toBe("Off until it passes a test: testing it now.");
     await act(async () => answer({ ok: true, tools: [{ name: "search" }] }));
     await settle();
     expect(host.querySelector("[data-mcp-testing]")).toBeNull();

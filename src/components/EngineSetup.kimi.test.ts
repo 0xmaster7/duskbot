@@ -52,7 +52,7 @@ describe("Kimi on My Cloud, which has no terminal", () => {
   it("signs in with Kimi's code on the server's page, with no terminal command", () => {
     const html = render(signedOut, desktop, true);
     expect(html).toContain('data-device-sign-in="kimi"');
-    expect(html).toContain("sign in with your Kimi Code membership so your bots can use Kimi");
+    expect(html).toContain("Sign in with your Kimi Code membership so your bots can use Kimi");
     expect(html).toContain("sign in to Kimi");
     expect(html).not.toContain("kimi login");
   });

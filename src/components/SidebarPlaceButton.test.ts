@@ -93,7 +93,7 @@ it("says so when main can't open the list", async () => {
   await mount();
   await act(async () => { button()!.click(); await Promise.resolve(); });
   await act(async () => { await Promise.resolve(); });
-  expect(host.querySelector("[role=alert]")?.textContent).toBe("could not open the server list. try the server menu.");
+  expect(host.querySelector("[role=alert]")?.textContent).toBe("Could not open the server list. Try the server menu.");
 });
 
 it("nothing once My Cloud is home with nothing else, and nothing in a browser", async () => {

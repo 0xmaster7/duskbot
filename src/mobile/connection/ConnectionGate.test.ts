@@ -77,7 +77,7 @@ it("a phone removed on the computer while the app is open leaves for pairing at 
   await act(async () => { await api("/api/bots").catch(() => {}); await sessionCheck(); });
   await settle();
   expect(host.textContent).not.toBe("home");
-  expect(host.textContent).toContain("this phone was unlinked");
+  expect(host.textContent).toContain("This phone was unlinked");
   expect(prefs.get("dusk.mobile.active.v1")).toBeUndefined();
   expect(prefs.get("dusk.mobile.connections.v1")).not.toContain("Studio Mac");
   expect(sessionEnded()).toBe(false);

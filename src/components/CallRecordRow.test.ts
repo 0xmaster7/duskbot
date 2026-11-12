@@ -17,7 +17,7 @@ const row = (call: Partial<NonNullable<Message["call"]>> = {}) => msg("row", {
 });
 const transcript: Message[] = [
   msg("m1", { role: "user", text: "what's the weather", via: "call", callId: "c1" }),
-  step("a1", "m1", { name: "WebSearch", spoken: "searching the web", ok: true, input: "weather pune secret-query" }),
+  step("a1", "m1", { name: "WebSearch", spoken: "Searching the web", ok: true, input: "weather pune secret-query" }),
   msg("o1", {
     kind: "options",
     requestMessageId: "m1",
@@ -25,7 +25,7 @@ const transcript: Message[] = [
   }),
   msg("b1", { text: "Sunny.", requestMessageId: "m1" }),
   msg("m2", { role: "user", text: "thanks" }),
-  step("a2", "m2", { name: "Read", spoken: "reading a file", ok: true }),
+  step("a2", "m2", { name: "Read", spoken: "Reading a file", ok: true }),
 ];
 const draw = (message: Message, messages: Message[] = transcript, { busy = false, hasMore = false } = {}) =>
   renderToStaticMarkup(createElement(CallRecordRow, { message, transcript: [...messages, message], botName: "Pepper", busy, hasMore }));
@@ -39,11 +39,11 @@ describe("CallRecordRow", () => {
   it("names the call, its length and what the bot did on it", () => {
     const markup = draw(row());
     expect(markup).toContain('data-testid="call-record"');
-    expect(markup).toContain("call with Pepper");
+    expect(markup).toContain("Call with Pepper");
     expect(markup).toContain("1:42");
-    expect(markup).toContain("searching the web");
-    expect(markup).toContain("allowed: run a command · by voice");
-    expect(markup).not.toContain("reading a file");
+    expect(markup).toContain("Searching the web");
+    expect(markup).toContain("Allowed: Run a command · By voice");
+    expect(markup).not.toContain("Reading a file");
     expect(markup).not.toContain("secret-query");
     expect(markup).not.toContain("rm -rf build");
   });
@@ -56,7 +56,7 @@ describe("CallRecordRow", () => {
 
   it("is only a title and a length for a call where nothing was asked", () => {
     const markup = draw(row(), []);
-    expect(markup).toContain("call with Pepper");
+    expect(markup).toContain("Call with Pepper");
     expect(markup).toContain("1:42");
     expect(markup).not.toContain("<li");
   });
@@ -64,40 +64,40 @@ describe("CallRecordRow", () => {
   it("tells a screen reader how each step went, which its glyph only shows", () => {
     const work: Message[] = [
       msg("m1", { role: "user", text: "check the build", via: "call", callId: "c1" }),
-      step("a1", "m1", { name: "WebSearch", spoken: "searching the web", ok: true }),
+      step("a1", "m1", { name: "WebSearch", spoken: "Searching the web", ok: true }),
       step("a2", "m1", { name: "Bash", spoken: "running the tests", ok: false }),
-      step("a3", "m1", { name: "Read", spoken: "reading a file" }),
+      step("a3", "m1", { name: "Read", spoken: "Reading a file" }),
       msg("o1", { kind: "options", requestMessageId: "m1", card: { title: "Approval needed", subtitle: "rm -rf build", options: ["allow", "deny"], requestId: "r1", tool: "Bash", answered: "deny" } }),
     ];
     const markup = draw(row(), work, { busy: true });
     expect(lineTexts(markup)).toEqual([
-      "searching the web (completed)",
-      "running the tests (failed)",
-      "reading a file (running)",
-      "denied: run a command",
+      "Searching the web (Completed)",
+      "running the tests (Failed)",
+      "Reading a file (Running)",
+      "Denied: Run a command",
     ]);
-    expect(markup).toContain('<span class="sr-only"> (failed)</span>');
+    expect(markup).toContain('<span class="sr-only"> (Failed)</span>');
   });
 
   it("says how a step went in the app's language, the words the tool chip uses", () => {
     const work: Message[] = [
       msg("m1", { role: "user", text: "check the build", via: "call", callId: "c1" }),
-      step("a1", "m1", { name: "WebSearch", spoken: "searching the web", ok: true }),
+      step("a1", "m1", { name: "WebSearch", spoken: "Searching the web", ok: true }),
       step("a2", "m1", { name: "Bash", spoken: "running the tests", ok: false }),
-      step("a3", "m1", { name: "Read", spoken: "reading a file" }),
+      step("a3", "m1", { name: "Read", spoken: "Reading a file" }),
     ];
     setLocale("zh");
     expect(lineTexts(draw(row(), work, { busy: true }))).toEqual([
-      "searching the web (已完成)",
+      "Searching the web (已完成)",
       "running the tests (失败)",
-      "reading a file (运行中)",
+      "Reading a file (运行中)",
     ]);
   });
 
   it("is a labelled group rather than a landmark, with its lines kept inside the pill", () => {
     const markup = draw(row());
     expect(markup).toContain('role="group"');
-    expect(markup).toContain('aria-label="live call: call with Pepper, 1:42"');
+    expect(markup).toContain('aria-label="Live call: Call with Pepper, 1:42"');
     expect(markup).not.toContain("<section");
     expect(markup).toMatch(/<ul class="[^"]*\bmax-w-full\b/);
   });
@@ -107,17 +107,17 @@ describe("CallRecordRow", () => {
       msg("m1", { role: "user", text: "clean the build", via: "call", callId: "c1" }),
       msg("o1", { kind: "options", requestMessageId: "m1", card: { title: "Approval needed", subtitle: "rm -rf build", options: ["allow", "deny"], requestId: "r1", tool: "Bash", expired: true } }),
     ];
-    expect(lineTexts(draw(row(), work))).toEqual(["expired: run a command"]);
+    expect(lineTexts(draw(row(), work))).toEqual(["Expired: Run a command"]);
   });
 
   describe("a call that began before the messages loaded so far", () => {
-    const hint = "some of this call may be in earlier messages";
+    const hint = "Some of this call may be in earlier messages";
 
     it("says its lines may be incomplete, and how to see them, when older messages remain", () => {
       const markup = draw(row(), transcript, { hasMore: true });
       expect(markup).toContain(hint);
-      expect(markup).toContain("load earlier messages");
-      expect(markup).toContain("searching the web");
+      expect(markup).toContain("Load earlier messages");
+      expect(markup).toContain("Searching the web");
     });
 
     it("says nothing once everything is loaded", () => {
@@ -133,18 +133,18 @@ describe("CallRecordRow", () => {
   describe("a step that never reported how it went", () => {
     const work: Message[] = [
       msg("m1", { role: "user", text: "read the log", via: "call", callId: "c1" }),
-      step("a1", "m1", { name: "Read", spoken: "reading a file" }),
+      step("a1", "m1", { name: "Read", spoken: "Reading a file" }),
     ];
 
     it("reads as running, with the working dots, while its chat is busy", () => {
       const markup = draw(row(), work, { busy: true });
-      expect(lineTexts(markup)).toEqual(["reading a file (running)"]);
+      expect(lineTexts(markup)).toEqual(["Reading a file (Running)"]);
       expect(markup).toContain("animate-status-pulse");
     });
 
     it("is neutral once its chat is not: no dots and no announcement of running, a dash instead", () => {
       const markup = draw(row(), work, { busy: false });
-      expect(lineTexts(markup)).toEqual(["reading a file"]);
+      expect(lineTexts(markup)).toEqual(["Reading a file"]);
       expect(markup).not.toContain("animate-status-pulse");
       expect(markup).not.toContain("running");
       expect(markup).toContain("gi-minus");
@@ -153,11 +153,11 @@ describe("CallRecordRow", () => {
     it("leaves a step that did report alone, busy or not", () => {
       const settled: Message[] = [
         msg("m1", { role: "user", text: "check the build", via: "call", callId: "c1" }),
-        step("a1", "m1", { name: "WebSearch", spoken: "searching the web", ok: true }),
+        step("a1", "m1", { name: "WebSearch", spoken: "Searching the web", ok: true }),
         step("a2", "m1", { name: "Bash", spoken: "running the tests", ok: false }),
       ];
       for (const busy of [true, false]) {
-        expect(lineTexts(draw(row(), settled, { busy }))).toEqual(["searching the web (completed)", "running the tests (failed)"]);
+        expect(lineTexts(draw(row(), settled, { busy }))).toEqual(["Searching the web (Completed)", "running the tests (Failed)"]);
       }
     });
   });

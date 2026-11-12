@@ -55,7 +55,7 @@ describe("other OpenAI-compatible servers", () => {
 
   it("says so when none are added", () => {
     const html = render([instance("openaiCompat", "Other (OpenAI-compatible)")]);
-    expect(html).toContain("no other servers yet.");
+    expect(html).toContain("No other servers yet.");
   });
 
   it("reads model IDs separated by commas, CJK commas or spaces", () => {
@@ -287,7 +287,7 @@ describe("LM Studio and Bionic setup", () => {
       dispatch: vi.fn(), flushBotPatches: vi.fn(), refreshInstances: vi.fn(), refreshModels: vi.fn(),
     });
     const html = renderToStaticMarkup(createElement(LmStudioServer));
-    expect(html).toContain("this server is already added.");
+    expect(html).toContain("This server is already added.");
     expect(html).toContain("disabled");
   });
 });

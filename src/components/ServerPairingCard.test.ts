@@ -67,7 +67,7 @@ describe("pairing devices from a hosted server's settings", () => {
     expect(cloud).toContain("create pairing code");
     expect(cloud).not.toContain("chat and approvals only");
     expect(cloud).toContain("data-server-pairing-personal");
-    expect(cloud).toContain("the cloud is personal: only your own devices can connect");
+    expect(cloud).toContain("The cloud is personal: only your own devices can connect");
     const elsewhere = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: admin }));
     expect(elsewhere).toContain("chat and approvals only");
     expect(elsewhere).not.toContain("data-server-pairing-personal");

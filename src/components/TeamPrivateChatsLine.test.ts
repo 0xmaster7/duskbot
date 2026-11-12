@@ -16,7 +16,7 @@ describe("who can see a team's private chat", () => {
 
   it("says, once, that nobody else sees it: no other member and no admin", () => {
     const html = renderToStaticMarkup(createElement(TeamPrivateFirstLine, { team: { id: "acme-first-line", name: "Acme" } }));
-    expect(html).toContain("your chats in Acme are private. only you can see them: not other members, not Acme&#x27;s admins.");
+    expect(html).toContain("Your chats in Acme are private. Only you can see them: not other members, not Acme&#x27;s admins.");
   });
 
   it("says, in a team bot's shared chats, that everyone in the team can see them", () => {

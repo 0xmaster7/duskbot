@@ -109,7 +109,7 @@ it("another Cloud's checkout still open: the sheet follows that one, with its pa
   await mount();
   await click(host.querySelector("[data-plan-buy='pro']"));
   await click(buttonNamed("continue to checkout"));
-  expect(host.querySelector("[data-cloud-add='extra-signups_closed']")?.textContent).toContain("new clouds can't be bought right now.");
+  expect(host.querySelector("[data-cloud-add='extra-signups_closed']")?.textContent).toContain("New clouds can't be bought right now.");
 });
 
 it("the Cloud bought is ready: open opens it and closes the sheet", async () => {
@@ -129,7 +129,7 @@ it("the Admin refusing to add (its cap) is the calm one-Cloud word; no Cloud of 
   expect(host.querySelector("[data-cloud-add='extra-one']")?.textContent).toContain("one cloud per account for now");
   await click(buttonNamed("email me when i can add another"));
   expect(bridge.interest).toHaveBeenCalledTimes(1);
-  expect(host.textContent).toContain("we'll email you");
+  expect(host.textContent).toContain("We'll email you");
   await act(async () => root?.unmount()); root = null;
   view = base({ hasCloud: false });
   const done = await mount();

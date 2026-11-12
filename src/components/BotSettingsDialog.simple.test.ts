@@ -321,7 +321,7 @@ describe("the bot panel in Simple mode", () => {
     (ofType(settings, AdvancedTab)!.props.onOpen as (page: string) => void)("apps");
     const apps = panel(bot);
     expect(header(apps)).toEqual({ back: "advanced", title: "apps it can use" });
-    expect(apps.html).toContain("switch on the apps Scout may use. everything else stays off.");
+    expect(apps.html).toContain("Switch on the apps Scout may use. Everything else stays off.");
     goBack(apps);
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
@@ -592,7 +592,7 @@ describe("the Details tab", () => {
 
   it("says what routines are while the bot has none, in Grok's words, and lists them once it has some", () => {
     const empty = botTab(makeBot());
-    expect(empty.html).toContain(">routines are recurring tasks this bot runs on a schedule. ask it in chat to set one up.<");
+    expect(empty.html).toContain(">Routines are recurring tasks this bot runs on a schedule. Ask it in chat to set one up.<");
     // routines are set up in chat, so the panel offers no button of its own
     expect(empty.html).not.toContain('data-panel-action="new-routine"');
     fixture.storeState = { ...fixture.storeState, routines: [routine()] };
@@ -670,7 +670,7 @@ describe("the Library", () => {
   it("says what it will hold while the bot has made nothing, in Grok's words, and nothing else", () => {
     const rendered = library(makeBot());
     expect(rendered.html).toContain('data-panel-empty="library"');
-    expect(rendered.html).toContain(">pages, files, and apps this bot makes show up here<");
+    expect(rendered.html).toContain(">Pages, files, and apps this bot makes show up here<");
     for (const gone of ["memory", "skills", "folder"]) expect(has(rendered, "data-panel-page", gone), gone).toBe(false);
   });
 
@@ -679,7 +679,7 @@ describe("the Library", () => {
     expect(rendered.html).toContain('data-panel-card="library"');
     expect(rendered.html).not.toContain(">library<");
     expect(rendered.html).not.toContain("data-panel-card-surface");
-    expect(rendered.html).toContain(">pages, files, and apps this bot makes show up here<");
+    expect(rendered.html).toContain(">Pages, files, and apps this bot makes show up here<");
     expect(has(rendered, "data-panel-page", "library")).toBe(false);
   });
 });
@@ -894,10 +894,10 @@ describe("the drill-in pages", () => {
     fixture.apps = { phase: "loading", apps: [], connectedSlugs: [] };
     expect(body("apps").html).toContain("checking…");
     fixture.apps = { phase: "unknown", apps: [], connectedSlugs: [] };
-    expect(body("apps").html).toContain("couldn&#x27;t check your apps just now.");
+    expect(body("apps").html).toContain("Couldn&#x27;t check your apps just now.");
     fixture.apps = { phase: "ready", apps: [], connectedSlugs: [] };
     const empty = body("apps");
-    expect(empty.html).toContain("no apps connected yet.");
+    expect(empty.html).toContain("No apps connected yet.");
     click(find(empty, "data-panel-link", "add-app"));
     expect((fixture.dispatch as ReturnType<typeof vi.fn>).mock.calls).toEqual([
       [{ type: "togglePlugins", open: true, surface: "apps" }],
@@ -905,7 +905,7 @@ describe("the drill-in pages", () => {
     fixture.derived.canUseConnectedApps = false;
     fixture.apps = { phase: "ready", connectedSlugs: ["gmail"], apps: [app("gmail", "write")] };
     const cannot = body("apps");
-    expect(cannot.html).toContain("the model Scout runs on can&#x27;t use apps.");
+    expect(cannot.html).toContain("The model Scout runs on can&#x27;t use apps.");
     expect(switches(cannot.html)).toBe(0);
   });
 
@@ -940,12 +940,12 @@ describe("the drill-in pages", () => {
   });
 
   it("says when memory is off, empty or unreadable, and re-reads on a conflict", async () => {
-    expect(body("memory", makeBot({ memoryEnabled: false })).html).toContain("memory is off for Scout.");
+    expect(body("memory", makeBot({ memoryEnabled: false })).html).toContain("Memory is off for Scout.");
     expect(has(body("memory", makeBot({ memoryEnabled: false })), "data-panel-form", "memory-add")).toBe(false);
     fixture.memory.docs = [memoryDoc("")];
-    expect(body("memory").html).toContain("nothing remembered yet.");
+    expect(body("memory").html).toContain("Nothing remembered yet.");
     fixture.memory = { ...fixture.memory, docs: null, error: true };
-    expect(body("memory").html).toContain("couldn&#x27;t read the memory file just now.");
+    expect(body("memory").html).toContain("Couldn&#x27;t read the memory file just now.");
 
     fixture.memory = { ...fixture.memory, docs: [memoryDoc("- Old\n")], error: false };
     fixture.saveMemory = vi.fn(() => Promise.resolve({ ok: false, conflict: true, current: "- New\n", currentHash: "h3" }));
@@ -989,7 +989,7 @@ describe("the drill-in pages", () => {
     fixture.skills.working = "triage";
     expect(row(body("skills"), "skill:summarise").props.disabled).toBe(true);
     fixture.skills.skills = [];
-    expect(body("skills").html).toContain("no skills yet.");
+    expect(body("skills").html).toContain("No skills yet.");
   });
 
   it("keeps the bot's own private folder, or a folder chosen with the native picker, saved through the bot route", async () => {

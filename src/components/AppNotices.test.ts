@@ -159,8 +159,8 @@ describe("the card after the update", () => {
     returning();
     const html = await launch();
     const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always on.", "routines run on time, day and night",
-      "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "then from $15/month + tax. cancel any time.",
-      "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "not now"];
+      "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $15/month + tax. Cancel any time.",
+      "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
     for (const gone of ["launch price", "first 100", "$89", "New features first", "Get Pro", STAR]) expect(html).not.toContain(gone);
@@ -220,7 +220,7 @@ describe("the card after the update", () => {
     expect(f.dispatch).toHaveBeenCalledWith({ type: "cloudHowTo", open: true });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto" });
     expect(storage.get(CLOUD_INTRO)).toBe("1");
-    for (const close of ["not now", "dismiss for good", "Escape"]) {
+    for (const close of ["Not now", "Dismiss for good", "Escape"]) {
       storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = []; now += DAY;
       expect(await launch(), close).toContain(INTRO);
       if (close === "Escape") {
@@ -229,7 +229,7 @@ describe("the card after the update", () => {
         card.props.onKeyDown(event); expect(event.preventDefault).toHaveBeenCalled();
       } else press(close);
       expect(storage.get(CLOUD_INTRO), close).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
-      expect(render()).toContain("you can add a cloud any time from the menu on the left of the app.");
+      expect(render()).toContain("You can add a cloud any time from the menu on the left of the app.");
     }
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "not_now" });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "close" });
@@ -292,8 +292,8 @@ describe("the free trial's notice, here and on My Cloud", () => {
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active", credit: { grantedUsd: 5, remainingUsd: 3.2, state: "active" } };
     offer = { ...PLAIN_OFFER };
     const html = await launch();
-    expect(html).toContain("your free trial ends on"); expect(html).toContain("includes $5 of Claude credit: $3.20 left.");
-    expect(html).toContain("prefer Starter at $15?");
+    expect(html).toContain("your free trial ends on"); expect(html).toContain("Includes $5 of Claude credit: $3.20 left.");
+    expect(html).toContain("Prefer Starter at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
     snapshot = { ...snapshot, notice: undefined };
@@ -359,7 +359,7 @@ describe("upstream promotional campaigns", () => {
 
 describe("bots in two places", () => {
   const GARAGE = { key: "server:https://garage.example.test", name: "Garage server", kind: "server" as const };
-  const BODY = "your bots live in two places, so they can&#x27;t work together. bring them together on Garage server?";
+  const BODY = "Your bots live in two places, so they can&#x27;t work together. Bring them together on Garage server?";
   let suggest: { key: string; name: string; kind: "cloud" | "server" } | null;
   let accepted: string[], dismissed: string[];
   beforeEach(() => {
@@ -439,7 +439,7 @@ describe("bots in two places", () => {
   it("Not now hands main the place to remember, and the card goes", async () => {
     returning();
     expect(await launch()).toContain(BODY);
-    press("not now");
+    press("Not now");
     await flush();
     expect(dismissed).toEqual([GARAGE.key]);
     expect(await settle()).not.toContain('data-notice="two-places"');

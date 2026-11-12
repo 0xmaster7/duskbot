@@ -151,10 +151,10 @@ describe("AskSettledLine", () => {
     const html = renderToStaticMarkup(createElement(AskSettledLine, { ariaLabel: "plan", children: settledAnswer("Yes, only the footer text", ["Yes, only the footer text", "No"]) }));
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain('aria-live="polite"');
-    expect(html).toContain("you chose:");
+    expect(html).toContain("You chose:");
     expect(html).toContain("Yes, only the footer text");
     expect(html).toContain("text-success");
-    expect(renderToStaticMarkup(createElement(AskSettledLine, { children: settledAnswer("Not until tomorrow", ["Yes", "No"]) }))).toContain("you answered:");
+    expect(renderToStaticMarkup(createElement(AskSettledLine, { children: settledAnswer("Not until tomorrow", ["Yes", "No"]) }))).toContain("You answered:");
     expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "stopped", children: "stopped" }))).toContain('data-tone="stopped"');
     expect(renderToStaticMarkup(createElement(AskSettledLine, { tone: "expired", children: "expired" }))).toContain('data-tone="expired"');
   });

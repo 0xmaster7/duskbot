@@ -40,7 +40,7 @@ describe("cloud screen connection feedback", () => {
 
   it("surfaces request failures with a retry action instead of a permanent loader", () => {
     const html = renderToStaticMarkup(createElement(CloudScreenPreview, {
-      ...defaults, error: "the screen took too long to update. try again.",
+      ...defaults, error: "The screen took too long to update. Try again.",
     }));
     expect(html).toContain('role="alert"');
     expect(html).toContain("took too long");

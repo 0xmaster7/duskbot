@@ -166,6 +166,6 @@ describe("J11: the chip names a place's problem in the panel's words", () => {
     const row = html.split('role="menuitemradio"').slice(1).find((entry) => entry.includes("cloud desktop"))!;
     expect(row).toContain('disabled=""');
     expect(row).toContain("not with this model");
-    expect(row).toContain("title=\"grok-4.6 can&#x27;t use a desktop. choose a model that can, such as Claude or ChatGPT.\"");
+    expect(row).toContain("title=\"grok-4.6 can&#x27;t use a desktop. Choose a model that can, such as Claude or ChatGPT.\"");
   });
 });

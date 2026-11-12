@@ -212,7 +212,7 @@ describe("a v1 live view whose stream dropped", () => {
     fixture.state.config.browserEngine = { kind: "engine", engine: "agent-browser" };
     await render();
     await emit("ready", { viewerId: "old-viewer" });
-    await emit("error", { message: "browser connection ended." });
+    await emit("error", { message: "Browser connection ended." });
     expect(host.textContent).toContain("browser disconnected");
     await act(async () => button("reconnect").click());
     await flush();
@@ -225,7 +225,7 @@ describe("a v1 live view whose stream dropped", () => {
     fixture.state.config.browserEngine = { kind: "engine", engine: "agent-browser" };
     await render();
     await emit("ready", { viewerId: "old-viewer" });
-    await emit("error", { retryable: false, asleep: true, message: "this browser closed after it sat unused, to save memory." });
+    await emit("error", { retryable: false, asleep: true, message: "This browser closed after it sat unused, to save memory." });
     await flush();
     expect(host.textContent).toContain(t("browser.panel.asleep"));
     expect(host.textContent).not.toContain("browser disconnected");

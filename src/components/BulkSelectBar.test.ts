@@ -56,7 +56,7 @@ describe("select mode controls", () => {
     expect(ok).not.toMatch(/<button[^>]*disabled=""[^>]*>delete 1</);
     const over = renderToStaticMarkup(createElement(BulkSelectBar, { rows, selected: new Set(["a", "b"]), maxDeletable: 1, freshConversation: false, onChange: noop, onDelete: noop }));
     expect(over).toMatch(/<button[^>]*disabled=""[^>]*>delete 2</);
-    expect(over).toContain("a channel keeps at least one thread");
+    expect(over).toContain("A channel keeps at least one thread");
   });
 });
 

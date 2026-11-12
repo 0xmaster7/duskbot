@@ -1,5 +1,6 @@
 // The engines' usage limits as the app shows them: "Claude: 92% used · resets 3:40 PM", the calendar's reset markers,
 // and the automations due before a reset. One shared poll of /api/limit-resets feeds every place that shows them.
+import { lowerFirst } from "./lower-first";
 import { useEffect, useState } from "react";
 
 import { AFTER_RESET_MS, NEAR_LIMIT_PERCENT, nearLimit, type EngineLimit, type EngineLimitsReport, type LimitResetSchedule, type LimitWindowName } from "../../shared/limit-reset";
@@ -68,7 +69,8 @@ export function resetTime(at: number, now = Date.now()): string {
 /** "Claude: 92% used · resets 3:40 PM", or "Claude: at its limit · resets 3:40 PM"; a screen reader's copy joins with a comma. */
 export function limitLine(limit: EngineLimit, now = Date.now(), separator = " · "): string {
   const used = limit.blocked ? t("limits.atLimit", { engine: limit.name }) : t("limits.used", { engine: limit.name, percent: Math.round(limit.usedPercent ?? 0) });
-  return limit.resetsAt !== null && limit.resetsAt > now ? `${used}${separator}${t("limits.resets", { time: resetTime(limit.resetsAt, now) })}` : used;
+  const resets = limit.resetsAt !== null ? t("limits.resets", { time: resetTime(limit.resetsAt, now) }) : "";
+  return limit.resetsAt !== null && limit.resetsAt > now ? `${used}${separator}${separator === " · " ? resets : lowerFirst(resets)}` : used;
 }
 
 export const nearLimitEngines = (engines: readonly EngineLimit[]) => engines.filter(nearLimit);

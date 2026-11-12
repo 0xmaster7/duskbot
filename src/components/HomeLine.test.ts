@@ -25,7 +25,7 @@ afterEach(() => { flushSync(() => root.unmount()); host.remove(); delete window.
 
 it("says the one line main has for the next page, in plain words, and nothing when there is none", async () => {
   await mount(vi.fn().mockResolvedValue({ kind: "left", name: "Acme" }));
-  await vi.waitFor(() => expect(host.querySelector("[data-home-line='left']")?.textContent).toBe("you're no longer in Acme."));
+  await vi.waitFor(() => expect(host.querySelector("[data-home-line='left']")?.textContent).toBe("You're no longer in Acme."));
   expect(host.querySelector("button")).toBeNull();
   flushSync(() => root.unmount()); root = createRoot(host);
   await mount(vi.fn().mockResolvedValue(null));
@@ -47,7 +47,7 @@ it("asks once; a later null (a strict-mode remount) never takes the line back, a
   flushSync(() => root.unmount()); root = createRoot(host);
   await mount(vi.fn().mockResolvedValue({ kind: "left", name: "Acme" }), true);
   expect(host.innerHTML, "a phone's view of the page never shows the desktop's line").toBe("");
-  expect(homeLineText({ kind: "left", name: "Beta" })).toBe("you're no longer in Beta.");
+  expect(homeLineText({ kind: "left", name: "Beta" })).toBe("You're no longer in Beta.");
 });
 
 it("a team's page names its notifications after the team; My Cloud's names none", async () => {
@@ -63,10 +63,10 @@ it("the clean workspace's line says the bots are safe in their Cloud, on every l
   ais.instances = [{ ready: true, instanceId: "claude", driver: "claudeCode" }];
   const line = vi.fn().mockResolvedValue({ kind: "clean" });
   await mount(line);
-  await vi.waitFor(() => expect(host.querySelector("[data-home-line='clean']")?.textContent).toBe("your bots are in the cloud. sign in to get them."));
+  await vi.waitFor(() => expect(host.querySelector("[data-home-line='clean']")?.textContent).toBe("Your bots are in the cloud. Sign in to get them."));
   expect(host.querySelector("button")).toBeNull();
-  expect(homeLineText({ kind: "clean" })).toBe("your bots are in the cloud. sign in to get them.");
-  expect(homeLineText({ kind: "clean", saved: true })).toBe("your bots are in your other account's cloud. click its icon on the left of the app to get them.");
+  expect(homeLineText({ kind: "clean" })).toBe("Your bots are in the cloud. Sign in to get them.");
+  expect(homeLineText({ kind: "clean", saved: true })).toBe("Your bots are in your other account's cloud. Click its icon on the left of the app to get them.");
 });
 
 it("with the new-user setup skipped, the clean workspace still offers connecting an AI while none is ready", async () => {

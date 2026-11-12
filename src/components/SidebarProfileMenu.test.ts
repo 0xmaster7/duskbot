@@ -149,7 +149,7 @@ describe("the phone entries", () => {
   it("on this computer with a paid Cloud that is not Ready: only this computer, and a hint", () => {
     for (const machine of [undefined, { status: "provisioning" }, { status: "stopped", origin: ready.origin }, { status: "failed", origin: ready.origin }] as Array<CloudMachine | undefined>) {
       expect(shown("computer", null, paid("pro", machine))).toEqual([
-        ["connect your phone", "to this computer", "the cloud shows here once it's ready."],
+        ["connect your phone", "to this computer", "The cloud shows here once it's ready."],
       ]);
     }
   });
@@ -426,7 +426,7 @@ describe("Simple mode's account menu", () => {
     const failed = build({ move: failing });
     expect(groups(failed)[0]).toEqual(["cloud-move"]);
     expect(shape(failed[0]!)).toEqual({ lines: 1, wrap: true, icon: true });
-    expect(failed[0]!.note).toBe("something got in the way. your bots are safe here.");
+    expect(failed[0]!.note).toBe("Something got in the way. Your bots are safe here.");
   });
 
   it("puts the move's row first in Advanced's account menu too, under its own divider", () => {

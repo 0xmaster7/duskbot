@@ -56,6 +56,6 @@ describe("people table", () => {
   });
 
   it("says so when nobody is on the list", () => {
-    expect(renderToStaticMarkup(createElement(PeopleTable, { people: [], busy: false, onRole: noop, onRemove: noop, onLink: noop }))).toContain("nobody yet");
+    expect(renderToStaticMarkup(createElement(PeopleTable, { people: [], busy: false, onRole: noop, onRemove: noop, onLink: noop }))).toContain("Nobody yet");
   });
 });

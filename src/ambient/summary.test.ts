@@ -7,7 +7,7 @@ import { ambientBot, ambientSnapshot } from "./summary";
 let at = 0;
 const message = (fields: Partial<Message>): Message => ({ id: `m${++at}`, at, role: "bot", kind: "text", ...fields }) as Message;
 const bot = (fields: Partial<Bot> = {}): Bot => ({ id: "nova", name: "Nova", color: "blue", threadId: "t1", messages: [], busy: false, unread: false, ...fields }) as unknown as Bot;
-const approval = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "run a command", subtitle: "npm test", options: ["allow", "deny"], requestId: "r1", tool: "Bash", requestType: "permission", ...fields } } as Partial<Message>);
+const approval = (fields: Record<string, unknown> = {}) => message({ kind: "options", card: { title: "Run a command", subtitle: "npm test", options: ["allow", "deny"], requestId: "r1", tool: "Bash", requestType: "permission", ...fields } } as Partial<Message>);
 
 afterEach(() => resetTurnLive());
 
@@ -16,7 +16,7 @@ describe("the summary the island and the dock draw", () => {
     const busy = bot({ busy: true, messages: [message({ role: "user", text: "Fix the footer" })] });
     expect(ambientBot(busy, [], turnLive).status).toBe("working");
     noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "reasoning_text", delta: "" } as never);
-    expect(ambientBot(busy, [], turnLive)).toMatchObject({ status: "thinking", detail: "thinking" });
+    expect(ambientBot(busy, [], turnLive)).toMatchObject({ status: "thinking", detail: "Thinking" });
     noteTurnEvent({ type: "content.delta", threadId: "t1", turnId: "u1", streamKind: "assistant_text", delta: "On it" } as never);
     expect(ambientBot(busy, [], turnLive).status).toBe("talking");
   });

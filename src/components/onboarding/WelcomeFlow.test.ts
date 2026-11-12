@@ -130,7 +130,7 @@ describe("a new install's first run", () => {
 
   it("says in plain words what Dusk asks about before it does it", async () => {
     await show();
-    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. it asks you before it sends, posts or pays for anything.");
+    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. It asks you before it sends, posts or pays for anything.");
   });
 
   it("keeps a sending rule the person already chose", async () => {
@@ -203,7 +203,7 @@ describe("with no AI of the person's own", () => {
   it("runs jobs on the free backup, says so, and keeps one tap to sign in", async () => {
     f.state = { ...f.state, instances: [freeOpenCode, signIn()] };
     await show();
-    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("running on a free model for now.");
+    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("Running on a free model for now.");
     expect(button("use your Claude account")).toBeDefined();
     await type("Research standing desks");
     expect(button("start")!.disabled, "the free model never blocks a job").toBe(false);
@@ -312,7 +312,7 @@ describe("bots from another app on this computer", () => {
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
     expect(host.querySelector("h1")?.textContent).toBe("your bots are here");
     expect(text()).toContain("moved 1 bot, 1 skill, 1 routine and their memory.");
-    expect(host.querySelector("[data-bot-move-left-out]")?.textContent).toContain("chat history, logins and their Telegram connections stay in OpenClaw.");
+    expect(host.querySelector("[data-bot-move-left-out]")?.textContent).toContain("Chat history, logins and their Telegram connections stay in OpenClaw.");
     await press("continue");
     expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
     expect(f.onDone).not.toHaveBeenCalled();

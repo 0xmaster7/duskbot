@@ -52,7 +52,7 @@ it.each(["visibilitychange", "focus"] as const)("follows a permission changed in
   await resume(event);
   expect(toggle().disabled).toBe(true);
   expect(toggle().getAttribute("aria-checked")).toBe("false");
-  expect(container.textContent).toContain("notifications are blocked for this site");
+  expect(container.textContent).toContain("Notifications are blocked for this site");
   permission = "granted";
   await resume(event);
   expect(toggle().disabled).toBe(false);

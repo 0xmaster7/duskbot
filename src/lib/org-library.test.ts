@@ -56,7 +56,7 @@ describe("the shelf card", () => {
     expect(orgModeBadge(entry())).toBeNull();
     expect(orgModeBadge(entry({ mode: "required" }))).toBe("recommended by Acme Partners");
     expect(orgCardNotes(entry({ installed: { installId: "b".repeat(32), release: "1.2.0", status: "installed" } }))).toEqual([
-      "version 1.3.0 available. it comes over on its own once it's downloaded, and keeps your changes.",
+      "Version 1.3.0 available. It comes over on its own once it's downloaded, and keeps your changes.",
     ]);
     expect(orgCardNotes(entry({ release: null, installed: { installId: "b".repeat(32), release: "1.3.0", status: "withdrawn" } }))).toEqual([
       "withdrawn by Acme Partners",
@@ -81,7 +81,7 @@ describe("the shelf card", () => {
       busy: null, notice: "", error: "", onAdd, onDetails: vi.fn(),
     }));
     const shown = text(markup);
-    for (const line of ["packages Customer Co shares with you", "Sales desk", "recommended by Acme Partners", "from Acme Partners", "added", "update dusk bot to add this"]) {
+    for (const line of ["Packages Customer Co shares with you", "Sales desk", "recommended by Acme Partners", "from Acme Partners", "added", "update dusk bot to add this"]) {
       expect(shown).toContain(line);
     }
     expect(markup).toContain('aria-label="add Sales desk"');
@@ -101,13 +101,13 @@ describe("the preview and the provenance line", () => {
     expect(preview).toMatchObject({ kind: "package", version: 2, name: "Sales desk", members: expect.arrayContaining([{ name: "Scout", title: "Prospect researcher" }]) });
     const shown = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: preview, importedNames: preview.members.map((member) => member.name), org: true })));
     expect(shown).toContain("included skills (switched on)");
-    expect(shown).toContain("skills arrive switched on and routines paused");
+    expect(shown).toContain("Skills arrive switched on and routines paused");
     expect(shown).not.toContain("added switched off");
 
     const library = orgPackagePreview(parsePackageDocument(fixture("library-only.v2.json")));
     expect(library).toMatchObject({ name: "Sales skills", members: [], offeredSkills: ["objection-handling", "follow-up"], presets: ["Support agent"] });
     const libraryShown = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: library, importedNames: [], org: true })));
-    expect(libraryShown).toContain("nothing is added to your bots yet");
+    expect(libraryShown).toContain("Nothing is added to your bots yet");
     expect(libraryShown).not.toContain("team members");
   });
 

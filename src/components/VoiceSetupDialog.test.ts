@@ -111,7 +111,7 @@ describe("voice set-up pop-up", () => {
     expect(html).toContain('data-voice-settings="pepper"');
     expect(html).toContain('aria-label="close voice set-up"');
     expect(html).toContain("all voice settings");
-    expect(html).not.toContain("voice is ready");
+    expect(html).not.toContain("Voice is ready");
     expect(fixture.voiceSettings.at(-1)!.bot).toBe(pepper);
   });
 
@@ -279,7 +279,7 @@ describe("voice set-up pop-up", () => {
   it("says the voice is ready and starts the call from there", () => {
     const view = render({ ready: true, callName: "Standup" });
     expect(view.html).toContain('role="status"');
-    expect(view.html).toContain("voice is ready. you can call Standup now.");
+    expect(view.html).toContain("Voice is ready. You can call Standup now.");
     click(byAttribute(view, "data-voice-setup-start"));
     expect(view.props.onStartCall).toHaveBeenCalledOnce();
     expect(view.props.onClose).not.toHaveBeenCalled();

@@ -29,7 +29,7 @@ describe("callRecordLines", () => {
   it("lists the steps and approvals of the turns a call's spoken requests started, in order", () => {
     const transcript = [
       spoken("m1", "check the build", "c1"),
-      step("s1", "m1", "Bash", { spoken: "running a command" }),
+      step("s1", "m1", "Bash", { spoken: "Running a command" }),
       approval("o1", "m1", { answered: "allow" }),
       msg("b1", { text: "The build is green.", requestMessageId: "m1" }),
       callRow("r1", "c1"),
@@ -81,7 +81,7 @@ describe("callRecordLines", () => {
   it("lists a step only when the provider ran it: the harness's own chips inside a turn are not steps", () => {
     const transcript = [
       spoken("m1", "search the web and run the tests", "c1"),
-      step("s1", "m1", "WebSearch", { spoken: "searching the web" }),
+      step("s1", "m1", "WebSearch", { spoken: "Searching the web" }),
       step("s2", "m1", "Bash", { spoken: "running the tests" }),
       chip("h1", "m1", "approved WebSearch (web search): weather in Pune"),
       chip("h2", "m1", "approved Bash (saved command): pnpm test"),
@@ -137,12 +137,12 @@ describe("callRecordLines", () => {
   it("hands over each step's tool, a failed one too, and each approval's card as they are", () => {
     const transcript = [
       spoken("m1", "check the build", "c1"),
-      step("s1", "m1", "Bash", { spoken: "running a command", summary: "pnpm test" }),
+      step("s1", "m1", "Bash", { spoken: "Running a command", summary: "pnpm test" }),
       step("s2", "m1", "Write", { ok: false }),
       approval("o1", "m1", { answered: "allow" }),
     ];
     expect(callRecordLines(transcript, "c1")).toEqual([
-      { kind: "step", id: "s1", tool: { name: "Bash", ok: true, itemId: "item-s1", spoken: "running a command", summary: "pnpm test" } },
+      { kind: "step", id: "s1", tool: { name: "Bash", ok: true, itemId: "item-s1", spoken: "Running a command", summary: "pnpm test" } },
       { kind: "step", id: "s2", tool: { name: "Write", ok: false, itemId: "item-s2" } },
       { kind: "approval", id: "o1", card: expect.objectContaining({ requestId: "req-o1", tool: "Bash", answered: "allow" }) },
     ]);
@@ -224,7 +224,7 @@ describe("callConversation", () => {
   it("lists each spoken request, then what its turn did and answered, in order", () => {
     const transcript = [
       spoken("m1", "check the build", "c1"),
-      step("s1", "m1", "Bash", { spoken: "running a command" }),
+      step("s1", "m1", "Bash", { spoken: "Running a command" }),
       approval("o1", "m1", { answered: "allow" }),
       msg("b1", { text: "The build is green.", requestMessageId: "m1" }),
       spoken("m2", "and the tests?", "c1"),

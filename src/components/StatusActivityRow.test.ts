@@ -59,9 +59,9 @@ describe("first-reply rescue row", () => {
 describe("stopped row", () => {
   it("says one quiet word, whoever stopped it", () => {
     act(() => root.render(createElement(CancelledTurnRow, { name: PERSON_STOPPED_TURN_NAME })));
-    expect(host.textContent).toBe("stopped");
+    expect(host.textContent).toBe("Stopped");
     act(() => root.render(createElement(CancelledTurnRow, { name: STOPPED_TURN_NAME })));
-    expect(host.textContent).toBe("stopped");
+    expect(host.textContent).toBe("Stopped");
   });
 });
 

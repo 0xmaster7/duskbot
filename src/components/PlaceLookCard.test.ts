@@ -112,19 +112,19 @@ it("choosing a swatch saves it through main, and the tint follows at once", asyn
 it("a team member sees the team's colour and picture and who may change them, and their clicks change nothing", async () => {
   const { workspaces, pictures } = await page(look({ name: "Acme", change: null, reason: "member" }), { owner: false, banner: SET });
   expect([...host.querySelectorAll("[data-swatch]")].every((candidate) => (candidate as HTMLButtonElement).disabled)).toBe(true);
-  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("only its admins can change its color.");
+  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("Only its admins can change its color.");
   await click(swatch("rose"));
   expect(workspaces.color).not.toHaveBeenCalled();
   expect(tint(), "they still see it").toContain("var(--identity-teal)");
   expect([button("change image")?.disabled, button("remove")?.disabled]).toEqual([true, true]);
-  expect(host.querySelector("[data-place-picture]")?.textContent).toContain("only its admins can change its picture.");
+  expect(host.querySelector("[data-place-picture]")?.textContent).toContain("Only its admins can change its picture.");
   await click(button("remove")!);
   expect(pictures.remove).not.toHaveBeenCalled();
   expect(host.querySelector("[data-place-banner] img"), "they see the picture").toBeTruthy();
 });
 
 it("the Admin's refusal, an Admin without the route, and a failure: said plainly, and the colour stays", async () => {
-  for (const [outcome, words] of [["refused", "only its admins can change its color."], ["unsupported", "this cloud's color can't be changed from the app yet."], ["failed", "the color wasn't saved. try again."]] as const) {
+  for (const [outcome, words] of [["refused", "Only its admins can change its color."], ["unsupported", "This cloud's color can't be changed from the app yet."], ["failed", "The color wasn't saved. Try again."]] as const) {
     await act(async () => root?.unmount());
     await page(look(), { answer: () => ({ outcome, look: look() }) });
     await click(swatch("rose"));
@@ -135,7 +135,7 @@ it("the Admin's refusal, an Admin without the route, and a failure: said plainly
 
 it("another Cloud of the person's own while the dusk cloud sign-in is away: locked, and says why", async () => {
   await page(look({ change: null, reason: "signed-out" }));
-  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("sign in to dusk cloud to change its color.");
+  expect(host.querySelector('[data-place-look="locked"]')?.textContent).toContain("Sign in to dusk cloud to change its color.");
   expect(swatch("rose").disabled).toBe(true);
 });
 

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The engines' usage limits on screen: the warning with "move to after reset", the usage bars in the model button with
+// The engines' usage limits on screen: the warning with "Move to after reset", the usage bars in the model button with
 // their card, the stopped turn's Continue button, and the calendar's reset marker that a bot or an automation is dropped on.
 import { createElement } from "react";
 import { flushSync } from "react-dom";
@@ -95,15 +95,15 @@ afterEach(() => {
 
 describe("the words", () => {
   it("say how full an engine is and when it resets", () => {
-    expect(limits.limitLine(claude(92), NOW)).toBe("Claude: 92% used · resets 3:40 PM");
-    expect(limits.limitLine(claude(100, true), NOW)).toBe("Claude: at its limit · resets 3:40 PM");
+    expect(limits.limitLine(claude(92), NOW)).toBe("Claude: 92% used · Resets 3:40 PM");
+    expect(limits.limitLine(claude(100, true), NOW)).toBe("Claude: at its limit · Resets 3:40 PM");
     expect(limits.nearLimitEngines([claude(89), { ...claude(90), engine: "codex" }]).map((limit) => limit.engine)).toEqual(["codex"]);
   });
 
   it("read a limit-reset automation as a sentence, and say when its time is not known", () => {
     const automation = { kind: "schedule" as const, name: "Report", instructions: "Finish the report.", schedule: { type: "limit_reset" as const, engine: "claude", repeat: "once" as const, at: null } };
-    expect(automationSentence(automation, "Scout")).toBe("when your Claude limit resets, Scout finishes the report");
-    expect(automationSentence({ ...automation, schedule: { ...automation.schedule, repeat: "every_reset" } }, "Scout")).toBe("each time your Claude limit resets, Scout finishes the report");
+    expect(automationSentence(automation, "Scout")).toBe("When your Claude limit resets, Scout finishes the report");
+    expect(automationSentence({ ...automation, schedule: { ...automation.schedule, repeat: "every_reset" } }, "Scout")).toBe("Each time your Claude limit resets, Scout finishes the report");
     expect(statusLine({ ...automation, id: "r", botId: "scout", enabled: true, nextRunAt: null, runs: [] }, NOW)).toContain("runs when the limit resets (time not known yet)");
     expect(isDone({ schedule: { ...automation.schedule, at: NOW - 1 } }, NOW)).toBe(true);
     expect(isDone({ schedule: { ...automation.schedule, at: null } }, NOW)).toBe(false);
@@ -191,7 +191,7 @@ describe("the bars", () => {
     hover(spot, "mouse");
     await wait(HOVER_MS);
     const card = document.querySelector<HTMLElement>("[data-usage-card]")!;
-    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftresets 3:40 PM", "weekly20% leftresets Mon 9:00 AM"]);
+    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftResets 3:40 PM", "weekly20% leftResets Mon 9:00 AM"]);
     expect(card.textContent).not.toContain("check again");
     leave(spot);
     await wait(HOVER_MS);
@@ -201,8 +201,8 @@ describe("the bars", () => {
     hover(spot, "mouse");
     await wait(HOVER_MS);
     const blocked = document.querySelector<HTMLElement>("[data-usage-card]")!;
-    expect(blocked.querySelector('[data-usage-row="5-hour"]')?.textContent).toBe("5-hourat its limitresets 3:40 PM");
-    expect(blocked.textContent).toContain("clears by itself once Claude replies again.");
+    expect(blocked.querySelector('[data-usage-row="5-hour"]')?.textContent).toBe("5-hourAt its limitResets 3:40 PM");
+    expect(blocked.textContent).toContain("Clears by itself once Claude replies again.");
     fixture.api.mockClear();
     flushSync(() => blocked.querySelector<HTMLButtonElement>("[data-usage-check]")!.click());
     await settle();
@@ -235,18 +235,18 @@ describe("the chat", () => {
     fixture.api.mockImplementation(async (path: unknown) => String(path) === "/api/limit-resets/continue" ? { routine: created } : { checkedAt: NOW, engines: [claude(100, true)] });
     const tool = failedTurnTool("this Claude account has reached its 5-hour limit, which resets Oct 19, 3:40 PM (UTC).", { limitResetsAt: RESET });
     const container = mount(createElement(FailedTurnRow, { tool, engine: undefined, botId: "scout", threadId: "t-1", onRetry: vi.fn() }));
-    expect([...container.querySelectorAll("button")].map((candidate) => candidate.textContent?.trim())).toEqual(["continue at 3:40 PM when your limit resets"]);
-    flushSync(() => button(container, "continue at 3:40 PM when your limit resets").click());
+    expect([...container.querySelectorAll("button")].map((candidate) => candidate.textContent?.trim())).toEqual(["Continue at 3:40 PM when your limit resets"]);
+    flushSync(() => button(container, "Continue at 3:40 PM when your limit resets").click());
     await settle();
     expect(fixture.api).toHaveBeenCalledWith("/api/limit-resets/continue", { method: "POST", body: JSON.stringify({ botId: "scout", threadId: "t-1" }) });
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "routinePatched", routine: created });
     // The button goes once React renders the update its answer set, which a busy runner can schedule after any one tick.
-    await vi.waitFor(() => expect(container.textContent).not.toContain("continue at"));
+    await vi.waitFor(() => expect(container.textContent).not.toContain("Continue at"));
   });
 
   it("offers Retry as before once the reset has passed, or when the engine named no reset", () => {
     const passed = mount(createElement(FailedTurnRow, { tool: failedTurnTool("limit", { limitResetsAt: NOW - 1 }), engine: undefined, botId: "scout", threadId: "t-1", onRetry: vi.fn() }));
-    expect(passed.textContent).toContain("retry");
-    expect(passed.textContent).not.toContain("continue at");
+    expect(passed.textContent).toContain("Retry");
+    expect(passed.textContent).not.toContain("Continue at");
   });
 });

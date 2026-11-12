@@ -334,7 +334,7 @@ describe("a v1 live view whose stream dropped", () => {
   it("stops for good when its browser closed unused, without a notice, and does not start it again on focus", () => {
     const { client, handlers } = open();
     latest().emit("ready", { viewerId: "v1" });
-    latest().fail({ type: "error", retryable: false, asleep: true, message: "this browser closed after it sat unused, to save memory." });
+    latest().fail({ type: "error", retryable: false, asleep: true, message: "This browser closed after it sat unused, to save memory." });
     vi.advanceTimersByTime(30_000);
     page.dispatchEvent(new Event("focus"));
     expect(FixtureEventSource.instances).toHaveLength(1);
@@ -483,7 +483,7 @@ describe("the v1 input queue", () => {
     for (let n = 0; n < 40; n++) queue.enqueue(key("keyDown", String(n)));
     queue.enqueue(up);
     queue.enqueue({ type: "reload" });
-    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("reconnect the view before typing again") }));
+    expect(onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: expect.stringContaining("Reconnect the view before typing again") }));
     first.resolve(); await queue.drain();
     expect(send.mock.calls.map(([body]) => body)).toEqual([key("keyDown", "held"), key("keyUp", "held"), up, { type: "reload" }]);
     queue.clear(); queue.enqueue(key("keyDown", "after reconnect")); await queue.drain();

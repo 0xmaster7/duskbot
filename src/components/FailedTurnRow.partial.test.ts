@@ -33,11 +33,11 @@ afterEach(() => setLocale("en"));
 describe("a turn whose reply came back but a step failed", () => {
   it("reads as partly done, not as a broken turn, with the cause under Details and Retry kept", () => {
     const html = show(failedTurnTool(cause, { terminal: true, partial: true }));
-    expect(html).toContain("partly done. the reply came back, but a step didn&#x27;t work");
+    expect(html).toContain("Partly done. The reply came back, but a step didn&#x27;t work");
     expect(html).toContain("warning");
     expect(html).not.toMatch(/danger|gi-triangle-alert|gi-alert-triangle/);
     expect(html).toMatch(/<details[\s\S]*details[\s\S]*Stopped because the tool call/);
-    expect(html).toContain("retry");
+    expect(html).toContain("Retry");
   });
 
   it("is still the red failure row when the turn did not finish", () => {
@@ -47,7 +47,7 @@ describe("a turn whose reply came back but a step failed", () => {
   });
 
   it("says partly done in the chat list preview too", () => {
-    expect(activityPreview(failedTurnTool(cause, { partial: true }), undefined)).toBe("partly done: a step didn't work");
+    expect(activityPreview(failedTurnTool(cause, { partial: true }), undefined)).toBe("Partly done: a step didn't work");
     expect(activityPreview(failedTurnTool(cause), undefined)).not.toContain("partly done");
   });
 });

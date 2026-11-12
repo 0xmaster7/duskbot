@@ -119,7 +119,7 @@ describe("a bot's routines in its panel", () => {
     expect(form.querySelector("[data-panel-select=routine-when]")!.textContent).toContain("every day");
     flushSync(() => type(form.querySelector("textarea")!, "   "));
     flushSync(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-    expect(form.querySelector("[role=alert]")!.textContent).toBe("say what it should do.");
+    expect(form.querySelector("[role=alert]")!.textContent).toBe("Say what it should do.");
     expect(writes()).toEqual([]);
   });
 
@@ -167,7 +167,7 @@ describe("a bot's routines in its panel", () => {
     mount();
     expect(row("routine-1").querySelector("[role=switch]")).toBeNull();
     open("routine-1");
-    expect(sheet().textContent).toContain("its time has passed. edit it to pick a new time.");
+    expect(sheet().textContent).toContain("Its time has passed. Edit it to pick a new time.");
   });
 
   it("lists the bot's other automations too: a webhook copies its address, an app event runs through its own routes", async () => {
@@ -195,7 +195,7 @@ describe("a bot's routines in its panel", () => {
   it("says what a routine is when the bot has none and points to the chat, with no add button", () => {
     fixture.state.routines = [];
     mount();
-    expect(container.textContent).toContain("ask it in chat to set one up");
+    expect(container.textContent).toContain("Ask it in chat to set one up");
     expect(container.querySelector("[data-panel-action=new-routine]")).toBeNull();
   });
 });

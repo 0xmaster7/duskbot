@@ -148,20 +148,20 @@ describe("who a bot talks to", () => {
 
   it("says nothing more for a bot that talks to every bot, the default", () => {
     render(base, false, [quill]);
-    expect(host.textContent).not.toContain("set up to talk only to");
+    expect(host.textContent).not.toContain("Set up to talk only to");
     expect(button()).toBeUndefined();
   });
 
   it("names the bots a peers list keeps it to, and lets a person open it to every bot in one click", () => {
     render({ ...base, peers: ["quill", "deleted-bot"] }, false, [quill]);
-    expect(host.textContent).toContain("set up to talk only to Quill.");
+    expect(host.textContent).toContain("Set up to talk only to Quill.");
     flushSync(() => button()!.click());
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "updateBot", botId: "pepper", patch: { peers: null, acknowledgePeerScope: true } });
   });
 
   it("says so when the list leaves it no one to talk to", () => {
     render({ ...base, peers: [] }, false, [quill]);
-    expect(host.textContent).toContain("set up not to talk to other bots.");
+    expect(host.textContent).toContain("Set up not to talk to other bots.");
     expect(button()).toBeDefined();
   });
 });

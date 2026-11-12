@@ -98,14 +98,14 @@ describe("call modes", () => {
         close() {},
       }) as unknown as RTCPeerConnection,
       request: async () => {
-        throw new ApiError("live calls use your own OpenAI key. add it in settings → API keys.", 409, { needsKey: true });
+        throw new ApiError("Live calls use your own OpenAI key. Add it in settings → API keys.", 409, { needsKey: true });
       },
       stopRemote: () => {},
     });
     setCallMode("live");
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     const header = render(createElement(CallButton, { bot }));
-    expect(header).toContain("live calls use your own OpenAI key. add it in settings → API keys.");
+    expect(header).toContain("Live calls use your own OpenAI key. Add it in settings → API keys.");
     expect(header).toContain(">open API keys</button>");
     // no plan to buy and no key field: the key goes in Settings → API keys
     for (const gone of ["Pro plan", "start free trial", 'type="password"']) expect(header).not.toContain(gone);
@@ -114,7 +114,7 @@ describe("call modes", () => {
     expect(popup).not.toBeNull();
     expect(header).toContain(`aria-controls="${popup![1]}"`);
     const composer = render(createElement(CallButton, { bot, placement: "composer" }));
-    expect(composer).toContain("live calls use your own OpenAI key.");
+    expect(composer).toContain("Live calls use your own OpenAI key.");
     expect(composer).toContain("bottom-full");
     expect(render(createElement(CallButton, { bot: { ...bot, id: "juniper" } }))).not.toContain("OpenAI key");
     dismissStartPrompt("juniper");
@@ -130,7 +130,7 @@ describe("call modes", () => {
     expect(render(createElement(CallOverlay, { bot }))).toBe("");
 
     resetLiveMedia();
-    configureLiveMedia({ getUserMedia: () => Promise.reject(new Error("no microphone")) });
+    configureLiveMedia({ getUserMedia: () => Promise.reject(new Error("No microphone")) });
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     startCall(bot.id);
     expect(render(createElement(CallOverlay, { bot }))).toContain("backdrop-blur-sm");

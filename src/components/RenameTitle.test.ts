@@ -24,6 +24,6 @@ describe("RenameTitle", () => {
       showEditButton: true,
     }));
 
-    expect(markup).toContain("open Maus&#x27;s profile");
+    expect(markup).toContain("Open Maus&#x27;s profile");
   });
 });

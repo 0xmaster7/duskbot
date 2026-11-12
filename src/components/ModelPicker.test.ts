@@ -168,7 +168,7 @@ describe("OpenCode model variants", () => {
       { label: "none", pressed: false }, { label: "Minimal", pressed: false },
       { label: "OpenCode default", pressed: false }, { label: "Deep custom", pressed: false },
     ]);
-    expect(markup).toContain("no variant selected.");
+    expect(markup).toContain("No variant selected.");
     expect(fixture.dispatch).not.toHaveBeenCalled();
     expect(levelButtons(render("none")).find((button) => button.pressed)?.label).toBe("none");
   });
@@ -198,7 +198,7 @@ describe("OpenCode model variants", () => {
     fixture.modelVariantSessions["thread-atlas"] = { instanceId: "opencode", model: "provider/model", turnId: "turn", startedAt: "2026-09-15T00:00:00Z", acceptingUpdates: false,
       variants: { options: [{ id: "minimal", label: "Session minimal" }], currentValue: "minimal" } };
     expect(levelButtons(render()).map((button) => button.label)).toEqual(["Session minimal"]);
-    expect(render()).toContain("no variant selected. session: Session minimal.");
+    expect(render()).toContain("No variant selected. session: Session minimal.");
     expect(levelButtons(render()).some((button) => button.pressed)).toBe(false);
     expect(fixture.instances[0].models.options[0].variants).toEqual(variants);
     fixture.modelVariantSessions["thread-atlas"].variants = { options: [] };
@@ -215,7 +215,7 @@ describe("OpenCode model variants", () => {
     expect(levelButtons(render())).toHaveLength(4);
     fixture.modelVariantSessions["thread-atlas"] = { ...session, model: "other-model" };
     expect(levelButtons(render())).toHaveLength(4);
-    expect(render("removed")).toContain("saved variant “removed” has not been checked in this session.");
+    expect(render("removed")).toContain("Saved variant “removed” has not been checked in this session.");
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 

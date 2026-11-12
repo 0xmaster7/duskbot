@@ -67,8 +67,8 @@ describe("bot-first sidebar", () => {
     const messages: Bot["messages"] = [{ id: "step", role: "bot", kind: "activity", at: 1, tool: { name: "mcp__dusk__computer_batch", ok: true } }];
     const candidate = { ...bot, messages, tasks: [], projects: [] };
     const group: Group = { id: "room", threadId: "room-thread", name: "Team", memberIds: [bot.id], messages, defaultResponder: { kind: "mentions" }, bulletin: "", unread: false, createdAt: 1 };
-    const expected = advanced ? "mcp__dusk__computer_batch" : "use the screen";
-    const other = advanced ? "use the screen" : "mcp__dusk__computer_batch";
+    const expected = advanced ? "mcp__dusk__computer_batch" : "Use the screen";
+    const other = advanced ? "Use the screen" : "mcp__dusk__computer_batch";
     for (const markup of [
       renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate))),
       renderToStaticMarkup(createElement(GroupListItem, { group, density: "comfortable", onMenu: vi.fn() })),
@@ -160,7 +160,7 @@ describe("bot-first sidebar", () => {
     expect(waiting).not.toContain('role="status"');
     const working = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, busy: true })));
     expect(working).not.toContain('data-testid="working-dot"');
-    expect(working).toContain('<span class="sr-only">working</span>');
+    expect(working).toContain('<span class="sr-only">Working</span>');
     expect(working).not.toContain('role="status"');
     expect(working).toContain("[--row:var(--color-panel)]");
   });
@@ -175,7 +175,7 @@ describe("bot-first sidebar", () => {
       type: "turn.progress", activity: "command", itemId: "c1", target: "scrape.py", quiet: { kind: "busy" } } as RuntimeEvent);
     const working = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", candidate)));
     expect(working, "the row's second line keeps its height: no taller dots").not.toContain("h-[1.5em]");
-    expect(working, "the row says the step alone, not how it is doing").not.toContain("busy, no output yet");
+    expect(working, "the row says the step alone, not how it is doing").not.toContain("Busy, no output yet");
     if (!advanced) {
       // grok's working row keeps its last words; the mascot is what works
       expect(working).toContain("Here are the leads from Monday.");

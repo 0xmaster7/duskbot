@@ -15,8 +15,8 @@ describe("liveCallBarView", () => {
     expect(view).toEqual({ kind: "local", title: "live with Ada · 1:05", caption: "Hello there", heard: "hi", muted: true, ending: false, hint: null });
   });
   it("shows a hint while the call runs, when the window blocked its audio", () => {
-    const media: LiveMediaState = { ...idle, phase: "live", callId: "c", botId: "b1", threadId: "t1", startedAt: 0, notice: "click anywhere in the window to hear the call." };
-    expect(liveCallBarView({ bot, media, server: null, now: 0 })).toMatchObject({ kind: "local", hint: "click anywhere in the window to hear the call." });
+    const media: LiveMediaState = { ...idle, phase: "live", callId: "c", botId: "b1", threadId: "t1", startedAt: 0, notice: "Click anywhere in the window to hear the call." };
+    expect(liveCallBarView({ bot, media, server: null, now: 0 })).toMatchObject({ kind: "local", hint: "Click anywhere in the window to hear the call." });
   });
   it("says it is hanging up until the computer confirms the end", () => {
     const media: LiveMediaState = { ...idle, phase: "ending", callId: "c", botId: "b1", threadId: "t1", startedAt: 0, hangingUp: true };
@@ -47,7 +47,7 @@ describe("liveCallBarView", () => {
   });
   it("shows why a call stopped, with the one action that helps", () => {
     expect(liveCallBarView({ bot, media: { ...idle, phase: "failed", botId: "b1", threadId: "t1", notice: "call dropped.", action: "retry" }, server: null, now: 0 })).toEqual({ kind: "notice", text: "call dropped.", action: "retry" });
-    expect(liveCallBarView({ bot, media: { ...idle, phase: "failed", botId: "b1", threadId: "t1", notice: "the app didn't let this page use the microphone.", action: "open-in-browser" }, server: null, now: 0 })).toEqual({ kind: "notice", text: "the app didn't let this page use the microphone.", action: "open-in-browser" });
+    expect(liveCallBarView({ bot, media: { ...idle, phase: "failed", botId: "b1", threadId: "t1", notice: "The app didn't let this page use the microphone.", action: "open-in-browser" }, server: null, now: 0 })).toEqual({ kind: "notice", text: "The app didn't let this page use the microphone.", action: "open-in-browser" });
     expect(liveCallBarView({ bot, media: { ...idle, phase: "failed", botId: "b1", threadId: "t1", notice: "Another Live call is running.", action: null }, server: null, now: 0 })).toEqual({ kind: "notice", text: "Another Live call is running.", action: null });
     expect(liveCallBarView({ bot, media: { ...idle, phase: "ended", botId: "b1", threadId: "t1", notice: "call ended.", action: "retry" }, server: null, now: 0 })).toEqual({ kind: "notice", text: "call ended.", action: null });
   });

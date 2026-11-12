@@ -55,7 +55,7 @@ it("does not claim install success when the returned provider probe is unavailab
   mount(createElement(EngineSetup, { instance: engine }));
   await act(async () => button("install Kimi here").click());
   expect(host.textContent).toContain("installer finished, but the provider is not usable yet");
-  expect(host.textContent).not.toContain("installation verified");
+  expect(host.textContent).not.toContain("Installation verified");
   expect(refreshModels).not.toHaveBeenCalled();
   expect(dispatch).toHaveBeenCalledWith({ type: "instances", instances: [engine] });
 });
@@ -67,7 +67,7 @@ it("uses the verified install response instead of relying on another status requ
   await act(async () => button("install Kimi here").click());
   expect(dispatch).toHaveBeenCalledWith({ type: "instances", instances: [installed] });
   expect(refresh).not.toHaveBeenCalled();
-  expect(host.textContent).toContain("installation verified. sign in if requested.");
+  expect(host.textContent).toContain("Installation verified. Sign in if requested.");
 });
 
 it("never opens a local terminal to install on a paired remote server", () => {
@@ -87,6 +87,6 @@ it("says plainly when the engine now runs the copy the app installed", async () 
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ instances: [ready], usingAppCopy: true }))));
   mount(createElement(EngineSetup, { instance: opencode }));
   await act(async () => button("install OpenCode here").click());
-  expect(host.textContent).toContain("another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy dusk bot installed.");
-  expect(host.textContent).toContain("installation verified");
+  expect(host.textContent).toContain("Another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy dusk bot installed.");
+  expect(host.textContent).toContain("Installation verified");
 });

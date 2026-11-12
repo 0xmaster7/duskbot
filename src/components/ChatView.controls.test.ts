@@ -78,7 +78,7 @@ describe("the header's right side", () => {
     expect(controls).not.toContain("data-test-model-control");
     expect(controls).not.toContain('data-tour="computer"');
     expect(markup).not.toContain('data-testid="chat-more"');
-    expect(fixture.menus.find((menu) => menu.ariaLabel === "more")).toBeUndefined();
+    expect(fixture.menus.find((menu) => menu.ariaLabel === "More")).toBeUndefined();
     expect(markup).toContain("data-chathead-pill");
   });
 
@@ -91,7 +91,7 @@ describe("the header's right side", () => {
       expect(fixture.model).toMatchObject({ bot: { id: "bot" }, threadId: "selected" });
       expect(markup).toContain('data-tour="computer"');
       expect(markup).toContain('data-testid="chat-more"');
-      const more = fixture.menus.find((menu) => menu.ariaLabel === "more")!;
+      const more = fixture.menus.find((menu) => menu.ariaLabel === "More")!;
       expect(more.items.map((item) => item.key)).toEqual(["find", "copy", "download"]);
     } finally {
       delete window.duskDesktop;
@@ -102,9 +102,9 @@ describe("the header's right side", () => {
     {
       const busy = { ...bot, busy: true, tasks: (bot.tasks ?? []).map((task) => ({ ...task, busy: true })) };
       const { markup, controls } = header(busy);
-      expect(controls).not.toContain("stop this turn");
+      expect(controls).not.toContain("Stop this turn");
       const stop = markup.match(/<button[^>]*data-composer-stop="slot"[^>]*>/)?.[0] ?? "";
-      expect(stop).toContain('aria-label="stop this turn"');
+      expect(stop).toContain('aria-label="Stop this turn"');
       expect(markup).not.toContain('data-call-button="composer"');
       expect(header({ ...busy, waitingForTeammates: true, busy: false, tasks: (bot.tasks ?? []).map((task) => ({ ...task, busy: false, waitingForTeammates: true })) }).markup)
         .toContain('data-composer-stop="slot"');
@@ -113,7 +113,7 @@ describe("the header's right side", () => {
 
   it("keeps Stop in a remote client's header while a turn runs", () => {
     const { controls } = asRemote(() => header({ ...bot, busy: true, tasks: (bot.tasks ?? []).map((task) => ({ ...task, busy: true })) }));
-    expect(controls).toContain('title="stop this turn"');
+    expect(controls).toContain('title="Stop this turn"');
   });
 
 });
@@ -150,7 +150,7 @@ describe("the Simple header", () => {
   it("opens the bot panel from the pill", () => {
     fixture.dispatch.mockClear();
     const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
-    expect(markup).toMatch(/<button[^>]*data-chathead-pill="true"[^>]*aria-label="open Pepper&#x27;s profile"/);
+    expect(markup).toMatch(/<button[^>]*data-chathead-pill="true"[^>]*aria-label="Open Pepper&#x27;s profile"/);
   });
 });
 
@@ -159,7 +159,7 @@ describe("header name", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
     expect(markup).not.toContain('aria-label="rename Pepper"');
     const pill = markup.match(/<button[^>]*data-chathead-pill="true"[^>]*>([\s\S]*?)<\/button>/);
-    expect(pill?.[0]).toContain('aria-label="open Pepper&#x27;s profile"');
+    expect(pill?.[0]).toContain('aria-label="Open Pepper&#x27;s profile"');
     expect(pill?.[1]).toContain(">Pepper</span>");
     expect(pill?.[0]).toContain("rounded-full");
   });
@@ -196,7 +196,7 @@ describe("header name", () => {
       expect(pillOf(busyMarkup)).toBe(pillOf(idleMarkup));
       expect(busyMarkup).toMatch(/<span role="status" class="sr-only" data-chathead-status="true">working…<\/span>/);
       expect(idleMarkup).toMatch(/<span role="status" class="sr-only" data-chathead-status="true"><\/span>/);
-      expect(busyMarkup).toContain(remote ? 'title="stop this turn"' : 'aria-label="stop this turn"');
+      expect(busyMarkup).toContain(remote ? 'title="Stop this turn"' : 'aria-label="Stop this turn"');
     }
   });
 
@@ -206,8 +206,8 @@ describe("header name", () => {
     })));
     const button = (markup: string) => markup.match(/<button[^>]*data-tour="computer"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
     expect(button(working("browser", true))).toContain('data-testid="computer-button-live"');
-    expect(button(working("browser", true))).toContain('aria-label="bot&#x27;s screen, in use now"');
-    expect(button(working("browser", false))).toContain('aria-label="bot&#x27;s screen"');
+    expect(button(working("browser", true))).toContain('aria-label="Bot&#x27;s screen, in use now"');
+    expect(button(working("browser", false))).toContain('aria-label="Bot&#x27;s screen"');
     expect(button(working("browser", false))).not.toContain("computer-button-live");
     expect(button(working("local", true))).not.toContain("computer-button-live");
     const pinned = asRemote(() => renderToStaticMarkup(createElement(ChatView, {
@@ -277,7 +277,7 @@ describe("thread control placement", () => {
   it("keeps the composer inert until the deleted thread's replacement transcript arrives", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, awaitingThreadSnapshot: true } }));
     expect(markup).toMatch(/<textarea[^>]*disabled=""[^>]*aria-busy="true"/);
-    expect(markup).not.toContain("finish group setup");
+    expect(markup).not.toContain("Finish group setup");
   });
   it("explains provider safety errors without offering an ineffective Retry", () => {
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: "Blocked by our safety systems", onRetry: () => {} }));
@@ -295,16 +295,16 @@ describe("thread control placement", () => {
   });
   it("says in a few words that this computer can't be used, with the server's reason under Details", () => {
     const line = "Only the dusk bot app on this computer can let a bot use it. Open the app here, or let the bot work in its own browser or on a cloud desktop instead.";
-    const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "open screen", onClick: () => {} } }));
-    expect(markup).toContain("i can&#x27;t use this computer right now.");
+    const markup = renderToStaticMarkup(createElement(ErrorRow, { message: line, action: { label: "Open screen", onClick: () => {} } }));
+    expect(markup).toContain("I can&#x27;t use this computer right now.");
     expect(markup).toMatch(/<details[\s\S]*details[\s\S]*Only the dusk bot app/);
-    expect(markup).toContain(">open screen</button>");
+    expect(markup).toContain(">Open screen</button>");
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: "ChatGPT plan usage limit reached (subscription_sharing_usage_limit_exceeded)", onRetry: () => {} }));
     expect(markup).toContain("manage usage");
     expect(markup).toContain("https://chatgpt.com/settings/usage");
-    expect(markup).not.toContain(">retry<");
+    expect(markup).not.toContain(">Retry<");
   });
   it("sends a Codex usage limit to the account's Codex usage page, not Retry", () => {
     const codex = { instanceId: "codex", driverKind: "codex", displayName: "Codex", snapshot: { state: "available", authenticated: true } } as unknown as InstanceInfo;
@@ -324,10 +324,10 @@ describe("thread control placement", () => {
       models: { default: "sonnet", options: [] },
     } as InstanceInfo;
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: Not logged in · Please run /login", ok: false, setup: true }, engine: claude, onRetry: () => {} }));
-    expect(markup).toContain(">Claude isn&#x27;t signed in yet. sign in below, then send your message again.</span>");
+    expect(markup).toContain(">Claude isn&#x27;t signed in yet. Sign in below, then send your message again.</span>");
     expect(markup).toContain("sign in to Claude</button>");
-    expect(markup).toMatch(/<summary[^>]*>details<\/summary><p[^>]*>Not logged in · Please run \/login<\/p>/);
-    expect(markup).not.toContain(">retry<");
+    expect(markup).toMatch(/<summary[^>]*>Details<\/summary><p[^>]*>Not logged in · Please run \/login<\/p>/);
+    expect(markup).not.toContain(">Retry<");
     const update = { name: "error: Claude Code 2.1.268 does not support this model", ok: false, setup: true, claudeUpdate: true };
     for (const engine of [claude, { ...claude, readOnly: true }]) {
       const row = renderToStaticMarkup(createElement(FailedTurnRow, { tool: update, engine }));
@@ -339,9 +339,9 @@ describe("thread control placement", () => {
   it("opens a failed turn with a technical cause on one plain line, the engine's words under Details", () => {
     const raw = 'API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}';
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: `error: ${raw}`, ok: false }, engine: undefined, onRetry: () => {} }));
-    expect(markup).toContain(">the service is busy right now. try again in a moment.</span>");
-    expect(markup).toMatch(/<summary[^>]*>details<\/summary><p[^>]*>API Error: 529/);
-    expect(markup).toContain(" retry</button>");
+    expect(markup).toContain(">The service is busy right now. Try again in a moment.</span>");
+    expect(markup).toMatch(/<summary[^>]*>Details<\/summary><p[^>]*>API Error: 529/);
+    expect(markup).toContain(" Retry</button>");
     const plain = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: no activity for 10 minutes — the turn was stopped", ok: false }, engine: undefined }));
     expect(plain).toContain(">no activity for 10 minutes — the turn was stopped</span>");
     expect(plain).not.toContain(">details</summary>");
@@ -354,9 +354,9 @@ describe("thread control placement", () => {
       setupInstance: claude,
       claudeUpdateInstance: claude,
     }));
-    expect(markup).toContain("update Claude for me");
-    expect(markup).toContain("i&#x27;ll do it myself");
-    expect(markup).not.toContain(">retry<");
+    expect(markup).toContain("Update Claude for me");
+    expect(markup).toContain("I&#x27;ll do it myself");
+    expect(markup).not.toContain(">Retry<");
   });
   it("updates only a local Claude Code engine from chat", () => {
     const claude = { instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude" } as InstanceInfo;
@@ -372,7 +372,7 @@ describe("thread control placement", () => {
       { id: "digest", role: "bot", kind: "digest", at: 3, text: "no tool activity" },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-    expect(render()).toContain("try again</button>");
+    expect(render()).toContain("Try again</button>");
     messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
     expect(render()).not.toContain("try again</button>");
   });
@@ -386,7 +386,7 @@ describe("thread control placement", () => {
       },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
-    expect(render()).toContain("try again</button>");
+    expect(render()).toContain("Try again</button>");
     expect(render()).toContain('data-testid="call-record"');
     messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
     expect(render()).not.toContain("try again</button>");
@@ -459,7 +459,7 @@ describe("thread control placement", () => {
     const helper = renderToStaticMarkup(createElement(ErrorRow, {
       message: "dusk bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; dusk bot notices by itself, no restart needed.",
     }));
-    expect(helper).toContain("turn on CuaDriver in System Settings");
+    expect(helper).toContain("Turn on CuaDriver in System Settings");
     expect(helper).toContain("open Screen Recording settings");
     expect(helper).toContain("check again");
     expect(helper).not.toContain("Relaunch");
@@ -497,7 +497,7 @@ describe("thread control placement", () => {
 
   it("keeps the Chief of Staff badge on one line instead of stacking a word per line", () => {
     const markup = asRemote(() => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, chiefOfStaff: true } })));
-    const badge = /<span title="chief of staff" class="([^"]*)"><svg[^>]*gi-crown[^]*?<\/svg> <span class="([^"]*)">chief of staff<\/span>/.exec(markup)!;
+    const badge = /<span title="Chief of staff" class="([^"]*)"><svg[^>]*gi-crown[^]*?<\/svg> <span class="([^"]*)">Chief of staff<\/span>/.exec(markup)!;
     expect(badge[1].split(" ")).toEqual(expect.arrayContaining(["shrink-0", "whitespace-nowrap"]));
     expect(badge[2].split(" ")).toContain("@max-4xl/chathead:sr-only");
   });
@@ -520,7 +520,7 @@ describe("thread control placement", () => {
 describe("screen reader announcements", () => {
   it("keeps the transcript log out of live announcements", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, { bot }));
-    expect(markup).toMatch(/role="log" tabindex="0" aria-live="off" aria-label="conversation with Pepper"/);
+    expect(markup).toMatch(/role="log" tabindex="0" aria-live="off" aria-label="Conversation with Pepper"/);
   });
 
   it("does not make the working label a second live region", async () => {
@@ -541,8 +541,8 @@ describe("a guest's composer on a Cloud home", () => {
   it("offers a new conversation in one click, with no dialog", () => {
     const onNew = vi.fn();
     const markup = renderToStaticMarkup(createElement(NewConversationInstead, { onNew }));
-    expect(markup).toContain("you can only write in conversations you started on this cloud.");
-    expect(markup).toContain(">new conversation<");
+    expect(markup).toContain("You can only write in conversations you started on this cloud.");
+    expect(markup).toContain(">New conversation<");
     expect(markup).not.toContain("<textarea");
     const tree = NewConversationInstead({ onNew }) as { props: { children: Array<{ type: string; props: { onClick?: () => void } }> } };
     tree.props.children.find((child) => child.type === "button")!.props.onClick!();
@@ -576,7 +576,7 @@ describe("the way back to the bot's own conversation", () => {
 
   it("offers it with threads hidden while a side thread is open, and opens the main thread", () => {
     expect(header(visiting)).toContain("data-chathead-back");
-    expect(header(visiting)).toContain("back to your chat");
+    expect(header(visiting)).toContain("Back to your chat");
     expect(awayFromMainThread(visiting)).toBe(true);
     fixture.dispatch.mockReset();
     openBot(fixture.dispatch, visiting);
