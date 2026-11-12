@@ -8,6 +8,7 @@ import { useOtherServerName } from "@/lib/other-server";
 import { SIGN_IN_FIRST, useVpsCloudMove, useVpsCloudOffer, type VpsCloudMoveView, type VpsMoveCounts } from "@/lib/vps-cloud-move";
 import { useStore } from "@/state/store";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls } from "../ui/GrokDialog";
+import { PlaceArt } from "../ui/PlaceArt";
 import { deviceWord } from "../vps-link/parts";
 import { Perk, Progress } from "./cloud-move-parts";
 
@@ -97,7 +98,7 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
   const body = bots === 1 ? t("vpsMove.bodyOne", { place }) : t("vpsMove.bodyMany", { count: bots, place });
 
   return (
-    <GrokDialog data-panel-modal="cloud-move" title={<span className="block whitespace-normal">{title}</span>} width={440} onClose={onClose}
+    <GrokDialog data-panel-modal="cloud-move" art={<PlaceArt name="cloud" size={44} />} title={<span className="block whitespace-normal">{title}</span>} width={440} onClose={onClose}
       footer={<>
         <button type="button" className={mdSecondaryCls} onClick={secondary.act}>{secondary.label}</button>
         {extra && <button type="button" className={mdSecondaryCls} disabled={busy} onClick={extra.act}>{extra.label}</button>}

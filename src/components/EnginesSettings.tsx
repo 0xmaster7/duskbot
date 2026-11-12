@@ -13,6 +13,7 @@ import { DEVICE_SIGN_IN_COPY, deviceSignInProvider } from "./DeviceSignIn";
 import { AntigravityFreeSpace } from "./AntigravityFreeSpace";
 import { CacheKeepWarmSettings } from "./CacheKeepWarmSettings";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { PixelIcon } from "./ui/PixelIcon";
 import { Select } from "./Select";
 import { Card, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
@@ -273,7 +274,7 @@ function AntigravityAccountAction({ instance, action }: { instance: InstanceInfo
       </button>
     </ItemRow>
     {error && <NoteRow tone="danger">{error}</NoteRow>}
-    <ConfirmDialog open={confirming} title={t(remove ? "accounts.removeTitle" : "accounts.signOutTitle", { name: instance.displayName })}
+    <ConfirmDialog open={confirming} art={<PixelIcon name="key" size={28} />} title={t(remove ? "accounts.removeTitle" : "accounts.signOutTitle", { name: instance.displayName })}
       body={t(remove ? "confirm.accountRemove" : "confirm.signOut")}
       confirmLabel={label} tone="neutral" pending={running} onCancel={() => { if (!running) setConfirming(false); }} onConfirm={() => void run()} />
   </>;

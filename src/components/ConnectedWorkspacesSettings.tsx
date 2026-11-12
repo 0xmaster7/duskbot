@@ -4,7 +4,9 @@ import { Trash2 } from "../icons";
 import { Card as RowsCard, FormDialog, FormField, ItemRow, NavRow, NoteRow, SwitchRow, pillCls } from "./ListRows";
 import { CloudTile } from "./cloud-buy/parts";
 import { cloudColor } from "@/lib/cloud-look";
+import { askConfirm } from "./ConfirmDialog";
 import { textFieldCls } from "./ui/GrokDialog";
+import { PixelIcon } from "./ui/PixelIcon";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["duskDesktop"]>["environments"]>["state"]>>;
@@ -50,7 +52,6 @@ export function ConnectedWorkspacesSettings() {
     }
   };
   if (!bridge) return <RowsCard><NoteRow>{t("settings.s2.servers.desktopOnly")}</NoteRow></RowsCard>;
-  const confirmAction = (message: string) => window.duskDesktop?.confirm ? window.duskDesktop.confirm(message) : window.confirm(message);
   const locals = saved?.environments.filter(entry => entry.kind === "local") ?? [];
   const forgetEntry = locals.find(entry => entry.id === envForget);
   // a quiet trash button at the end of a row, named for what it forgets
@@ -68,7 +69,7 @@ export function ConnectedWorkspacesSettings() {
         return <ItemRow key={entry.id} title={entry.name} hint={<>{entry.dataDir}{entry.missing && <> · <span>{t("connectedWorkspaces.missing")}</span></>}</>}>
           {active ? current : <button type="button" className="ui-button" disabled={busy} aria-label={t("connectedWorkspaces.switchTo", { name: entry.name })}
             onClick={() => void perform(async () => {
-              if (!await confirmAction(t("connectedWorkspaces.switchConfirm", { name: entry.name }))) return;
+              if (!await askConfirm({ art: <PixelIcon name="laptop" size={28} />, title: t("connectedWorkspaces.switchTitle", { name: entry.name }), body: t("connectedWorkspaces.switchBody"), confirmLabel: t("connectedWorkspaces.switchAction"), tone: "neutral" })) return;
               const result = await bridge.switch(entry.id);
               if (result && result.ok === false) throw new Error(t("connectedWorkspaces.switchError"));
               return true;

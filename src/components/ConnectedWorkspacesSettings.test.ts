@@ -14,6 +14,8 @@ vi.mock("@/state/store", () => ({ useStore: () => ({ state: { config: config.val
 // the forms are small portal dialogs in the app; here they render in place so their fields can be read
 vi.mock("./ListRows", async original => ({ ...await original<typeof import("./ListRows")>(),
   FormDialog: ({ children }: { children?: ReactNode }) => children }));
+const asked = vi.hoisted(() => ({ confirm: null as null | ((request: { title: string }) => Promise<boolean>) }));
+vi.mock("./ConfirmDialog", () => ({ askConfirm: (request: { title: string }) => asked.confirm?.(request) ?? Promise.resolve(false) }));
 import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 
 type Node = ReactElement<{ children?: ReactNode; onClick?: () => void; "aria-label"?: string;
@@ -150,12 +152,13 @@ it("asks what to do with the folder when forgetting a local environment, and del
 
 it("confirms before switching to a local environment, and a failed switch says one generic thing", async () => {
   const confirm = vi.fn().mockResolvedValue(false);
-  const environments = stubEnvironments({}, { switch: vi.fn().mockResolvedValue({ ok: true }) }, { confirm });
+  asked.confirm = confirm;
+  const environments = stubEnvironments({}, { switch: vi.fn().mockResolvedValue({ ok: true }) });
   await mount();
   rowButton("switch to Work")!.props.onClick!();
   await flush();
   expect(confirm).toHaveBeenCalled();
-  expect(confirm.mock.calls[0][0]).toBe("Switch to Work? The app restarts on that environment. Running turns stop.");
+  expect(confirm.mock.calls[0][0]).toMatchObject({ title: "switch to Work?", body: "The app restarts there. Running turns stop.", confirmLabel: "switch" });
   expect(environments.switch).not.toHaveBeenCalled();
   confirm.mockResolvedValue(true);
   rowButton("switch to Work")!.props.onClick!();

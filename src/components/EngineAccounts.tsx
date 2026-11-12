@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import type { LocaleKey } from "@/locales";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { PixelIcon } from "./ui/PixelIcon";
 import { ClaudeSignIn } from "./ClaudeSignIn";
 import { DeviceSignIn, deviceSignInProvider } from "./DeviceSignIn";
 import { ChatGptPlanStatus } from "./ChatGptPlanStatus";
@@ -130,6 +131,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       {error && <p role="alert" className="absolute right-0 top-full z-30 mt-1 w-[260px] rounded-lg bg-card p-2 text-[12px] text-danger shadow-lg">{error}</p>}
       <ConfirmDialog
         open={confirm === "signOut"}
+        art={<PixelIcon name="key" size={28} />}
         title={t("accounts.signOutTitle", { name: instance.displayName })}
         body={t(instance.snapshot.chatgptPlan === true ? "confirm.signOutStopsWork" : "confirm.signOut")}
         confirmLabel={t("accounts.signOut")}
@@ -138,6 +140,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
       />
       <ConfirmDialog
         open={confirm === "remove"}
+        art={<PixelIcon name="key" size={28} />}
         title={t("accounts.removeTitle", { name: instance.displayName })}
         body={t("confirm.accountRemove")}
         confirmLabel={t("accounts.remove")}

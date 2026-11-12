@@ -432,15 +432,19 @@ describe("Settings > Transfer", () => {
 
   it("says where the bots live, moves them back after a confirm and lists the backups", async () => {
     const fake = fakeBridge();
-    const confirm = vi.fn(async () => true);
-    vi.stubGlobal("duskDesktop", { platform: "darwin", vpsLink: fake.bridge, confirm });
+    vi.stubGlobal("duskDesktop", { platform: "darwin", vpsLink: fake.bridge });
     await act(async () => { root.render(createElement(TransferSettings)); });
     await settle();
     expect(text()).toContain("My VPS");
     expect(text()).toContain("2 bots, 14 chats, 3 skills, 2 routines · 1.0 MB");
     expect(text()).toContain("before a move");
     await click(button("move to this Mac"));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("A backup is saved first"));
+    const ask = document.querySelector("[role=alertdialog]");
+    expect(ask?.querySelector("h2")?.textContent).toBe("bring your bots back to this Mac?");
+    expect(ask?.textContent).toContain("A backup is saved first");
+    expect(ask?.querySelector("[data-confirm-art] [data-place-art=direct]")).toBeTruthy();
+    expect(fake.bridge.moveBack).not.toHaveBeenCalled();
+    await click(button("bring them back"));
     expect(fake.bridge.moveBack).toHaveBeenCalledTimes(1);
   });
 

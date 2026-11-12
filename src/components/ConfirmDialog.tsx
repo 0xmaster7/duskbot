@@ -24,6 +24,8 @@ export interface ConfirmDialogProps {
   returnFocusRef?: RefObject<HTMLElement | null>;
   /** Where it sits among open dialogs, when another one above the usual layer asked it. */
   layer?: string;
+  /** A small pixel picture over the title. */
+  art?: ReactNode;
 }
 
 /**
@@ -103,6 +105,7 @@ export function ConfirmDialogCard({
   alternative,
   pending = false,
   animated = false,
+  art,
 }: ConfirmDialogProps & {
   ref?: React.Ref<HTMLDivElement>;
   confirmRef?: React.Ref<HTMLButtonElement>;
@@ -124,6 +127,7 @@ export function ConfirmDialogCard({
       className="ui-dialog relative flex w-full max-w-[320px] flex-col outline-none"
     >
       <div className="flex flex-col gap-1 px-4 py-3">
+        {art && <div aria-hidden="true" data-confirm-art="" className="mb-2 flex pt-1">{art}</div>}
         <h2 id="confirm-dialog-title" className="m-0 min-w-0 text-[14px] font-semibold leading-[22px] tracking-[-0.15px] text-ink">
           {title}
         </h2>
@@ -145,7 +149,7 @@ export function ConfirmDialogCard({
   );
 }
 
-export type ConfirmRequest = Pick<ConfirmDialogProps, "title" | "body" | "confirmLabel" | "cancelLabel" | "tone">;
+export type ConfirmRequest = Pick<ConfirmDialogProps, "title" | "body" | "confirmLabel" | "cancelLabel" | "tone" | "art" | "layer">;
 
 /** The same dialog asked from an event handler, in place of `window.confirm`: true once confirmed, false on Cancel or
  * Escape. Mounts its own root on <body> and removes it when answered. */

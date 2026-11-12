@@ -5,10 +5,11 @@ import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 import { formatBytes, openAddVps, useVpsLink, type VpsBackup, type VpsWhere } from "@/lib/vps-link";
 import { Card, CopyRow, ItemRow, NavRow, NoteRow } from "../ListRows";
+import { askConfirm, type ConfirmRequest } from "../ConfirmDialog";
 import { smallButtonCls } from "../ui/GrokDialog";
+import { PlaceArt } from "../ui/PlaceArt";
+import { PixelIcon } from "../ui/PixelIcon";
 import { deviceWord, message } from "./parts";
-
-const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 
 function backupWhen(at: number): string {
   return new Date(at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
@@ -18,6 +19,12 @@ function backupContents(backup: VpsBackup): string {
   const size = formatBytes(backup.bytes);
   if (!backup.summary) return size;
   return t("vpsLink.transfer.contents", { bots: backup.summary.bots, chats: backup.summary.chats, skills: backup.summary.skills, routines: backup.summary.routines, size });
+}
+
+/** Asking before the bots come back from a server: what is kept, and that routines arrive paused. */
+export function moveBackAsk(name: string, device: string): ConfirmRequest {
+  return { art: <PlaceArt name="direct" size={44} />, title: t("vpsLink.transfer.moveBackTitle", { name, device }), body: t("vpsLink.transfer.moveBackBody"),
+    confirmLabel: t("vpsLink.transfer.moveBackAction"), tone: "neutral" };
 }
 
 export function TransferSettings() {
@@ -51,8 +58,8 @@ export function TransferSettings() {
   }, [load, ready, refreshKey]);
 
   if (!bridge) return <Card><NoteRow>{t("vpsLink.transfer.desktopOnly")}</NoteRow></Card>;
-  const perform = async (ask: string | null, work: () => Promise<unknown>, done?: string) => {
-    if (busy || (ask && !await confirmAction(ask))) return;
+  const perform = async (ask: ConfirmRequest | null, work: () => Promise<unknown>, done?: string) => {
+    if (busy || (ask && !await askConfirm(ask))) return;
     setBusy(true); setError(""); setNote("");
     try {
       await work();
@@ -71,7 +78,7 @@ export function TransferSettings() {
         {where && (server
           ? <>
               <NavRow title={t("vpsLink.transfer.moveBack", { device })} hint={t("vpsLink.transfer.moveBackHint", { name: server.name, device })} disabled={busy}
-                onClick={() => void perform(`${t("vpsLink.transfer.moveBackConfirm", { name: server.name, device })} ${t("vpsLink.transfer.moveBackRoutines")}`, () => bridge.moveBack(), t("vpsLink.transfer.moveBackStarted"))} />
+                onClick={() => void perform(moveBackAsk(server.name, device), () => bridge.moveBack(), t("vpsLink.transfer.moveBackStarted"))} />
               {where.uninstall && <>
                 <NavRow title={t("vpsLink.transfer.remove")} hint={t("vpsLink.transfer.removeHint", { name: server.name })} drill={false}
                   aria-expanded={removing} onClick={() => setRemoving((open) => !open)} />
@@ -81,7 +88,7 @@ export function TransferSettings() {
                 </>}
               </>}
               <NavRow title={t("vpsLink.transfer.forget", { name: server.name })} hint={t("vpsLink.transfer.forgetHint")} danger drill={false} disabled={busy}
-                onClick={() => void perform(t("vpsLink.transfer.forgetConfirm", { name: server.name }), () => bridge.forget())} />
+                onClick={() => void perform({ art: <PlaceArt name="server" size={33} />, title: t("vpsLink.transfer.forgetTitle", { name: server.name }), body: t("vpsLink.transfer.forgetBody"), confirmLabel: t("vpsLink.transfer.forgetAction"), tone: "neutral" }, () => bridge.forget())} />
             </>
           : cloud
             ? <NavRow data-settings-open="cloud-add" title={t("vpsLink.transfer.toCloud")} hint={t("vpsLink.transfer.toCloudHint", { device })}
@@ -96,7 +103,7 @@ export function TransferSettings() {
             : backups.map((backup) => (
               <ItemRow key={backup.id} title={backupWhen(backup.at)} hint={`${t(`vpsLink.transfer.reason.${backup.reason}`)} · ${backupContents(backup)}`}>
                 <button type="button" className={smallButtonCls} disabled={busy} aria-label={t("vpsLink.transfer.restoreAria", { when: backupWhen(backup.at) })}
-                  onClick={() => void perform(t("vpsLink.transfer.restoreConfirm", { when: backupWhen(backup.at) }), () => bridge.restore(backup.id))}>
+                  onClick={() => void perform({ art: <PixelIcon name="clock" size={28} />, title: t("vpsLink.transfer.restoreTitle", { when: backupWhen(backup.at) }), body: t("vpsLink.transfer.restoreBody"), confirmLabel: t("vpsLink.transfer.restore"), tone: "neutral" }, () => bridge.restore(backup.id))}>
                   {t("vpsLink.transfer.restore")}
                 </button>
               </ItemRow>

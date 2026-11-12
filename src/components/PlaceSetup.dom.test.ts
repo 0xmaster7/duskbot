@@ -131,7 +131,7 @@ it("choosing dusk cloud opens the buying sheet, never Settings", async () => {
 it("this computer with no bots names the server they are on, switches there, or brings them back", async () => {
   const link = fakeLink();
   const open = vi.fn(async () => true);
-  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, platform: "darwin", confirm: vi.fn(async () => true), elsewhere: { open } });
+  vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, platform: "darwin", elsewhere: { open } });
   const onClose = vi.fn();
   await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "vps-1", name: "my-vps", why: "moved" }, onClose })); });
   await settle();
@@ -141,8 +141,10 @@ it("this computer with no bots names the server they are on, switches there, or 
   expect(q("[data-mac-empty-open]")?.textContent).toBe("switch to my-vps");
   await click(q("[data-mac-empty-open]"));
   expect(open).toHaveBeenCalledWith("vps-1");
-  expect(q("[data-mac-empty-back]")?.textContent).toBe("bring them back to this Mac");
+  expect(q("[data-mac-empty-back]")?.textContent).toBe("bring them back here");
   await click(q("[data-mac-empty-back]"));
+  expect(q("[role=alertdialog] h2")?.textContent).toBe("bring your bots back to this Mac?");
+  await click(byText("bring them back"));
   expect(link.bridge.moveBack).toHaveBeenCalledTimes(1);
   expect(q("[role=status]")?.textContent).toContain("Bringing your bots back");
   expect(onClose).not.toHaveBeenCalled();

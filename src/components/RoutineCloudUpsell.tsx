@@ -8,6 +8,7 @@ import { useCloudUpsell } from "./CloudUpsell";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 import { deviceWord } from "./vps-link/parts";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls } from "./ui/GrokDialog";
+import { PlaceArt } from "./ui/PlaceArt";
 
 export function RoutineCloudUpsell({ quiet = false }: { quiet?: boolean }) {
   const { state } = useStore();
@@ -50,7 +51,7 @@ export function RoutineCloudUpsell({ quiet = false }: { quiet?: boolean }) {
   if (!allowed || waits || !routine?.enabled || routine.heldFor) return null;
   const close = () => { setShown(null); setPending(null); };
   const notNow = () => { trackUpsell("dismiss", "app_routines"); close(); };
-  return <GrokDialog title={<span className="block whitespace-normal">{routine.event ? t("routines.cloudUpsell.titleEvent", { device: deviceWord() }) : t(capabilities.host.platform === "darwin" ? "routines.cloudUpsell.titleMac" : "routines.cloudUpsell.title")}</span>}
+  return <GrokDialog art={<PlaceArt name="cloud" size={44} />} title={<span className="block whitespace-normal">{routine.event ? t("routines.cloudUpsell.titleEvent", { device: deviceWord() }) : t(capabilities.host.platform === "darwin" ? "routines.cloudUpsell.titleMac" : "routines.cloudUpsell.title")}</span>}
     description={routine.event ? t("routines.cloudUpsell.bodyEvent", { name: routine.name, device: deviceWord() }) : t("routines.cloudUpsell.body", { name: routine.name })} width={460} onClose={notNow}
     footer={<>
       <button type="button" className={mdSecondaryCls} onClick={notNow}>{t("notice.notNow")}</button>

@@ -8,6 +8,7 @@ import { api, openBot, useStore, type Bot } from "@/state/store";
 import { BotAvatar } from "./Avatar";
 import { archivableChief } from "./bot-archive";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { PixelIcon } from "./ui/PixelIcon";
 import { cn } from "@/lib/cn";
 import { footnoteCls, formBodyCls, formCloseCls, formHeaderCls, formSheetCls, formTitleCls, rowHintCls, smallButtonCls } from "./ui/GrokDialog";
 
@@ -23,6 +24,7 @@ export function botConfirmCopy(kind: BotConfirmKind, name: string, chief = false
         body: t("confirm.botArchive"),
         confirmLabel: t("sidebar.bot.archive"),
         tone: "neutral" as const,
+        art: <PixelIcon name="parcel" size={28} />,
       }
     : {
         title: t("sidebar.confirm.deleteTitle", { name }),
@@ -30,6 +32,7 @@ export function botConfirmCopy(kind: BotConfirmKind, name: string, chief = false
         body: chief ? `${t("confirm.botDeleteChief")} ${t("confirm.botDelete")}` : t("confirm.botDelete"),
         confirmLabel: t("common.delete"),
         tone: "danger" as const,
+        art: <PixelIcon name="alert" size={28} />,
       };
 }
 

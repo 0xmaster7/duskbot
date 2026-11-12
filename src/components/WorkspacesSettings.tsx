@@ -6,6 +6,7 @@ import { removePlace, usePlaces, type RailPlace } from "@/lib/places";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
 import { Trash2 } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
+import { askConfirm } from "./ConfirmDialog";
 import { useWorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { NavRow, NoteRow } from "./ListRows";
 import { Icon } from "./Icon";
@@ -43,8 +44,6 @@ export function kindWord(kind: RailPlace["kind"]): string {
 }
 
 export const KIND_ICON: Record<RailPlace["kind"], PixelIconName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
-
-const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 
 /** What a place is, from the window's own word for it when there is no list of places to read: a Cloud that is home,
  * this computer's own data, a team's Cloud (it carries a role), or else a server connected by hand. */
@@ -119,7 +118,7 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
     void bridge.open(place.id).catch(() => setError(t("connectedWorkspaces.switchError"))).finally(() => setBusy(false));
   };
   const remove = async (place: RailPlace) => {
-    if (busy || !await confirmAction(t("settings.docs.ws.removeConfirm", { name: place.name }))) return;
+    if (busy || !await askConfirm({ art: <PixelIcon name={KIND_ICON[place.kind]} size={28} />, title: t("settings.docs.ws.removeTitle", { name: place.name }), body: t("settings.docs.ws.removeBody"), confirmLabel: t("confirm.remove"), tone: "neutral" })) return;
     setBusy(true); setError("");
     const outcome = await removePlace(place.id);
     if (outcome !== "removed" && outcome !== "gone") setError(t("settings.docs.ws.removeFailed", { name: place.name }));

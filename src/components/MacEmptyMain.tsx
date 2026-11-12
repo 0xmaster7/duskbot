@@ -8,9 +8,9 @@ import { usePlaces } from "@/lib/places";
 import { vpsLinkBridge, type VpsWhere } from "@/lib/vps-link";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
 import { PlaceArt } from "./ui/PlaceArt";
+import { askConfirm } from "./ConfirmDialog";
 import { deviceWord, message } from "./vps-link/parts";
-
-const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
+import { moveBackAsk } from "./vps-link/TransferSettings";
 
 const SEEN = "dusk-mac-empty-seen";
 const watchers = new Set<() => void>();
@@ -50,7 +50,7 @@ export function MacEmptyMain({ from, onClose }: { from: ElsewherePlace; onClose:
   const back = Boolean(link && where?.place === "vps" && where.server);
   const name = back ? where!.server!.name : from.name;
   const bringBack = async () => {
-    if (busy || !link || !await confirmAction(t("macEmpty.bringBackConfirm", { name, device }))) return;
+    if (busy || !link || !await askConfirm({ ...moveBackAsk(name, device), layer: "z-[70]" })) return;
     setBusy(true); setError("");
     try { await link.moveBack(); setNote(t("macEmpty.bringing")); } catch (cause) { setError(message(cause)); } finally { setBusy(false); }
   };
@@ -66,7 +66,7 @@ export function MacEmptyMain({ from, onClose }: { from: ElsewherePlace; onClose:
   return (
     <GrokDialog
       data-mac-empty={from.id}
-      width={480}
+      width={560}
       art={<PlaceArt name={from.why === "cloud" || from.why === "team" ? "cloud" : "server"} size={44} />}
       title={<span title={name}>{t("macEmpty.title", { name })}</span>}
       description={t(back ? "macEmpty.body" : "macEmpty.bodyOpen", { device })}
