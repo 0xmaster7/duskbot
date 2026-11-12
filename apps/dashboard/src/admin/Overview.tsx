@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { Bot, File, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, Search, Tag, Target, Users } from "@/icons";
 import { Button, cx } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
-import { AnimatePresence, m, Pill, usePill } from "../ui/motion";
+import { AnimatePresence, m, Pill, SwapText, usePill, useSlots } from "../ui/motion";
 import { Figure } from "../ui/Figure";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
@@ -97,7 +97,7 @@ function Kpi({ label, value, format, now, before, invert, toggle, money }: { lab
           <input type="checkbox" checked={toggle.on} onChange={toggle.flip} className="size-3.5 cursor-pointer rounded-[4px]" style={{ accentColor: toggle.colour }} />{label}
         </label>
       ) : <div className="text-13 font-medium text-ink-3">{label}</div>}
-      <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>{value === null ? "-" : <Figure value={format(value)} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em]" />}</div>
+      <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>{value === null ? "-" : <Figure value={format(value)} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em] ![color:inherit]" />}</div>
       <div className="mt-0.5 h-5 truncate leading-5">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
     </div>
   );
@@ -134,6 +134,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
     const rows = (people.data?.people ?? []).filter((p) => !needle || personName(p.seed, p.account?.email).toLowerCase().includes(needle) || p.source.toLowerCase().includes(needle) || (p.country ?? "").toLowerCase().includes(needle));
     return all ? rows : rows.slice(0, 10);
   }, [people.data, q, all]);
+  const slots = useSlots(list.map((p) => p.id));
   const TABS = [["journey", "journeys", <MousePointerClick key="j" {...I} />], ["users", "users", <Users key="u" {...I} />], ["goals", "goals", <Target key="g" {...I} />]] as const;
   return (
     <section aria-label="people and goals" className="rounded-[24px] bg-card p-2">
@@ -156,13 +157,13 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
             <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] gap-4 px-3 py-2 t-meta max-md:hidden"><span>visitor</span><span>source</span><span>visits</span><span>time to sign up</span><span className="text-end">last seen</span></div>
             <ul className="">
               <AnimatePresence initial={false} mode="popLayout">
-              {list.map((p) => (
-                <m.li key={p.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
+              {list.map((p, index) => (
+                <m.li key={slots[index]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
                   <Link to={p.account ? `/admin/users/${encodeURIComponent(p.account.id)}` : `/admin/people/visitors?person=${encodeURIComponent(p.id)}`} className="hover-row grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] items-center gap-4 rounded-[12px] px-3 py-2.5 max-md:grid-cols-[minmax(0,1fr)_auto]">
                     <span className="flex min-w-0 items-center gap-3">
                       <Avatar seed={p.seed} size={26} customer={p.customer} />
                       <span className="min-w-0">
-                        <span className="flex items-center gap-2"><span className="truncate text-14 font-medium text-ink">{personName(p.seed, p.account?.email)}</span>{p.customer ? <span className="inline-flex h-5 items-center rounded-full bg-coral-soft px-2 text-[11.5px] text-coral-deep">customer</span> : p.account ? <span className="inline-flex h-5 items-center rounded-full bg-sky px-2 text-[11.5px] text-accent-ink">signed up</span> : null}</span>
+                        <span className="flex items-center gap-2"><SwapText text={personName(p.seed, p.account?.email)} className="min-w-0 text-14 font-medium text-ink" />{p.customer ? <span className="inline-flex h-5 items-center rounded-full bg-coral-soft px-2 text-[11.5px] text-coral-deep">customer</span> : p.account ? <span className="inline-flex h-5 items-center rounded-full bg-sky px-2 text-[11.5px] text-accent-ink">signed up</span> : null}</span>
                         <span className="mt-0.5 flex flex-wrap gap-1">{p.country && <Chip>{countryName(p.country)}</Chip>}{p.device && <Chip>{p.device}</Chip>}{p.os && p.os !== "other" && <Chip>{p.os}</Chip>}{p.browser && p.browser !== "other" && <Chip>{p.browser}</Chip>}</span>
                       </span>
                     </span>
@@ -220,7 +221,7 @@ function AiCard({ crawlers }: { crawlers: WebAnswer["crawlers"] }) {
         <RankCard title="crawlers" metric="requests" tabs={[{ id: "bot", label: "crawlers" }]} data={{ bot: crawlers.bot }} />
         <RankCard title="pages they read" metric="requests" tabs={[{ id: "page", label: "pages they read" }]} data={{ page: crawlers.page }} />
       </div>
-      <p className="px-3 pb-1 pt-2 text-12 text-ink-4">{kind === "answers" ? "a person asked an ai assistant, and it read dusk.bot to answer." : kind === "indexing" ? "search and answer engines building their index." : kind === "training" ? "collected to train models." : "every request from a known ai crawler."}</p>
+      <p className="px-3 pb-1 pt-2 text-12 text-ink-3"><SwapText text={kind === "answers" ? "a person asked an ai assistant, and it read dusk.bot to answer." : kind === "indexing" ? "search and answer engines building their index." : kind === "training" ? "collected to train models." : "every request from a known ai crawler."} /></p>
     </section>
   );
 }
@@ -300,8 +301,14 @@ export function OverviewPage() {
             </div>
           </section>
 
-          <div className="mt-4"><FunnelChart range={range} /></div>
-
+          <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+            <RankCard title="where they came from" tabs={[{ id: "channel", label: "channel", icon: <Link2 {...I} /> }, { id: "referrer", label: "referrer" }, { id: "campaign", label: "campaign", icon: <Tag {...I} /> }, { id: "keyword", label: "keyword", icon: <Search {...I} /> }, { id: "ref", label: "ref" }]}
+              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
+            <RankCard title="where they are" tabs={[{ id: "map", label: "map", icon: <GlobeIcon {...I} /> }, { id: "country", label: "country", icon: <MapPin {...I} /> }, { id: "region", label: "region" }, { id: "city", label: "city" }]}
+              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={(tab) => tab === "map" ? null : detail(tab)} panels={{ map: <MapPanel rows={data.cards.country ?? []} /> }} money={r?.cards} />
+            <RankCard title="pages" tabs={[{ id: "page", label: "page", icon: <File {...I} /> }, { id: "entry", label: "entry" }, { id: "exit", label: "exit" }, { id: "host", label: "hostname" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
+            <RankCard title="what they use" tabs={[{ id: "browser", label: "browser", icon: <Monitor {...I} /> }, { id: "os", label: "os" }, { id: "device", label: "device" }, { id: "surface", label: "surface" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
+          </div>
           <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
             <ChartCard title="revenue by channel"><StackedBars starts={series.starts} size={series.size} stacks={channelStacks(r?.byChannel)} format={(v) => usd(v, true)} /></ChartCard>
             <ChartCard title="new and returning visitors">
@@ -318,19 +325,13 @@ export function OverviewPage() {
 
           <div className="mt-4"><UsageSection range={range} /></div>
 
+          <div className="mt-4"><FunnelChart range={range} /></div>
+
           <div className="mt-4 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 max-lg:grid-cols-1">
             {r ? <PaymentsCard revenue={r} /> : <div />}
             <PulseGrid overview={overview} />
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-            <RankCard title="where they came from" tabs={[{ id: "channel", label: "channel", icon: <Link2 {...I} /> }, { id: "referrer", label: "referrer" }, { id: "campaign", label: "campaign", icon: <Tag {...I} /> }, { id: "keyword", label: "keyword", icon: <Search {...I} /> }, { id: "ref", label: "ref" }]}
-              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
-            <RankCard title="where they are" tabs={[{ id: "map", label: "map", icon: <GlobeIcon {...I} /> }, { id: "country", label: "country", icon: <MapPin {...I} /> }, { id: "region", label: "region" }, { id: "city", label: "city" }]}
-              data={data.cards} label={dimLabel} onPick={pick} active={filters} details={(tab) => tab === "map" ? null : detail(tab)} panels={{ map: <MapPanel rows={data.cards.country ?? []} /> }} money={r?.cards} />
-            <RankCard title="pages" tabs={[{ id: "page", label: "page", icon: <File {...I} /> }, { id: "entry", label: "entry" }, { id: "exit", label: "exit" }, { id: "host", label: "hostname" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
-            <RankCard title="what they use" tabs={[{ id: "browser", label: "browser", icon: <Monitor {...I} /> }, { id: "os", label: "os" }, { id: "device", label: "device" }, { id: "surface", label: "surface" }]} data={data.cards} label={dimLabel} onPick={pick} active={filters} details={detail} money={r?.cards} />
-          </div>
           <div className="mt-4"><PeopleCard range={range} data={data} filters={filters} /></div>
           <div className="mt-4"><AiCard crawlers={data.crawlers} /></div>
           <p className="mt-4 text-center text-12 text-ink-4">tap a row to filter every number. sales go to the last place a payer came from before paying, or their first visit.</p>

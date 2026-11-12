@@ -1,10 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "@/icons";
 import { Segmented, cx } from "../ui/kit";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
-import { Mascot, useReducedMotion, type MascotHandle } from "../ui/Mascot";
+import { Mascot, type MascotHandle } from "../ui/Mascot";
+import { AnimatePresence, m } from "../ui/motion";
+import { Figure } from "../ui/Figure";
 import { useAdmin } from "./api";
 import { centroid, countryName } from "./geo";
 import { avatarOf, friendlyName } from "./names";
@@ -43,12 +44,9 @@ export function pointsAt(feed: LiveItem[], at: number) {
 }
 
 export function LivePage() {
-  const { data, error, loading, reload } = useAdmin<LiveAnswer>("/realtime?minutes=30", 10_000);
+  const { data, error, loading, reload } = useAdmin<LiveAnswer>("/realtime?minutes=30", 5_000);
   const [mode, setMode] = useState<"3d" | "2d">("3d");
   const [selected, setSelected] = useState<string | null>(null);
-  const [replay, setReplay] = useState<number | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const reduced = useReducedMotion();
   const kit = useRef<MascotHandle>(null);
   const seen = useRef<string | null>(null);
   const newest = data?.feed.find((item) => BIG.has(item.name));
@@ -58,14 +56,8 @@ export function LivePage() {
     seen.current = newest.id;
   }, [newest]);
   const now = useNow(5_000);
-  const span = 30 * 60_000;
-  useEffect(() => {
-    if (!playing) return;
-    const timer = setInterval(() => setReplay((at) => { const next = (at ?? (data?.now ?? Date.now()) - span) + 60_000; if (next >= (data?.now ?? Date.now())) { setPlaying(false); return null; } return next; }), reduced ? 900 : 450);
-    return () => clearInterval(timer);
-  }, [playing, data?.now, span, reduced]);
-  const points = useMemo(() => data ? pointsAt(data.feed, replay ?? data.now) : [], [data, replay]);
-  const feed = data ? (replay === null ? data.feed : data.feed.filter((item) => item.at <= replay)) : [];
+  const points = useMemo(() => data ? pointsAt(data.feed, data.now) : [], [data]);
+  const feed = data?.feed ?? [];
   const located = points.length, here = data?.here.length ?? 0;
   return (
     <>
@@ -73,45 +65,38 @@ export function LivePage() {
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && (
-        <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 max-lg:grid-cols-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-x-6 gap-y-3 max-lg:grid-cols-1">
+          <div className="flex min-h-[60px] flex-wrap items-start gap-6">
+            <div><div className="flex items-center gap-2 text-13 font-medium text-ink-3"><span className="live-dot text-good" data-live={data.online.site > 0} aria-hidden /> on the site</div><Figure value={n(data.online.site)} className="!font-mono !text-[32px] !leading-9 !tracking-[-0.04em]" /></div>
+            <div><div className="text-13 font-medium text-ink-3">in the apps</div><Figure value={n(data.online.app)} className="!font-mono !text-[32px] !leading-9 !tracking-[-0.04em]" /></div>
+            <div><div className="text-13 font-medium text-ink-3">events, 30 min</div><Figure value={n(data.feed.length)} className="!font-mono !text-[32px] !leading-9 !tracking-[-0.04em] !text-ink-2" /></div>
+          </div>
+          <h2 className="flex min-h-[60px] items-start gap-2 text-16 font-medium tracking-[-0.02em] text-ink max-lg:order-3 max-lg:min-h-0"><span aria-hidden><Mascot ref={kit} body="kit" color="blue" size={24} state={data.online.site + data.online.app === 0 ? "sleeping" : "curious"} /></span>just now</h2>
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-end gap-6">
-              <div><div className="flex items-center gap-2 text-13 text-ink-3"><span className="live-dot text-good" data-live={data.online.site > 0} aria-hidden /> on the site</div><div className="font-mono text-[32px] font-medium leading-9 tracking-[-0.04em] num">{n(data.online.site)}</div></div>
-              <div><div className="text-13 text-ink-3">in the apps</div><div className="font-mono text-[32px] font-medium leading-9 tracking-[-0.04em] num">{n(data.online.app)}</div></div>
-              <div><div className="text-13 text-ink-3">events, 30 min</div><div className="font-mono text-[32px] font-medium leading-9 tracking-[-0.04em] text-ink-2 num">{n(data.feed.length)}</div></div>
-            </div>
             <div className="rounded-[28px] bg-card p-3">
               <Suspense fallback={<div className="grid aspect-square max-h-[640px] w-full place-items-center rounded-[24px] text-13 text-ink-3" aria-busy="true">loading the globe</div>}>
-                <Globe points={points} mode={mode} selected={selected} onSelect={setSelected} summary={`${located} ${located === 1 ? "person" : "people"} on the ${mode === "3d" ? "globe" : "map"}${replay !== null ? ", replaying" : ""}`} />
+                <Globe points={points} mode={mode} selected={selected} onSelect={setSelected} summary={`${located} ${located === 1 ? "person" : "people"} on the ${mode === "3d" ? "globe" : "map"}`} />
               </Suspense>
-              <div className="mt-3 flex items-center gap-3 px-1">
-                <button type="button" onClick={() => { if (playing) setPlaying(false); else { setReplay((at) => at ?? data.now - span); setPlaying(true); } }} aria-label={playing ? "pause the replay" : "replay the last 30 minutes"}
-                  className="press hover-btn grid size-10 shrink-0 place-items-center rounded-full bg-btn text-ink">{playing ? <Pause size={16} strokeWidth={1.75} /> : <Play size={16} strokeWidth={1.75} />}</button>
-                <label className="sr-only" htmlFor="replay-at">replay time</label>
-                <input id="replay-at" type="range" className="range flex-1" min={data.now - span} max={data.now} step={15_000} value={replay ?? data.now}
-                  onChange={(e) => { setPlaying(false); const v = Number(e.target.value); setReplay(v >= data.now - 10_000 ? null : v); }} style={{ ["--fill" as string]: `${(((replay ?? data.now) - (data.now - span)) / span) * 100}%` }}
-                  aria-valuetext={replay === null ? "now" : `${Math.round((data.now - replay) / 60_000)} minutes ago`} />
-                <span className="w-24 text-end font-mono text-12 text-ink-3">{replay === null ? "now" : `-${Math.round((data.now - replay) / 60_000)} min`}</span>
-              </div>
             </div>
-            <p className="mt-3 text-12 text-ink-4">{here - located > 0 ? `${here - located} visitor${here - located === 1 ? "" : "s"} have no location. ` : ""}places come from cloudflare: a city when cloudflare sends one, else the middle of the country.</p>
+            <p className="mt-3 text-12 text-ink-3">{here - located > 0 ? `${here - located} visitor${here - located === 1 ? "" : "s"} have no location. ` : ""}places come from cloudflare: a city when cloudflare sends one, else the middle of the country. updates every few seconds.</p>
           </div>
-          <section aria-label="live feed" className="min-w-0">
-            <h2 className="mb-3 flex items-center gap-2 text-16 font-medium tracking-[-0.02em] text-ink"><span aria-hidden><Mascot ref={kit} body="kit" color="blue" size={24} state={data && data.online.site + data.online.app === 0 ? "sleeping" : "curious"} /></span>just now</h2>
+          <section aria-label="live feed" className="min-w-0 max-lg:order-4">
             {feed.length ? (
               <ol className="flex max-h-[720px] flex-col gap-0.5 overflow-y-auto">
-                {feed.slice(0, 80).map((item) => (
-                  <li key={item.id}>
-                    <Link to={`/admin/people/visitors?person=${encodeURIComponent(item.seed)}`} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
-                      <Avatar seed={item.seed} size={24} customer={item.customer} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-13 text-ink"><span className="font-medium">{item.email ?? friendlyName(item.seed)}</span> {(SAYS[item.name] ?? (() => item.name))(item)}</span>
-                        <span className="block truncate text-12 text-ink-3">{[place(item), item.source && item.source !== "direct" ? `from ${item.source}` : null].filter(Boolean).join(" · ") || " "}</span>
-                      </span>
-                      <span className="shrink-0 text-12 text-ink-4">{ago(item.at, now)}</span>
-                    </Link>
-                  </li>
-                ))}
+                <AnimatePresence initial={false}>
+                  {feed.slice(0, 80).map((item) => (
+                    <m.li key={item.id} layout="position" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.2 } }}>
+                      <Link to={`/admin/people/visitors?person=${encodeURIComponent(item.seed)}`} className={cx("hover-row flex items-center gap-3 rounded-[14px] px-2 py-2", selected === item.seed && "bg-card-2", BIG.has(item.name) && "bg-lime")}>
+                        <Avatar seed={item.seed} size={24} customer={item.customer} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-13 text-ink"><span className="font-medium">{item.email ?? friendlyName(item.seed)}</span> {(SAYS[item.name] ?? (() => item.name))(item)}</span>
+                          <span className="block truncate text-12 text-ink-3">{[place(item), item.source && item.source !== "direct" ? `from ${item.source}` : null].filter(Boolean).join(" · ") || " "}</span>
+                        </span>
+                        <span className="shrink-0 text-12 text-ink-3">{ago(item.at, now)}</span>
+                      </Link>
+                    </m.li>
+                  ))}
+                </AnimatePresence>
               </ol>
             ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">quiet for the last 30 minutes.</p>}
           </section>

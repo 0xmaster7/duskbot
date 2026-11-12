@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, LazyMotion, MotionConfig, useReducedMotion, type Transition } from "motion/react";
 import * as m from "motion/react-m";
 
@@ -59,6 +59,33 @@ export function ToastStack({ items }: { items: Array<{ id: number; content: Reac
         ))}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** stable element keys for a list whose data swaps: a row whose key is still there keeps its element (and moves), a row
+ * that left hands its element to a newcomer (which then morphs out of it), so only a change in length adds or removes rows */
+export function useSlots(keys: readonly string[]): string[] {
+  const held = useRef(new Map<string, string>());
+  const counter = useRef(0);
+  const signature = keys.join("\u0000");
+  return useMemo(() => {
+    const before = held.current, now = new Set(keys);
+    const free = [...before].filter(([key]) => !now.has(key)).map(([, slot]) => slot);
+    const next = new Map<string, string>();
+    for (const key of keys) next.set(key, before.get(key) ?? free.shift() ?? `slot${counter.current++}`);
+    held.current = next;
+    return keys.map((key) => next.get(key)!);
+  }, [signature]);
+}
+
+/** text that cross-fades when it changes, in place; for labels on rows that morph into other rows */
+export function SwapText({ text, className }: { text: string; className?: string }) {
+  return (
+    <span className={`relative inline-grid ${className ?? ""}`}>
+      <AnimatePresence initial={false} mode="popLayout">
+        <m.span key={text} className="col-start-1 row-start-1 truncate" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18, ease: EASE_OUT }}>{text}</m.span>
+      </AnimatePresence>
+    </span>
   );
 }
 

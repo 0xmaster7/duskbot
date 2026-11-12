@@ -5,7 +5,6 @@ import { Figure } from "../ui/Figure";
 import { activityStats, Heatmap, HeatStats, type HeatMetric } from "../ui/Heatmap";
 import { streakLine } from "../lib/fun";
 import { Mascot } from "../ui/Mascot";
-import { m } from "../ui/motion";
 import { Card, Segmented } from "../ui/kit";
 
 /** a year of bot work, one square a day; with nothing reported yet it is the empty grid and a line on what fills it */
@@ -29,7 +28,7 @@ export function Activity({ detail, now, className, style }: { detail: WorkspaceD
         </div>
         {!empty && <Segmented<HeatMetric> label="measure" value={metric} onChange={setMetric} options={[{ value: "turns", label: "turns" }, { value: "tokens", label: "tokens" }, { value: "spend", label: "spend" }]} />}
       </div>
-      <m.div key={metric} className="mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}><Heatmap days={days} metric={metric} now={now} /></m.div>
+      <div className="mt-6"><Heatmap days={days} metric={metric} now={now} /></div>
       {empty
         ? <div className="mt-5 flex items-center gap-3"><span className="shrink-0" aria-hidden><Mascot body="wisp" color="purple" size={30} state="sleeping" tappable /></span><p className="text-14 text-ink-3">each square is a day. they fill in as your bots get work done.</p></div>
         : <div className="mt-7 pt-5"><HeatStats days={days} metric={metric} now={now} /></div>}

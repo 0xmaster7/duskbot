@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { BOT_COLOURS } from "./Mascot";
 import type { UsageSeries } from "../data/usage-math";
-import { EASE_OUT, m } from "./motion";
+import { EASE_OUT, m, useSlots } from "./motion";
 import { compact, parseDay, shortDate } from "../lib/format";
 
 // series take the mascots' own colours, in an order that keeps neighbours apart
@@ -32,6 +32,7 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
     return () => ro.disconnect();
   }, []);
   const max = niceMax(Math.max(0, ...series.flatMap((s) => s.values)));
+  const slots = useSlots(series.map((s) => s.key));
   const iw = w - PAD.left - PAD.right, ih = H - PAD.top - PAD.bottom;
   const x = (i: number) => PAD.left + (days.length <= 1 ? iw / 2 : (i / (days.length - 1)) * iw);
   const y = (v: number) => PAD.top + ih - (v / max) * ih;
@@ -75,11 +76,13 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
         {[...series].reverse().map((s) => {
           const i = series.indexOf(s);
           const color = SERIES_COLORS[i % SERIES_COLORS.length]!;
-          const pts = s.values.map((v, j) => `${x(j)},${y(v)}`).join(" ");
+          const line = s.values.map((v, j) => `${j ? "L" : "M"}${x(j).toFixed(1)},${y(v).toFixed(1)}`).join("");
+          const area = `${line}L${x(s.values.length - 1).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z`;
+          const morph = { type: "spring", visualDuration: 0.4, bounce: 0 } as const;
           return (
-            <g key={s.key}>
-              <polygon points={`${x(0)},${y(0)} ${pts} ${x(s.values.length - 1)},${y(0)}`} style={{ fill: color, opacity: i === 0 ? 0.12 : 0.05 }} />
-              <polyline points={pts} fill="none" style={{ stroke: color, strokeWidth: 1.75, strokeLinejoin: "round", strokeLinecap: "round" }} />
+            <g key={slots[i]}>
+              <m.path initial={false} animate={{ d: area, fill: color }} transition={morph} style={{ opacity: i === 0 ? 0.12 : 0.05 }} />
+              <m.path initial={false} animate={{ d: line, stroke: color }} transition={morph} fill="none" style={{ strokeWidth: 1.75, strokeLinejoin: "round", strokeLinecap: "round" }} />
             </g>
           );
         })}

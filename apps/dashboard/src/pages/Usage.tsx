@@ -15,7 +15,6 @@ import { Legend, UsageChart } from "../ui/UsageChart";
 import { BuyCredits } from "./credits-dialog";
 import { useNow } from "../lib/now";
 import { Figure } from "../ui/Figure";
-import { m } from "../ui/motion";
 import { Activity } from "./activity";
 
 const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "bot" }, { value: "model", label: "model" }, { value: "workspace", label: "workspace" }];
@@ -180,7 +179,7 @@ export function UsagePage() {
           <div className="mt-6">
             {loading || !month ? <Skeleton className="h-[260px]" />
               : month.totals.tokens === 0 ? <p className="py-20 text-center text-14 text-ink-3">no bot turns yet this month. usage shows up here after the first chat.</p>
-              : <m.div key={group} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}><UsageChart days={month.days} series={series} /></m.div>}
+              : <UsageChart days={month.days} series={series} />}
           </div>
           {month && month.totals.tokens > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

@@ -143,7 +143,7 @@ export function UserPage({ id }: { id: string }) {
 
           <Section title="timeline" action={<Link to={`/admin/events?account=${encodeURIComponent(data.account.id)}`} className="text-link text-13">in the events explorer</Link>}>
             {data.timeline.length ? (
-              <ol className="relative ms-1 border-s border-line">
+              <ol className="relative ms-1">
                 {data.timeline.map((item, i) => (
                   <li key={`${item.at}-${item.name}-${i}`} className="relative flex flex-wrap items-baseline gap-x-4 gap-y-0.5 py-2 ps-5">
                     <span className={`absolute -start-[4px] top-[15px] size-[7px] rounded-[2px] ${item.source === "record" ? "bg-ink" : "bg-accent"}`} aria-hidden />

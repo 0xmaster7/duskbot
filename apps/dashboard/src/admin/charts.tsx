@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { cx, Segmented } from "../ui/kit";
-import { AnimatePresence, m, useReducedMotion } from "../ui/motion";
+import { AnimatePresence, m, SwapText, useReducedMotion, useSlots } from "../ui/motion";
 import { Figure } from "../ui/Figure";
 import { Link } from "../lib/router";
 import { useAdmin } from "./api";
 import { countryName } from "./geo";
 import { pointsAt, type LiveAnswer } from "./Live";
-import { CHANNEL, Morph, NO_VISIT, Row, bar, niceMax, percent, smooth, usd, type Note, type RankRow, type SeriesData } from "./kit";
+import { CHANNEL, Morph, NO_VISIT, Row, bar, niceMax, percent, usd, type Note, type RankRow, type SeriesData } from "./kit";
 import { n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
@@ -49,6 +49,24 @@ export function ChartCard({ title, action, children, className }: { title: strin
   );
 }
 
+const SAMPLES = 160;
+/** a smooth line through the points as a fixed number of short segments (Catmull-Rom, sampled evenly across the width),
+ * so a line of 7 days can morph straight into one of 30 */
+export function sampled(points: Array<[number, number]>, floor: number, x0: number, x1: number) {
+  if (!points.length) return `M${x0},${floor}` + `L${x1},${floor}`.repeat(SAMPLES - 1);
+  const at = (i: number) => points[Math.max(0, Math.min(points.length - 1, i))]![1];
+  let d = "";
+  for (let k = 0; k < SAMPLES; k++) {
+    const x = x0 + ((x1 - x0) * k) / (SAMPLES - 1);
+    const first = points[0]![0], step = points.length > 1 ? points[1]![0] - first : 1;
+    const pos = Math.max(0, Math.min(points.length - 1, (x - first) / step)), i = Math.min(points.length - 2, Math.floor(pos)), t = points.length > 1 ? pos - i : 0;
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    const y = points.length < 2 ? p1 : 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+    d += `${k ? "L" : "M"}${x.toFixed(1)},${Math.min(floor, y).toFixed(1)}`;
+  }
+  return d;
+}
+
 const H = 300, PAD = { top: 16, right: 56, bottom: 28, left: 44 };
 /** the main chart, like datafast: visitors as a line over money as bars, each on its own axis, signups as coral dots on the
  * line, the window before as a faint dashed line, notes on the baseline, and a tooltip with what each day earned per visitor */
@@ -66,16 +84,16 @@ export function MainChart({ data, previous, notes, show, onNote, emptyMoney }: {
   const up = money.new.map((v, i) => v + money.renewal[i]!);
   const rMax = niceMax(Math.max(1, ...up) / 100) * 100;
   const yR = (cents: number) => base - (cents / rMax) * tall * 0.86;
-  const line = smooth(data.visitors.map((v, i) => [x(i), yV(v)]), base), flat = smooth(data.visitors.map((_, i) => [x(i), base]), base);
-  const prevLine = smooth(previous.map((v, i) => [x(i), yV(v)]), base);
-  const area = (path: string) => `${path}L${x(count - 1).toFixed(1)},${base}L${x(0).toFixed(1)},${base}Z`;
+  const span: [number, number] = [x(0), x(Math.max(0, count - 1))];
+  const line = sampled(data.visitors.map((v, i) => [x(i), yV(v)]), base, ...span), flat = sampled([], base, ...span);
+  const prevLine = sampled(previous.map((v, i) => [x(i), yV(v)]), base, ...span);
+  const area = (path: string) => `${path}L${span[1].toFixed(1)},${base}L${span[0].toFixed(1)},${base}Z`;
   const net = (i: number) => up[i]! + money.refund[i]!;
   const ticks = useMemo(() => { const every = Math.max(1, Math.ceil(count / Math.max(2, Math.floor(inner / 84)))); return data.starts.map((_, i) => i % every === 0 ? i : -1).filter((i) => i >= 0); }, [count, inner, data.starts]);
   const noteIndex = (at: number) => Math.min(count - 1, Math.max(0, Math.floor((at - data.starts[0]!) / data.size)));
   const visibleNotes = notes.filter((note) => count && note.at >= data.starts[0]! && note.at < data.starts[count - 1]! + data.size);
   const bw = Math.max(2, Math.min(22, step * 0.62));
   const stagger = (i: number) => reduced ? 0 : Math.min(0.2, (i / Math.max(1, count)) * 0.2);
-  const shape = `${count}-${data.size}`;
   const totals = { visitors: data.visitors.reduce((a, b) => a + b, 0), revenue: up.reduce((a, b) => a + b, 0) + money.refund.reduce((a, b) => a + b, 0), signups: data.signups.reduce((a, b) => a + b, 0) };
   const at = hover;
   const draw = reduced ? { duration: 0 } : { d: SPRING, pathLength: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } };
@@ -89,7 +107,7 @@ export function MainChart({ data, previous, notes, show, onNote, emptyMoney }: {
           {show.visitors && <text x={PAD.left - 8} y={base - tall * f + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">{n(Math.round(vMax * f))}</text>}
         </g>)}
         {show.revenue && [0.5, 1].map((f) => <text key={f} x={width - PAD.right + 8} y={yR(rMax * f) + 4} className="fill-money font-mono text-[11px]">{usd(Math.round(rMax * f), true)}</text>)}
-        <g key={shape}>
+        <g>
           {show.revenue && data.starts.map((_, i) => {
             const left = x(i) - bw / 2, mid = yR(money.new[i]!), gap = money.new[i]! > 0 && money.renewal[i]! > 0 ? 2 : 0, fade = hover === null || hover === i ? 0.92 : 0.45;
             return <g key={i} opacity={fade}>
@@ -169,7 +187,7 @@ export function StackedBars({ starts, size, stacks, format, height = 168 }: { st
     <div className="relative" ref={box}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.floor((e.clientX - r.left - pad.left) / step); setHover(i >= 0 && i < count ? i : null); }} onMouseLeave={() => setHover(null)}>
         {[0, 0.5, 1].map((f) => <g key={f}><line x1={pad.left} x2={width - pad.right} y1={y(max * f)} y2={y(max * f)} stroke="var(--line)" strokeDasharray={f ? "3 5" : undefined} /><text x={pad.left - 6} y={y(max * f) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[10.5px]">{format(Math.round(max * f))}</text></g>)}
-        <g key={`${count}-${size}`}>
+        <g>
           {starts.map((_, i) => {
             let at = 0;
             return <g key={i} opacity={hover === null || hover === i ? 1 : 0.45}>{stacks.map((s) => {
@@ -232,12 +250,12 @@ export function PeakHours({ grid }: { grid: number[][] }) {
 }
 
 /** a row of a little ranked list: a soft bar under the label, its number on the right, animating from its last value */
-export function BarRow({ label, value, share, color = "bg-wash-sky", note, muted }: { label: ReactNode; value: string; share: number; color?: string; note?: string; muted?: boolean }) {
+export function BarRow({ label, value, share, color = "bg-wash-sky", note, muted }: { label: string; value: string; share: number; color?: string; note?: string; muted?: boolean }) {
   return (
-    <m.li layout="position" className="relative flex h-9 items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-13" transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 } }}>
+    <m.li layout="position" className="relative flex h-9 items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-13" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.18 } }}>
       <m.span className={cx("absolute inset-0", color)} initial={{ clipPath: "inset(0% 100% 0% 0% round 10px)" }} animate={{ clipPath: `inset(0% ${(100 - Math.max(1, share * 100)).toFixed(2)}% 0% 0% round 10px)` }} transition={SPRING} aria-hidden />
-      <span className={cx("relative min-w-0 flex-1 truncate", muted ? "text-ink-3" : "text-ink")}>{label}</span>
-      {note && <span className="relative shrink-0 text-12 text-ink-3">{note}</span>}
+      <span className={cx("relative min-w-0 flex-1", muted ? "text-ink-3" : "text-ink")}><SwapText text={label} className="w-full" /></span>
+      {note && <span className="relative shrink-0 text-12 font-medium text-ink-3"><SwapText text={note} /></span>}
       <span className="relative w-16 shrink-0 text-end font-mono font-medium text-ink num"><Figure value={value} className="!font-mono !text-13 !leading-5 !tracking-normal" /></span>
     </m.li>
   );
@@ -247,10 +265,14 @@ export function BarRow({ label, value, share, color = "bg-wash-sky", note, muted
 export function LtvList({ rows }: { rows: Array<{ source: string; customers: number; cents: number; perCustomer: number }> }) {
   if (!rows.length) return <p className="py-6 text-center text-13 text-ink-3">no paying customers yet.</p>;
   const max = Math.max(1, ...rows.map((r) => r.perCustomer));
+  return <LtvRows rows={rows} max={max} />;
+}
+function LtvRows({ rows, max }: { rows: Array<{ source: string; customers: number; cents: number; perCustomer: number }>; max: number }) {
+  const slots = useSlots(rows.map((r) => r.source));
   return (
     <ul className="flex flex-col gap-px">
       <AnimatePresence initial={false}>
-        {rows.map((r) => <BarRow key={r.source} label={r.source === NO_VISIT ? "no visit recorded" : r.source} muted={r.source === NO_VISIT} value={usd(r.perCustomer, true)} share={r.perCustomer / max} color="bg-wash-lime" note={`${n(r.customers)} ${r.customers === 1 ? "customer" : "customers"}`} />)}
+        {rows.map((r, i) => <BarRow key={slots[i]} label={r.source === NO_VISIT ? "no visit recorded" : r.source} muted={r.source === NO_VISIT} value={usd(r.perCustomer, true)} share={r.perCustomer / max} color="bg-wash-lime" note={`${n(r.customers)} ${r.customers === 1 ? "customer" : "customers"}`} />)}
       </AnimatePresence>
     </ul>
   );
@@ -261,13 +283,14 @@ export function ConversionList({ cards }: { cards: Record<string, RankRow[]> }) 
   const [dim, setDim] = useState<"device" | "country">("device");
   const rows = (cards[dim] ?? []).filter((r) => r.visitors >= 3 && r.key !== "unknown").map((r) => ({ ...r, rate: r.signups / r.visitors })).sort((a, b) => b.rate - a.rate || b.visitors - a.visitors).slice(0, 8);
   const max = Math.max(0.0001, ...rows.map((r) => r.rate));
+  const slots = useSlots(rows.map((r) => `${dim}:${r.key}`));
   return (
     <div>
       <div className="mb-2 flex justify-end"><Segmented<"device" | "country"> label="conversion by" value={dim} onChange={setDim} options={[{ value: "device", label: "device" }, { value: "country", label: "country" }]} /></div>
       {rows.length ? (
         <ul className="flex flex-col gap-px">
           <AnimatePresence initial={false} mode="popLayout">
-            {rows.map((r) => <BarRow key={`${dim}:${r.key}`} label={dim === "country" ? countryName(r.key) : r.key} value={percent(r.rate)} share={r.rate / max} color="bg-wash-pink" note={`${n(r.signups)} of ${n(r.visitors)}`} />)}
+            {rows.map((r, i) => <BarRow key={slots[i]} label={dim === "country" ? countryName(r.key) : r.key} value={percent(r.rate)} share={r.rate / max} color="bg-wash-pink" note={`${n(r.signups)} of ${n(r.visitors)}`} />)}
           </AnimatePresence>
         </ul>
       ) : <p className="py-6 text-center text-13 text-ink-3">not enough visitors to compare yet.</p>}

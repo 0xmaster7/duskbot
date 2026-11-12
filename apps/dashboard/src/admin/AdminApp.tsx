@@ -32,6 +32,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
+    { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
     { to: "/admin/clouds", key: "c", label: "clouds", icon: <Cloud {...ICON} /> },
   ] },
 ];
@@ -39,7 +40,6 @@ const NAV = GROUPS.flatMap((group) => group.items);
 const SMALL = { size: 15, strokeWidth: 1.75 } as const;
 /** on the overview as a tile each; their full pages stay one click away */
 const MORE: NavItem[] = [
-  { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...SMALL} /> },
   { to: "/admin/waitlist", key: "w", label: "waitlist", icon: <Inbox {...SMALL} /> },
   { to: "/admin/events", key: "e", label: "events", icon: <ChartNoAxesColumn {...SMALL} /> },
   { to: "/admin/health", key: "h", label: "health", icon: <Gauge {...SMALL} /> },
@@ -134,7 +134,6 @@ export function AdminApp() {
                   <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-150", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
                     <span className={cx("relative", active ? "text-ink" : "text-ink-3")} aria-hidden>{item.icon}</span>
                     <span className="relative flex-1">{item.label}</span>
-                    <kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
                   </Link>
                 );
               })}
@@ -153,7 +152,7 @@ export function AdminApp() {
                   return (
                     <li key={item.to}>
                       <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13 transition-colors duration-150", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
-                            <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span><kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                            <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span>
                       </Link>
                     </li>
                   );
@@ -167,7 +166,6 @@ export function AdminApp() {
           {me.data && <span className="truncate px-2 text-12 text-ink-3" title={me.data.email}>{me.data.email}</span>}
           {me.data && <span className="t-meta px-2 !text-[11.5px]">{me.data.environment} · {me.data.version ?? "dev"}</span>}
           <button type="button" onClick={() => setTheme(dark ? "light" : "dark")} className="hover-ghost mt-2 flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3">{dark ? <Sun size={15} strokeWidth={1.75} aria-hidden /> : <Moon size={15} strokeWidth={1.75} aria-hidden />}{dark ? "light mode" : "dark mode"}</button>
-          <button type="button" onClick={() => setHelp(true)} className="hover-ghost flex h-9 items-center rounded-full px-2 text-13 text-ink-3">keyboard shortcuts <kbd className="t-meta ms-auto !text-[11px]">?</kbd></button>
           <Link to="/" className="hover-ghost flex h-9 items-center gap-2 rounded-full px-2 text-13 text-ink-3"><ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> your account</Link>
         </div>
       </aside>

@@ -94,7 +94,7 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
       data-v={c.v}
       data-future={c.future || undefined}
       aria-label={c.future ? undefined : `${longDate(parseDay(c.key))}: ${say(c.v, metric)}`}
-      className={cx("hover-cell aspect-square rounded-[3px]", c.future && "opacity-0")}
+      className={cx("hover-cell aspect-square rounded-[3px] transition-[background-color] duration-300 ease-out", c.future && "opacity-0")}
       style={{ background: c.level ? `var(--heat-${c.level})` : "var(--cell)" }}
     />
   )), [weeks, metric]);

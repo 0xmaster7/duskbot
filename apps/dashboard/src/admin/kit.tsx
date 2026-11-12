@@ -3,7 +3,7 @@ import { Maximize, Plus, X } from "@/icons";
 import { Link } from "../lib/router";
 import { Button, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
-import { AnimatePresence, m, Pill, usePill } from "../ui/motion";
+import { AnimatePresence, m, Pill, SwapText, usePill, useSlots } from "../ui/motion";
 import { Figure } from "../ui/Figure";
 import { Mascot } from "../ui/Mascot";
 import { avatarOf, friendlyName } from "./names";
@@ -104,18 +104,6 @@ export function usd(cents: number, compact = false) {
 }
 
 export function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return ([1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((step) => m <= step) ?? 10) * p; }
-/** a smooth line through the points (Catmull-Rom as cubic Béziers), clamped so it never dips below the axis; the same
- * number of points always gives the same commands, so one line can morph into the next */
-export function smooth(points: Array<[number, number]>, floor: number) {
-  if (points.length < 3) return points.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
-  let d = `M${points[0]![0].toFixed(1)},${points[0]![1].toFixed(1)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i]!, p1 = points[i]!, p2 = points[i + 1]!, p3 = points[i + 2] ?? p2;
-    const c1y = Math.min(floor, p1[1] + (p2[1] - p0[1]) / 6), c2y = Math.min(floor, p2[1] - (p3[1] - p1[1]) / 6);
-    d += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${c1y.toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
-  }
-  return d;
-}
 /** a bar with its data end rounded and its baseline end square; a zero bar keeps the same commands, flat on the baseline */
 export function bar(x: number, y0: number, y1: number, w: number) {
   const up = y1 <= y0, h = Math.abs(y1 - y0), r = Math.min(3, h, w / 2), f = (v: number) => v.toFixed(1);
@@ -178,6 +166,7 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
   const max = Math.max(1, ...rows.map((row) => row.visitors));
   const moneyMax = Math.max(1, ...Object.values(cents));
   const shown = all ? rows : rows.slice(0, limit);
+  const slots = useSlots(shown.map((row) => row.key));
   const more = details?.(tab);
   const moneyCol = Boolean(money);
   return (
@@ -200,7 +189,7 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
       </div>
       {panels?.[tab] ? <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label} className="flex-1 rounded-[18px] bg-pop p-1.5">{panels[tab]}</div> : <ul className="flex flex-1 flex-col gap-px rounded-[18px] bg-pop p-1.5" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         <AnimatePresence initial={false} mode="popLayout">
-        {shown.map((row) => {
+        {shown.map((row, index) => {
           const on = active?.[tab] === row.key, ghost = row.key === NO_VISIT;
           const conversion = row.visitors ? Math.round((row.signups / row.visitors) * 1000) / 10 : 0;
           const got = cents[row.key] ?? 0;
@@ -209,13 +198,13 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
           const clip = (right: number, left = 0) => `inset(0% ${right.toFixed(2)}% 0% ${left.toFixed(2)}% round 10px)`;
           const grow = { type: "spring", visualDuration: 0.4, bounce: 0 } as const;
           return (
-            <m.li key={`${tab}:${row.key}`} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.18 } }}>
+            <m.li key={slots[index]} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.18 } }}>
               <button type="button" disabled={!onPick || ghost} onClick={() => onPick?.(tab, row.key)} aria-pressed={onPick && !ghost ? on : undefined} title={ghost ? `${usd(got)} from payments with no visit recorded: paid before tracking began, or on a device the tracker never saw` : `${n(row.visitors)} visitors, ${n(row.signups)} signups, ${conversion}% signed up${row.paid ? `, ${n(row.paid)} paid` : ""}${got ? `, ${usd(got)} revenue` : ""}`}
                 className={cx("relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13 disabled:cursor-default", on ? "bg-card-2" : onPick && !ghost && "hover-ghost")}>
                 <m.span className="absolute inset-0 bg-wash-sky" initial={{ clipPath: clip(100), opacity: 1 }} animate={{ clipPath: clip(100 - bar), opacity: money ? 0 : 1 }} transition={{ clipPath: grow, opacity: { duration: 0.24 } }} aria-hidden />
                 <m.span className="absolute inset-0 bg-wash-lime" initial={{ clipPath: clip(100), opacity: 0 }} animate={{ clipPath: clip(100 - bar), opacity: money ? 1 : 0 }} transition={{ clipPath: grow, opacity: { duration: 0.24 } }} aria-hidden />
                 <m.span className="absolute inset-0 bg-wash-pink" initial={{ clipPath: clip(100, 0) }} animate={{ clipPath: clip(100 - bar, Math.max(0, bar - coral)), opacity: coral > 0 ? 1 : 0 }} transition={{ clipPath: grow, opacity: { duration: 0.24 } }} aria-hidden />
-                <span className={cx("relative min-w-0 flex-1 truncate", ghost ? "text-ink-3" : "text-ink")}>{ghost ? "no visit recorded" : label ? label(tab, row.key) : row.key}</span>
+                <span className={cx("relative min-w-0 flex-1 truncate", ghost ? "text-ink-3" : "text-ink")}>{(() => { const text = ghost ? "no visit recorded" : label ? label(tab, row.key) : row.key; return typeof text === "string" ? <SwapText text={text} className="w-full" /> : text; })()}</span>
                 <span className="relative w-12 text-end font-mono text-ink num">{ghost ? "-" : <Figure value={n(row.visitors)} className="!font-mono !text-13 !leading-5 !tracking-normal" />}</span>
                 {!metric && <span className={cx("relative w-10 text-end font-mono num", row.signups ? "text-coral-deep" : "text-ink-4")}>{ghost ? "-" : n(row.signups)}</span>}
                 {moneyCol && <span className={cx("relative w-16 text-end font-mono num", got > 0 ? "font-medium text-money" : got < 0 ? "text-bad" : "text-ink-4")}>{got ? usd(got, true) : "-"}</span>}

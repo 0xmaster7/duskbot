@@ -72,30 +72,32 @@ export function FunnelChart({ range }: { range: Range }) {
               </div>
             )}
             <ol className="flex flex-col gap-1" aria-label="funnel steps">
+              <AnimatePresence initial={false} mode="popLayout">
               {data.steps.map((step, i) => {
                 const share = (counts[i] ?? 0) / first, drop = drops[i], isWorst = drop !== null && drop === worst;
                 return (
-                  <m.li key={step.id} layout="position" className="grid grid-cols-[minmax(0,168px)_minmax(0,1fr)_76px] items-center gap-3 max-sm:grid-cols-[minmax(0,1fr)_72px]" transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 } }}>
+                  <m.li key={step.id} layout="position" className="grid grid-cols-[minmax(0,168px)_minmax(0,1fr)_76px] items-center gap-3 max-sm:grid-cols-[minmax(0,1fr)_72px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} transition={{ layout: { type: "spring", visualDuration: 0.3, bounce: 0 }, opacity: { duration: 0.18 } }}>
                     <span className="truncate text-13 text-ink-2 max-sm:col-span-2 max-sm:-mb-1 max-sm:text-12" title={step.label}>{step.label}</span>
                     <span className="relative flex h-9 items-center overflow-hidden rounded-[10px] px-3">
                       <m.span className={cx("absolute inset-0", stageOf(step.id))} initial={{ clipPath: "inset(0% 100% 0% 0% round 10px)" }}
                         animate={{ clipPath: `inset(0% ${(100 - Math.max(1.5, share * 100)).toFixed(2)}% 0% 0% round 10px)` }} transition={{ type: "spring", visualDuration: 0.45, bounce: 0, delay: Math.min(0.3, i * 0.03) }} aria-hidden />
                       <span className="relative flex items-baseline gap-2">
                         <Figure value={n(counts[i] ?? 0)} className="!font-mono !text-15 !leading-6 !tracking-[-0.02em]" />
-                        <span className="font-mono text-12 text-ink-3 num">{i === 0 ? "start" : `${percent(share)} of start`}</span>
+                        <Figure value={i === 0 ? "start" : `${percent(share)} of start`} className="!font-mono !text-12 !font-medium !leading-4 !tracking-normal !text-ink-3" />
                       </span>
                     </span>
                     <span className="flex justify-end">
                       {drop && drop.kept !== null && (
                         <span className={cx("inline-flex h-6 items-center whitespace-nowrap rounded-full px-2 font-mono text-12 num", isWorst ? "bg-wash-pink font-medium text-bad" : "bg-card text-ink-3")}
                           title={`${n(drop.lost)} stopped after "${drop.from.label}"`}>
-                          {drop.kept >= 1 ? "kept all" : `-${percent(1 - drop.kept)}`}
+                          <Figure value={drop.kept >= 1 ? "kept all" : `-${percent(1 - drop.kept)}`} className="!font-mono !text-12 !leading-4 !tracking-normal ![color:inherit]" />
                         </span>
                       )}
                     </span>
                   </m.li>
                 );
               })}
+              </AnimatePresence>
             </ol>
             <AnimatePresence initial={false} mode="wait">
               <m.div key={worst ? `${worst.from.id}:${channel}:${mode}` : "none"} className="mt-3 rounded-[14px] bg-wash-pink/60 px-3.5 py-2.5 text-13 text-ink-2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
