@@ -601,3 +601,62 @@ describe("billing ledger", () => {
     await expect(service.syncFromProvider()).rejects.toMatchObject({ status: 409 });
   });
 });
+
+describe("cancel flow and the stay-on discount", () => {
+  it("offers the discount on a live monthly plan, applies it once at the provider and records the save", async () => {
+    const { sub } = await buy();
+    expect(service.overview(owner).retention).toEqual({ offer: { percent: 30, cycles: 3 }, applied: null });
+    const answer = await service.retentionDiscount(owner, sub.id, "price");
+    expect(provider.discountCalls).toEqual([expect.objectContaining({ subscriptionId: sub.providerSubscriptionId, percent: 30, cycles: 3, accountId: owner.id })]);
+    expect(answer.retention).toEqual({ offer: null, applied: { percent: 30, cycles: 3, at: time } });
+    expect(store.state.retention).toEqual([expect.objectContaining({ accountId: owner.id, subscriptionId: sub.id, reason: "price", step: "help", outcome: "discount" })]);
+    await expect(service.retentionDiscount(owner, sub.id, "price")).rejects.toMatchObject({ status: 409, code: "discount_used" });
+    expect(provider.discountCalls).toHaveLength(1);
+    expect(store.state.subscriptions.find(row => row.id === sub.id)).toMatchObject({ status: "active", cancelAtPeriodEnd: false });
+  });
+
+  it("keeps the discount to one per account across plans and survives a restart", async () => {
+    const { sub } = await buy();
+    await service.retentionDiscount(owner, sub.id, "price");
+    service.close(); store = createBillingStore(dataDir);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    expect(service.overview(owner).retention).toEqual({ offer: null, applied: { percent: 30, cycles: 3, at: time } });
+    await expect(service.retentionDiscount(owner, sub.id, "unused")).rejects.toMatchObject({ code: "discount_used" });
+  });
+
+  it("refuses the discount on a yearly plan, a plan set to cancel, a failed provider call and someone else's plan", async () => {
+    const yearly = await buy(preset(1, "year"));
+    expect(service.overview(owner).retention?.offer).toBeNull();
+    await expect(service.retentionDiscount(owner, yearly.sub.id, "price")).rejects.toMatchObject({ code: "discount_unavailable" });
+    await expect(service.retentionDiscount(stranger, yearly.sub.id, "price")).rejects.toMatchObject({ status: 404 });
+    await expect(service.retentionDiscount(owner, yearly.sub.id, "nope" as never)).rejects.toMatchObject({ status: 400 });
+    const monthly = await buy(desktopOnly(), stranger);
+    provider.failDiscount = true;
+    await expect(service.retentionDiscount(stranger, monthly.sub.id, "price")).rejects.toMatchObject({ code: "unavailable" });
+    expect(store.state.retentionDiscounts).toEqual([]);
+    provider.failDiscount = false;
+    await service.cancel(stranger, monthly.sub.id);
+    await expect(service.retentionDiscount(stranger, monthly.sub.id, "price")).rejects.toMatchObject({ code: "discount_unavailable" });
+    expect(provider.discountCalls).toHaveLength(0);
+  });
+
+  it("records each step and a cancel with its reason, and validates the step", async () => {
+    const { sub } = await buy();
+    const seen: unknown[] = [];
+    service.close(); store = createBillingStore(dataDir);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time, onRetention: entry => seen.push(entry) });
+    expect(service.retentionStep(owner, sub.id, { reason: "broken", step: "reason", outcome: "shown" })).toEqual({ ok: true });
+    expect(service.retentionStep(owner, sub.id, { reason: "broken", step: "help", outcome: "helped" })).toEqual({ ok: true });
+    expect(() => service.retentionStep(owner, sub.id, { reason: "broken", step: "help", outcome: "gone" })).toThrow();
+    expect(() => service.retentionStep(stranger, sub.id, { reason: "broken", step: "reason", outcome: "shown" })).toThrow();
+    await service.cancel(owner, sub.id, { answer: "switching" });
+    expect(seen).toEqual([
+      { accountId: owner.id, reason: "broken", step: "reason", outcome: "shown" },
+      { accountId: owner.id, reason: "broken", step: "help", outcome: "helped" },
+      { accountId: owner.id, reason: "switching", step: "confirm", outcome: "cancelled" },
+    ]);
+    expect(store.state.feedback.at(-1)).toMatchObject({ answer: "switching", subscriptionId: sub.id });
+    await service.cancel(owner, sub.id, { answer: "switching" });
+    expect(store.state.retention).toHaveLength(3);
+  });
+});

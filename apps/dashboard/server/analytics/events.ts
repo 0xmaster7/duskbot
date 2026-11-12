@@ -1,5 +1,6 @@
 // The product analytics catalogue: which events exist, who may send them, and the only properties each may carry.
 // Events hold counts, states, platforms and versions; never message content, prompts, files, emails, IPs or tokens.
+import { CANCEL_ANSWERS, RETENTION_OUTCOMES, RETENTION_STEPS } from "../../../../shared/billing-api.ts";
 import { cleanSignal, isSignalName } from "../../../../shared/product-signals.ts";
 
 export const DAY_MS = 86_400_000;
@@ -55,6 +56,8 @@ export const EVENTS = {
   checkout_paid: { source: "server", props: { amountCents: count } },
   /** a billing ledger row (billing/ledger.ts): paid, renewed, failed, refunded, disputed, cancelled, upgraded, downgraded */
   billing: { source: "server", props: { type: pattern(/^[a-z_]{2,24}\.[a-z_]{2,24}$/, 49), amountCents: count, mrrCents: count, previousMrrCents: count, plan: word, interval: oneOf("month", "year") } },
+  /** a step of the dashboard's cancel flow: why, and whether it ended in a save or the cancel */
+  cancel_flow: { source: "server", props: { reason: oneOf(...CANCEL_ANSWERS), step: oneOf(...RETENTION_STEPS), outcome: oneOf(...RETENTION_OUTCOMES) } },
   page_view: { source: "page", props: { path: route }, active: true },
   /** an account page view's end: its visible time; sent on the next route or when the page goes away */
   page_leave: { source: "page", props: { path: route, ms: count } },

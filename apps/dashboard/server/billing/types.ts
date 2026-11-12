@@ -44,6 +44,8 @@ export type BillingEvent =
 
 export interface VerifiedWebhook { id: string; at: number; event: BillingEvent }
 
+/** a percent off the subscription's next `cycles` renewals, made for one account and used once */
+export interface ApplyDiscountInput { subscriptionId: string; productId: string; addons: Array<{ addonId: string; quantity: number }>; percent: number; cycles: number; accountId: string }
 export interface ChangePlanInput { subscriptionId: string; productId: string; addons: Array<{ addonId: string; quantity: number }>; billing?: CreateCheckoutInput["billing"] }
 
 /** payments backend: fake for tests and dev, dodo when configured. no method ever logs a secret. */
@@ -59,6 +61,8 @@ export interface BillingProvider {
   /** refunds a payment in full */
   refundPayment(paymentId: string, reason: string): Promise<void>;
   changePlan(input: ChangePlanInput): Promise<void>;
+  /** puts a one-use discount on a live subscription's coming renewals; resolves with the provider's discount code */
+  applyDiscount(input: ApplyDiscountInput): Promise<{ code: string }>;
   /** a url the owner's browser may open for this payment's invoice */
   invoiceUrl(paymentId: string): Promise<string | null>;
   invoicePdf(paymentId: string): Promise<{ contentType: string; body: Buffer } | null>;

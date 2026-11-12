@@ -24,6 +24,15 @@ const provider = () => createDodoProvider({ apiKey, webhookSecret: "whsec_Zml4dH
 const input = { checkoutId: "chk_1", accountId: "a1", email: "owner@example.com", customerId: null, cart: [{ productId: "solo", quantity: 1, addons: [{ addonId: "desktop", quantity: 1 }] }], returnUrl: "https://dashboard.test/billing" };
 
 describe("dodo HTTP provider fixture", () => {
+  it("puts a one-use retention discount on a live subscription's next renewals without billing now", async () => {
+    reply = { code: "KEEP1234", discount_id: "dsc_1" };
+    expect(await provider().applyDiscount({ subscriptionId: "sub/1", productId: "desk", addons: [{ addonId: "cpu", quantity: 2 }], percent: 30, cycles: 3, accountId: "a1" })).toEqual({ code: "KEEP1234" });
+    expect(requests[0]).toMatchObject({ method: "POST", url: "/discounts", body: { type: "percentage", amount: 3000, subscription_cycles: 3, usage_limit: 1, per_customer_usage_limit: 1, preserve_on_plan_change: true, metadata: { accountId: "a1", kind: "retention" } } });
+    expect(requests[1]).toEqual({ method: "POST", url: "/subscriptions/sub%2F1/change-plan", auth: `Bearer ${apiKey}`, body: { product_id: "desk", quantity: 1, proration_billing_mode: "do_not_bill", effective_at: "next_billing_date", addons: [{ addon_id: "cpu", quantity: 2 }], discount_codes: ["KEEP1234"] } });
+    reply = { discount_id: "dsc_2" };
+    await expect(provider().applyDiscount({ subscriptionId: "sub", productId: "desk", addons: [], percent: 30, cycles: 3, accountId: "a1" })).rejects.toMatchObject({ code: "refused" });
+    expect(requests).toHaveLength(3);
+  });
   it("sends checkout auth, metadata and line items", async () => {
     reply = { session_id: "session", checkout_url: "https://test.checkout.dodopayments.com/session/session" };
     expect(await provider().createCheckout(input)).toEqual({ sessionId: "session", url: (reply as { checkout_url: string }).checkout_url });

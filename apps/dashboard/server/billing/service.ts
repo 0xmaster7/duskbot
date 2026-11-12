@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { CANCEL_ANSWERS, CLOUD_SWATCHES, checkoutSource } from "../../../../shared/billing-api.ts";
-import type { FunnelRow, FunnelView, DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../../shared/billing-api.ts";
+import { CANCEL_ANSWERS, CLOUD_SWATCHES, RETENTION_OUTCOMES, RETENTION_STEPS, checkoutSource } from "../../../../shared/billing-api.ts";
+import type { CancelAnswer, RetentionInput, RetentionView, FunnelRow, FunnelView, DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../../shared/billing-api.ts";
 import type { CloudsService, DesktopPlan } from "../clouds/types.ts";
 import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
@@ -23,7 +23,11 @@ export interface BillingServiceOptions {
   notify?: (notice: BillingNotice) => void;
   /** each new ledger row, after it is stored; never throws into billing */
   onLedger?: (entry: LedgerEntry) => void;
+  /** each cancel flow step, after it is stored; never throws into billing */
+  onRetention?: (entry: { accountId: string } & RetentionInput) => void;
 }
+/** the stay-on discount: once per account, on a monthly plan's next three renewals */
+export const RETENTION_DISCOUNT = { percent: 30, cycles: 3 } as const;
 export type BillingNotice =
   | { kind: "receipt"; accountId: string; invoiceId: string; amountCents: number; currency: string; description: string; paidAt: number;
       periodStart: number | null; periodEnd: number | null; renews: boolean; first: boolean; cloudId: string | null; revived: boolean }
@@ -56,7 +60,7 @@ export function createBillingService(options: BillingServiceOptions) {
   const { store, provider, clouds } = options, state = store.state, config = options.config ?? BILLING_CONFIG;
   const now = options.now ?? Date.now, random = options.random ?? (bytes => randomBytes(bytes).toString("base64url"));
   const publicUrl = guarded(() => new URL(options.publicUrl).origin)();
-  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= [];
+  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= []; state.retention ??= []; state.retentionDiscounts ??= [];
   const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number }>();
   const queues = new Map<string, Promise<unknown>>();
   const id = (prefix: string) => `${prefix}_${random(16)}`;
@@ -647,7 +651,8 @@ export function createBillingService(options: BillingServiceOptions) {
     return serialized(account.id, async () => {
       let sub = editable(account.id, subscriptionId);
       if (!cancel && (sub.status !== "active" || sub.currentPeriodEnd === null || sub.currentPeriodEnd <= now())) fail(409, "not_subscribed");
-      if (survey !== undefined) saveFeedback(account, sub.cloudId, sub.id, surveyOf(survey));
+      const answer = survey === undefined ? undefined : surveyOf(survey);
+      if (answer) saveFeedback(account, sub.cloudId, sub.id, answer);
       await provider.cancelAtPeriodEnd(sub.providerSubscriptionId!, cancel);
       sub = owned(account.id, subscriptionId);
       if (sub.status === "ended" || !cancel && (sub.status !== "active" || sub.currentPeriodEnd === null || sub.currentPeriodEnd <= now())) fail(409, "not_subscribed");
@@ -661,8 +666,44 @@ export function createBillingService(options: BillingServiceOptions) {
         }
         store.commit();
       } catch (error) { Object.assign(state, before); throw error; }
+      if (cancel && !wasCancelled && answer) saveRetention(account, sub.id, { reason: answer.answer, step: "confirm", outcome: "cancelled" });
       if (cancel && !wasCancelled && sub.status === "active") { notices.push(cancelledNotice(sub)); sendNotices(); }
       flushCloudActions(); return view(sub);
+    });
+  }
+  function saveRetention(account: AccountRef, subscriptionId: string, input: RetentionInput) {
+    const entry = { id: id("rt"), accountId: account.id, subscriptionId, reason: input.reason, step: input.step, outcome: input.outcome, at: now() };
+    state.retention!.push(entry); store.commit();
+    try { options.onRetention?.({ accountId: account.id, reason: input.reason, step: input.step, outcome: input.outcome }); } catch { console.warn("billing: a retention listener failed"); }
+  }
+  function retentionStep(account: AccountRef, subscriptionId: string, input: unknown) {
+    const sub = owned(account.id, subscriptionId), value = input as Record<string, unknown> | null;
+    if (!value || typeof value !== "object" || !CANCEL_ANSWERS.includes(value.reason as CancelAnswer) || !RETENTION_STEPS.includes(value.step as RetentionInput["step"])
+      || !RETENTION_OUTCOMES.includes(value.outcome as RetentionInput["outcome"])) fail(400, "invalid_request");
+    saveRetention(account, sub.id, { reason: value.reason as CancelAnswer, step: value.step as RetentionInput["step"], outcome: value.outcome as RetentionInput["outcome"] });
+    return { ok: true as const };
+  }
+  const discountable = (sub: StoredSubscription) => sub.status === "active" && !sub.cancelAtPeriodEnd && !sub.pendingChange && sub.cart.interval === "month" && sub.totalCents > 0
+    && !!sub.providerSubscriptionId && sub.source !== "admin_comp" && sub.source !== "ops_grant" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();
+  function retentionView(accountId: string): RetentionView {
+    const taken = state.retentionDiscounts!.find(entry => entry.accountId === accountId);
+    if (taken) return { offer: null, applied: { percent: taken.percent, cycles: taken.cycles, at: taken.at } };
+    const live = state.subscriptions.some(sub => sub.accountId === accountId && discountable(sub));
+    return { offer: live ? { ...RETENTION_DISCOUNT } : null, applied: null };
+  }
+  async function retentionDiscount(account: AccountRef, subscriptionId: string, reason: unknown) {
+    if (!CANCEL_ANSWERS.includes(reason as CancelAnswer)) fail(400, "invalid_request");
+    return serialized(account.id, async () => {
+      if (state.retentionDiscounts!.some(entry => entry.accountId === account.id)) fail(409, "discount_used");
+      let sub = editable(account.id, subscriptionId);
+      if (!discountable(sub)) fail(409, "discount_unavailable");
+      const line = providerCart(sub.cart)[0];
+      const { code } = await provider.applyDiscount({ subscriptionId: sub.providerSubscriptionId!, productId: line.productId, addons: line.addons, ...RETENTION_DISCOUNT, accountId: account.id });
+      sub = owned(account.id, subscriptionId);
+      state.retentionDiscounts!.push({ id: id("disc"), accountId: account.id, subscriptionId: sub.id, code, ...RETENTION_DISCOUNT, at: now() });
+      store.commit();
+      saveRetention(account, sub.id, { reason: reason as CancelAnswer, step: "help", outcome: "discount" });
+      return { subscription: view(sub), retention: retentionView(account.id) };
     });
   }
   function feedback(account: AccountRef, input: { cloudId?: string | null; survey: CancelSurvey }) {
@@ -790,7 +831,7 @@ export function createBillingService(options: BillingServiceOptions) {
   function overview(account: AccountRef): BillingOverview {
     const license = licenseCheck(account);
     return { v: 1, subscriptions: state.subscriptions.filter(sub => sub.accountId === account.id).map(view), licenses: licenses(account.id), license,
-      clouds: clouds.list(account.id).map(cloud => clouds.view(cloud)), invoices: invoices(account.id) };
+      clouds: clouds.list(account.id).map(cloud => clouds.view(cloud)), invoices: invoices(account.id), retention: retentionView(account.id) };
   }
   function appState(account: AccountRef) {
     const primary = state.subscriptions.find(sub => sub.accountId === account.id && sub.cart.desktop.kind !== "none" && ["active", "payment_problem", "cancelled"].includes(sub.status)) ?? null;
@@ -896,7 +937,7 @@ export function createBillingService(options: BillingServiceOptions) {
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),
     cancel: guarded((account: AccountRef, subscriptionId: string, survey?: CancelSurvey) => setCancel(account, subscriptionId, true, survey)), keep: guarded((account: AccountRef, subscriptionId: string) => setCancel(account, subscriptionId, false)),
-    feedback: guarded(feedback), previewChange: guarded(previewChange), change: guarded(change),
+    feedback: guarded(feedback), retentionStep: guarded(retentionStep), retentionDiscount: guarded(retentionDiscount), previewChange: guarded(previewChange), change: guarded(change),
     operatorChange: guarded(operatorChange), setPeriodEnd: guarded(setPeriodEnd), endNow: guarded(endNow),
     portal: guarded(async (account: AccountRef, path?: string) => { const url = returnUrl(path), owner = state.customers.find(customer => customer.accountId === account.id); if (!owner?.providerCustomerId) fail(409, "not_subscribed"); return provider.portal(owner.providerCustomerId, url); }),
     invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); confirmations.clear(); store.close(); }),

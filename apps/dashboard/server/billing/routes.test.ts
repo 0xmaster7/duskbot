@@ -457,3 +457,24 @@ it("preview billing: checkout says it opens soon, and only the operator's token 
   expect(answer.subscriptions).toEqual([expect.objectContaining({ status: "active" })]);
   expect(billing.clouds.list("a").map(cloud => cloud.name)).toEqual(["Test Cloud"]);
 });
+
+it("walks the cancel flow over HTTP: steps, the one-time discount, then an online cancel with no contact needed", async () => {
+  const f = await fixture(), { cookie } = await f.login();
+  const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, cookie);
+  await f.complete(checkout.checkoutId);
+  let overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, cookie);
+  const subId = overview.subscriptions[0].id;
+  expect(overview.retention).toEqual({ offer: { percent: 30, cycles: 3 }, applied: null });
+  expect(await f.answer(`/v1/billing/subscriptions/${subId}/retention`, { reason: "price", step: "reason", outcome: "shown" }, cookie)).toEqual({ ok: true });
+  const bad = await f.page(`/v1/billing/subscriptions/${subId}/retention`, { reason: "price", step: "reason", outcome: "maybe" }, cookie); expect(bad.status).toBe(400);
+  const stranger = await f.login("stranger@example.test");
+  for (const path of ["retention", "discount"]) expect((await f.page(`/v1/billing/subscriptions/${subId}/${path}`, { reason: "price", step: "reason", outcome: "shown" }, stranger.cookie)).status).toBe(404);
+  expect(await f.answer(`/v1/billing/subscriptions/${subId}/discount`, { reason: "price" }, cookie)).toMatchObject({ subscription: { id: subId, cancelAtPeriodEnd: false }, retention: { offer: null, applied: { percent: 30, cycles: 3 } } });
+  expect(f.billing.fake!.discountCalls).toHaveLength(1);
+  const again = await f.page(`/v1/billing/subscriptions/${subId}/discount`, { reason: "price" }, cookie);
+  expect(again.status).toBe(409); expect(await again.json()).toMatchObject({ code: "discount_used", error: "This account already used its discount." });
+  await f.answer(`/v1/billing/subscriptions/${subId}/cancel`, { survey: { answer: "price" } }, cookie);
+  overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, cookie);
+  expect(overview.subscriptions[0].cancelAtPeriodEnd).toBe(true);
+  expect(f.saved().retention?.map(row => `${row.step}:${row.outcome}`)).toEqual(["reason:shown", "help:discount", "confirm:cancelled"]);
+});

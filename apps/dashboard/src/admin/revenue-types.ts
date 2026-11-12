@@ -41,6 +41,8 @@ export interface SubscriptionReport {
   upcoming: Upcoming[]; risk: RiskRow[]; feed: FeedItem[]; customers: CustomerRow[];
   funnel: { days: number; steps: RevenueFunnelStep[] };
   sync: { available: boolean; last: { at: number; added: number; scanned: number } | null };
+  /** the dashboard's cancel flow over the last 90 days; absent from an older service */
+  cancelFlow?: { started: number; saved: number; cancelled: number; discounts: number; reasons: Array<{ reason: string; started: number; saved: number; cancelled: number }> };
 }
 export interface PersonBilling {
   customer: CustomerRow | null;

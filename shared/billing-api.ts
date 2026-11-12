@@ -191,10 +191,22 @@ export interface InvoiceView {
 }
 export interface InvoicePage { invoices: InvoiceView[]; nextCursor: string | null }
 
-export const CANCEL_ANSWERS = ["feature", "price", "setup", "broken", "later", "other"] as const;
+/** "unused" and "switching" come from the dashboard's cancel flow; the desktop app sends the first six */
+export const CANCEL_ANSWERS = ["feature", "price", "setup", "broken", "later", "other", "unused", "switching"] as const;
 export type CancelAnswer = (typeof CANCEL_ANSWERS)[number];
 /** the desktop app's cancel sheet survey (electron/cloud-account.mjs cancelSurvey), as the dashboard sends it too */
 export interface CancelSurvey { answer: CancelAnswer; expected?: string; improve?: string }
+
+/** the dashboard's cancel flow: the reason, the help offered for it, then the confirmation */
+export const RETENTION_STEPS = ["reason", "help", "confirm"] as const;
+export type RetentionStep = (typeof RETENTION_STEPS)[number];
+/** what a step ended in: a step shown, a save (discount, a cheaper plan, help taken, kept as is) or the cancel */
+export const RETENTION_OUTCOMES = ["shown", "discount", "downgrade", "helped", "kept", "cancelled"] as const;
+export type RetentionOutcome = (typeof RETENTION_OUTCOMES)[number];
+export interface RetentionInput { reason: CancelAnswer; step: RetentionStep; outcome: RetentionOutcome }
+export interface RetentionOffer { percent: number; cycles: number }
+/** the stay-on discount: `offer` while this account may still take it (once per account, monthly plans), `applied` once taken */
+export interface RetentionView { offer: RetentionOffer | null; applied: (RetentionOffer & { at: number }) | null }
 
 export interface ChangePreview { v: typeof BILLING_API_VERSION; quote: Quote; chargeNowCents: number; confirmation: string; expiresAt: number }
 
@@ -252,6 +264,7 @@ export interface BillingOverview {
   license: LicenseCheck;
   clouds: CloudDesktopView[];
   invoices: InvoicePage;
+  retention?: RetentionView;
 }
 
 /**
@@ -270,6 +283,8 @@ export interface BillingOverview {
  *   POST /v1/billing/subscriptions/:id/change   { confirmation }          -> { subscription: SubscriptionView }
  *   POST /v1/billing/subscriptions/:id/cancel   { survey?: CancelSurvey } -> { subscription: SubscriptionView }
  *   POST /v1/billing/subscriptions/:id/keep                               -> { subscription: SubscriptionView }
+ *   POST /v1/billing/subscriptions/:id/retention RetentionInput           -> { ok: true }
+ *   POST /v1/billing/subscriptions/:id/discount  { reason: CancelAnswer } -> { subscription: SubscriptionView; retention: RetentionView }
  *   GET  /v1/clouds                                  -> { clouds: CloudDesktopView[] }
  *   GET  /v1/clouds/:id                              -> { cloud: CloudDesktopView }
  *   PATCH /v1/clouds/:id            { name?, color? } -> { cloud: CloudDesktopView }
@@ -279,7 +294,7 @@ export interface BillingOverview {
  * errors: { error, code } with codes below.
  */
 export const BILLING_ERROR_CODES = ["billing_active", "signed_out", "invalid_request", "not_found", "forbidden", "rate_limited", "already_subscribed", "checkout_open", "cap",
-  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "unavailable", "checkout_soon", "bad_signature", "failed"] as const;
+  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "discount_used", "discount_unavailable", "unavailable", "checkout_soon", "bad_signature", "failed"] as const;
 export interface DeletionBlocker { kind: "subscription" | "cloud_desktop"; id: string; label: string; status: string }
 export interface DeleteAccountOptions { cancelBilling?: boolean; destroyDesktopsNow?: boolean }
 export type BillingErrorCode = (typeof BILLING_ERROR_CODES)[number];

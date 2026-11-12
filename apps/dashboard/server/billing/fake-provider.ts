@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { BillingProviderError } from "./types.ts";
-import type { BillingProvider, ChangePlanInput, CreateCheckoutInput } from "./types.ts";
+import type { ApplyDiscountInput, BillingProvider, ChangePlanInput, CreateCheckoutInput } from "./types.ts";
 import { signWebhook, verifyWebhook } from "./webhook-signature.ts";
 
 const id = (prefix: string) => `${prefix}${randomBytes(16).toString("base64url")}`;
@@ -11,7 +11,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
   const payments = new Map<string, { amount: number; currency: string }>();
   const completed = new Map<string, ReturnType<typeof signWebhook>[]>();
   const cancelCalls: Array<{ subscriptionId: string; cancel: boolean }> = [], changeCalls: ChangePlanInput[] = [];
-  const cancelNowCalls: string[] = [], refundCalls: Array<{ paymentId: string; reason: string }> = [];
+  const cancelNowCalls: string[] = [], refundCalls: Array<{ paymentId: string; reason: string }> = [], discountCalls: ApplyDiscountInput[] = [];
   function sign(eventId: string, body: Buffer | string | object) { return signWebhook(secret, eventId, Buffer.isBuffer(body) || typeof body === "string" ? body : JSON.stringify(body), now()); }
   function delivery(type: string, data: object) { return sign(id("evt_"), { business_id: "fake_business", type, timestamp: new Date(now()).toISOString(), data }); }
   function next(time: number, interval: "month" | "year") {
@@ -31,7 +31,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
     return delivery("payment.succeeded", { payment_id: paymentId, subscription_id: subscriptionId, customer: { customer_id: customerId }, metadata: { checkoutId: input.checkoutId, accountId: input.accountId }, total_amount: amount, currency });
   }
   const provider = {
-    name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, cancelNowCalls, refundCalls, failChangePlan: false,
+    name: "fake" as const, secret, sessions, subscriptions, payments, cancelCalls, changeCalls, cancelNowCalls, refundCalls, discountCalls, failChangePlan: false, failDiscount: false,
     async createCheckout(input: CreateCheckoutInput) { const sessionId = id("fake_"); sessions.set(sessionId, structuredClone(input)); return { sessionId, url: `https://test.checkout.dodopayments.com/session/${sessionId}` }; },
     async portal(customerId: string, _returnUrl: string) { return { url: `https://test.customer.dodopayments.com/fake_${encodeURIComponent(customerId)}` }; },
     verifyWebhook: (headers, body) => verifyWebhook(secret, headers, body, now()),
@@ -42,6 +42,10 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
       changeCalls.push(structuredClone(input)); if (provider.failChangePlan) throw new BillingProviderError("unavailable");
       const sub = subscriptions.get(input.subscriptionId);
       if (sub) { sub.input.cart = [{ productId: input.productId, quantity: 1, addons: structuredClone(input.addons) }]; if (input.billing) sub.input.billing = structuredClone(input.billing); }
+    },
+    async applyDiscount(input: ApplyDiscountInput) {
+      if (provider.failDiscount) throw new BillingProviderError("unavailable");
+      discountCalls.push(structuredClone(input)); return { code: `KEEP${randomBytes(6).toString("hex").toUpperCase()}` };
     },
     async invoiceUrl(paymentId: string) { return `https://test.customer.dodopayments.com/invoices/${encodeURIComponent(paymentId)}`; },
     async invoicePdf(_paymentId: string) { return { contentType: "application/pdf", body: Buffer.from("%PDF-1.4\n%%EOF\n") }; },

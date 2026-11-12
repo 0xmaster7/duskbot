@@ -17,7 +17,7 @@ import { entitlementSignerFromEnv } from "../entitlements.ts";
 import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
-import type { BillingNotice, OperatorGrant } from "./service.ts";
+import type { BillingNotice, BillingServiceOptions, OperatorGrant } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts, managedRegionConfig, missingDodoProducts } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { stateBackend } from "../persistence/backend.ts";
@@ -42,6 +42,7 @@ export interface BillingOptions {
   notify?: (notice: BillingNotice) => void;
   /** each new billing ledger row, once stored */
   onLedger?: (entry: LedgerEntry) => void;
+  onRetention?: BillingServiceOptions["onRetention"];
   /** a cloud's first time up, and a cloud the generic lifecycle took down */
   cloudEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
   /** every cloud status change */
@@ -74,7 +75,7 @@ export function createBilling(options: BillingOptions) {
     if (mode !== "test" && mode !== "live") throw new Error("Invalid DUSK_DODO_MODE.");
     required("DUSK_DODO_PRODUCTS");
     provider = createDodoProvider({ apiKey, webhookSecret, mode, now, fetch: options.fetch });
-  } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, cancelNow: unavailable, refundPayment: unavailable, changePlan: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
+  } else provider = fake ?? { name: "dodo", createCheckout: unavailable, portal: unavailable, verifyWebhook: unavailable, cancelAtPeriodEnd: unavailable, cancelNow: unavailable, refundPayment: unavailable, changePlan: unavailable, applyDiscount: unavailable, invoiceUrl: unavailable, invoicePdf: unavailable };
   let products: Record<string, string>;
   try { products = dodoProducts(env); } catch { throw new Error("Invalid DUSK_DODO_PRODUCTS."); }
   if (billingProvider === "dodo" && missingDodoProducts(products).length) console.error(`billing: DUSK_DODO_PRODUCTS is missing ${missingDodoProducts(products).join(", ")}; carts that need them answer 503`);
@@ -132,7 +133,7 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   billingStore = store;
-  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger });
+  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger, onRetention: options.onRetention });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");

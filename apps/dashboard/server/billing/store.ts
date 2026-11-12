@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import type { CancelSurvey, Cart, CartLine, LicenseView, SubscriptionStatus } from "../../../../shared/billing-api.ts";
+import { CANCEL_ANSWERS, RETENTION_OUTCOMES, RETENTION_STEPS } from "../../../../shared/billing-api.ts";
+import type { CancelSurvey, Cart, CartLine, LicenseView, RetentionInput, SubscriptionStatus } from "../../../../shared/billing-api.ts";
 import type { DesktopPlan, OrderInput } from "../clouds/types.ts";
 import { createJsonStore } from "./json-store.ts";
 import { validLedgerEntry } from "./ledger.ts";
@@ -63,6 +64,10 @@ export interface BillingState {
   checkouts: StoredCheckout[]; subscriptions: StoredSubscription[]; licenses: LicenseView[]; invoices: StoredInvoice[];
   webhookEvents: Array<{ id: string; at: number; type: string }>;
   feedback: Array<CancelSurvey & { id: string; accountId: string; cloudId: string | null; subscriptionId: string | null; at: number }>;
+  /** each step of the dashboard's cancel flow, for the owner's cancel reasons and saves */
+  retention?: Array<RetentionInput & { id: string; accountId: string; subscriptionId: string; at: number }>;
+  /** the stay-on discount, at most one per account */
+  retentionDiscounts?: Array<{ id: string; accountId: string; subscriptionId: string; code: string; percent: number; cycles: number; at: number }>;
 }
 
 type Check = (value: unknown) => boolean;
@@ -100,7 +105,9 @@ const valid = shape({
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
   invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, taxCents: optional(int), currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),
   webhookEvents: array(shape({ id: str, at: int, type: str })),
-  feedback: array(shape({ id: str, accountId: str, cloudId: nullable(str), subscriptionId: nullable(str), answer: one("feature", "price", "setup", "broken", "later", "other"), expected: optional(str), improve: optional(str), at: int })),
+  retention: optional(array(shape({ id: str, accountId: str, subscriptionId: str, reason: one(...CANCEL_ANSWERS), step: one(...RETENTION_STEPS), outcome: one(...RETENTION_OUTCOMES), at: int }))),
+  retentionDiscounts: optional(array(shape({ id: str, accountId: str, subscriptionId: str, code: str, percent: int, cycles: int, at: int }))),
+  feedback: array(shape({ id: str, accountId: str, cloudId: nullable(str), subscriptionId: nullable(str), answer: one(...CANCEL_ANSWERS), expected: optional(str), improve: optional(str), at: int })),
 });
 function validState(value: unknown): value is BillingState {
   if (!valid(value)) return false;

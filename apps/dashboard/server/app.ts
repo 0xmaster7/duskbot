@@ -236,6 +236,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     },
     notify: notice => billingNotice(notice),
     onLedger: entry => ledgerRow(entry),
+    onRetention: entry => analytics.track("cancel_flow", { accountId: entry.accountId, props: { reason: entry.reason, step: entry.step, outcome: entry.outcome } }),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
     cloudEvent: (kind, cloud) => kind === "ready" ? sendTo(cloud.accountId, "cloudStatus", cloudReadyEmail(emailCfg, cloudFacts(cloud)))
       : sendTo(cloud.accountId, "required", cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),

@@ -280,6 +280,28 @@ function Checkout({ checkout }: { checkout: SubscriptionReport["checkout"] }) {
   );
 }
 
+const REASONS: Record<string, string> = { price: "too expensive", unused: "not using it", broken: "something broke", feature: "missing a feature", switching: "switching to something else",
+  setup: "too hard to set up", later: "coming back later", other: "something else" };
+
+function CancelReasons({ flow }: { flow: NonNullable<SubscriptionReport["cancelFlow"]> }) {
+  const top = Math.max(1, ...flow.reasons.map((row) => row.started || row.saved + row.cancelled));
+  return (
+    <Card title="cancel reasons" meta="last 90 days">
+      <div className="grid grid-cols-4 gap-1 rounded-[14px] bg-card max-sm:grid-cols-2">
+        <Small label="opened the flow" value={n(flow.started)} />
+        <Small label="saved" value={n(flow.saved)} />
+        <Small label="took the discount" value={n(flow.discounts)} />
+        <Small label="cancelled" value={n(flow.cancelled)} />
+      </div>
+      {flow.reasons.length ? (
+        <ul className="mt-3 flex flex-col gap-px">
+          {flow.reasons.map((row) => <BarRow key={row.reason} label={REASONS[row.reason] ?? words(row.reason)} value={n(row.started)} share={(row.started || row.saved + row.cancelled) / top} color="bg-wash-lilac" note={`${n(row.saved)} saved, ${n(row.cancelled)} cancelled`} />)}
+        </ul>
+      ) : <Empty>no one has opened the cancel flow yet.</Empty>}
+    </Card>
+  );
+}
+
 function TimeToPay({ data }: { data: SubscriptionReport["timeToPay"] }) {
   const max = Math.max(1, ...data.buckets.map((b) => b.count)), total = data.buckets.reduce((s, b) => s + b.count, 0);
   return (
@@ -543,7 +565,7 @@ export function RevenuePage() {
           </div>
           {!empty && (
             <div className="grid grid-cols-2 items-start gap-4 max-lg:grid-cols-1">
-              <div className="flex min-w-0 flex-col gap-4"><Risk risk={data.risk} /><Renewals report={data} /><TimeToPay data={data.timeToPay} /></div>
+              <div className="flex min-w-0 flex-col gap-4"><Risk risk={data.risk} />{data.cancelFlow && <CancelReasons flow={data.cancelFlow} />}<Renewals report={data} /><TimeToPay data={data.timeToPay} /></div>
               <Feed feed={data.feed} />
             </div>
           )}

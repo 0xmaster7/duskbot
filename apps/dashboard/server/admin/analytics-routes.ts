@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { cancelFlowSummary } from "../analytics/cancel-flow.ts";
 import type { createAuth } from "../auth/index.ts";
 import type { createBilling } from "../billing/index.ts";
 import type { Analytics } from "../analytics/index.ts";
@@ -411,7 +412,8 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     if (!Number.isInteger(days) || days < 7 || days > 400) throw bad();
     const { input, history } = await revenueData();
     const state = billing.store.state;
-    return { ...subscriptionReport(input), funnel: revenueFunnel(input, history, days), sync: { available: billing.operator.provider === "dodo", last: state.lastSync ?? null } };
+    return { ...subscriptionReport(input), funnel: revenueFunnel(input, history, days), sync: { available: billing.operator.provider === "dodo", last: state.lastSync ?? null },
+      cancelFlow: cancelFlowSummary(state.retention ?? [], now() - 90 * DAY, now() + 1) };
   }
   function ledgerSteps(accountId: string): Step[] {
     const skip = new Set(["payment.succeeded", "refund.succeeded", "subscription.renewed", "subscription.active", "checkout.started"]);
