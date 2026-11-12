@@ -27,9 +27,10 @@ it("turns schedules and webhooks back on, removes a deleted bot's automations, a
     const scout = await newBot("Scout");
     const gone = await newBot("Gone");
     const old = await newBot("Old");
-    // One instant for every schedule, far enough ahead for everything below to happen first.
+    // One instant for every schedule, far enough ahead for everything below to happen first. All day on purpose
+    // (window: null), so the waking-hours shaping of new routines never moves it when the test runs at night.
     const dueAt = Date.now() + 50_000;
-    const every = (botId: string, name: string) => api("POST", "/api/routines", { name, prompt: `${name}: reply with one line.`, botId, schedule: { type: "interval", everyMinutes: 60, anchorAt: dueAt } }, 201);
+    const every = (botId: string, name: string) => api("POST", "/api/routines", { name, prompt: `${name}: reply with one line.`, botId, schedule: { type: "interval", everyMinutes: 60, anchorAt: dueAt, window: null } }, 201);
     const hook = (botId: string, name: string) => api("POST", "/api/webhooks", { name, prompt: `${name}: reply with one line.`, botId }, 201);
     const { routine } = await every(scout, "Morning summary");
     const scoutHook = await hook(scout, "Sales form leads");

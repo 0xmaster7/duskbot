@@ -40,7 +40,10 @@ it("transfers only selected skills disabled, preserves originals, and rolls back
     writeFileSync(obstacle, "fixture-only write failure", { mode: 0o600 });
     await expect(post("/api/teams/import", document)).rejects.toThrow();
     unlinkSync(obstacle);
-    expect(await request("/api/bots", {}, url)).toEqual(before);
+    // the cursor is the live event stream's position, which any broadcast moves; the bots must not change
+    const { cursor: _cursor, ...beforeState } = before;
+    const { cursor: _afterCursor, ...rolledBack } = await request("/api/bots", {}, url);
+    expect(rolledBack).toEqual(beforeState);
     expect(existsSync(workspaces) ? readdirSync(workspaces).sort() : []).toEqual(beforeWorkspaces);
 
     const imported = await post("/api/teams/import", document);

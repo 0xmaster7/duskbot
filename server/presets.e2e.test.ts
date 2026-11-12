@@ -57,11 +57,10 @@ it("shares New bot defaults as a preset, imports it, and creates bots from file 
     expect((await ok("POST", "/api/teams/export", body)).document.package.release).toBe("1.0.1");
 
     const lead = (await ok("POST", "/api/bots", { name: "Morgan", section: "Sales desk", useDefaults: false })).bot;
-    const plain = await ok("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", dryRun: true });
-    expect(plain.document.package).not.toHaveProperty("presets");
-    const withPreset = await ok("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", includeDefaultsPreset: true, presetName: "Support agent", dryRun: true });
-    expect(withPreset.summary.counts).toMatchObject({ bots: 1, presets: 1, skills: 1 });
-    expect(withPreset.document.package.presets[0]).not.toHaveProperty("seed");
+    // sharing a department is gone; only the library kind above still exports
+    const gone = { status: 410, body: { error: "Sharing a department is no longer available." } };
+    expect(await call("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", dryRun: true })).toEqual(gone);
+    expect(await call("POST", "/api/teams/export", { format: "package", version: 2, team: "Sales desk", includeDefaultsPreset: true, presetName: "Support agent", dryRun: true })).toEqual(gone);
     expect(lead.name).toBe("Morgan");
 
     const imported = await call("POST", "/api/teams/import", { ...saved.document, trust: "org", org: { installId: "x" } });
