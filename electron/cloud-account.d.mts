@@ -259,6 +259,9 @@ export declare const UPGRADE_SOURCES: readonly string[];
 export declare const CLOUD_CANCEL_ANSWERS: readonly CloudCancelAnswer[];
 /** The survey as main sends it (trimmed; words without a reason as `other`), or null when it says nothing or isn't one. */
 export declare function cancelSurvey(input: unknown): { answer: CloudCancelAnswer; expected?: string; improve?: string } | null;
+/** Only this Admin's own /handoff (or /dashboard/handoff) page with a one-time `#t=` token; anything else is null. */
+export declare function handoffDestination(value: unknown, origin: string): string | null;
+export type CloudWebHandoffResult = { opened: true; fallback?: true } | { opened: false } | { signedOut: true };
 export declare function checkoutDestination(value: unknown, options?: { fixture?: boolean; staging?: boolean; custom?: boolean }): string | null;
 export declare function cloudOrigin(value?: string, fixture?: boolean, custom?: boolean): string;
 export interface CloudAccountStore {
@@ -286,6 +289,9 @@ export interface CloudAccountClient {
   refresh(): Promise<CloudAccountState>;
   signOut(): Promise<CloudAccountState>;
   openDashboard(): Promise<CloudAccountState>;
+  /** Opens the plans page signed in as this account (a one-time /handoff link); `fallback` when the Admin had none and the
+   * plain plans page opened. `plan` is "plus" or "pro", `source` one of CHECKOUT_SOURCES. */
+  webHandoff(input?: { plan?: "plus" | "pro"; source?: string }): Promise<CloudWebHandoffResult>;
   offer(): Promise<import("./cloud-home.mjs").CloudOffer | null>;
   checkout(plan: string, source: string): Promise<CloudCheckoutResult>;
   /** `recover`: "Can't sign in?": the mail also names the ways this address signs in. */

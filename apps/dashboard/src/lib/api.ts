@@ -4,7 +4,7 @@ import type { PulseAnswer } from "../../../../shared/machine-pulse";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
 import { track } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
-import { CSRF_HEADER, EMAIL_CODE_DIGITS, readCsrfCookie, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
+import { CSRF_HEADER, EMAIL_CODE_DIGITS, readCsrfCookie, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type HandoffAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
 export type Scenario = "signedout" | "new" | "mac" | "cloud" | "provisioning" | "managed";
 export interface Account { id: string; email: string; name?: string | null }
@@ -130,6 +130,18 @@ export const api = {
     return { account, created: answer.created, ...(answer.redirect ? { redirect: answer.redirect } : {}) };
   },
   oauthUrl: (provider: IdentityProvider, intent: "signin" | "signup", opts?: { link?: boolean; next?: string }) => FIXTURE ? `/v1/auth/oauth/${provider}/start?intent=${intent}` : `/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(opts?.next ?? (opts?.link ? "/account" : "/"))}${opts?.link ? "&link=1" : ""}`,
+  /** redeems the desktop app's signed-in link; `ask` is the service wanting the person's click first (signed out:
+   * "confirm", another account here: "other_account"), with the link's account */
+  handoff: async (token: string, { confirm = false, replace = false } = {}): Promise<{ account: Account; next: string } | { ask: "confirm" | "other_account"; email: string }> => {
+    let res: Response;
+    try {
+      res = await fetch("/v1/auth/handoff", { method: "POST", credentials: "same-origin", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ token, ...(confirm ? { confirm } : {}), ...(replace ? { replace } : {}) }) });
+    } catch { throw new ApiError("can't reach dusk bot. check your connection.", 0, "offline"); }
+    const data = (await res.json().catch(() => null)) as (HandoffAnswer & { error?: string; code?: string; email?: string }) | null;
+    if (res.status === 409 && (data?.code === "confirm" || data?.code === "other_account") && typeof data.email === "string") return { ask: data.code, email: data.email };
+    if (!res.ok || !data) throw new ApiError(data?.error ?? "something went wrong on our side. try again.", res.status, data?.code ?? null);
+    return { account: rememberAccount(data.account, data.csrfToken), next: data.next };
+  },
   signOut: async () => { const answer = await send("/v1/auth/signout", "POST"); clearSession(); return answer; },
   account: async (): Promise<AccountData> => {
     if (FIXTURE) return call("/v1/account");

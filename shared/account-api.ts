@@ -100,6 +100,12 @@ export const ACCOUNT_ROUTES = {
   appToken: "/v1/auth/app/token", //            POST { code, codeVerifier, deviceName, platform, appVersion? } -> AppGrant
   /** bearer app session: a one-time token the app hands its own workspace so it enrolls into this account's dashboard. */
   enrollGrant: "/v1/app/enroll-grant", //       POST {} -> EnrollGrantAnswer
+  /** bearer app session: a one-time link that opens the website signed in to the same account (WebHandoffRequest). */
+  webHandoff: "/v1/app/web-handoff", //         POST WebHandoffRequest -> WebHandoffAnswer
+  /** website, same-origin only (Origin must be the service's): redeems a WebHandoffAnswer link's token.
+   * the token is not spent by a 409: { code: "confirm", email } for a signed-out browser (again with confirm: true), or
+   * { code: "other_account", email } while it is signed in to another account (again with replace: true to switch). */
+  handoffRedeem: "/v1/auth/handoff", //         POST { token, confirm?, replace? } -> HandoffAnswer (+ session and csrf cookies)
   // Admin contract v1 (unchanged shapes; bearer omc_ token where signed in)
   appEmailStart: "/api/cloud/app/sign-in/start",
   appEmailVerify: "/api/cloud/app/sign-in/verify",
@@ -125,6 +131,13 @@ export interface AppGrant {
   account: { id: string; email: string };
 }
 export interface EnrollGrantAnswer { v: 1; enrollToken: string; expiresAt: number; dashboardUrl: string }
+export const HANDOFF_PLANS = ["plus", "pro"] as const;
+/** `source` is one of billing's CHECKOUT_SOURCES; the page it opens is built by the service from these, never sent. */
+export interface WebHandoffRequest { next: "plans"; plan?: (typeof HANDOFF_PLANS)[number]; source?: string }
+/** `url` is `${publicUrl}${pageBase}/handoff#t=<token>`: the token only in the fragment, single use, about two minutes. */
+export interface WebHandoffAnswer { v: 1; url: string; expiresAt: number }
+/** `next` is an app path (no page base) built from the issued link, e.g. "/billing?plan=pro&src=app_computer_move". */
+export interface HandoffAnswer { account: AccountView; csrfToken: string; next: string }
 /** GET /api/cloud/desktop/session: the identity part. billing adds entitlement, cloud and the rest beside it. */
 export interface AppSessionIdentity {
   cloudContractVersion: 1;
@@ -138,5 +151,5 @@ export interface AppSessionIdentity {
 export type AccountErrorCode =
   | "billing_active"
   | "invalid_request" | "invalid_email" | "wrong_code" | "invalid_code" | "expired" | "rate_limited" | "signup_closed"
-  | "signed_out" | "invalid_token" | "forbidden" | "csrf" | "not_found" | "last_identity" | "identity_taken"
+  | "signed_out" | "confirm" | "other_account" | "invalid_token" | "forbidden" | "csrf" | "not_found" | "last_identity" | "identity_taken"
   | "authorization_pending" | "slow_down" | "access_denied" | "expired_token" | "invalid_grant" | "provider_unavailable" | "failed";

@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
-import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, OAuthErrorCode, OAuthProvider } from "../../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PLANS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
+import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Identity, Session } from "./store.ts";
 import { codeMessage, recoveryMessage } from "./mail.ts";
@@ -13,7 +14,9 @@ import { clientIp } from "../client-ip.ts";
 
 /** sign-in limits an hour, set so a real person never meets them; the per-code tries (EMAIL_CODE_TRIES), the resend
  *  wait and the overall mail cap are what stop abuse */
-export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 15, verifiesPerIp: 150, oauthPerIp: 150, deviceAuthorizePerIp: 90, mailPerHour: 600 };
+export const AUTH_LIMITS = { startsPerIp: 60, startsPerEmail: 15, verifiesPerIp: 150, oauthPerIp: 150, deviceAuthorizePerIp: 90, mailPerHour: 600, handoffsPerSession: 20, handoffsPerIp: 150 };
+/** a web handoff link: how long it lives, and how many one account holds unredeemed at once (older ones are dropped) */
+export const HANDOFF_TTL_MS = 120_000, HANDOFF_OUTSTANDING = 5;
 
 export interface AuthOptions {
   dataDir: string; publicUrl: string; mailer: Mailer; email?: EmailConfig; now?: () => number; fetch?: typeof fetch;
@@ -36,7 +39,7 @@ const messages: Partial<Record<AccountErrorCode, string>> = {
   billing_active: "Cancel your plan and dusk cloud before deleting your account.",
   invalid_request: "Invalid request.", invalid_email: "Enter a valid email address.", wrong_code: "Code is incorrect.", invalid_code: "Code is incorrect.",
   expired: "Sign-in has expired.", rate_limited: "Try again later.", signup_closed: "New accounts are not available.", signed_out: "Sign in to continue.",
-  csrf: "Refresh the page and try again.", not_found: "Not found.", invalid_token: "Session is invalid.", invalid_grant: "Grant is invalid.",
+  csrf: "Refresh the page and try again.", confirm: "Confirm the account to continue.", other_account: "This browser is signed in to another account.", forbidden: "Request is not allowed.", not_found: "Not found.", invalid_token: "Session is invalid.", invalid_grant: "Grant is invalid.",
 };
 const day = 86_400_000, hour = 3_600_000;
 const random = () => randomBytes(32).toString("base64url");
@@ -50,7 +53,7 @@ export function cleanEmail(value: unknown): string | null {
   return email.length <= 254 && !controls(email) && /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email) ? email : null;
 }
 export function isAppCorsRoute(path: string) {
-  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.enrollGrant, R.appToken].some(route => route === path);
+  return path.startsWith("/api/cloud/app/sign-in/") || [R.appSession, R.enrollGrant, R.webHandoff, R.appToken].some(route => route === path);
 }
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
@@ -58,6 +61,7 @@ interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt:
 interface AppFlow { challenge: string; state: string; expiresAt: number }
 interface OAuthState { provider: OAuthProvider; nonce: string; verifier: string; bindingHash: string; next: string; linkAccount: string | null; linkSession: string | null; appFlow?: string; expiresAt: number }
 interface PendingIdentity { provider: OAuthProvider; profile: ProviderProfile; next: string; appFlow?: string; bindingHash: string; expiresAt: number }
+interface Handoff { accountId: string; sessionId: string; next: string; expiresAt: number }
 interface BodyHelpers { readBody(req: IncomingMessage): Promise<Buffer>; bodyObject(body: Buffer): Record<string, unknown> }
 
 export function createAuth(options: AuthOptions) {
@@ -74,6 +78,8 @@ export function createAuth(options: AuthOptions) {
   const devices = new Map<string, DeviceAuthorization>();
   const expiredDevices = new Map<string, number>();
   const grants = new Map<string, { accountId: string; sessionId: string; expiresAt: number }>();
+  // kept apart from `grants`: an enroll token never signs a browser in, and a handoff token never enrolls a workspace
+  const handoffs = new Map<string, Handoff>();
   const limits = new Map<string, { count: number; until: number }>();
   const sentAt = new Map<string, number>();
   const extensions: Array<(accountId: string) => Promise<Record<string, unknown>> | Record<string, unknown>> = [];
@@ -95,12 +101,20 @@ export function createAuth(options: AuthOptions) {
     for (const [key, item] of appCodes) if (item.expiresAt <= time) appCodes.delete(key);
     for (const [key, item] of attempts) if (item.expiresAt <= time) attempts.delete(key);
     for (const [key, item] of grants) if (item.expiresAt <= time) grants.delete(key);
+    for (const [key, item] of handoffs) if (item.expiresAt <= time) handoffs.delete(key);
     for (const [key, item] of devices) if (item.expiresAt <= time) { expiredDevices.set(key, item.expiresAt + hour); devices.delete(key); }
     for (const [key, until] of expiredDevices) if (until <= time) expiredDevices.delete(key);
     for (const [key, item] of limits) if (item.until <= time) limits.delete(key);
     for (const [key, timeSent] of sentAt) if (timeSent + EMAIL_RESEND_SECONDS * 1000 <= time) sentAt.delete(key);
-    const sessions = state.sessions.filter(item => item.expiresAt > time);
-    if (sessions.length !== state.sessions.length) { state.sessions = sessions; store.changed(); }
+    dropSessions(item => item.expiresAt <= time);
+  }
+  /** removes sessions, and with them every handoff web session whose app session is gone (security: no orphan outlives it) */
+  function dropSessions(drop: (session: Session) => boolean) {
+    const gone = new Set(state.sessions.filter(drop).map(item => item.id));
+    const sessions = state.sessions.filter(item => !gone.has(item.id));
+    const live = new Set(sessions.map(item => item.id));
+    state.sessions = sessions.filter(item => !item.parentId || live.has(item.parentId));
+    if (gone.size || state.sessions.length !== sessions.length) store.changed();
   }
   const timer = setInterval(sweep, 60_000);
   timer.unref();
@@ -153,11 +167,11 @@ export function createAuth(options: AuthOptions) {
     const flags = `Path=/; Max-Age=${token ? 30 * day / 1000 : 0}${publicUrl.startsWith("https:") ? "; Secure" : ""}`;
     res.setHeader("set-cookie", [`${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Lax; ${flags}`, `${CSRF_COOKIE}=${csrf}; SameSite=Strict; ${flags}`]);
   }
-  function makeSession(owner: Account, device: DeviceInfo | null) {
+  function makeSession(owner: Account, device: DeviceInfo | null, { signedInAt = now(), parentId }: { signedInAt?: number; parentId?: string } = {}) {
     const token = `${device ? "omc_" : ""}${random()}`;
     const session: Session = { id: `ses_${randomBytes(16).toString("base64url")}`, accountId: owner.id, tokenHash: hash(token),
       kind: device ? ["ios", "android"].includes(device.platform) ? "mobile" : "desktop" : "web", name: device?.name ?? "Browser",
-      platform: device?.platform ?? null, appVersion: device?.appVersion ?? null, createdAt: now(), lastSeenAt: now(), expiresAt: now() + (device ? 90 : 30) * day };
+      platform: device?.platform ?? null, appVersion: device?.appVersion ?? null, createdAt: signedInAt, lastSeenAt: now(), expiresAt: now() + (device ? 90 : 30) * day, ...(parentId ? { parentId } : {}) };
     state.sessions.push(session);
     store.changed();
     for (const hook of sessionHooks) hook(session);
@@ -354,8 +368,45 @@ export function createAuth(options: AuthOptions) {
       redirect(res, `${pageBase}${item.next}`);
     } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
+  const liveAppSession = (grant: { accountId: string; sessionId: string }) =>
+    state.sessions.find(item => item.id === grant.sessionId && item.accountId === grant.accountId && item.kind !== "web" && item.expiresAt > now()) ?? null;
+  function issueHandoff(found: { account: Account; session: Session }, data: Record<string, unknown>): WebHandoffAnswer {
+    if (data.next !== "plans" || (data.plan !== undefined && !(HANDOFF_PLANS as readonly unknown[]).includes(data.plan))
+      || (data.source !== undefined && (data.source === "other" || !(CHECKOUT_SOURCES as readonly unknown[]).includes(data.source)))) return fail(400, "invalid_request");
+    rate(`handoff:${found.session.id}`, AUTH_LIMITS.handoffsPerSession);
+    const query = new URLSearchParams({ ...(typeof data.plan === "string" ? { plan: data.plan } : {}), ...(typeof data.source === "string" ? { src: data.source } : {}) }).toString();
+    const mine = [...handoffs].filter(([, item]) => item.accountId === found.account.id);
+    for (const [key] of mine.slice(0, Math.max(0, mine.length - HANDOFF_OUTSTANDING + 1))) handoffs.delete(key);
+    const token = random(), expiresAt = now() + HANDOFF_TTL_MS;
+    handoffs.set(hash(token), { accountId: found.account.id, sessionId: found.session.id, next: `/billing${query ? `?${query}` : ""}`, expiresAt });
+    return { v: 1, url: `${pages}/handoff#t=${token}`, expiresAt };
+  }
+  function redeemHandoff(req: IncomingMessage, res: ServerResponse, data: Record<string, unknown>): HandoffAnswer {
+    // a browser always sends Origin on a fetch POST; anything without our own is a cross-site form or a script elsewhere
+    const site = req.headers["sec-fetch-site"];
+    if (req.headers.origin !== publicUrl || (site !== undefined && site !== "same-origin")) return fail(403, "forbidden");
+    rate(`handoff:${ip(req)}`, AUTH_LIMITS.handoffsPerIp);
+    if ((data.replace !== undefined && data.replace !== true) || (data.confirm !== undefined && data.confirm !== true)) return fail(400, "invalid_request");
+    const key = opaque(data.token) ? hash(data.token) : "", grant = handoffs.get(key);
+    const owner = grant && grant.expiresAt > now() ? account(grant.accountId) : null, appSessionFound = grant && owner ? liveAppSession(grant) : null;
+    if (!grant || !owner || !appSessionFound) { handoffs.delete(key); return fail(410, "expired"); }
+    const current = webSession(req);
+    // security (login csrf: anyone with an app session can mint a link and send it): a browser is never signed in, or
+    // switched to another account, without its own click. the link is not spent by asking, so the confirm can use it
+    if (current && current.account.id !== owner.id && data.replace !== true) return fail(409, "other_account", { email: owner.email });
+    if (!current && data.confirm !== true) return fail(409, "confirm", { email: owner.email });
+    handoffs.delete(key);
+    if (current && current.account.id === owner.id) return { account: view(owner), csrfToken: csrfFor(current.session), next: grant.next };
+    if (current) dropSessions(item => item === current.session);
+    // security: the web session is only as fresh as the app sign-in behind it, so it never passes a "signed in recently"
+    // check, and it ends with that app session
+    const { token, session } = makeSession(owner, null, { signedInAt: Math.min(now(), appSessionFound.createdAt), parentId: appSessionFound.id }), csrfToken = csrfFor(session);
+    cookies(res, token, csrfToken);
+    return { account: view(owner), csrfToken, next: grant.next };
+  }
   function removeSessions(accountId: string) {
-    state.sessions = state.sessions.filter(item => item.accountId !== accountId);
+    dropSessions(item => item.accountId === accountId);
+    for (const [key, item] of handoffs) if (item.accountId === accountId) handoffs.delete(key);
     for (const [key, code] of appCodes) if (code.accountId === accountId) appCodes.delete(key);
     for (const [key, item] of oauthStates) if (item.linkAccount === accountId) oauthStates.delete(key);
     for (const [key, device] of devices) if (device.accountId === accountId) devices.delete(key);
@@ -364,7 +415,7 @@ export function createAuth(options: AuthOptions) {
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL, helpers: BodyHelpers): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET", cors = isAppCorsRoute(path);
     const routes: string[] = [R.providers, R.emailStart, R.emailVerify, R.signOut, R.me, R.account, R.signOutEverywhere, R.deleteAccount, R.deviceLookup, R.deviceApprove, R.deviceDeny,
-      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.appToken, R.appStart];
+      R.appEmailStart, R.appEmailVerify, R.desktopAuthorize, R.desktopToken, R.appSession, R.enrollGrant, R.webHandoff, R.handoffRedeem, R.appToken, R.appStart];
     if (!routes.includes(path) && !path.startsWith("/v1/auth/oauth/") && !path.startsWith("/v1/account/identities/") && !path.startsWith("/v1/account/sessions/") && !cors) return false;
     res.setHeader("cache-control", "no-store");
     if (cors) {
@@ -407,7 +458,7 @@ export function createAuth(options: AuthOptions) {
       else if (method === "POST" && (path === R.emailVerify || path === R.appEmailVerify)) json(verifyEmail(req, res, data, path === R.appEmailVerify));
       else if (method === "POST" && path === R.signOut) {
         const found = webSession(req);
-        if (found) { state.sessions = state.sessions.filter(item => item !== found.session); store.changed(); }
+        if (found) dropSessions(item => item === found.session);
         cookies(res); json({ ok: true });
       } else if (method === "GET" && path === R.providers) {
         json({ v: 1, providers: OAUTH_PROVIDERS.map(id => ({ id, enabled: providers.has(id), comingSoon: !providers.has(id) && options.dev })), signupOpen: options.signupOpen, recovery: true });
@@ -431,7 +482,7 @@ export function createAuth(options: AuthOptions) {
         const owner = requireWeb(req, { mutation: true }), id = decodeURIComponent(path.slice("/v1/account/sessions/".length));
         const session = state.sessions.find(item => item.accountId === owner.id && item.id === id);
         if (!session) fail(404, "not_found");
-        state.sessions = state.sessions.filter(item => item !== session); store.changed(); json({ ok: true });
+        dropSessions(item => item === session); json({ ok: true });
       } else if (method === "POST" && (path === R.signOutEverywhere || path === R.deleteAccount)) {
         const owner = requireWeb(req, { mutation: true });
         if (path === R.deleteAccount && cleanEmail(data.email) !== owner.email) fail(400, "invalid_request");
@@ -441,6 +492,7 @@ export function createAuth(options: AuthOptions) {
           state.accounts = state.accounts.filter(item => item !== owner);
           state.identities = state.identities.filter(item => item.accountId !== owner.id);
           for (const [key, grant] of grants) if (grant.accountId === owner.id) grants.delete(key);
+          for (const [key, item] of handoffs) if (item.accountId === owner.id) handoffs.delete(key);
           for (const [key, attempt] of attempts) if (attempt.email === owner.email) attempts.delete(key);
           store.close();
           for (const hook of deletedHooks) { try { await hook(owner.id, owner.email); } catch { console.error("Account deletion cleanup failed."); } }
@@ -486,7 +538,7 @@ export function createAuth(options: AuthOptions) {
       } else if ((method === "GET" || method === "DELETE") && path === R.appSession) {
         const found = appSession(req);
         if (!found) return fail(401, "invalid_token");
-        if (method === "DELETE") { state.sessions = state.sessions.filter(item => item !== found.session); store.changed(); json({ ok: true }); }
+        if (method === "DELETE") { dropSessions(item => item === found.session); json({ ok: true }); }
         else {
           let extra: Record<string, unknown> = { entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
           for (const extension of extensions) extra = { ...extra, ...await extension(found.account.id) };
@@ -499,7 +551,12 @@ export function createAuth(options: AuthOptions) {
         const enrollToken = random(), expiresAt = now() + 600_000;
         grants.set(hash(enrollToken), { accountId: found.account.id, sessionId: found.session.id, expiresAt });
         json({ v: 1, enrollToken, expiresAt, dashboardUrl: publicUrl });
-      } else fail(404, "not_found");
+      } else if (method === "POST" && path === R.webHandoff) {
+        const found = appSession(req);
+        if (!found) return fail(401, "invalid_token");
+        json(issueHandoff(found, data));
+      } else if (method === "POST" && path === R.handoffRedeem) json(redeemHandoff(req, res, data));
+      else fail(404, "not_found");
     } catch (error) {
       const known = error as { status?: number; code?: string; message?: string };
       if (path === R.appToken) { json({ error: "invalid_grant" }, 400); return true; }

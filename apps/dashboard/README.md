@@ -28,6 +28,22 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
   Accounts and token hashes live in `auth.json`; codes and one-time grants stay in memory. Browser mutations echo
   the `dusk_csrf` cookie in `x-dusk-csrf`. Apps use the existing Admin contract v1 bearer routes. Social providers are
   unavailable for now, with coming-soon buttons only in development.
+  - *Web handoff* (the app opening the plans page already signed in): `POST /v1/app/web-handoff` with the app's bearer
+    and `{ next: "plans", plan?: "plus"|"pro", source? }` answers `{ v: 1, url, expiresAt }`, where `url` is
+    `${publicUrl}${pageBase}/handoff#t=<token>`. The token is in the fragment only (never in a server log, proxy or
+    Referer), stored as a sha256 hash in memory, single use, 120 seconds, at most 5 unredeemed per account and 20
+    issued an hour per app session, apart from enroll grants (neither redeems as the other). The page strips the
+    fragment before anything renders and posts `POST /v1/auth/handoff { token, confirm?, replace? }`, which needs the service's
+    own `Origin` (403 otherwise, also for a missing one or `sec-fetch-site` other than same-origin). It works only while
+    the issuing app session and the account still exist, and answers `{ account, csrfToken, next }` with the usual
+    session cookies; `next` is built by the service from the issued fields (`/billing?plan=..&src=..`), never taken
+    from the request. Against login CSRF (anyone with an app session can mint a link) a browser is never signed in
+    without its own click: signed out it gets 409 `{ code: "confirm", email }`, signed in to another account 409
+    `{ code: "other_account", email }`; neither spends the link, and the page posts again with `confirm: true` (plus
+    `replace: true`, which ends the old browser session). The same account already signed in just uses the link up.
+    Every other failure is a plain 410 `expired`. The new web session counts as signed in when the app session was, so
+    it never passes a "signed in recently" check, and it carries the app session as its parent (`parentId`, server
+    only): revoking, signing out, expiring or deleting that app session ends it too.
 - **Workspaces.** The server makes its key on first link (`dashboard-link.json` in its data folder, mode 0600). The
   claim link is one-time and lasts 30 minutes; an unclaimed workspace is dropped after a day. Removing a workspace in
   Settings stops its key working.

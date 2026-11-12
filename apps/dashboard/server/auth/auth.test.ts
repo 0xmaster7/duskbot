@@ -5,10 +5,10 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
-import { AUTH_LIMITS } from "./index.ts";
+import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
-import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, type AccountAnswer, type AppGrant, type EmailStartAnswer, type EnrollGrantAnswer, type WebSignInAnswer } from "../../../../shared/account-api.ts";
+import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, type AccountAnswer, type AppGrant, type EmailStartAnswer, type EnrollGrantAnswer, type HandoffAnswer, type WebHandoffAnswer, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 import { SIGNATURE_HEADERS, SIGNATURE_SKEW_MS, signedPayload, type EnrollAnswer, type WorkspaceDetail } from "../../../../shared/dashboard-protocol.ts";
 
 const day = 86_400_000;
@@ -536,6 +536,197 @@ describe("local account service", () => {
     expect((await call("/v1/account", { name: "After restart" }, browserHeaders(browser), "PATCH")).status).toBe(200);
     expect((await call("/api/cloud/desktop/session", undefined, bearer(grant))).status).toBe(200);
     expect(app.auth.consumeEnrollGrant(enroll.enrollToken)).toBeNull();
+  });
+
+  describe("web handoff", () => {
+    const plans = { next: "plans", plan: "pro", source: "app_computer_move" };
+    const same = () => ({ origin: options.publicUrl });
+    const issue = (grant: AppGrant, input: unknown = plans) => call("/v1/app/web-handoff", input, bearer(grant));
+    const tokenOf = (answer: WebHandoffAnswer) => answer.url.split("#t=")[1]!;
+    const redeem = (token: string, headers: Record<string, string> = same(), extra: Record<string, unknown> = { confirm: true }) => call("/v1/auth/handoff", { token, ...extra }, headers);
+    const sessionCookie = (response: Response) => response.headers.getSetCookie().find(item => item.startsWith(`${SESSION_COOKIE}=`))?.split(";")[0];
+
+    it("issues only to a live app session, with the token in the fragment, and validates what it is asked for", async () => {
+      expect((await call("/v1/app/web-handoff", plans)).status).toBe(401);
+      const grant = await appLogin();
+      time += 30_000;
+      const browser = await login();
+      expect((await call("/v1/app/web-handoff", plans, browserHeaders(browser))).status).toBe(401);
+      for (const bad of [{}, { next: "account" }, { ...plans, plan: "team" }, { ...plans, source: "other" }, { ...plans, source: "https://evil.test" }, { ...plans, next: "//evil.test" }]) {
+        expect((await issue(grant, bad)).status).toBe(400);
+      }
+      const answer = await body<WebHandoffAnswer>(issue(grant));
+      expect(answer).toEqual({ v: 1, url: expect.stringMatching(new RegExp(`^${options.publicUrl}/handoff#t=[A-Za-z0-9_-]{43}$`)), expiresAt: time + HANDOFF_TTL_MS });
+      expect(new URL(answer.url).search).toBe("");
+    });
+
+    it("signs a fresh browser in once, to a server-built page, no fresher than the app sign-in behind it", async () => {
+      const grant = await appLogin();
+      const appSignedInAt = time;
+      time += 60_000;
+      const token = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      const response = await redeem(token, same(), { confirm: true, next: "https://evil.test/" });
+      expect(response.status).toBe(200);
+      const answer = await body<HandoffAnswer>(response);
+      expect(answer).toMatchObject({ account: { email }, csrfToken: expect.any(String), next: "/billing?plan=pro&src=app_computer_move" });
+      const cookie = sessionCookie(response)!;
+      expect(await body(call("/v1/me", undefined, { cookie }))).toMatchObject({ account: { email } });
+      const sessions = (await body<AccountAnswer>(call("/v1/account", undefined, { cookie }))).sessions;
+      expect(sessions.find(item => item.current)).toMatchObject({ kind: "web", createdAt: appSignedInAt });
+      expect((await redeem(token)).status).toBe(410);
+      const plain = tokenOf(await body<WebHandoffAnswer>(issue(grant, { next: "plans" })));
+      expect(await body(redeem(plain))).toMatchObject({ next: "/billing" });
+    });
+
+    it("never signs a signed-out browser in without its confirm, and the ask does not spend the link", async () => {
+      const grant = await appLogin();
+      const token = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      for (let i = 0; i < 2; i++) {
+        const asked = await redeem(token, same(), {});
+        expect(asked.status).toBe(409);
+        expect(await body(asked)).toMatchObject({ code: "confirm", email });
+        expect(asked.headers.getSetCookie()).toEqual([]);
+      }
+      expect((await redeem(token, same(), { confirm: "yes" })).status).toBe(400);
+      const confirmed = await redeem(token);
+      expect(confirmed.status).toBe(200);
+      expect(sessionCookie(confirmed)).toBeDefined();
+      expect((await redeem(token)).status).toBe(410);
+      expect((await redeem(token, same(), {})).status).toBe(410);
+    });
+
+    it("ends the handoff web session with its app session, by every way that session goes", async () => {
+      const handoffBrowser = async (grant: AppGrant) => {
+        const response = await redeem(tokenOf(await body<WebHandoffAnswer>(issue(grant))));
+        expect(response.status).toBe(200);
+        return { cookie: sessionCookie(response)!, csrf: (await body<HandoffAnswer>(response)).csrfToken };
+      };
+      const alive = async (cookie: string) => (await call("/v1/me", undefined, { cookie })).status;
+      const appSessionId = async (grant: AppGrant) => (await body<{ device: { id: string } }>(call("/api/cloud/desktop/session", undefined, bearer(grant)))).device.id;
+
+      let grant = await appLogin();
+      let child = await handoffBrowser(grant);
+      expect(await alive(child.cookie)).toBe(200);
+      const listed = await body<AccountAnswer>(call("/v1/account", undefined, { cookie: child.cookie }));
+      expect(JSON.stringify(listed)).not.toContain("parentId");
+      expect(JSON.stringify(app.auth.exportAccount(app.auth.directory().accounts[0]!))).not.toContain("parentId");
+      expect((await call("/api/cloud/desktop/session", {}, bearer(grant), "DELETE")).status).toBe(200);
+      expect(await alive(child.cookie)).toBe(401);
+
+      time += 30_000; grant = await appLogin();
+      child = await handoffBrowser(grant);
+      const id = await appSessionId(grant);
+      expect((await call(`/v1/account/sessions/${encodeURIComponent(id)}`, {}, { ...same(), cookie: child.cookie, [CSRF_HEADER]: child.csrf }, "DELETE")).status).toBe(200);
+      expect(await alive(child.cookie)).toBe(401);
+
+      time += 30_000; grant = await appLogin();
+      child = await handoffBrowser(grant);
+      const parent = app.auth.directory().sessions.find(item => item.kind !== "web" && item.accountId === app.auth.directory().accounts[0]!.id)!;
+      (parent as { expiresAt: number }).expiresAt = time - 1;
+      expect(await alive(child.cookie)).toBe(401);
+      expect(app.auth.directory().sessions.some(item => item.kind === "web")).toBe(false);
+
+      time += 30_000; grant = await appLogin();
+      child = await handoffBrowser(grant);
+      time += 30_000;
+      const other = await login();
+      expect((await call("/v1/account/signout-everywhere", {}, { ...same(), ...browserHeaders(other) })).status).toBe(200);
+      expect(await alive(child.cookie)).toBe(401);
+    });
+
+    it("refuses a missing or foreign Origin and a cross-site fetch without using the link up", async () => {
+      const grant = await appLogin();
+      const token = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      expect((await redeem(token, {})).status).toBe(403);
+      expect((await redeem(token, { origin: "https://evil.test" })).status).toBe(403);
+      expect((await redeem(token, { origin: "null" })).status).toBe(403);
+      expect((await redeem(token, { ...same(), "sec-fetch-site": "cross-site" })).status).toBe(403);
+      expect((await redeem(token, { ...same(), "sec-fetch-site": "same-origin" })).status).toBe(200);
+    });
+
+    it("expires after its TTL and dies with the app session that asked for it", async () => {
+      const grant = await appLogin();
+      const late = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      time += HANDOFF_TTL_MS;
+      expect(await body(redeem(late))).toMatchObject({ code: "expired" });
+      const revoked = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      expect((await call("/api/cloud/desktop/session", {}, bearer(grant), "DELETE")).status).toBe(200);
+      expect((await redeem(revoked)).status).toBe(410);
+      expect((await redeem("x".repeat(43))).status).toBe(410);
+      expect((await redeem("not a token")).status).toBe(410);
+    });
+
+    it("keeps enroll and handoff tokens apart", async () => {
+      const grant = await appLogin();
+      const enroll = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(grant)));
+      expect((await redeem(enroll.enrollToken)).status).toBe(410);
+      expect(app.auth.consumeEnrollGrant(enroll.enrollToken)).toBe(app.auth.directory().accounts[0]!.id);
+      const token = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      expect(app.auth.consumeEnrollGrant(token)).toBeNull();
+      expect((await redeem(token)).status).toBe(200);
+    });
+
+    it("asks before switching a browser signed in to another account, then switches on replace", async () => {
+      const grant = await appLogin();
+      time += 30_000;
+      const other = await login("other@example.test");
+      const token = tokenOf(await body<WebHandoffAnswer>(issue(grant)));
+      const headers = { ...same(), cookie: other.cookie };
+      const asked = await redeem(token, headers);
+      expect(asked.status).toBe(409);
+      expect(await body(asked)).toMatchObject({ code: "other_account", email });
+      expect(asked.headers.getSetCookie()).toEqual([]);
+      expect(await body(call("/v1/me", undefined, { cookie: other.cookie }))).toMatchObject({ account: { email: "other@example.test" } });
+      expect((await redeem(token, headers, { replace: "yes" })).status).toBe(400);
+      const switched = await redeem(token, headers, { replace: true });
+      expect(switched.status).toBe(200);
+      expect(await body(switched)).toMatchObject({ account: { email } });
+      expect((await call("/v1/me", undefined, { cookie: other.cookie })).status).toBe(401);
+      expect((await redeem(token, headers, { replace: true })).status).toBe(410);
+    });
+
+    it("uses the link up without a new session when the browser is already that account", async () => {
+      const grant = await appLogin();
+      time += 30_000;
+      const browser = await login();
+      const response = await redeem(tokenOf(await body<WebHandoffAnswer>(issue(grant))), { ...same(), cookie: browser.cookie }, {});
+      expect(response.status).toBe(200);
+      expect(response.headers.getSetCookie()).toEqual([]);
+      expect(await body(response)).toMatchObject({ csrfToken: browser.csrfToken, next: "/billing?plan=pro&src=app_computer_move" });
+      expect((await body<AccountAnswer>(call("/v1/account", undefined, { cookie: browser.cookie }))).sessions.filter(item => item.kind === "web")).toHaveLength(1);
+    });
+
+    it("works end to end with the desktop client under a page base", async () => {
+      restart({ publicUrl: url, pageBase: "/dashboard" });
+      let saved: unknown = null;
+      const opened: string[] = [];
+      const client = createCloudAccountClient({ origin: url, fixture: true, ...device, now: () => time,
+        store: { async read() { return saved; }, async write(value: unknown) { saved = value; } },
+        async openBrowser(target: string) { opened.push(target); }, setTimer: () => 1, clearTimer() {} });
+      try {
+        await client.start();
+        expect(await client.webHandoff({ plan: "pro" })).toEqual({ signedOut: true });
+        await client.emailStart(email);
+        expect((await client.emailVerify(code())).outcome).toBe("signed-in");
+        expect(await client.webHandoff({ plan: "plus", source: "app_card" })).toEqual({ opened: true });
+        expect(opened.at(-1)).toMatch(new RegExp(`^${url}/dashboard/handoff#t=[A-Za-z0-9_-]{43}$`));
+        expect(await body(redeem(opened.at(-1)!.split("#t=")[1]!, { origin: url }))).toMatchObject({ account: { email }, next: "/billing?plan=plus&src=app_card" });
+      } finally { client.close(); }
+    });
+
+    it("limits issuing per app session, keeps a few links per account and drops them with the account", async () => {
+      const grant = await appLogin();
+      const tokens: string[] = [];
+      for (let i = 0; i < AUTH_LIMITS.handoffsPerSession; i++) tokens.push(tokenOf(await body<WebHandoffAnswer>(issue(grant))));
+      expect((await issue(grant)).status).toBe(429);
+      const kept = tokens.slice(-HANDOFF_OUTSTANDING);
+      expect((await redeem(tokens.at(-HANDOFF_OUTSTANDING - 1)!)).status).toBe(410);
+      const response = await redeem(kept[0]!);
+      expect(response.status).toBe(200);
+      const cookie = sessionCookie(response)!, csrf = (await body<HandoffAnswer>(response)).csrfToken;
+      expect((await call("/v1/account/delete", { email }, { ...same(), cookie, [CSRF_HEADER]: csrf })).status).toBe(200);
+      expect((await redeem(kept[1]!)).status).toBe(410);
+    });
   });
 
   it("reuses a legacy account id and clears old proxy sessions", async () => {
