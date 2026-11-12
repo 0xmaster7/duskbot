@@ -108,11 +108,11 @@ it("sets up an app-event automation from chat, runs on a Composio event, and sho
   expect((await trigger(id)).enabled).toBe(true);
   expect(binding(remoteId)?.disabled_at).toBeNull();
 
-  // 4. Past the desktop's 500 events a day the service keeps nothing more, and the automation says how many it skipped.
-  broker.setQueuedToday(owner.id, 500);
+  // 4. Past the desktop's 2,000 events a day the service keeps nothing more, and the automation says how many it skipped.
+  broker.setQueuedToday(owner.id, 2000);
   await broker.deliver(remoteId, { sender: "bo@acme.com", subject: "Over the limit" });
   const synced = await api("POST", "/api/app-triggers/sync");
-  expect(synced.service).toMatchObject({ available: true, plan: "desktop", eventsPerDay: 500 });
+  expect(synced.service).toMatchObject({ available: true, plan: "desktop", eventsPerDay: 2000 });
   expect(synced.triggers.find((candidate: any) => candidate.id === id).skipped).toMatchObject({ dailyLimit: 1 });
 
   // 5. An expired Gmail connection shows as Reconnect.

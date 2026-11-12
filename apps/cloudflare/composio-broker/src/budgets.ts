@@ -1,11 +1,11 @@
 import { DAY_MS, json, utcDay } from "./common";
 
 /** Tool calls one installation may run per UTC day. */
-export const INSTALLATION_DAILY_TOOL_CALLS = 2_000;
+export const INSTALLATION_DAILY_TOOL_CALLS = 10_000;
 /** Tool calls one Composio user (every installation sharing it) may run per UTC day. */
-export const ACCOUNT_DAILY_TOOL_CALLS = 5_000;
+export const ACCOUNT_DAILY_TOOL_CALLS = 50_000;
 /** New installations one client address may register per UTC day. */
-export const REGISTRATIONS_PER_IP_DAY = 20;
+export const REGISTRATIONS_PER_IP_DAY = 60;
 const KEEP_DAYS = 7;
 
 type Scope = "tool_calls_installation" | "tool_calls_account" | "tool_calls_global" | "registrations_ip";

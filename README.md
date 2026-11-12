@@ -401,8 +401,8 @@ a reply"). The bot finds the app's events with `trigger_info` (`action: "events"
 `action: "create"` and `when: "app_event"`; the person can also choose **New → Set it up yourself → When something happens in an app**.
 Composio sends each event to dusk bot's connected-apps service, which queues it; the app collects the queue
 with a long poll, so a desktop needs no public address and events wait while it is closed. Gmail is checked every
-15 minutes; Slack, GitHub and other push apps arrive at once. A desktop keeps up to 500 events a day and a paid
-Cloud 2,000; what is skipped shows on the automation. App events need the included connected apps: a server
+15 minutes; Slack, GitHub and other push apps arrive at once. A desktop keeps up to 2,000 events a day and a paid
+Cloud 10,000; what is skipped shows on the automation. App events need the included connected apps: a server
 using its own Composio key cannot watch apps yet. Details: [docs/composio.md](docs/composio.md#app-events).
 
 dusk bot starts a webhook-only receiver on `127.0.0.1:8800` by default (or one port above `DUSK_PORT`).

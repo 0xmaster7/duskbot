@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { enqueue, MAX_WEBHOOK_BODY, runHourly, WAKE_EVERY_MS } from "./app-events";
-import { DAY_MS, QUEUE_MAX_BYTES } from "./common";
+import { CLOUD_DAILY_EVENTS, DAY_MS, DESKTOP_DAILY_EVENTS, QUEUE_MAX_BYTES } from "./common";
 import {
   brokerHarness,
   CLOUD_GRANT_SECRET,
@@ -388,33 +388,36 @@ describe("long-poll", () => {
 });
 
 describe("limits", () => {
-  it("drops a desktop installation's 501st event of the UTC day and counts it on the trigger", async () => {
+  it("drops a desktop installation's event past 2,000 in the UTC day and counts it on the trigger", async () => {
+    expect([DESKTOP_DAILY_EVENTS, CLOUD_DAILY_EVENTS]).toEqual([2_000, 10_000]);
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-17T08:00:00Z"));
     const { owner, triggerId } = await withTrigger();
     expect((await fill(owner, triggerId, 500)).every((result) => result.status === "queued")).toBe(true);
+    // the rest of the day's allowance was queued and collected earlier
+    h.d1.db.prepare("UPDATE app_event_days SET queued = ? WHERE installation_id = ?").run(DESKTOP_DAILY_EVENTS, owner.id);
     expect((await h.deliver(message(triggerId, owner.userId))).status).toBe(200);
     expect(h.queued(owner.id)).toHaveLength(500);
     expect(h.drops(owner.id)).toEqual([{ composio_trigger_id: triggerId, reason: "daily_limit", dropped: 1 }]);
-    expect(h.day(owner.id)).toMatchObject({ queued: 500, dropped_daily_limit: 1 });
+    expect(h.day(owner.id)).toMatchObject({ queued: DESKTOP_DAILY_EVENTS, dropped_daily_limit: 1 });
     vi.setSystemTime(new Date("2026-10-18T00:00:01Z"));
     await h.deliver(message(triggerId, owner.userId));
     expect(h.queued(owner.id)).toHaveLength(501);
   });
 
-  it("gives a paid Cloud 2,000 events a day", async () => {
+  it("gives a paid Cloud 10,000 events a day", async () => {
     const cloud = await withTrigger();
     await asCloud(cloud.owner);
     expect((await fill(cloud.owner, cloud.triggerId, 600)).every((result) => result.status === "queued")).toBe(true);
     const today = new Date().toISOString().slice(0, 10);
-    h.d1.db.prepare("UPDATE app_event_days SET queued = 1998 WHERE day = ? AND installation_id = ?").run(today, cloud.owner.id);
+    h.d1.db.prepare("UPDATE app_event_days SET queued = ? WHERE day = ? AND installation_id = ?").run(CLOUD_DAILY_EVENTS - 2, today, cloud.owner.id);
     await h.call(cloud.owner, `/v1/events?after=${Number.MAX_SAFE_INTEGER}`, { headers: { "x-dusk-poller": "poller-main-0001" } });
     for (let index = 0; index < 3; index += 1) await h.deliver(message(cloud.triggerId, cloud.owner.userId));
     expect(h.queued(cloud.owner.id)).toHaveLength(2);
     expect(h.drops(cloud.owner.id)).toEqual([{ composio_trigger_id: cloud.triggerId, reason: "daily_limit", dropped: 1 }]);
 
     const desktop = await withTrigger();
-    h.d1.db.prepare("INSERT INTO app_event_days (day, installation_id, queued) VALUES (?, ?, 1998)").run(today, desktop.owner.id);
+    h.d1.db.prepare("INSERT INTO app_event_days (day, installation_id, queued) VALUES (?, ?, ?)").run(today, desktop.owner.id, DESKTOP_DAILY_EVENTS);
     await h.deliver(message(desktop.triggerId, desktop.owner.userId));
     expect(h.queued(desktop.owner.id)).toEqual([]);
   });
@@ -463,7 +466,7 @@ describe("limits", () => {
     expect(sent.status).toBe(201);
     const [event] = (await pollBody(owner)).events;
     expect(event).toMatchObject({ kind: "test", triggerId, event: { type: "dusk.test", data: { subject: "TEST order" }, metadata: { trigger_slug: GMAIL_TYPE.slug } } });
-    h.d1.db.prepare("UPDATE app_event_days SET queued = 500 WHERE installation_id = ?").run(owner.id);
+    h.d1.db.prepare("UPDATE app_event_days SET queued = ? WHERE installation_id = ?").run(DESKTOP_DAILY_EVENTS, owner.id);
     const refused = await h.call(owner, "/v1/events/test", { method: "POST", body: JSON.stringify({ triggerId, data: {} }) });
     expect(refused.status).toBe(429);
     await expect(refused.json()).resolves.toEqual({ queued: false, dropped: "daily_limit" });
@@ -669,7 +672,7 @@ describe("trigger bindings", () => {
     ]);
     expect(body.triggers[0]).toMatchObject({ slug: GMAIL_TYPE.slug, toolkit: "gmail", connectedAccountId: accountId, remote: { config: { query: "a" } }, dropped: { daily_limit: { count: 4, lastAt: 99 } } });
     expect(body.unbound).toEqual([{ triggerId: "ti_orphan", slug: GMAIL_TYPE.slug, connectedAccountId: accountId, enabled: true }]);
-    expect(body.limits).toEqual({ plan: "desktop", eventsPerDay: 500, queuedEvents: 1000, queuedBytes: QUEUE_MAX_BYTES });
+    expect(body.limits).toEqual({ plan: "desktop", eventsPerDay: DESKTOP_DAILY_EVENTS, queuedEvents: 1000, queuedBytes: QUEUE_MAX_BYTES });
     expect(body.usage).toMatchObject({ eventsToday: 1, queuedEvents: 1 });
 
     h.composio.fail(503, (call) => call.path === "/trigger_instances/active");
@@ -738,8 +741,8 @@ describe("paid Cloud", () => {
   it("marks an installation as a paid Cloud's from an Admin-signed grant", async () => {
     const { owner } = await withTrigger();
     const response = await h.call(owner, "/v1/installation/cloud", { method: "PUT", body: JSON.stringify({ grant: cloudGrant("dusk-machine-1") }) });
-    await expect(response.json()).resolves.toEqual({ plan: "cloud", eventsPerDay: 2000 });
-    expect((await (await h.call(owner, "/v1/triggers")).json() as { limits: unknown }).limits).toMatchObject({ plan: "cloud", eventsPerDay: 2000 });
+    await expect(response.json()).resolves.toEqual({ plan: "cloud", eventsPerDay: CLOUD_DAILY_EVENTS });
+    expect((await (await h.call(owner, "/v1/triggers")).json() as { limits: unknown }).limits).toMatchObject({ plan: "cloud", eventsPerDay: CLOUD_DAILY_EVENTS });
   });
 
   it("refuses a grant signed with another key or naming another machine", async () => {

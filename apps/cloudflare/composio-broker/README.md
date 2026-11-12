@@ -30,12 +30,12 @@ per UTC day in D1 (`usage_counters`, migration 0006) before forwarding:
 
 | | Per UTC day |
 | --- | --- |
-| `tools/call` messages per installation | 2,000 |
-| `tools/call` messages per Composio user (every installation sharing it) | 5,000 |
+| `tools/call` messages per installation | 10,000 |
+| `tools/call` messages per Composio user (every installation sharing it) | 50,000 |
 | `tools/call` messages in total | `GLOBAL_DAILY_TOOL_CALLS` var, unset means no cap |
-| New installations per client address (IPv6 by its /64) | 20 |
+| New installations per client address (IPv6 by its /64) | 60 |
 
-New installations are also limited to 10 a minute per address
+New installations are also limited to 30 a minute per address
 (`REGISTRATION_LIMITER`). A call over a budget is answered 429 with
 `code: "daily_tool_budget"` and never reaches Composio; a batch counts each
 `tools/call` in it. Until migration 0006 is applied the budgets are off and the
@@ -93,7 +93,7 @@ and sharing answers 503 until it is applied.
 
 | | Desktop | Paid Cloud |
 | --- | --- | --- |
-| Events queued per UTC day | 500 | 2,000 |
+| Events queued per UTC day | 2,000 | 10,000 |
 | Waiting in the queue | 1,000 events or 20 MB | same |
 | Event `data` stored | 64 KB, then a truncation marker with a preview | same |
 | Kept when not collected | 7 days | same |

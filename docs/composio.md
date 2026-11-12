@@ -48,7 +48,7 @@ the desktop, a headless server and a Cloud alike:
 
 | | Desktop | Paid Cloud |
 | --- | --- | --- |
-| Events kept per day (UTC) | 500 | 2,000 |
+| Events kept per day (UTC) | 2,000 | 10,000 |
 
 A Cloud counts as paid once its server presents the Admin's signed grant (`DUSK_CLOUD_CONNECTED_APPS_GRANT`).
 Events over the limit are not run; the automation shows how many were skipped today and why.

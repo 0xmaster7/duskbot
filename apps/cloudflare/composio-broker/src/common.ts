@@ -30,8 +30,8 @@ export interface EventInstallation {
 
 export const DAY_MS = 86_400_000;
 /** Owner decision: app events delivered per UTC day. A Cloud counts once an Admin-signed grant names it. */
-export const DESKTOP_DAILY_EVENTS = 500;
-export const CLOUD_DAILY_EVENTS = 2_000;
+export const DESKTOP_DAILY_EVENTS = 2_000;
+export const CLOUD_DAILY_EVENTS = 10_000;
 export const QUEUE_MAX_EVENTS = 1_000;
 export const QUEUE_MAX_BYTES = 20 * 1024 * 1024;
 

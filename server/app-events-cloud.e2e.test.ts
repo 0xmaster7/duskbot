@@ -1,5 +1,5 @@
 // App events on a Cloud home: the Cloud registers its own connected-apps installation, presents the Admin's grant so
-// the service gives it a paid Cloud's 2,000 events a day, and the same long-poll turns an event into an owner run.
+// the service gives it a paid Cloud's 10,000 events a day, and the same long-poll turns an event into an owner run.
 import { randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -99,7 +99,7 @@ it("registers the Cloud, holds the paid limit from the Admin's grant, and runs a
   expect(created.status, JSON.stringify(created.body)).toBe(201);
   expect(created.body.trigger).toMatchObject({ accountId: gmail, remote: { state: "active" }, config: { query: "subject:(invoice)" } });
   const synced = await api("POST", "/api/app-triggers/sync");
-  expect(synced.body.service).toMatchObject({ available: true, plan: "cloud", eventsPerDay: 2000 });
+  expect(synced.body.service).toMatchObject({ available: true, plan: "cloud", eventsPerDay: 10000 });
 
   await broker.deliver(created.body.trigger.remote.triggerId, { sender: "billing@globex.test", subject: "Invoice 88" }, "msg_cloud_1");
   await expect.poll(async () => (await api("GET", "/api/app-triggers")).body.triggers[0]?.received, { timeout: 30_000 }).toBe(1);
