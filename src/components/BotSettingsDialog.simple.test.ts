@@ -606,8 +606,8 @@ describe("the Details tab", () => {
     const rendered = botTab(makeBot());
     expect([...rendered.html.matchAll(/data-panel-routine="([^"]+)"/g)].map((match) => match[1])).toEqual(["r1", "r2"]);
     expect(switches(rendered.html)).toBe(2);
-    expect(rendered.html).toContain(">paused<");
-    expect(rendered.html).toContain(">every weekday at 9 AM<");
+    expect(rendered.html).toContain(">Paused<");
+    expect(rendered.html).toContain(">Every weekday at 9 AM<");
     expect(rendered.html).toContain('aria-haspopup="dialog"');
     expect(rendered.html).not.toContain("aria-expanded=\"false\"");
     expect(rendered.html).not.toContain('data-panel-action="new-routine"');

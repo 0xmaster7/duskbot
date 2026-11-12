@@ -11,6 +11,7 @@ import { lastLine, lastPreviewable, sidebarPreviewMessages, waitingLine } from "
 import { plainPreviewText } from "@/lib/plain-preview";
 import { workingThreadId } from "@/components/SidebarWorkingStep";
 import { toolLabel, titledCard } from "@/components/ApprovalCard";
+import { lowerFirst } from "@/lib/lower-first";
 import { answersInOneTap, cardQuestions } from "@/components/QuestionCard";
 import { isQuestionCard } from "@/lib/question-card";
 import { openPersonWait, restingOnPerson, type PersonWait } from "../../shared/person-wait";
@@ -126,7 +127,7 @@ export function ambientBot(bot: Bot, instances: InstanceInfo[], turnLive: (threa
   const inPlace = approvals.find(answerableInPlace);
   const wait = status === "needs-you" ? openWait(bot, visible) : undefined;
   const detail = status === "needs-you"
-    ? inPlace ? t("ambient.wantsTo", { action: toolLabel(inPlace.tool) }) : (wait && askLine(wait)) || waitingLine(bot, visible, instances)
+    ? inPlace ? t("ambient.wantsTo", { action: lowerFirst(toolLabel(inPlace.tool)) }) : (wait && askLine(wait)) || waitingLine(bot, visible, instances)
     : bot.busy ? turnNowPhrases(live.status, workingOn === bot.threadId ? newest : undefined)?.phrases[0] ?? t("chat.activity.thinking") : "";
   const question = status === "needs-you" ? questionOf(visible) : null;
   const waits: AmbientWait | null = status !== "needs-you" ? null : question ? "question" : approvals.length ? "approval" : wait?.kind ?? "other";

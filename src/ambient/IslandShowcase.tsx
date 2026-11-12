@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MotionConfig } from "motion/react";
 import { t } from "@/lib/i18n";
 import { toolLabel } from "@/components/ApprovalCard";
+import { lowerFirst } from "@/lib/lower-first";
 import { islandLayout } from "../../electron/ambient-geometry.mjs";
 import { Island } from "./Island";
 import { ambientLabels } from "./labels";
@@ -69,7 +70,7 @@ const STEPS: Step[] = [
   (bots, now) => bots.map(set(bots[1]?.id ?? "", { status: "done", unread: true, at: now })),
   (bots, now) => bots.map((bot) => (bot.id === bots[2]?.id ? { ...bot, ...question(bot), at: now } : bot)),
   (bots, now) => bots.map(set(bots[3]?.id ?? "", {
-    status: "needs-you", waits: "approval", asks: 1, detail: t("ambient.wantsTo", { action: toolLabel("Bash") }), step: null, at: now,
+    status: "needs-you", waits: "approval", asks: 1, detail: t("ambient.wantsTo", { action: lowerFirst(toolLabel("Bash")) }), step: null, at: now,
     approval: { requestId: `r-${bots[3]?.id}`, threadId: bots[3]?.threadId ?? "", title: "npm run build" },
   })),
 ];

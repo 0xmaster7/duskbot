@@ -47,7 +47,7 @@ export function ModelCard({ bot }: { bot: Bot }) {
   return (
     <Card anchor="model">
       <div className="[&_[data-tour=model]>span:first-child]:flex! [&_[data-provider-mark]]:opacity-100!">
-        <ModelSelectRow bot={bot} threadId={bot.threadId} />
+        <ModelSelectRow bot={bot} threadId={bot.threadId} title={t("botPanel.page.model")} />
       </div>
       <UsageMeterRow engine={bot.modelSelection?.instanceId} />
     </Card>

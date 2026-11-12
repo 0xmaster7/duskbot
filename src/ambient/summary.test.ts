@@ -24,7 +24,7 @@ describe("the summary the island and the dock draw", () => {
   it("offers a plain approval in place and leaves a proposal to its own card", () => {
     const asking = ambientBot(bot({ messages: [approval()] }), [], turnLive);
     expect(asking).toMatchObject({ status: "needs-you", asks: 1, approval: { requestId: "r1", threadId: "t1", title: "npm test" } });
-    expect(asking.detail).toMatch(/^wants to /);
+    expect(asking.detail).toMatch(/^wants to [a-z]/); // the sentence-case tool label drops its capital mid-sentence
     const proposal = ambientBot(bot({ messages: [approval({ skillRequest: { action: "enable", name: "x" } })] }), [], turnLive);
     expect(proposal).toMatchObject({ status: "needs-you", approval: null });
     const answered = ambientBot(bot({ messages: [approval({ answered: "allow" })] }), [], turnLive);

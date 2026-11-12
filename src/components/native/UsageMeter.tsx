@@ -3,6 +3,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { PixelIcon } from "../ui/PixelIcon";
 import { t } from "@/lib/i18n";
+import { upperFirst } from "@/lib/lower-first";
 import { reportsUsage, usageRows, useEngineLimits, windowLabel, type EngineLimit } from "@/lib/limit-resets";
 import { NEAR_LIMIT_PERCENT } from "../../../shared/limit-reset";
 import { Icon } from "../Icon";
@@ -23,7 +24,7 @@ function relative(at: number, now: number): string {
 /** "Resets in 4 days", or with its window "Weekly limit resets in 4 days": Grok's relative reset line. */
 export function resetsIn(at: number, now = Date.now(), window?: Parameters<typeof windowLabel>[0]): string {
   const when = relative(at, now);
-  return window ? t("nativeUsage.windowResets", { window: windowLabel(window), when }) : t("nativeUsage.resets", { when });
+  return window ? upperFirst(t("nativeUsage.windowResets", { window: windowLabel(window), when })) : t("nativeUsage.resets", { when });
 }
 
 /** The window's reset line, or just its name when the reset time is unknown. */
@@ -43,7 +44,7 @@ export function UsageBar({ used, warn, className }: { used: number; warn?: boole
 }
 
 function windowName(window: Parameters<typeof windowLabel>[0]) {
-  return t("nativeUsage.windowLimit", { window: windowLabel(window) });
+  return upperFirst(t("nativeUsage.windowLimit", { window: windowLabel(window) }));
 }
 
 /** One engine as Grok's weekly usage card: the deciding window large, any other window as a compact meter under it. On a
@@ -83,7 +84,7 @@ export function UsageMeterCard({ limit, now = Date.now() }: { limit: EngineLimit
             <UsageBar used={usedOf(row.left)} warn={row.tone !== "fine"} className="max-sm:order-1 max-sm:h-1.5" />
             <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[11px] leading-[14px] tracking-[0.07px] text-ink-secondary max-sm:mt-0 max-sm:text-[15px] max-sm:leading-5 max-sm:tracking-normal">
               <span className="min-w-0 truncate max-sm:text-ink">{windowLine(row.window, row.resetsAt, now)}</span>
-              <span className="shrink-0 tabular-nums">{row.tone === "out" ? t("nativeUsage.atLimit") : `${usedOf(row.left)}% ${t("nativeUsage.used")}`}</span>
+              <span className="shrink-0 tabular-nums">{row.tone === "out" ? t("nativeUsage.atLimit") : t("nativeUsage.percentUsed", { percent: usedOf(row.left) })}</span>
             </div>
           </div>
         ))}
@@ -108,7 +109,7 @@ export function UsageMeterRow({ engine }: { engine: string | undefined }) {
           <div className="truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary">{hint}</div>
         </div>
         <span className={cn("shrink-0 text-[13px] leading-[18px] tabular-nums", lead.tone === "out" ? "text-danger" : "text-ink-secondary")}>
-          {lead.tone === "out" ? t("nativeUsage.atLimit") : `${usedOf(lead.left)}% ${t("nativeUsage.used")}`}
+          {lead.tone === "out" ? t("nativeUsage.atLimit") : t("nativeUsage.percentUsed", { percent: usedOf(lead.left) })}
         </span>
       </div>
       <UsageBar used={usedOf(lead.left)} warn={lead.tone === "out"} />

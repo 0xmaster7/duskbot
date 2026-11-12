@@ -7,6 +7,7 @@ import { appWhen } from "@/lib/app-automations";
 import { useAppTriggers } from "@/lib/app-triggers";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { upperFirst } from "@/lib/lower-first";
 import { routineRunsOn } from "@/lib/routine-display";
 import { fetchForecast, forecastLine, pauseLine, useLoaded } from "@/lib/spend";
 import { formatCost } from "@/lib/usage-trace";
@@ -36,7 +37,7 @@ function whenLine(automation: Automation): string {
 }
 
 function Fact({ term, children }: { term: string; children: ReactNode }) {
-  return <div><dt className={termCls}>{term}</dt><dd className={cn(valueCls, "m-0 break-words")}>{children}</dd></div>;
+  return <div><dt className={termCls}>{upperFirst(term)}</dt><dd className={cn(valueCls, "m-0 break-words")}>{children}</dd></div>;
 }
 
 /** A bot's routines and app automations as Grok's Details tab lists them: a short row with the name and when (or Paused)
@@ -110,7 +111,8 @@ function AutomationRow({ bot, automation, routine, open, editing, onOpen, onClos
   const status = automationStatus(automation);
   const done = status.state === "done";
   const when = whenLine(automation);
-  const hint = status.state === "needs-you" ? t("automations.needsYou", { reason: status.reason ?? "" }) : automation.enabled || done ? when : t("automations.status.paused");
+  // the panel reads in sentence case; the routine words are shared lowercase fragments, so the row's line takes the capital
+  const hint = upperFirst(status.state === "needs-you" ? t("automations.needsYou", { reason: status.reason ?? "" }) : automation.enabled || done ? when : t("automations.status.paused"));
   const detailId = `routine-detail-${automation.id}`;
   const name = automation.name.trim() || automationSentence(automation, bot.name);
 
@@ -212,15 +214,15 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
     <div id={id} data-routine-detail="" className="flex flex-col gap-3">
       <dl className="m-0 flex flex-col gap-2.5">
         <Fact term={t("routines.inline.when")}>
-          {whenLine(automation)}
+          {upperFirst(whenLine(automation))}
           {routine?.timing === "around" && <span className="text-ink-secondary" data-routine-timing="around"> · {t("routines.timing.aroundShort")}</span>}
           {automation.enabled && automation.nextRunAt != null && <span className="text-ink-secondary"> · {t("automations.next", { when: nextWhen(automation.nextRunAt) })}</span>}
         </Fact>
         {hours && <Fact term={t("routines.hours.term")}><span data-routine-hours="">{hours}</span></Fact>}
         {strip.length ? <Fact term={t("routines.strip.term")}><RunStrip strip={strip} /></Fact> : null}
         {automation.instructions.trim() && <Fact term={t("routines.inline.what")}><span className="whitespace-pre-wrap">{automation.instructions.trim()}</span></Fact>}
-        <Fact term={t("routines.inline.worksOn")}>{worksOn.label}</Fact>
-        {automation.kind === "schedule" && <Fact term={t("routines.inline.resultsTo")}>{resultsTo}</Fact>}
+        <Fact term={t("routines.inline.worksOn")}>{upperFirst(worksOn.label)}</Fact>
+        {automation.kind === "schedule" && <Fact term={t("routines.inline.resultsTo")}>{upperFirst(resultsTo)}</Fact>}
         {routine && forecast?.warnings && (
           <Fact term={t("routines.cost.term")}>
             <span data-routine-forecast="">{forecastLine(forecast)}</span>
@@ -262,12 +264,12 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
       </dl>
       {notes.map((note) => <p key={note} className="m-0 text-[12px] leading-4 text-warning">{note}</p>)}
       {status.state === "needs-you" && (status.fix === "answer" || status.fix === "sign-in" || status.fix === "usage" || status.fix === "reconnect") && (
-        <button type="button" data-routine-action="fix" onClick={() => fix(status.fix!)} className={cn(buttonCls, "self-start")}>{t(AUTOMATION_FIX_LABEL[status.fix])}</button>
+        <button type="button" data-routine-action="fix" onClick={() => fix(status.fix!)} className={cn(buttonCls, "self-start")}>{upperFirst(t(AUTOMATION_FIX_LABEL[status.fix]))}</button>
       )}
       {automation.kind === "webhook" && (
         <button type="button" disabled={busy} onClick={() => void actions.copyAddress(automation.id)} className={cn(buttonCls, "self-start")}>
           {actions.copied === automation.id ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-          {actions.copied === automation.id ? t("automations.address.copied") : t("automations.address.copy")}
+          {upperFirst(actions.copied === automation.id ? t("automations.address.copied") : t("automations.address.copy"))}
         </button>
       )}
       {actions.error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{actions.error}</p>}
@@ -275,22 +277,22 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
         {confirming ? (
           <>
             <button type="button" data-routine-action="confirm-delete" disabled={busy} onClick={() => void actions.remove(automation, null)} className={cn(buttonCls, "bg-danger/12 text-danger enabled:hover:bg-danger/20")}>
-              {t("routines.inline.deleteConfirm", { name: automation.name })}
+              {upperFirst(t("routines.inline.deleteConfirm", { name: automation.name }))}
             </button>
-            <button type="button" onClick={() => setConfirming(false)} className={buttonCls}>{t("common.cancel")}</button>
+            <button type="button" onClick={() => setConfirming(false)} className={buttonCls}>{upperFirst(t("common.cancel"))}</button>
           </>
         ) : (
           <>
             <button type="button" data-routine-action="run" disabled={busy} onClick={() => void actions.runNow(automation)} className={buttonCls}>
-              {actions.busy === `run:${automation.id}` ? t("automations.starting") : t("automations.runNow")}
+              {upperFirst(actions.busy === `run:${automation.id}` ? t("automations.starting") : t("automations.runNow"))}
             </button>
             {automation.kind === "schedule" && (
               <button type="button" data-routine-action="test" disabled={busy} onClick={() => void actions.test(automation)} title={t("automations.testHint")} className={buttonCls}>
-                {actions.busy === `test:${automation.id}` ? t("automations.starting") : t("automations.test")}
+                {upperFirst(actions.busy === `test:${automation.id}` ? t("automations.starting") : t("automations.test"))}
               </button>
             )}
-            <button type="button" data-routine-action="edit" onClick={onEdit} className={buttonCls}>{t("automations.edit")}</button>
-            <button type="button" data-routine-action="delete" disabled={busy} onClick={() => setConfirming(true)} className={buttonCls}>{t("common.delete")}</button>
+            <button type="button" data-routine-action="edit" onClick={onEdit} className={buttonCls}>{upperFirst(t("automations.edit"))}</button>
+            <button type="button" data-routine-action="delete" disabled={busy} onClick={() => setConfirming(true)} className={buttonCls}>{upperFirst(t("common.delete"))}</button>
           </>
         )}
       </div>

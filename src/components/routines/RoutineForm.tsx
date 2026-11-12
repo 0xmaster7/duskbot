@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { isDone, plainWhen } from "@/lib/automations";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
+import { upperFirst } from "@/lib/lower-first";
 import type { Routine, RoutineInput, RoutineProbe, RoutineRunOn } from "@/lib/routines";
 import { autoRoutineName, newWhenDraft, scheduleFromDraft, whenDraftFor, type WhenDraft, type WhenPreset } from "@/lib/routine-when";
 import { imeComposing } from "@/lib/send-key";
@@ -93,8 +94,8 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
   const patchWhen = (next: Partial<WhenDraft>) => setWhen((current) => ({ ...current, ...next }));
 
   const presetOptions = [
-    ...(when.preset === "keep" && routine ? [{ value: "keep" as const, label: plainWhen(routine.schedule) }] : []),
-    ...PRESETS.map((preset) => ({ value: preset, label: t(`routines.inline.preset.${preset}`) })),
+    ...(when.preset === "keep" && routine ? [{ value: "keep" as const, label: upperFirst(plainWhen(routine.schedule)) }] : []),
+    ...PRESETS.map((preset) => ({ value: preset, label: upperFirst(t(`routines.inline.preset.${preset}`)) })),
   ];
 
   const save = async (event?: FormEvent) => {
@@ -129,19 +130,19 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
   return (
     <form data-routine-form={routine?.id ?? "new"} onSubmit={(event) => void save(event)} onKeyDown={keys} className="flex flex-col gap-3 px-2 pb-2 pt-1.5">
       <div>
-        <label htmlFor={`${id}-name`} className={labelCls}>{t("routines.inline.name")}</label>
+        <label htmlFor={`${id}-name`} className={labelCls}>{upperFirst(t("routines.inline.name"))}</label>
         <input
           id={`${id}-name`}
           autoFocus={Boolean(routine)}
           value={name}
           maxLength={80}
-          placeholder={autoRoutineName(prompt) || t("routines.inline.namePlaceholder")}
+          placeholder={autoRoutineName(prompt) || upperFirst(t("routines.inline.namePlaceholder"))}
           onChange={(event) => setName(event.target.value)}
           className={cn(fieldCls, "mt-1 w-full")}
         />
       </div>
       <div>
-        <span id={`${id}-when`} className={labelCls}>{t("routines.inline.when")}</span>
+        <span id={`${id}-when`} className={labelCls}>{upperFirst(t("routines.inline.when"))}</span>
         <div role="group" aria-labelledby={`${id}-when`} className="mt-1 flex flex-wrap items-center gap-1.5">
           <SelectPill data-panel-select="routine-when" aria-label={t("routines.inline.when")} value={when.preset} options={presetOptions} onChange={(preset) => patchWhen({ preset })} />
           {when.preset === "weekly" && (
@@ -156,8 +157,8 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
         </div>
         {when.preset !== "hourly" && when.preset !== "keep" && (
           <div className="mt-1.5">
-            <Segmented label={t("routines.timing.label")} attr="routine-timing" compact value={timing} onChange={setTiming}
-              options={[{ value: "exact", label: t("routines.timing.exact") }, { value: "around", label: t("routines.timing.around") }]} />
+            <Segmented label={upperFirst(t("routines.timing.label"))} attr="routine-timing" compact value={timing} onChange={setTiming}
+              options={[{ value: "exact", label: upperFirst(t("routines.timing.exact")) }, { value: "around", label: upperFirst(t("routines.timing.around")) }]} />
             {timing === "around" && <p className="m-0 mt-1 text-[12px] leading-4 text-ink-secondary">{t("routines.timing.aroundHint")}</p>}
           </div>
         )}
@@ -165,7 +166,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5" data-routine-quiet="">
             <label className="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink">
               <input type="checkbox" checked={when.window !== null} onChange={(event) => patchWhen({ window: event.target.checked ? (routine ? WAKING : undefined) : null })} />
-              {t("routines.hours.quietAtNight")}
+              {upperFirst(t("routines.hours.quietAtNight"))}
             </label>
             {when.window && (
               <>
@@ -179,13 +180,13 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
         )}
       </div>
       <div>
-        <label htmlFor={`${id}-what`} className={labelCls}>{t("routines.inline.what")}</label>
+        <label htmlFor={`${id}-what`} className={labelCls}>{upperFirst(t("routines.inline.what"))}</label>
         <textarea
           id={`${id}-what`}
           autoFocus={!routine}
           rows={3}
           value={prompt}
-          placeholder={t("routines.inline.whatPlaceholder")}
+          placeholder={upperFirst(t("routines.inline.whatPlaceholder"))}
           onChange={(event) => setPrompt(event.target.value)}
           className={cn(fieldCls, "mt-1 h-auto max-h-[40vh] min-h-[4.75rem] w-full resize-none py-1.5 [field-sizing:content]")}
         />
@@ -194,7 +195,7 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
         <div data-routine-probe="">
           <label className="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink">
             <input type="checkbox" checked={watching} onChange={(event) => { setWatching(event.target.checked); if (event.target.checked && !probe) setProbe({ kind: "page", url: "" }); }} />
-            {t("routines.probe.toggle")}
+            {upperFirst(t("routines.probe.toggle"))}
           </label>
           {watching && probe && (
             <div className="mt-1 flex items-center gap-1.5">
@@ -210,8 +211,8 @@ export function RoutineForm({ bot, routine, defaultRunOn, onDone }: {
       {!routine && <AlwaysOnNote />}
       {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
       <div className="flex justify-end gap-1.5">
-        <button type="button" onClick={() => onDone()} className={buttonCls}>{t("common.cancel")}</button>
-        <button type="submit" disabled={saving || !prompt.trim()} className={primaryCls}>{t("common.save")}</button>
+        <button type="button" onClick={() => onDone()} className={buttonCls}>{upperFirst(t("common.cancel"))}</button>
+        <button type="submit" disabled={saving || !prompt.trim()} className={primaryCls}>{upperFirst(t("common.save"))}</button>
       </div>
     </form>
   );

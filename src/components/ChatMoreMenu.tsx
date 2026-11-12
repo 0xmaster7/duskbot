@@ -46,7 +46,7 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
   const phoneScreen: SidebarMenuItem[] = phoneHeader ? [
     ...(remoteClient ? [] : [{
       key: "model",
-      label: t("model.simple.model"),
+      label: t("chat.model"),
       icon: <Cpu size={16} />,
       value: modelName,
       trailing: <UsageBars engine={selection?.instanceId} hover={false} />,
