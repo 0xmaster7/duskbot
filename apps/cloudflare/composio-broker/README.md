@@ -23,6 +23,24 @@ server with a Composio project key remains the no-Cloudflare self-host path.
 Set `REGISTRATION_MODE` to `closed` to stop issuing new installation tokens
 without affecting existing users.
 
+## Budgets
+
+Every tool call runs on the shared Composio project, so the broker counts them
+per UTC day in D1 (`usage_counters`, migration 0006) before forwarding:
+
+| | Per UTC day |
+| --- | --- |
+| `tools/call` messages per installation | 2,000 |
+| `tools/call` messages per Composio user (every installation sharing it) | 5,000 |
+| `tools/call` messages in total | `GLOBAL_DAILY_TOOL_CALLS` var, unset means no cap |
+| New installations per client address (IPv6 by its /64) | 20 |
+
+New installations are also limited to 10 a minute per address
+(`REGISTRATION_LIMITER`). A call over a budget is answered 429 with
+`code: "daily_tool_budget"` and never reaches Composio; a batch counts each
+`tools/call` in it. Until migration 0006 is applied the budgets are off and the
+Worker logs `usage budgets are off`, so apply it before deploying.
+
 ## App events (Composio triggers)
 
 The broker also receives Composio trigger events for every installation and

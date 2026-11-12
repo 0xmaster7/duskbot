@@ -17,6 +17,7 @@ import {
   eventInstallation,
   type InstallationRow,
 } from "./common";
+import { registrationKey, spendRegistration, spendToolCalls, toolCallCount } from "./budgets";
 import { adoptSharedUser, me, shareUser } from "./sharing";
 import { createTrigger, deleteTrigger, getTriggerType, listTriggers, listTriggerTypes, updateTrigger } from "./triggers";
 
@@ -365,10 +366,12 @@ async function authenticate(request: Request, env: Env) {
 
 async function register(request: Request, env: Env) {
   if (env.REGISTRATION_MODE !== "open") return json({ error: "registration is temporarily closed" }, 503);
-  const fingerprint = `${request.headers.get("cf-connecting-ip") ?? "unknown"}|${request.headers.get("user-agent") ?? "unknown"}`;
-  if (!(await env.REGISTRATION_LIMITER.limit({ key: await sha256(fingerprint.slice(0, 512)) })).success) {
+  const address = registrationKey(request);
+  if (!(await env.REGISTRATION_LIMITER.limit({ key: await sha256(address) })).success) {
     return json({ error: "too many registration attempts" }, 429);
   }
+  const refused = await spendRegistration(env, address);
+  if (refused) return refused;
   const installationId = crypto.randomUUID();
   const token = randomToken();
   const now = Date.now();
@@ -384,6 +387,8 @@ async function proxyMcp(request: Request, installation: InstallationRow, env: En
   if (!body) return json({ error: "MCP request is too large" }, 413);
   await limitSessionRequests(installation, env);
   Object.assign(installation, await currentInstallation(env, installation.id));
+  const overBudget = await spendToolCalls(env, installation.id, actingUser(installation), toolCallCount(body));
+  if (overBudget) return overBudget;
   const reused = verifiedSession(installation);
   if (reused) touchLastSeen(installation, env, ctx);
   let session = reused ?? await verifySession(installation, env, ctx);

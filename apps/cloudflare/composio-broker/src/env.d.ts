@@ -6,4 +6,6 @@ interface Env {
   STATS_TOKEN?: string;
   /** A var, not in wrangler.jsonc: the Cloud Admin's origin, which wakes a sleeping Cloud for its app events. */
   CLOUD_ADMIN_URL?: string;
+  /** A var, not in wrangler.jsonc: tool calls every installation together may run per UTC day; unset means no shared cap. */
+  GLOBAL_DAILY_TOOL_CALLS?: string;
 }

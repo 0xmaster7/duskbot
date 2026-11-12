@@ -524,6 +524,8 @@ describe("MCP relay Session reuse", () => {
             },
           };
         },
+        // the daily tool-call budget: every counter is under its limit
+        batch: async (statements: unknown[]) => statements.map(() => ({ results: [{ count: 1 }] })),
       },
     };
     const ctx = { waitUntil(promise: Promise<unknown>) { void promise; } };

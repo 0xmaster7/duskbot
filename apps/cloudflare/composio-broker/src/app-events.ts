@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { pruneUsage } from "./budgets";
 import {
   actingUser,
   CLOUD_DAILY_EVENTS,
@@ -546,6 +547,7 @@ async function sweepIdleInstallations(env: Env, now: number) {
 export async function runHourly(env: Env, now = Date.now()) {
   await expireEvents(env, now);
   await sweepIdleInstallations(env, now);
+  await pruneUsage(env, now);
   await env.DB.prepare("DELETE FROM app_event_days WHERE day < ?").bind(utcDay(now - COUNT_RETENTION_DAYS * DAY_MS)).run();
 }
 
