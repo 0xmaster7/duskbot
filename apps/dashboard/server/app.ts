@@ -28,6 +28,7 @@ import type { EdgeSocketFactory } from "./slack-edge/service.ts";
 import { createAnalytics } from "./analytics/index.ts";
 import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
+import { createUsage, memoryUsageStore, type UsageStore } from "./analytics/usage.ts";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
 import { createAlerts, parseAlerts } from "./admin/alerts.ts";
@@ -60,7 +61,7 @@ export interface DashboardAppOptions {
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
   /** product analytics: MongoDB in production (main.ts), memory otherwise; the waitlist is dusk.waitlist when connected */
-  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[] };
+  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[]; usage?: UsageStore };
   /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
   admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
   /** the owner's alert emails (main.ts); without it incidents are kept in memory and nothing is mailed */
@@ -165,6 +166,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
     email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/health`, mail: false, timers: false, now });
   const incidents = options.incidents ?? ownIncidents!;
+  const usage = createUsage({ store: options.analytics?.usage ?? memoryUsageStore(now), now, optedOut: id => analytics.optedOut(id), summariesOff: id => analytics.summariesOff(id),
+    newProblem: group => {
+      const [engine, category, touch] = group.key.split("|");
+      incidents.report({ source: "server", name: "NewProblemGroup", key: `problem-${group.key}`, route: "/admin",
+        message: `a new kind of frustration: ${category?.replace(/_/g, " ")} with ${touch} on ${engine}${group.example ? `. example: ${group.example}` : ""}` });
+    } });
+  analytics.onForget(id => void usage.forget(id));
   const send = (to: string | null | undefined, message: Rendered) => {
     if (to) void options.mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
   };
@@ -181,6 +189,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   });
   auth.onAppSeen(session => analytics.appActive(session));
   auth.onAccountDeleted(id => analytics.forget(id));
+  auth.onAccountDeleted(id => void usage.forget(id));
   auth.onAccountDeleted((_id, email) => send(email, accountDeletedEmail(emailCfg, { email: email ?? "" })));
   function billingNotice(notice: BillingNotice) {
     const cloud = notice.kind !== "receipt" && notice.cloudId ? billing.clouds.get(notice.cloudId) : null;
@@ -227,7 +236,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       return { id: owner.id, signedInAt: found.session.createdAt };
     } });
   const adminEmails = options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
-  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics,
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage,
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
@@ -539,6 +548,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
           }
         }
         if (ws.ownerAccountId && workspaceTurns(ws) > 0) analytics.botReplied(ws.ownerAccountId);
+        if (report.usage) void usage.ingest(ws.ownerAccountId, ws.id, report.usage);
         store.changed();
         return json(res, 200, answer(ws));
       }
@@ -638,6 +648,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       }
       if (!match[2] && method === "DELETE") {
         forget(ws);
+        void usage.forgetWorkspace(ws.id);
         state.workspaces = state.workspaces.filter(item => item !== ws);
         store.changed();
         return json(res, 200, { ok: true });
