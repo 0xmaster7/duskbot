@@ -6,16 +6,30 @@ import { api, useStore } from "@/state/store";
 import type { LoginBots, LoginSummary } from "../../../shared/logins";
 import type { SavedSecretSummary } from "../../../shared/saved-secrets";
 import { Sheet } from "../Sheet";
+import { EmptyState } from "../Illustration";
 import { haptic } from "../haptics";
 import type { SheetPageProps } from "./registry";
 
 type VaultEntry = { kind: "login"; value: LoginSummary } | { kind: "secret"; value: SavedSecretSummary };
+
+/** What the list shows: the skeleton only before the first answer, so a reload keeps the rows in place. */
+export function vaultView(input: { loaded: boolean; loading: boolean; error: boolean; count: number }): "skeleton" | "list" | "empty" | "error" {
+  if (input.count > 0) return "list";
+  if (!input.loaded && input.loading) return "skeleton";
+  if (input.error) return "error";
+  return input.loading ? "skeleton" : "empty";
+}
+
+function VaultTile() {
+  return <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-ink-secondary"><KeyRound size={20} /></span>;
+}
 
 export function VaultSheet({ open, onClose }: SheetPageProps<"vault">) {
   const { state, dispatch } = useStore();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [selected, setSelected] = useState<VaultEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const deleting = useRef(false);
@@ -27,6 +41,7 @@ export function VaultSheet({ open, onClose }: SheetPageProps<"vault">) {
     setError(null);
     try {
       const [logins, secrets] = await Promise.all([listLogins(), api<{ secrets?: SavedSecretSummary[] }>("/api/saved-secrets")]);
+      if (version === requestVersion.current) setLoaded(true);
       if (version === requestVersion.current) setEntries([...logins.logins.map((value): VaultEntry => ({ kind: "login", value })), ...(secrets.secrets ?? []).map((value): VaultEntry => ({ kind: "secret", value }))]);
     } catch { if (version === requestVersion.current) { setError(t("mobile.vault.loadError")); haptic("error"); } }
     finally { if (version === requestVersion.current) setLoading(false); }
@@ -40,6 +55,8 @@ export function VaultSheet({ open, onClose }: SheetPageProps<"vault">) {
   };
   const title = (entry: VaultEntry) => entry.kind === "login" ? entry.value.site : entry.value.label;
   const account = (entry: VaultEntry) => entry.kind === "login" ? entry.value.username || t("mobile.vault.noAccount") : t("mobile.vault.secret");
+  const addLogin = () => { dispatch({ type: "toggleAppSettings", open: true, section: "logins" }); onClose(); };
+  const view = vaultView({ loaded, loading, error: Boolean(error), count: entries.length });
   const back = () => { setSelected(null); setConfirming(false); setError(null); };
   const remove = async () => {
     if (!selected || deleting.current || selected.kind === "login" && selected.value.source === "1password") return;
@@ -59,16 +76,20 @@ export function VaultSheet({ open, onClose }: SheetPageProps<"vault">) {
     <Sheet open={open} onClose={onClose} full title={selected ? title(selected) : t("mobile.vault.title")} back={selected ? back : undefined}>
       <div className="px-3 pt-2">
         {selected ? <div className="flex flex-col gap-5 px-3 pt-3">
-          <KeyRound aria-hidden size={32} className="text-ink-secondary" />
-          <div><h2 className="text-[13px] text-ink-tertiary">{t("mobile.vault.account")}</h2><p dir="auto" className="mt-1 break-words text-[16px] text-ink">{account(selected)}</p></div>
-          <div><h2 className="text-[13px] text-ink-tertiary">{t("mobile.vault.access")}</h2><p className="mt-1 text-[14px] text-ink-secondary">{who(selected.value.bots)}</p></div>
+          <VaultTile />
+          <div><h2 className="text-[14px] font-medium text-ink-secondary">{t("mobile.vault.account")}</h2><p dir="auto" className="mt-1 break-words text-[16px] text-ink">{account(selected)}</p></div>
+          <div><h2 className="text-[14px] font-medium text-ink-secondary">{t("mobile.vault.access")}</h2><p className="mt-1 text-[16px] text-ink">{who(selected.value.bots)}</p></div>
           {selected.kind === "login" && selected.value.source === "1password" ? <p className="text-[14px] text-ink-secondary">{t("mobile.vault.readOnly")}</p> : <button type="button" disabled={busy} onClick={() => void remove()} className="mobile-press min-h-12 rounded-full bg-danger/10 px-5 text-[16px] font-semibold text-danger disabled:opacity-40">{confirming ? t("mobile.vault.confirmDelete") : t("mobile.vault.delete")}</button>}
         </div> : <>
-          <button type="button" onClick={() => { dispatch({ type: "toggleAppSettings", open: true, section: "logins" }); onClose(); }} className="mobile-row flex min-h-16 w-full items-center gap-3 rounded-2xl px-3 text-left text-[16px] font-semibold text-ink"><Plus aria-hidden size={22} />{t("mobile.vault.addLogin")}</button>
-          {loading ? <div role="status" aria-label={t("mobile.vault.loading")}>{[0, 1, 2, 3].map((key) => <div key={key} aria-hidden className="flex items-center gap-3 px-3 py-4"><span className="size-10 rounded-full bg-ink/[0.05]" /><span className="flex-1 space-y-2"><span className="block h-4 w-2/3 rounded-full bg-ink/[0.05]" /><span className="block h-3 w-1/2 rounded-full bg-ink/[0.05]" /></span></div>)}</div> : !error && entries.length ? <ul>{entries.map((entry) => <li key={`${entry.kind}:${entry.value.id}`}><button type="button" onClick={() => { setSelected(entry); setConfirming(false); setError(null); }} className="mobile-row flex min-h-[84px] w-full items-center gap-3 rounded-2xl px-3 py-3 text-left"><KeyRound aria-hidden size={24} className="shrink-0 text-ink-secondary" /><span className="min-w-0 flex-1"><span dir="auto" className="block truncate text-[16px] font-semibold text-ink">{title(entry)}</span><span dir="auto" className="mt-0.5 block truncate text-[14px] text-ink-secondary">{account(entry)}</span><span className="block text-[14px] text-ink-secondary">{who(entry.value.bots)}</span></span><ChevronRight aria-hidden size={18} className="shrink-0 text-ink-tertiary" /></button></li>)}</ul> : !error ? <div className="px-6 py-16 text-center"><p className="text-[18px] font-semibold text-ink">{t("mobile.vault.empty")}</p><p className="mt-2 text-[14px] leading-6 text-ink-secondary">{t("mobile.vault.emptyHint")}</p></div> : null}
+          {view === "skeleton" ? <div role="status" aria-label={t("mobile.vault.loading")}>{[0, 1, 2].map((key) => <div key={key} aria-hidden className="flex min-h-[84px] items-center gap-3 px-3 py-3"><span className="size-10 shrink-0 rounded-full bg-ink/[0.06]" /><span className="flex-1 space-y-2"><span className="block h-4 w-2/5 rounded-full bg-ink/[0.06]" /><span className="block h-3 w-3/5 rounded-full bg-ink/[0.05]" /></span></div>)}</div>
+            : view === "list" ? <>
+              <ul>{entries.map((entry) => <li key={`${entry.kind}:${entry.value.id}`}><button type="button" onClick={() => { setSelected(entry); setConfirming(false); setError(null); }} className="mobile-row flex min-h-[84px] w-full items-center gap-3 rounded-2xl px-3 py-3 text-left"><VaultTile /><span className="min-w-0 flex-1"><span dir="auto" className="block truncate text-[16px] font-semibold text-ink">{title(entry)}</span><span dir="auto" className="mt-0.5 block truncate text-[14px] font-medium text-ink-secondary">{account(entry)}</span><span className="block truncate text-[14px] text-ink-secondary">{who(entry.value.bots)}</span></span><ChevronRight aria-hidden size={18} className="shrink-0 text-ink-tertiary" /></button></li>)}</ul>
+              <button type="button" onClick={addLogin} className="mobile-row mt-1 flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 text-left text-[16px] font-semibold text-ink"><span aria-hidden className="flex size-10 items-center justify-center rounded-full bg-ink/[0.06]"><Plus size={20} /></span>{t("mobile.vault.addLogin")}</button>
+            </>
+            : view === "empty" ? <EmptyState art="key" title={t("mobile.vault.empty")} body={t("mobile.vault.emptyHint")} action={{ label: t("mobile.vault.addLogin"), onClick: addLogin, icon: <Plus aria-hidden size={18} /> }} className="pt-16" />
+            : <EmptyState tone="error" art="key" title={t("mobile.vault.loadErrorTitle")} body={t("mobile.vault.loadErrorBody")} action={{ label: t("mobile.vault.retry"), onClick: () => void load() }} className="pt-16" />}
         </>}
-        {error && <p role="alert" className="px-3 py-4 text-[14px] text-danger">{error}</p>}
-        {!selected && error && <button type="button" onClick={() => void load()} disabled={loading} className="mobile-press mx-3 min-h-11 rounded-full bg-ink/[0.05] px-5 text-[14px] font-semibold text-ink">{t("mobile.vault.retry")}</button>}
+        {error && (selected || view === "list") && <p role="alert" className="px-3 py-4 text-[15px] text-danger">{error}</p>}
       </div>
     </Sheet>
   );
