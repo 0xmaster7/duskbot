@@ -82,7 +82,7 @@ describe("the notch and dock step", () => {
     await show();
     set.mockRejectedValueOnce(new Error("no"));
     await act(async () => { button("just the side dock").click(); });
-    expect(host.querySelector("[role=alert]")?.textContent).toBe("couldn't save this setting. try again.");
+    expect(host.querySelector("[role=alert]")?.textContent).toBe("Couldn't save this setting. Try again.");
     expect(onDone).not.toHaveBeenCalled();
     expect(button("just the side dock").disabled).toBe(false);
   });

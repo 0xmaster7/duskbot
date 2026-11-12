@@ -42,6 +42,6 @@ describe("bot settings usage card", () => {
   it("says so in the app language when nothing is recorded yet", () => {
     setLocale("de");
     const shown = text(renderToStaticMarkup(createElement(UsageSection, { bot: bot() })));
-    expect(shown).not.toContain("no usage recorded yet");
+    expect(shown).not.toContain("No usage recorded yet");
   });
 });

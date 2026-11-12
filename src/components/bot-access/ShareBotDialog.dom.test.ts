@@ -88,7 +88,7 @@ it("lists who looks after it first as quiet text, then each person added with no
   expect(dialog()!.textContent).not.toContain("Can edit");
   expect(dialog()!.querySelector("select")).toBeNull();
   expect(dialog()!.querySelector("[data-share-general]")!.getAttribute("data-share-general")).toBe("none");
-  expect(dialog()!.textContent).toContain("admins can always edit every bot.");
+  expect(dialog()!.textContent).toContain("Admins can always edit every bot.");
 });
 
 it("opens a person's real menu: have them look after it, then a divider and Remove access, and no levels", async () => {
@@ -161,7 +161,7 @@ it.each([
 it("has nobody to add when everyone can already edit", async () => {
   await open(payroll({ yourAccess: "edit", access: { everyone: "edit", people: {} } }));
   expect(dialog()!.querySelector('input[role="combobox"]')).toBeNull();
-  expect(dialog()!.textContent).toContain("everyone in the team can already edit it.");
+  expect(dialog()!.textContent).toContain("Everyone in the team can already edit it.");
 });
 
 it("removes a person, and switches between everyone in the team using it and only people added, from quiet menus", async () => {
@@ -170,14 +170,14 @@ it("removes a person, and switches between everyone in the team using it and onl
   expect(server.calls.at(-1)!.body).toEqual({ everyone: "none", people: { [BOB.email]: "view" } });
   await choose("general access", "everyone");
   expect(server.calls.at(-1)!.body).toEqual({ everyone: "chat", people: editable.access!.people });
-  expect(document.querySelector("[data-access-toast]")!.textContent).toContain("everyone in Acme can use it now");
+  expect(document.querySelector("[data-access-toast]")!.textContent).toContain("Everyone in Acme can use it now");
   flushSync(() => root.unmount());
   document.body.innerHTML = "";
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
   await open(payroll({ yourAccess: "edit", access: { everyone: "chat", people: {} } }));
-  expect(dialog()!.textContent).toContain("everyone in Acme can find it and chat with it.");
+  expect(dialog()!.textContent).toContain("Everyone in Acme can find it and chat with it.");
   expect(menuOf("general access").textContent).toBe("everyone in Acme can use it");
   expect(document.querySelector('[data-share-bot] button[aria-label="What everyone in Acme can do"]'), "no level for everyone on a team").toBeNull();
   await openMenu("general access");
@@ -239,7 +239,7 @@ it("shows someone who can't edit the same layout read only: themselves with no l
   const yours = dialog()!.querySelector("[data-share-yours]")!;
   expect(yours.textContent).toContain("Bob (you)");
   expect(yours.textContent).not.toContain("Can view");
-  expect(dialog()!.textContent).toContain("admins can always edit every bot.");
+  expect(dialog()!.textContent).toContain("Admins can always edit every bot.");
   expect(dialog()!.querySelector("input, select, [data-share-general], [aria-haspopup=menu]")).toBeNull();
 });
 

@@ -146,8 +146,8 @@ describe("the call button", () => {
 
   it("tells a blocked microphone on a server's page who blocked it, whatever the page's config says", async () => {
     for (const [pageMic, notice] of [
-      ["allowed", "allow microphone access for this app in your computer's privacy settings"],
-      ["refused", "open it in your web browser to make the live call."],
+      ["allowed", "Allow microphone access for this app in your computer's privacy settings"],
+      ["refused", "Open it in your web browser to make the live call."],
     ] as const) {
       for (const cloudHome of [true, false]) {
         resetLiveMedia();
@@ -196,9 +196,9 @@ describe("the call mode menu", () => {
 
   it("says where the OpenAI key stays: this computer, or the person's Cloud", () => {
     const props = { id: "m", mode: "live" as const, onChoose: vi.fn(), onClose: vi.fn() };
-    expect(renderToStaticMarkup(createElement(CallModeMenu, props))).toContain("the OpenAI key stays on your computer.");
+    expect(renderToStaticMarkup(createElement(CallModeMenu, props))).toContain("The OpenAI key stays on your computer.");
     const cloud = renderToStaticMarkup(createElement(CallModeMenu, { ...props, cloudHome: true }));
-    expect(cloud).toContain("the OpenAI key stays in the cloud.");
+    expect(cloud).toContain("The OpenAI key stays in the cloud.");
     expect(cloud).not.toContain("stays on your computer");
   });
 
@@ -213,7 +213,7 @@ describe("the call mode menu", () => {
     expect(turns).not.toContain('disabled=""');
     expect(turns).toContain(">take turns<");
     expect(turns).toContain("calls where you take turns need the desktop app. they listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.");
-    expect(turns).not.toContain("listening stays on this computer");
+    expect(turns).not.toContain("Listening stays on this computer");
     expect(live).toMatch(/^ aria-checked="true"/);
     expect(live).not.toMatch(/aria-disabled="true"|disabled=""/);
     expect(renderToStaticMarkup(createElement(CallModeMenu, { id: "m", mode: "turns", onChoose: vi.fn(), onClose: vi.fn() }))).not.toMatch(/aria-disabled="true"|disabled=""/);

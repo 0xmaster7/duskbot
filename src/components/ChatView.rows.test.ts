@@ -138,7 +138,7 @@ afterAll(() => {
 describe("chat transcript rows", () => {
   it("draws every row once on mount", () => {
     expect(document.querySelectorAll("[data-mid]")).toHaveLength(messages.length);
-    expect(document.body.textContent).toContain("today");
+    expect(document.body.textContent).toContain("Today");
     expect(document.body.textContent).toContain("Answer 1");
     expect(document.body.textContent).toContain("Read file 2");
   });
@@ -167,7 +167,7 @@ describe("chat transcript rows", () => {
     vi.setSystemTime(new Date(2026, 9, 4, 0, 30));
     const scout = state.bots.find((bot) => bot.id === "scout")!;
     await rowRendersAfter((current) => reducer(current, { type: "botPatched", bot: { ...scout, unread: true } }));
-    expect(document.body.textContent).toContain("yesterday");
+    expect(document.body.textContent).toContain("Yesterday");
     expect(document.body.textContent).not.toContain("today");
   });
 

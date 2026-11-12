@@ -29,7 +29,7 @@ describe("failed turn text", () => {
 
   it("previews a turn the room stopped for making no progress in plain words", () => {
     expect(activityPreview({ name: "error: Rivet's room turn made no progress for 1 minute and was stopped", ok: false, reason: "timeout" }, engine()))
-      .toBe("the reply timed out");
+      .toBe("The reply timed out");
   });
 
   it("says Grok Build is signed out through the same rule, now that its card is the in-app code", () => {
@@ -58,13 +58,13 @@ describe("failed turn text", () => {
   it("previews a plan-limit refusal whole and leaves ordinary steps alone", () => {
     const limit = "Your Pro plan includes 2 cloud computers at once. Delete one to start another.";
     expect(activityPreview({ name: `error: ${limit}`, ok: false }, engine())).toBe(limit);
-    expect(activityPreview({ name: "Bash", ok: true }, engine())).toBe("run a command");
-    expect(activityPreview({ name: "stopped: stopped", ok: true }, engine())).toBe("stopped");
-    expect(activityPreview({ name: "error: The request was cancelled by the client.", ok: false }, engine())).toBe("stopped");
+    expect(activityPreview({ name: "Bash", ok: true }, engine())).toBe("Run a command");
+    expect(activityPreview({ name: "stopped: stopped", ok: true }, engine())).toBe("Stopped");
+    expect(activityPreview({ name: "error: The request was cancelled by the client.", ok: false }, engine())).toBe("Stopped");
   });
 
   it("previews a tool step in plain words and a status row without its marker", () => {
-    expect(activityPreview({ name: "mcp__dusk__computer_batch", ok: true }, engine())).toBe("use the screen");
+    expect(activityPreview({ name: "mcp__dusk__computer_batch", ok: true }, engine())).toBe("Use the screen");
     expect(activityPreview({ name: "GITHUB_GET_A_COMMIT", ok: true }, engine())).toBe("get a commit");
     expect(activityPreview({ name: "notice: this thread now uses Sonnet.", ok: true }, engine())).toBe("this thread now uses Sonnet.");
     expect(activityPreview({ name: "recovery: automatic recovery: trying Codex once.", ok: true }, engine())).toBe("automatic recovery: trying Codex once.");
@@ -79,7 +79,7 @@ describe("failed turn text", () => {
 
   it("previews a technical cause as its plain line", () => {
     expect(activityPreview({ name: 'error: API Error: 529 {"type":"error","error":{"type":"overloaded_error"}}', ok: false }, engine()))
-      .toBe("the service is busy right now. try again in a moment.");
+      .toBe("The service is busy right now. Try again in a moment.");
   });
 
   it("finds the engine a bot's turns ran on", () => {

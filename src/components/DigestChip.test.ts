@@ -19,8 +19,8 @@ describe("DigestChip", () => {
     for (const files of [undefined, { changed: [], added: [], deleted: [] }]) {
       const quiet = { ...message.digest!, tools: [], toolsDropped: 0, toolCalls: 0, files, memory: [], memoryDropped: 0 };
       const html = renderToStaticMarkup(createElement(DigestChip, { message: { ...message, digest: { ...quiet, durationMs: 72_000 } } }));
-      expect(html).toContain("worked for 1m 12s");
-      expect(html).toContain("view trace");
+      expect(html).toContain("Worked for 1m 12s");
+      expect(html).toContain("View trace");
       expect(html).not.toContain("tool calls");
       expect(renderToStaticMarkup(createElement(DigestChip, { message: { ...message, digest: { ...quiet, durationMs: 0 } } }))).toBe("");
     }
@@ -42,13 +42,13 @@ describe("DigestChip", () => {
 
   it("shows total counts rather than only the truncated sample", () => {
     const html = renderToStaticMarkup(createElement(DigestChip, { message }));
-    expect(html).toContain("worked for 100ms · did 19 tool calls · 5 files changed");
+    expect(html).toContain("Worked for 100ms · Did 19 tool calls · 5 files changed");
     expect(html).toContain('title="Observed work, not a completion verdict"');
   });
 
   it("does not imply zero changed files when capture was unavailable", () => {
     const html = renderToStaticMarkup(createElement(DigestChip, { message: { ...message, digest: { ...message.digest!, files: undefined, toolCalls: undefined } } }));
-    expect(html).toContain("did 12+ tool calls");
+    expect(html).toContain("Did 12+ tool calls");
     expect(html).not.toContain("files changed");
   });
 });

@@ -104,7 +104,7 @@ describe("the keys page", () => {
     flushSync(() => section("ai").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
     expect(row("openrouter")!.textContent).not.toContain("hundreds of models through one key");
     expect(row("openai")!.textContent).not.toContain("Codex doesn't use this key");
-    expect(host.textContent).not.toContain("save a key for any provider OpenCode supports");
+    expect(host.textContent).not.toContain("Save a key for any provider OpenCode supports");
   });
 
   it("offers the Live calls service, OpenAI or Azure OpenAI, on the separate live key row", () => {
@@ -158,7 +158,7 @@ describe("the keys page", () => {
     expect(rowsShown()).toEqual(["treg"]);
     type(search, "zzz");
     expect(rowsShown()).toEqual([]);
-    expect(host.querySelector("[data-keys-empty]")!.textContent).toBe("no keys match “zzz”.");
+    expect(host.querySelector("[data-keys-empty]")!.textContent).toBe("No keys match “zzz”.");
   });
 
   it("lands the live-call notice's button on the OpenAI row in Voice and calls, focused and lit", async () => {
@@ -188,7 +188,7 @@ describe("the keys page", () => {
     page();
     const input = openDialog("openai").querySelector<HTMLInputElement>("[data-key-input]")!;
     paste(input, "  sk-ant-api03-abcdefghijklmnop\n");
-    expect(dialog("openai")!.textContent).toContain("that looks like the Anthropic API key, not this one.");
+    expect(dialog("openai")!.textContent).toContain("That looks like the Anthropic API key, not this one.");
     expect(input.value).toBe("sk-ant-api03-abcdefghijklmnop");
     expect(fx.api).not.toHaveBeenCalled();
   });
@@ -199,7 +199,7 @@ describe("the keys page", () => {
       : { ok: false, reason: "rejected" });
     page();
     paste(openDialog("openai").querySelector<HTMLInputElement>("[data-key-input]")!, "sk-proj-abcdefghijklmnopa1b2");
-    await vi.waitFor(() => expect(row("openai")!.textContent).toContain("didn't work: the provider rejected this key."));
+    await vi.waitFor(() => expect(row("openai")!.textContent).toContain("Didn't work: The provider rejected this key."));
     expect(fx.api.mock.calls.map(([path]) => path)).toEqual(["/api/config", "/api/keys/test"]);
     expect(JSON.parse(fx.api.mock.calls[0]![1].body)).toEqual({ openai: { key: "sk-proj-abcdefghijklmnopa1b2" } });
     const masked = row("openai")!.querySelector("[data-key-masked]")!;

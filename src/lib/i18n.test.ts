@@ -36,8 +36,8 @@ describe("t", () => {
   });
 
   it("fills {app} with the product's name or the name a caller passes", () => {
-    expect(t("routines.runsOn.localHint")).toBe("starts while dusk bot is open here.");
-    expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("starts while Acme is open here.");
+    expect(t("routines.runsOn.localHint")).toBe("Starts while dusk bot is open here.");
+    expect(t("routines.runsOn.localHint", { app: "Acme" })).toBe("Starts while Acme is open here.");
   });
 
   it("setLocale reports the locale that actually took effect", () => {
@@ -124,7 +124,7 @@ describe("tFromServer", () => {
     locales["zz"] = { "approval.held.native": "Der Anbieter verlangt deine Zustimmung." };
     try {
       setLocale("zz");
-      expect(tFromServer("approval.held.native", "the provider requires your approval for this action."))
+      expect(tFromServer("approval.held.native", "The provider requires your approval for this action."))
         .toBe("Der Anbieter verlangt deine Zustimmung.");
     } finally {
       delete locales["zz"];

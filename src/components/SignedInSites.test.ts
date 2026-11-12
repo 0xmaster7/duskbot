@@ -89,7 +89,7 @@ describe("signed-in sites", () => {
     expect(host.textContent).toContain("Pepper, Scout share this browser: signing out here signs all of them out.");
     await click("sign out of all");
     expect(fixture.api).toHaveBeenLastCalledWith("/api/browser-sites/sign-out", { method: "POST", body: JSON.stringify({ profile: "profile-work" }) });
-    expect(host.textContent).toContain("not signed in to any site.");
+    expect(host.textContent).toContain("Not signed in to any site.");
     expect(host.querySelector("button")).toBeNull();
   });
 

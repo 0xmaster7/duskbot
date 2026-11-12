@@ -76,8 +76,8 @@ describe("a bot's backup AIs in Simple", () => {
     render();
     const card = host.querySelector("[data-panel-row=backups]")!;
     expect(card.textContent).toContain("backup AIs");
-    expect(card.textContent).toContain("used only when Scout's AI is at its usage limit or can't start on a message.");
-    expect(card.textContent).toContain("after a usage limit resets, the conversation goes back.");
+    expect(card.textContent).toContain("Used only when Scout's AI is at its usage limit or can't start on a message.");
+    expect(card.textContent).toContain("After a usage limit resets, the conversation goes back.");
     expect(card.querySelector('[role="switch"], input[type="checkbox"]')).toBeNull();
     expect(host.querySelectorAll("[data-backup]")).toHaveLength(0);
   });
@@ -136,7 +136,7 @@ describe("a bot's backup AIs in Simple", () => {
     click(host.querySelector("[data-panel-action=backup-add]"));
     await settle();
     expect(providers()).toEqual(["claude", "codex", "gemini"]);
-    expect(menu()!.querySelector('[data-simple-provider="claude"]')?.textContent).toContain("same account as the main AI: it shares the usage limit.");
+    expect(menu()!.querySelector('[data-simple-provider="claude"]')?.textContent).toContain("Same account as the main AI: it shares the usage limit.");
     expect(menu()!.querySelector('[data-simple-provider="codex"]')?.textContent).not.toContain("same account");
     expect(modelRow("Claude Sonnet 5")).toBeUndefined();
     click(modelRow("Claude Opus 5"));

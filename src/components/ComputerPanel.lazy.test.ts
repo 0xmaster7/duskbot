@@ -187,7 +187,7 @@ describe("VPS computer preparation", () => {
     await open(makeBot({ computer: "cloud" }), true);
     const wake = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
     expect(wake?.disabled).toBe(true);
-    expect(wake?.textContent).toContain("ask an admin");
+    expect(wake?.textContent).toContain("Ask an admin");
     expect(fixture.posts).toEqual([]);
   });
 
@@ -280,7 +280,7 @@ describe("VPS computer preparation", () => {
     expect(text()).not.toContain("Fixture desktop");
     const frame = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
     expect(frame?.textContent).toContain("Scout's computer needs an update");
-    expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("its files and website sign-ins are kept.");
+    expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Its files and website sign-ins are kept.");
     const fix = document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]');
     expect(fix?.textContent).toBe("fix");
     flushSync(() => fix!.click());
@@ -298,7 +298,7 @@ describe("VPS computer preparation", () => {
     window.confirm = confirm;
     try {
       await open(makeBot({ computer: "cloud" }), true);
-      expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("files saved inside its old desktop are removed.");
+      expect(document.querySelector("[data-panel-problem]")?.textContent).toContain("Files saved inside its old desktop are removed.");
       flushSync(() => document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]')!.click());
       await settle();
       expect(confirm).toHaveBeenCalledOnce();

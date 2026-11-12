@@ -22,6 +22,7 @@ import { Icon, type IconName } from "./Icon";
 import { BotAvatar } from "./Avatar";
 import { openBotSettings } from "./bot-panel/panel-link";
 import { CardHint } from "./CardHint";
+import { lowerFirst } from "../lib/lower-first";
 
 interface ToolLabels {
   [tool: string]: LocaleKey;
@@ -598,8 +599,8 @@ export function ApprovalCard({
     const header = done ?? (ask ? ask.line : outbound
       ? waiting ? outbound.headline : outbound.headline.replace(/\s*[?？]$/, "")
       : bot
-        ? t("approval.card.namedWantsTo", { name: bot.name, action: toolLabel(displayTool) })
-        : t("approval.card.wantsTo", { action: toolLabel(displayTool) }));
+        ? t("approval.card.namedWantsTo", { name: bot.name, action: lowerFirst(toolLabel(displayTool)) })
+        : t("approval.card.wantsTo", { action: lowerFirst(toolLabel(displayTool)) }));
     const row = (
       <CompactApprovalRow
         header={header}
@@ -628,8 +629,8 @@ export function ApprovalCard({
           {titled ? card.title : outbound ? outbound.headline : profileHeader ?? (
             <>
               {bot
-                ? t("approval.card.namedWantsTo", { name: bot.name, action: toolLabel(displayTool) })
-                : t("approval.card.wantsTo", { action: toolLabel(displayTool) })}
+                ? t("approval.card.namedWantsTo", { name: bot.name, action: lowerFirst(toolLabel(displayTool)) })
+                : t("approval.card.wantsTo", { action: lowerFirst(toolLabel(displayTool)) })}
             </>
           )}
         </div>

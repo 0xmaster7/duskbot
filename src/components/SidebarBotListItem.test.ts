@@ -118,21 +118,21 @@ describe("BotListItem", () => {
 
     it("says Allowed once it was allowed", () => {
       const markup = renderRow(approval({ answered: "allow" }));
-      expect(markup).toContain("allowed");
+      expect(markup).toContain("Allowed");
       expect(markup).not.toContain("Approval needed");
     });
 
     it("says Denied once it was denied, or closed by Stop", () => {
       for (const answered of ["deny", "unavailable"]) {
         const markup = renderRow(approval({ answered, dismissed: answered === "unavailable" }));
-        expect(markup).toContain("denied");
+        expect(markup).toContain("Denied");
         expect(markup).not.toContain("Approval needed");
       }
     });
 
     it("says it got no answer in time once nothing can answer it", () => {
       const markup = renderRow(approval({ expired: true, options: [] }));
-      expect(markup).toContain("no answer in time");
+      expect(markup).toContain("No answer in time");
       expect(markup).not.toContain("Approval needed");
     });
   });
@@ -222,7 +222,7 @@ describe("archive / delete confirmation", () => {
     const copy = botConfirmCopy("delete", "Willow");
 
     expect(copy.title).toContain("Willow");
-    expect(copy.body).toBe("its chats, memory, files and private desktop go too. this can't be undone.");
+    expect(copy.body).toBe("Its chats, memory, files and private desktop go too. This can't be undone.");
     expect(copy.tone).toBe("danger");
   });
 

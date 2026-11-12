@@ -117,7 +117,7 @@ describe("a picker that opens before its engine has listed its models", () => {
   };
 
   it.each([
-    ["switch AI", () => act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }))],
+    ["Switch AI", () => act(() => requestAiSwitch({ botId: "maus", threadId: "thread-1", turnId: "turn-1", place: "header" }))],
     ["the model chip", () => {
       act(() => root.render(createElement(ModelPicker, { bot: { ...onClaude, busy: false }, threadId: "thread-1" })));
       act(() => trigger().click());

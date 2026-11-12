@@ -46,7 +46,7 @@ describe("a published page's card", () => {
       expect(container.textContent).toContain("Bake sale");
       expect(container.textContent).toContain(URL);
       expect(container.textContent).toContain("3 of 5 pages");
-      expect(buttons(container).map((button) => button.textContent)).toEqual(["copy link", "open", "unpublish"]);
+      expect(buttons(container).map((button) => button.textContent)).toEqual(["Copy link", "Open", "Unpublish"]);
       buttons(container)[1]!.click();
       container.querySelector("a")!.click();
       expect(openExternalLink.mock.calls).toEqual([[URL], [URL]]);
@@ -92,7 +92,7 @@ describe("a published page's card", () => {
   it("says when the page was unpublished, with no buttons", () => {
     const { container, root } = render(page({ state: "unpublished", title: "Bake sale", pageId: "abcdefghijklmnopqrstuvwxyz", url: URL, usage: { pages: 2, limit: 5 } }));
     try {
-      expect(container.textContent).toContain("unpublished. the link no longer opens.");
+      expect(container.textContent).toContain("Unpublished. The link no longer opens.");
       expect(container.textContent).toContain("2 of 5 pages");
       expect(container.querySelectorAll("button")).toHaveLength(0);
     } finally { root.unmount(); }
@@ -102,7 +102,7 @@ describe("a published page's card", () => {
     desktop({ cloudAccount: {} });
     const { container, root } = render(page({ state: "limit", title: "Bake sale", plan: "free", upgrade: true, usage: { pages: 5, limit: 5 }, message: "server words" }));
     try {
-      expect(container.textContent).toContain("you’ve used your 5 free pages. dusk cloud gives you more, and pages without the badge.");
+      expect(container.textContent).toContain("You’ve used your 5 free pages. dusk cloud gives you more, and pages without the badge.");
       expect(container.textContent).toContain("5 of 5 pages");
       container.querySelector("button")!.click();
       expect(dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_pages" });
@@ -112,7 +112,7 @@ describe("a published page's card", () => {
   it("names the plan at a paid plan's limit, and offers no button without the desktop app's Cloud sign-in", () => {
     const { container, root } = render(page({ state: "limit", title: "Bake sale", plan: "personal", upgrade: true, usage: { pages: 25, limit: 25 } }));
     try {
-      expect(container.textContent).toContain("you’ve used all 25 pages on your Personal plan. unpublish a page to make room.");
+      expect(container.textContent).toContain("You’ve used all 25 pages on your Personal plan. Unpublish a page to make room.");
       expect(container.querySelectorAll("button")).toHaveLength(0);
     } finally { root.unmount(); }
   });

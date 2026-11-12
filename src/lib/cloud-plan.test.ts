@@ -20,47 +20,47 @@ describe("a free trial, in one message and at most one next step per state", () 
   it("active: when it ends, what is charged and when, how to cancel, and nothing to do", () => {
     const view = cloudTrialView(trial("active", { chargeAt: ENDS }), credit);
     expect(view.title).toBe("your free trial ends on Oct 15");
-    expect(view.body).toBe("then Pro is $49/month plus tax, charged on Oct 15. the cloud keeps running, so there's nothing to do. to cancel, choose manage subscription before then.");
-    expect(view.credit).toBe("includes $5 of Claude credit: $3.20 left.");
+    expect(view.body).toBe("Then Pro is $49/month plus tax, charged on Oct 15. The cloud keeps running, so there's nothing to do. To cancel, choose manage subscription before then.");
+    expect(view.credit).toBe("Includes $5 of Claude credit: $3.20 left.");
     expect(view.action).toEqual({ kind: "manage", label: "manage subscription" });
     expect(view.body).toContain(view.action!.label);
     const unpriced = cloudTrialView(trial("active", { amount: null, tier: "max" }));
-    expect(unpriced.body).toBe("then Max is charged monthly, plus tax, from Oct 15. the cloud keeps running, so there's nothing to do. to cancel, choose manage subscription before then.");
+    expect(unpriced.body).toBe("Then Max is charged monthly, plus tax, from Oct 15. The cloud keeps running, so there's nothing to do. To cancel, choose manage subscription before then.");
     expect(unpriced.credit).toBeUndefined();
     expect(cloudTrialView(trial("active"), { ...credit, remainingUsd: 0, state: "used_up" }).credit).toBeUndefined();
-    expect(cloudTrialView(trial("active", { tier: "team-2027" })).body).toContain("then Cloud is $49/month");
-    expect(cloudTrialView(trial("active", { tier: undefined })).body).toContain("then your plan is $49/month");
+    expect(cloudTrialView(trial("active", { tier: "team-2027" })).body).toContain("Then Cloud is $49/month");
+    expect(cloudTrialView(trial("active", { tier: undefined })).body).toContain("Then your plan is $49/month");
     expect(cloudTrialView(trial("active", { amount: 5831 })).body).toContain("$58.31/month");
   });
 
   it("ending with renewal off: when it stops, when its files go, and Subscribe to keep it", () => {
     const view = cloudTrialView(trial("ending", { deleteAt: ENDS + 3 * DAY, keep: "portal" }), credit);
     expect(view).toEqual({ state: "ending", title: "your free trial ends on Oct 15",
-      body: "renewal is off, so the cloud stops then and its files are deleted on Oct 18.", action: { kind: "subscribe", label: "subscribe to keep it" } });
-    expect(cloudTrialView(trial("ending", { keep: "portal" })).body).toBe("renewal is off, so the cloud stops then, and its files are deleted a few days later.");
+      body: "Renewal is off, so the cloud stops then and its files are deleted on Oct 18.", action: { kind: "subscribe", label: "subscribe to keep it" } });
+    expect(cloudTrialView(trial("ending", { keep: "portal" })).body).toBe("Renewal is off, so the cloud stops then, and its files are deleted a few days later.");
   });
 
   it("cancelled outright before it ends: nothing to buy until it has stopped (a checkout now would stop the running Cloud)", () => {
     for (const keep of ["none", "checkout"] as const) {
       const view = cloudTrialView(trial("ending", { deleteAt: ENDS + 3 * DAY, keep }));
-      expect(view.body, keep).toBe("your subscription was cancelled, so the cloud stops then and its files are deleted on Oct 18. to keep it, subscribe again once it has stopped.");
+      expect(view.body, keep).toBe("Your subscription was cancelled, so the cloud stops then and its files are deleted on Oct 18. To keep it, subscribe again once it has stopped.");
       expect(view.action, keep).toBeNull();
     }
   });
 
   it("processing, late and ended each say what happens to My Cloud and its files", () => {
     expect(cloudTrialView(trial("processing", { chargeAt: ENDS, holdUntil: ENDS + 3 * DAY }))).toEqual({ state: "processing",
-      title: "your first payment is processing", body: "the cloud keeps running meanwhile, so there's nothing to do.", action: null });
+      title: "your first payment is processing", body: "The cloud keeps running meanwhile, so there's nothing to do.", action: null });
     expect(cloudTrialView(trial("late", { deleteAt: ENDS + 6 * DAY, keep: "portal" }))).toEqual({ state: "late",
       title: "your first payment is taking longer",
-      body: "the cloud is paused until it goes through, and comes back by itself. its files are kept until Oct 21.",
+      body: "The cloud is paused until it goes through, and comes back by itself. Its files are kept until Oct 21.",
       action: { kind: "status", label: "check payment status" } });
     for (const keep of ["portal", "checkout"] as const) {
       expect(cloudTrialView(trial("ended", { deleteAt: ENDS + 3 * DAY, keep }))).toEqual({ state: "ended", title: "your free trial has ended",
-        body: "the cloud is stopped. its files are kept until Oct 18, then deleted.", action: { kind: "subscribe", label: "subscribe to keep it" } });
+        body: "The cloud is stopped. Its files are kept until Oct 18, then deleted.", action: { kind: "subscribe", label: "subscribe to keep it" } });
     }
-    expect(cloudTrialView(trial("ended")).body).toBe("the cloud is stopped, and its files are deleted soon.");
-    expect(cloudTrialView(trial("late")).body).toBe("the cloud is paused until it goes through, and comes back by itself.");
+    expect(cloudTrialView(trial("ended")).body).toBe("The cloud is stopped, and its files are deleted soon.");
+    expect(cloudTrialView(trial("late")).body).toBe("The cloud is paused until it goes through, and comes back by itself.");
   });
 
   it("the notice shows only the state main says is due, never another or an older one", () => {
@@ -85,19 +85,19 @@ describe("the plan line and the credit", () => {
   });
 
   it("says what is left, or that it is used up and what to do", () => {
-    expect(cloudCreditLine(credit)).toBe("trial Claude credit: $3.20 of $5 left. cloud bots use it until you sign in there with your own Claude or ChatGPT account, or add an API key.");
+    expect(cloudCreditLine(credit)).toBe("Trial Claude credit: $3.20 of $5 left. Cloud bots use it until you sign in there with your own Claude or ChatGPT account, or add an API key.");
     expect(cloudCreditLine({ grantedUsd: 5, remainingUsd: 0, state: "used_up" }))
-      .toBe("your $5 trial Claude credit is used up. to keep your bots working, sign in with your own Claude or ChatGPT account in the cloud, or add an API key there.");
+      .toBe("Your $5 trial Claude credit is used up. To keep your bots working, sign in with your own Claude or ChatGPT account in the cloud, or add an API key there.");
     expect([usd(5), usd(3.2), usd(0.004), usd(49), usd(58.31)]).toEqual(["$5", "$3.20", "$0", "$49", "$58.31"]);
   });
 
   it("in its last two days, a trial says how to step down to the plan the Admin names, with its price", () => {
     const active = trial("active", { chargeAt: ENDS }), starter = { tier: "starter" as const, amount: 1500 };
-    expect(cloudTrialView({ ...active, switchTo: starter }).switchPlan).toBe("prefer Starter at $15? tell us from your plan page before Oct 15, and we'll switch your plan.");
+    expect(cloudTrialView({ ...active, switchTo: starter }).switchPlan).toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
     expect(cloudTrialView({ ...active, tier: "max", switchTo: starter, personalAmount: 2900 }).switchPlan, "the Admin's switchTo wins")
-      .toBe("prefer Starter at $15? tell us from your plan page before Oct 15, and we'll switch your plan.");
-    expect(cloudTrialView({ ...active, tier: "personal", switchTo: starter }).switchPlan).toBe("prefer Starter at $15? tell us from your plan page before Oct 15, and we'll switch your plan.");
-    expect(cloudTrialView({ ...active, personalAmount: 2900 }).switchPlan, "an older Admin names only Personal's price: Personal is the way down").toBe("prefer Personal at $29? tell us from your plan page before Oct 15, and we'll switch your plan.");
+      .toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
+    expect(cloudTrialView({ ...active, tier: "personal", switchTo: starter }).switchPlan).toBe("Prefer Starter at $15? Tell us from your plan page before Oct 15, and we'll switch your plan.");
+    expect(cloudTrialView({ ...active, personalAmount: 2900 }).switchPlan, "an older Admin names only Personal's price: Personal is the way down").toBe("Prefer Personal at $29? Tell us from your plan page before Oct 15, and we'll switch your plan.");
     expect(cloudTrialView(active).switchPlan, "no plan named, no switch to offer").toBeUndefined();
     for (const quiet of [{ ...active, tier: "personal", personalAmount: 2900 }, { ...active, tier: "starter", switchTo: starter }, { ...active, switchTo: { tier: "max" as const, amount: 9900 } },
       { ...active, tier: undefined, switchTo: starter }, { ...active, tier: "team-2027", switchTo: starter }, trial("ending", { keep: "portal", switchTo: starter })]) {
@@ -111,7 +111,7 @@ describe("the plan line and the credit", () => {
     expect(cloudPlanLine(cloudPlanView(connected({ entitlement: { ...personal, status: "inactive" } })))).toBe("Personal · not active right now");
     expect(cloudPlanLine(cloudPlanView({ status: "unavailable", lastPlan: { tier: "personal", active: true } }))).toBe("Personal · checking with dusk cloud…");
     expect(cloudPlanLine(cloudPlanView({ status: "reauth-required", message: "expired", lastPlan: { tier: "personal", active: true } }))).toBe("Personal plan");
-    expect(cloudTrialView(trial("active", { tier: "personal", amount: 2900 })).body).toContain("then Personal is $29/month plus tax");
+    expect(cloudTrialView(trial("active", { tier: "personal", amount: 2900 })).body).toContain("Then Personal is $29/month plus tax");
   });
 
 });
@@ -138,11 +138,11 @@ describe("what is for sale, as the Admin says", () => {
 
   it("one card per plan on sale, in the Admin's order: name, price, promise, its own button and the money in one line; Most popular is the Admin's recommended plan", () => {
     expect(planCards(OFFER).map(({ rows: _rows, ...card }) => card)).toEqual([
-      { tier: "starter", name: "Starter", price: "$15", popular: false, current: false, promise: "your bots keep working with your laptop closed, at the lowest price.",
+      { tier: "starter", name: "Starter", price: "$15", popular: false, current: false, promise: "Your bots keep working with your laptop closed, at the lowest price.",
         action: "start free trial", terms: "free for 7 days, then $15/month + tax" },
-      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "your bots keep working 24/7, even when your laptop is closed.",
+      { tier: "pro", name: "Pro", price: "$49", popular: true, current: false, promise: "Your bots keep working 24/7, even when your laptop is closed.",
         action: "start free trial", terms: "free for 7 days, then $49/month + tax" },
-      { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "the biggest cloud machine, for bots that use computers all day.",
+      { tier: "max", name: "Max", price: "$99", popular: false, current: false, promise: "The biggest cloud machine, for bots that use computers all day.",
         action: "start free trial", terms: "free for 7 days, then $99/month + tax" },
     ]);
     expect(planCards({ ...OFFER, recommended: "max" }).map(card => card.popular), "never Pro by itself").toEqual([false, false, true]);
@@ -222,11 +222,11 @@ describe("what is for sale, as the Admin says", () => {
   it("says who a team plan is for, from the most people the Admin allows it, and nothing it can't back", () => {
     const allowances = { cpus: 4, cpuKind: "shared" as const, memoryMb: 4096, diskGb: 10, maxDiskGb: 100, computers: 4, computerHours: 300, voiceCharacters: 180_000 };
     const promise = (seats?: number) => planCards({ plans: [{ tier: "team", amount: 16900, allowances: { ...allowances, ...(seats ? { seats } : {}) } }], recommended: "team" })[0]!.promise;
-    expect(promise(5)).toBe("one shared cloud for up to 5 people: bots, group chats and roles your whole team uses.");
+    expect(promise(5)).toBe("One shared cloud for up to 5 people: bots, group chats and roles your whole team uses.");
     expect(promise(20)).toContain("up to 20 people");
     expect(promise()).toBeNull();
     const pro = planCards({ plans: [{ tier: "pro", amount: 4900, allowances: { ...allowances, seats: 5 } }], recommended: "pro" })[0]!.promise;
-    expect(pro, "a plan with its own words keeps them").toBe("your bots keep working 24/7, even when your laptop is closed.");
+    expect(pro, "a plan with its own words keeps them").toBe("Your bots keep working 24/7, even when your laptop is closed.");
   });
 
   it("says a 1-day trial in the singular, in English and every language, and leaves other lengths as they read", () => {
@@ -298,13 +298,13 @@ describe("what is for sale, as the Admin says", () => {
   it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
     expect(cloudIntroView(OFFER)).toEqual({ badge: "free for 7 days",
       points: ["routines run on time, day and night", "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start"],
-      price: "then from $15/month + tax. cancel any time.", moneyBack: "14-day money-back on every plan." });
+      price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
     const bare = cloudIntroView({ ...OFFER, creditUsd: undefined, refundDays: undefined })!;
     expect(bare.points).toEqual(["routines run on time, day and night", "reach your bots from your phone, even with this computer off"]); expect(bare.moneyBack).toBeNull();
     expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
     expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
     const partial: CloudOffer = { ...OFFER, plans: OFFER.plans.map(plan => plan.tier === "starter" ? { ...plan, trialDays: undefined } : plan) };
-    expect(cloudIntroView(partial)!.price).toBe("then from $49/month + tax. cancel any time.");
+    expect(cloudIntroView(partial)!.price).toBe("Then from $49/month + tax. Cancel any time.");
   });
 });
 

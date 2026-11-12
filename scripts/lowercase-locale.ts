@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { brandCaseEntry } from "../src/locales/brand-case.ts";
+import { entryCase } from "../src/locales/brand-case.ts";
 
 const dir = new URL("../src/locales/", import.meta.url);
 const enPath = new URL("en.json", dir);
@@ -13,7 +13,7 @@ const hashes = JSON.parse(readFileSync(hashPath, "utf8")) as { version: number; 
 let changed = 0;
 let rehashed = 0;
 for (const [key, before] of Object.entries(en)) {
-  const after = brandCaseEntry(key, before);
+  const after = entryCase(key, before);
   if (after === before) continue;
   changed += 1;
   en[key] = after;
@@ -26,4 +26,4 @@ const indent = raw.match(/^\{\n( +)/)?.[1] ?? "  ";
 writeFileSync(enPath, `${JSON.stringify(en, null, indent)}${raw.endsWith("\n") ? "\n" : ""}`);
 const hashRaw = readFileSync(hashPath, "utf8");
 writeFileSync(hashPath, `${JSON.stringify(hashes, null, hashRaw.match(/^\{\n( +)/)?.[1] ?? "  ")}${hashRaw.endsWith("\n") ? "\n" : ""}`);
-console.log(`${changed} strings lowered, ${rehashed} translation hashes carried over`);
+console.log(`${changed} strings recased, ${rehashed} translation hashes carried over`);

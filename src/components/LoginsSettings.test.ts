@@ -86,7 +86,7 @@ describe("Settings → Logins", () => {
   it("adds a login for the bots chosen, and keeps nothing it was typed once saved", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF }).mockResolvedValueOnce({ login: SHARED_LOGIN }).mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(document.body.textContent).toContain("nothing saved yet");
+    expect(document.body.textContent).toContain("Nothing saved yet");
     await click("new item");
     await click("add login");
     await type("site", "crm.example.org");
@@ -213,7 +213,7 @@ describe("Settings → Logins", () => {
     fixture.admin = false;
     await render();
     expect(fixture.api).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain("only an admin of this installation can see and change saved logins.");
+    expect(document.body.textContent).toContain("Only an admin of this installation can see and change saved logins.");
   });
 });
 

@@ -39,7 +39,7 @@ describe("the one line that says the fix runs here", () => {
     createElement(StatusActivityRow, { message }))));
 
   it("asks whether to try again, in the app's language", () => {
-    expect(shown(line({ id: "r1", status: "fixed", fixedIn: "0.1.135", running: true }))).toBe("fixed in 0.1.135. want to try again?");
+    expect(shown(line({ id: "r1", status: "fixed", fixedIn: "0.1.135", running: true }))).toBe("Fixed in 0.1.135. Want to try again?");
     setLocale("de");
     expect(shown(line({ id: "r1", status: "fixed", fixedIn: "0.1.135", running: true }))).toBe("Behoben in 0.1.135. Möchtest du es noch einmal versuchen?");
     // A client older than the field, or a row without it, reads the server's words.

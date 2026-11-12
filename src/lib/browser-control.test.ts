@@ -86,7 +86,7 @@ describe("taking browser control implicitly", () => {
   it.each<[string, PreviewStreamInput]>([
     ["a scroll", { type: "wheel", x: 1, y: 2, deltaX: 0, deltaY: 40, modifiers: 0 }],
     ["a key", key("keyDown")],
-    ["pasted text", { type: "text", text: "hello" }],
+    ["Pasted text", { type: "text", text: "hello" }],
     ["a toolbar action", { type: "reload" }],
     ["a tab switch", { type: "tabSelect", tabId: "t2" }],
   ])("takes control for %s", async (_name, item) => {

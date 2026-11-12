@@ -1,13 +1,58 @@
 import { expect, it } from "vitest";
 
-import { brandCase, brandCaseEntry } from "./brand-case";
+import { brandCase, entryCase, isChatEntry, isSentenceEntry, sentenceCase } from "./brand-case";
 import en from "./en.json";
 
-it("English copy is lowercase, apart from other companies' names, acronyms, code and placeholders", () => {
-  const offending = Object.entries(en as Record<string, string>)
-    .filter(([key, value]) => brandCaseEntry(key, value) !== value)
-    .map(([key, value]) => `${key}: "${value}" should read "${brandCaseEntry(key, value)}"`);
-  expect(offending, "new sentence-case strings; write them lowercase, or add a real proper noun to src/locales/brand-case.ts").toEqual([]);
+const entries = Object.entries(en as Record<string, string>);
+const english = en as Record<string, string>;
+
+it("UI labels are lowercase, apart from other companies' names, acronyms, code and placeholders", () => {
+  const offending = entries
+    .filter(([key, value]) => !isSentenceEntry(key, value) && entryCase(key, value) !== value)
+    .map(([key, value]) => `${key}: "${value}" should read "${entryCase(key, value)}"`);
+  expect(offending, "labels stay lowercase; add a real proper noun to src/locales/brand-case.ts, or a key rule if this is a full-sentence message").toEqual([]);
+});
+
+it("full-sentence messages read as sentences: each sentence starts with a capital, the product name stays lowercase", () => {
+  const offending = entries
+    .filter(([key, value]) => isSentenceEntry(key, value) && entryCase(key, value) !== value)
+    .map(([key, value]) => `${key}: "${value}" should read "${entryCase(key, value)}"`);
+  expect(offending, "notices, banners, status lines, errors, toasts, empty states, dialog bodies and sentence hints start with a capital").toEqual([]);
+});
+
+it("the chat window reads in sentence case throughout, buttons and placeholders included; sidebar, settings and panel labels stay lowercase", () => {
+  expect(isChatEntry("chat.retry")).toBe(true);
+  expect(isChatEntry("composer.placeholder.default")).toBe(true);
+  expect(isChatEntry("approval.action.allow")).toBe(true);
+  expect(isChatEntry("nativeUsage.banner.cta")).toBe(true);
+  expect(isChatEntry("server.status.searchingWeb")).toBe(true);
+  expect(isChatEntry("chat.copyMessage.aria")).toBe(false);
+  expect(isChatEntry("sidebar.nav.settings")).toBe(false);
+  expect(isChatEntry("settings.title")).toBe(false);
+  expect(isChatEntry("botPanel.backups.hint")).toBe(false);
+  expect(entryCase("chat.retry", "retry")).toBe("Retry");
+  expect(entryCase("composer.placeholder.default", "message {name}")).toBe("Message {name}");
+  expect(entryCase("settings.sync.button", "retry")).toBe("retry");
+  const chat = entries.filter(([key, value]) => isChatEntry(key) && /^[a-z]/.test(value) && !/^dusk\b/.test(value));
+  expect(chat.map(([key, value]) => `${key}: "${value}"`), "chat-window strings start with a capital").toEqual([]);
+});
+
+it("known messages and labels land on the right side of the split", () => {
+  expect(english["nativeUsage.banner.near"]).toBe("You're at {percent}% of your {engine} usage limit.");
+  expect(english["planUsage.resetsIn"]).toBe("Resets in {when}");
+  expect(isSentenceEntry("settings.title", "your bots, always on.")).toBe(false);
+  expect(isSentenceEntry("composer.dictation.failed", "Dictation couldn't start")).toBe(true);
+  expect(isSentenceEntry("sidebar.nav.settings", "settings")).toBe(false);
+  expect(isSentenceEntry("settings.keys.hint", "Paste a key")).toBe(false);
+  expect(isSentenceEntry("settings.keys.hint", "paste a key here.")).toBe(true);
+});
+
+it("sentenceCase capitalises each sentence and keeps dusk, placeholders, code and abbreviations", () => {
+  expect(sentenceCase("signed out. try again, e.g. later. i'll wait")).toBe("Signed out. Try again, e.g. later. I'll wait");
+  expect(sentenceCase("dusk bot is ready. dusk cloud keeps it")).toBe("dusk bot is ready. dusk cloud keeps it");
+  expect(sentenceCase("{bot} is busy. open `settings.json` or notes.md")).toBe("{bot} is busy. Open `settings.json` or notes.md");
+  expect(sentenceCase("your bots run 24/7. close your laptop")).toBe("Your bots run 24/7. Close your laptop");
+  expect(entryCase("x.title", "Could not save. Try again.")).toBe("could not save. try again.");
 });
 
 it("brandCase keeps names, acronyms, placeholders, code and key combos", () => {

@@ -12,9 +12,9 @@ describe("the ⌘Q pill", () => {
   });
 
   it("names one, a few, or counts many, with the platform's key", () => {
-    expect(quitHintText(["Scout"], true, "en")).toBe("Scout is working. hold ⌘Q to quit.");
-    expect(quitHintText(["Scout", "Echo"], false, "en")).toBe("Scout and Echo are working. hold Ctrl+Q to quit.");
-    expect(quitHintText(["A", "B", "C", "D"], true, "en")).toBe("4 bots are working. hold ⌘Q to quit.");
+    expect(quitHintText(["Scout"], true, "en")).toBe("Scout is working. Hold ⌘Q to quit.");
+    expect(quitHintText(["Scout", "Echo"], false, "en")).toBe("Scout and Echo are working. Hold Ctrl+Q to quit.");
+    expect(quitHintText(["A", "B", "C", "D"], true, "en")).toBe("4 bots are working. Hold ⌘Q to quit.");
   });
 });
 

@@ -45,7 +45,7 @@ describe("per-app tools as rows", () => {
 
   it("says so when no app is connected, and offers no reset without a grants record", () => {
     const { host } = mount(createElement(ConnectorGrantRows, { bot: bot(), patch: vi.fn(), slugs: [] }));
-    expect(host.textContent).toContain("no apps connected yet.");
+    expect(host.textContent).toContain("No apps connected yet.");
     expect(rows(host)).toEqual([]);
   });
 

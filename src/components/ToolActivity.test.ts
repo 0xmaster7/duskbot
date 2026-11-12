@@ -10,7 +10,7 @@ describe("ToolActivity", () => {
     const html = renderToStaticMarkup(createElement(ToolActivity, { tool: { name: "Bash", ok: true, input: "echo hi", output: "<script>unsafe()</script>" } }));
     expect(html).toContain("<details");
     expect(html).not.toContain(" open=");
-    expect(html).toContain("run a command · completed · tool details");
+    expect(html).toContain("Run a command · Completed · tool details");
     expect(html).toContain('role="button"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("echo hi");
@@ -19,12 +19,12 @@ describe("ToolActivity", () => {
   });
   it("distinguishes pending, failed and unrecorded output", () => {
     const render = (ok?: boolean, live = false) => renderToStaticMarkup(createElement(ToolActivity, { tool: { name: "Read", ok }, live }));
-    expect(render(undefined, true)).toContain("waiting for the tool to finish");
-    expect(render()).toContain("no result");
-    expect(render()).not.toContain("waiting for the tool to finish");
-    expect(render(false)).toContain("failed");
-    expect(render(false)).toContain("no output was recorded");
-    expect(render(true)).toContain("no output was recorded");
+    expect(render(undefined, true)).toContain("Waiting for the tool to finish");
+    expect(render()).toContain("No result");
+    expect(render()).not.toContain("Waiting for the tool to finish");
+    expect(render(false)).toContain("Failed");
+    expect(render(false)).toContain("No output was recorded");
+    expect(render(true)).toContain("No output was recorded");
   });
   it("translates unverified status in active locale", () => {
     try {

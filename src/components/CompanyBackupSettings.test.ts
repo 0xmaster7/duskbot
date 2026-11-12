@@ -82,7 +82,7 @@ const readyEntry: CompanyBackupEntry = {
 const summary: WorkspaceBackupSummary = {
   format: "dusk.workspace-backup", version: 1, id: READY_ID, createdAt: "2026-09-12T10:00:00Z",
   appVersion: "0.0.0-fixture", files: 9, directories: 3, bytes: 4096, bots: 2, groups: 1, threads: 4,
-  messages: 8, warnings: ["Fixture archive warning"], exclusions: ["saved account credentials and connections"],
+  messages: 8, warnings: ["Fixture archive warning"], exclusions: ["Saved account credentials and connections"],
 };
 let bridge: BackupBridge;
 let organization: ManagedDesktopBridge;
@@ -165,8 +165,8 @@ describe("optional Company cloud backup settings", () => {
     await readyOuter({ status: "signed-out" });
     render(true); effects(); await flush();
     const html = render(true).html;
-    expect(html).toContain("daily company backups are paused until this computer reconnects");
-    expect(html).toContain("waiting for this installation and the company connection to be ready.");
+    expect(html).toContain("Daily company backups are paused until this computer reconnects");
+    expect(html).toContain("Waiting for this installation and the company connection to be ready.");
     expect(bridge.list).not.toHaveBeenCalled();
     const saved = () => { fixture.index = 0; fixture.effects = []; const tree = SavedCompanyBackupSchedule({ bridge }); return nodes(tree); };
     fixture.values = [];
@@ -241,7 +241,7 @@ describe("optional Company cloud backup settings", () => {
   it("does not present unfinished uploads as restorable backups", async () => {
     vi.mocked(bridge.list).mockResolvedValueOnce({ backups: [{ ...readyEntry, status: "uploading" }], usedBytes: 4096, limits: { ownerQuotaBytes: 1024 ** 3, retainedSnapshots: 5 } });
     await ready();
-    expect(render().html).toContain("no completed cloud backups yet");
+    expect(render().html).toContain("No completed cloud backups yet");
     expect(button("restore this backup")).toBeUndefined();
     expect(button("delete cloud backup")).toBeUndefined();
     expect(bridge.prepareRestore).not.toHaveBeenCalled();
@@ -250,7 +250,7 @@ describe("optional Company cloud backup settings", () => {
   it("shows restart instructions and no backup actions when a restore is already staged", async () => {
     vi.mocked(bridge.state).mockResolvedValueOnce({ busy: false, pendingRestore: true });
     await ready();
-    expect(render().html).toContain("fully quit dusk bot");
+    expect(render().html).toContain("Fully quit dusk bot");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -266,11 +266,11 @@ describe("optional Company cloud backup settings", () => {
     vi.mocked(bridge.list).mockRejectedValueOnce(new Error("Fixture cloud list unavailable"));
     await ready();
     if (lateState) {
-      expect(render().html).toContain("cloud backups could not be loaded");
+      expect(render().html).toContain("Cloud backups could not be loaded");
       expect(render().html).not.toContain("Fully quit dusk bot");
       resolveState({ busy: false, pendingRestore: true }); await flush();
     }
-    expect(render().html).toContain("fully quit dusk bot");
+    expect(render().html).toContain("Fully quit dusk bot");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -328,7 +328,7 @@ describe("optional Company cloud backup settings", () => {
     expect(render().nodes.some(node => node.type === "dialog")).toBe(true);
     expect(render().html).toContain("THIS installation");
     expect(render().html).toContain("personal conversations and files");
-    expect(render().html).toContain("saved account credentials and connections are not included");
+    expect(render().html).toContain("Saved account credentials and connections are not included");
     const submitButton = () => render().nodes.find(node => node.type === "button" && node.props.type === "submit")!;
     expect(submitButton().props.disabled).toBe(false);
     const createForm = form(); submit(createForm); submit(createForm); await flush();
@@ -354,7 +354,7 @@ describe("optional Company cloud backup settings", () => {
     vi.mocked(bridge.state).mockResolvedValueOnce(scheduleOff);
     await ready();
     expect(render().html).toContain('aria-checked="false"');
-    expect(render().html).toContain("off. no scheduled uploads");
+    expect(render().html).toContain("Off. No scheduled uploads");
     expect(bridge.configureSchedule).not.toHaveBeenCalled();
     expect(passwords()).toHaveLength(0);
     expect(bridge.create).not.toHaveBeenCalled();
@@ -367,7 +367,7 @@ describe("optional Company cloud backup settings", () => {
     expect(render().html).toContain("personal conversations and files");
     expect(render().html).toContain("starting in 24 hours");
     expect(render().html).toContain("does not create a separate installation for work");
-    expect(render().html).toContain("no backup password needed");
+    expect(render().html).toContain("No backup password needed");
     expect(passwords()).toHaveLength(0);
     expect(button("enable daily backups").props.disabled).toBe(true);
     submit(form()); await flush(); expect(bridge.configureSchedule).not.toHaveBeenCalled();
@@ -471,7 +471,7 @@ describe("optional Company cloud backup settings", () => {
     const replace = button("replace installation"); replace.props.onClick!(); replace.props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
-    expect(render().html).toContain("fully quit dusk bot");
+    expect(render().html).toContain("Fully quit dusk bot");
     expect(window.location.reload).not.toHaveBeenCalled();
     expect([...storage.values()]).not.toContain(PASSWORD);
   });
@@ -501,7 +501,7 @@ describe("optional Company cloud backup settings", () => {
     change(confirmation(), "REPLACE"); button("replace installation").props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
-    expect(render().html).toContain("the replacement could not be confirmed");
+    expect(render().html).toContain("The replacement could not be confirmed");
     expect(window.location.reload).not.toHaveBeenCalled();
   });
 
@@ -512,7 +512,7 @@ describe("optional Company cloud backup settings", () => {
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(OTHER_ID);
     expect(localStorage.setItem).not.toHaveBeenCalled();
     expect(bridge.restore).not.toHaveBeenCalled();
-    expect(render().html).toContain("the replacement could not be confirmed");
+    expect(render().html).toContain("The replacement could not be confirmed");
     expect(window.location.reload).not.toHaveBeenCalled();
   });
 

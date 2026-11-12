@@ -82,5 +82,5 @@ it("never writes over a note saved since: the undo says it couldn't, and the new
   await undo();
   expect(files["MEMORY.md"]).toContain("Lisbon");
   expect(files["MEMORY.md"]).not.toContain("durian");
-  expect(toast()?.textContent).toContain("memory changed since, so the note couldn't come back.");
+  expect(toast()?.textContent).toContain("Memory changed since, so the note couldn't come back.");
 });

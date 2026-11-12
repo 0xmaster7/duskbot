@@ -100,19 +100,19 @@ describe("owner tool selection status", () => {
     const empty = render(makeBot({ toolScope: { allow: [] } } as Partial<Bot>));
     expect(empty).toContain("no tools selected");
     expect(empty).not.toContain("all current tools</p>");
-    expect(empty).toContain("existing approvals still apply");
+    expect(empty).toContain("Existing approvals still apply");
   });
 
   it("shows corrupt saved restrictions as a blocked setup, never all tools", () => {
     const corrupt = render(makeBot({ toolScope: { allow: "native:*" } } as unknown as Partial<Bot>));
-    expect(corrupt).toContain("this bot&#x27;s saved tool selection is damaged, so the bot can&#x27;t start. choose its tools again to fix it.");
+    expect(corrupt).toContain("This bot&#x27;s saved tool selection is damaged, so the bot can&#x27;t start. Choose its tools again to fix it.");
     expect(corrupt).toContain('role="alert"');
   });
 
   it("explains native restrictions that the selected engine cannot enforce", () => {
     const engine = { driverKind: "claudeAgent" } as NonNullable<ReturnType<typeof useBotSettingsDerived>["engine"]>;
     const markup = render(makeBot({ toolScope: { allow: ["native:read"] } } as Partial<Bot>), makeDerived({ engine }));
-    expect(markup).toContain("this AI cannot limit native tools");
+    expect(markup).toContain("This AI cannot limit native tools");
     expect(markup).toContain("native:*");
     expect(markup).toContain("will stop before sending a prompt");
   });
@@ -120,7 +120,7 @@ describe("owner tool selection status", () => {
   it("keeps the selection editor disabled while a task is active", () => {
     const markup = render(makeBot({ busy: true }));
     expect(markup).toContain('aria-label="tool selection" disabled=""');
-    expect(markup).toContain("wait until this bot finishes all active tasks before changing its tool selection.");
+    expect(markup).toContain("Wait until this bot finishes all active tasks before changing its tool selection.");
   });
 });
 
@@ -132,7 +132,7 @@ describe("AccessSection always-allowed list", () => {
     expect(markup).toMatch(/<button[^>]*aria-label="let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use offline"/);
     expect(markup).toMatch(/<button type="button" disabled=""[^>]*>use every enabled server<\/button>/);
     expect(markup).toContain("finishes all active tasks");
-    expect(markup).toContain("individual tool approvals depend on the model provider and approval mode.");
+    expect(markup).toContain("Individual tool approvals depend on the model provider and approval mode.");
     const idle = render(makeBot({ mcpServers: ["notes"] }));
     expect(idle).not.toMatch(/<button[^>]*aria-label="let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use notes"/);
     expect(idle).toMatch(/<button[^>]*aria-label="let this bot use offline"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use offline"/);
@@ -160,7 +160,7 @@ describe("AccessSection always-allowed list", () => {
     fixture.mcpError = true;
     fixture.servers = [{ name: "notes", enabled: true }];
     const markup = render(makeBot());
-    expect(markup).toContain("could not refresh MCP servers.");
+    expect(markup).toContain("Could not refresh MCP servers.");
     expect(markup).toContain("retry");
     expect(markup).toContain('role="alert"');
     expect(markup).toMatch(/<button[^>]*aria-label="let this bot use notes"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="let this bot use notes"/);
@@ -168,7 +168,7 @@ describe("AccessSection always-allowed list", () => {
 
   it("shows a placeholder when nothing is standing yet", () => {
     const markup = render(makeBot());
-    expect(markup).toContain("nothing standing yet.");
+    expect(markup).toContain("Nothing standing yet.");
   });
 
   it("lists each always-allowed entry with a Remove button", () => {
@@ -177,7 +177,7 @@ describe("AccessSection always-allowed list", () => {
     expect(markup).toContain("fs.write");
     expect(markup).toContain('aria-label="remove shell.run from always allowed"');
     expect(markup).toContain('aria-label="remove fs.write from always allowed"');
-    expect(markup).not.toContain("nothing standing yet.");
+    expect(markup).not.toContain("Nothing standing yet.");
   });
 });
 
@@ -239,7 +239,7 @@ describe("Research (treg) card", () => {
   it("with neither a treg key nor a plan, asks for a treg key, opens API keys, and offers no switch", () => {
     fixture.config = { xResearch: { included: false }, treg: { configured: false } } as Partial<ConfigStatus>;
     const html = render(makeBot());
-    expect(html).toContain("add your treg key in settings → API keys to let bots research X, companies, people and more.");
+    expect(html).toContain("Add your treg key in settings → API keys to let bots research X, companies, people and more.");
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]* disabled=""`));
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="false"`));
     const open = capture(makeBot()).card.find((node) => node.type === "button" && typeof node.props.onClick === "function")!;
@@ -252,20 +252,20 @@ describe("Research (treg) card", () => {
     const html = render(makeBot());
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="true"`));
     expect(html).not.toMatch(new RegExp(`${SWITCH}[^>]* disabled=""`));
-    expect(html).toContain("through your treg key. calls are billed to your treg balance.");
+    expect(html).toContain("through your treg key. Calls are billed to your treg balance.");
     expect(html.slice(html.indexOf('data-testid="access-x-research"'))).not.toContain("open API keys");
   });
 
   it("is on by default with a Cloud plan, and turns off for one bot with one patch", () => {
     fixture.config = { xResearch: { included: true } } as Partial<ConfigStatus>;
-    expect(render(makeBot())).toContain("included with your dusk cloud plan");
+    expect(render(makeBot())).toContain("Included with your dusk cloud plan");
     const { card, derived } = capture(makeBot());
     const toggle = card.find((node) => node.props["aria-label"] === "let this bot use research")!;
     (toggle.props.onClick as () => void)();
     expect(derived.patch).toHaveBeenCalledWith({ xResearch: false });
     const off = render(makeBot({ xResearch: false }));
     expect(off).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="false"`));
-    expect(off).toContain("off for this bot.");
+    expect(off).toContain("Off for this bot.");
   });
 
   it("is not offered while a new bot or the New bot defaults are being drafted", async () => {
@@ -284,7 +284,7 @@ describe("a VPS bot's own server", () => {
     const vpsBot = makeBot({ computer: "cloud", cloudBackend: "vps", vpsAlias: "alpha-vps" });
     const saved = render(vpsBot);
     expect(saved).toContain("server (SSH alias)");
-    expect(saved).toContain("leave empty to use production-vps from settings → API keys.");
+    expect(saved).toContain("Leave empty to use production-vps from settings → API keys.");
     expect(saved).toContain('value="alpha-vps"');
     expect(render(makeBot({ computer: "cloud", cloudBackend: "box" }))).toContain("server (SSH alias)");
     const { BotEditorContext } = await import("./BotEditorContext");
@@ -307,11 +307,11 @@ describe("AccessSection Record browser steps", () => {
   const browserOn = () => makeDerived({ browserEnabled: true, desktopBrowser: true, canUseBrowser: true });
 
   it("asks for the browser first, then says what it saves and for how long, with no prompt", () => {
-    expect(render(makeBot())).toContain("turn on the browser first.");
-    expect(render(makeBot(), browserOn())).toContain("browser steps are not saved.");
+    expect(render(makeBot())).toContain("Turn on the browser first.");
+    expect(render(makeBot(), browserOn())).toContain("Browser steps are not saved.");
     const on = render(makeBot({ recordBrowserSteps: true }), browserOn());
-    expect(on).toContain("saves a screenshot and a short note of each click, typing and page change");
-    expect(on).toContain("kept with this conversation for 30 days.");
+    expect(on).toContain("Saves a screenshot and a short note of each click, typing and page change");
+    expect(on).toContain("Kept with this conversation for 30 days.");
     expect(on).toContain('aria-label="record browser steps"');
   });
 
@@ -327,7 +327,7 @@ describe("AccessSection Record browser steps", () => {
 
   it("says the screenshots show the person's own Chrome when the bot uses it", () => {
     fixture.config = { browserEngine: { myChrome: true }, browserProfiles: [{ id: "mine", browser: "chrome" }] } as unknown as Partial<ConfigStatus>;
-    expect(render(makeBot({ recordBrowserSteps: true, browserProfile: "mine" }), browserOn())).toContain("this bot uses your own Chrome, so the screenshots show your Chrome.");
+    expect(render(makeBot({ recordBrowserSteps: true, browserProfile: "mine" }), browserOn())).toContain("This bot uses your own Chrome, so the screenshots show your Chrome.");
     expect(render(makeBot({ recordBrowserSteps: true }), browserOn())).not.toContain("your own Chrome");
   });
 });
@@ -361,10 +361,10 @@ describe("working folder note", () => {
 
   it("calls a thread pinned only to a folder chosen for it, or to an earlier working folder, never to its own folder", () => {
     for (const own of ["/data/.duskbot/task-workspaces/bot-1/thread-1", "C:\\Users\\Ada\\.duskbot\\task-workspaces\\bot-1\\thread-1"]) {
-      expect(folderCard(inFolder(own, "/projects/site"))).not.toContain("this task is pinned");
-      expect(folderCard(inFolder(own))).not.toContain("this task is pinned");
+      expect(folderCard(inFolder(own, "/projects/site"))).not.toContain("This task is pinned");
+      expect(folderCard(inFolder(own))).not.toContain("This task is pinned");
     }
-    expect(folderCard(inFolder("/projects/old", "/projects/site"))).toContain("this task is pinned to /projects/old.");
-    expect(folderCard(inFolder("/projects/site", "/projects/site"))).not.toContain("this task is pinned");
+    expect(folderCard(inFolder("/projects/old", "/projects/site"))).toContain("This task is pinned to /projects/old.");
+    expect(folderCard(inFolder("/projects/site", "/projects/site"))).not.toContain("This task is pinned");
   });
 });

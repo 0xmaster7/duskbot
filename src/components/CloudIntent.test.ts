@@ -44,7 +44,7 @@ it("asks with /setup in front, offers ideas, and says plainly how to skip", () =
   for (const idea of ["news digest", "watch a page", "research roundup", "plan my day"]) expect(html).toContain(idea);
   expect(html).toContain("skip for now");
   expect(html).toContain("esc");
-  expect(html).toContain("you can come back to it any time");
+  expect(html).toContain("You can come back to it any time");
   expect(html).not.toContain('aria-modal="true"');
 });
 

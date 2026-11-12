@@ -32,10 +32,10 @@ it("opens this computer's logs folder and says where it is; export still removes
   const openLogsFolder = vi.fn().mockResolvedValue({ folder: FOLDER, opened: true });
   (window as { duskDesktop?: unknown }).duskDesktop = { openLogsFolder, exportDiagnostics: vi.fn() };
   await render();
-  expect(host.querySelector("[data-logs-help]")!.textContent).toBe("logs stay on this computer. export diagnostics saves their most recent part with keys, passwords and sign-ins removed, ready to send to support.");
+  expect(host.querySelector("[data-logs-help]")!.textContent).toBe("Logs stay on this computer. Export diagnostics saves their most recent part with keys, passwords and sign-ins removed, ready to send to support.");
   await click("open logs folder");
   expect(openLogsFolder).toHaveBeenCalledExactlyOnceWith();
-  expect(host.querySelector("[data-logs-folder]")!.textContent).toBe(`logs are in ${FOLDER}.`);
+  expect(host.querySelector("[data-logs-folder]")!.textContent).toBe(`Logs are in ${FOLDER}.`);
   expect(button("export diagnostics…")).toBeDefined();
 });
 
@@ -43,7 +43,7 @@ it("when the folder cannot be opened, says where it is instead", async () => {
   (window as { duskDesktop?: unknown }).duskDesktop = { openLogsFolder: vi.fn().mockResolvedValue({ folder: FOLDER, opened: false, error: "Failed to open path" }), exportDiagnostics: vi.fn() };
   await render();
   await click("open logs folder");
-  expect(host.querySelector("[role=alert]")!.textContent).toBe(`could not open the logs folder. it is ${FOLDER}.`);
+  expect(host.querySelector("[role=alert]")!.textContent).toBe(`Could not open the logs folder. It is ${FOLDER}.`);
 });
 
 it("on My Cloud's page (no desktop bridge) offers no buttons that do nothing, and says where logs are kept", async () => {

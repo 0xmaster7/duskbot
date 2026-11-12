@@ -54,7 +54,7 @@ describe("restore", () => {
   });
 });
 
-describe("email sign-in", () => {
+describe("Email sign-in", () => {
   it("normalizes email, bounds device data and stores a verified grant", async () => {
     expect(await start()).toMatchObject({ outcome: "sent", email: "person@example.com", signupOpen: true });
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({ email: "person@example.com", deviceName: "p".repeat(100), platform: "ios", appVersion: "0.0.0" });

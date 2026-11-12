@@ -63,10 +63,10 @@ describe("soft line breaks", () => {
 describe("spoilers", () => {
   it("hides only double-tilde spans, not text between ranges written with a single tilde", () => {
     const ranges = renderToStaticMarkup(createElement(ChatMarkdown, { text: "Episodes 77~82 first, then 77~80." }));
-    expect(ranges).not.toContain("reveal spoiler");
+    expect(ranges).not.toContain("Reveal spoiler");
     expect(ranges).toContain("Episodes 77~82 first, then 77~80.");
     const spoiler = renderToStaticMarkup(createElement(ChatMarkdown, { text: "The answer is ~~42~~." }));
-    expect(spoiler).toContain("reveal spoiler");
+    expect(spoiler).toContain("Reveal spoiler");
   });
 });
 
@@ -535,7 +535,7 @@ describe("#Title thread links in markdown", () => {
   it("links a known title in prose as a button that opens the thread", () => {
     const markup = render("I opened #QA PR 245 for the review.");
     expect(markup).toContain('<button type="button" data-thread-link="qa-245"');
-    expect(markup).toContain('title="open #QA PR 245"');
+    expect(markup).toContain('title="Open #QA PR 245"');
     expect(markup).toContain(">#QA PR 245</button>");
     expect(markup).not.toContain('data-thread-link="short"');
   });
@@ -757,7 +757,7 @@ describe("ChatMarkdown attachments", () => {
       text: "[macOS](file:///Users/milind/report.md) [Windows](C:/Users/Maus/report.md)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain('title="save a copy"');
+    expect(html).toContain('title="Save a copy"');
     expect(html).not.toContain("/Users/milind/report.md");
     expect(html).not.toContain("C:/Users/Maus/report.md");
   });
@@ -782,7 +782,7 @@ describe("ChatMarkdown attachments", () => {
       }));
       expect(html).toContain('data-github-ref="pull"');
       expect(html).toContain("<span>#7</span>");
-      expect(html).toContain('title="save a copy"');
+      expect(html).toContain('title="Save a copy"');
       expect(save).toHaveBeenCalledWith("/store/delivered-report.pdf", "report.pdf", message);
       expect(html).not.toContain("/store/delivered-report.pdf");
       expect(html).not.toContain("/work/report.pdf");
@@ -799,7 +799,7 @@ describe("ChatMarkdown attachments", () => {
         text: "[Report](C:\\Users\\Maus\\.duskbot\\report.md)\n\n![Chart](C:\\Users\\Maus\\.duskbot\\chart.png)",
         message: { threadId: "thread-1", messageId: "message-1" },
       }));
-      expect(html).toContain('title="save a copy"');
+      expect(html).toContain('title="Save a copy"');
       expect(html).not.toContain('href=""');
       expect(html).not.toContain("image unavailable");
       expect(save.mock.calls[0]?.[0]).toBe("C:\\Users\\Maus\\.duskbot\\report.md");
@@ -829,7 +829,7 @@ describe("ChatMarkdown attachments", () => {
     }));
 
     expect(html).toContain("Download the report");
-    expect(html).toContain("unavailable legacy file reference");
+    expect(html).toContain("Unavailable legacy file reference");
     expect(html).not.toContain("href=\"/workspace/final-report.pdf\"");
     expect(html).not.toContain("type=\"button\"");
   });
@@ -932,7 +932,7 @@ describe("ChatMarkdown attachments", () => {
       text: "[Download the report](/workspace/final-report.pdf)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain('title="save a copy"');
+    expect(html).toContain('title="Save a copy"');
     expect(html).not.toContain("/workspace/final-report.pdf");
     expect(html).toContain("type=\"button\"");
   });

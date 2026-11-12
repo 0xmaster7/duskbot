@@ -95,8 +95,8 @@ describe("the dialog's state", () => {
   it("starts with pictures and starter notes included, and says so under the notes box", () => {
     expect(SHARE_DIALOG_DEFAULTS).toEqual({ includePictures: true, includeMemory: true });
     expect(shareRequestBody({ team: "Desk", skills: "all", includeMemory: SHARE_DIALOG_DEFAULTS.includeMemory })).toMatchObject({ includeMemory: true });
-    expect(notesLine(SHARE_DIALOG_DEFAULTS.includeMemory)).toMatch(/^starter notes are included/);
-    expect(notesLine(false)).toMatch(/^starter notes are not included/);
+    expect(notesLine(SHARE_DIALOG_DEFAULTS.includeMemory)).toMatch(/^Starter notes are included/);
+    expect(notesLine(false)).toMatch(/^Starter notes are not included/);
   });
 
   it("shows counts from an answer, and sets the starting ticks only from the first look", () => {

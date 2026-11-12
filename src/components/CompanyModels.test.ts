@@ -94,7 +94,7 @@ describe("Company models in the connected Organisation panel", () => {
       [{ type: "setModel", botId: "b1", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
       [{ type: "setModel", botId: "b3", selection: { instanceId: "company.fixture.anthropic", model: "company-claude" } }],
     ]);
-    expect(render().html).toContain("now using Company · Fixture Company · Claude: Scout, Maus");
+    expect(render().html).toContain("Now using Company · Fixture Company · Claude: Scout, Maus");
   });
 
   it("names only bots the server kept on the Company model", async () => {
@@ -103,12 +103,12 @@ describe("Company models in the connected Organisation panel", () => {
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches.mock.calls).toEqual([["b1"], ["b3"]]);
     const html = render().html;
-    expect(html).toContain("now using Company · Fixture Company · Claude: Maus");
+    expect(html).toContain("Now using Company · Fixture Company · Claude: Maus");
     expect(html).not.toContain("now using Company · Fixture Company · Claude: Scout");
     fixture.values = []; fixture.kept = new Set(); fixture.flushBotPatches.mockClear();
     use().props.onClick!(); await flush();
     expect(fixture.flushBotPatches).toHaveBeenCalledTimes(2);
-    expect(render().html).not.toContain("now using");
+    expect(render().html).not.toContain("Now using");
   });
 
   it("offers nothing when every bot already runs", () => {

@@ -144,7 +144,7 @@ describe("CloudWelcome", () => {
     click("connect your AI");
     expect(host.querySelector('[data-welcome-step="engine"]')).not.toBeNull();
     expect(host.querySelector('[data-welcome-recommended="claude"] [data-engine-setup="claude"]')?.getAttribute("data-description"))
-      .toBe("use the Claude account you already have. you sign in on their own website, so your password stays with them.");
+      .toBe("Use the Claude account you already have. You sign in on their own website, so your password stays with them.");
     click("other ways");
     expect(host.querySelector('[data-cloud-choice="codex"]')).not.toBeNull();
     expect(host.querySelector('[data-cloud-choice="claude"]'), "the recommended way is not offered twice").toBeNull();

@@ -333,7 +333,7 @@ describe("Jev setup in Who responds", () => {
     click($('[data-jev-action="test"]'));
     await settle();
     expect(fixture.api).toHaveBeenCalledWith("/api/decider/test", { method: "POST", body: JSON.stringify({ provider: "gateway", key: "bad" }) });
-    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("that key was refused. check it and paste it again.");
+    expect(words($('[data-sheet-group="jev"] [role="status"]'))).toBe("That key was refused. Check it and paste it again.");
     expect($('[data-sheet-row="jev-model"]')).toBeNull();
   });
 
@@ -384,7 +384,7 @@ describe("working folder", () => {
     renderPage(createElement(RoomFolderModal, { key: "b", group: room({ cwd: "/Users/ada/code/recruiting", pinnedCwd: "/Users/ada/code/recruiting" }), onClose: vi.fn() }));
     expect($('[data-panel-choice="pick"]')?.textContent).toContain("~/code/recruiting");
     expect($('[data-panel-choice="pick"]')?.getAttribute("aria-checked")).toBe("true");
-    expect($("[data-folder-locked]")?.textContent).toBe("fixed for this group chat after its first turn.");
+    expect($("[data-folder-locked]")?.textContent).toBe("Fixed for this group chat after its first turn.");
   });
 });
 

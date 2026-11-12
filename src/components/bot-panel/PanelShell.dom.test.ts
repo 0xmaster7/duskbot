@@ -226,7 +226,7 @@ describe("the panel's top", () => {
     await settle();
     const top = [...host.querySelectorAll("button")].slice(0, 2);
     expect(top.map((button) => button.getAttribute("aria-label") ?? button.getAttribute("title"))).toEqual(["share and more", "close"]);
-    expect(top[0]!.getAttribute("title")).toBe("share");
+    expect(top[0]!.getAttribute("title")).toBe("Share");
     for (const button of [moreButton()!, top[1]!]) expect(button.querySelector("span, svg, i")).not.toBeNull();
     click(moreButton());
     const rows = () => [...menu()!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
@@ -284,7 +284,7 @@ describe("the chat header's pill", () => {
       const button = header.querySelector<HTMLButtonElement>("[data-chathead-pill]")!;
       // the hover chevron is an icon-font glyph, so read the name itself
       expect(button.querySelector('span[dir="auto"]')?.textContent).toBe("Scout");
-      expect(button.getAttribute("aria-label")).toBe("open Scout's profile");
+      expect(button.getAttribute("aria-label")).toBe("Open Scout's profile");
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(button.hasAttribute("aria-controls")).toBe(false);
       expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
@@ -315,7 +315,7 @@ describe("the chat header's pill", () => {
     try {
       const button = header.querySelector<HTMLButtonElement>("[data-chathead-pill]")!;
       expect(header.querySelector("[data-chathead-conversation]")!.textContent).toBe("Plan the launch");
-      expect(button.getAttribute("aria-label")).toBe("open Scout's profile, Plan the launch");
+      expect(button.getAttribute("aria-label")).toBe("Open Scout's profile, Plan the launch");
       expect(header.querySelector("[data-chathead-chevron]")).toBeNull();
     } finally {
       done();

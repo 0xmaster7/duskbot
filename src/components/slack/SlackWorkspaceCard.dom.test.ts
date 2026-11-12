@@ -41,7 +41,7 @@ afterEach(() => { flushSync(() => root.unmount()); host.remove(); });
 describe("Slack workspace setup", () => {
   it("opens three inline steps and keeps Connect off until both tokens are filled", async () => {
     await mount();
-    expect(host.textContent).toContain("each bot joins Slack as its own app");
+    expect(host.textContent).toContain("Each bot joins Slack as its own app");
     expect(host.querySelector("input")).toBeNull();
     await click("connect");
     const link = host.querySelector("a")!;
@@ -49,8 +49,8 @@ describe("Slack workspace setup", () => {
     expect(link.getAttribute("href")).toBe("https://api.slack.com/apps");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(host.textContent).toContain("2. under your app configuration tokens");
-    expect(host.textContent).toContain("3. copy both tokens");
+    expect(host.textContent).toContain("2. Under your app configuration tokens");
+    expect(host.textContent).toContain("3. Copy both tokens");
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(button("connect").disabled).toBe(true);
     write("access token", "fixture-access");
@@ -125,7 +125,7 @@ describe("Slack workspace setup", () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toBe("Workspace token expired");
     fixture.api.mockRejectedValueOnce(new Error("private diagnostic"));
     await click("connect");
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("could not update Slack. try again.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Could not update Slack. Try again.");
     expect(host.textContent).not.toContain("private diagnostic");
   });
 });

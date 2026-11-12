@@ -50,7 +50,7 @@ it("says how the move goes on My Cloud's page: on its way with nothing to press,
   expect(html(line(moving))).toContain("moving Scout to Acme…");
   expect(tree(line(moving)).some((node) => node.type === "button")).toBe(false);
   const failed = { ...moving, phase: "failed" as const };
-  expect(html(line(failed))).toContain("couldn't move Scout. it's still here, unchanged.");
+  expect(html(line(failed))).toContain("Couldn't move Scout. It's still here, unchanged.");
   const changed = vi.fn();
   button(line(failed, changed), "try again")!.props.onClick!(); await flush();
   expect(page.teamRetry).toHaveBeenCalledOnce();
@@ -105,7 +105,7 @@ it("the bot menu has one Move to item per team, none without a team or for a bot
   hook.items(SCOUT, item);
   items[0]!.onClick!();
   const confirm = html(menu);
-  for (const said of ["move Scout to Acme?", "everyone in Acme can use Scout. your chats stay private. you can't move it back.", "move to Acme"]) expect(confirm).toContain(said);
+  for (const said of ["move Scout to Acme?", "Everyone in Acme can use Scout. Your chats stay private. You can't move it back.", "move to Acme"]) expect(confirm).toContain(said);
   expect(page.moveToTeam, "nothing moves until the confirm").not.toHaveBeenCalled();
 });
 

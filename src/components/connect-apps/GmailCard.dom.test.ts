@@ -55,8 +55,8 @@ describe("Gmail connects on one card", () => {
     const connectors = connectorsWith();
     await render(model(connectors, { kind: "connect" }));
     expect(card().getAttribute("data-state")).toBe("idle");
-    expect(card().textContent).toContain("read and draft first. nothing is sent without your OK.");
-    expect(card().textContent).toContain("you sign in with Google on its own page. dusk never sees your password.");
+    expect(card().textContent).toContain("Read and draft first. Nothing is sent without your OK.");
+    expect(card().textContent).toContain("You sign in with Google on its own page. dusk never sees your password.");
     expect(primaries()).toHaveLength(1);
     expect(card().contains(primaries()[0]!)).toBe(true);
     expect(shown(primaries()[0]!)).toBe("connect Gmail");
@@ -80,7 +80,7 @@ describe("Gmail connects on one card", () => {
     expect(card().getAttribute("data-state")).toBe("connecting");
     expect(shown(primaries()[0]!)).toBe("open page again");
     expect(line()?.getAttribute("role")).toBe("status");
-    expect(said()).toBe("finish signing in on the page that opened. this updates by itself.");
+    expect(said()).toBe("Finish signing in on the page that opened. This updates by itself.");
     await act(async () => { primaries()[0]!.click(); });
     expect(connectors.resume).toHaveBeenCalledWith("gmail");
   });
@@ -91,7 +91,7 @@ describe("Gmail connects on one card", () => {
     expect(card().getAttribute("data-state")).toBe("connected");
     expect(card().querySelector(".ca-primary")).toBeNull();
     expect(card().querySelector(".ca-added")?.textContent).toContain("connected");
-    expect(said()).toBe("connected. your bots can read your email and draft replies now.");
+    expect(said()).toBe("Connected. Your bots can read your email and draft replies now.");
     expect(document.querySelector("[data-accounts]"), "the account stays manageable below").not.toBeNull();
   });
 
@@ -101,7 +101,7 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "reconnect", account }));
     expect(card().getAttribute("data-state")).toBe("error");
     expect(line()?.getAttribute("role")).toBe("alert");
-    expect(said()).toBe("your Gmail sign-in expired. reconnect to keep using it.");
+    expect(said()).toBe("Your Gmail sign-in expired. Reconnect to keep using it.");
     expect(primaries()).toHaveLength(1);
     expect(shown(primaries()[0]!)).toBe("reconnect");
     await act(async () => { primaries()[0]!.click(); });
@@ -121,7 +121,7 @@ describe("Gmail connects on one card", () => {
       await render(page);
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("connect Gmail");
-      expect(card().textContent).toContain("you sign in to Composio once, then to Google.");
+      expect(card().textContent).toContain("You sign in to Composio once, then to Google.");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.authorizeComposio).toHaveBeenCalledWith("gmail");
       const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "use my own Composio API key")!;
@@ -137,7 +137,7 @@ describe("Gmail connects on one card", () => {
       const connectors = via(true);
       await render(model(connectors, { kind: "connect" }));
       expect(card().getAttribute("data-state")).toBe("idle");
-      expect(said()).toBe("Composio is ready. now pick your Google account.");
+      expect(said()).toBe("Composio is ready. Now pick your Google account.");
       expect(shown(primaries()[0]!)).toBe("connect Gmail");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.connect).toHaveBeenCalledWith("gmail");
@@ -148,7 +148,7 @@ describe("Gmail connects on one card", () => {
       await render(model(connectors, { kind: "failed", why: "cancelled" }));
       expect(card().getAttribute("data-state")).toBe("error");
       expect(line()?.getAttribute("role")).toBe("alert");
-      expect(said()).toBe("the sign-in page closed before Gmail connected.");
+      expect(said()).toBe("The sign-in page closed before Gmail connected.");
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("retry");
       await act(async () => { primaries()[0]!.click(); });
@@ -159,7 +159,7 @@ describe("Gmail connects on one card", () => {
       await render(model(via(true, { step: "done" }), { kind: "connected" }, { connection: "connected" }));
       expect(card().getAttribute("data-state")).toBe("connected");
       expect(primaries()).toHaveLength(0);
-      expect(said()).toBe("connected. your bots can read your email and draft replies now.");
+      expect(said()).toBe("Connected. Your bots can read your email and draft replies now.");
     });
   });
 

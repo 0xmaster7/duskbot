@@ -21,7 +21,7 @@ const linearSubtitle = [
 
 function outbound(calls: OutboundCall[] | undefined, subtitle = linearSubtitle): OptionCardData {
   return {
-    title: "send on your behalf?",
+    title: "Send on your behalf?",
     subtitle,
     options: ["allow", "deny"],
     requestId: "req",
@@ -37,13 +37,13 @@ describe("outboundSummary", () => {
     const call = { app: "Linear", label: "Create linear comment" };
     const card = outbound([call, call]);
     expect(outboundApp(outboundCalls(card))).toBe("Linear");
-    expect(outboundSummary(card)).toEqual({ headline: "send to Linear?", summary: "Create linear comment ×2" });
+    expect(outboundSummary(card)).toEqual({ headline: "Send to Linear?", summary: "Create linear comment ×2" });
   });
 
   it("reads the subtitle headings back when the card has no calls", () => {
     const card = outbound(undefined);
     expect(outboundCalls(card)).toHaveLength(2);
-    expect(outboundSummary(card)).toEqual({ headline: "send to Linear?", summary: "Create linear comment ×2" });
+    expect(outboundSummary(card)).toEqual({ headline: "Send to Linear?", summary: "Create linear comment ×2" });
   });
 
   it("treats an empty calls list like a missing one", () => {
@@ -58,7 +58,7 @@ describe("outboundSummary", () => {
     ]);
     expect(outboundApp(outboundCalls(card))).toBeNull();
     expect(outboundSummary(card)).toEqual({
-      headline: "send on your behalf?",
+      headline: "Send on your behalf?",
       summary: "Gmail · Send email ×2, Stripe · Create refund",
     });
   });
@@ -71,13 +71,13 @@ describe("outboundSummary", () => {
   it("falls back to the generic headline and no summary when the subtitle cannot be read", () => {
     const card = outbound(undefined, "\n\nsomething odd");
     expect(outboundCalls(card)).toEqual([]);
-    expect(outboundSummary(card)).toEqual({ headline: "send on your behalf?", summary: "" });
+    expect(outboundSummary(card)).toEqual({ headline: "Send on your behalf?", summary: "" });
   });
 
   it("names a tool with no app by its label", () => {
     const card = outbound(undefined, 'Send a message\n{"to":"x"}');
     expect(outboundCalls(card)).toEqual([{ app: null, label: "Send a message" }]);
-    expect(outboundSummary(card)).toEqual({ headline: "send on your behalf?", summary: "Send a message" });
+    expect(outboundSummary(card)).toEqual({ headline: "Send on your behalf?", summary: "Send a message" });
   });
 
   it("is undefined for a card that is not an outbound hold", () => {
@@ -117,6 +117,6 @@ describe("outboundSummary for code run on the app's side", () => {
   it("says code runs on Composio instead of naming a send", () => {
     const card = { subtitle: 'Composio · Proxy execute\n{"code_to_execute":"print(1)"}',
       outboundRequest: { tool: "COMPOSIO_PROXY_EXECUTE", app: "Composio", calls: [{ app: "Composio", label: "Proxy execute" }] } };
-    expect(outboundSummary(card)).toEqual({ headline: "run code on Composio?", summary: "", opaque: true });
+    expect(outboundSummary(card)).toEqual({ headline: "Run code on Composio?", summary: "", opaque: true });
   });
 });

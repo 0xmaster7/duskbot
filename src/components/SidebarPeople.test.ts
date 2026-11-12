@@ -134,7 +134,7 @@ describe("a line in the inbox", () => {
     expect(answered).toContain("your assistant answered");
     expect(answered).toContain("Ben is free after 16:00.");
     expect(answered).not.toContain("Fine.");
-    expect(answered).toContain("reply to correct it.");
+    expect(answered).toContain("Reply to correct it.");
     expect(render(createElement(InboxAnswers, { message: line({ kind: "message", from: { name: "Cleo" }, answers: [{ by: "person", text: "Fine.", at: 1 }] }) }))).toBe("");
   });
 

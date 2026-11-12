@@ -98,7 +98,7 @@ describe("SignInRequestCard while it waits", () => {
     expect(tag("take over")).toContain("ui-button-primary");
     expect(tag("take over")).not.toContain("--bot-button");
     expect(tag("skip")).toContain("bg-(--card-fill)");
-    expect(tag("skip")).toContain('title="cancel this request without doing the step. Pepper continues without it."');
+    expect(tag("skip")).toContain('title="Cancel this request without doing the step. Pepper continues without it."');
   });
 
   it.each([
@@ -128,7 +128,7 @@ describe("SignInRequestCard while it waits", () => {
     // explained (the second useState) turns on
     expect(fixture.setters[1]).toHaveBeenCalledWith(true);
     fixture.setters = []; fixture.states = { 1: true };
-    expect(view({ place: "local" })).toContain("not the browser tab: it keeps its own sign-ins");
+    expect(view({ place: "local" })).toContain("Not the browser tab: it keeps its own sign-ins");
   });
 
   it("offers to save a login in the built-in browser, which opens a masked form in place of the buttons", () => {
@@ -137,7 +137,7 @@ describe("SignInRequestCard while it waits", () => {
     expect(fixture.setters[2]).toHaveBeenCalledWith(true);
     fixture.setters = []; fixture.states = { 2: true };
     const html = view();
-    expect(html).toContain("save the username and password for example.com.");
+    expect(html).toContain("Save the username and password for example.com.");
     expect(html).toContain('type="password"');
     expect(html).toMatch(/type="password" autocomplete="new-password"/iu);
     expect(html).toContain("save and continue");
@@ -249,7 +249,7 @@ describe("SignInBanner", () => {
 
   it("names the asking bot and the site, and answers the card", async () => {
     const { html, nodes } = banner();
-    expect(html).toContain("<b>Pepper</b> needs you to sign in to example.com");
+    expect(html).toContain("<b>Pepper</b> Needs you to sign in to example.com");
     expect(html).not.toContain("take control");
     button(nodes, "done").props.onClick!();
     await settle();

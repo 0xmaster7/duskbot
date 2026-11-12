@@ -53,8 +53,8 @@ const header = (markup: string) => /<div[^>]*data-roomhead-row[\s\S]*?(?=<div[^>
 // Every control the header shows today, by what marks it in the markup.
 const CONTROLS = {
   threads: 'aria-label="all threads"',
-  find: 'aria-label="find in conversation"',
-  export: 'aria-label="export conversation"',
+  find: 'aria-label="Find in conversation"',
+  export: 'aria-label="Export conversation"',
   turnLimit: 'data-testid="conversation-turn-limit"',
   usage: 'data-testid="group-usage-chip"',
   folder: 'title="group working folder"',

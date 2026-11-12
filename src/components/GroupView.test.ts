@@ -41,7 +41,7 @@ describe("RoomToolChip", () => {
     }));
     expect(markup).toContain("<button");
     expect(markup).toContain("opened thread #QA PR 245 on Scout");
-    expect(markup).toContain('title="open #QA PR 245"');
+    expect(markup).toContain('title="Open #QA PR 245"');
   });
 
   it("leaves an ordinary step as a plain pill", () => {

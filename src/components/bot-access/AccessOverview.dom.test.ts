@@ -180,7 +180,7 @@ it("offers no Remove for access that comes from everyone, and says who looks aft
 it("says so when there are no bots, nobody but admins, or a person with no bots", async () => {
   server.bots = [];
   await overview();
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("there are no team bots yet.");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("There are no team bots yet.");
   await byPerson();
   await openPerson(BOB.email);
   expect(document.querySelector("[data-access-overview]")!.textContent).toContain("Bob has no bots yet.");
@@ -188,7 +188,7 @@ it("says so when there are no bots, nobody but admins, or a person with no bots"
   await settle();
   setTeamPeople({ people: [{ ...ADA, you: true }], me: { ...ADA, you: true }, admin: true, needsYou: [] });
   await settle();
-  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("nobody but admins is on the team yet.");
+  expect(document.querySelector("[data-access-overview]")!.textContent).toContain("Nobody but admins is on the team yet.");
 });
 
 it("asks the bot's owner by name, then says it asked", async () => {

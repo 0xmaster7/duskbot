@@ -95,8 +95,8 @@ const noKey = { configured: false, voice: "marin", readTypedReplies: true, idleM
 const CLOUD = { cloudHome: true, tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const SERVER = { tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const THIS_COMPUTER = { tts: { configured: true, ready: true, voice: "voice-1" }, live: noKey } as AppState["config"];
-const KEY_NEEDED = "live calls use your own OpenAI key. add it in settings → API keys.";
-const APP_REFUSED = "the app didn't let this page use the microphone. open it in your web browser to make the live call.";
+const KEY_NEEDED = "Live calls use your own OpenAI key. Add it in settings → API keys.";
+const APP_REFUSED = "The app didn't let this page use the microphone. Open it in your web browser to make the live call.";
 
 function Page({ config, children }: { config: AppState["config"]; children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { ...initialState, config, bots: [ada] });
@@ -241,21 +241,21 @@ describe("calling a bot off the Mac", () => {
   it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
     open(desktopApp("darwin", "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("calls where you take turns work with bots on this Mac. they listen with your Mac's own speech recognition, which only bots on this Mac can use.");
+    expectTurnsDisabled("calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it works on This computer", async (platform) => {
     open(desktopApp(platform, "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("calls where you take turns work with bots on this computer. they listen from this computer's own window, so only bots on this computer can use them.");
+    expectTurnsDisabled("calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with no Fish Audio key, the call is Live, Take turns asks for the key, and Live points to API keys", async (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat(THIS_COMPUTER);
-    expectTurnsDisabled("add a Fish Audio key to take turns on calls. on this computer, take turns hears you through Fish Audio speech-to-text. add a Fish Audio key in settings → API keys.");
+    expectTurnsDisabled("add a Fish Audio key to take turns on calls. On this computer, take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in settings → API keys.");
     await firstLiveCall();
   });
 
@@ -293,7 +293,7 @@ describe("calling a bot off the Mac", () => {
     expect(globalThis.navigator.mediaDevices).toBeUndefined();
     chat(SERVER);
     press(callButton());
-    await vi.waitFor(() => expect(text()).toContain("live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call."));
+    await vi.waitFor(() => expect(text()).toContain("Live calls need a microphone, and this window can't use one. Open dusk bot at a secure https address to make the call."));
     expect(text()).not.toContain("WebRTC");
     expect(text()).not.toContain(KEY_NEEDED);
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);

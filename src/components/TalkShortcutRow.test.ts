@@ -83,7 +83,7 @@ describe("TalkShortcutRow", () => {
     await show();
     bridge.set.mockRejectedValueOnce(new Error("refused"));
     await click(toggle());
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("could not change this. try again.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Could not change this. Try again.");
     expect(toggle().getAttribute("aria-checked")).toBe("true");
     expect(toggle().disabled).toBe(false);
     await click(toggle());
@@ -118,6 +118,6 @@ describe("TalkShortcutRow", () => {
   it("says when another app holds the key", async () => {
     current = { ...base, taken: true };
     await show();
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("⌃⌥Space is used by another app. pick another shortcut.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("⌃⌥Space is used by another app. Pick another shortcut.");
   });
 });

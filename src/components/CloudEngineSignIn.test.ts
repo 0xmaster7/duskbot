@@ -61,7 +61,7 @@ beforeEach(() => {
 it("offers the three ways in and says plainly whose plan limits apply", () => {
   const { html } = render();
   expect(html).toContain("data-cloud-sign-in");
-  for (const label of ["Claude", "use your Claude subscription.", "ChatGPT", "use your ChatGPT plan with Codex.", "use an API key"]) expect(html).toContain(label);
+  for (const label of ["Claude", "Use your Claude subscription.", "ChatGPT", "Use your ChatGPT plan with Codex.", "use an API key"]) expect(html).toContain(label);
   expect(html).toContain("plan&#x27;s limits apply to bots that work around the clock");
   expect(html).toContain("Anthropic&#x27;s Claude max plan or an API key works best");
   expect(html).not.toMatch(/included/i);
@@ -97,7 +97,7 @@ it("offers Grok as a third choice when this Cloud computer has the Grok CLI, and
   const grok = engine("grok", "grokAgent", "device-code");
   store.instances = [claude, codex, grok];
   const { html } = render();
-  for (const label of ["Claude", "ChatGPT", "Grok", "use your grok.com subscription with Grok build.", "use an API key"]) expect(html).toContain(label);
+  for (const label of ["Claude", "ChatGPT", "Grok", "Use your grok.com subscription with Grok build.", "use an API key"]) expect(html).toContain(label);
   expect(html.indexOf('data-cloud-choice="grok"')).toBeGreaterThan(html.indexOf('data-cloud-choice="codex"'));
   expect(html.indexOf('data-cloud-choice="grok"')).toBeLessThan(html.indexOf('data-cloud-choice="api-key"'));
   expect(html).toContain("grid-cols-3");
@@ -116,9 +116,9 @@ it("leaves Grok out where this Cloud computer has no Grok CLI (an older image)",
 it("says a Claude connected through an API key runs on that key, not on a subscription", () => {
   store.instances = [engine("claude", "claudeAgent", "paste-code", { snapshot: { state: "available", authenticated: true, account: { method: "api-key" } } }), codex];
   const keyed = render().html;
-  expect(keyed).toContain("runs on your API key.");
-  expect(keyed).not.toContain("use your Claude subscription.");
+  expect(keyed).toContain("Runs on your API key.");
+  expect(keyed).not.toContain("Use your Claude subscription.");
   store.instances = [engine("claude", "claudeAgent", "paste-code", { snapshot: { state: "available", authenticated: true, account: { method: "login", email: "a@example.test" } } }), codex];
   f.values = [];
-  expect(render().html).toContain("use your Claude subscription.");
+  expect(render().html).toContain("Use your Claude subscription.");
 });

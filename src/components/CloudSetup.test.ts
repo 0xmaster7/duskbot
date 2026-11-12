@@ -116,7 +116,7 @@ it("when the person steps away from the welcome, it is the welcome's steps in sh
   expect(html).toContain("set up dusk cloud");
   expect(html).toContain("1 of 4 done");
   expect(html).toContain("bring your stuff");
-  expect(html).toContain("bring your bots, chats and memory, or start fresh.");
+  expect(html).toContain("Bring your bots, chats and memory, or start fresh.");
   for (const title of ["create the cloud", "connect your AI", "files and apps"]) expect(html).toContain(title);
   expect(html).not.toContain("give it a first job");
   expect(statuses()).toEqual({ cloud: "done", move: "todo", engine: "todo", files: "todo" });
@@ -130,7 +130,7 @@ it("when the person steps away from the welcome, it is the welcome's steps in sh
   expect(html).toContain("you&#x27;re on this step");
   f.state.activeView = "routines";
   ({ html } = render());
-  expect(html).toContain("required. cloud bots use your own Claude or ChatGPT account, or an API key.");
+  expect(html).toContain("Required. Cloud bots use your own Claude or ChatGPT account, or an API key.");
   button("continue setup")!.props.onClick!();
   expect(takeWelcomeRequest()).toBe("engine");
   expect(api).not.toHaveBeenCalled();

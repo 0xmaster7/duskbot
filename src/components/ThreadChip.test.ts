@@ -41,7 +41,7 @@ describe("ThreadChip", () => {
     const markup = renderToStaticMarkup(createElement(ThreadChip, { message: receipt() }));
     expect(markup).toContain("<button");
     expect(markup).toContain("opened thread #QA PR 245 on Scout");
-    expect(markup).toContain('title="open #QA PR 245"');
+    expect(markup).toContain('title="Open #QA PR 245"');
     expect(markup).toContain('data-thread-chip="qa-245"');
   });
 
@@ -49,8 +49,8 @@ describe("ThreadChip", () => {
     const sent = (sentDirectly: Message["sentDirectly"]) => renderToStaticMarkup(createElement(ThreadChip, {
       message: { ...receipt(), tool: { name: "server English", ok: true }, sentDirectly },
     }));
-    expect(sent({ name: "Scout" })).toContain("sent to Scout directly: it isn&#x27;t in this room.");
-    expect(sent({ name: "Scout", room: "Sales" })).toContain("sent to Scout directly: it isn&#x27;t in Sales.");
+    expect(sent({ name: "Scout" })).toContain("Sent to Scout directly: it isn&#x27;t in this room.");
+    expect(sent({ name: "Scout", room: "Sales" })).toContain("Sent to Scout directly: it isn&#x27;t in Sales.");
     expect(sent({ name: "Scout" })).not.toContain("server English");
   });
 

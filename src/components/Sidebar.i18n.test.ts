@@ -70,7 +70,7 @@ describe("room delete confirmation copy", () => {
   it("names the group chat and says in one line what goes and what stays", () => {
     const copy = roomDeleteCopy({ name: "Launch plan" });
     expect(copy.title).toBe("delete Launch plan?");
-    expect(copy.body).toBe("its messages, threads and routines go too. the bots stay.");
+    expect(copy.body).toBe("Its messages, threads and routines go too. The bots stay.");
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteChannel"));
     expect(copy.tone).toBe("danger");
   });
@@ -78,7 +78,7 @@ describe("room delete confirmation copy", () => {
   it("calls a bot-to-bot room a chat, never a thread", () => {
     const copy = roomDeleteCopy({ name: "Pen ⇄ Ink", dm: true });
     expect(copy.title).toBe("delete Pen ⇄ Ink?");
-    expect(copy.body).toBe("its messages go too. the bots stay.");
+    expect(copy.body).toBe("Its messages go too. The bots stay.");
     expect(copy.body).not.toMatch(/thread/);
     expect(copy.body).not.toMatch(/group chat/);
     expect(copy.confirmLabel).toBe(t("sidebar.room.deleteBotChat"));

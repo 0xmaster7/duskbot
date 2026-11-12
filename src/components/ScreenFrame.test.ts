@@ -12,7 +12,7 @@ describe("screen frame preview", () => {
   it("loads the frame from the image route and picks a download extension from the mime type", () => {
     expect(screenFramePreview({ threadId: "t1", messageId: "shot 1" })).toMatchObject({
       src: "/api/threads/t1/messages/shot%201/image",
-      name: "bot's screen",
+      name: "Bot's screen",
       downloadUrl: "/api/threads/t1/messages/shot%201/image",
       downloadName: "screen.png",
     });
@@ -25,7 +25,7 @@ describe("screen frame preview", () => {
     expect(html).toContain("role=\"button\"");
     expect(html).toContain("aria-label=\"open image full screen\"");
     expect(html).toContain("src=\"/api/threads/t1/messages/shot%201/image\"");
-    expect(html).toContain("alt=\"bot&#x27;s screen\"");
+    expect(html).toContain("alt=\"Bot&#x27;s screen\"");
     expect(html).toContain("width:min(100%, 307px)");
     expect(html).toContain("aspect-ratio:1.6");
     expect(html).toContain("data-reserved=\"size\"");

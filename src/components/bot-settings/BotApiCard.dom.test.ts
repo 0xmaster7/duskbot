@@ -55,7 +55,7 @@ describe("the Bot API card", () => {
     fixture.starter = true;
     Object.assign(fixture.view!, { enabled: true });
     await mount({ webhooksLink: true });
-    expect(find("bot-api-starter")!.textContent).toBe("bot API comes with a higher plan.");
+    expect(find("bot-api-starter")!.textContent).toBe("Bot API comes with a higher plan.");
     for (const gone of ["bot-api-switch", "bot-api-curl", "bot-api-copy", "bot-api-new-key", "bot-api-key-note", "bot-api-webhooks"]) expect(find(gone), gone).toBeNull();
     expect(fixture.read).toEqual([]);
     await click("bot-api-upgrade");
@@ -78,7 +78,7 @@ describe("the Bot API card", () => {
     fixture.starter = false;
     await mount({ className: "x" });
     expect(find("bot-api-switch")).not.toBeNull();
-    expect(find("bot-api-password")!.textContent).toBe("a key is like a password: whoever holds it can read what this bot can read.");
+    expect(find("bot-api-password")!.textContent).toBe("A key is like a password: whoever holds it can read what this bot can read.");
   });
 
   it("says in one plain line when this bot's AI can't take calls", async () => {
@@ -87,7 +87,7 @@ describe("the Bot API card", () => {
     unmount();
     Object.assign(fixture.view!, { canTakeCalls: false });
     await mount();
-    expect(find("bot-api-cant-take")!.textContent).toBe("this bot's AI can't take bot API calls. choose another AI to use them.");
+    expect(find("bot-api-cant-take")!.textContent).toBe("This bot's AI can't take bot API calls. Choose another AI to use them.");
   });
 
   it("keeps Copy off the command, so nothing in it is hidden", async () => {

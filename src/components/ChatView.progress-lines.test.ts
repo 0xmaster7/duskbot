@@ -70,7 +70,7 @@ describe("a finished turn in a conversation", () => {
       expect(text).toContain("I'll check current pricing since this changes often.");
       expect(text).toContain("I'll spin up a research specialist");
       expect(text.indexOf("I'll check current pricing")).toBeLessThan(text.indexOf("Fathom, Fireflies and Granola"));
-      expect(text).not.toContain("worked for");
+      expect(text).not.toContain("Worked for");
       expect(transcript(container).querySelector("button[data-run-toggle]")).toBeNull();
     } finally { unmount(); }
   });
@@ -81,7 +81,7 @@ describe("a finished turn in a conversation", () => {
     try {
       expect(rows(container)).toEqual(["ask", "ack", "helper", "answer"]);
       const chips = [...transcript(container).querySelectorAll<HTMLButtonElement>("button[data-run-toggle]")];
-      expect(chips.map((chip) => chip.textContent)).toEqual(["worked for 29s"]);
+      expect(chips.map((chip) => chip.textContent)).toEqual(["Worked for 29s"]);
       flushSync(() => chips[0]!.click());
       expect(rows(container)).toEqual(["ask", "ack", "search", "fetch", "fetch-2", "helper", "answer"]);
     } finally { unmount(); }

@@ -43,7 +43,7 @@ describe("call capability guidance", () => {
     }), false, false);
     expect(help).toEqual({
       label: "calls where you take turns work with bots on this Mac",
-      reason: "they listen with your Mac's own speech recognition, which only bots on this Mac can use.",
+      reason: "They listen with your Mac's own speech recognition, which only bots on this Mac can use.",
     });
     expect(help).not.toHaveProperty("action");
   });
@@ -57,7 +57,7 @@ describe("call capability guidance", () => {
     }, platform), false, false);
     expect(help).toEqual({
       label: "calls where you take turns work with bots on this computer",
-      reason: "they listen from this computer's own window, so only bots on this computer can use them.",
+      reason: "They listen from this computer's own window, so only bots on this computer can use them.",
     });
   });
 
@@ -70,7 +70,7 @@ describe("call capability guidance", () => {
     }, "other"), false, false);
     expect(help).toEqual({
       label: "calls where you take turns need the desktop app",
-      reason: "they listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
+      reason: "They listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
     });
   });
 
@@ -89,7 +89,7 @@ describe("call capability guidance", () => {
     const fish = capabilities({ available: true, engine: "fish-audio", onDevice: false }, "win32");
     expect(callCapabilityHelp(fish, true, false)).toEqual({
       label: "add a Fish Audio key to take turns on calls",
-      reason: "on this computer, take turns hears you through Fish Audio speech-to-text. add a Fish Audio key in settings → API keys.",
+      reason: "On this computer, take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in settings → API keys.",
     });
     expect(callCapabilityHelp(fish, true, true)).toBeNull();
   });
@@ -101,7 +101,7 @@ describe("call capability guidance", () => {
       onDevice: true,
     }), false, false)).toEqual({
       label: "calls aren't available right now",
-      reason: "the speech service is unavailable in this app build. restart or update dusk bot.",
+      reason: "The speech service is unavailable in this app build. Restart or update dusk bot.",
     });
   });
 });

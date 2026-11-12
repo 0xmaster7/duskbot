@@ -91,7 +91,7 @@ describe("what the step says", () => {
       tools: { added: ["notion"], present: [], skipped: [] },
     })).toEqual({ line: "added 2 skills and 1 tool.", notes: [], done: true });
     expect(importOutcome({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } }).line).toBe("added 1 skill.");
-    expect(importOutcome({ tools: { added: [], present: ["notion"], skipped: [] } })).toEqual({ line: "all of it was already here.", notes: [], done: true });
+    expect(importOutcome({ tools: { added: [], present: ["notion"], skipped: [] } })).toEqual({ line: "All of it was already here.", notes: [], done: true });
     expect(importOutcome({
       skills: { added: ["pdf", "deploy"], present: [], skipped: [{ name: "review", reason: "conflict" }, { name: "lint", reason: "failed" }], filesLeftOut: 2, review: ["deploy"] },
       tools: { added: ["a", "b", "c", "d"], present: [], skipped: [
@@ -103,13 +103,13 @@ describe("what the step says", () => {
       done: true,
       notes: [
         "deploy: switched off until you check what the scan found, in a bot's skills settings.",
-        "skipped review: a different skill with that name is already here.",
-        "skipped github: a different MCP server with that name is already here.",
-        "couldn't bring in lint and sentry. try again later from settings → general → import.",
-        "large or non-text files in skill folders were left out.",
+        "Skipped review: a different skill with that name is already here.",
+        "Skipped github: a different MCP server with that name is already here.",
+        "Couldn't bring in lint and sentry. Try again later from settings → general → import.",
+        "Large or non-text files in skill folders were left out.",
         "e and f didn't fit: your list of MCP servers is full.",
-        "your organization doesn't allow g.",
-        "your MCP servers were being changed. add h later in apps → MCP servers.",
+        "Your organization doesn't allow g.",
+        "Your MCP servers were being changed. Add h later in apps → MCP servers.",
       ],
     });
   });
@@ -118,6 +118,6 @@ describe("what the step says", () => {
     expect(importOutcome({
       skills: { added: [], present: [], skipped: [{ name: "pdf", reason: "failed" }], filesLeftOut: 0, review: [] },
       tools: { added: [], present: ["notion"], skipped: [{ name: "linear", reason: "busy" }] },
-    })).toMatchObject({ line: "nothing new was added.", done: false });
+    })).toMatchObject({ line: "Nothing new was added.", done: false });
   });
 });

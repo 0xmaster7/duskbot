@@ -258,7 +258,7 @@ describe("Settings → Engines → setup cards", () => {
       instanceId: "openai", displayName: "OpenAI", driverKind: "openai-compat", access: "api",
       snapshot, models: { default: "gpt-5", options: [] },
     });
-    fixture.instances = [openai({ state: "unavailable", reason: "no API key" })];
+    fixture.instances = [openai({ state: "unavailable", reason: "No API key" })];
     const before = renderToStaticMarkup(createElement(EnginesSettings));
     expect(before).toContain("OpenAI needs an API key");
     expect(before).toContain('data-key-row="openai"');
@@ -302,7 +302,7 @@ describe("Settings → Engines → Antigravity → Free up space", () => {
     const html = renderToStaticMarkup(createElement(EnginesSettings));
     expect(html).toContain("leftover files");
     expect(html).toContain("free up space");
-    expect(html).toContain("nothing is deleted until you confirm.");
+    expect(html).toContain("Nothing is deleted until you confirm.");
     fixture.instances = [antigravity()];
     expect(renderToStaticMarkup(createElement(EnginesSettings))).not.toContain("free up space");
   });
@@ -311,13 +311,13 @@ describe("Settings → Engines → Antigravity → Free up space", () => {
     const found = renderToStaticMarkup(createElement(AntigravityFreeSpace, {
       instance: antigravity(true), initial: { kind: "found", bytes: 2.5 * 1024 ** 3, complete: true },
     }));
-    expect(found).toContain("found 2.5 GB of leftover files.");
+    expect(found).toContain("Found 2.5 GB of leftover files.");
     expect(found).toContain("delete them");
     expect(found).toContain("cancel");
     const partial = renderToStaticMarkup(createElement(AntigravityFreeSpace, {
       instance: antigravity(true), initial: { kind: "found", bytes: 340 * 1024 ** 2, complete: false },
     }));
-    expect(partial).toContain("found at least 340 MB of leftover files.");
+    expect(partial).toContain("Found at least 340 MB of leftover files.");
   });
 
   it("reports what it freed and what it had to leave", () => {
@@ -325,12 +325,12 @@ describe("Settings → Engines → Antigravity → Free up space", () => {
       instance: antigravity(true), initial: { kind: "done", freedBytes: 1.26 * 1024 ** 3, remaining: 1 },
     }));
     expect(done).toContain("freed 1.3 GB.");
-    expect(done).toContain("some files are still in use and were left alone.");
+    expect(done).toContain("Some files are still in use and were left alone.");
     const nothing = renderToStaticMarkup(createElement(AntigravityFreeSpace, {
       instance: antigravity(true), initial: { kind: "done", freedBytes: 0, remaining: 2 },
     }));
     expect(nothing).not.toContain("Freed");
-    expect(nothing).toContain("some files are still in use and were left alone.");
+    expect(nothing).toContain("Some files are still in use and were left alone.");
     expect(formatDiskSize(10)).toBe("less than 1 MB");
   });
 });

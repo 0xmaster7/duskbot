@@ -23,7 +23,7 @@ const EXPORT = JSON.stringify({ format: GROK_EXPORT_FORMAT, version: 1, bots: [{
   ],
   apps: [{ name: "Cursor GitHub (connect_github)" }, { name: "Linear", mcp_url: "https://mcp.linear.app/mcp" }],
 }] });
-const FILES_STAY = "files on Grok bot's computer don't come over. add any your bot needs.";
+const FILES_STAY = "Files on Grok bot's computer don't come over. Add any your bot needs.";
 const QUIET = JSON.stringify({ format: GROK_EXPORT_FORMAT, bots: [{ name: "Quiet", instructions: "Just chat." }] });
 
 let root: Root;
@@ -85,7 +85,7 @@ describe("move from Grok bot", () => {
     expect(shown()).toContain("what would come over");
     expect(host.querySelector("h3")?.textContent).toBe("Job Search");
     expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
-    expect(shown()).toContain("routines come over paused.");
+    expect(shown()).toContain("Routines come over paused.");
     expect(shown()).toContain("2 apps need connecting again here");
     expect(shown()).toContain("a safety check keeps these skills off: Quick installer");
     expect(shown()).not.toContain(FILES_STAY);
@@ -100,10 +100,10 @@ describe("move from Grok bot", () => {
     expect(host.querySelector('[data-grok-move="report"]')).not.toBeNull();
     expect(host.querySelector("h3")?.textContent).toBe("Job Search is here");
     expect(counts()).toEqual({ skills: 2, routines: 1, memories: 2, "routines saved as notes": 1 });
-    expect(shown()).toContain("routines are paused. turn each one off in Grok bot, then on here.");
+    expect(shown()).toContain("Routines are paused. Turn each one off in Grok bot, then on here.");
     expect(shown()).toContain("2 apps need connecting again here");
     const lines = [...host.querySelectorAll("[data-grok-move-body] p")].map((line) => line.textContent);
-    expect(lines.indexOf(FILES_STAY)).toBe(lines.indexOf("routines are paused. turn each one off in Grok bot, then on here.") + 1);
+    expect(lines.indexOf(FILES_STAY)).toBe(lines.indexOf("Routines are paused. Turn each one off in Grok bot, then on here.") + 1);
     plain();
     expect(f.api.mock.calls.map(([path]) => path)).toContain("/api/bots/b1/skills/greet");
     expect(f.track).toHaveBeenCalledOnce();
@@ -190,7 +190,7 @@ describe("move from Grok bot", () => {
 
 describe("a file dragged over the dialog, with the chat box behind it", () => {
   const onAdd = vi.fn();
-  const OVERLAY = "drop to attach";
+  const OVERLAY = "Drop to attach";
   const behindIt = vi.fn();
   const upload = vi.fn();
   const DRAGS = ["dragenter", "dragover", "dragleave", "drop"];

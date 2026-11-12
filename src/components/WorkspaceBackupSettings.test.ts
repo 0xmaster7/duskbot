@@ -36,7 +36,7 @@ function render(recovery: boolean | "restart" = false) {
 }
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 const change = (input: Node, value: string) => input.props.onChange!({ target: { value } });
-const summary: WorkspaceBackupSummary = { format: "dusk.workspace-backup", version: 1, id: "archive-id", createdAt: "2026-09-11T00:00:00Z", appVersion: "0.1.71", files: 9, directories: 3, bytes: 1234, bots: 2, groups: 1, threads: 4, messages: 8, warnings: ["Fixture warning"], exclusions: ["saved account credentials and connections", "External CLI sign-ins"] };
+const summary: WorkspaceBackupSummary = { format: "dusk.workspace-backup", version: 1, id: "archive-id", createdAt: "2026-09-11T00:00:00Z", appVersion: "0.1.71", files: 9, directories: 3, bytes: 1234, bots: 2, groups: 1, threads: 4, messages: 8, warnings: ["Fixture warning"], exclusions: ["Saved account credentials and connections", "External CLI sign-ins"] };
 let storage: Map<string, string>;
 beforeEach(() => {
   fixture.values = []; fixture.index = 0; fixture.effects = []; fixture.api.mockReset();
@@ -59,7 +59,7 @@ describe("Settings full backups", () => {
     const html = render().html;
     expect(html).toContain('type="file" accept=".duskbackup,.ombbackup"');
     expect(html.match(/type="password"/g)).toBeNull();
-    expect(html).toContain("sign-ins and keys are left out");
+    expect(html).toContain("Sign-ins and keys are left out");
     expect(html).toContain("can&#x27;t be recovered");
     expect(html).not.toContain("replace installation");
     pill("export full backup").props.onClick!();
@@ -108,7 +108,7 @@ describe("Settings full backups", () => {
     void save(dialogs()[0]!); await flush();
     expect(JSON.parse(fixture.api.mock.calls[3][1].body)).toEqual({ id: "stage-id", confirmation: "REPLACE" });
     expect(storage.get("dusk-pending-workspace-restore")).toBe("stage-id");
-    expect(render().html).toContain("fully quit dusk bot");
+    expect(render().html).toContain("Fully quit dusk bot");
   });
 
   it("does not offer a replacement after failed password validation", async () => {
@@ -146,7 +146,7 @@ describe("Settings full backups", () => {
     fixture.api.mockResolvedValueOnce({ busy: true, pendingRestore: true });
     expect(render(true).html).not.toContain("continue without restoring drafts");
     fixture.effects[0](); await flush();
-    expect(render(true).html).toContain("fully quit dusk bot");
+    expect(render(true).html).toContain("Fully quit dusk bot");
     expect(render(true).html).not.toContain("continue without restoring drafts");
     expect(fixture.api).toHaveBeenCalledOnce(); expect(storage.get("dusk-drafts")).toBe("old");
     fixture.values = [];
@@ -180,7 +180,7 @@ describe("Settings full backups", () => {
     storage.set("dusk-pending-workspace-restore", "stage-id");
     render("restart").nodes.find(node => node.type === "button")!.props.onClick!(); await flush();
     const view = render("restart");
-    expect(view.html).toContain("could not restart dusk bot");
+    expect(view.html).toContain("Could not restart dusk bot");
     expect(view.nodes.find(node => node.type === "button")!.props.disabled).toBe(false);
     expect(storage.get("dusk-pending-workspace-restore")).toBe("stage-id");
     expect(window.location.reload).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe("Settings full backups", () => {
     fixture.api.mockRejectedValueOnce(Object.assign(new Error("sign-in required"), { status }));
     render(true); fixture.effects[0](); await flush();
     const view = render(true);
-    expect(view.html).toContain("retry"); expect(view.html).toContain("this does not undo the installation restore.");
+    expect(view.html).toContain("retry"); expect(view.html).toContain("This does not undo the installation restore.");
     expect(view.html).not.toContain("Normal app");
     expect(storage).toEqual(before); expect(window.location.reload).not.toHaveBeenCalled();
     view.nodes.find((node) => node.type === "button" && node.props.children === "continue without restoring drafts")!.props.onClick!();

@@ -59,8 +59,8 @@ describe("sidebar previews", () => {
 
   it("says a helper's intro card by its first line in the reader's language instead of its stored English title", () => {
     const intro = message({ kind: "options", helperIntro: true, card: { title: "Hi! I'm Ada, your Chief of Staff.", options: [] } } as unknown as Partial<Message>);
-    expect(botPreview({ ...bot, chiefOfStaff: true } as Bot, [intro], [])).toBe("hey! i'm Ada. i'm new here.");
-    expect(botPreview(bot, [intro], [])).toBe("hi! i'm Ada, your helper for everything here.");
+    expect(botPreview({ ...bot, chiefOfStaff: true } as Bot, [intro], [])).toBe("Hey! I'm Ada. I'm new here.");
+    expect(botPreview(bot, [intro], [])).toBe("Hi! I'm Ada, your helper for everything here.");
   });
 
   it("quotes the bot in a group chat too", () => {

@@ -299,7 +299,7 @@ describe("a section's menu", () => {
   it("deletes it saying the bots stay, out of any department", () => {
     openMenu("Work")["delete"]!.onClick();
     const dialog = render().find((node) => node.type === ConfirmDialog && node.props.open === true)!;
-    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["delete \u201cWork\u201d", "its bots move to unassigned. no bots are deleted.", "delete"]);
+    expect([dialog.props.title, dialog.props.body, dialog.props.confirmLabel]).toEqual(["delete \u201cWork\u201d", "Its bots move to unassigned. No bots are deleted.", "delete"]);
   });
 
   it("is the same menu in Advanced, from a right-click on its name", () => {
@@ -363,7 +363,7 @@ describe("deleting a Chief of Staff", () => {
     fixture.state = { ...fixture.state, bots: [chief, bot("bea")] };
     askToDelete(chief);
     const dialog = openDialog()!;
-    expect(dialog.props.body).toBe("it's your chief of staff. archive it instead to keep its chats. its chats, memory, files and private desktop go too. this can't be undone.");
+    expect(dialog.props.body).toBe("It's your chief of staff. Archive it instead to keep its chats. Its chats, memory, files and private desktop go too. This can't be undone.");
     const alternative = dialog.props.alternative as { label: string; onClick: () => void };
     expect(alternative.label).toBe("archive instead");
     alternative.onClick();

@@ -46,7 +46,7 @@ afterEach(async () => { await act(async () => root?.unmount()); host.remove(); v
 it("renders the title, providers and email step, and focuses the email field", async () => {
   const html = renderToStaticMarkup(createElement(AccountGate, { bridge }));
   expect(html).toContain("sign in to dusk bot");
-  expect(html).toContain("one account for your bots, your Mac and your cloud desktop.");
+  expect(html).toContain("One account for your bots, your Mac and your cloud desktop.");
   for (const name of ["Google", "Apple", "X"]) expect(html).toContain(`continue with ${name}`);
   expect(html).toContain('type="email"'); expect(html).toContain("send code");
   await mount();
@@ -90,7 +90,7 @@ it("shows the browser enrollment code and cancels", async () => {
 it.each(["access-ended", "expired"])("explains an ended session: %s", async message => {
   state = { ...state, status: "reauth-required", message };
   await mount();
-  expect(host.querySelector('[role="status"]')?.textContent).toBe("your session ended. sign in again.");
+  expect(host.querySelector('[role="status"]')?.textContent).toBe("Your session ended. Sign in again.");
 });
 
 it("reloads when the gate stops blocking and removes its listener on unmount", async () => {
@@ -125,7 +125,7 @@ it("Can't sign in? sends a recovery code, says what comes, and gives plain help 
   expect(host.textContent).toContain("write to hello@dusk.bot from any email with your receipt");
   await type(email(), "person@example.com"); await submit();
   expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith("person@example.com", { recover: true });
-  expect(host.textContent).toContain("if an account uses this email, the code is on its way");
+  expect(host.textContent).toContain("If an account uses this email, the code is on its way");
   await paste(digit(1), "12345678"); await submit();
   expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("12345678");
 });
@@ -152,9 +152,9 @@ it("waits for the browser to come back from a provider, reopens it and cancels",
 });
 
 it.each([
-  ["signin-cancelled", "sign-in was canceled. try again when you are ready."],
-  ["enrollment-expired", "this sign-in expired. please start again."],
-  ["signin-failed", "browser sign-in failed. please try again."],
+  ["signin-cancelled", "Sign-in was canceled. Try again when you are ready."],
+  ["enrollment-expired", "This sign-in expired. Please start again."],
+  ["signin-failed", "Browser sign-in failed. Please try again."],
 ])("says why a browser sign-in came back without one: %s", async (message, line) => {
   state = { ...state, status: "signed-out", message };
   await mount();

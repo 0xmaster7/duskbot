@@ -110,12 +110,12 @@ describe("status: Working, Paused, Needs you", () => {
   });
 
   it("needs you when signed out, out of credit, out of time, waiting on an answer, or failing again and again", () => {
-    expect(automationStatus(automation([run("failed", at(0, 9), { error: "Claude is signed out. Run claude auth login." })]))).toMatchObject({ state: "needs-you", fix: "sign-in", reason: "it's signed out. sign in again so it can run." });
+    expect(automationStatus(automation([run("failed", at(0, 9), { error: "Claude is signed out. Run claude auth login." })]))).toMatchObject({ state: "needs-you", fix: "sign-in", reason: "It's signed out. Sign in again so it can run." });
     expect(automationStatus(automation([run("failed", at(0, 9), { error: "Out of credit: quota exceeded" })]))).toMatchObject({ state: "needs-you", fix: "usage" });
     expect(automationStatus(automation([run("failed", at(0, 9), { error: "Stopped after reaching the 15-minute run limit" })]))).toMatchObject({ state: "needs-you", fix: "edit" });
     expect(automationStatus(automation([run("waiting", at(0, 9), { attention: "Approve the reply?" })]))).toMatchObject({ state: "needs-you", fix: "answer" });
     expect(automationStatus(automation([run("failed", at(0, 9), { error: "Provider crashed" }), run("missed", at(-1, 9)), run("completed", at(-2, 9))])))
-      .toMatchObject({ state: "needs-you", fix: "run", reason: "it didn't finish the last 2 times." });
+      .toMatchObject({ state: "needs-you", fix: "run", reason: "It didn't finish the last 2 times." });
   });
 
   it("ignores runs still waiting to start and runs a person stopped when judging the last run", () => {
@@ -190,7 +190,7 @@ describe("order and the grey line", () => {
 
   it("writes recent runs as a time, a mark and one line", () => {
     expect(runLine(run("completed", at(0, 9, 2), { output: "3 emails overnight.\nMore detail." }), NOW)).toEqual({ when: "today 9:02 AM", mark: "✓", text: "3 emails overnight." });
-    expect(runLine(run("failed", at(-1, 9), { error: "token expired, sign in again" }), NOW)).toMatchObject({ mark: "✗", text: "it's signed out. sign in again so it can run." });
+    expect(runLine(run("failed", at(-1, 9), { error: "token expired, sign in again" }), NOW)).toMatchObject({ mark: "✗", text: "It's signed out. Sign in again so it can run." });
   });
 
   it("says why a stopped run stopped when it knows, and plain Stopped when nobody gave a reason", () => {

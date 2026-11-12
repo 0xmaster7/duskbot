@@ -56,7 +56,7 @@ describe("command allowlist menu access", () => {
     fixture.open = true;
     const open = render(select, undefined, false);
     expect(open.html).not.toContain("custom (config.toml)");
-    expect(open.html).toContain("custom approval must be changed in the local packaged desktop app.");
+    expect(open.html).toContain("Custom approval must be changed in the local packaged desktop app.");
     expect(open.html).not.toContain("Full and Custom are available in the packaged desktop app.");
     open.nodes.filter((node) => node.props.role === "menuitemradio")
       .find((node) => renderToStaticMarkup(node).includes("full access"))!.props.onClick!();
@@ -75,13 +75,13 @@ describe("command allowlist menu access", () => {
     expect(trigger.props.disabled).toBeUndefined();
     trigger.props.onClick!();
     const open = render(select, undefined, true, true);
-    expect(open.html).toContain("the bot is working. a change applies from its next step");
+    expect(open.html).toContain("The bot is working. A change applies from its next step");
     const modes = open.nodes.filter((node) => node.props.role === "menuitemradio");
     expect(modes.length).toBeGreaterThan(0);
     expect(modes.every((mode) => !mode.props.disabled)).toBe(true);
     modes.find((node) => renderToStaticMarkup(node).includes("full access"))!.props.onClick!();
     expect(select).toHaveBeenCalledExactlyOnceWith("full");
     fixture.open = true;
-    expect(render(select).html).not.toContain("the bot is working");
+    expect(render(select).html).not.toContain("The bot is working");
   });
 });

@@ -125,19 +125,19 @@ describe("a long step's quiet part", () => {
   it("follows the step with how it is doing, and counts the time since its last output on its own", () => {
     vi.setSystemTime(1_000_000);
     render({ label: "Working", since: 1_000_000 - 72_000, phrases: ["Running scrape.py"], phase: "step", hover: "python3 scrape.py --pages 40", quiet: { kind: "busy" } });
-    expect(line()).toBe("Working · 1m 12s · Running scrape.py · busy, no output yet");
+    expect(line()).toBe("Working · 1m 12s · Running scrape.py · Busy, no output yet");
     expect(host.querySelector("[data-turn-now]")?.getAttribute("title")).toBe("python3 scrape.py --pages 40");
     render({ label: "Working", since: 1_000_000 - 72_000, phrases: ["Running scrape.py"], phase: "step", quiet: { kind: "output", at: 1_000_000 - 30_000 } });
-    expect(host.querySelector("[data-turn-quiet]")?.textContent).toBe("last output just now");
+    expect(host.querySelector("[data-turn-quiet]")?.textContent).toBe("Last output just now");
     act(() => void vi.advanceTimersByTime(45_000));
-    expect(host.querySelector("[data-turn-quiet]")?.textContent).toBe("last output 1 min ago");
+    expect(host.querySelector("[data-turn-quiet]")?.textContent).toBe("Last output 1 min ago");
   });
 
   it("says it in Simple mode too, after the one phrase", () => {
     render({ simple: true, phrases: ["Running scrape.py"], phase: "step", quiet: { kind: "network" } });
     expect(line() ?? "", "the mark comes alone first, as grok's does").toBe("");
     act(() => void vi.advanceTimersByTime(STATUS_QUIET_MS.max));
-    expect(line()).toBe("Running scrape.py · waiting on the network");
+    expect(line()).toBe("Running scrape.py · Waiting on the network");
   });
 });
 

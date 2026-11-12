@@ -88,7 +88,7 @@ describe("OptionCard", () => {
     expect(markup).toContain("Where should the bucket live?");
     expect(markup.match(/data-ask-choice=""/g)).toHaveLength(2);
     expect(markup).not.toContain("aria-keyshortcuts");
-    expect(markup).toContain('placeholder="something else…"');
+    expect(markup).toContain('placeholder="Something else…"');
   });
 
   it("offers a closed set of choices with no free-text box", () => {

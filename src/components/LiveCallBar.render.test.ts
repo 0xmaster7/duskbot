@@ -30,7 +30,7 @@ const renderOnCloud = (element: ReturnType<typeof createElement>) => {
   const value = { state: { ...initialState, config }, dispatch: vi.fn(), flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
   return renderToStaticMarkup(createElement(BotEditorStore, { value, children: element }));
 };
-const CLOUD_DISCLOSURE = `a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays in the cloud.`;
+const CLOUD_DISCLOSURE = `A live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays in the cloud.`;
 
 afterEach(() => {
   resetLiveMedia();
@@ -65,7 +65,7 @@ describe("LiveCallBar", () => {
     void startLiveCall({ botId: bot.id, threadId: bot.threadId });
     await vi.waitFor(() => expect(peer.ontrack).not.toBeNull());
     peer.ontrack!({ track: {} });
-    await vi.waitFor(() => expect(render(createElement(LiveCallBar, { bot }))).toContain("click anywhere in the window to hear the call."));
+    await vi.waitFor(() => expect(render(createElement(LiveCallBar, { bot }))).toContain("Click anywhere in the window to hear the call."));
   });
 
   it("shows the call's controls while this window connects", () => {
@@ -88,8 +88,8 @@ describe("LiveCallBar", () => {
   });
 
   it.each([
-    ["refused", "the app didn&#x27;t let this page use the microphone. open it in your web browser to make the live call.", "open in browser", "try again"],
-    ["allowed", "allow microphone access for this app in your computer&#x27;s privacy settings, then try again.", "try again", "open in browser"],
+    ["refused", "The app didn&#x27;t let this page use the microphone. Open it in your web browser to make the live call.", "open in browser", "try again"],
+    ["allowed", "Allow microphone access for this app in your computer&#x27;s privacy settings, then try again.", "try again", "open in browser"],
   ] as const)("shows a microphone the app %s with its one action", async (pageMic, text, action, other) => {
     vi.stubGlobal("window", { duskDesktop: { speechStop: vi.fn(async () => {}) } });
     configureLiveMedia({
@@ -136,8 +136,8 @@ describe("LiveCallSettings", () => {
     expect(markup).toContain('aria-label="call settings"');
     expect(markup).toContain("Marin (default)");
     expect(markup).toContain("read replies to typed messages");
-    expect(markup).toContain(`when this is off, messages you type during a call and the bot&#x27;s answers to them are not sent to OpenAI.`);
-    expect(markup).toContain(`a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays on your computer.`);
+    expect(markup).toContain(`When this is off, messages you type during a call and the bot&#x27;s answers to them are not sent to OpenAI.`);
+    expect(markup).toContain(`A live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays on your computer.`);
     expect(markup).toMatch(/<option value="5" selected="">5<\/option>/);
     expect(markup).toContain("change key");
     expect(markup).not.toContain("remove key");
@@ -151,13 +151,13 @@ describe("LiveCallSettings", () => {
     };
     const base = { voice: "marin", readTypedReplies: true, idleMinutes: 5 };
     const fromApiKeys = withLive({ ...base, configured: true, keySource: "openai" });
-    expect(fromApiKeys).toContain("uses your OpenAI API key from settings → API keys.");
+    expect(fromApiKeys).toContain("Uses your OpenAI API key from settings → API keys.");
     expect(fromApiKeys).not.toContain("remove key");
     const own = withLive({ ...base, configured: true, keySource: "live" });
     expect(own).toContain("remove key");
     expect(own).not.toContain("settings → API keys");
     const none = withLive({ ...base, configured: false });
-    expect(none).toContain("live calls use your own OpenAI key. add it in settings → API keys.");
+    expect(none).toContain("Live calls use your own OpenAI key. Add it in settings → API keys.");
     expect(none).not.toContain("remove key");
   });
 
@@ -191,7 +191,7 @@ describe("LiveKeySetup", () => {
   it("says what the key is for, in the app's language", () => {
     const markup = render(createElement(LiveKeySetup, { onSaved: vi.fn() }));
     expect(markup).toContain("live calls use OpenAI GPT-live");
-    expect(markup).toContain(`a live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. the OpenAI key stays on your computer.`);
+    expect(markup).toContain(`A live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays on your computer.`);
     expect(markup).toContain('aria-label="OpenAI API key for live calls"');
     expect(markup).toContain("save and start the call");
     expect(render(createElement(LiveKeySetup, { onSaved: vi.fn(), compact: true }))).toContain(">save<");

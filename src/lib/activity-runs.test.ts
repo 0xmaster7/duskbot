@@ -213,8 +213,8 @@ describe("describeRun", () => {
   });
 
   it("names steps by the label it is given, counting steps that read the same together", () => {
-    const plain = ({ name }: { name: string }) => (name === "Bash" || name.includes(" ") ? "run a command" : name);
-    expect(describeRun([tool("Bash"), tool("ls -la"), tool("Edit")], plain)).toBe("3 steps · run a command ×2, Edit");
+    const plain = ({ name }: { name: string }) => (name === "Bash" || name.includes(" ") ? "Run a command" : name);
+    expect(describeRun([tool("Bash"), tool("ls -la"), tool("Edit")], plain)).toBe("3 steps · Run a command ×2, Edit");
   });
 });
 
@@ -248,7 +248,7 @@ describe("groupTranscript", () => {
 
     const items = groupTranscript([user, ack, search, read, helper, fetch, final]);
     expect(items.map((item) => item.kind === "message" ? item.message.id : item.kind)).toEqual([user.id, ack.id, "turn", helper.id, final.id]);
-    expect(items[2]).toMatchObject({ kind: "turn", id: "turn:turn-1", label: "worked for 29s", messages: [search, read, fetch] });
+    expect(items[2]).toMatchObject({ kind: "turn", id: "turn:turn-1", label: "Worked for 29s", messages: [search, read, fetch] });
   });
 
   it("shows just the answer for a turn with nothing to say: its steps fold, no line of it is hidden", () => {

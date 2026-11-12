@@ -130,7 +130,7 @@ describe("a new install's first run", () => {
 
   it("says in plain words what Dusk asks about before it does it", async () => {
     await show();
-    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. it asks you before it sends, posts or pays for anything.");
+    expect(host.querySelector("[data-safe-line]")?.textContent).toBe("Dusk reads, searches and drafts on its own. It asks you before it sends, posts or pays for anything.");
   });
 
   it("keeps a sending rule the person already chose", async () => {
@@ -203,7 +203,7 @@ describe("with no AI of the person's own", () => {
   it("runs jobs on the free backup, says so, and keeps one tap to sign in", async () => {
     f.state = { ...f.state, instances: [freeOpenCode, signIn()] };
     await show();
-    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("running on a free model for now.");
+    expect(host.querySelector("[data-ai-line=free]")?.textContent).toContain("Running on a free model for now.");
     expect(button("use your Claude account")).toBeDefined();
     await type("Research standing desks");
     expect(button("start")!.disabled, "the free model never blocks a job").toBe(false);

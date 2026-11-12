@@ -112,19 +112,19 @@ describe("the move's row in the account menu", () => {
     const onOpen = vi.fn(), onRetry = vi.fn();
     const items = rows(line({ phase: "copy", failing: { error: "Some of this computer's things did not reach My Cloud." } }), { onOpen, onRetry });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ key: "cloud-move", label: "try moving to dusk cloud again", title: "something got in the way. your bots are safe here.", disabled: false, keepOpen: true });
-    expect(items[0]).toMatchObject({ note: "something got in the way. your bots are safe here.", wrap: true });
+    expect(items[0]).toMatchObject({ key: "cloud-move", label: "try moving to dusk cloud again", title: "Something got in the way. Your bots are safe here.", disabled: false, keepOpen: true });
+    expect(items[0]).toMatchObject({ note: "Something got in the way. Your bots are safe here.", wrap: true });
     expect(markup(items[0]!.icon)).not.toContain("animate-spin");
     items[0]!.onSelect();
     expect(onRetry).toHaveBeenCalledOnce();
     expect(onOpen).not.toHaveBeenCalled();
     // Main gave no reason: the tooltip still says what happened.
-    expect(rows(line({ phase: "finishing", failing: { error: null } }))[0]!.title).toBe("something got in the way. your bots are safe here.");
+    expect(rows(line({ phase: "finishing", failing: { error: null } }))[0]!.title).toBe("Something got in the way. Your bots are safe here.");
   });
 
   it("to a server of the person's own: the same rows, named for it", () => {
     const place = "Garage server";
-    expect(rows(line({ phase: "copy", failing: { error: null }, place }))[0]).toMatchObject({ label: "try Garage server move again", title: "your bots couldn't move to Garage server yet." });
+    expect(rows(line({ phase: "copy", failing: { error: null }, place }))[0]).toMatchObject({ label: "try Garage server move again", title: "Your bots couldn't move to Garage server yet." });
     expect(rows(line({ phase: "copy", place }))[0]).toMatchObject({ label: "moving to Garage server…", title: "moving your bots to Garage server…" });
   });
 
@@ -136,12 +136,12 @@ describe("the move's row in the account menu", () => {
     expect(markup(busy[0]!.icon)).toContain("animate-spin");
     expect(rows(failing, { unanswered: "dusk bot on this computer did not answer." })[0]!.title).toBe("dusk bot on this computer did not answer.");
     // Main gave no words of its own: the friendly line stays.
-    expect(rows(failing, { unanswered: "something got in the way. your bots are safe here." })[0]!.title).toBe("something got in the way. your bots are safe here.");
+    expect(rows(failing, { unanswered: "Something got in the way. Your bots are safe here." })[0]!.title).toBe("Something got in the way. Your bots are safe here.");
   });
 
   it("failing with no retry allowed: one row that opens My Cloud's settings", () => {
     const onOpen = vi.fn(), onRetry = vi.fn();
-    const items = rows({ kind: "failed", text: "something got in the way. your bots are safe here.", extra: [], reason: "My Cloud is full." }, { onOpen, onRetry });
+    const items = rows({ kind: "failed", text: "Something got in the way. Your bots are safe here.", extra: [], reason: "My Cloud is full." }, { onOpen, onRetry });
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ key: "cloud-move", label: "your move to dusk cloud needs you", title: "My Cloud is full." });
     items[0]!.onSelect();
@@ -166,7 +166,7 @@ describe("the move's row in the account menu", () => {
     const done = line({ phase: "done", counts: { bots: 4, skills: 2, logins: 2, onePassword: true, chats: 148, routines: 2 }, phone: true, held: ["OPENAI_API_KEY"] }, "cloud");
     const items = rows(done, { onPairPhone, onClose });
     expect(items.map((item) => item.key)).toEqual(["cloud-move", "cloud-move-phone", "cloud-move-close"]);
-    expect(items[0]!.label).toBe("everything from this computer is here: 4 bots, 2 skills, 2 logins, 1Password, 148 chats, and 2 routines.");
+    expect(items[0]!.label).toBe("Everything from this computer is here: 4 bots, 2 skills, 2 logins, 1Password, 148 chats, and 2 routines.");
     expect(items[0]!.note).toContain("OPENAI_API_KEY");
     expect(items[1]!.label).toBe("pair your phone with my cloud");
     expect(items[2]!.label).toBe("got it");
@@ -231,7 +231,7 @@ describe("useAccountMove", () => {
     let answer!: (value: CloudSendNotice) => void;
     page.moveRetry = vi.fn(() => new Promise<CloudSendNotice>((resolve) => { answer = resolve; }));
     const before = lineHook();
-    expect(before).toMatchObject({ kind: "failed", retry: { retrying: false, why: "something got in the way. your bots are safe here." } });
+    expect(before).toMatchObject({ kind: "failed", retry: { retrying: false, why: "Something got in the way. Your bots are safe here." } });
     before.retry!.onRetry();
     expect(lineHook().retry).toMatchObject({ retrying: true });
     expect(hook().items[0]).toMatchObject({ disabled: true });

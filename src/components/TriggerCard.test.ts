@@ -90,7 +90,7 @@ describe("the chat card a bot-made automation leaves", () => {
 
   it("says Needs you with the plain reason when a run is waiting on the person", () => {
     fixture.state.routineRuns = [{ id: "run-3", routineId: "routine-1", botId: "bot-1", status: "waiting", attention: "Approve the reply to Ada?", scheduledFor: now, createdAt: now }];
-    expect(render(scheduleCard)).toContain("needs you: it&#x27;s waiting for your answer.");
+    expect(render(scheduleCard)).toContain("needs you: It&#x27;s waiting for your answer.");
   });
 
   it("pauses through its own API, applies the answer at once, and says Paused with Resume once paused", async () => {
@@ -106,9 +106,9 @@ describe("the chat card a bot-made automation leaves", () => {
 
   it("says why when turning it back on is refused", async () => {
     fixture.state.routines = [{ ...routine, enabled: false }];
-    fixture.api.mockRejectedValue(new Error("its time has passed. edit it to pick a new time."));
+    fixture.api.mockRejectedValue(new Error("Its time has passed. Edit it to pick a new time."));
     click(scheduleCard, "resume");
-    await vi.waitFor(() => expect(document.querySelector("[role=alert]")?.textContent).toBe("its time has passed. edit it to pick a new time."));
+    await vi.waitFor(() => expect(document.querySelector("[role=alert]")?.textContent).toBe("Its time has passed. Edit it to pick a new time."));
   });
 
   it("says Done, with no Pause or Resume, once a one-time automation has happened", () => {
@@ -177,7 +177,7 @@ describe("the chat card a wait with a follow-up leaves", () => {
     fixture.api.mockRejectedValueOnce(new ApiError("disk full", 500));
     click(waiting, "cancel");
     expect(fixture.api).toHaveBeenCalledWith("/api/threads/thread-1/undo", { method: "POST", body: JSON.stringify({ requestId: "wait-1" }) });
-    await vi.waitFor(() => expect(document.querySelector("[role=alert]")?.textContent).toBe("couldn't cancel the wait. try again, or ask Scout to stop it."));
+    await vi.waitFor(() => expect(document.querySelector("[role=alert]")?.textContent).toBe("Couldn't cancel the wait. Try again, or ask Scout to stop it."));
   });
 
   it("shows no error when the wait had already ended: its card says how it ended", async () => {

@@ -65,7 +65,7 @@ describe("Your MCP servers inside the Apps pop-up", () => {
     const oauth = { clientId: "c", scopes: [], clientSecretConfigured: false, redirectUri: "http://127.0.0.1:1/cb" };
     fixture.servers = [{ name: "notes", type: "http", url: "http://127.0.0.1:9/mcp", headerKeys: [], enabled: true, oauth, runsOn: { environmentId: "env-1", label: "Milind's MacBook" } }];
     const html = render(true).replaceAll("&#x27;", "'");
-    expect(html).toContain("runs on Milind's MacBook, so it isn't started here.");
+    expect(html).toContain("Runs on Milind's MacBook, so it isn't started here.");
     expect(html).not.toContain("sign in");
     fixture.servers = [{ name: "docs", type: "http", url: "https://mcp.example.com/mcp", headerKeys: [], enabled: true, oauth }];
     expect(render(true)).toContain("sign in");
@@ -82,7 +82,7 @@ describe("Your MCP servers inside the Apps pop-up", () => {
     const html = render(true, true);
     expect(html).toContain(`data-app-tile="${app.id}"`);
     expect(html).toContain(`aria-label="connect ${app.label}"`);
-    expect(html).toContain("no API key needed");
+    expect(html).toContain("No API key needed");
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("your MCP servers");
     expect(html).not.toContain("Paste config");
@@ -130,7 +130,7 @@ describe("Your MCP servers inside the Apps pop-up", () => {
     for (const html of [render(true, true), render(true)]) {
       expect(html).toContain('id="mcp-callback-whop"');
       if (pasteBack) {
-        expect(html).toContain("your browser shows a page that can&#x27;t load. copy that page&#x27;s full address and paste it here.");
+        expect(html).toContain("your browser shows a page that can&#x27;t load. Copy that page&#x27;s full address and paste it here.");
         expect(html).not.toContain("signing in from another computer?");
       } else {
         expect(html).toContain("<summary");

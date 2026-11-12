@@ -84,10 +84,10 @@ describe("connecting an AI on the first screen", () => {
     };
     f.fail = true;
     await checkAgain();
-    expect(text()).toContain("couldn't check your AI connections");
+    expect(text()).toContain("Couldn't check your AI connections");
     expect(listed()).toEqual(before);
     await checkAgain();
-    expect(text()).not.toContain("couldn't check your AI connections");
+    expect(text()).not.toContain("Couldn't check your AI connections");
   });
 
   it("leads with one recommended way, then lists every other way, with no status list and no engine talk", async () => {
@@ -113,7 +113,7 @@ describe("connecting an AI on the first screen", () => {
       { ...engine("local", "openai-compat", "local models", false), access: "custom" },
     ];
     const setup = (id: string) => host.querySelector(`[data-engine-setup="${id}"]`);
-    const plain = (name: string) => `use the ${name} account you already have. you sign in on their own website, so your password stays with them.`;
+    const plain = (name: string) => `Use the ${name} account you already have. You sign in on their own website, so your password stays with them.`;
     await show();
     expect(setup("claude")?.getAttribute("data-description")).toBe(plain("Claude"));
     await otherWays();
@@ -160,7 +160,7 @@ describe("connecting an AI on the first screen", () => {
     f.instances = [engine("claude", "claudeAgent", "Claude", true), engine("codex", "codex", "Codex", false), engine("kimi", "kimiAgent", "Kimi", false)];
     await show();
     expect(host.querySelector("[data-ai-silent] [data-ai-reason]")?.textContent).toBe("Claude didn't answer within 90 seconds.");
-    expect(host.querySelector("[data-ai-silent]")?.textContent).toContain("or connect another AI below.");
+    expect(host.querySelector("[data-ai-silent]")?.textContent).toContain("Or connect another AI below.");
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
     expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("codex");
     await otherWays();
@@ -198,7 +198,7 @@ describe("connecting an AI on the first screen", () => {
     // With no reason given, the plain line.
     f.instances = [{ ...engine("claude", "claudeAgent", "Claude", true), aiTest: "failed" }];
     await show();
-    expect(host.querySelector("[data-ai-reason]")?.textContent).toBe("Claude is signed in but didn't answer. try another way.");
+    expect(host.querySelector("[data-ai-reason]")?.textContent).toBe("Claude is signed in but didn't answer. Try another way.");
   });
 
   it("asks for the person's own AI when only OpenCode's free model works, and says the free model is a backup", async () => {
@@ -207,7 +207,7 @@ describe("connecting an AI on the first screen", () => {
     await show();
     expect(f.checks).toEqual([]);
     expect(host.querySelector("[data-ai-connected]")).toBeNull();
-    expect(host.querySelector("[data-ai-backup]")?.textContent).toBe("OpenCode's free model is ready as a backup. for the best answers, connect an AI you already use.");
+    expect(host.querySelector("[data-ai-backup]")?.textContent).toBe("OpenCode's free model is ready as a backup. For the best answers, connect an AI you already use.");
     expect(host.querySelector("[data-ai-recommended]")?.getAttribute("data-ai-recommended")).toBe("claude");
   });
 

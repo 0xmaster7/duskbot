@@ -31,11 +31,11 @@ it("an ended Cloud: Buy again on the Cloud page, and Remove from list asked firs
   await click("[data-home-action='buy']");
   expect(manage).toHaveBeenCalledTimes(1);
   await click("[data-home-remove-ask]");
-  expect(host.querySelector("[data-home-remove] [role='alertdialog'] p")?.textContent).toBe("remove “My Cloud” from your list? you can buy a new cloud any time.");
+  expect(host.querySelector("[data-home-remove] [role='alertdialog'] p")?.textContent).toBe("Remove “My Cloud” from your list? You can buy a new cloud any time.");
   expect(remove, "nothing removed before the person says yes").not.toHaveBeenCalled();
   await click("[data-home-remove-confirm]");
   expect(remove).toHaveBeenCalledTimes(1);
-  expect(host.querySelector("[data-home-remove] [role='alert']")?.textContent).toBe("it can't be removed right now: it is running again, or still has a plan.");
+  expect(host.querySelector("[data-home-remove] [role='alert']")?.textContent).toBe("It can't be removed right now: it is running again, or still has a plan.");
 });
 
 it("remove from list shows only where the Admin says so and the app can; a Cloud that didn't answer offers Try again", async () => {

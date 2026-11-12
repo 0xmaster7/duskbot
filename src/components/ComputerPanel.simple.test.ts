@@ -260,7 +260,7 @@ describe("Choosing a place in the panel", () => {
     fixture.config = { ...fixture.config, vps: { configured: false } };
     fixture.seed = { phase: "vps-unconfigured", resolved: { botId: "scout", threadId: "thread-scout", computer: "cloud", cloudBackend: "vps" } };
     const admin = render(makeBot({ computer: "cloud" }));
-    expect(admin.html).toContain("connect your own machine in settings to give bots their own private desktops.");
+    expect(admin.html).toContain("Connect your own machine in settings to give bots their own private desktops.");
     expect(admin.html).not.toMatch(/\x42oat|API key|paid service/);
     const action = admin.button("add your VPS")!;
     (action.props.onClick as () => void)();
@@ -270,7 +270,7 @@ describe("Choosing a place in the panel", () => {
     fixture.values = [];
     phaseIndex = -1;
     const user = render(makeBot({ computer: "cloud" }));
-    expect(user.html).toContain("ask an admin to change it.");
+    expect(user.html).toContain("Ask an admin to change it.");
     expect(user.button("add your VPS")).toBeUndefined();
   });
 
@@ -282,7 +282,7 @@ describe("A chat pinned to a place", () => {
     text(rendered.nodes.find((node) => node.props["data-testid"] === "place-pinned-note")!.props.children);
 
   it("names the place in the grid's words, without pointing Simple at a composer chip it no longer has", () => {
-    expect(note(render(pinned()))).toBe("this chat is pinned to “cloud desktop”.");
+    expect(note(render(pinned()))).toBe("This chat is pinned to “cloud desktop”.");
 
   });
 

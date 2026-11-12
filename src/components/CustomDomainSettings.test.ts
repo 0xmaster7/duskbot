@@ -29,7 +29,7 @@ describe("custom domain setup guidance", () => {
     expect(html).toContain("AAAA");
     expect(html).toContain("administrator must configure HTTPS");
     expect(html).toContain("exact installation before saving");
-    expect(html).toContain("never publish the app");
+    expect(html).toContain("Never publish the app");
     expect(html).toContain("bots.example.com");
     expect(html).not.toContain(status.publicUrl!);
     // the guide is rows in its own small dialog: no fold-outs or code blocks on the page
@@ -75,7 +75,7 @@ describe("copyable DNS record", () => {
 
   it("never substitutes the tunnel address or a placeholder for a missing server IP", () => {
     const html = renderToStaticMarkup(createElement(CustomDomainDnsRecord, { domain: "bots.company.com" }));
-    expect(html).toContain("ask your server administrator");
+    expect(html).toContain("Ask your server administrator");
     expect(html).not.toContain('aria-label="copy value / IP"');
     expect(html).not.toContain("127.0.0.1");
   });

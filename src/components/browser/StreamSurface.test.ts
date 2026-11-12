@@ -154,7 +154,7 @@ describe("what the page asks of the person", () => {
     await show(control("you"));
     await act(async () => events().onFileChooser?.({ multiple: true, accept: ".txt", uploadUrl: "/api/bots/pepper/browser/upload?chooser=c1", credentials: true }));
     const picker = host.querySelector<HTMLInputElement>('input[type="file"]')!;
-    expect(host.textContent).toContain("the page asks for files.");
+    expect(host.textContent).toContain("The page asks for files.");
     expect(picker.multiple).toBe(true);
     expect(picker.accept).toBe(".txt");
     const file = new File(["hello"], "notes.txt", { type: "text/plain" });
@@ -164,7 +164,7 @@ describe("what the page asks of the person", () => {
     expect(fetches).toHaveLength(1);
     expect(fetches[0]!.url).toBe("/api/bots/pepper/browser/upload?chooser=c1");
     expect((fetches[0]!.body.get("file") as File).name).toBe("notes.txt");
-    expect(host.textContent).not.toContain("the page asks for");
+    expect(host.textContent).not.toContain("The page asks for");
     await act(async () => events().onFileChooser?.({ multiple: false, accept: "", uploadUrl: "/api/bots/pepper/browser/upload?chooser=c2", credentials: true }));
     await act(async () => button("cancel").click());
     await flush();
@@ -226,7 +226,7 @@ describe("what the page asks of the person", () => {
     const dialog = { type: "confirm", message: "Leave this page?", defaultValue: "" };
     await show(control("agent", { dialog }));
     expect(host.textContent).toContain("Leave this page?");
-    expect(host.textContent).toContain("take control to respond.");
+    expect(host.textContent).toContain("Take control to respond.");
     await show(control("you", { dialog }));
     await act(async () => button("accept").click());
     expect(client.send).toHaveBeenCalledWith({ type: "dialog", accept: true });

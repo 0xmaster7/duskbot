@@ -502,9 +502,9 @@ describe("phone setup flow", () => {
       new Error(
         `Error invoking remote method 'companion-account:request-code': Error: The secure connection request was not allowed. Try signing in again. Reference: ${requestId}.`,
       ),
-      "we could not send the code. try again.",
+      "We could not send the code. Try again.",
     );
-    expect(message).toBe(`we could not send the code. try again. reference: ${requestId}.`);
+    expect(message).toBe(`We could not send the code. Try again. Reference: ${requestId}.`);
     expect(message).not.toContain("remote method");
     expect(message).not.toContain("companion-account");
   });
@@ -519,7 +519,7 @@ describe("phone setup flow", () => {
         "We could not finish setup. Try again.",
       ),
     ).toBe(
-      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. reference: ${requestId}.`,
+      `Secure HTTPS links are temporarily full. Try again in 10 minutes, or pair on this Wi-Fi or with Tailscale. Reference: ${requestId}.`,
     );
   });
 
@@ -533,15 +533,15 @@ describe("phone setup flow", () => {
         ),
         "We could not finish setup. Try again.",
       ),
-    ).toBe(`${busy} reference: ${requestId}.`);
+    ).toBe(`${busy} Reference: ${requestId}.`);
   });
 
   it("replaces arbitrary IPC details with calm setup copy", () => {
     expect(
       normalizePhoneSetupActionError(
         new Error("Error invoking remote method 'companion-account:request-code': Error: /private/keychain failed"),
-        "we could not send the code. try again.",
+        "We could not send the code. Try again.",
       ),
-    ).toBe("we could not send the code. try again.");
+    ).toBe("We could not send the code. Try again.");
   });
 });

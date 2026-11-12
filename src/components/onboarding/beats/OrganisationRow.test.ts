@@ -115,7 +115,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     await mount();
     const html = render().html;
     expect(html).toContain("using dusk bot at work?");
-    expect(html).toContain("sign in with your organization.");
+    expect(html).toContain("Sign in with your organization.");
     expect(html).toContain("other admin address");
     expect(bridge.begin).not.toHaveBeenCalled();
     expect(bridge.settingsOpened).not.toHaveBeenCalled();
@@ -166,7 +166,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     await mount({ ...connected, providers: [] });
     const html = render().html;
     expect(html).toContain("signed in to Fixture Company");
-    expect(html).toContain("no company models are available yet");
+    expect(html).toContain("No company models are available yet");
     expect(onConnected).not.toHaveBeenCalled();
   });
 
@@ -186,7 +186,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     button("sign in")!.props.onClick!();
     await flush();
     const html = render().html;
-    expect(html).toContain("could not complete this action");
+    expect(html).toContain("Could not complete this action");
     expect(html).not.toContain("token-secret");
   });
 

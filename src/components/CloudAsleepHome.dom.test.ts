@@ -52,7 +52,7 @@ it("never shows a sleeping Cloud: opening the screen wakes it once and only says
   expect(host.querySelector("nav button[aria-current='page']")?.textContent).toBe("Quill");
   await key("h");
   expect(bridge.wake, "typing after the wake asks nothing more").toHaveBeenCalledTimes(1);
-  expect(composer().getAttribute("aria-label")).toBe("message Quill");
+  expect(composer().getAttribute("aria-label")).toBe("Message Quill");
 });
 
 it("a message written while it connects is held and sent once it is up", async () => {
@@ -74,7 +74,7 @@ it("with nothing seen yet it still only connects; a failed wake offers Try again
   const empty = bridgeOf({ screen: "asleep" }, null);
   empty.bridge.wake.mockRejectedValueOnce(new Error("offline"));
   await mount(empty.bridge);
-  expect(host.textContent).toContain("no chats seen on this computer yet.");
+  expect(host.textContent).toContain("No chats seen on this computer yet.");
   const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "try again")!;
   expect(button).toBeTruthy();
   await act(async () => { button.click(); });
