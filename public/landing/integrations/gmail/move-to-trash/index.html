@@ -30,7 +30,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"gmail","item":"https://dusk.bot/integrations/gmail"},{"@type":"ListItem","position":4,"name":"move to trash","item":"https://dusk.bot/integrations/gmail/move-to-trash"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"clear one gmail message without deleting it forever","description":"Clear selected Gmail messages while keeping a recovery path. Preview the sender and subject, then have the bot move only the emails you approve.","image":"https://dusk.bot/art/seo/integrations--gmail--move-to-trash.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/gmail/move-to-trash"}</script>
 </head>
@@ -44,8 +44,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/gmail">gmail</a></p>
 <header class="seo-top"><h1>clear one gmail message without deleting it forever</h1>
-<p class="lede seo-answer"><strong>clear the old shipping notice and keep the booking you still need.</strong> a bot can move a gmail message to trash while leaving the rest of its conversation alone. you can recover it until trash empties. it still uses storage until then. trash moves don't use sending approval, so put 'ask me before moving anything' in the request.</p>
+<p class="lede seo-answer"><strong>clear the old shipping notice and keep the booking you still need.</strong> a bot can move a gmail message to trash while leaving the rest of its conversation alone.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">you can recover it until trash empties. it still uses storage until then. trash moves don't use sending approval, so put 'ask me before moving anything' in the request.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--gmail--move-to-trash.webp?v=b22ff550" srcset="/art/seo/integrations--gmail--move-to-trash-660.webp 660w, /art/seo/integrations--gmail--move-to-trash.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a cyan pixel bot and a mint pixel bot beside the Gmail mark on a white tile, a mailbox with a letter and a folder of papers, on a sandy path in front of a calm sea with one small island, one saying &quot;that message can go&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="move-to-trash-in-plain-words"><h2 id="move-to-trash-in-plain-words">move to trash, in plain words</h2>
 <p><strong>trash one email without wiping the conversation.</strong> the bot searches for the message and checks its subject and first lines. other replies stay where they are.</p>
@@ -70,7 +71,7 @@ move both to trash? the other replies will stay put.</code></pre></div>
 <ul><li><strong>trash still uses storage.</strong> space only clears when trash empties.</li><li><strong>one email moves.</strong> the rest of its conversation stays put.</li><li><strong>put the pause in the request.</strong> say when the bot should show its matches and ask you to choose.</li></ul>
 </section>
 <section class="seo-sec" aria-labelledby="the-details-it-works-from"><h2 id="the-details-it-works-from">the details it works from</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>message_id</code></th><td>yes</td><td>Required.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_MOVE_TO_TRASH</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>message_id</code></th><td>yes</td><td>Required.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_MOVE_TO_TRASH</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <aside class="seo-tip"><svg class="bot c-violet seo-mini big" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="hoot"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M3 1h1v1h-1zM12 1h1v1h-1zM3 2h2v1h-2zM11 2h2v1h-2zM3 3h10v3h-10zM2 6h3v4h-3zM7 6h2v4h-2zM11 6h3v4h-3zM2 10h12v3h-12zM3 13h10v2h-10zM5 15h6v1h-6z"/><path class="px-e" fill="#fff" d="M5 6h2v4h-2zM9 6h2v4h-2z"/></g></svg><p>start with one email you'd recognise in trash, then widen the search.</p></aside>
 <section class="seo-sec seo-quick-sec" aria-labelledby="try-it-in-2-minutes"><h2 id="try-it-in-2-minutes">try it in 2 minutes</h2>
@@ -113,6 +114,6 @@ move both to trash? the other replies will stay put.</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

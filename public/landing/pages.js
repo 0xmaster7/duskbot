@@ -133,8 +133,6 @@ addEventListener('load', () => {
   if (pond.length) setInterval(() => { if (!document.hidden) B.react(pond[Math.floor(Math.random() * pond.length)], 'hop'); }, 4200);
 });
 
-const title = document.title;
-document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'the bots miss you' : title; });
 
 // the footer knows what time it is
 const dusk = $('[data-dusk]'), hour = new Date().getHours();

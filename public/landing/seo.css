@@ -1,7 +1,9 @@
 /* the guides, integrations, comparisons and other seo pages (seo/ builds them). they sit in the docs' columns and use
    pages.css for type, tables, callouts and copy boxes; this adds only what they have and the docs do not */
 .seo-top h1 { font-size: clamp(38px, 4.6vw, 56px); line-height: 1; letter-spacing: -0.05em; font-weight: 500; margin: 0; text-wrap: balance; }
-.seo-top .seo-answer { margin: 20px 0 0; font-size: 19px; line-height: 1.5; color: var(--ink); max-width: none; text-wrap: pretty; }
+/* one description style for every seo page and hub: under the h1, two or three lines at most */
+.seo-top .seo-answer, .p-seo-hub .phead .lede { margin: 18px 0 0; font-size: 17.5px; line-height: 1.6; letter-spacing: -0.01em; font-weight: 500; color: var(--ink-2); max-width: 640px; text-wrap: pretty; }
+.doc.prose > .seo-answer-more { margin: 24px 0 0; }
 .seo-meta { margin: 16px 0 0; font: 500 12.5px/1.5 var(--mono); color: var(--ink-3); }
 .seo-meta a { color: var(--ink-3); font-weight: 500; }
 .seo-hero { margin: 28px 0 8px; max-width: none; }
@@ -9,8 +11,18 @@
 .doc.prose > .seo-hero, .doc.prose > .seo-sec, .doc.prose > .seo-cta, .doc.prose > .seo-related, .doc.prose > .seo-sources { max-width: none; }
 .seo-sec > .table, .seo-sec > .code { max-width: none; }
 .seo-sec h3 { margin-top: 28px; }
-.seo .table th[scope="row"] { font-weight: 550; color: var(--ink); text-align: left; }
-.seo .table td, .seo .table th { vertical-align: top; }
+/* tables: a narrow label column that stays put while the values scroll sideways inside the rounded box; no rules,
+   rows part by a soft alternating background */
+.seo .table { padding: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.seo .table:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.seo .table table { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; font-size: 15px; line-height: 1.5; }
+.seo .table th, .seo .table td { padding: 12px 16px; border: 0; vertical-align: top; text-align: left; background: var(--wash); }
+.seo .table tbody tr:nth-child(even) > * { background: #ededea; }
+.seo .table td { min-width: 200px; color: var(--ink-2); font-weight: 500; }
+.seo .table thead th { padding-top: 14px; font-weight: 550; color: var(--ink); white-space: nowrap; }
+.seo .table th[scope="row"], .seo .table thead th:first-child { position: sticky; left: 0; z-index: 1; width: 132px; min-width: 120px; max-width: 140px; white-space: normal; }
+.seo .table th[scope="row"] { font-weight: 550; color: var(--ink); }
+.seo .table tbody tr:last-child > * { padding-bottom: 14px; }
 .seo sup a { font: 500 11px/1 var(--mono); text-decoration: none; padding: 0 2px; color: var(--blue); }
 .seo-fact { font-size: 15px; color: var(--ink-2); font-weight: 500; }
 .seo-steps { padding-left: 1.3em; }
@@ -61,7 +73,7 @@
 @media (max-width: 760px) {
   .seo-cards, .seo-hub .seo-cards, .seo-verdict, .seo-specs { grid-template-columns: 1fr; }
   .seo-cta { flex-direction: column; align-items: flex-start; }
-  .seo-top .seo-answer { font-size: 17.5px; }
+  .seo-top .seo-answer, .p-seo-hub .phead .lede { font-size: 17px; }
 }
 /* the free tools */
 .calc { margin: 28px 0 8px; padding: 24px 26px 18px; border-radius: var(--r-xl); background: var(--t-sky); }
@@ -108,7 +120,6 @@
 .seo-spotted { position: relative; }
 .seo-spot { float: right; width: 92px; height: auto; margin: 0 0 12px 20px; image-rendering: pixelated; rotate: 3deg; }
 .seo-th { display: inline-flex; align-items: center; gap: 6px; }
-.seo-compare .table tbody tr:nth-child(even) { background: #fff; }
 
 /* try it in 2 minutes: illustrated step cards */
 .seo-quick { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gut); counter-reset: q; }
