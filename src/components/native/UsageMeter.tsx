@@ -140,7 +140,7 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
         {reset && <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary">{reset}</div>}
       </div>
       <button type="button" data-usage-see="" onClick={onSeeUsage}
-        className="h-6 shrink-0 cursor-pointer rounded-full px-2 text-[12px] leading-4 text-ink transition-colors duration-[120ms] ease-out hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
+        className="h-7 shrink-0 cursor-pointer rounded-full bg-ink/[0.07] px-3 text-[12px] font-medium leading-4 text-ink transition-colors duration-[120ms] ease-out hover:bg-ink/[0.11] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
         {t("nativeUsage.banner.see")}
       </button>
       <button type="button" aria-label={t("nativeUsage.banner.dismiss")} title={t("nativeUsage.banner.dismiss")}
