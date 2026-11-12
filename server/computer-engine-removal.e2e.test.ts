@@ -1,24 +1,26 @@
-// real server, fake claude cli, and a loopback retired desktop provider that fails the test on any call to the retired desktop provider's own agent
-// (/prompt, /prompts/{id}, /events, /interrupt).
+// real server, fake claude cli, and a fake docker over ssh standing in for the bot's VPS: every bot's cloud desktop is on a VPS.
 import { spawn, type ChildProcess } from "node:child_process";
-import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runControlDusk } from "../scripts/control-dusk.ts";
+import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 import { SNAPSHOT_REUSE_MS } from "./harness/registry.ts";
 import { freePortBlock } from "./testing/ports.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { vpsContainerName } from "./vps-computer.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const FAKE_CLI = join(ROOT, "server/testing/fake-claude-cli.ts");
 const ENGINE_NAME = "Verification Claude";
 const REMOVED = "The Computer choice in the model list was removed.";
-const JPEG = Buffer.from("/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD8qqKKKAP/2Q==", "base64");
+/** the bot's VPS: keepCloud follows it, as every bot is on one now */
+const VPS = { sshAlias: "fixture-vps", mode: "per-bot" };
+type LocalVm = Awaited<ReturnType<typeof createTeamVpsFixture>>["localVm"];
 
-function install(home: string) {
+function install(home: string, vm: LocalVm) {
   const data = join(home, "data");
   const dumpFile = join(home, "dump.json");
   let child: ChildProcess | null = null;
@@ -87,6 +89,7 @@ function install(home: string) {
         TEMP: home, TMP: home, TMPDIR: home,
         DUSK_PORT: String(port), DUSK_WEBHOOK_PORT: String(port + 1), DUSK_STATIC_DIR: join(home, "static"),
         DUSK_USER_DATA: join(home, "user-data"),
+        DUSK_EXTRA_PATH: [vm.binDir].join(delimiter), CONTAINER_HOST: vm.host, CONTAINER_SSHKEY: vm.sshKey,
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     child = proc;
@@ -119,64 +122,34 @@ const savedOnEngine = (saved: any) => {
 describe("removing the Computer engine", () => {
   const homes: string[] = [];
   const running: Array<{ stop: () => Promise<void> }> = [];
-  let retiredServer: Server;
-  const rows: Array<{ id: string; name: string; state: string }> = [];
-  let retiredCalls = 0;
-  let boxesCreated = 0;
-  /** Calls to the retired desktop provider's own agent: the place no turn may ever go. */
-  const agentCalls: string[] = [];
+  let vps: Awaited<ReturnType<typeof createTeamVpsFixture>>;
   const fresh = () => {
     const home = mkdtempSync(join(tmpdir(), "dusk-computer-engine-"));
     homes.push(home);
-    const server = install(home);
+    const server = install(home, vps.localVm);
     running.push(server);
     return { home, server };
   };
+  /** the bot's desktops on the VPS */
+  const madeFor = (botId: string) => readdirSync(vps.records)
+    .filter(file => JSON.parse(readFileSync(join(vps.records, file), "utf8")).Name === `/${vpsContainerName(botId)}`).length;
+  const desktops = () => readdirSync(vps.records).length;
 
-  beforeAll(async () => {
-    retiredServer = createServer(async (req, res) => {
-      const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
-      let raw = ""; for await (const part of req) raw += part;
-      const body = raw ? JSON.parse(raw) : {};
-      res.setHeader("content-type", "application/json");
-      retiredCalls++;
-      if (/\/(prompt|events|interrupt)$|\/prompts\//.test(path)) {
-        agentCalls.push(`${req.method} ${path}`);
-        res.statusCode = 409;
-        return res.end(JSON.stringify({ ok: false, code: "provider_not_configured", message: "Claude login required" }));
-      }
-      if (path === "/sandboxes" && req.method === "POST") {
-        boxesCreated++;
-        const row = { id: `bx_2345678${"abcdefgh"[rows.length]}`, name: body.name, state: "idle" }; rows.push(row);
-        return res.end(JSON.stringify({ sandbox: row }));
-      }
-      if (path === "/sandboxes") return res.end(JSON.stringify({ sandboxes: rows }));
-      if (path.endsWith("/commands")) return res.end(JSON.stringify({ exitCode: 0, stdout: "captured", stderr: "" }));
-      if (path.endsWith("/artifacts")) { res.setHeader("content-type", "image/jpeg"); return res.end(JPEG); }
-      if (path.endsWith("/desktop")) return res.end(JSON.stringify({ desktopUrl: "https://desktop.fixture.invalid" }));
-      const row = rows.find(entry => path === "/sandboxes/" + entry.id);
-      if (row) {
-        if (req.method === "PATCH" && typeof body.name === "string") row.name = body.name;
-        return res.end(JSON.stringify({ sandbox: row }));
-      }
-      res.end("{}");
-    });
-    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
-  });
+  beforeAll(async () => { vps = await createTeamVpsFixture(); });
   afterAll(async () => {
     for (const server of running) await server.stop();
-    if (retiredServer) { retiredServer.closeAllConnections(); await new Promise<void>(resolve => retiredServer.close(() => resolve())); }
+    await vps?.close();
     for (const home of homes) await removeTempDir(home);
   });
 
-  it("moves bots off it once, keeps each conversation where it worked, and never hands a turn to the retired desktop provider's own agent", async () => {
+  it("moves bots off it once, keeps each conversation where it worked, and runs each on its VPS desktop", async () => {
     const { server } = fresh();
-    // a turn's first computer call is what creates the retired desktop provider, as with a real model, so this engine uses the cloud computer.
+    // the engine claims the computer it is given, as a real model's first screen call does.
     const claudeEntry = (dumpFile: string) => ({
       driver: "claudeAgent", displayName: ENGINE_NAME, config: { cli: FAKE_CLI },
       environment: { FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
     });
-    server.editConfig(config => Object.assign(config, { box: { token: "box_verification_fixture" }, instances: { claude: claudeEntry(server.dumpFile) } }));
+    server.editConfig(config => Object.assign(config, { vps: VPS, instances: { claude: claudeEntry(server.dumpFile) } }));
     await server.start();
     const [starter] = await server.bots();
     const { task: opened } = await server.api("POST", `/api/bots/${starter.id}/tasks`, {});
@@ -196,7 +169,7 @@ describe("removing the Computer engine", () => {
       automaticRecovery: { enabled: true, backup: { instanceId: "computer", model: "sonnet" } },
     }));
     // The starter: on the engine with Works on Cloud, another conversation
-    // and a backup on it, and the retired desktop provider's run id.
+    // and a backup on it, and the engine's old run id.
     server.editSavedBot(starter.id, saved => {
       saved.modelSelection = onEngine("claude-fable-5");
       saved.computer = "cloud";
@@ -264,22 +237,20 @@ describe("removing the Computer engine", () => {
 
     const cloudTurn = await server.turn(starter.id, main, "Take a screenshot of the cloud computer.");
     expect(cloudTurn.argv[cloudTurn.argv.indexOf("--model") + 1]).toBe(replacement.model);
-    expect(cloudTurn.mcpConfig.mcpServers.computer.args).toEqual([expect.stringMatching(/harness-mcp-proxy\.(?:ts|js)$/), "computer"]);
-    expect(boxesCreated).toBe(1);
-    expect(agentCalls).toEqual([]);
+    expect(cloudTurn.mcpConfig.mcpServers.computer.env.DUSK_CONTROL_URL).toBeTruthy();
+    expect(madeFor(starter.id)).toBe(1);
 
     const { task: atlasNew } = await server.api("POST", `/api/bots/${auto.id}/tasks`, {});
     const autoMovedTurn = await server.turn(auto.id, atlasNew.threadId, "Take a screenshot of the cloud computer.");
-    expect(autoMovedTurn.mcpConfig.mcpServers.computer.args).toEqual([expect.stringMatching(/harness-mcp-proxy\.(?:ts|js)$/), "computer"]);
-    expect(boxesCreated).toBe(2);
-    expect(agentCalls).toEqual([]);
+    expect(autoMovedTurn.mcpConfig.mcpServers.computer.env.DUSK_CONTROL_URL).toBeTruthy();
+    expect(madeFor(auto.id)).toBe(1);
 
+    // back on Auto, a plain question makes no new desktop
     await server.api("PATCH", `/api/bots/${starter.id}`, { computer: null });
-    const callsBeforeAuto = retiredCalls;
-    const autoTurn = await server.turn(starter.id, other, "what is 2+2?");
-    expect(autoTurn.mcpConfig?.mcpServers?.computer?.args?.[1]).not.toBe("computer");
-    expect(retiredCalls - callsBeforeAuto, "an Auto turn reached the retired desktop provider account").toBe(0);
-    expect(agentCalls).toEqual([]);
+    const before = desktops();
+    await server.turn(starter.id, other, "what is 2+2?");
+    expect(desktops()).toBe(before);
+    expect(madeFor(starter.id)).toBe(1);
     await server.stop();
   }, 180_000);
 
@@ -289,7 +260,7 @@ describe("removing the Computer engine", () => {
     // start. (A fleet without a "claude" id is kept exactly as written.)
     const cli = join(home, "later", "claude.mjs");
     const later = { driver: "claudeAgent", displayName: ENGINE_NAME, config: { cli }, environment: { FAKE_CLAUDE_DUMP: server.dumpFile } };
-    server.editConfig(config => Object.assign(config, { box: { token: "box_verification_fixture" }, instances: { later } }));
+    server.editConfig(config => Object.assign(config, { vps: VPS, instances: { later } }));
     await server.start();
     const [starter] = await server.bots();
     await server.stop();
@@ -322,7 +293,7 @@ describe("removing the Computer engine", () => {
   it("keeps serving when the move fails at start, and moves the bots on a later try", async () => {
     const { server } = fresh();
     const teams = join(server.data, "section-contexts.json");
-    server.editConfig(config => Object.assign(config, { box: { token: "box_verification_fixture" }, instances: { claude: claudeEntry(server.dumpFile) } }));
+    server.editConfig(config => Object.assign(config, { vps: VPS, instances: { claude: claudeEntry(server.dumpFile) } }));
     await server.start();
     const [starter] = await server.bots();
     await server.stop();
@@ -353,7 +324,7 @@ describe("removing the Computer engine", () => {
       driver: "openai-compat", displayName: "Chat Only",
       config: { url: "http://127.0.0.1:9/v1", key: "sk-verification-fixture", tools: false, model: "chat-model" },
     };
-    server.editConfig(config => Object.assign(config, { box: { token: "box_verification_fixture" }, instances: { chat } }));
+    server.editConfig(config => Object.assign(config, { vps: VPS, instances: { chat } }));
     await server.start();
     const [starter] = await server.bots();
     await server.stop();
