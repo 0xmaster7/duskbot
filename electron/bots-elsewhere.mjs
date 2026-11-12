@@ -52,6 +52,26 @@ export async function readBotCounts({ places, fetch, asleep = () => false, heade
   return counts;
 }
 
+/**
+ * Whether the person has picked where this app opens at least once: a place, or this computer itself. Until then this
+ * computer's empty page offers the places; after, it never stands in the way again.
+ * @param {{ read: () => any, write: (value: any) => void }} file
+ */
+export function placesChosenStore(file) {
+  let known = null;
+  return {
+    chosen() {
+      if (known === null) { try { known = file.read()?.chosen === true; } catch { known = false; } }
+      return known;
+    },
+    choose() {
+      if (known === true) return;
+      known = true;
+      try { file.write({ chosen: true }); } catch { /* kept for this run */ }
+    },
+  };
+}
+
 /** What the account remembers of a place: a team's Cloud comes with the sign-in itself, so it is not noted. */
 const setupOf = (place, at) => (place.why === "team" ? null : { kind: place.why === "cloud" ? "cloud" : "server", name: place.name, at });
 
@@ -59,11 +79,11 @@ const setupOf = (place, at) => (place.why === "team" ? null : { kind: place.why 
  * @param {{ ipcMain: any, guard: (channel: string, handler: Function) => Function, places: () => ReturnType<typeof placesElsewhere>,
  *   account: () => { id?: string } | null, store: import("./account-setup-store.mjs").AccountSetupStore,
  *   open: (id: string) => unknown, connectCloud: () => unknown, counts?: () => Promise<Record<string, number>>,
- *   now?: () => number, log?: (line: string) => void }} deps `counts()`: each saved place's bots, by its id (readBotCounts).
+ *   chosen?: ReturnType<typeof placesChosenStore>, now?: () => number, log?: (line: string) => void }} deps `counts()`: each saved place's bots, by its id (readBotCounts).
  * `account()`: the signed-in account, null when there is none. `open(id)`: main's own switch to a saved place (or My Cloud
  * as home), settled once the window has gone there or stayed, false (or a throw) when it didn't open; `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
  */
-export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, counts = async () => ({}), now = Date.now, log = () => {} }) {
+export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, counts = async () => ({}), chosen = { chosen: () => false, choose: () => {} }, now = Date.now, log = () => {} }) {
   const signedIn = () => { const id = account()?.id; return typeof id === "string" && id ? id : null; };
 
   /** Notes the likeliest place for the signed-in account, once it is known here. */
@@ -78,7 +98,7 @@ export function installBotsElsewhere({ ipcMain, guard, places, account, store, o
     await remember();
     const id = signedIn();
     const known = id && !list.length ? await store.read(id).catch(() => null) : null;
-    return { places: list, known: known ? { kind: known.kind, name: known.name } : null };
+    return { places: list, known: known ? { kind: known.kind, name: known.name } : null, chosen: chosen.chosen() };
   }
 
   ipcMain.handle("elsewhere:state", guard("elsewhere:state", () => view()));
@@ -87,13 +107,20 @@ export function installBotsElsewhere({ ipcMain, guard, places, account, store, o
   // (unknown, unreachable, or the switch said no), so the page can say so under its row.
   ipcMain.handle("elsewhere:open", guard("elsewhere:open", async (_event, id) => {
     if (typeof id !== "string" || !places().some((place) => place.id === id)) return false;
-    try { return (await open(id)) !== false; } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); return false; }
+    try {
+      const opened = (await open(id)) !== false;
+      if (opened) chosen.choose();
+      return opened;
+    } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); return false; }
   }));
+  // this computer, picked on the page itself: it opens here from now on and the page stops offering the places
+  ipcMain.handle("elsewhere:stay", guard("elsewhere:stay", () => { chosen.choose(); return true; }));
   ipcMain.handle("elsewhere:counts", guard("elsewhere:counts", () => counts().catch(() => ({}))));
   // "server": the page opens its own Add your VPS sheet; a Cloud connects from the session main holds, answered once over
   ipcMain.handle("elsewhere:connect", guard("elsewhere:connect", async () => {
     const id = signedIn(), known = id ? await store.read(id).catch(() => null) : null;
     if (!known) return null;
+    chosen.choose();
     if (known.kind === "cloud") { try { await connectCloud(); } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); } }
     return known.kind;
   }));

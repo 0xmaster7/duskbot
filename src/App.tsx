@@ -13,6 +13,10 @@ import { LiveCallHost } from "@/components/LiveCallHost";
 import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { useAmbientAway } from "@/ambient/away";
 import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
+import { MacEmptyMain, useMacEmptyShown } from "@/components/MacEmptyMain";
+import { PlaceSetupHost } from "@/components/PlaceSetup";
+import { useMacEmpty } from "@/lib/bots-elsewhere";
+import { openPlaceSetup } from "@/lib/place-setup";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
@@ -108,6 +112,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   useEffect(() => {
     if (!window.duskDesktop?.environments) return;
     const open = () => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
+    // connect a server (the switcher, the rail's address choice): the guided setup, never Settings; sharing this computer
+    // with one still lands on its Settings page
+    const connect = (computerId?: string | null) => (computerId ? open() : openPlaceSetup());
     const url = new URL(window.location.href);
     const requestedSettings = url.searchParams.get("desktop-settings");
     const cloud = ["cloud", "cloud-settings", "cloud-add", "cloud-add-howto"].includes(requestedSettings ?? "");
@@ -119,9 +126,10 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       else if (requestedSettings === "cloud") dispatch(CLOUD_LINK_SETTINGS);
       else if (requestedSettings === "cloud-settings") dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
       else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch({ type: "openCloudAdd", source: requestedSettings === "cloud-add" ? "app_menu" : "app_howto" });
-      else open();
+      else if (url.searchParams.has("share-computer")) open();
+      else openPlaceSetup();
     }
-    return window.duskDesktop.environments.onOpenSettings?.(open);
+    return window.duskDesktop.environments.onOpenSettings?.(connect);
   }, [dispatch]);
   useEffect(() => {
     const rest = takePhonePairingRequest(window.location.href);
@@ -152,6 +160,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const loading = loadingLine({ connected: state.connected, hydrated: state.hydrated === true, developer: import.meta.env.DEV });
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
+  const macFrom = useMacEmpty();
+  const macEmpty = useMacEmptyShown(macFrom, state.selectedId);
   useProductScreen(state.appSettingsOpen ? "/settings" : state.pluginsOpen ? "/apps" : group ? "/rooms/:id" : bot ? (state.activeView === "files" ? "/bots/:id/files" : "/bots/:id") : "/", group?.id ?? bot?.id);
   useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
@@ -321,6 +331,8 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         <CloudEngineSignIn />
       ) : noEngines ? (
         <NoEngines />
+      ) : macEmpty && macFrom ? (
+        <MacEmptyMain from={macFrom} />
       ) : group ? (
         <GroupView key={group.id} group={group} />
       ) : bot ? (
@@ -347,6 +359,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <WelcomeKeeper viewer={viewer} />
       <ConnectAppsHost />
       <AddVpsHost />
+      <PlaceSetupHost />
       <CloudMoveHost />
       {state.shortcutsOpen && (
         <KeyboardShortcutsModal

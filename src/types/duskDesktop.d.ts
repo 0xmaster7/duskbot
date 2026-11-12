@@ -258,7 +258,7 @@ const __APP_VERSION__: string;
         /** {ok:false} when main refused (active local, failed folder delete); a
          * cancelled remote confirm and remote success answer nothing. */
         forget: (id: string, purge?: boolean) => Promise<{ ok: boolean; error?: string } | void>;
-        onOpenSettings?: (callback: () => void) => () => void;
+        onOpenSettings?: (callback: (computerId?: string | null) => void) => () => void;
       };
       confirm(message: string): Promise<boolean>;
       /** Touch ID, Windows Hello or polkit, else an in-app confirm; true only when the person passed. Absent in older

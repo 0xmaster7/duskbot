@@ -9,16 +9,17 @@ import { cn } from "@/lib/cn";
 import { useCloudMoveOpen } from "@/lib/cloud-move";
 import { t } from "@/lib/i18n";
 import { usePlaces } from "@/lib/places";
+import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
 import { openAddVps, useAddVpsOpen } from "@/lib/vps-link";
 import {
-  devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, parseBotCounts, parseElsewhereView,
-  setSimulatedFreshInstall, SIMULATED_FRESH_INSTALL, useSimulatedFreshInstall, type ElsewherePlace, type ElsewhereScreen, type ElsewhereView,
+  choosePlacesHere, devToolsShown, dismissKey, dismissedPlaces, dismissPlace, elsewhereCovered, elsewhereScreen, emptyHere, macEmptyFrom, parseBotCounts,
+  parseElsewhereView, setMacEmpty, setSimulatedFreshInstall, SIMULATED_FRESH_INSTALL, useSimulatedFreshInstall, type ElsewherePlace, type ElsewhereScreen,
+  type ElsewhereView,
 } from "@/lib/bots-elsewhere";
 import { useStore } from "@/state/store";
 import { useAmbientAway } from "@/ambient/away";
 import { ChevronRight } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
-import { Icon } from "./Icon";
 import { NavRow } from "./ListRows";
 import { SIMPLE_CARD } from "./SettingsPrimitives";
 import { PixelIcon } from "./ui/PixelIcon";
@@ -61,8 +62,10 @@ export function BotsElsewhere() {
   // the place that last failed to open: its row says so and stays clickable
   const [failed, setFailed] = useState<string | null>(null);
   const covered = elsewhereCovered({
-    settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()),
+    settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()), placeSetup: usePlaceSetupOpen(),
   });
+  // picked here, this run: the page is this computer's from now on, whatever main's older answer said
+  const [stayed, setStayed] = useState(false);
   const empty = state.hydrated === true && state.connected && emptyHere(state.bots);
 
   const load = useCallback(() => {
@@ -79,14 +82,21 @@ export function BotsElsewhere() {
 
   const screen = simulated
     ? elsewhereScreen({ view: SIMULATED_FRESH_INSTALL, empty: true, dismissed: [] })
-    : elsewhereScreen({ view, empty, dismissed });
+    : stayed ? null : elsewhereScreen({ view, empty, dismissed });
+  const from = simulated ? null : macEmptyFrom({ view, empty, screen });
+  useEffect(() => { setMacEmpty(from); }, [from]);
+  useEffect(() => () => setMacEmpty(null), []);
   useAmbientAway("places-hub", Boolean(screen));
   if (!screen || covered) return null;
 
+  // this computer, chosen: the normal app here, and the places are not offered by themselves again
   const stay = () => {
     if (simulated) return setSimulatedFreshInstall(false);
     dismissPlace(dismissKey(screen));
     setDismissed(dismissedPlaces());
+    choosePlacesHere();
+    void bridge?.stay?.().catch(() => {});
+    setStayed(true);
   };
   // an answer that reaches this page means the window stayed here, so the screen is itself again
   const open = (id: string) => {
@@ -118,20 +128,19 @@ export function BotsElsewhere() {
       opening={opening}
       failed={failed}
       simulated={simulated}
-      onOpen={open}
-      onStay={stay}
+      onOpen={(id) => (places.find((place) => place.id === id)?.active ? stay() : open(id))}
       getCloud={!hasCloud && canBuy ? () => dispatch({ type: "openCloudAdd", source: "app_settings" }) : null}
-      onAdd={() => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" })}
+      onAdd={openPlaceSetup}
     />
   );
 }
 
 /** The bots-on screen: a short heading and every place as one selectable row, how many bots it has and whether it is up,
- * then getting dusk cloud (or moving to it) and adding a place, and starting fresh here as the quiet last line. `lit`: the
+ * then getting dusk cloud (or moving to it) and adding a place. `lit`: the
  * place main says holds the bots, marked when no count says otherwise. */
-export function PlacesHub({ places, counts, lit, opening = null, failed = null, simulated = false, onOpen, onStay, getCloud, onAdd }: {
+export function PlacesHub({ places, counts, lit, opening = null, failed = null, simulated = false, onOpen, getCloud, onAdd }: {
   places: RailPlace[]; counts: Record<string, number>; lit: string; opening?: string | null; failed?: string | null; simulated?: boolean;
-  onOpen: (id: string) => void; onStay: () => void; getCloud: (() => void) | null; onAdd: () => void;
+  onOpen: (id: string) => void; getCloud: (() => void) | null; onAdd: () => void;
 }) {
   const busy = opening !== null;
   const counted = places.some((place) => !place.active && (counts[place.id] ?? 0) > 0);
@@ -164,23 +173,13 @@ export function PlacesHub({ places, counts, lit, opening = null, failed = null, 
             <NavRow data-settings-open="add-workspace" pixel="plus" title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
           </div>
         </div>
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={onStay}
-            disabled={busy}
-            className="rounded-full px-3 py-2 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
-          >
-            {t("elsewhere.startHere")}
-          </button>
-        </div>
       </div>
     </div>
   );
 }
 
-/** One place, the whole row a button: its icon with a status dot, its name, its bots and whether it is up; the place on
- * screen says current instead. */
+/** One place, the whole row a button: its icon with a status dot, its name, its bots and whether it is up. This computer's
+ * row opens this computer's own app. */
 function PlaceRow({ place, count, lit, opening, busy, onOpen }: {
   place: RailPlace; count: number | undefined; lit: boolean; opening: boolean; busy: boolean; onOpen: () => void;
 }) {
@@ -198,16 +197,8 @@ function PlaceRow({ place, count, lit, opening, busy, onOpen }: {
       </span>
     </>
   );
-  if (place.active) {
-    return (
-      <div data-place-row={place.kind} aria-current="true" className="flex min-w-0 items-center">
-        {body}
-        <span className="flex shrink-0 items-center gap-1 text-[12px] leading-4 text-ink-secondary"><Icon name="check" size={12} />{t("connectedWorkspaces.current")}</span>
-      </div>
-    );
-  }
   return (
-    <button type="button" data-place-row={place.kind} data-lit={lit || undefined} disabled={busy || !place.opens} aria-busy={opening || undefined}
+    <button type="button" data-place-row={place.kind} data-lit={lit || undefined} disabled={busy || (!place.opens && !place.active)} aria-busy={opening || undefined}
       aria-label={`${t("settings.s2.servers.switchTo", { name: place.name })} · ${hint}`} onClick={onOpen}
       className={cn("flex min-w-0 cursor-pointer items-center text-start outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default",
         lit ? "bg-ink/[0.05] hover:bg-ink/[0.075]" : "", !opening && "disabled:opacity-60")}>

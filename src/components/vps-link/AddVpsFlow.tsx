@@ -8,12 +8,13 @@ import { t } from "@/lib/i18n";
 import type { MausState } from "@/lib/mascot";
 import { EASE, REDUCED } from "@/lib/motion-presets";
 import { useVpsLink, vpsStage, type VpsLinkBridge, type VpsLinkView, type VpsMovePreview } from "@/lib/vps-link";
+import { emptyHere } from "@/lib/bots-elsewhere";
 import { useStore } from "@/state/store";
 import { useDialogKeys } from "../ui/GrokDialog";
 import { MotionDiv, useMotionReduced } from "../ui/SheetMotion";
 import { CommandScreen, InstallScreen } from "./CommandStage";
 import { moveProgress, movePhase, MoveScreen } from "./MoveStage";
-import { deviceWord, Footer, Heading, Lead, message, PILL, TITLE_ID } from "./parts";
+import { deviceWord, Footer, Heading, Lead, message, PILL, SOFT_PILL, TITLE_ID } from "./parts";
 import { Scene, type SceneBot, type SceneHandle, type SceneMode } from "./Scene";
 import { SignInScreen } from "./SignInStage";
 
@@ -33,7 +34,8 @@ const SCENE: Record<Screen, { mode: SceneMode; mascot: MausState }> = {
   moved: { mode: "moved", mascot: "celebrate" },
 };
 
-function ConnectedScreen({ view, onNext }: { view: VpsLinkView; onNext: () => void }) {
+/** `onOpen`: this computer has no bots to move, so the server can be opened straight away. */
+function ConnectedScreen({ view, onNext, onOpen }: { view: VpsLinkView; onNext: () => void; onOpen?: () => void }) {
   const name = view.server?.name ?? t("vpsLink.yourServer");
   return (
     <>
@@ -41,6 +43,7 @@ function ConnectedScreen({ view, onNext }: { view: VpsLinkView; onNext: () => vo
       <Lead className="top-[calc(50%-36px)]">{t("vpsLink.connected.hint", { name, device: deviceWord() })}</Lead>
       <Footer>
         <button type="button" data-primary="" data-autofocus="" className={PILL} onClick={onNext}>{t("vpsLink.signIn.title")}</button>
+        {onOpen && <button type="button" data-vps-open="" className={SOFT_PILL} onClick={onOpen}>{t("vpsLink.move.open", { name })}</button>}
       </Footer>
     </>
   );
@@ -172,7 +175,8 @@ export function AddVpsFlow({ onClose }: { onClose: () => void }) {
         {ready && <MotionDiv key={screen} {...(screen === first.current ? {} : motion)} className="pointer-events-none absolute inset-0 [&>*]:pointer-events-auto">
           {screen === "command" && <CommandScreen view={shown} starting={starting} onRetry={retry} onCopied={copied} />}
           {screen === "install" && <InstallScreen view={shown} onRetry={retry} />}
-          {screen === "connected" && <ConnectedScreen view={shown} onNext={() => setCheered(true)} />}
+          {screen === "connected" && <ConnectedScreen view={shown} onNext={() => setCheered(true)}
+            onOpen={emptyHere(state.bots) ? () => void bridge.open().then(onClose, (cause) => setError(message(cause))) : undefined} />}
           {screen === "signin" && <SignInScreen bridge={bridge} server={shown.server} autoSkip={first.current === "signin" && autoSkip.current}
             onDone={() => { autoSkip.current = false; setSignedIn(true); }} />}
           {at === 4 && <MoveScreen view={shown} preview={preview} previewError={previewError} onReload={loadPreview} bridge={bridge} onMove={move}

@@ -115,7 +115,7 @@ import { createTeamProfileSeeds } from "./team-profile-seed.mjs";
 import { createHomePlaces } from "./home-places.mjs"; import { createDesktopRing, installAccounts } from "./accounts-main.mjs"; import { createAddedCloudNotice, installCloudRail, railPlaces } from "./cloud-rail.mjs"; import { createPlaceInboxWatch } from "./place-inbox-watch.mjs"; import { homeLook, otherOwnClouds, withoutOldCloudHome } from "./cloud-list.mjs"; import { installPlaceLook } from "./place-look.mjs"; import { CHROME_RAIL_PATH, createChromeRail } from "./chrome-rail.mjs";
 import { createWindowStateFile } from "./window-state-file.mjs";
 import { bundleSource, createLocalUi, devSource, originOf, servedOrigins } from "./local-ui.mjs";
-import { accountSetupStore, localAccountSetupStore, remoteAccountSetupStore } from "./account-setup-store.mjs"; import { CLOUD_HOME_ID, installBotsElsewhere, placesElsewhere, readBotCounts } from "./bots-elsewhere.mjs";
+import { accountSetupStore, localAccountSetupStore, remoteAccountSetupStore } from "./account-setup-store.mjs"; import { CLOUD_HOME_ID, installBotsElsewhere, placesChosenStore, placesElsewhere, readBotCounts } from "./bots-elsewhere.mjs";
 import { createEnvironmentsFile } from "./environments-file.mjs";
 import { createOrgLibrary } from "./org-library.mjs";
 import { createCompanyBackups } from "./company-backups.mjs";
@@ -1764,8 +1764,11 @@ async function switchLocalEnvironmentTo(targetDir, targetId, quiet = false) {
   }
 }
 
+const placesChosen = placesChosenStore(jsonFile(path.join(app.getPath("userData"), "places-chosen.json")));
+
 async function switchEnvironment(id) {
   if ((id === environmentsState.activeId && !homeWindow.asking()) || (id !== LOCAL_ID && !environmentsState.environments.some((entry) => entry.id === id))) return;
+  placesChosen.choose();
   const entry = environmentsState.environments.find((candidate) => candidate.id === id);
   if (localRuntimeStarting && (id === LOCAL_ID || entry?.kind === "local")) await waitForLocalStartup(localRuntimeStarting);
   if (entry?.team || entry?.cloud) return void await showHome({ place: entry.team ? { team: entry.team.id, name: entry.name } : { cloud: entry.cloud.id, name: entry.name } });
@@ -2851,7 +2854,7 @@ const rail = installCloudRail({ ipcMain, clipboard, openCloud: openOwnCloud, swi
 const announceAddedCloud = createAddedCloudNotice({ Notification, focused: () => Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()), sheetOpen: rail.sheetOpen,
   open: id => { if (!desktopTray?.show()) activateExistingWindow(appWindows()); void openOwnCloud(id); }, shown: () => cloudAccount?.addDone() }); const desktopNotifications = installDesktopNotifications({ ipcMain, Notification, nativeImage, fetch: (...args) => session.defaultSession.fetch(...args), window: () => mainWindow, mayNotify: (contents, url) => appPermissions?.check(contents, "notifications", url, { isMainFrame: true }) === true, reveal: revealForLink, openPlace: origin => (origin === homeWindow.cloudOrigin() ? showHome({ place: "cloud" }) : workspaceMenuAction(() => switchEnvironment(origin === rendererOrigin() ? LOCAL_ID : environmentsState.environments.find(entry => entry.origin === origin)?.id))) });
 const botsElsewhere = installBotsElsewhere({ ipcMain, guard: localWorkspaceOnly, places: () => placesElsewhere({ environments: environmentsState.environments, moved: ownHome?.home() ?? null, cloudOrigin: homeWindow.cloudOrigin() }), account: () => (desktopRemoteAccess ? null : cloudAccount?.state().account ?? null), store: accountSetupStore({ local: localAccountSetupStore(jsonFile(path.join(app.getPath("userData"), "account-setups.json"))), remote: remoteAccountSetupStore(), log: slog }),
-  open: id => (id === CLOUD_HOME_ID ? showHome({ place: "cloud" }) : workspaceMenuAction(() => switchEnvironment(id))), connectCloud: () => workspaceMenuAction(() => connectCloudHome()), log: slog,
+  open: id => (id === CLOUD_HOME_ID ? showHome({ place: "cloud" }) : workspaceMenuAction(() => switchEnvironment(id))), connectCloud: () => workspaceMenuAction(() => connectCloudHome()), chosen: placesChosen, log: slog,
   counts: () => readBotCounts({ places: environmentsState.environments.filter(entry => entry.kind !== "local" && entry.origin), fetch: (...args) => session.defaultSession.fetch(...args), asleep: origin => homeWindow.asleepAt(origin) }) });
 // A place's colour (place-look.mjs): the Admin's for a Cloud, this app's for This computer and a server connected by
 // hand; changed on the place's own page or from the window's rail, whatever that server runs.

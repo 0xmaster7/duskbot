@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { accountSetupKey, accountSetupStore, localAccountSetupStore, remoteAccountSetupStore } from "./account-setup-store.mjs";
-import { CLOUD_HOME_ID, installBotsElsewhere, ownBotCount, placesElsewhere, readBotCounts } from "./bots-elsewhere.mjs";
+import { CLOUD_HOME_ID, installBotsElsewhere, ownBotCount, placesChosenStore, placesElsewhere, readBotCounts } from "./bots-elsewhere.mjs";
 
 const memory = (value = null) => { let kept = value; return { read: () => { if (kept === null) throw new Error("ENOENT"); return structuredClone(kept); }, write: (next) => { kept = next; }, kept: () => kept }; };
 const SERVER = { id: "srv", kind: "remote", name: "my-vps", origin: "http://vps.localhost:53713" };
@@ -40,21 +40,21 @@ test("the combined store reads here first, then the account's side, and keeps wh
   assert.equal(await remoteAccountSetupStore().read("a"), null);
 });
 
-function wire({ environments = [], account = { id: "acct" }, file = memory() } = {}) {
+function wire({ environments = [], account = { id: "acct" }, file = memory(), chosen = undefined } = {}) {
   const handlers = new Map(), opened = [], connected = [];
   const at = { environments, account };
   const store = accountSetupStore({ local: localAccountSetupStore(file), remote: remoteAccountSetupStore() });
   const installed = installBotsElsewhere({
     ipcMain: { handle: (channel, run) => handlers.set(channel, run) }, guard: (_channel, run) => run,
     places: () => placesElsewhere({ environments: at.environments }), account: () => at.account, store,
-    open: (id) => opened.push(id), connectCloud: () => connected.push(true), now: () => 7,
+    open: (id) => opened.push(id), connectCloud: () => connected.push(true), now: () => 7, ...(chosen ? { chosen } : {}),
   });
   return { at, handlers, opened, connected, installed, call: (channel, ...args) => handlers.get(channel)({}, ...args) };
 }
 
 test("with bots on a linked server, the page is told so and opens only a place main knows", async () => {
   const w = wire({ environments: [SERVER] });
-  assert.deepEqual(await w.call("elsewhere:state"), { places: [{ id: "srv", name: "my-vps", why: "server" }], known: null });
+  assert.deepEqual(await w.call("elsewhere:state"), { places: [{ id: "srv", name: "my-vps", why: "server" }], known: null, chosen: false });
   assert.equal(await w.call("elsewhere:open", "elsewhere"), false);
   assert.equal(await w.call("elsewhere:open", "srv"), true);
   assert.deepEqual(w.opened, ["srv"]);
@@ -65,10 +65,10 @@ test("a fresh install of a signed-in account that set up a server says so, and c
   const before = wire({ environments: [SERVER], file });
   await before.installed.remember();
   const fresh = wire({ environments: [], file });
-  assert.deepEqual(await fresh.call("elsewhere:state"), { places: [], known: { kind: "server", name: "my-vps" } });
+  assert.deepEqual(await fresh.call("elsewhere:state"), { places: [], known: { kind: "server", name: "my-vps" }, chosen: false });
   assert.equal(await fresh.call("elsewhere:connect"), "server");
   const signedOut = wire({ environments: [], file, account: null });
-  assert.deepEqual(await signedOut.call("elsewhere:state"), { places: [], known: null });
+  assert.deepEqual(await signedOut.call("elsewhere:state"), { places: [], known: null, chosen: false });
   assert.equal(await signedOut.call("elsewhere:connect"), null);
 });
 
@@ -135,4 +135,29 @@ test("bot counts come from each place's own list as the signed-in person; asleep
   assert.deepEqual(counts, { a: 3 });
   assert.equal(asked.some(([url]) => url.startsWith("https://z.test")), false);
   assert.deepEqual(asked[0], ["https://a.test/api/bots?messages=0", "include"]);
+});
+
+test("the places are offered until the person picks once, here or a place, and the pick outlives a restart", async () => {
+  const file = memory();
+  const w = wire({ environments: [SERVER], chosen: placesChosenStore(file) });
+  assert.equal((await w.call("elsewhere:state")).chosen, false);
+  assert.equal(await w.call("elsewhere:stay"), true);
+  assert.equal((await w.call("elsewhere:state")).chosen, true);
+  assert.deepEqual(file.kept(), { chosen: true });
+  assert.equal(placesChosenStore(file).chosen(), true);
+
+  const other = memory();
+  const opened = wire({ environments: [SERVER], chosen: placesChosenStore(other) });
+  assert.equal(await opened.call("elsewhere:open", "nowhere"), false);
+  assert.equal(other.kept(), null);
+  assert.equal(await opened.call("elsewhere:open", "srv"), true);
+  assert.deepEqual(other.kept(), { chosen: true });
+});
+
+test("an unreadable choice file reads as not chosen, and a write that fails still counts for this run", () => {
+  const broken = { read: () => { throw new Error("bad json"); }, write: () => { throw new Error("read-only"); } };
+  const store = placesChosenStore(broken);
+  assert.equal(store.chosen(), false);
+  store.choose();
+  assert.equal(store.chosen(), true);
 });

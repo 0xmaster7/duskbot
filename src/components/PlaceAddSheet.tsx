@@ -50,7 +50,7 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
   </form>;
 }
 
-function Choice({ icon, title, sub, onClick, kind, tag }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string }) {
+export function Choice({ icon, title, sub, onClick, kind, tag }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string }) {
   return <button type="button" data-place-add-choice={kind} onClick={onClick}
     className={cn("flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border bg-card p-5 text-start transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
       "border-transparent")}>

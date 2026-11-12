@@ -5,12 +5,16 @@ import { useSyncExternalStore } from "react";
 export type ElsewhereWhy = "moved" | "cloud" | "team" | "server";
 export interface ElsewherePlace { id: string; name: string; why: ElsewhereWhy }
 export interface ElsewhereSetup { kind: "server" | "cloud"; name: string }
-export interface ElsewhereView { places: ElsewherePlace[]; known: ElsewhereSetup | null }
+/** `chosen`: the person picked where this app opens at least once (a place or this computer), so the page no longer offers
+ * the places by itself. */
+export interface ElsewhereView { places: ElsewherePlace[]; known: ElsewhereSetup | null; chosen?: boolean }
 export interface ElsewhereBridge {
   state(): Promise<ElsewhereView>;
   open(id: string): Promise<boolean>;
   /** "server": the page opens its Add your VPS sheet; "cloud": main connects My Cloud; null: nothing remembered. */
   connect(): Promise<"server" | "cloud" | null>;
+  /** This computer, picked on the page: it stays here and the places stop being offered. Absent from an older app. */
+  stay?(): Promise<boolean>;
   /** Each saved place's own bots by its id, where main could ask it; absent from an older app. */
   counts?(): Promise<Record<string, number>>;
 }
@@ -34,6 +38,7 @@ export function parseElsewhereView(raw: unknown): ElsewhereView {
     places,
     known: known && (known.kind === "server" || known.kind === "cloud") && typeof known.name === "string" && known.name.trim()
       ? { kind: known.kind, name: known.name.trim() } : null,
+    chosen: value.chosen === true,
   };
 }
 
@@ -51,17 +56,45 @@ export function emptyHere(bots: readonly { defaultBot?: unknown; hidden?: boolea
 /** What the page shows instead of a fresh start; null when it starts as it would. `dismissed`: the places the person chose
  * to start fresh here instead of opening. */
 export function elsewhereScreen({ view, empty, dismissed }: { view: ElsewhereView | null; empty: boolean; dismissed: readonly string[] }): ElsewhereScreen | null {
-  if (!view || !empty) return null;
+  if (!view || !empty || view.chosen || placesChosenHere()) return null;
   const [place, ...others] = view.places;
   if (place) return dismissed.includes(dismissKey({ kind: "bots-on", place, others })) ? null : { kind: "bots-on", place, others };
   if (view.known && !dismissed.includes(dismissKey({ kind: "set-up-on", setup: view.known }))) return { kind: "set-up-on", setup: view.known };
   return null;
 }
 
+/** This computer's empty page once the person chose to be on it while their bots live elsewhere: the place to bring them
+ * back from, or null when the page is not empty or nothing lives elsewhere. */
+export function macEmptyFrom({ view, empty, screen }: { view: ElsewhereView | null; empty: boolean; screen: ElsewhereScreen | null }): ElsewherePlace | null {
+  if (!view || !empty || screen) return null;
+  return view.places[0] ?? null;
+}
+
+const CHOSEN = "dusk-places-chosen";
+/** The same choice kept on this page, for an app whose main does not keep it yet. */
+export function placesChosenHere(): boolean {
+  try { return localStorage.getItem(CHOSEN) === "1"; } catch { return false; }
+}
+export function choosePlacesHere(): void {
+  try { localStorage.setItem(CHOSEN, "1"); } catch { /* storage off: main keeps it */ }
+}
+
+let macEmpty: ElsewherePlace | null = null;
+const macWatchers = new Set<() => void>();
+export function setMacEmpty(place: ElsewherePlace | null): void {
+  if (macEmpty?.id === place?.id && macEmpty?.name === place?.name) return;
+  macEmpty = place;
+  for (const watch of macWatchers) watch();
+}
+/** Where this computer's bots live while its page is empty by choice (macEmptyFrom), shared with the main area. */
+export function useMacEmpty(): ElsewherePlace | null {
+  return useSyncExternalStore((watch) => { macWatchers.add(watch); return () => { macWatchers.delete(watch); }; }, () => macEmpty, () => null);
+}
+
 /** The sheets this screen's own ways out open over the page: Settings (where the switcher's "connect a server" lands), the
  * dusk cloud offer, Add your VPS and a move to dusk cloud. The screen steps aside while one is up, or it would cover it. */
-export function elsewhereCovered({ settings, cloudAdd, addVps, cloudMove }: { settings: boolean; cloudAdd: boolean; addVps: boolean; cloudMove: boolean }): boolean {
-  return settings || cloudAdd || addVps || cloudMove;
+export function elsewhereCovered({ settings, cloudAdd, addVps, cloudMove, placeSetup = false }: { settings: boolean; cloudAdd: boolean; addVps: boolean; cloudMove: boolean; placeSetup?: boolean }): boolean {
+  return settings || cloudAdd || addVps || cloudMove || placeSetup;
 }
 
 export function dismissKey(screen: ElsewhereScreen): string {

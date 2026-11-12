@@ -1,10 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { dismissKey, elsewhereCovered, parseBotCounts, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
+import { beforeEach, vi } from "vitest";
+import { choosePlacesHere, dismissKey, elsewhereCovered, macEmptyFrom, parseBotCounts, elsewhereScreen, emptyHere, parseElsewhereView, SIMULATED_FRESH_INSTALL } from "./bots-elsewhere";
 
 const VPS = { id: "srv", name: "my-vps", why: "moved" as const };
 const TEAM = { id: "team", name: "Studio", why: "team" as const };
 
+const memoryStorage = () => { const kept = new Map<string, string>(); return { getItem: (key: string) => kept.get(key) ?? null, setItem: (key: string, value: string) => { kept.set(key, String(value)); }, removeItem: (key: string) => { kept.delete(key); }, clear: () => kept.clear() }; };
+
 describe("bots elsewhere", () => {
+  beforeEach(() => { vi.stubGlobal("localStorage", memoryStorage()); });
+
+  it("offers the places only until the person has picked where to open once", () => {
+    const view = { places: [VPS], known: null };
+    expect(elsewhereScreen({ view, empty: true, dismissed: [] })?.kind).toBe("bots-on");
+    expect(elsewhereScreen({ view: { ...view, chosen: true }, empty: true, dismissed: [] })).toBeNull();
+    expect(elsewhereScreen({ view: { ...SIMULATED_FRESH_INSTALL, chosen: true }, empty: true, dismissed: [] })).toBeNull();
+    choosePlacesHere();
+    expect(elsewhereScreen({ view, empty: true, dismissed: [] })).toBeNull();
+  });
+
+  it("an empty page by choice names where the bots are, for its empty state", () => {
+    const view = { places: [VPS, TEAM], known: null, chosen: true };
+    expect(macEmptyFrom({ view, empty: true, screen: null })).toEqual(VPS);
+    expect(macEmptyFrom({ view, empty: false, screen: null })).toBeNull();
+    expect(macEmptyFrom({ view, empty: true, screen: { kind: "bots-on", place: VPS, others: [] } })).toBeNull();
+    expect(macEmptyFrom({ view: { places: [], known: null }, empty: true, screen: null })).toBeNull();
+  });
+
   it("counts only the person's own bots: Dusk and bots off the sidebar leave a place empty", () => {
     expect(emptyHere([])).toBe(true);
     expect(emptyHere([{ defaultBot: { person: "" } }, { hidden: true }])).toBe(true);
@@ -30,17 +52,19 @@ describe("bots elsewhere", () => {
 
   it("takes only well-formed places from main", () => {
     expect(parseElsewhereView({ places: [VPS, { id: 1 }, { id: "x", name: " ", why: "server" }, { id: "y", name: "Y", why: "moon" }], known: { kind: "phone", name: "x" } }))
-      .toEqual({ places: [VPS], known: null });
-    expect(parseElsewhereView(null)).toEqual({ places: [], known: null });
+      .toEqual({ places: [VPS], known: null, chosen: false });
+    expect(parseElsewhereView(null)).toEqual({ places: [], known: null, chosen: false });
+    expect(parseElsewhereView({ places: [], known: null, chosen: true }).chosen).toBe(true);
   });
 
-  it("steps aside for the sheets its ways out open, so connect a server shows Settings rather than this screen", () => {
+  it("steps aside for the sheets its ways out open, so adding a place shows its setup rather than this screen", () => {
     const none = { settings: false, cloudAdd: false, addVps: false, cloudMove: false };
     expect(elsewhereCovered(none)).toBe(false);
     expect(elsewhereCovered({ ...none, settings: true })).toBe(true);
     expect(elsewhereCovered({ ...none, cloudAdd: true })).toBe(true);
     expect(elsewhereCovered({ ...none, addVps: true })).toBe(true);
     expect(elsewhereCovered({ ...none, cloudMove: true })).toBe(true);
+    expect(elsewhereCovered({ ...none, placeSetup: true })).toBe(true);
   });
 
   it("keeps only whole bot counts from main", () => {
