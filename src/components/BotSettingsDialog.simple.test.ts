@@ -601,14 +601,15 @@ describe("the Details tab", () => {
     expect(some.html).toContain(">routines<");
   });
 
-  it("lists each routine in the order it was made, with its switch and its schedule in plain words, opened in place", () => {
+  it("lists each routine in the order it was made, with its switch and its schedule in plain words, each opening a sheet", () => {
     fixture.storeState = { ...fixture.storeState, routines: [routine({ id: "r2", name: "Paused one", enabled: false, createdAt: 2 }), routine(), routine({ id: "r3", name: "Another", botId: "other", createdAt: 3 })] };
     const rendered = botTab(makeBot());
     expect([...rendered.html.matchAll(/data-panel-routine="([^"]+)"/g)].map((match) => match[1])).toEqual(["r1", "r2"]);
     expect(switches(rendered.html)).toBe(2);
     expect(rendered.html).toContain(">paused<");
     expect(rendered.html).toContain(">every weekday at 9 AM<");
-    expect(rendered.html).toContain('aria-expanded="false"');
+    expect(rendered.html).toContain('aria-haspopup="dialog"');
+    expect(rendered.html).not.toContain("aria-expanded=\"false\"");
     expect(rendered.html).not.toContain('data-panel-action="new-routine"');
   });
 

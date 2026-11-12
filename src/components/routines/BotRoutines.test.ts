@@ -51,8 +51,10 @@ function mount() {
   render();
 }
 const row = (id: string) => container.querySelector<HTMLElement>(`[data-panel-routine="${id}"]`)!;
-const open = (id: string) => flushSync(() => row(id).querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
-const action = (id: string, name: string) => row(id).querySelector<HTMLButtonElement>(`[data-routine-action="${name}"]`)!;
+const open = (id: string) => flushSync(() => row(id).querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")!.click());
+/** a routine's details and actions open in a small sheet over the panel, never inside the list */
+const sheet = () => document.querySelector<HTMLElement>('[data-panel-modal="routine"]')!;
+const action = (_id: string, name: string) => sheet().querySelector<HTMLButtonElement>(`[data-routine-action="${name}"]`)!;
 const writes = () => fixture.api.mock.calls.filter(([, init]) => (init as { method?: string } | undefined)?.method).map(([path, init]) => {
   const { method, body } = init as { method: string; body?: string };
   return [path, method, body ? JSON.parse(body) : undefined];
@@ -79,31 +81,32 @@ beforeEach(() => {
 afterEach(() => { root?.unmount(); root = null; document.body.innerHTML = ""; copied.texts = []; });
 
 describe("a bot's routines in its panel", () => {
-  it("lists each by name and when, and opens one in place with what the bot knows about it", () => {
+  it("lists each by name and when, and opens one in a sheet with what the bot knows about it, the row staying short", () => {
     fixture.state.routines = [{ ...routine, resultsThreadId: "thread-r", checks: ["mail"] }];
     fixture.state.routineRuns = [{ id: "run-1", routineId: "routine-1", routineName: "Morning summary", target: "bot", botId: "bot-a", runOn: "maus", scheduledFor: now - 60_000, startedAt: now - 60_000, status: "completed", manual: false, output: "Three new emails, none urgent.", threadId: "thread-x", createdAt: now - 60_000 }];
     mount();
     expect(row("routine-1").textContent).toBe("Morning summaryevery day at 9 AM");
     expect(row("routine-1").querySelector("[role=switch]")!.getAttribute("aria-checked")).toBe("true");
     open("routine-1");
-    const text = row("routine-1").textContent!;
+    expect(row("routine-1").textContent).toBe("Morning summaryevery day at 9 AM");
+    const text = sheet().textContent!;
     for (const part of ["when", "every day at 9 AM", "next:", "what to do", "Send me a summary of my inbox.", "works on", "this computer", "results go to", "Inbox digests", "uses", "new mail", "recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
-    flushSync(() => row("routine-1").querySelector<HTMLButtonElement>("[data-routine-run]")!.click());
+    flushSync(() => sheet().querySelector<HTMLButtonElement>("[data-routine-run]")!.click());
     expect(fixture.dispatch).toHaveBeenCalled();
   });
 
-  it("edits name, when and what in place, and keeps a schedule no preset can say", async () => {
+  it("edits name, when and what in its sheet, and keeps a schedule no preset can say", async () => {
     fixture.state.routines = [{ ...routine, schedule: { type: "cron", expression: "0 9 1 * *", timeZone: "UTC" } as Routine["schedule"] }];
     fixture.api.mockImplementation(async (_path: unknown, init: unknown) => ({ routine: { ...(fixture.state.routines as Routine[])[0], ...JSON.parse((init as { body: string }).body), updatedAt: now + 1 } }));
     mount();
     open("routine-1");
     flushSync(() => action("routine-1", "edit").click());
-    const form = row("routine-1").querySelector("form")!;
+    const form = sheet().querySelector("form")!;
     expect(form.querySelector<HTMLInputElement>("input:not([type])")!.value).toBe("Morning summary");
     expect(form.querySelector("input[data-routine-time]")).toBeNull();
     flushSync(() => type(form.querySelector<HTMLInputElement>("input:not([type])")!, "Monthly summary"));
     flushSync(() => form.querySelector<HTMLButtonElement>("button[type=submit]")!.click());
-    await vi.waitFor(() => expect(row("routine-1").querySelector("form")).toBeNull());
+    await vi.waitFor(() => expect(sheet().querySelector("form")).toBeNull());
     expect(writes()).toEqual([["/api/routines/routine-1", "PATCH", { name: "Monthly summary", prompt: "Send me a summary of my inbox." }]]);
     expect(row("routine-1").textContent).toContain("Monthly summary");
   });
@@ -112,7 +115,7 @@ describe("a bot's routines in its panel", () => {
     mount();
     open("routine-1");
     flushSync(() => action("routine-1", "edit").click());
-    const form = row("routine-1").querySelector("form")!;
+    const form = sheet().querySelector("form")!;
     expect(form.querySelector("[data-panel-select=routine-when]")!.textContent).toContain("every day");
     flushSync(() => type(form.querySelector("textarea")!, "   "));
     flushSync(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
@@ -164,7 +167,7 @@ describe("a bot's routines in its panel", () => {
     mount();
     expect(row("routine-1").querySelector("[role=switch]")).toBeNull();
     open("routine-1");
-    expect(row("routine-1").textContent).toContain("its time has passed. edit it to pick a new time.");
+    expect(sheet().textContent).toContain("its time has passed. edit it to pick a new time.");
   });
 
   it("lists the bot's other automations too: a webhook copies its address, an app event runs through its own routes", async () => {
@@ -174,7 +177,7 @@ describe("a bot's routines in its panel", () => {
     mount();
     expect(row("hook-1").textContent).toContain("when another app sends something");
     open("hook-1");
-    flushSync(() => [...row("hook-1").querySelectorAll("button")].find((button) => button.textContent === "copy address")!.click());
+    flushSync(() => [...sheet().querySelectorAll("button")].find((button) => button.textContent === "copy address")!.click());
     await vi.waitFor(() => expect(copied.texts).toEqual(["https://hooks.example/wh_abc?key=s"]));
     open("acme");
     flushSync(() => action("acme", "run").click());
@@ -186,7 +189,7 @@ describe("a bot's routines in its panel", () => {
     fixture.state.routinesFocus = { routineId: "routine-1", edit: true, nonce: 1 };
     render();
     await vi.waitFor(() => expect(row("routine-1").dataset.routineOpen).toBe("true"));
-    expect(row("routine-1").querySelector("form")).not.toBeNull();
+    expect(sheet().querySelector("form")).not.toBeNull();
   });
 
   it("says what a routine is when the bot has none and points to the chat, with no add button", () => {

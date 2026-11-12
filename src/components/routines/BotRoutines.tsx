@@ -21,6 +21,7 @@ import { BotSwitch, buttonCls, Card, PanelEmpty, rowCls, RowText } from "../bot-
 import { RoutineForm } from "./RoutineForm";
 import { RunStrip } from "./RunStrip";
 import { SpendCap } from "../usage/SpendCap";
+import { GrokDialog } from "../ui/GrokDialog";
 
 const termCls = "text-[12px] leading-4 tracking-[0.01em] text-ink-secondary";
 const valueCls = "mt-0.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink";
@@ -38,9 +39,9 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
   return <div><dt className={termCls}>{term}</dt><dd className={cn(valueCls, "m-0 break-words")}>{children}</dd></div>;
 }
 
-/** A bot's routines and app automations as Grok's Details tab lists them, opened in place: a row shows the name and when
- * (or Paused) with its switch, and opening it shows what the bot knows about it and lets the person run, edit or delete
- * it right there. "Add a routine" opens the same small form at the end of the card. */
+/** A bot's routines and app automations as Grok's Details tab lists them: a short row with the name and when (or Paused)
+ * and its switch. Clicking one opens a small sheet with what the bot knows about it and the run, test, edit and delete
+ * actions; the list itself never grows. "Add a routine" opens the same small form at the end of the card. */
 export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; defaultRunOn?: RoutineRunOn; label?: boolean }) {
   const { state } = useStore();
   const appTriggers = useAppTriggers();
@@ -84,7 +85,8 @@ export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; def
           routine={automation.kind === "schedule" ? state.routines.find((routine) => routine.id === automation.id) : undefined}
           open={openId === automation.id}
           editing={editing === automation.id}
-          onOpen={() => { setOpenId((current) => (current === automation.id ? null : automation.id)); setEditing(null); }}
+          onOpen={() => { setOpenId(automation.id); setEditing(null); }}
+          onClose={() => { setOpenId(null); setEditing(null); }}
           onEdit={(on) => setEditing(on ? automation.id : null)}
         />
       ))}
@@ -93,13 +95,14 @@ export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; def
   );
 }
 
-function AutomationRow({ bot, automation, routine, open, editing, onOpen, onEdit }: {
+function AutomationRow({ bot, automation, routine, open, editing, onOpen, onClose, onEdit }: {
   bot: Bot;
   automation: Automation;
   routine?: Routine;
   open: boolean;
   editing: boolean;
   onOpen: () => void;
+  onClose: () => void;
   onEdit: (on: boolean) => void;
 }) {
   const { dispatch } = useStore();
@@ -118,13 +121,12 @@ function AutomationRow({ bot, automation, routine, open, editing, onOpen, onEdit
   }, [open, automation.runs, dispatch]);
 
   return (
-    <div data-panel-routine={automation.id} data-routine-open={open || undefined} className={cn("rounded-lg", open && "bg-ink/[0.035]")}>
-      <div className={cn(rowCls, "relative transition-colors duration-100", !open && "hover:bg-ink/[0.035]")}>
+    <div data-panel-routine={automation.id} data-routine-open={open || undefined} className="rounded-lg">
+      <div className={cn(rowCls, "relative transition-colors duration-100 hover:bg-ink/[0.035]")}>
         <button
           type="button"
           onClick={onOpen}
-          aria-expanded={open}
-          aria-controls={open ? detailId : undefined}
+          aria-haspopup="dialog"
           aria-label={`${name}, ${hint}`}
           className="min-w-0 flex-1 text-left after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus"
         >
@@ -145,9 +147,13 @@ function AutomationRow({ bot, automation, routine, open, editing, onOpen, onEdit
         )}
       </div>
       {!open && actions.error && <p role="alert" className="m-0 px-2 pb-1.5 text-[12px] leading-4 text-danger">{actions.error}</p>}
-      {open && (editing && routine
-        ? <RoutineForm bot={bot} routine={routine} onDone={() => onEdit(false)} />
-        : <AutomationDetail id={detailId} bot={bot} automation={automation} routine={routine} actions={actions} onEdit={() => onEdit(true)} />)}
+      {open && !(editing && automation.kind !== "schedule") && (
+        <GrokDialog data-panel-modal="routine" title={name} onClose={onClose}>
+          {editing && routine
+            ? <RoutineForm bot={bot} routine={routine} onDone={() => onEdit(false)} />
+            : <AutomationDetail id={detailId} bot={bot} automation={automation} routine={routine} actions={actions} onEdit={() => onEdit(true)} />}
+        </GrokDialog>
+      )}
       {editing && automation.kind !== "schedule" && <ForeignEditor automation={automation} onClose={() => onEdit(false)} />}
     </div>
   );
@@ -203,7 +209,7 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
   };
 
   return (
-    <div id={id} className="flex flex-col gap-3 px-2 pb-2 pt-1">
+    <div id={id} data-routine-detail="" className="flex flex-col gap-3">
       <dl className="m-0 flex flex-col gap-2.5">
         <Fact term={t("routines.inline.when")}>
           {whenLine(automation)}
