@@ -105,7 +105,7 @@ RUN chmod 0755 /usr/local/bin/omb-* && chmod 0644 /etc/chromium.d/omb \
  && rm -f /tmp/omb-blank-cursors.py /usr/share/icons/default/index.theme \
  && printf '%s\n' '[Icon Theme]' 'Inherits=omb-hidden' > /usr/share/icons/default/index.theme
 
-ARG BOT_DESKTOP_VERSION=3
+ARG BOT_DESKTOP_VERSION=4
 # label names from before the rename: servers and apps find this image by them (DOCKER_NAMES, electron/legacy-names.mjs)
 LABEL com.openmausbot.bot-desktop="${BOT_DESKTOP_VERSION}" \
       com.openmausbot.cua-driver="${CUA_DRIVER_VERSION}" \
