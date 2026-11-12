@@ -558,6 +558,7 @@ import {
 import { autoStartCompanion } from "./companion-autostart.mjs";
 import { createRoutineWakeHold, rememberRoutineWake, routineWakeSettings } from "./routine-wake.mjs";
 import { CREDENTIAL_PATCH, credentialSaveError } from "./credential-patch.mjs";
+import { createCappedLog } from "./capped-log.mjs";
 
 /** Second wall after preload's reduced bridge: computer-controlling IPC answers only the local server's UI.
  * Declared before any handler registration (temporal dead zone). */
@@ -605,10 +606,7 @@ const routineWake = createRoutineWakeHold({
 
 function slog(line) {
   try {
-    if (!logStream) {
-      fs.mkdirSync(LOG_DIR, { recursive: true });
-      logStream = fs.createWriteStream(path.join(LOG_DIR, "server.log"), { flags: "a" });
-    }
+    logStream ??= createCappedLog({ file: path.join(LOG_DIR, "server.log") });
     logStream.write(`[${new Date().toISOString()}] ${line}\n`);
   } catch {
   }
@@ -2106,6 +2104,9 @@ function createWindow({ deferNavigation = false } = {}) {
     ...windowChromeOptions(process.platform, windowFrameMade = desktopPrefs?.windowFrame() ?? FRAME_BY_DEFAULT),
     webPreferences: {
       contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      webviewTag: false,
       preload: path.join(__dirname, "preload.cjs"),
       additionalArguments: [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess),
         "--dusk-current-local-origin=1",
