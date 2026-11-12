@@ -133,7 +133,7 @@ function App() {
     if (account && (path === "/admin" || path.startsWith("/admin/"))) return;
     const page = path === HANDOFF_PATH ? "signing in" : account === null ? (path === "/signup" ? "make your account" : "sign in")
       : TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "not found");
-    document.title = `${page} · dusk bot`;
+    document.title = `${page} / dusk bot`;
   }, [path, account]);
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (path === HANDOFF_PATH) return <Suspense fallback={blank}><HandoffPage /></Suspense>;
