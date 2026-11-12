@@ -159,9 +159,10 @@ it.each(["signed-out", "disabled"] as const)("does not select a %s provider for 
   await withUnselectedStarter(async (fixture) => {
     fixture.makeCliAvailable();
     await fixture.restart({ clearStarter: true, signedOut: state === "signed-out", enabled: state !== "disabled" });
-    const claude = (await fixture.api("GET", "/api/instances")).instances.find((instance: any) => instance.instanceId === "claude");
-    if (state === "signed-out") expect(claude.snapshot.authenticated).toBe(false);
-    else expect(claude.enabled).toBe(false);
+    const claude = async () => (await fixture.api("GET", "/api/instances")).instances.find((instance: any) => instance.instanceId === "claude");
+    // the engine's status check finishes after the restart answers
+    if (state === "signed-out") await expect.poll(async () => (await claude()).snapshot.authenticated, { timeout: 30_000 }).toBe(false);
+    else expect((await claude()).enabled).toBe(false);
     expect((await fixture.api("GET", "/api/bots")).bots[0].modelSelection).toEqual(EMPTY);
     expect(fixture.saved()[0].modelSelection).toEqual(EMPTY);
   });
