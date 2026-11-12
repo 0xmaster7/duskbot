@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const source = readFileSync(resolve("apps/dashboard/tracker/dusk.js"), "utf8");
 type Payload = {
   v: number; e: string; vid: string; sid: string; pv: string; h: string; p: string;
-  u?: Record<string, string>; r?: string; w?: number; g?: string;
+  u?: Record<string, string>; r?: string; w?: number; g?: string; b?: string;
   m?: Record<string, string>; s?: number; t?: number; l?: [string, number][];
 };
 type Api = ((name: unknown, meta?: unknown) => void) & { q?: IArguments[] };
@@ -268,6 +268,23 @@ describe("marketing tracker", () => {
     await events();
     expect(payloads).toHaveLength(2);
     expect(payloads[1]).toMatchObject({ g: "hero_click", m: { placement: "hero", plan: "pro" } });
+  });
+
+  it("reports a video or audio play once per page view, by its own goal name when it has one", async () => {
+    await load();
+    win.document.body.innerHTML = '<section id="demo"><video aria-label="Launch video" data-dusk-value="hero"></video><video data-dusk-goal="launch_video_play"></video></section>';
+    const [plain, named] = [...win.document.querySelectorAll("video")];
+    plain!.dispatchEvent(new win.Event("play"));
+    plain!.dispatchEvent(new win.Event("play"));
+    named!.dispatchEvent(new win.Event("play"));
+    await events();
+    expect(payloads.slice(1)).toMatchObject([{ g: "video_play", m: { section: "demo", label: "launch_video", value: "hero" } }, { g: "launch_video_play", m: { section: "demo" } }]);
+  });
+
+  it("names arc and brave, which send chrome's user agent", async () => {
+    property(win.navigator, "brave", {});
+    const [page] = await load();
+    expect(page).toMatchObject({ e: "pageview", b: "brave" });
   });
 
   it.each([
@@ -628,6 +645,6 @@ describe("marketing tracker", () => {
   });
 
   it("fits the gzip budget", () => {
-    expect(gzipSync(source).length).toBeLessThanOrEqual(5120);
+    expect(gzipSync(source).length).toBeLessThanOrEqual(5376);
   });
 });

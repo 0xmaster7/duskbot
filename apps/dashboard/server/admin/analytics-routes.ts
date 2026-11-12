@@ -9,6 +9,7 @@ import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
 import { productReport } from "./product.ts";
 import { paymentsOf, revenueReport } from "../analytics/revenue.ts";
 import { aligned, newVsReturning, peakHours } from "../analytics/insights.ts";
+import { billingSteps, firstSourceOf, sessionsOf, spendOf, timeToPayOf, whereOf } from "../analytics/profile.ts";
 import type { StoredSubscription } from "../billing/store.ts";
 import { UPSELL_EVENTS } from "../../../../shared/cloud-upsell.ts";
 
@@ -203,6 +204,15 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const owner = account ? auth.directory().accounts.find(item => item.id === account) ?? null : null;
     const p = people();
     const visits = visitsOf(mine);
+    const state = billing.store.state;
+    const payments = account ? paymentsOf(state).filter(payment => payment.accountId === account) : [];
+    const checkouts = account ? state.checkouts.filter(checkout => checkout.accountId === account) : [];
+    // billing records are the source of truth for money; the paid event only stands in when they are gone
+    const kept = payments.length ? mine.filter(event => event.name !== "checkout_paid") : mine;
+    const sessions = sessionsOf(kept, billingSteps(payments, checkouts));
+    const firstSeen = sessions.length ? sessions.at(-1)!.start : owner?.createdAt ?? null;
+    const spend = spendOf(payments, account ? p.paid.get(account) ?? null : null);
+    const firstSource = firstSourceOf(visitsOf(mine, ["site", "account"]));
     const surface = (event: StoredEvent) => event.name.startsWith("site_") ? "site" : event.name.startsWith("app_") ? "app" : event.name === "page_view" || event.name.startsWith("onboarding") || event.name === "plan_chosen" ? "account" : "server";
     const timeline = mine.filter(event => event.name !== "site_leave").slice(-400).reverse().map(event => ({ at: event.at, name: event.name, surface: surface(event), props: event.props,
       page: event.ctx?.page ?? null, source: event.ctx?.source ?? null, country: event.ctx?.country ?? null, device: event.ctx?.device ?? null, app: event.ctx?.app ?? null }));
@@ -210,6 +220,9 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       id, seed: [...visitors][0] ?? id, account: owner ? { id: owner.id, email: owner.email, name: owner.name, createdAt: owner.createdAt } : null,
       customer: !!(account && p.paid.has(account)), paidAt: account ? p.paid.get(account) ?? null : null, visitors: visitors.size, installs: installs.size,
       summary: visits.length ? personOf(visits) : null, timeline,
+      where: whereOf(mine), firstSource, sessions: sessions.slice(0, 120),
+      stats: { firstSeen, visits: sessions.filter(session => session.surface !== "server").length, pageviews: kept.filter(event => event.name === "site_view" || event.name === "page_view").length,
+        ...spend, timeToPayMs: timeToPayOf(firstSeen, spend.firstPaidAt) },
     };
   }
 
