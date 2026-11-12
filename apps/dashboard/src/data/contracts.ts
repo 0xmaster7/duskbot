@@ -160,10 +160,14 @@ export interface Invoice {
   url: string | null;
 }
 
+/** the stay-on discount: `offer` while the account may still take it once, `applied` after */
+export interface Retention { offer: { percent: number; cycles: number } | null; applied: { percent: number; cycles: number; at: number } | null }
+
 export interface BillingOverview {
   subscription: Subscription | null;
   paymentMethod: PaymentMethod | null;
   invoices: Invoice[];
+  retention?: Retention | null;
 }
 
 export type CloudStatus = "provisioning" | "running" | "waking" | "sleeping" | "stopped" | "error";

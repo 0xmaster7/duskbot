@@ -95,6 +95,7 @@ export function billingFromWire(overview: WireBillingOverview, catalog: PlanCata
     subscription: subscription ? subscriptionFromWire(subscription, catalog) : null,
     paymentMethod: null,
     invoices: overview.invoices.invoices.map((invoice) => ({ id: invoice.id, number: invoice.id, date: invoice.at, description: invoice.description, amountUsd: invoice.amountCents / 100, status: invoice.status === "failed" ? "open" : invoice.status, url: invoice.downloadUrl })),
+    retention: overview.retention ?? null,
   };
 }
 
