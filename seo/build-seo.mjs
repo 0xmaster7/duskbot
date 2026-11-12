@@ -62,11 +62,11 @@ const FAMILY_OF = { guide: 'guide', compare: 'compare', integration: 'integratio
 function cardPage(r, s) {
   const family = FAMILY_OF[r.kind] || 'guide', fam = FAMILIES[family];
   const lead = s.bots.find((b) => !fam.avoid.includes(b.colour));
-  const tile = s.tile ? { logo: s.tile.logo, label: s.tile.label || s.tile.name } : {};
-  const app = (tile.label || '').toLowerCase();
-  const label_chip = family === 'integration' && app ? `${app} integration` : family === 'action' && app ? `${app} action` : family === 'compare' && r.path.startsWith('/vs/') ? 'one on one' : undefined;
-  return { at: r.path, family, title: r.og_title || r.h1, bubble: r.art?.bubble || '', line: r.art?.bubble ? '' : r.og_line || '', ...tile, vs: family === 'compare' && !tile.logo && !!tile.label,
-    props: s.props.map((p) => p.name), bot: lead ? `${lead.shape} ${lead.colour}` : undefined, flip: s.flip, ...(label_chip ? { label_chip } : {}) };
+  // an app page shows the app's mark, a one-on-one page the other side's name; everything else just the bot and its line
+  const app = (family === 'integration' || family === 'action') && s.tile?.logo ? { logo: s.tile.logo, label: s.tile.label || s.tile.name } : null;
+  const rival = r.path.startsWith('/vs/') && s.tile?.label ? { label: s.tile.label, vs: true } : null;
+  return { at: r.path, family, title: r.og_title || r.h1, bubble: app || rival ? '' : r.art?.bubble || '', ...(app || rival || {}),
+    bot: lead ? `${lead.shape} ${lead.colour}` : undefined, flip: s.flip };
 }
 
 export function buildSeo(ctx) {

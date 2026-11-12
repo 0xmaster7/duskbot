@@ -5,62 +5,45 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { cardSpec, cardHtml, cardAlt, kitSizes, cardSignature, INK } from './card.mjs';
+import { cardSpec, cardHtml, cardAlt, kitSizes, cardSignature } from './card.mjs';
 import { PROPS } from './scene.mjs';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const dusk = path.resolve(here, '..', '..');
 
-// the integrations hub: the app marks float around the bot
-const floatTiles = (logos) => ({ floor, square, kitDir, stageL, stageR }) => {
-  const size = square ? 120 : 84, spots = square
-    ? [[120, 150], [300, 70], [820, 60], [990, 170], [80, 420], [1010, 420]]
-    : [[stageL - 10, 70], [stageL + 120, 20], [stageR - 210, 26], [stageR - 96, 120], [stageL - 30, 260], [stageR - 70, 300]];
-  return logos.map((l, i) => { const [x, y] = spots[i]; return `<div class="tile" style="left:${x}px;top:${y}px;width:${size}px;height:${size}px;transform:rotate(${[-6, 4, -3, 7, 5, -5][i]}deg)"><img src="${kitDir}/logos/${l}" alt=""></div>`; }).join('');
-};
-// the brand card: the palette as pixel chips on the ground
-const swatches = (colours) => ({ floor, square, stageL }) => {
-  const size = square ? 74 : 54;
-  return colours.map((c, i) => `<div class="tile" style="left:${(square ? 80 : stageL - 10) + i * (size + 12)}px;top:${square ? 64 : 34}px;width:${size}px;height:${size}px;border-radius:14px;background:${c};box-shadow:0 6px 0 rgba(27,27,31,0.1)"></div>`).join('');
-};
-// competitor name tiles on the alternatives hub, leaning on each other
-const nameTiles = (names) => ({ square, stageL, stageR }) => {
-  const spots = square ? [[110, 110], [880, 90], [960, 330]] : [[stageL - 30, 48], [stageR - 150, 30], [stageR - 120, 200]];
-  return names.map((n, i) => `<div class="tile" style="left:${spots[i][0]}px;top:${spots[i][1]}px;width:${square ? 150 : 112}px;height:${square ? 150 : 112}px;transform:rotate(${[-7, 6, -4][i]}deg)"><span class="${n.length <= 4 ? 'l2' : 'l3'}">${n}</span></div>`).join('');
-};
-
-// the core pages. id is the og name build-pages.mjs asks for; square: also draw the 1200 by 1200 crop
+// the core pages. id is the og name build-pages.mjs asks for; square: also draw the 1200 by 1200 crop. home and the
+// waitlist are the waitlist page's world (crowd and chat); the rest are calm cards: words, one bot, at most one line
 export const CORE = [
-  { id: 'home', square: true, at: '/', family: 'home', title: 'meet dusk bot', line: 'your own team of ai bots, in a chat app.', bubble: 'hi! meet your new team.', label_chip: 'dusk bot',
+  { id: 'home', square: true, at: '/', family: 'home', title: 'meet dusk bot', line: 'your own team of ai bots, in a chat app.',
+    chat: [['you', 'can you sort my inbox?'], ['kit', 'done. three need you.']],
     crowd: [['kit', 'violet', 'happy'], ['pip', 'blue', 'wink'], ['mochi', 'pink', 'heart'], ['loaf', 'tangerine', 'big'], ['starry', 'sun', 'happy']] },
-  { id: 'waitlist', square: true, at: '/', family: 'home', title: 'join the waitlist', line: 'text the ai you already pay for, like a teammate.', bubble: 'save me a spot!', label_chip: 'early access',
-    crowd: [['boxo', 'tangerine', 'big'], ['kit', 'violet', 'happy'], ['hop', 'blue', 'look'], ['goo', 'mint', 'open']] },
-  { id: 'pricing', square: true, at: '/pricing', family: 'tool', field: '#fff3a0', ground: 'meadow', label_chip: 'pricing', title: 'free on your computer', line: 'dusk cloud keeps your bots on when your laptop is off, from $20 a month.', bubble: 'the app is $0', props: ['s-coins'], bot: 'loaf tangerine', pose: 'happy' },
-  { id: 'download', square: true, at: '/download', family: 'guide', label_chip: 'download', title: 'download dusk bot', line: 'for mac, windows and linux, with the phone app for iphone and android.', bubble: 'ready when you are', props: ['s-computer'], bot: 'pip blue', pose: 'big' },
-  { id: 'docs', square: true, at: '/docs', family: 'docs', title: 'the docs', line: 'everything dusk bot does, in plain words.', bubble: 'start with getting started', props: ['s-books'], bot: 'hoot violet', pose: 'focus' },
-  { id: 'about', square: true, at: '/about', family: 'usecase', label_chip: 'about', title: 'about dusk bot', line: 'a team of ai bots you text like teammates.', bubble: 'we did most of it.',
-    crowd: [['hearty', 'pink', 'heart'], ['pip', 'blue', 'happy'], ['boxo', 'cyan', 'wink'], ['sprout', 'emerald', 'happy']], field: '#d0cefb', ground: 'meadow' },
-  { id: 'changelog', square: true, at: '/changelog', family: 'routine', label_chip: "what's new", title: "what's new", line: 'every release of dusk bot, newest first.', bubble: 'something new!', props: ['s-parcel'], bot: 'cheep sun', pose: 'big', field: '#c2ecfc' },
-  { id: 'contact', square: true, at: '/contact', family: 'usecase', label_chip: 'contact', title: 'say hi', line: 'a person reads every message.', bubble: 'hello@dusk.bot', props: ['s-mailbox'], bot: 'drip blue', pose: 'happy' },
-  { id: 'brand', square: true, at: '/brand', family: 'docs', field: '#d0cefb', ground: 'meadow', label_chip: 'brand', title: 'brand', line: 'the mark, the bots and the colours.', bubble: 'use me!', logo: 'file:mark', label: 'dusk bot', bot: 'kit white', pose: 'wink',
-    extra: swatches(['#c2ecfc', '#c9f63f', '#fff3a0', '#ffc4dd', '#d0cefb', INK]) },
-  { id: 'terms', square: true, at: '/terms', family: 'glossary', field: '#d0cefb', ground: 'lemon', label_chip: 'legal', title: 'terms of service', line: 'the deal between you and dusk bot.', props: ['p-newspaper'], bot: 'tofu violet', pose: 'focus' },
-  { id: 'privacy', at: '/privacy', family: 'glossary', field: '#d0cefb', ground: 'lemon', label_chip: 'legal', title: 'privacy policy', line: 'what we keep, and what we never see.', props: ['p-shield'], bot: 'egg mint', pose: 'wink' },
-  { id: 'license', at: '/license', family: 'glossary', field: '#d0cefb', ground: 'lemon', label_chip: 'legal', title: 'license', line: 'what you may do with the app.', props: ['s-key'], bot: 'bruin emerald', pose: 'look' },
-  { id: 'security', at: '/security', family: 'glossary', field: '#d0cefb', ground: 'lemon', label_chip: 'security', title: 'security', line: 'how to report a problem, and how we keep your bots safe.', props: ['p-shield'], bot: 'boxo cyan', pose: 'big' },
-  { id: '404', square: true, at: '/404', family: 'night', label_chip: '404', title: 'this page wandered off', line: 'the bots looked everywhere.', bubble: 'hello?', props: ['p-binoculars'], bot: 'boo indigo', pose: 'dizzy' },
-  { id: 'dashboard', square: true, at: '/dashboard', family: 'night', label_chip: 'dashboard', title: 'your bots, at a glance', line: 'sign in to see your rooms, routines and cloud.', bubble: 'welcome back', props: ['s-computer'], bot: 'kit violet', pose: 'happy' },
+  { id: 'waitlist', square: true, at: '/', family: 'home', title: 'get dusk bot', line: 'text the ai you already pay for, like a teammate.',
+    chat: [['you', 'save me a spot?'], ['pip', "you're in. see you soon."]],
+    crowd: [['pip', 'blue', 'happy'], ['kit', 'violet', 'wink'], ['boxo', 'tangerine', 'big'], ['hearty', 'pink', 'heart'], ['goo', 'mint', 'open']] },
+  { id: 'pricing', square: true, at: '/pricing', family: 'tool', title: 'free on your computer', line: 'dusk cloud keeps your bots on when your laptop is off, from $20 a month.', bot: 'loaf tangerine', pose: 'happy' },
+  { id: 'download', square: true, at: '/download', family: 'guide', title: 'download dusk bot', line: 'for mac, windows and linux, and your phone.', bot: 'pip blue', pose: 'big' },
+  { id: 'docs', square: true, at: '/docs', family: 'docs', title: 'the docs', line: 'everything dusk bot does, in plain words.', bot: 'hoot violet', pose: 'focus' },
+  { id: 'about', square: true, at: '/about', family: 'compare', title: 'about dusk bot', line: 'a team of ai bots you text like teammates.', bot: 'hearty pink', pose: 'heart' },
+  { id: 'changelog', square: true, at: '/changelog', family: 'guide', title: "what's new", line: 'every release of dusk bot, newest first.', bubble: 'something new!', bot: 'cheep sun', pose: 'big' },
+  { id: 'contact', square: true, at: '/contact', family: 'usecase', title: 'say hi', line: 'a person reads every message.', bubble: 'hello@dusk.bot', bot: 'drip blue', pose: 'happy' },
+  { id: 'brand', square: true, at: '/brand', family: 'compare', title: 'brand', line: 'the mark, the bots and the colours.', bot: 'kit white', pose: 'wink' },
+  { id: 'terms', square: true, at: '/terms', family: 'glossary', title: 'terms of service', line: 'the deal between you and dusk bot.', bot: 'tofu violet', pose: 'focus' },
+  { id: 'privacy', at: '/privacy', family: 'glossary', title: 'privacy policy', line: 'what we keep, and what we never see.', bot: 'egg mint', pose: 'wink' },
+  { id: 'license', at: '/license', family: 'glossary', title: 'license', line: 'what you may do with the app.', bot: 'bruin emerald', pose: 'look' },
+  { id: 'security', at: '/security', family: 'glossary', title: 'security', line: 'how to report a problem, and how we keep your bots safe.', bot: 'boxo cyan', pose: 'big' },
+  { id: '404', square: true, at: '/404', family: 'night', title: 'this page wandered off', line: 'the bots looked everywhere.', bubble: 'hello?', bot: 'boo violet', pose: 'dizzy' },
+  { id: 'dashboard', square: true, at: '/dashboard', family: 'night', title: 'your bots, at a glance', line: 'sign in to see your rooms, routines and cloud.', bot: 'kit violet', pose: 'happy' },
 ];
 
 // the seo hubs, by their address
 export const HUB_CARDS = {
-  '/guides': { family: 'guide', label_chip: 'guides', title: 'guides', line: 'plain-words guides to bots that do real work.', bubble: 'where do i start?', props: ['s-map'], bot: 'pip blue', pose: 'look' },
-  '/alternatives': { family: 'compare', label_chip: 'compare', title: 'alternatives, side by side', line: 'checked and dated, with a source on every claim.', props: ['s-signpost'], bot: 'tofu violet', pose: 'look', field: '#d0cefb', extra: nameTiles(['Manus', 'n8n', 'Lindy']) },
-  '/integrations': { family: 'integration', label_chip: 'integrations', title: 'your apps, your bots', line: 'what a bot can really do inside each one.', bot: 'mochi pink', pose: 'heart', extra: floatTiles(['gmail.png', 'slack.png', 'notion.png', 'github.svg', 'calendar.png', 'linear.png']) },
-  '/use-cases': { family: 'usecase', label_chip: 'use cases', title: 'jobs to hand to a bot', line: 'by task and by role, each with the message to send.', bubble: 'give me a job', props: ['p-briefcase'], bot: 'loaf tangerine', pose: 'happy' },
-  '/routines': { family: 'routine', label_chip: 'routines', title: 'routines to copy', line: 'jobs a bot does on a schedule, while you sleep.', bubble: 'see you at 8', props: ['s-clock'], bot: 'puff cyan', pose: 'sleepy' },
-  '/glossary': { family: 'glossary', label_chip: 'glossary', title: 'ai agent words, in plain english', bubble: 'what does that mean?', props: ['s-books'], bot: 'hoot violet', pose: 'focus' },
-  '/tools': { family: 'tool', label_chip: 'free tools', title: 'free tools', line: 'small helpers that run in your browser.', bubble: "let's do the maths", props: ['p-chart'], bot: 'boxo cyan', pose: 'focus' },
+  '/guides': { family: 'guide', title: 'guides', line: 'plain-words guides to bots that do real work.', bot: 'pip blue', pose: 'look' },
+  '/alternatives': { family: 'compare', title: 'alternatives, side by side', line: 'checked and dated, with a source on every claim.', bot: 'tofu violet', pose: 'look' },
+  '/integrations': { family: 'integration', title: 'your apps, your bots', line: 'what a bot can really do inside each one.', bot: 'mochi pink', pose: 'heart' },
+  '/use-cases': { family: 'usecase', title: 'jobs to hand to a bot', line: 'by task and by role, each with the message to send.', bot: 'loaf tangerine', pose: 'happy' },
+  '/routines': { family: 'routine', title: 'routines to copy', line: 'jobs a bot does on a schedule, while you sleep.', bot: 'puff cyan', pose: 'sleepy' },
+  '/glossary': { family: 'glossary', title: 'ai agent words, in plain english', bot: 'hoot violet', pose: 'focus' },
+  '/tools': { family: 'tool', title: 'free tools', line: 'small helpers that run in your browser.', bot: 'boxo cyan', pose: 'focus' },
 };
 
 // the docs pages, from their front matter (title, description, art)
@@ -70,7 +53,7 @@ export function docCards() {
     const m = fs.readFileSync(path.join(dir, f), 'utf8').match(/^---\n([\s\S]*?)\n---/);
     const meta = Object.fromEntries(m[1].split('\n').map((l) => l.match(/^(\w+):\s*(.*)$/)).filter(Boolean).map(([, k, v]) => [k, v.trim()]));
     const name = f.slice(0, -3);
-    return { id: `docs--${name}`, at: `/docs/${name}`, family: 'docs', title: meta.title, line: meta.description, props: meta.art ? [meta.art] : ['s-notebook'] };
+    return { id: `docs--${name}`, at: `/docs/${name}`, family: 'docs', title: meta.title, line: meta.description };
   });
 }
 
@@ -85,8 +68,7 @@ export function layCard(page, opts, seen = new Map()) {
   let s, salt = '';
   for (let n = 0; n < 50; n++) { s = cardSpec(page, salt); if (!seen.has(cardSignature(s) + s.title)) break; salt = `#${n + 1}`; }
   seen.set(cardSignature(s) + s.title, page.at);
-  if (s.tile?.logo === 'file:mark') s.tile.logo = opts.mark;
-  return { spec: s, alt: cardAlt(s, PROPS), wide: cardHtml(s, opts), square: page.square ? cardHtml(s, { ...opts, square: true }) : null };
+    return { spec: s, alt: cardAlt(s), wide: cardHtml(s, opts), square: page.square ? cardHtml(s, { ...opts, square: true }) : null };
 }
 
 // every core and docs card into seo/art/cards.json; returns { id: alt } for the meta tags
