@@ -8,7 +8,7 @@ import { Icon } from "./Icon";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
-import { Art, HeadArt, type ArtName } from "./ui/Art";
+import { HeadArt, type ArtName } from "./ui/Art";
 
 /* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
    30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
@@ -91,12 +91,11 @@ export function Card({ label, art, action, anchor, footnote, className, children
   );
 }
 
-/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side, under a prop when given. */
-export function PanelEmpty({ children, art, ...rest }: { children: ReactNode; art?: ArtName; "data-panel-empty"?: string }) {
+/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side. */
+export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
   return (
-    <div {...rest} className="flex flex-col items-center gap-2.5 px-4 py-4">
-      {art && <Art name={art} size="lg" className="mb-1" />}
-      <p className="text-pretty text-center text-[13px] font-medium leading-[18px] tracking-[0.015em] text-ink-secondary">{children}</p>
+    <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
+      <p className="text-pretty text-center text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{children}</p>
     </div>
   );
 }
@@ -221,7 +220,7 @@ export function SwitchRow({ title, hint, checked, onChange, disabled, tone, labe
   );
 }
 
-/** A pick-one value: the name on the left, a filled chip on the right that opens the panel's menu under its edge. */
+/** A pick-one value: the whole row opens the panel's menu under its right edge, the value and a small chevron on the right. */
 export function SelectRow<V extends string>({ title, hint, value, options, onChange, disabled, label, tooltip, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
@@ -242,7 +241,8 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
       data-select-row=""
       className={cn(
         rowCls,
-        "relative has-[[role=combobox]:disabled]:opacity-45",
+        "relative has-[[role=combobox]:enabled:hover]:bg-ink/[0.035] has-[[aria-expanded=true]]:bg-ink/[0.035]",
+        "has-[[role=combobox]:focus-visible]:outline-2 has-[[role=combobox]:focus-visible]:-outline-offset-2 has-[[role=combobox]:focus-visible]:outline-focus has-[[role=combobox]:disabled]:opacity-45",
       )}
     >
       <RowText title={title} hint={hint} />
@@ -254,7 +254,11 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
         options={options}
         disabled={disabled}
         onChange={onChange}
-        className="max-w-[50%]"
+        className={cn(
+          "static my-0 mr-0 h-auto max-w-[50%] gap-1.5 rounded-none border-0 bg-transparent p-0 text-ink-secondary",
+          "hover:bg-transparent aria-expanded:bg-transparent focus-visible:ring-0 disabled:opacity-100",
+          "after:absolute after:inset-0 after:rounded-lg after:content-['']",
+        )}
       />
     </div>
   );
@@ -410,11 +414,12 @@ export function BackButton({ onBack, label = t("common.back") }: { onBack: () =>
 }
 
 /** A pane's header: its title, or a page's title behind a back chevron. */
-export function PaneHeader({ title, onBack, backLabel, headingId, children }: { title: ReactNode; onBack?: () => void; backLabel?: string; headingId?: string; children?: ReactNode }) {
+export function PaneHeader({ title, onBack, backLabel, headingId, lead, children }: { title: ReactNode; onBack?: () => void; backLabel?: string; headingId?: string; lead?: ReactNode; children?: ReactNode }) {
   return (
     <header className="settings-pane-header">
       <div className="flex min-w-0 items-center gap-1.5">
         {onBack && <BackButton onBack={onBack} label={backLabel} />}
+        {lead}
         <h2 id={headingId} className={cn("settings-pane-title truncate outline-none", onBack && "ps-0")}>{title}</h2>
       </div>
       {children}

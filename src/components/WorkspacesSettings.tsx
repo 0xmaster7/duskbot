@@ -70,8 +70,8 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
     </>
   );
   const status = current
-    ? <span data-workspace-current="" className="flex h-7 shrink-0 items-center gap-1 ps-2.5 text-[12px] font-semibold leading-4 text-ink"><Icon name="check" size={12} />{t("connectedWorkspaces.current")}</span>
-    : <span aria-hidden="true" className="flex h-7 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[12px] font-medium leading-4 text-ink">{t("connectedWorkspaces.switch")}</span>;
+    ? <span data-workspace-current="" className="flex h-7 shrink-0 items-center gap-1 ps-2.5 text-[12px] leading-4 text-ink"><Icon name="check" size={12} />{t("connectedWorkspaces.current")}</span>
+    : <span aria-hidden="true" className="flex h-7 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[12px] leading-4 text-ink">{t("connectedWorkspaces.switch")}</span>;
   return (
     <div data-workspace={place.kind} data-workspace-health={health} className="relative flex min-w-0 items-center gap-4">
       {current
@@ -123,7 +123,7 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
   };
 
   return (
-    <SettingsGroup label={t("settings.docs.ws.title")} art="computer" hint={t("settings.docs.ws.hint")} block="workspaces">
+    <SettingsGroup label={t("settings.docs.ws.title")} hint={t("settings.docs.ws.hint")} block="workspaces">
       <SettingsRows>
         {places.map((place) => (
           <WorkspaceRow key={place.id} place={place} busy={busy} onOpen={() => open(place)}
@@ -146,11 +146,11 @@ export function InstallOnVpsGroup() {
   if (!vpsLinkAvailable()) return null;
   const steps = ["settings.docs.vps.step1", "settings.docs.vps.step2", "settings.docs.vps.step3"] as const;
   return (
-    <SettingsGroup label={t("settings.docs.vps.title")} art="server" hint={t("settings.docs.vps.hint")} block="install-vps">
+    <SettingsGroup label={t("settings.docs.vps.title")} hint={t("settings.docs.vps.hint")} block="install-vps">
       <div className="flex flex-col gap-3 px-2.5">
         <ol className="m-0 flex list-none flex-col gap-2 p-0">
           {steps.map((step, index) => (
-            <li key={step} className="flex items-start gap-3 text-[13px] font-medium leading-[19px] text-ink">
+            <li key={step} className="flex items-start gap-3 text-[13px] leading-[19px] text-ink">
               <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-[11px] font-semibold tabular-nums text-ink-secondary">{index + 1}</span>
               <span className="min-w-0">{t(step)}</span>
             </li>

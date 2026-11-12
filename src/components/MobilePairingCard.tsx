@@ -275,7 +275,7 @@ export function MobilePairingCard({ remote, accountEmail = null }: { remote: boo
         </AnimatePresence>
         {error && <NoteRow tone="danger">{error}</NoteRow>}
       </RowsCard>
-      <RowsCard label={t("settings.mobile.devices")} art="mobile">
+      <RowsCard label={t("settings.mobile.devices")}>
         {devices?.length ? devices.map((device) => (
           <ItemRow key={device.id} icon={Smartphone} title={device.name} hint={t("settings.mobile.seen", { when: lastSeen(device.lastSeenAt, now) })}>
             <span className={pill}>{t(platformLabelKey(device.platform))}</span>

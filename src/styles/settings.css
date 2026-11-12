@@ -115,7 +115,6 @@
   flex-shrink: 0;
   padding: 14px 9px 4px;
   color: var(--color-ink-secondary);
-  font-weight: 500;
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.01em;
@@ -166,10 +165,10 @@
   margin: 0;
   padding-inline-start: 10px;
   color: var(--color-ink);
-  font-size: 24px;
-  font-weight: 650;
-  line-height: 30px;
-  letter-spacing: -0.035em;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: -0.006em;
 }
 
 /* the wipe viewport: the incoming layer slides over the outgoing one on push, the outgoing slides off it on pop */
@@ -419,27 +418,27 @@
   padding-inline: 10px 4px;
 }
 :root .settings-dialog .settings-pane [data-settings-heading] {
-  font-size: 18px;
-  font-weight: 650;
-  line-height: 24px;
-  letter-spacing: -0.025em;
-  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: var(--font-weight-normal, 425);
+  line-height: 16px;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
 }
 :root .settings-dialog .settings-pane [data-settings-group-hint] {
   margin-top: 2px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-  color: color-mix(in srgb, var(--color-ink) 62%, transparent);
+  font-size: 12px;
+  font-weight: var(--font-weight-normal, 425);
+  line-height: 16px;
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
 }
 :root .settings-dialog .settings-pane [data-settings-footnote] {
   margin: 6px 0 0;
   padding-inline: 10px 4px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  letter-spacing: 0;
-  color: color-mix(in srgb, var(--color-ink) 52%, transparent);
+  font-size: 11px;
+  font-weight: var(--font-weight-normal, 425);
+  line-height: 15px;
+  letter-spacing: 0.005em;
+  color: color-mix(in srgb, var(--color-ink) 44%, transparent);
 }
 :root .settings-dialog .settings-pane section:has(> [data-settings-group-head]) { gap: 0; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) {
@@ -474,23 +473,23 @@
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a) { transition-property: scale; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button, [role="radio"], [role="combobox"]) { transition: none; }
 :root .settings-dialog .settings-pane :is([data-row-title], [data-setting-row] [data-setting-title]) {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 19px;
-  letter-spacing: -0.01em;
+  font-size: 13px;
+  font-weight: var(--font-weight-normal, 425);
+  line-height: 18px;
+  letter-spacing: -0.08px;
   color: var(--color-ink);
 }
 :root .settings-dialog .settings-pane :is([data-row-hint], [data-setting-row] [data-setting-hint]) {
-  margin-top: 1px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 17px;
+  margin-top: 0;
+  font-size: 12px;
+  font-weight: var(--font-weight-normal, 425);
+  line-height: 16px;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  color: color-mix(in srgb, var(--color-ink) 62%, transparent);
+  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
 }
-:root .settings-dialog .settings-pane [data-panel-value] { font-weight: 500; color: color-mix(in srgb, var(--color-ink) 62%, transparent); }
+:root .settings-dialog .settings-pane [data-panel-value] { color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
 
 /* the props: a small object at the start of the heading line, centred on the heading and its hint; it tips over when the
    group is hovered, as the site's do */
@@ -503,7 +502,6 @@
   border: 0;
   border-radius: 9999px;
   background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
-  font-weight: 500;
 }
 :root .settings-dialog .settings-pane select:not([data-settings-select]):enabled:hover { background-color: color-mix(in srgb, var(--color-ink) 9%, transparent); }
 :root .settings-dialog .settings-pane :is([data-settings-select], [role="combobox"]):focus-visible,
@@ -650,7 +648,7 @@
 
   /* group headings and footnotes, 16px in */
   :root .settings-dialog .settings-pane [data-settings-group-head] { padding-inline: 16px; }
-  :root .settings-dialog .settings-pane [data-settings-heading] { font-size: 20px; line-height: 26px; }
+  :root .settings-dialog .settings-pane [data-settings-heading] { font-size: 14px; font-weight: 600; line-height: 20px; color: color-mix(in srgb, var(--color-ink) 60%, transparent); }
   :root .settings-dialog .settings-pane [data-settings-footnote] { margin-top: 10px; padding-inline: 16px; font-size: 15px; line-height: 20px; color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
 
   /* a group's card becomes a stack of segments */
@@ -685,3 +683,24 @@
   .settings-dialog .settings-pane :is(.text-\[13px\], [data-row-title]) { font-size: 15px; line-height: 20px; }
   .settings-dialog .settings-pane :is(.text-\[12px\], [data-row-hint]) { font-size: 13px; line-height: 18px; }
 }
+
+/* Settings draws the shared select (SelectPill, and SelectRow's) as its filled chip; outside Settings it stays the ghost pill */
+:root .settings-dialog .settings-pane [data-select-pill] {
+  position: relative;
+  height: 28px;
+  max-width: 180px;
+  margin-block: -2px;
+  margin-inline-end: 0;
+  gap: 6px;
+  padding: 4px 8px 4px 12px;
+  border: 0;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  color: var(--color-ink);
+  transition: color 100ms ease, background-color 100ms ease, scale 120ms var(--dusk-ease-out);
+}
+:root .settings-dialog .settings-pane [data-select-pill]:is(:enabled:hover, [aria-expanded="true"]) { background-color: color-mix(in srgb, var(--color-ink) 9%, transparent); }
+:root .settings-dialog .settings-pane [data-select-pill]:enabled:active { scale: 0.97; }
+:root .settings-dialog .settings-pane [data-select-pill] > svg { transition: rotate 150ms ease-out; }
+:root .settings-dialog .settings-pane [data-select-pill][aria-expanded="true"] > svg { rotate: 180deg; }
+@media (prefers-reduced-motion: reduce) { :root .settings-dialog .settings-pane [data-select-pill]:enabled:active { scale: 1; } }

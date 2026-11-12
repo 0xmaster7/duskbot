@@ -22,8 +22,9 @@ const MENU_MIN = 200;
 const ROW = 30;
 const ROW_GAP = 2;
 
-/** The select in a pane row: a filled chip sized to its value, and the 200px listbox under its right edge, 30px rows 2px
- * apart with an inset highlight and a check on the chosen one. */
+/** Grok's ghost select in a pane row ("Liora", "1x", "Auto-detect"): a 24px hairline pill sized to its value, and the
+ * white 200px listbox under its right edge, 30px rows 2px apart with an inset highlight and a check on the chosen one.
+ * Settings draws it as its filled chip (settings.css, [data-select-pill]). */
 export function SelectPill<V extends string>({ value, options, onChange, disabled, className, title, "aria-label": label, ...rest }: {
   value: V;
   options: readonly SelectPillOption<V>[];
@@ -102,6 +103,7 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
         ref={trigger}
         type="button"
         role="combobox"
+        data-select-pill=""
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -120,15 +122,15 @@ export function SelectPill<V extends string>({ value, options, onChange, disable
           }
         }}
         className={cn(
-          "group -my-0.5 inline-flex h-7 min-w-0 max-w-[180px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-ink/[0.06] py-1 pl-3 pr-2 text-[13px] font-medium leading-[18px] tracking-[-0.08px] text-ink",
-          "[transition:color_100ms_ease,background-color_100ms_ease,scale_120ms_var(--dusk-ease-out)] hover:bg-ink/[0.09] aria-expanded:bg-ink/[0.09] active:scale-[0.97] motion-reduce:active:scale-100",
+          "group -my-[3px] -mr-[5px] inline-flex h-6 min-w-0 max-w-[160px] shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-ink/6 bg-transparent py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
+          "transition-[color,background-color] duration-100 ease-[ease] hover:bg-ink/6 aria-expanded:bg-ink/6",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink/[0.06]",
+          "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent",
           className,
         )}
       >
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
-        <Icon name="chevron-down" size={10} className="shrink-0 text-ink-secondary transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-180 motion-reduce:transition-none" />
+        <Icon name="chevron-down" size={10} className="shrink-0 text-ink-secondary" />
       </button>
       {typeof document !== "undefined" && createPortal(
           motion.shown && place && (

@@ -24,6 +24,7 @@ import { CloudAccountSettings } from "./CloudAccountSettings";
 import { TransferSettings } from "./vps-link/TransferSettings";
 import { vpsLinkAvailable } from "@/lib/vps-link";
 import { Icon } from "./Icon";
+import { Art, type ArtName } from "./ui/Art";
 import { SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { PaneHeader, PanelSections, SubPageContext, WipeStack, type SubPage } from "./ListRows";
 import {
@@ -34,6 +35,12 @@ import { ADVANCED_PAGES, SETTINGS_PANES, consumeBotTarget, settingsLocation, use
 import { VaultNewItem } from "./LoginsSettings";
 import { BotsPane, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
 import "../styles/settings.css";
+
+/** each pane's one picture, small, leading its title; the groups under it stay plain */
+const PANE_ART: Partial<Record<SettingsPane, ArtName>> = {
+  general: "palette", texting: "phone", computer: "computer", permissions: "shield", vault: "key", models: "plug",
+  usage: "chart", updates: "signpost", advanced: "briefcase",
+};
 
 export { openBotSettings, openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
@@ -275,6 +282,7 @@ export function SettingsModal() {
       back: () => setSub({ key: paneKey, stack: pages.slice(0, -1) }),
     };
     // a bot's page opened from its panel goes back to the panel, not to a second list of the bot's settings
+    const art = !top && !at ? PANE_ART[pane] : undefined;
     const onBack = top && pane === "bots" && pages.length === 1 ? close : top ? nav.back : at ? () => go("advanced") : phone ? () => setPhoneList(true) : undefined;
     return (
       <>
@@ -282,6 +290,7 @@ export function SettingsModal() {
           title={top?.title ?? (at ? advancedTitle(at) : t(paneEntry.labelKey))}
           headingId={live ? headingId : undefined}
           onBack={onBack}
+          lead={art ? <Art name={art} className="ms-2.5 -me-1 size-7 object-contain" /> : undefined}
           backLabel={!top && at ? t("settings.advanced.back") : !top && phone ? t("settings.title") : undefined}
         >
           {pane === "vault" && !top && <div data-settings-header-actions=""><VaultNewItem /></div>}

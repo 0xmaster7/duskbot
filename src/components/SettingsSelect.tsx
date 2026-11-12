@@ -150,7 +150,7 @@ function SelectMenu({ value, onChange, options: given, children, disabled, class
           }
         }}
         className={cn(
-          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-ink/[0.06] py-1 pl-3 pr-2 text-[13px] font-medium leading-[18px] tracking-[-0.08px] text-ink",
+          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-ink/[0.06] py-1 pl-3 pr-2 text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
           "[transition:color_100ms_ease,background-color_100ms_ease,scale_120ms_var(--dusk-ease-out)] hover:bg-ink/[0.09] active:scale-[0.97] aria-expanded:bg-ink/[0.09] motion-reduce:active:scale-100",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
           "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink/4",
