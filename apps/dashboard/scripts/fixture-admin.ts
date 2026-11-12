@@ -221,7 +221,7 @@ function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
     } else if (k === 8) live(sub, { failForever: 5, endAt: add(start, 6) });
     else if (k === 14) live(sub, { failForever: Math.max(1, Math.floor((now - start) / (30 * DAY))) });
     else if (k === 0 || k === 5 || k === 15 || k === 19) live(sub, { upgradeAt: [k === 0 ? 4 : 2, "pro"], failAt: k === 5 ? [3] : [] });
-    else if (k === 12 || k === 16) live(sub, { downgradeAt: [3, "starter"] });
+    else if (k === 12 || k === 2) live(sub, { downgradeAt: [3, "starter"] });
     else if (k === 18) live(sub, { cancelScheduled: true });
     else live(sub, { failAt: k === 7 || k === 22 ? [2] : [] });
   }
