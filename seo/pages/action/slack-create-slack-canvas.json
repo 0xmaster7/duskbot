@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/slack/create-slack-canvas",
+  "type": "action",
+  "title": "Create a Slack canvas with AI for a focused handover",
+  "nav": "create slack canvas",
+  "h1": "turn your handover notes into a new slack canvas",
+  "description": "Create a titled Slack canvas from notes, optionally as a channel tab. See why channel placement grants write access and needs its own review instruction.",
+  "keyword": "create slack canvas with ai",
+  "keywords": [
+    "chatgpt create slack canvas",
+    "claude slack canvas handover",
+    "ai write new slack canvas"
+  ],
+  "answer": "hand your bot the notes for a new slack canvas and it can create the document with a title and optional content. name a channel if the canvas should also become a tab there with write permissions. creation is a write, not a send, so sending approvals do not supervise it. put an explicit ask-before-creating instruction in the job if you need a review.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "canvas",
+    "handover notes",
+    "channel tabs"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/send-message",
+    "/integrations/slack/list-unread-channel-messages"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-notebook",
+      "p-bubbles"
+    ],
+    "bubble": "handover in one canvas"
+  },
+  "og_line": "a new canvas for a specific handover.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_CREATE_CANVAS"
+  },
+  "what": "this action creates a fresh canvas rather than editing one you already have. a title helps people recognise it, but is optional; without one slack picks a name. content is optional too, so forgetting the notes can leave an empty document.\n\nchannel placement is a deliberate choice. naming the channel adds the new canvas as a tab in that channel with write permissions. leave it out when you are only asking for canvas creation, and do not assume the action also posts an announcement message.",
+  "uses": [
+    "make a handover canvas from the shift notes you have approved",
+    "create a titled workshop checklist with the instructions you give the bot",
+    "put a new event run sheet into its named channel as a writable tab",
+    "start an intentionally empty canvas for a facilitator to fill during a session"
+  ],
+  "routine": {
+    "message": "every other monday at 10:20, prepare a new slack canvas titled fenwick night shift handover followed by that day's date, using only the handover notes i marked approved here. show me the content and which channel it goes in before creating its tab, and ask me before you change anything. return the created canvas reference to this chat after i agree. never invent missing instructions or create a second canvas for the same dated handover.",
+    "when": "alternate mondays at 10:20",
+    "needs": "slack connected with read and write access and canvas creation permission, and the channel the canvas should sit in",
+    "output": "canvas proposal for review\n\nfenwick night shift handover, 16 november\n- ruxandra holds the gate checklist.\n- check the loading bay before locking up.\n\ndestination: fenwick-shift channel tab, with write permissions\nwaiting for confirmation; canvas not created."
+  },
+  "steps": [
+    "allow slack in **Connected apps** with **read and write** access and restrict the bot to canvas creation plus any lookup it needs.",
+    "give it the exact notes, a useful title and a channel only if the canvas should appear there as a tab.",
+    "tell it to ask before creating the canvas and review one proposal, including where it will appear.",
+    "after the first approved creation, inspect the canvas yourself; **Pause** the recurring handover when the shift changes."
+  ],
+  "watch": [
+    "creating a canvas does not wait for the sending approval setting. an ask-first instruction must come from your request.",
+    "naming a channel makes the canvas a tab there with write permissions. treat that placement as part of the decision, not just decoration.",
+    "omitting document content creates an empty canvas, and omitting the title leaves slack to name it.",
+    "this action makes a new canvas; it does not promise updates to an earlier handover document."
+  ],
+  "faq": [
+    {
+      "q": "will a new canvas automatically become a channel tab?",
+      "a": "only if you name a channel. the action then adds it as a tab with write permissions."
+    },
+    {
+      "q": "can i create just a blank canvas with a name?",
+      "a": "a title with no document content creates an empty canvas. say that you intend it to be blank so the bot does not mistake missing notes for an instruction to fill them."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/google-calendar/create-event",
+  "type": "action",
+  "title": "Create Google Calendar events with AI from a message",
+  "nav": "create event",
+  "h1": "put a new event in google calendar by asking",
+  "description": "Turn a message into a timed or all-day Google Calendar event. Check conflicts separately and control guest emails before a bot creates it.",
+  "keyword": "google calendar create event with ai",
+  "keywords": [
+    "chatgpt create google calendar event",
+    "claude add calendar appointment",
+    "ai schedule google calendar event"
+  ],
+  "answer": "give a bot an event title, date, time zone and duration and it can create the appointment in your google calendar. all-day events are supported too. creation does not check for clashes, and guest updates default to emailing all attendees. adding an event is a change, not a send, so it won't ask first, even when google emails your guests. tell the bot to show you the event before adding it.",
+  "tags": [
+    "google calendar",
+    "new events",
+    "scheduling"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/patch-event"
+  ],
+  "og_line": "a new appointment, with the details checked.",
+  "what": "this action places a new calendar entry at the time you specify. a timed entry needs a concrete start and either an end or a duration. an all-day entry instead uses a start date and an exclusive end date: a one-day event ends on the following date.\n\nchoose your primary calendar or have the bot list accessible calendars to identify another one. creating an entry does not check whether anyone is free. a meet link is requested by default for eligible events, so turn that off when you only want a dated reminder.",
+  "uses": [
+    "add the exhibition dates you just confirmed as an all-day entry",
+    "reserve a workshop with the street address you give it and duration",
+    "put a repair appointment on your personal calendar from the details you type",
+    "create a repeating practice session with an explicit time zone"
+  ],
+  "routine": {
+    "message": "each saturday at 10, review the confirmed exhibition dates i added to this chat during the week. propose one all-day entry per exhibition on my personal calendar, with the venue in the location field, and ask me before you create anything. after approval, add only those entries, with no guests, no meeting link and guest notifications turned off, then list them here. never book tentative dates or change an existing event.",
+    "when": "saturdays at 10:00",
+    "needs": "google calendar connection with read and write access; calendar listing and event creation allowed",
+    "output": "exhibition entries proposed\n\nmina's glasswork at larch quay gallery: all day, 21 november.\ncalendar: personal. no guests or meeting link.\nawaiting your go-ahead before creation."
+  },
+  "steps": [
+    "in **Connected apps**, enable google calendar for the bot and grant **read and write** for creating events.",
+    "identify the destination calendar and time zone; let the bot list calendars if the name is ambiguous.",
+    "try one event with its complete dates and notification choices, explicitly asking to review the proposal before creation.",
+    "check the event in google calendar, then schedule the recurring request and use **Pause** if it proposes dates you have not confirmed."
+  ],
+  "watch": [
+    "creating an event can overlap another appointment. availability must be checked with a separate calendar lookup before booking.",
+    "guest emails default to all attendees, and eligible events request a meet link by default. give explicit choices rather than relying on defaults.",
+    "if no time zone is given, google uses utc, so say your time zone.",
+    "scheduled event creation stops on a sleeping computer. missed runs less than 12 hours old run once on return; dusk cloud runs on time."
+  ],
+  "faq": [
+    {
+      "q": "can i ask for a whole-day event instead of choosing hours?",
+      "a": "the bot uses start and end dates without timed fields. the end date is exclusive, so it uses the next date for a single-day entry."
+    },
+    {
+      "q": "will it warn me if i already have a meeting?",
+      "a": "this creation action has no conflict check. ask the bot to inspect availability separately before it proposes the event."
+    },
+    {
+      "q": "does adding a guest send an invitation email?",
+      "a": "guest updates default to all, which emails attendees. creating the event still counts as a write in dusk, so set an explicit review and notification rule before allowing it."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "googlecalendar"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "s-button"
+    ],
+    "bubble": "add the workshop dates"
+  },
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_CREATE_EVENT"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

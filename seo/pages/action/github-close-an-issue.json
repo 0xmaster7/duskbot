@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/github/close-an-issue",
+  "type": "action",
+  "title": "Close a GitHub issue with AI and the right reason",
+  "nav": "close an issue",
+  "h1": "close a specific github issue after you confirm the outcome",
+  "description": "Ask AI to close a GitHub issue by repository and issue number. Distinguish completed from not planned, and add a review step before changing its state.",
+  "keyword": "close github issue with ai",
+  "keywords": [
+    "chatgpt close github issue",
+    "claude github issue closure",
+    "ai close issue not planned"
+  ],
+  "answer": "a bot can set a named github issue to closed and optionally give the reason as completed or not planned. paste the issue link so it has the right repository, not just the number. closing is a change and doesn't ask first, so tell the bot \"ask me before you close anything\" if you want the final say.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "issue closure",
+    "github",
+    "closure reasons"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/create-an-issue",
+    "/integrations/github/add-labels-to-an-issue"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-folder",
+      "s-button"
+    ],
+    "bubble": "confirm then close"
+  },
+  "og_line": "close the issue for the reason you chose.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CLOSE_ISSUE"
+  },
+  "what": "closing removes an issue from the open queue by changing its state. it does not fix the underlying problem, merge code or add an explanatory comment. the optional reason distinguishes finished work from a request you have decided not to pursue.\n\npaste the issue link, or describe it and let the bot find it. it should read that issue before proposing closure, especially when several reports have similar titles. the decision that work is complete must come from evidence or your instruction, not just the age of the report.",
+  "uses": [
+    "close an issue after you confirm that its acceptance check passed",
+    "mark an abandoned feature request as not planned after a product decision",
+    "clear a named obsolete task whose owner has explicitly agreed it is no longer needed"
+  ],
+  "routine": {
+    "message": "every second friday at 11, review issue 41 in fieldnote-co/visitor-map after reading its current details. if i marked its acceptance check passed in this chat, show me the issue title and propose closing it as completed. ask me before you change anything and report the resulting state here after i agree. never close another issue or treat a quiet discussion as proof the work is finished.",
+    "when": "alternate fridays at 11:00",
+    "needs": "github connected with read and write access; permission to get and close the issue in fieldnote-co/visitor-map",
+    "output": "closure proposal\n\nfieldnote-co/visitor-map #41: keep the accessible entrance route\nyou confirmed the acceptance check passed.\nproposed reason: completed\n\nwaiting for your decision. issue remains open."
+  },
+  "steps": [
+    "enable github for the bot in **Connected apps** and give the full owner/repository plus issue number.",
+    "let it read the issue under **read only** first so you can verify that it found the right report.",
+    "permit the close action with **read and write** only when needed, and state your ask-before-changing rule in the routine.",
+    "inspect the first resulting closure and reason; use **Pause** once this named issue no longer needs a recurring check."
+  ],
+  "watch": [
+    "the same number can be a different issue in another repository, so paste the link or name the repository too.",
+    "completed and not planned communicate different outcomes. do not label rejected work as fixed.",
+    "closing doesn't ask first; **Sending on your behalf** only covers sends. put \"ask me first\" in the routine.",
+    "this action changes state only; a public explanation requires a separate comment action."
+  ],
+  "faq": [
+    {
+      "q": "will closing the issue post an explanation?",
+      "a": "this action sets its state and can include a closure reason. writing a comment is a separate action."
+    },
+    {
+      "q": "can it close an issue that will never be implemented?",
+      "a": "use the not planned reason for that decision rather than completed. have the bot show you the intended reason before changing the issue."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

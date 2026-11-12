@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/outlook/create-to-do-task",
+  "type": "action",
+  "title": "Create Microsoft To Do tasks from chat with AI",
+  "nav": "create to do task",
+  "h1": "put the next step in your microsoft to do list",
+  "description": "Turn an agreed next step into a Microsoft To Do task with a bot. Choose the list, title, due date and source link without guessing missing commitments.",
+  "keyword": "outlook create to do task with ai",
+  "keywords": [
+    "chatgpt create microsoft to do task",
+    "claude add outlook task",
+    "ai microsoft to do from notes"
+  ],
+  "answer": "a bot can create a microsoft to do task in the list you choose, with a title and optional due date, reminder, importance, notes or linked resources. it looks up the exact list first, so two lists with the same name don't get mixed up. adding a task is an app change, so it needs write access and will not pause under the email sending rule.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "outlook",
+    "create to do task"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/move-message-to-folder"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-notebook",
+      "s-clock"
+    ],
+    "bubble": "give it a next step"
+  },
+  "og_line": "an agreed task, in its chosen list.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_CREATE_TASK"
+  },
+  "what": "you can hand over a concrete commitment from your chat and have it become a task instead of another message to remember. give it the task title and the list name. the bot looks up the right list before creating the task.\n\noptional details can include a source email or document link, categories and low, normal or high importance. dates and reminders need time-zone information. ask the bot to leave uncertain dates out rather than turning a vague intention into a deadline you never agreed.",
+  "uses": [
+    "capture the follow-up you accepted during a supplier call",
+    "create a repair task with the original fault-report link in its resources",
+    "put an errands item in your personal list without mixing it into work",
+    "add a reminder for a paperwork deadline whose date you gave it"
+  ],
+  "routine": {
+    "message": "every weekday at 18:15, collect only the next steps i explicitly accepted in this chat today for quillstone books. show the proposed titles, source links and any dates i actually gave you, then ask before adding them to my \"shop follow-ups\" microsoft to do list. after approval, create the tasks and report them here. never guess deadlines, assign high importance without instruction or duplicate a task after an uncertain response.",
+    "when": "weekdays at 18:15",
+    "needs": "outlook connected, with read and write access to microsoft to do tasks",
+    "output": "quillstone books task preview\nlist: shop follow-ups\ntitle: ask tamsin reed for the revised delivery slip\ndue: not stated, left unset\nsource: today's accepted next step in this chat."
+  },
+  "steps": [
+    "connect outlook in **Connected apps** and allow **read and write** for the task bot.",
+    "have it look up your to do lists and confirm which one is your follow-ups list.",
+    "try one task with a clear title and time zone; ask to preview any due date before it is saved.",
+    "check the new task in microsoft to do, then confirm the routine schedule and use **Edit** if your end-of-day time changes."
+  ],
+  "watch": [
+    "if two lists share a name, tell the bot which one.",
+    "a due date and a reminder are separate optional fields; request both when you need both.",
+    "tasks can be created without a deadline, so missing dates should remain missing rather than be invented."
+  ],
+  "faq": [
+    {
+      "q": "does this create an outlook calendar appointment?",
+      "a": "no. it creates a microsoft to do task in the specified task list. calendar scheduling is a separate job."
+    },
+    {
+      "q": "can the task link back to the email it came from?",
+      "a": "yes, linked resources can hold an email or document url with a display name. provide the real source link or ask the bot to obtain it before creating the task."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

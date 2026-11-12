@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/slack/create-a-reminder",
+  "type": "action",
+  "title": "Create a Slack reminder with AI for the time you mean",
+  "nav": "create a reminder",
+  "h1": "turn a request into a slack reminder",
+  "description": "Have a bot create a Slack reminder with your exact text and time. Check who receives it and why reminders for another person may be unavailable.",
+  "keyword": "create slack reminder with ai",
+  "keywords": [
+    "slack set reminder with ai",
+    "chatgpt create slack reminder",
+    "claude schedule slack reminder"
+  ],
+  "answer": "a bot can create a slack reminder from the words you want to see and the time you want it to appear. the time can be a natural-language request, including a recurring schedule. unless you name someone else, it reminds your connected user. this is a write in dusk, so the sending setting does not make reminder creation ask you first.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "slack",
+    "reminders",
+    "personal follow-up"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/fetch-conversation-history",
+    "/integrations/slack/update-a-slack-message"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-clock",
+      "s-button"
+    ],
+    "bubble": "remember the sample pickup"
+  },
+  "og_line": "a reminder with a clear recipient.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_CREATE_A_REMINDER"
+  },
+  "what": "this saves the reminder in slack rather than leaving a to-do in your dusk conversation. text and time are required. you can ask for a one-off nudge or a repeating reminder, so a single creation can be enough for a repeating job.\n\nname the person if you want to remind someone else. it may not be able to set reminders for teammates; the bot will tell you if it can't. for a personal reminder, leave the recipient unset rather than guessing another person.",
+  "uses": [
+    "remind yourself to bring a product sample before the courier arrives",
+    "set a recurring personal nudge to submit your weekly expense claim",
+    "save a follow-up reminder after a conversation where you promised to check a delivery"
+  ],
+  "routine": {
+    "message": "every friday at 16:00, look at the sample pickups i confirmed in this chat this week. for each one, show me a slack reminder for myself an hour before pickup, and ask me before you create them. never set reminders for anyone else or make the same reminder twice.",
+    "when": "fridays at 16:00",
+    "needs": "slack connected, read and write access to create reminders for your own user",
+    "output": "proposed slack reminders\n\n1. collect the frostmere samples, tuesday 13:15\n2. collect the frostmere glaze kit, thursday 10:00\n\nfor you only. waiting for your ok."
+  },
+  "steps": [
+    "enable slack in **Connected apps** with **read and write**, narrowing the bot to reminder creation if that is its whole job.",
+    "write the exact reminder text and time. say explicitly whether it repeats and who should receive it.",
+    "test a reminder for yourself before trying any other recipient. put an ask-first instruction in the request when the saved schedule needs review.",
+    "check the first reminders in slack before leaving the routine running."
+  ],
+  "watch": [
+    "if a teammate's reminder isn't allowed, the bot should tell you, not quietly remind you instead.",
+    "repeatedly creating a recurring reminder can leave you with duplicate nudges. schedule the creation once when one repeating reminder is the goal."
+  ],
+  "faq": [
+    {
+      "q": "can it remind a teammate instead of me?",
+      "a": "usually not. slack only lets some kinds of connection remind other people, and the bot will say if yours can't."
+    },
+    {
+      "q": "do i need a dusk routine for every weekly reminder?",
+      "a": "no. this action accepts recurring natural-language times. a dusk routine can create the recurring slack reminder once, rather than creating a new reminder each week."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

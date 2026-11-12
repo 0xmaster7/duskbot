@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/outlook/download-outlook-attachment",
+  "type": "action",
+  "title": "Download an Outlook attachment with AI from its message",
+  "nav": "download an attachment",
+  "h1": "retrieve the actual file attached to an outlook email",
+  "description": "Ask a bot to retrieve a specific Outlook email attachment and name the downloaded copy. See which attachments work and which don't.",
+  "keyword": "download outlook attachment with ai",
+  "keywords": [
+    "outlook retrieve email attachment with ai",
+    "chatgpt download outlook attachments",
+    "claude get outlook attached file"
+  ],
+  "answer": "a bot can download a particular file attachment from an outlook message and give the copy a useful filename. it first finds the message and checks its attachments for the file you mean. only attachments with binary file data work here: a link or embedded item is not enough. this read action leaves the mailbox unchanged and can run with read-only outlook access.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "outlook",
+    "attachments",
+    "file retrieval"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-email-draft",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-parcel",
+      "s-mailbox"
+    ],
+    "bubble": "the actual attached file"
+  },
+  "og_line": "retrieve the attachment, not its link.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT"
+  },
+  "what": "tell the bot which email and which file. it finds the email, checks what's attached and saves the file under a name you'll recognise.",
+  "uses": [
+    "retrieve a supplier’s attached delivery note before receiving a shipment",
+    "get the image file attached to a customer email for a print proof",
+    "collect a specific signed form from the original mail without forwarding the whole conversation"
+  ],
+  "routine": {
+    "message": "each friday at 13:15, search my outlook for this week's delivery-note emails from seraphine at coldbrook fittings. list the attachments on each matched message and download only actual pdf file attachments, naming the copies with their delivery references. return the files and message subjects in this chat, and report links or embedded items as unsupported. never forward the emails or change their folders.",
+    "when": "fridays at 13:15",
+    "needs": "outlook connected with read only access for finding messages, listing attachments and downloading files",
+    "output": "coldbrook fittings delivery file\nmessage: delivery CB-217 paperwork, from seraphine\ndownload: coldbrook-CB-217-note.pdf\nseparate cloud link skipped; it is not a binary file attachment."
+  },
+  "steps": [
+    "enable outlook in **Connected apps**, choosing **read only** for the attachment collector.",
+    "describe the source email and wanted file, and ask the bot to identify the message before listing its attachments.",
+    "confirm the chosen attachment if the names are ambiguous; provide a useful output filename for the downloaded copy.",
+    "try one file before scheduling a collection. **Pause** the routine if it repeatedly encounters unsupported attachment types."
+  ],
+  "watch": [
+    "only real attached files work. a link to a cloud file or a picture pasted into the email can't be downloaded this way.",
+    "if several attachments have similar names, check which file the bot selected before downloading."
+  ],
+  "faq": [
+    {
+      "q": "can it download a cloud link attached to an email?",
+      "a": "not with this action. it needs a file attachment containing binary data, rather than a link or embedded item."
+    },
+    {
+      "q": "why does it need to list attachments first?",
+      "a": "listing lets the bot see which files are attached and choose the one you described."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

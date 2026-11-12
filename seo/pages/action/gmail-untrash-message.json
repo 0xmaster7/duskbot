@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/gmail/untrash-message",
+  "type": "action",
+  "title": "Restore a trashed Gmail message with AI",
+  "nav": "restore trashed message",
+  "h1": "bring a gmail message out of trash",
+  "description": "Recover a Gmail message from trash by asking a bot to find and restore the exact email. Learn which reference it needs and what recovery cannot promise.",
+  "keyword": "gmail restore trashed email with ai",
+  "keywords": [
+    "chatgpt recover gmail message",
+    "claude untrash gmail",
+    "ai restore email from trash"
+  ],
+  "answer": "if an email is still in gmail trash, a bot can remove it from trash for you. it searches trash for the email you describe, so give it the sender and a rough date. restoring changes the mailbox and needs write access; tell the bot to show you the match before restoring when several emails look alike.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "restore trashed message"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/move-to-trash"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-magnifier"
+    ],
+    "bubble": "bring this email back"
+  },
+  "og_line": "recover the email you meant to keep.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_UNTRASH_MESSAGE"
+  },
+  "what": "untrash message removes the trash state from a previously trashed email. it does not recreate an email that is no longer available, and the action does not let you pick a destination folder. it takes the email out of trash; it can't choose which folder it goes to.\n\nthe bot searches your trash first and restores the exact email you pick. give it the account, sender and a date or subject so recovery starts from a specific match.",
+  "uses": [
+    "recover the travel confirmation you discarded before checking the ticket number",
+    "undo a mistaken cleanup of a customer approval email",
+    "restore an old warranty message when the repair shop asks for proof of purchase"
+  ],
+  "routine": {
+    "message": "every evening at 6, check my gmail trash for anything from my accountant, claire@ledgerly.example, that went to trash today. show me the subject and date and ask before restoring. restore only what i choose. never empty trash or restore other mail.",
+    "when": "daily at 18:00",
+    "needs": "gmail connected, with read and write access to restore messages",
+    "output": "ledgerly: 1 email in trash today\nsubject: your q3 return is ready to sign\nrestore it? nothing changed yet."
+  },
+  "steps": [
+    "label the intended gmail account in **Connected apps** so recovery does not search a different mailbox.",
+    "allow **read and write** for restoration, or keep **read only** if you only want a list of matches.",
+    "try recovering a single known email and check in gmail that it is no longer in trash.",
+    "check the schedule on the routine card and choose **Pause** when the recovery watch is no longer useful."
+  ],
+  "watch": [
+    "a message that has already been permanently removed is outside what untrash can restore.",
+    "if you have more than one gmail connected, say which account to look in.",
+    "mailbox restores have no automatic sending checkpoint, so the example asks you to choose each message."
+  ],
+  "faq": [
+    {
+      "q": "does restore always put the message in my inbox?",
+      "a": "this action removes a message from trash. it has no destination input, so do not use it as a promise to place mail in the inbox."
+    },
+    {
+      "q": "can it recover every message from a conversation at once?",
+      "a": "the input is one message id. ask the bot to identify the individual messages you want recovered and confirm each selection."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

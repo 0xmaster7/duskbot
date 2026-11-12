@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/notion/upsert-database-rows",
+  "type": "action",
+  "title": "Add or update Notion database rows with AI by a key",
+  "nav": "add or update database rows",
+  "h1": "match a notion record before adding another row",
+  "description": "Use a bot to add missing Notion records or update matches. Choose a stable matching key and check per-item results to avoid duplicate or wrong updates.",
+  "keyword": "notion upsert database rows with ai",
+  "keywords": [
+    "chatgpt add or update notion rows",
+    "claude sync notion database records",
+    "ai notion upsert by unique key"
+  ],
+  "answer": "a bot can process a list of records, look for a matching notion row for each one, and create or update it as needed. the matching rule matters more than the wording: multiple matches may update the first row or produce an error, and only the first query page is examined. use a stable reference and inspect each item's result before calling the whole batch complete.",
+  "tags": [
+    "notion",
+    "record matching",
+    "upsert"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/query-database-with-filter",
+    "/integrations/notion/update-page"
+  ],
+  "og_line": "match the reference before writing the record.",
+  "what": "this saves you choosing between add and update for every record in an incoming list. each item carries its own matching condition and the values for creating or updating a row. a missing match becomes a new row; a match becomes an update. the action returns an outcome for each item.\n\npaste the database link. the bot looks at its columns first so the new values land in the right ones.",
+  "uses": [
+    "maintain workshop registrations matched by booking reference",
+    "add new equipment records while updating existing items by asset number",
+    "refresh a vendor directory using stable supplier codes instead of names",
+    "import a corrected attendance list without intentionally creating a second row for each person"
+  ],
+  "routine": {
+    "message": "on alternate tuesdays at 16:45, take the confirmed workshop registrations i pasted into this chat since the last run and prepare the updates for the database i linked. match only on booking reference, show the proposed creates and updates here and ask before writing. stop for my decision if any reference is missing or appears more than once in the input or destination. after approval, report every item outcome here; never match by attendee name or retry the whole batch blindly.",
+    "when": "alternate tuesdays at 16:45",
+    "needs": "notion connected with read and write; permission to read, insert and update the chosen data source",
+    "output": "registration import review\n\nbr-231, esme: existing row, update session choice.\nbr-232, kaspar: no match, create registration.\nbr-233: duplicate reference found, held for your decision.\nno writes made yet."
+  },
+  "steps": [
+    "enable notion under **Connected apps** with **read and write**, limited to the destination reads and upserts you intend.",
+    "paste the database link and pick a column that's different for every row, like a booking reference.",
+    "try a list containing one known match and one new reference, requiring review before the create or update calls.",
+    "ask the bot to list any failed items in the chat, and retry only those."
+  ],
+  "watch": [
+    "only the first page of matches is examined. a broad filter can miss relevant rows or choose among multiple matches incorrectly.",
+    "multiple matches can update the first result or fail. a person's name is a poor key when two records can legitimately share it.",
+    "a batch can have mixed outcomes. retrying successful items along with failed ones can repeat changes or create unwanted rows if the matching data changed."
+  ],
+  "faq": [
+    {
+      "q": "what does upsert mean for my tracker?",
+      "a": "for each item, it looks for a matching row, updates a match or creates a row when none is returned. the create and update values can differ."
+    },
+    {
+      "q": "will it always prevent duplicates?",
+      "a": "a weak match or limited query results can still lead to the wrong update or an extra row. use a stable reference and review ambiguous cases before writing."
+    },
+    {
+      "q": "can i see which records failed?",
+      "a": "the action returns per-item results. ask the bot to list each failed item separately and retry only after checking whether any earlier change succeeded."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-folder",
+      "s-notebook"
+    ],
+    "bubble": "match by booking reference"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_UPSERT_ROW_DATABASE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

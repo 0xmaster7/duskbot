@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>match weekly receipts to the sheet you already keep</h1>
 <p class="lede seo-answer">once a week, have a bot compare emailed receipts with the expense rows you already keep in google sheets. it can search gmail or outlook, read receipt attachments and check the named sheet range. ask for unmatched rows, receipts absent from the sheet and uncertain duplicates. this routine produces a review list in chat without labelling mail or updating your expense records.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/routines--weekly-receipts-sweep.webp?v=a1c4d4f4" srcset="/art/seo/routines--weekly-receipts-sweep-660.webp 660w, /art/seo/routines--weekly-receipts-sweep.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a yellow pixel bot and a green pixel bot beside a long receipt and a magnifying glass, on a grassy meadow in front of chalk cliffs by the sea, one saying &quot;one match uncertain&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/routines--weekly-receipts-sweep.webp?v=a1c4d4f4" srcset="/art/seo/routines--weekly-receipts-sweep-660.webp 660w, /art/seo/routines--weekly-receipts-sweep.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a yellow pixel bot and a green pixel bot beside a long receipt and a magnifying glass, on a grassy meadow in front of chalk cliffs by the sea, one saying &quot;one match uncertain&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-message"><h2 id="the-message">the message</h2>
 <div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every monday at 9, compare receipts from the previous monday through sunday with my expense sheet. use only the gmail and outlook accounts i name, and the google sheets file, tab and range i give you.
 
@@ -53,7 +53,7 @@ return four groups in this chat: receipts with a clear matching row, sheet rows 
 
 don't change the sheet, label or move mail, pay anything or contact suppliers. if both sources cannot be read, say the comparison is incomplete.</code></pre><button class="copy" type="button" data-copy>copy</button></div><dl class="seo-specs"><div><dt>when</dt><dd>mondays at 9:00, reviewing the previous monday through sunday in your chosen time zone</dd></div><div><dt>needs</dt><dd>gmail or outlook, or both, plus google sheets; read-only access and a named expense range with merchant, date, amount and currency columns</dd></div></dl>
 </section>
-<section class="seo-sec" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2><img class="seo-spot" src="/art/kit/p-chart.webp?v=61dbd4ae" alt="" width="297" height="419" loading="lazy" decoding="async">
 <p class="code-label">an example, not a real run</p><div class="code plain seo-sample"><pre><code>weekly receipt comparison for priya
 clear match: acme supplies receipt a17, usd 42.00, matches expenses row 18 on merchant, transaction date and reference.
 no receipt found: row 21, sam's print shop, usd 18.00. the inbox search is not proof it was never issued.
@@ -64,13 +64,20 @@ coverage: work gmail and work outlook read; expenses rows 2 to 40 read. no recor
 <section class="seo-sec" aria-labelledby="make-it-yours"><h2 id="make-it-yours">make it yours</h2>
 <ul><li>choose the account labels explicitly so a personal purchase does not enter a business expense review</li><li>name the date column and what it means; transaction date and statement posting date should not silently be treated as identical</li><li>provide merchant aliases you already know, while requiring the bot to explain any new proposed alias</li><li>use a longer lookback for late receipts, keeping the transaction window separate from the email search window</li><li>ask for exceptions only once clear matches are consistently easy to check</li></ul>
 </section>
-<section class="seo-sec" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2>
+<section class="seo-sec seo-warned" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-lime seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="ribbit"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M3 4h3v1h-3zM10 4h3v1h-3zM2 5h5v1h-5zM9 5h5v1h-5zM1 6h14v1h-14zM1 7h3v2h-3zM12 7h3v2h-3zM2 9h2v1h-2zM6 7h4v3h-4zM12 9h2v1h-2zM1 10h14v4h-14zM2 14h12v1h-12zM4 15h8v1h-8z"/><path class="px-e" fill="#fff" d="M4 7h2v3h-2zM10 7h2v3h-2z"/></g></svg></span>
 <ul><li>equal amounts get matched to unrelated merchants. require several agreeing fields and put weak matches in the uncertain group rather than choosing the nearest row.</li><li>a scan or attachment cannot be read. keep its message reference in the review list and inspect it yourself; a blank amount must not become zero.</li><li>the same receipt arrived in both mailboxes. compare the receipt reference and transaction details before counting it twice. a forwarded copy is not necessarily a second purchase.</li><li>an expense has no email match because its receipt is elsewhere. record the search scope and check your other records. this is not a bank reconciliation or proof that every expense is accounted for.</li></ul>
 </section>
 <section class="seo-sec" aria-labelledby="match-first-change-the-ledger-later"><h2 id="match-first-change-the-ledger-later">match first, change the ledger later</h2>
 <p>the <a href="/integrations/gmail">gmail page</a> has a smaller friday sweep that labels messages and lists amounts. this routine does a different job: comparing receipt evidence with existing expense rows, including mail from <a href="/integrations/outlook">outlook</a>. it leaves both sources unchanged.</p>
 <p>on read only, the bot reads the <a href="/integrations/google-sheets">google sheet</a> with <strong>Look up spreadsheet row</strong> and <strong>Get Spreadsheet by Data Filter</strong>; test the first run.<sup><a href="#src-5" aria-label="source 5">5</a></sup> identify the exact tab and range before scheduling the sweep. keep sheets and mail read-only and tell the bot not to change any row. you decide what to enter after checking the evidence, including currency and refund treatment.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="can-it-check-receipts-across-gmail-and-outlook">can it check receipts across gmail and outlook?</h3>
 <p>yes. connect and name each account you want included. it can search and read messages in both, and both can read attachments. ask it to report which accounts it actually checked.</p>

@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/outlook/query-emails",
+  "type": "action",
+  "title": "Query Outlook emails with AI inside a chosen folder",
+  "nav": "query emails in a folder",
+  "h1": "pull the outlook mail that meets a precise condition",
+  "description": "Query one Outlook folder by email properties with a bot. Check the folder, read all results and handle sorting that Microsoft may decline to apply.",
+  "keyword": "outlook query emails with ai",
+  "keywords": [
+    "chatgpt filter outlook emails",
+    "claude query outlook mail folder",
+    "ai outlook email property search"
+  ],
+  "answer": "a bot can retrieve outlook messages from one folder by things like unread, has attachments or sender, select the fields to return and request a sort order. it is useful for a narrow report such as unread attachment-bearing mail. this query is classified as a write in dusk even though it retrieves messages, so read-only access blocks it. allow this specific action and keep unrelated mailbox changes outside the bot's action list.",
+  "tags": [
+    "outlook",
+    "folder queries",
+    "email filters"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/search-calendar-events"
+  ],
+  "og_line": "one mail folder, with a clear filter.",
+  "what": "this gives you a repeatable way to request messages with particular properties instead of searching all mail for words. the bot selects messages that match your conditions and can select just the fields the report needs. the query covers one folder per call. a built-in folder such as inbox can be named directly; for your own folders the bot looks the folder up first.\n\nresults can span multiple pages. the default request allows up to 100 messages, with a maximum of 1,000 per page. if outlook won't sort the results, the bot sorts them itself and says so.",
+  "uses": [
+    "collect unread attachment-bearing messages from a named intake folder",
+    "inspect high-importance messages in inbox without moving them",
+    "list who wrote to your invoices folder this month, with subjects",
+    "check a shared team mailbox folder you already have access to"
+  ],
+  "routine": {
+    "message": "every monday and thursday at 14:10, query my outlook intake folder for unread messages with attachments. find the custom folder first, return sender, subject and received time, and read every page of results. list the matches here in received-time order, and say if you had to sort them yourself. never mark mail read, move it, open an attachment or send a response.",
+    "when": "mondays and thursdays at 14:10",
+    "needs": "outlook connected with read and write restricted to query emails and folder discovery; the connected account must be able to read that folder",
+    "output": "intake attachment queue\n\nsaskia, amber finch studio: reference photographs, monday 09:12.\ncedric, river desk: purchase request, monday 10:36.\nsorted by time received.\nmail unchanged."
+  },
+  "steps": [
+    "open **Connected apps** and permit **read and write** for this outlook bot, limiting it to query emails and the required folder reads.",
+    "name one folder and have the bot find it before reading.",
+    "try a small property-based query and inspect the requested fields, matching conditions and returned order.",
+    "use the recurring request once the selection is right, then check its reports in **Automations** without enabling mail-edit actions."
+  ],
+  "watch": [
+    "one call cannot search every mail folder. issue separate folder queries when the report intentionally covers several locations.",
+    "big folders come back in parts; the bot should read them all before reporting.",
+    "sorting can be dropped after microsoft rejects it as inefficient. the requested ordering is not proof the response arrived that way.",
+    "it can only read a shared mailbox you already have access to in outlook."
+  ],
+  "faq": [
+    {
+      "q": "why does a mail query need a write grant in dusk?",
+      "a": "dusk bot counts this action as a change even though it only reads. restrict the bot to it and the folder reads it needs rather than granting mailbox edits."
+    },
+    {
+      "q": "can it query a folder called supplier returns?",
+      "a": "yes, the bot finds that custom folder first. built-in names such as inbox are accepted directly."
+    },
+    {
+      "q": "will it always return the newest email first?",
+      "a": "not necessarily. microsoft can reject the requested ordering, and the action may continue without it. have the bot report that case and order the returned data explicitly if needed."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "outlook"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "p-magnifier"
+    ],
+    "bubble": "find the unread attachments"
+  },
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_QUERY_EMAILS"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

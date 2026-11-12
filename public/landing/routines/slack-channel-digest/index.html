@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>an end-of-day digest of the slack channels you choose</h1>
 <p class="lede seo-answer">pick two or more slack channels and ask a bot for one end-of-day digest across them. it reads messages and relevant thread replies, then separates decisions, explicit commitments and unresolved questions with links back to the discussion. the digest comes to your dusk bot chat rather than adding another channel message. keep slack read-only; it should report inaccessible channels and stay quiet only after successful reads find nothing worth reporting.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/routines--slack-channel-digest.webp?v=05c90421" srcset="/art/seo/routines--slack-channel-digest-660.webp 660w, /art/seo/routines--slack-channel-digest.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a lime pixel bot, a pink pixel bot and a blue pixel bot beside two chat bubbles and a newspaper, on a lilac hill in front of a birch wood under purple hills, one saying &quot;the decisions today&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/routines--slack-channel-digest.webp?v=05c90421" srcset="/art/seo/routines--slack-channel-digest-660.webp 660w, /art/seo/routines--slack-channel-digest.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a lime pixel bot, a pink pixel bot and a blue pixel bot beside two chat bubbles and a newspaper, on a lilac hill in front of a birch wood under purple hills, one saying &quot;the decisions today&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-message"><h2 id="the-message">the message</h2>
 <div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every weekday at 5:30pm, read today's messages across #acme-launch, #acme-support and any other channels i explicitly name in this workspace. include relevant thread replies you can access, even when the parent message is older.
 
@@ -56,7 +56,7 @@ include the channel and a message link for each item. label suggestions as sugge
 
 use only the named channels, not direct messages or other channels. don't post, reply, react, mark anything read or change slack.</code></pre><button class="copy" type="button" data-copy>copy</button></div><dl class="seo-specs"><div><dt>when</dt><dd>weekdays at 17:30 in the time zone you choose, covering that day's discussion in your selected channels</dd></div><div><dt>needs</dt><dd>slack connected with read access to the selected workspace and channels, including conversation history, thread reads and message links</dd></div></dl>
 </section>
-<section class="seo-sec" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2><img class="seo-spot" src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378" loading="lazy" decoding="async">
 <p class="code-label">an example, not a real run</p><div class="code plain seo-sample"><pre><code>today in the selected acme channels
 
 decisions: #acme-launch, priya confirmed that the public demo moves to thursday. source: priya's message at 10:20.
@@ -67,13 +67,20 @@ scope: #acme-launch and #acme-support only. both channel reads and relevant thre
 <section class="seo-sec" aria-labelledby="make-it-yours"><h2 id="make-it-yours">make it yours</h2>
 <ul><li>start with two named channels and add another only when you know what useful information it would contribute</li><li>change the reporting time to fit the team's working day, and say whether a cross-time-zone team needs a wider window</li><li>add a topic filter such as customer escalations, while keeping links so you can inspect what was left out</li><li>cap the digest at five items and ask the bot to group repeated references to the same decision</li><li>if you want a channel post later, grant the specific send action and keep <strong>Ask every time</strong> selected; sending is separate from reading</li></ul>
 </section>
-<section class="seo-sec" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2>
+<section class="seo-sec seo-warned" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-tangerine seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="boxo"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 0h2v4h-2zM3 4h10v1h-10zM2 5h12v3h-12zM2 8h2v3h-2zM6 8h4v3h-4zM12 8h2v3h-2zM2 11h12v5h-12z"/><path class="px-e" fill="#fff" d="M4 8h2v3h-2zM10 8h2v3h-2z"/></g></svg></span>
 <ul><li>a proposal sounds like a final decision. require a message where someone explicitly confirms the choice, and list anything weaker as an open proposal.</li><li>it misses the answer in a thread. ask it to open the thread before calling a question unresolved, and to state when replies were inaccessible.</li><li>it reports yesterday's item again because the discussion continued today. ask it to include only the new decision or changed commitment, with the earlier context kept brief.</li><li>a quiet channel and an inaccessible channel look the same. require the bot to report an access failure instead of treating it as a day with no news.</li></ul>
 </section>
 <section class="seo-sec" aria-labelledby="a-useful-digest-keeps-its-sources-close"><h2 id="a-useful-digest-keeps-its-sources-close">a useful digest keeps its sources close</h2>
 <p>the <a href="/integrations/slack">slack connector</a> lists conversation history, thread reads and message permalink retrieval. a summary should use those references so you can open the discussion behind a short line. do not treat the summary as a replacement for reading a sensitive disagreement.</p>
 <p>a <a href="/for/product-managers">product manager</a> might choose release and feedback channels; someone else may only need operational handoffs. if the problem is preparing for the morning rather than catching up at night, try a <a href="/use-cases/daily-briefing">daily briefing</a>. inspect the first digests and remove channels that only add noise. on a local computer, the scheduled run needs the computer awake and dusk bot open.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="what-do-people-actually-use-scheduled-ai-tasks-for-in-slack">what do people actually use scheduled ai tasks for in slack?</h3>
 <p>a bounded catch-up is a useful starting point: decisions, promises and unanswered questions from channels you would otherwise read manually. keep the source links and judge whether the selection is useful after a few runs.</p>

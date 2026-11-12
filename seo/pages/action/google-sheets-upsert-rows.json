@@ -1,0 +1,99 @@
+{
+  "path": "/integrations/google-sheets/upsert-rows",
+  "type": "action",
+  "title": "Update or add Google Sheets rows with AI by a key",
+  "nav": "upsert rows",
+  "h1": "match google sheets rows by a unique number before updating them",
+  "description": "Use AI to update matching Google Sheets rows and append new ones. Choose a stable key and review headers because missing columns are added automatically.",
+  "keyword": "upsert google sheets rows with ai",
+  "keywords": [
+    "chatgpt update or insert google sheets rows",
+    "claude google sheets upsert by key",
+    "ai match spreadsheet rows by id"
+  ],
+  "answer": "when some records already exist and others are new, your bot can match a key column, update matching rows and append the rest. it maps incoming columns by header name rather than their order. missing headers can become new columns, so review the keys and names before writing. this is a write operation with no automatic sending approval; add your own confirmation instruction.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "upsert",
+    "row matching",
+    "key columns"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/append-values-to-spreadsheet",
+    "/integrations/google-sheets/update-spreadsheet-values"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-key"
+    ],
+    "bubble": "match before adding"
+  },
+  "og_line": "known records update. new ones add rows.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_UPSERT_ROWS"
+  },
+  "what": "an upsert combines an update and an insert. give the bot the spreadsheet link, exact tab name and incoming rows, then specify the header that uniquely identifies each record. the key should be an actual header name such as asset id. if you don't name one, the first column is used.\n\nprovide headers separately when every row is data; otherwise the first incoming row becomes the headers. partial updates are supported, and headers missing from the sheet are added automatically. if your table starts below or beside A1, give the table start too so the bot reads the intended headers.",
+  "uses": [
+    "refresh an equipment register from an approved batch, using each asset id as the key",
+    "update delivery status for known consignments and add newly issued consignment numbers",
+    "merge reviewed membership records without relying on the order people appear in the sheet",
+    "change just one or two columns for each record and leave the rest alone"
+  ],
+  "routine": {
+    "message": "every thursday at 17:20, prepare the approved equipment changes from this chat for the moonwillow stores register, tab equipment, whose headers start at C5. match on the asset id column, and stop if any row has more values than there are columns. show me which records would update, which would append and any new column names, then ask me before you change anything. report the result here after i agree, and never guess a missing key or add an unapproved column.",
+    "when": "thursdays at 17:20",
+    "needs": "google sheets connected with read and write access; register reading and upsert rows enabled",
+    "output": "moonwillow equipment batch for review\n\nasset id m-42: update condition to inspected\nasset id m-87: append new record for the portable stand\nproposed new columns: none\n\ndorian must confirm the batch before it is applied. table begins at C5."
+  },
+  "steps": [
+    "connect google sheets via **Connected apps**, allowing **read and write** only for the register actions this bot needs.",
+    "provide the spreadsheet reference, actual tab, header location and stable key header; ask the bot to read them back.",
+    "have it preview matches, additions and new headers, with a written ask-first rule before the upsert.",
+    "inspect a small approved batch, then schedule the job and select **Pause** if your register headers change."
+  ],
+  "watch": [
+    "a missing header is added as a column. a typo in condition can change the table structure rather than simply fail.",
+    "if the column names aren't given separately, the first row of new data is taken as the column names. ask the bot to show the names it will use.",
+    "by default a row with more values than columns is refused; if that check is off, the extra values are dropped without a word.",
+    "an omitted key defaults to the first column. blank or repeated keys make a match ambiguous, so stop for review rather than assuming which record should change."
+  ],
+  "faq": [
+    {
+      "q": "does the incoming column order have to match the sheet?",
+      "a": "columns are matched by header name. make those names exact and review any header that would create a new column."
+    },
+    {
+      "q": "what if my table starts below the top row?",
+      "a": "provide the table start cell, where its headers sit. the default is A1, which may be wrong for a sheet with a title or notes above the table."
+    },
+    {
+      "q": "should i use a person's name as the key?",
+      "a": "use something that never repeats or changes, like an order or asset number. if names can repeat or change, ask for another key rather than letting the bot guess."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

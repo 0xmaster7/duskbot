@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/youtube/list-comments",
+  "type": "action",
+  "title": "Read YouTube comment replies with AI before following up",
+  "nav": "read comment replies",
+  "h1": "read the replies behind a youtube support question",
+  "description": "Use an AI bot to read individual YouTube comments or replies to a chosen thread. Find the parent comment first and check the whole exchange before following up.",
+  "keyword": "read youtube comment replies with ai",
+  "keywords": [
+    "youtube list replies with ai",
+    "chatgpt read youtube comment replies",
+    "claude check youtube comment thread",
+    "ai youtube support comments"
+  ],
+  "answer": "a bot can open particular youtube comments or read the replies beneath a top-level comment, so you can see how a support conversation developed. first it locates the video and the relevant comment thread, then reads the selected comments or reply list. this action does not take a video title as its direct input, and reading replies neither posts an answer nor moderates the thread.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "youtube",
+    "comment-replies",
+    "support-review"
+  ],
+  "connectors": [
+    "youtube"
+  ],
+  "related": [
+    "/integrations/youtube",
+    "/use-cases/market-research"
+  ],
+  "art": {
+    "label": "YouTube",
+    "props": [
+      "p-bubbles",
+      "p-binoculars"
+    ],
+    "bubble": "read the whole exchange"
+  },
+  "og_line": "follow the replies before choosing an answer.",
+  "action": {
+    "toolkit": "youtube",
+    "slug": "YOUTUBE_LIST_COMMENTS"
+  },
+  "what": "a useful review goes beyond the first viewer message. the bot can find that message with list comment threads, then use list comments to read the replies under it. alternatively, it can reopen individual comments found in earlier results. it can request the comment text, author and available engagement details.\n\nlooking up particular comments and listing a parent's replies are two separate modes. reply lists may span several groups, with up to 100 comments in a group. ask the bot to read further groups before describing the exchange as complete, and to return plain text when formatting is unhelpful.",
+  "uses": [
+    "read the back-and-forth under an installation problem before offering the same advice again",
+    "check whether a viewer explicitly confirmed that a suggested workaround helped",
+    "reopen a particular comment from an earlier review to quote its current wording accurately",
+    "prepare a follow-up list that separates unanswered questions from threads where a viewer reported a resolution"
+  ],
+  "routine": {
+    "message": "every sunday at 6, find new installation-help comment threads from the past week on my desktop setup videos. read the replies under each matching parent comment, continuing through any further reply groups, and put a follow-up list here with the video and original question. mark a thread resolved only when a reply explicitly says the problem was fixed; otherwise describe what is still unclear. never reply, hide comments or treat silence as a successful fix.",
+    "when": "sundays at 6",
+    "needs": "youtube connected, with read only access for this bot",
+    "output": "installation follow-up\n\ndesktop setup: soraya asked why the app stopped during sign-in.\nreply check: a helper suggested reopening it; soraya has not confirmed a fix in the replies returned.\nnext step for you: decide whether to follow up.\n\nno reply posted."
+  },
+  "steps": [
+    "connect youtube in **Connected apps** and allow this discussion reader **read only** access.",
+    "name the channel and video topic, then ask the bot to locate the original viewer comment through list comment threads.",
+    "have it read the parent's replies with comment text included, showing evidence for any claim that a question was answered.",
+    "check a first follow-up list against a thread you know, then use **Edit** on the routine card to adjust the videos or the weekly window."
+  ],
+  "watch": [
+    "a video link alone is not enough for this action. the bot needs the separate thread lookup to find the parent comment first.",
+    "requesting only comment references leaves out the text. the bot must request detailed comment data to explain an exchange.",
+    "a long reply list needs more than one request. the per-group reply limit cannot be used when looking up specific comments instead.",
+    "comments describe what viewers report; they do not prove what the video says or whether a fix works for everyone."
+  ],
+  "faq": [
+    {
+      "q": "why read replies separately from youtube comment threads?",
+      "a": "a thread result can include only a small selection of replies, up to five with the thread action. listing the parent's comments lets the bot continue through the reply list instead of treating that selection as the full exchange."
+    },
+    {
+      "q": "can i just name the viewer's question?",
+      "a": "yes. describe the question and video so the bot can find the parent thread. it handles the comment references needed for the next read."
+    },
+    {
+      "q": "will it answer viewers after reading their replies?",
+      "a": "this action only reads comments. keep the bot read only for a review that ends with a follow-up list in your chat."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

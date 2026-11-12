@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/google-drive/find-file",
+  "type": "action",
+  "title": "Find Google Drive files with AI by folder, type or date",
+  "nav": "find file",
+  "h1": "find a drive file from more than its filename",
+  "description": "Ask a bot to locate Google Drive files by folder, file type, dates or search terms. Get useful file references while keeping the search read only.",
+  "keyword": "google drive find file with ai",
+  "keywords": [
+    "chatgpt find google drive file",
+    "claude search drive folder",
+    "ai find pdf in google drive"
+  ],
+  "answer": "a bot can search google drive for files and folders using a name, file type, date filter or a known parent folder. it can bring back matching references in your chat without moving anything. the search reaches only files the connected account can access, and finding a filename does not show what the document says or whether it is the version you need.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google-drive",
+    "find file"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/export-google-workspace-file"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "p-binoculars",
+      "p-folder"
+    ],
+    "bubble": "where is that pdf"
+  },
+  "og_line": "narrow the search before choosing a file.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_FIND_FILE"
+  },
+  "what": "find file can combine clues: a pdf type, a folder reference and a modification date, for example. the bot can search my drive and accessible shared drives. paste a folder link to search only inside it.\n\nit brings back each file's name, type, dates and a link to open it. more results can follow on later pages. this is file discovery, so ask for a separate content read if your decision depends on the words inside a candidate.",
+  "uses": [
+    "locate pdf certificates inside a named equipment folder",
+    "find a folder you remember by part of its title before navigating into it",
+    "collect presentation files changed since a review date",
+    "look for a missing contract copy within one specified shared drive"
+  ],
+  "routine": {
+    "message": "on the second friday of each month at 4:30, find pdf files in the drive folder i linked for fablecrest equipment that were modified since the previous check. return each name, modification date and viewing link in this chat, continuing through every result page. flag similarly named certificates instead of picking one. never move files, alter sharing or claim a certificate is valid without reading it.",
+    "when": "second friday of each month at 16:30",
+    "needs": "google drive connected, with read only access to the chosen folder",
+    "output": "fablecrest equipment pdfs\nworkshop-press-certificate.pdf: modified thursday, viewing link returned\nworkshop-press-certificate-copy.pdf: modified friday, viewing link returned\ntwo similar candidates; no validity decision made."
+  },
+  "steps": [
+    "enable google drive for the search bot in **Connected apps** with **read only** access.",
+    "paste the exact folder link and specify the file types or dates that should narrow the search.",
+    "ask for names and viewing links from one trial search, then check whether the parent folder was the intended one.",
+    "send the monthly search message and inspect its next run; use **Edit** if the folder or reporting window changes."
+  ],
+  "watch": [
+    "search results do not read file contents or prove that a matching document is approved or current.",
+    "when it searches the words inside files, it can't also sort by date, so the bot sorts the results itself.",
+    "results come in pages; the bot should read them all before saying a file isn't there."
+  ],
+  "faq": [
+    {
+      "q": "can it search inside one shared drive?",
+      "a": "yes. name the shared drive or paste its link."
+    },
+    {
+      "q": "can it find a file without knowing its name?",
+      "a": "yes. folder, file type and date filters can narrow the candidates. tell the bot which details you remember and ask it to show uncertain matches."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

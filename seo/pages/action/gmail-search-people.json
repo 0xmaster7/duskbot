@@ -1,0 +1,97 @@
+{
+  "path": "/integrations/gmail/search-people",
+  "type": "action",
+  "title": "Find a Gmail contact with AI from a name or company",
+  "nav": "search people",
+  "h1": "look up a gmail contact before choosing an address",
+  "description": "Find saved Gmail contacts or people you have emailed by name, company or phone. See which fields are available and when results may be partial.",
+  "keyword": "gmail find contacts with ai",
+  "keywords": [
+    "chatgpt search gmail contacts",
+    "claude find contact email address",
+    "gmail search people with ai"
+  ],
+  "answer": "ask your bot for a person by name, nickname, email, phone or company and it can look for matching google contact records. it can include people you have interacted with but never saved. that broader search returns fewer kinds of fields, and results may be partial if either contact source fails. finding a matching record does not confirm which of several addresses you should use.",
+  "tags": [
+    "gmail",
+    "contacts",
+    "address lookup"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/fetch-emails"
+  ],
+  "og_line": "recognise the person before using the address.",
+  "what": "a contact search helps when you know who you mean but cannot remember their address. give the bot a real clue such as a surname, phone fragment or organisation. it retrieves records; it does not create contacts or write an email.\n\nsaved contacts can include company information. adding other contacts broadens the people searched but returns only names, email addresses and phone numbers. if the job needs company details too, the bot should search saved contacts separately.",
+  "uses": [
+    "look up the photographer whose surname you remember before preparing a booking",
+    "find the phone number saved for your equipment repair contact",
+    "check which of several saved contacts works at the company on your visitor list",
+    "recover an address for someone you emailed without adding them to contacts"
+  ],
+  "routine": {
+    "message": "every thursday at 1, take the visitor names i have added to this chat that week and look them up in my work gmail contacts. search saved contacts first, then include other contacts if a name has no match. return names and candidate addresses here, with uncertainty clearly marked. never pick between namesakes, edit contacts or message anyone.",
+    "when": "every thursday at 1",
+    "needs": "gmail connected for this bot with read only access and contact-reading permissions",
+    "output": "visitor address check\n\nnoa velden: one saved contact, noa@birchhaven.example.\nisla torren: two candidates; please choose before using either.\nother-contact search completed for the unmatched names."
+  },
+  "steps": [
+    "open **Connected apps**, connect the google account holding the contacts and choose **read only** for this bot.",
+    "try a name you can verify and request names plus email addresses in the result.",
+    "say whether unsaved contacts may be searched, especially if the first search returns no match.",
+    "send the recurring visitor-check message and inspect its schedule under **Automations** before relying on it."
+  ],
+  "watch": [
+    "the search returns at most 30 matches. use a more precise query when a common name produces too many candidates.",
+    "searching both contact sources can return only part of the answer when one source fails; ask which sources completed.",
+    "other-contact searches cannot return organisation fields. saved-contact searches are needed for that detail."
+  ],
+  "faq": [
+    {
+      "q": "can it find someone i never saved as a contact?",
+      "a": "yes. ask it to include people you've emailed but never saved."
+    },
+    {
+      "q": "can i search using a company rather than a person's name?",
+      "a": "organisation fields can be matched by the query. request saved-contact results if you also need the organisation returned for checking."
+    },
+    {
+      "q": "does the lookup add people to my address book?",
+      "a": "it returns matching person records and leaves your contacts as they are."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "gmail"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-notebook",
+      "p-magnifier"
+    ],
+    "bubble": "which address belongs to noa"
+  },
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_SEARCH_PEOPLE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

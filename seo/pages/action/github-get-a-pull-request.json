@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/github/get-a-pull-request",
+  "type": "action",
+  "title": "Check a GitHub pull request with AI from its link",
+  "nav": "get a pull request",
+  "h1": "read one github pull request before the next decision",
+  "description": "Give a bot a GitHub pull request link and get a focused account of that proposal. Keep repository access read only and separate review evidence from guesses.",
+  "keyword": "github get pull request with ai",
+  "keywords": [
+    "chatgpt read github pull request",
+    "claude check pull request details",
+    "ai summarise specific github pr"
+  ],
+  "answer": "paste a github pull request link and a bot can fetch that particular proposal using its owner, repository and number. it can explain the returned information in your chat without changing the request. it reads the pull request itself, not the changed files or the reviews, so it can't tell you the code works.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "github",
+    "get a pull request"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/list-repository-issues"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-magnifier",
+      "s-notebook"
+    ],
+    "bubble": "read this pull request"
+  },
+  "og_line": "start with the exact pull request.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_GET_A_PULL_REQUEST"
+  },
+  "what": "this action opens one known pull request rather than searching the repository. the owner, repository name and pull request number are all required, so the usual github link is a useful starting point: the bot can read those parts from it.\n\nstart here to understand what's being proposed. the changed files and reviewers' comments come from other actions, so ask for those when you need them.",
+  "uses": [
+    "understand the pull request a colleague linked before your next check-in",
+    "check a saved proposal again after the author says it has changed",
+    "prepare a plain-language explanation of one proposed change for a non-coding teammate"
+  ],
+  "routine": {
+    "message": "every weekday at 12, check pull request 58 in plumtree/harbor-kit and tell me in plain words what it proposes and whether it's still open.",
+    "when": "weekdays at 12:00",
+    "needs": "github connected, with read only access to plumtree/harbor-kit",
+    "output": "plumtree/harbor-kit #58\nproposal: simplify the address form\nstatus: open\nsummary based on the pull request record.\nfile changes, reviews and test execution have not been checked."
+  },
+  "steps": [
+    "grant this bot github **read only** access in **Connected apps**, including the repository you want it to inspect.",
+    "paste a pull request link and ask it to identify the owner, repo and number before fetching.",
+    "ask a narrow question about that proposal, then decide whether you also need the files or reviewer feedback.",
+    "check the routine card for the saved pull request; **Edit** it when a different proposal becomes the focus."
+  ],
+  "watch": [
+    "a pull request number only has meaning within its owner and repository; the same number can identify unrelated work elsewhere.",
+    "this fetch does not retrieve every changed file or review, and it does not run the code.",
+    "private repository access still depends on the connected github account, even when the link is correct."
+  ],
+  "faq": [
+    {
+      "q": "can i give it just the pull request url?",
+      "a": "yes, the bot can take the owner, repository and number from a standard github pull request link. those are the three inputs required for the fetch."
+    },
+    {
+      "q": "will checking it also approve or merge it?",
+      "a": "no. this action reads a specific pull request. keep the bot read only if its whole job is to report on the proposal."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

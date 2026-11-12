@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/asana/get-a-task",
+  "type": "action",
+  "title": "Read an Asana task with AI: owner, date and instructions",
+  "nav": "read a task",
+  "h1": "ask what an asana task actually says",
+  "description": "Read the owner, due date and notes of a named Asana task with an AI bot. Know which details need to be requested and why comments are a separate lookup.",
+  "keyword": "read asana task with ai",
+  "keywords": [
+    "asana task details with ai",
+    "chatgpt read asana task",
+    "claude get asana task details",
+    "ask ai about asana task"
+  ],
+  "answer": "name an asana task and a bot can open its current details, such as its owner, due date and notes, then explain them in chat. it finds the task through the project task list rather than asking you for a technical reference. the connection only reads tasks your account can access, and the bot must request the fields needed for your question.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "asana",
+    "task-details",
+    "instructions"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/asana",
+    "/integrations/asana/create-task-comment"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "s-notebook",
+      "p-magnifier"
+    ],
+    "bubble": "read the task notes"
+  },
+  "og_line": "the task details before you begin.",
+  "action": {
+    "toolkit": "asana",
+    "slug": "ASANA_GET_A_TASK"
+  },
+  "what": "use this when the question is about one piece of work: who owns it, when it is due or what its instructions say. after locating the task with retrieve tasks for project, the bot opens that exact task and asks for the supported details relevant to your request.\n\nleaving field selection out can return a short version rather than everything you wanted. task comments are another lookup, get stories for task, so ask for that too if your answer depends on a discussion rather than the task notes.",
+  "uses": [
+    "read a job's instructions before starting a shift on your phone",
+    "check who owns a task before asking the wrong colleague for an update",
+    "bring the current due date into chat when a planning note says something different",
+    "pull the task notes into a short checklist while leaving the original task untouched"
+  ],
+  "routine": {
+    "message": "every weekday at 8:30, open the task called 'dispatch instructions' in the warehouse operations project in asana. read its current notes, owner and due date, requesting those details explicitly. put a short shift briefing here and say when a detail is missing. never mark the task complete, edit its notes or treat a missing date as today's deadline.",
+    "when": "weekdays at 8:30",
+    "needs": "asana connected, with read only access for this bot",
+    "output": "dispatch instructions\n\nowner: farah. due: 19 november.\nnotes: pack the fernwell order separately and check its delivery address before labelling.\nno collection time was recorded."
+  },
+  "steps": [
+    "under **Connected apps**, connect asana and leave this task reader on **read only**.",
+    "give it the task title and project name, then ask it to show the match before you depend on the answer.",
+    "name the details you want in the briefing, such as notes, owner and due date; have the bot flag blanks.",
+    "review a first shift briefing and use **Edit** on the routine card if the chosen fields need changing."
+  ],
+  "watch": [
+    "a task outside the connected account's access cannot be read, even when its title is known.",
+    "the short default response may omit details you need. optional fields are limited to the supported choices, not any detail you can imagine.",
+    "task details do not include a promise to read the conversation. comments and history need get stories for task."
+  ],
+  "faq": [
+    {
+      "q": "can it read a task from just its name?",
+      "a": "it can first look through the named project's tasks, then open the matching task. if names repeat, it should ask which project or task you meant."
+    },
+    {
+      "q": "why did the bot miss the owner or due date?",
+      "a": "those fields may need to be requested explicitly, or they may be blank in asana. ask the bot to distinguish a missing field from an unassigned owner or absent deadline."
+    },
+    {
+      "q": "will reading the task mark it complete?",
+      "a": "no. getting task details only reads. with read only access, the bot cannot call the actions that complete or edit it."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

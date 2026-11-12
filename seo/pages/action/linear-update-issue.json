@@ -1,0 +1,99 @@
+{
+  "path": "/integrations/linear/update-issue",
+  "type": "action",
+  "title": "Update Linear issues with AI: change only the right fields",
+  "nav": "update issue",
+  "h1": "change a linear issue without replacing the wrong details",
+  "description": "Ask an AI bot to correct a Linear issue date, owner or description. Check label replacement, team moves and the instruction needed for review before edits.",
+  "keyword": "update linear issue with ai",
+  "keywords": [
+    "linear change issue with ai",
+    "chatgpt update linear ticket",
+    "claude edit linear issue",
+    "linear ai change due date"
+  ],
+  "answer": "a bot can change the date, owner, priority, description or other supported fields on an existing linear issue. name the ticket and the correction; it can search for the issue and read it before editing. values it writes replace the old ones, including the entire label list. these are app changes, so the sending setting does not make them wait for your approval.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "linear",
+    "issue-edits",
+    "due-dates"
+  ],
+  "connectors": [
+    "linear"
+  ],
+  "related": [
+    "/integrations/linear",
+    "/integrations/linear/search-linear-issues"
+  ],
+  "art": {
+    "logo": "linear",
+    "label": "Linear",
+    "props": [
+      "s-notebook",
+      "s-clock"
+    ],
+    "bubble": "correct the due date"
+  },
+  "og_line": "one field corrected, with the rest left alone.",
+  "action": {
+    "toolkit": "linear",
+    "slug": "LINEAR_UPDATE_ISSUE"
+  },
+  "what": "this action edits an issue that already exists. the bot first finds the ticket with search linear issues or get linear issue, then sends at least one field to change. for a new owner or workflow state, it looks up the workspace user or the states for that issue's team.\n\nbe especially clear about labels: the new list replaces the old list rather than adding to it. moving teams alongside a state, project or cycle change takes two stages, and a failure can leave the team move applied. inspect the issue before retrying.",
+  "uses": [
+    "correct a delivery date after the person responsible confirms the new day",
+    "replace an outdated description with the agreed reproduction steps",
+    "move an issue to the named owner after checking the workspace user match",
+    "set an agreed priority without changing the issue's project or labels"
+  ],
+  "routine": {
+    "message": "each weekday at 4:30, look for due-date corrections i have marked ready in this chat since your last run. find each linear issue, read its current date and show me the old and proposed dates here. ask me before you change anything, then apply only the due-date corrections i confirm and report the saved dates here. never change teams, labels, owners or priority.",
+    "when": "weekdays at 4:30",
+    "needs": "linear connected, with read and write access for this bot",
+    "output": "after your confirmation\n\nops-62: packaging check for orin at mossvale studio.\ndue date changed from 18 november to 20 november.\nno other fields changed."
+  },
+  "steps": [
+    "connect linear in **Connected apps** and enable **read and write** for the bot handling corrections.",
+    "keep its allowed actions to issue lookup, the relevant field lookups and issue updating; leave unrelated tracker changes unavailable.",
+    "test one date correction with the instruction 'ask me before you change anything', then inspect the saved issue.",
+    "add the weekday review only after that first correction; **Pause** lets you stop future runs from the routine card."
+  ],
+  "watch": [
+    "editing labels replaces every existing label. an empty new label list removes them all.",
+    "states, projects and cycles must fit the issue's team. the bot needs fresh lookups for names you give it.",
+    "a failed combined team move may have partly succeeded. check what changed before attempting it again.",
+    "write access permits these edits without a sending approval. an ask-first instruction in the routine is needed when you want to review them."
+  ],
+  "faq": [
+    {
+      "q": "can it add a label without losing the others?",
+      "a": "it needs to read the current labels and send the complete intended list, including the ones you want to keep. this update does not append a single label by itself."
+    },
+    {
+      "q": "does changing a date ask me first?",
+      "a": "not automatically. use the explicit ask-first instruction in the routine, or keep the bot read only if you only want a proposal."
+    },
+    {
+      "q": "can i describe the owner or state in normal words?",
+      "a": "yes. the bot can look up users and the issue team's states before making the change. it should stop for a choice if the name matches more than one person or state."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ]
+}

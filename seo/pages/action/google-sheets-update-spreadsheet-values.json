@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/google-sheets/update-spreadsheet-values",
+  "type": "action",
+  "title": "Update Google Sheets cells with AI in a chosen range",
+  "nav": "update spreadsheet values",
+  "h1": "replace specific google sheets cell values with ai",
+  "description": "Write new Google Sheets values with AI. Check the actual tab, how much data is going in and whether text should stay literal or be parsed as formulas.",
+  "keyword": "update google sheets cells with ai",
+  "keywords": [
+    "chatgpt update google sheets values",
+    "claude overwrite google sheets range",
+    "ai edit specific spreadsheet cells"
+  ],
+  "answer": "a bot can replace values in a named google sheets range with the data you give it. if you give it more values than cells, it writes past the range you named and can add rows to fit, so naming a small range alone is not a safe boundary. have the bot show the exact cells and data shape before writing. this change does not wait for the sending approval setting.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "cell updates",
+    "raw values",
+    "write range"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/append-values-to-spreadsheet",
+    "/integrations/google-sheets/upsert-rows"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-button"
+    ],
+    "bubble": "replace these cells only"
+  },
+  "og_line": "check the cells and the size of the write.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_VALUES_UPDATE"
+  },
+  "what": "use an update when the destination is already known, such as a particular status cell or a rectangular block. the bot needs the spreadsheet link, an actual cell range, the values and how they should be interpreted. have it fetch the current tab names before constructing a qualified range.\n\nthe bot can write text exactly as given, or as if you typed it into sheets, where anything starting with = becomes a formula and 01/02 can turn into a date. the bot must also count incoming rows and columns because the action adjusts the target range to fit them.",
+  "uses": [
+    "replace the published opening hours in a known block after you approve a seasonal change",
+    "correct one misspelled customer name in its confirmed row",
+    "write agreed weekly totals into an existing report area while leaving formula columns alone",
+    "update a small set of status cells from a checklist you have reviewed"
+  ],
+  "routine": {
+    "message": "each wednesday at 09:25, prepare the opening-hours changes i approved here for the pebblewick museum spreadsheet. confirm the tab is visitor hours and preview both the existing values and replacements in B4:C6, with three rows and two columns, writing the text exactly as given and without adding rows. ask me before you change anything, then report the written cells here after approval. never write outside that block, insert extra rows or overwrite formulas; stop if the new values don't fit.",
+    "when": "wednesdays at 09:25",
+    "needs": "google sheets connection with read and write access; sheet-name lookup, range reading and values update enabled",
+    "output": "visitor hours, B4:C6: proposed replacement\n\nfriday | 10:00-17:00\nsaturday | 10:00-18:00\nsunday | 11:00-16:00\n\nthree rows, two columns. raw text, no grid expansion. celestine requested review; no values written yet."
+  },
+  "steps": [
+    "open **Connected apps**, connect the spreadsheet account and give this bot **read and write** for the required cell update.",
+    "paste the spreadsheet address and ask it to get the actual tab names before reading the destination cells.",
+    "specify the exact range, value interpretation and expected data dimensions, with an instruction to ask before overwriting anything.",
+    "check one proposed update against the sheet, then approve it; choose **Pause** if the seasonal schedule no longer applies."
+  ],
+  "watch": [
+    "values can spill past the cells you named. turning off \"add rows\" stops the sheet growing, but not overwriting nearby cells.",
+    "an unmatched common default tab name may resolve to the first tab. confirm the real sheet name instead of guessing sheet1.",
+    "user-entered strings beginning with an equals sign can become formulas. choose raw input for text that must stay literal.",
+    "updates overwrite existing values, including formulas in their target cells. read the destination before allowing the change."
+  ],
+  "faq": [
+    {
+      "q": "is a small range enough to stop a larger overwrite?",
+      "a": "the action stretches the range to fit the values. check the row and column counts as well as the named range before writing."
+    },
+    {
+      "q": "how do i keep a code from becoming a date or formula?",
+      "a": "choose raw value input so strings are stored without parsing. user-entered input behaves more like typing into sheets and can interpret the contents."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

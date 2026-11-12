@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/notion/search-notion-pages-and-databases",
+  "type": "action",
+  "title": "Search Notion with AI: find pages by their titles",
+  "nav": "search pages and databases",
+  "h1": "find a notion page or database by asking for its title",
+  "description": "Use AI to find Notion pages and databases by title. Handle similar names, delayed indexing and result pages without mistaking title search for content search.",
+  "keyword": "search notion pages with ai",
+  "keywords": [
+    "chatgpt search notion titles",
+    "claude find notion database",
+    "ai notion page search"
+  ],
+  "answer": "ask your bot for a notion page by its title and it can return matching accessible pages for you to choose from. databases need their own object-type filter because the search defaults to pages. this is title search, not a search through every paragraph. new or recently shared items can take time to appear, so no match does not prove the document is missing.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion search",
+    "page titles",
+    "database finding"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/get-page-markdown",
+    "/integrations/notion/fetch-comments"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-magnifier",
+      "p-folder"
+    ],
+    "bubble": "which title did you mean"
+  },
+  "og_line": "find the title before reading the page.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_SEARCH_NOTION_PAGE"
+  },
+  "what": "use a few words you expect in the page or database name. the result helps the bot find the page for a later read, but does not itself explain the document's contents. ask for the candidates rather than letting a familiar-sounding title settle which one is authoritative.\n\nresults come in pages. an empty query can help list accessible items when a specific title search fails, though indexing can still lag. asking for selected properties only reduces how much page information comes back; it does not turn the action into a full-text or database-field search.",
+  "uses": [
+    "find the supplier policy before asking the bot to read its terms",
+    "locate a database called exhibition bookings rather than pages that mention exhibitions",
+    "identify competing versions of a similarly titled planning page",
+    "recover the page reference for a document whose title you partly remember"
+  ],
+  "routine": {
+    "message": "every friday at 09:40, search notion page titles for willowglass supplier policy. return all matching titles and page references here, checking every page of results, and say when more than one might be the current policy. if the title search is empty, try an empty page query and explain that indexing may be delayed. never edit, rename or archive a result, and never call the newest title the approved policy without evidence.",
+    "when": "fridays at 09:40",
+    "needs": "notion connected with read only access to the pages being searched",
+    "output": "willowglass supplier policy: title matches\n\n- supplier policy, purchasing: candidate for mirela to confirm\n- supplier policy, workshop archive: similarly named page\n\npage references included beside both results. contents not read; no approved version assumed."
+  },
+  "steps": [
+    "connect notion in **Connected apps** and allow this search bot **read only** access.",
+    "give a distinctive part of the title and say whether you want pages or databases.",
+    "check the returned titles and references before choosing a page for the bot to read with a separate action.",
+    "if the lookup should repeat, send the schedule and inspect its card; choose **Pause** when that policy is no longer relevant."
+  ],
+  "watch": [
+    "database searches need the database filter; leaving the default page filter can hide the object you wanted.",
+    "indexing is not immediate, especially for new or recently shared material. empty results are inconclusive.",
+    "results come back 25 at a time by default; ask the bot to keep going if you don't see the page.",
+    "the most recently edited page isn't always the right one; check before you use it."
+  ],
+  "faq": [
+    {
+      "q": "does this search inside my notion documents?",
+      "a": "its query matches page and database titles. first find the right item, then use a page-reading action for its contents."
+    },
+    {
+      "q": "why can i not find a database i just shared?",
+      "a": "notion indexing can lag. try an empty query with the database filter and keep the result uncertain if the item still does not appear."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

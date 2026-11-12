@@ -2927,7 +2927,7 @@
   "name": "Add Table",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/excel/search-drive-files",
@@ -2937,7 +2937,7 @@
   "name": "Search Drive Files",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/excel/add-workbook-permission",
@@ -2950,16 +2950,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/excel/insert-range",
-  "toolkit": "excel",
-  "app": "Excel",
-  "slug": "EXCEL_INSERT_RANGE",
-  "name": "Insert Range",
-  "kind": "write",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/excel/who-am-i",
   "toolkit": "excel",
   "app": "Excel",
@@ -2967,16 +2957,6 @@
   "name": "Who Am I",
   "kind": "write",
   "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/excel/create-comment",
-  "toolkit": "excel",
-  "app": "Excel",
-  "slug": "EXCEL_CREATE_COMMENT",
-  "name": "Create Comment",
-  "kind": "send",
-  "important": false,
   "drafted": false
  },
  {
@@ -4187,7 +4167,7 @@
   "name": "Create an issue comment",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/get-a-pull-request",
@@ -4197,7 +4177,7 @@
   "name": "Get a pull request",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/get-a-reference",
@@ -4217,7 +4197,7 @@
   "name": "Add labels to an issue",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/list-repository-files-and-directories",
@@ -4307,7 +4287,7 @@
   "name": "Close an issue",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/get-repository-star-history",
@@ -4390,26 +4370,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/github/compare-two-commits",
-  "toolkit": "github",
-  "app": "GitHub",
-  "slug": "GITHUB_COMPARE_TWO_COMMITS",
-  "name": "Compare two commits",
-  "kind": "write",
-  "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/github/list-notifications-for-authenticated-user",
-  "toolkit": "github",
-  "app": "GitHub",
-  "slug": "GITHUB_LIST_NOTIFICATIONS",
-  "name": "List notifications for authenticated user",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/github/list-organization-members",
   "toolkit": "github",
   "app": "GitHub",
@@ -4470,16 +4430,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/github/list-pull-requests",
-  "toolkit": "github",
-  "app": "GitHub",
-  "slug": "GITHUB_LIST_PULL_REQUESTS",
-  "name": "List pull requests",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/github/create-an-issue",
   "toolkit": "github",
   "app": "GitHub",
@@ -4487,7 +4437,7 @@
   "name": "Create an issue",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/list-pull-requests-files",
@@ -4495,16 +4445,6 @@
   "app": "GitHub",
   "slug": "GITHUB_LIST_PULL_REQUESTS_FILES",
   "name": "List pull requests files",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/github/list-releases",
-  "toolkit": "github",
-  "app": "GitHub",
-  "slug": "GITHUB_LIST_RELEASES",
-  "name": "List releases",
   "kind": "read",
   "important": true,
   "drafted": false
@@ -4587,7 +4527,7 @@
   "name": "List repository issues",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/list-repository-workflows",
@@ -4596,16 +4536,6 @@
   "slug": "GITHUB_LIST_REPOSITORY_WORKFLOWS",
   "name": "List repository workflows",
   "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/github/create-a-release",
-  "toolkit": "github",
-  "app": "GitHub",
-  "slug": "GITHUB_CREATE_A_RELEASE",
-  "name": "Create a release",
-  "kind": "write",
   "important": true,
   "drafted": false
  },
@@ -4657,7 +4587,7 @@
   "name": "Search issues and pull requests",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/github/create-a-branch",
@@ -12667,7 +12597,7 @@
   "name": "Fetch emails",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/batch-modify-gmail-messages",
@@ -12677,7 +12607,7 @@
   "name": "Batch modify Gmail messages",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/patch-send-as-alias",
@@ -12707,7 +12637,7 @@
   "name": "Get Gmail attachment",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/create-email-draft",
@@ -12727,7 +12657,7 @@
   "name": "Reply to email thread",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/get-draft",
@@ -12747,7 +12677,7 @@
   "name": "List Drafts",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/delete-draft",
@@ -12767,7 +12697,7 @@
   "name": "Send Draft",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/search-people",
@@ -12777,7 +12707,7 @@
   "name": "Search People",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/delete-message",
@@ -12797,7 +12727,7 @@
   "name": "Send Email",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/delete-thread",
@@ -12807,7 +12737,7 @@
   "name": "Delete thread",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/trash-thread",
@@ -12827,7 +12757,7 @@
   "name": "Move to Trash",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/patch-label",
@@ -12847,7 +12777,7 @@
   "name": "Untrash Message",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/untrash-thread",
@@ -12877,7 +12807,7 @@
   "name": "Update draft",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/gmail/update-label",
@@ -13270,16 +13200,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/google-calendar/get-event",
-  "toolkit": "googlecalendar",
-  "app": "Google Calendar",
-  "slug": "GOOGLECALENDAR_EVENTS_GET",
-  "name": "Get Event",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/google-calendar/delete-acl-rule",
   "toolkit": "googlecalendar",
   "app": "Google Calendar",
@@ -13297,7 +13217,7 @@
   "name": "Find event",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/get-google-calendar",
@@ -13407,7 +13327,7 @@
   "name": "Create a new calendar",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/create-event",
@@ -13417,7 +13337,7 @@
   "name": "Create Event",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/delete-event",
@@ -13427,7 +13347,7 @@
   "name": "Delete event",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/create-a-calendar",
@@ -13447,7 +13367,7 @@
   "name": "Get Event Instances",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/list-events-from-all-calendars",
@@ -13457,7 +13377,7 @@
   "name": "List Events from All Calendars",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/query-calendar-availability",
@@ -13467,7 +13387,7 @@
   "name": "Query Calendar Availability",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/patch-calendar",
@@ -13487,17 +13407,7 @@
   "name": "Patch Event",
   "kind": "write",
   "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/google-calendar/update-google-event",
-  "toolkit": "googlecalendar",
-  "app": "Google Calendar",
-  "slug": "GOOGLECALENDAR_UPDATE_EVENT",
-  "name": "Update Google event",
-  "kind": "write",
-  "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-calendar/list-events",
@@ -13797,7 +13707,7 @@
   "name": "Find file",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/get-about",
@@ -13857,7 +13767,7 @@
   "name": "Create a folder",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/update-reply",
@@ -13897,7 +13807,7 @@
   "name": "Create Permission",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/get-property",
@@ -14060,16 +13970,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/google-drive/list-file-revisions",
-  "toolkit": "googledrive",
-  "app": "Google Drive",
-  "slug": "GOOGLEDRIVE_LIST_REVISIONS",
-  "name": "List File Revisions",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/google-drive/empty-trash",
   "toolkit": "googledrive",
   "app": "Google Drive",
@@ -14107,7 +14007,7 @@
   "name": "Export Google Workspace file",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/generate-file-ids",
@@ -14147,7 +14047,7 @@
   "name": "Move File",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/patch-permission",
@@ -14277,7 +14177,7 @@
   "name": "Upload File",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-drive/upload-file-from-url-to-drive",
@@ -14727,7 +14627,7 @@
   "name": "Search Spreadsheets",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/clear-basic-filter",
@@ -14747,7 +14647,7 @@
   "name": "Create a Google Sheet",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/delete-dimension",
@@ -14787,7 +14687,7 @@
   "name": "Export Sheet as PDF",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/insert-dimension-in-google-sheet",
@@ -14837,7 +14737,7 @@
   "name": "Set Basic Filter",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/set-data-validation-rule",
@@ -14847,7 +14747,7 @@
   "name": "Set Data Validation Rule",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/sort-range",
@@ -14857,7 +14757,7 @@
   "name": "Sort Range",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/copy-sheet-to-another-spreadsheet",
@@ -14867,7 +14767,7 @@
   "name": "Copy Sheet to Another Spreadsheet",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/append-values-to-spreadsheet",
@@ -14877,7 +14777,7 @@
   "name": "Append Values to Spreadsheet",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/batch-clear-spreadsheet-values",
@@ -14947,7 +14847,7 @@
   "name": "Upsert Rows (Smart Update/Insert)",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/get-spreadsheet-values",
@@ -14957,7 +14857,7 @@
   "name": "Get spreadsheet values",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/update-spreadsheet-values",
@@ -14967,7 +14867,7 @@
   "name": "Update spreadsheet values",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/google-sheets/get-conditional-format-rules",
@@ -19767,7 +19667,7 @@
   "name": "Add multiple content blocks (bulk, user-friendly)",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/create-comment",
@@ -19777,7 +19677,7 @@
   "name": "Create comment",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/fetch-notion-block-children",
@@ -19797,7 +19697,7 @@
   "name": "Fetch comments",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/create-notion-database",
@@ -19847,7 +19747,7 @@
   "name": "Create Notion page",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/get-about-user",
@@ -19867,7 +19767,7 @@
   "name": "Get page markdown",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/create-notion-view-query",
@@ -19937,7 +19837,7 @@
   "name": "Insert row database",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/retrieve-page",
@@ -19957,7 +19857,7 @@
   "name": "Search Notion pages and databases",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/insert-row-from-natural-language",
@@ -19977,7 +19877,7 @@
   "name": "Move Page",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/query-database",
@@ -19997,7 +19897,7 @@
   "name": "Query database with filter",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/query-data-source",
@@ -20017,7 +19917,7 @@
   "name": "Replace page content (with backup)",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/update-page",
@@ -20027,7 +19927,7 @@
   "name": "Update Page",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/update-database-row",
@@ -20057,7 +19957,7 @@
   "name": "Upsert database rows",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/notion/who-am-i",
@@ -20257,7 +20157,7 @@
   "name": "Download Outlook attachment",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/accept-calendar-event-invite",
@@ -20287,7 +20187,7 @@
   "name": "Find Meeting Times",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/get-calendar-view",
@@ -20387,7 +20287,7 @@
   "name": "Create Calendar Event",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/reply-all",
@@ -20437,7 +20337,7 @@
   "name": "Reply to Email",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/get-user-calendar-event",
@@ -20477,7 +20377,7 @@
   "name": "Send email",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/list-events",
@@ -20507,7 +20407,7 @@
   "name": "Create email draft",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/list-mail-folders",
@@ -20537,7 +20437,7 @@
   "name": "Create To Do task",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/list-to-do-task-lists",
@@ -20557,7 +20457,7 @@
   "name": "List tasks from a To Do list",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/decline-calendar-event",
@@ -20567,7 +20467,7 @@
   "name": "Decline calendar event",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/search-calendar-events",
@@ -20577,7 +20477,7 @@
   "name": "Search calendar events",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/delete-calendar",
@@ -20607,7 +20507,7 @@
   "name": "Move message to folder",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/pin-message",
@@ -20627,7 +20527,7 @@
   "name": "Query Emails",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/outlook/report-message",
@@ -29800,16 +29700,6 @@
   "drafted": false
  },
  {
-  "path": "/integrations/slack/download-slack-file",
-  "toolkit": "slack",
-  "app": "Slack",
-  "slug": "SLACK_DOWNLOAD_SLACK_FILE",
-  "name": "Download Slack file",
-  "kind": "read",
-  "important": true,
-  "drafted": false
- },
- {
   "path": "/integrations/slack/add-reaction-to-message",
   "toolkit": "slack",
   "app": "Slack",
@@ -29817,7 +29707,7 @@
   "name": "Add reaction to message",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/send-message",
@@ -29827,7 +29717,7 @@
   "name": "Send message",
   "kind": "send",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/fetch-conversation-history",
@@ -29837,7 +29727,7 @@
   "name": "Fetch conversation history",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/find-channels",
@@ -29856,16 +29746,6 @@
   "slug": "SLACK_ADMIN_CONVERSATIONS_SEARCH",
   "name": "Search for channels in Enterprise organization",
   "kind": "write",
-  "important": true,
-  "drafted": false
- },
- {
-  "path": "/integrations/slack/find-users",
-  "toolkit": "slack",
-  "app": "Slack",
-  "slug": "SLACK_FIND_USERS",
-  "name": "Find users",
-  "kind": "read",
   "important": true,
   "drafted": false
  },
@@ -29917,7 +29797,7 @@
   "name": "Create a reminder",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/list-all-users",
@@ -29947,7 +29827,7 @@
   "name": "Create Slack Canvas",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/list-enterprise-teams",
@@ -29997,7 +29877,7 @@
   "name": "List unread channel messages",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/create-slack-list-item",
@@ -30007,7 +29887,7 @@
   "name": "Create Slack List item",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/lookup-canvas-sections",
@@ -30057,7 +29937,7 @@
   "name": "Search messages",
   "kind": "read",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/delete-multiple-slack-list-items",
@@ -30117,7 +29997,7 @@
   "name": "Schedule message",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/set-slack-list-access",
@@ -30147,7 +30027,7 @@
   "name": "Update a Slack message",
   "kind": "write",
   "important": true,
-  "drafted": false
+  "drafted": true
  },
  {
   "path": "/integrations/slack/update-slack-list",

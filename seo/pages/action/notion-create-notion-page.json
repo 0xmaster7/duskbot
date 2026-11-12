@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/notion/create-notion-page",
+  "type": "action",
+  "title": "Create a Notion page with AI under the right parent",
+  "nav": "create a page",
+  "h1": "give new notion notes a proper home",
+  "description": "Turn your notes into a new Notion page under an existing page or database. Choose the right parent page and review the title and content before writing.",
+  "keyword": "create notion page with ai",
+  "keywords": [
+    "notion create page with ai",
+    "chatgpt make notion page",
+    "claude create notion page from notes"
+  ],
+  "answer": "a bot can turn your notes into a new notion page with a title and markdown content, or create an empty page for later. it must place the page under an existing, accessible page or database. it cannot create a root-level page. creation is a write, so ask for a title and content preview if you want to approve the new page before it appears.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion",
+    "new pages",
+    "notes"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/add-multiple-content-blocks",
+    "/integrations/notion/replace-page-content"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "s-signpost"
+    ],
+    "bubble": "notes under fieldwork"
+  },
+  "og_line": "new notes, under the parent you chose.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_CREATE_NOTION_PAGE"
+  },
+  "what": "this makes a new document where you want it in notion, rather than adding text to an existing document. provide a title and the parent page or database. a page can start empty or take your prepared markdown as its content.\n\npaste the link to the page it should go under, or name it and let the bot find it. a link is safer when names repeat.",
+  "uses": [
+    "turn a site-visit note into a child page beneath the right building project",
+    "create an empty interview page with a clear title before each scheduled research session",
+    "save an approved workshop outline as a separate page without rewriting the project home"
+  ],
+  "routine": {
+    "message": "each monday at 16:25, collect the field visit notes i wrote here today for alderfinch restoration. propose a titled notion page under the field visits parent i linked, and show the markdown here first. after i confirm, create that one page and return its reference in this chat. never invent observations or create a page if there are no notes.",
+    "when": "mondays at 16:25",
+    "needs": "notion connected with read and write access to find the parent and create a child page",
+    "output": "proposed page: alderfinch, north stair visit\nparent: field visits\ncontent: ceiling staining recorded by noemi; moisture reading not provided.\nno page created yet; waiting for your review."
+  },
+  "steps": [
+    "connect notion through **Connected apps** and grant the note bot **read and write** with page search and creation allowed.",
+    "paste the parent page's link and have the bot confirm where the new page will go.",
+    "send a title and a short note, specifying markdown content and a preview before creation.",
+    "open the first created child page to check its placement. use **Edit** on the routine card to adjust when later notes are collected."
+  ],
+  "watch": [
+    "a parent must already exist and be accessible. this action cannot make a new top-level workspace page.",
+    "if two pages share a name, the bot may pick the wrong one. paste the parent page's link to be sure.",
+    "rapid page creation can encounter conflicts. check whether a page was created before retrying a failed request."
+  ],
+  "faq": [
+    {
+      "q": "can it make a blank notion page for me to fill in?",
+      "a": "yes. provide the required title and parent without content. you can add the body later."
+    },
+    {
+      "q": "can it add a cover image?",
+      "a": "it accepts a publicly accessible image url for the cover. a private file on your computer is not itself a usable cover url."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/notion/add-multiple-content-blocks",
+  "type": "action",
+  "title": "Add blocks to a Notion page with AI in the right place",
+  "nav": "add content blocks",
+  "h1": "add a batch of notes to an existing notion page",
+  "description": "Have a bot add paragraphs, headings and lists to a Notion page. Choose the parent and insertion point, and check long text for truncation.",
+  "keyword": "add notion blocks with ai",
+  "keywords": [
+    "notion append content with ai",
+    "chatgpt add blocks to notion page",
+    "claude insert notion page content"
+  ],
+  "answer": "a bot can add several content blocks to an existing notion page or a supported parent block in one request. it can append them or insert them after a chosen child. check the placement before writing: say which heading the notes go under. very long paragraphs can be cut short, so open the page and check the end of each one.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion",
+    "blocks",
+    "append notes"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/create-notion-page",
+    "/integrations/notion/replace-page-content"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-books",
+      "s-notebook"
+    ],
+    "bubble": "below the test heading"
+  },
+  "og_line": "add the notes where they belong.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT"
+  },
+  "what": "this is useful when a page is already structured and you have a new section to add without replacing the rest. a batch can contain different supported block types. you can give the notes as plain text with simple headings and bullets.\n\nto put them under a particular heading instead of at the bottom, name the heading. the bot reads the page first to find exactly where it is, rather than guessing from the words.",
+  "uses": [
+    "add a short test summary beneath the existing test results heading",
+    "append interview observations as a heading followed by a bulleted list",
+    "insert a new workshop section between two established parts of a planning page"
+  ],
+  "routine": {
+    "message": "every thursday at 12:15, take the glaze test notes i give you here for marlowfen pottery and prepare a short heading and bullet list for the linked notion page. read its blocks and show me where the new batch will go after the test results heading. wait for my agreement, add the batch, and confirm the added text here. never replace existing blocks or guess missing measurements.",
+    "when": "thursdays at 12:15",
+    "needs": "notion connected, read and write access for reading destination blocks and adding content",
+    "output": "marlowfen glaze tests\nproposed insertion: after test results, inside the existing page\n- celeste recorded pinholes on the blue sample.\n- firing temperature not recorded.\nbatch prepared; destination awaiting your confirmation."
+  },
+  "steps": [
+    "in **Connected apps**, give the notion writer **read and write** access limited to the block-reading and adding actions it needs.",
+    "link the destination page and identify the heading or last block that should precede the addition.",
+    "ask for a short batch and a placement preview. require the bot to wait before adding it.",
+    "read the inserted section in notion after a trial. **Pause** repeated additions if the same source notes start appearing twice."
+  ],
+  "watch": [
+    "each request accepts at most 100 blocks. longer additions need separate batches and a check that each landed once.",
+    "long text handling differs by format, and simplified text segments may be truncated. inspect the saved wording rather than assuming the full source survived.",
+    "ask the bot to show you where the notes will land before it adds them."
+  ],
+  "faq": [
+    {
+      "q": "can it insert text after a heading instead of at the bottom?",
+      "a": "yes. name the heading and the bot finds it on the page, then adds the notes right after it."
+    },
+    {
+      "q": "does adding blocks erase the rest of the page?",
+      "a": "this action adds children rather than replacing the page body. still confirm the position, because appending at the bottom and inserting after a heading are different choices."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

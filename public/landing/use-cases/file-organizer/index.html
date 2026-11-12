@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>a file organizer bot that lists its moves first</h1>
 <p class="lede seo-answer">start with a backup, then give a bot on your own computer one project folder to tidy. ask for a proposed list of moves and renames, with uncertain files left alone. inspect that list before authorizing changes. dusk bot has file-edit approval settings, but a folder plan is still your responsibility. this routine separates inspection from moving and never treats duplicate-looking names as permission to delete a file.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--file-organizer.webp?v=a97259e9" srcset="/art/seo/use-cases--file-organizer-660.webp 660w, /art/seo/use-cases--file-organizer.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a purple pixel bot, a yellow pixel bot and a orange pixel bot beside a folder of papers and a desktop computer, on a lemon field in front of snowy hills and green fields, one saying &quot;moves listed before changes&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--file-organizer.webp?v=a97259e9" srcset="/art/seo/use-cases--file-organizer-660.webp 660w, /art/seo/use-cases--file-organizer.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a purple pixel bot, a yellow pixel bot and a orange pixel bot beside a folder of papers and a desktop computer, on a lemon field in front of snowy hills and green fields, one saying &quot;moves listed before changes&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>make a separate backup of the target folder yourself and open a few files from that backup to check it. then give a bot running on your own computer that project folder. keep it on <strong>Ask for approval</strong>.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every friday at 5pm, inspect only the project folder i gave you and propose a tidy-up in this chat. this run is a plan, not permission to move anything. ask me before you change anything.
 
@@ -63,7 +63,7 @@ collision: references/cedar-logo.png already exists; no replacement proposed.
 
 no files moved. confirm the backup is checked and tell me which listed operations to apply.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="choose-a-folder-with-a-clear-boundary"><h2 id="choose-a-folder-with-a-clear-boundary">choose a folder with a clear boundary</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="choose-a-folder-with-a-clear-boundary"><h2 id="choose-a-folder-with-a-clear-boundary">choose a folder with a clear boundary</h2><img class="seo-spot" src="/art/kit/p-newspaper.webp?v=d2312431" alt="" width="420" height="316" loading="lazy" decoding="async">
 <p>use a project folder you understand, rather than your whole home directory. tell the bot what belongs in each destination. “make it neat” leaves it guessing whether an old draft is finished work or an important reference.</p>
 <p>files a bot makes on your computer live in its own folder or a project folder you give it.<sup><a href="#src-1" aria-label="source 1">1</a></sup> keep this task on the machine holding the originals. the <a href="/ai-agent-that-controls-your-computer">computer-use overview</a> explains the broader setup, but no screen control is required just to ask for a folder plan.</p>
 </section>
@@ -71,13 +71,20 @@ no files moved. confirm the backup is checked and tell me which listed operation
 <p>use a separate copy or your normal backup method, and check it before the bot edits the original. there's no automatic undo for moved files, so keep your own backup. a written move list helps you review changes; it is not a replacement for a backup.</p>
 <p>keep <strong>Ask for approval</strong> selected while trying the task. <strong>Auto-accept edits</strong> permits file changes, so leave that setting for a task whose scope you already trust.<sup><a href="#src-2" aria-label="source 2">2</a></sup> the <a href="/guides/is-it-safe-to-let-ai-control-your-computer">computer safety guide</a> explains why small permissions matter.</p>
 </section>
-<section class="seo-sec" aria-labelledby="leave-uncertain-files-where-they-are"><h2 id="leave-uncertain-files-where-they-are">leave uncertain files where they are</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="leave-uncertain-files-where-they-are"><h2 id="leave-uncertain-files-where-they-are">leave uncertain files where they are</h2><img class="seo-spot" src="/art/s-books.webp?v=08b0004d" alt="" width="420" height="203" loading="lazy" decoding="async">
 <p>names alone are weak evidence. two files called “invoice” may belong to different customers, and a shortcut may point somewhere outside the folder. tell the bot to list uncertainty rather than force every item into a category. do not let a tidy-up become deletion.</p>
 <p>renaming a file can also break a reference in another document or app. keep app-managed material out of scope and inspect the completed list before continuing work. if the folder contains collected web material, <a href="/use-cases/web-scraping">web scraping</a> shows how to retain source information before you reorganize it.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-tangerine seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="boxo"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 0h2v4h-2zM3 4h10v1h-10zM2 5h12v3h-12zM2 8h2v3h-2zM6 8h4v3h-4zM12 8h2v3h-2zM2 11h12v5h-12z"/><path class="px-e" fill="#fff" d="M4 8h2v3h-2zM10 8h2v3h-2z"/></g></svg></span>
 <ul><li>check a separate backup before authorizing any move or rename</li><li>make the scheduled routine inspect only, then approve named operations separately</li><li>keep the bot on <strong>Ask for approval</strong> while testing the folder rules</li><li>never overwrite a destination or delete a suspected duplicate in this routine</li><li>stop when paths differ from the reviewed plan; do not silently improvise a new move</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="can-ai-organize-files-on-my-computer-without-touching-everything">can ai organize files on my computer without touching everything?</h3>
 <p>give the bot one project folder and require an inspection-only plan. this routine explicitly excludes other folders. review the proposed paths before authorizing the bot to change anything.</p>

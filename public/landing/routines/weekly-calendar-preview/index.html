@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>a sunday evening preview of next week's calendar</h1>
 <p class="lede seo-answer">paste one message into a chat with your bot and every sunday at 6pm it reads next week's calendar, lists each day in a line or two, and flags what will hurt: meetings that overlap, days with no gap for lunch, and meetings that need something prepared. it suggests what to move but changes nothing in your calendar unless you ask.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/routines--weekly-calendar-preview.webp?v=6c99d17a" srcset="/art/seo/routines--weekly-calendar-preview-660.webp 660w, /art/seo/routines--weekly-calendar-preview.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a coral pixel bot and a sky blue pixel bot beside an alarm clock and a calendar and a coffee mug, on a sandy path in front of green terraced fields, one saying &quot;tuesday is too full&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/routines--weekly-calendar-preview.webp?v=6c99d17a" srcset="/art/seo/routines--weekly-calendar-preview-660.webp 660w, /art/seo/routines--weekly-calendar-preview.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a coral pixel bot and a sky blue pixel bot beside an alarm clock and a calendar and a coffee mug, on a sandy path in front of green terraced fields, one saying &quot;tuesday is too full&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-message"><h2 id="the-message">the message</h2>
 <div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every sunday at 6pm, read my calendar for monday to friday next week.
 
@@ -54,7 +54,7 @@ for each day give me one or two lines: how many meetings, the first and last, an
 
 suggest what i could move, but don't change, accept or decline anything. if the week looks fine, just say &quot;next week looks fine&quot; and nothing else.</code></pre><button class="copy" type="button" data-copy>copy</button></div><dl class="seo-specs"><div><dt>when</dt><dd>sundays at 18:00 in your time zone</dd></div><div><dt>needs</dt><dd>google calendar or outlook connected; reading is enough</dd></div></dl>
 </section>
-<section class="seo-sec" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2><img class="seo-spot" src="/art/s-notebook.webp?v=e67faeee" alt="" width="520" height="378" loading="lazy" decoding="async">
 <p class="code-label">an example, not a real run</p><div class="code plain seo-sample"><pre><code>next week
 
 mon: 3 meetings, 10:00 to 15:30. fine.
@@ -69,13 +69,20 @@ suggestion: move the 1:1 to wednesday, which is open.</code></pre></div>
 <section class="seo-sec" aria-labelledby="make-it-yours"><h2 id="make-it-yours">make it yours</h2>
 <ul><li>change the window: &quot;monday to sunday&quot; or &quot;just tomorrow&quot; turns it into a daily look ahead</li><li>change what counts as prep: add the words that matter in your work, like &quot;board&quot;, &quot;demo&quot; or &quot;client&quot;</li><li>send it somewhere else: &quot;post it in my planning group chat&quot;, or &quot;email it to me&quot; (an email is a send, so it waits for <strong>Allow</strong> unless you set a daily amount; a bot on <strong>Full access</strong> with no sending rule may send up to 25 a day without asking, so set <strong>Ask every time</strong> for it)<sup><a href="#src-4" aria-label="source 4">4</a></sup></li><li>let it act: &quot;if two meetings clash, ask me which to move and then move it&quot; (this needs write access to the calendar)</li><li>add the inbox: &quot;also list emails from this week that mention a meeting next week&quot; if mail is connected too</li></ul>
 </section>
-<section class="seo-sec" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2>
+<section class="seo-sec seo-warned" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-mint seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="goo"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 4h2v1h-2zM5 5h6v1h-6zM4 6h8v2h-8zM3 8h10v1h-10zM3 9h2v2h-2zM11 9h2v2h-2zM1 11h4v1h-4zM7 9h2v3h-2zM11 11h4v1h-4zM1 12h14v3h-14zM3 15h10v1h-10z"/><path class="px-e" fill="#fff" d="M5 9h2v3h-2zM9 9h2v3h-2z"/></g></svg></span>
 <ul><li>it reads the wrong calendar. if you have several, name the ones you want: &quot;only my work calendar and the team calendar&quot;. listing calendars is one of the things it can do, so ask it which ones it sees.</li><li>times are off by an hour or more. ask the bot &quot;what time zone is this routine in?&quot; and tell it yours; put your time zone in <strong>About me</strong> so every bot knows.</li><li>it didn't run. on your own computer nothing runs while it's asleep or dusk bot is closed; a run missed by less than 12 hours runs once when you're back. <strong>Automations</strong> in the sidebar shows what happened to each run.</li><li>the list is too long to read. say &quot;shorter&quot; or &quot;only tell me about problems&quot; after the first run; it keeps the change.</li></ul>
 </section>
 <section class="seo-sec" aria-labelledby="why-sunday-and-why-it-only-reads"><h2 id="why-sunday-and-why-it-only-reads">why sunday, and why it only reads</h2>
 <p>a preview the night before the week starts gives you time to move things while people can still say yes. keeping it read-only means you can turn it on for any bot without worrying: it needs only read access to your calendar, and dusk bot refuses any change from a bot that may only read.</p>
 <p>if you want it to move meetings later, give that bot write access and say so in the routine, with &quot;ask me before you move anything&quot; in the same message. read what it proposes the first few times before you say yes.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="does-it-work-with-outlook-calendars">does it work with outlook calendars?</h3>
 <p>yes. connect outlook instead of google calendar and send the same message.</p>

@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/google-drive/upload-file",
+  "type": "action",
+  "title": "Upload a file to Google Drive with AI to a chosen folder",
+  "nav": "upload file",
+  "h1": "ask ai to upload a file into the right google drive folder",
+  "description": "Upload a file to Google Drive with AI, within this action's 5 MB limit. Resolve the destination folder first because an invalid ID can fall back to root.",
+  "keyword": "upload google drive file with ai",
+  "keywords": [
+    "chatgpt upload file google drive",
+    "claude upload file drive folder",
+    "ai google drive file upload"
+  ],
+  "answer": "give your bot a file and it can upload a new copy to google drive, optionally inside a chosen folder. this action accepts files up to 5 mb. the destination needs special care: if the bot gets the folder wrong, the file lands in the top level of your drive with no error, so check where it went. uploads are writes and do not ask under the sending setting, so include a review instruction if folder placement matters.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "drive upload",
+    "folder destination",
+    "file types"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/create-permission",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "s-parcel",
+      "p-folder"
+    ],
+    "bubble": "check the upload folder"
+  },
+  "og_line": "a small file, in the folder you confirmed.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_UPLOAD_FILE"
+  },
+  "what": "the required input is the file to upload, with a clear filename and accurate file type. you can give a file to the bot using attach files or by dropping it into chat. the upload creates a new file; it is not a promise to replace an older drive copy.\n\nfor a folder destination, have the bot find the folder and show it to you before uploading. a familiar folder name is not enough when several folders share it. without a folder id, or with an invalid one, this action can place the file at the top of drive without reporting an error.",
+  "uses": [
+    "upload the approved poster pdf you attached into an event folder",
+    "place a small signed certificate in the named client handover folder",
+    "save a report the bot has made into the confirmed reporting folder",
+    "put a reference image in a shared project folder without moving other files"
+  ],
+  "routine": {
+    "message": "every thursday at 1, find the drive folder called hollymere exhibition prints and show me its full reference before uploading the poster pdf i marked approved here. check that the file is within the 5 mb limit, show its filename and file type, and ask me before you change anything. after approval, upload it to the confirmed folder and verify the returned file's location here. never upload if the folder is ambiguous or missing, and never replace or delete an older poster.",
+    "when": "thursdays at 13:00",
+    "needs": "google drive connected with read and write access; file finding, upload and file checks allowed; approved poster attached in chat",
+    "output": "upload proposal\n\nfile: hollymere-exhibition-poster.pdf\nfile type: pdf\nsize: within the 5 mb limit\ndestination: confirmed exhibition prints folder\n\nnikolina approved the artwork. waiting for your upload confirmation; no drive file created."
+  },
+  "steps": [
+    "enable google drive for the bot in **Connected apps** with **read and write**, limited to the upload and location-checking actions it needs.",
+    "use **Attach files** to provide the approved file, then have the bot find and show the intended destination folder.",
+    "ask it to check the filename, file type and size before requesting your permission to upload.",
+    "after one approved upload, inspect its actual folder; only then schedule repeats, with **Pause** available on the routine card."
+  ],
+  "watch": [
+    "the maximum file size for this upload action is 5 mb. do not assume it handles a larger file because drive itself can store it.",
+    "an invalid folder id can fall back to drive root without an error. verify both the resolved folder and the created file location.",
+    "uploading is a new-file operation. another run can produce another copy, so check whether the approved file has already been uploaded."
+  ],
+  "faq": [
+    {
+      "q": "why did the upload appear outside my folder?",
+      "a": "this action falls back to drive root for a missing or invalid folder id. resolve the folder first and inspect the uploaded file's actual location afterwards."
+    },
+    {
+      "q": "can it upload the file i drop into dusk chat?",
+      "a": "you can give the bot a file that way or with attach files. it still needs drive write access, accurate file information and a file within this action's size limit."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

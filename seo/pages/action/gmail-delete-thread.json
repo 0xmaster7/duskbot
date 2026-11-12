@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/gmail/delete-thread",
+  "type": "action",
+  "title": "Delete a Gmail thread with AI: permanent removal",
+  "nav": "delete thread",
+  "h1": "permanently delete one gmail conversation with ai",
+  "description": "Understand permanent Gmail thread deletion before allowing a bot to use it. Check the whole conversation and its thread ID, or choose trash instead.",
+  "keyword": "delete gmail thread with ai",
+  "keywords": [
+    "chatgpt delete gmail conversation",
+    "claude permanently delete gmail thread",
+    "ai gmail thread deletion"
+  ],
+  "answer": "deleting a gmail thread removes the whole conversation and every message in it immediately. it cannot be undone. this is a write action, so the sending setting will not make it wait for approval. tell the bot to ask you before deleting anything, or keep deletion disabled and use a separate trash action when you want a reversible option.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "permanent deletion",
+    "threads"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/send-draft",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "p-folder",
+      "p-shield"
+    ],
+    "bubble": "whole conversation gone"
+  },
+  "og_line": "permanent means every message in it.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_DELETE_THREAD"
+  },
+  "what": "a thread is the conversation, not just the latest email. the bot finds the conversation with a search and reads all of it before anything is deleted. deleting that id removes all its messages, including older replies you might still need.\n\nthis is not moving mail to trash. there is no undo for this action. a routine should bring a specific conversation to you for a decision rather than permanently deleting broad search results.",
+  "uses": [
+    "permanently remove a thread where someone sent you a password or bank details by mistake",
+    "delete a named conversation containing a mistaken file after you decide it must go",
+    "review a specific obsolete conversation for permanent removal rather than clearing an entire folder"
+  ],
+  "routine": {
+    "message": "every friday at 5, find conversations in my gmail labelled \"to shred\". for each one, show me the subject, who's in it and how many messages it has, and ask before deleting. permanently delete only the ones i say yes to. never delete anything else, and if i don't reply, delete nothing.",
+    "when": "fridays at 17:00",
+    "needs": "gmail connected, with read and write access",
+    "output": "2 threads labelled to shred\n\n1. old lease scan (you, vesna), 4 messages\n2. deposit bank details (you, the letting agent), 2 messages\n\nreply with the numbers to delete forever. nothing deleted yet."
+  },
+  "steps": [
+    "connect gmail in **Connected apps** and start on **read only** while the bot finds the conversation.",
+    "ask it to fetch the full thread and show the thread id beside its subject, so you can check what would disappear.",
+    "only if permanent deletion is intended, permit **read and write** with a narrow action list and explicitly instruct the bot to ask before any deletion.",
+    "review the first request yourself; choose **Pause** when you no longer need the weekly clear-out."
+  ],
+  "watch": [
+    "the entire thread is removed, including messages beyond the one that matched your search. a useful reply elsewhere in the conversation would disappear too.",
+    "a write-enabled bot does not automatically ask before this deletion. the explicit confirmation in the routine is essential.",
+    "if you might want it back, ask the bot to move it to trash instead."
+  ],
+  "faq": [
+    {
+      "q": "can i restore the thread from gmail trash?",
+      "a": "this action permanently deletes it rather than moving it into trash. choose reversible trashing before you allow the operation if recovery matters."
+    },
+    {
+      "q": "does deleting a thread remove only my last reply?",
+      "a": "it removes every message in the specified conversation. have the bot read the full thread before you decide."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

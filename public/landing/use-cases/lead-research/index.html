@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>a lead research bot that explains why each company fits</h1>
 <p class="lede seo-answer">ask a lead research bot for evidence of fit before asking for names to contact. give it a customer profile, exclusion rules and permitted company pages. it can use its own browser to build a short list in your chat, with a reason and source for each entry. keep unknown budgets, buying intent and private contact details unknown. research is a starting point for your review, not permission to send a pitch.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--lead-research.webp?v=180fc6d9" srcset="/art/seo/use-cases--lead-research-660.webp 660w, /art/seo/use-cases--lead-research.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a yellow pixel bot and a sky blue pixel bot beside a briefcase and a pair of binoculars, on a grassy meadow in front of chalk cliffs by the sea, one saying &quot;why this company fits&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--lead-research.webp?v=180fc6d9" srcset="/art/seo/use-cases--lead-research-660.webp 660w, /art/seo/use-cases--lead-research.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a yellow pixel bot and a sky blue pixel bot beside a briefcase and a pair of binoculars, on a grassy meadow in front of chalk cliffs by the sea, one saying &quot;why this company fits&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>send the company pages you are allowed to research and describe a good customer in observable terms. this version starts with companies, without collecting personal addresses.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>each tuesday at 2pm, review the company urls i gave you in your own browser. i’m researching independent design studios that publicly offer client workshops. exclude recruitment agencies, directories and companies outside my stated region.
 
@@ -62,7 +62,7 @@ excluded: jo’s talent desk, a recruitment agency.
 not reviewed: priya design’s services page could not be opened.
 no contacts collected; no outreach sent.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="define-fit-using-things-a-page-can-show"><h2 id="define-fit-using-things-a-page-can-show">define fit using things a page can show</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="define-fit-using-things-a-page-can-show"><h2 id="define-fit-using-things-a-page-can-show">define fit using things a page can show</h2><img class="seo-spot" src="/art/kit/p-chart.webp?v=61dbd4ae" alt="" width="297" height="419" loading="lazy" decoding="async">
 <p>“likely to buy” asks the bot to infer too much. “publishes a workshop service page and works in this region” gives it evidence to look for. give exclusions equal weight: a directory listing can use all your keywords while representing no potential customer at all.</p>
 <p>a source should support the specific reason for inclusion. a company website proves a company has a website, not that it has a budget or a project planned. use <a href="/use-cases/market-research">market research</a> first when you have not yet decided which kind of company to approach.</p>
 </section>
@@ -70,13 +70,20 @@ no contacts collected; no outreach sent.</code></pre></div>
 <p>the routine produces a table in chat. it neither adds records to a sales system nor writes to the people listed. that lets you discard a weak match before it becomes someone else’s unwanted message.</p>
 <p>if you later connect a supported email app, sends ask first unless you give the bot a daily sending allowance. one exception: a bot on <strong>Full access</strong> with no sending rule of its own may send up to 25 a day without asking, so give full-access bots <strong>Ask every time</strong> under sending.<sup><a href="#src-1" aria-label="source 1">1</a></sup> <a href="/use-cases/email-triage">email triage</a> is a separate routine for handling replies once conversations actually exist.</p>
 </section>
-<section class="seo-sec" aria-labelledby="check-the-rules-before-contacting-anyone"><h2 id="check-the-rules-before-contacting-anyone">check the rules before contacting anyone</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="check-the-rules-before-contacting-anyone"><h2 id="check-the-rules-before-contacting-anyone">check the rules before contacting anyone</h2><img class="seo-spot" src="/art/kit/p-bubbles.webp?v=8f058ef0" alt="" width="420" height="316" loading="lazy" decoding="async">
 <p>before cold outreach, check the rules that apply where you and the recipient are, including consent, identification and opt-out requirements. keep an exclusion list and respect requests not to be contacted. public contact information does not settle those questions. this is not legal advice.</p>
 <p>also respect source sites’ terms and personal data rules when building the list. the <a href="/use-cases/web-scraping">web scraping guide</a> keeps collection scoped to named fields. do not treat a bot’s fit score or a polished opening line as evidence that contact is welcome.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-cyan seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="puff"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 2h4v1h-4zM5 3h7v1h-7zM5 4h8v1h-8zM4 5h9v1h-9zM3 6h10v1h-10zM12 7h2v1h-2zM2 7h3v3h-3zM7 7h3v3h-3zM12 8h3v2h-3zM2 10h13v2h-13zM2 12h12v1h-12z"/><path class="px-e" fill="#fff" d="M5 7h2v3h-2zM10 7h2v3h-2z"/></g></svg></span>
 <ul><li>make a source passage a condition of inclusion in the shortlist</li><li>exclude existing customers and companies on your do-not-contact list before research</li><li>avoid inferred personal emails and unsupported claims about intent to buy</li><li>review applicable outreach rules before turning any research entry into a message</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="can-a-non-technical-business-owner-research-leads-with-a-bot">can a non-technical business owner research leads with a bot?</h3>
 <p>yes, by giving it a plain-language profile and a permitted source list. begin with a few companies you know so you can judge whether its reasons actually match your criteria.</p>

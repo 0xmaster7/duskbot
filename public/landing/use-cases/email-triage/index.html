@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>ai email triage: let a bot sort your inbox and draft the replies</h1>
 <p class="lede seo-answer">give one bot one job: read what came in, put the few emails that need you at the top, file the rest under labels, and leave replies in drafts. you send it a routine once, in plain words, and it runs every morning or as mail arrives. it never sends anything unless you tap allow, so the worst case is a draft you delete.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--email-triage.webp?v=15ba9bee" srcset="/art/seo/use-cases--email-triage-660.webp 660w, /art/seo/use-cases--email-triage.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a mint pixel bot and a yellow pixel bot beside a mailbox with a letter and a folder of papers, on a lemon field in front of a lily pond, one saying &quot;4 for you, 31 filed&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--email-triage.webp?v=15ba9bee" srcset="/art/seo/use-cases--email-triage-660.webp 660w, /art/seo/use-cases--email-triage.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a mint pixel bot and a yellow pixel bot beside a mailbox with a letter and a folder of papers, on a lemon field in front of a lily pond, one saying &quot;4 for you, 31 filed&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>this is the one message to send. it works the same with gmail or outlook; connect one of them first.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>you're my inbox helper. every weekday at 7:30, read everything that came into my inbox since yesterday at 7:30.
 
@@ -60,7 +60,7 @@
 filed: 22 under read later, 9 under receipts.
 not sure: 1 email from an address i don't know, left in the inbox.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="why-one-bot-one-job"><h2 id="why-one-bot-one-job">why one bot, one job</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="why-one-bot-one-job"><h2 id="why-one-bot-one-job">why one bot, one job</h2><img class="seo-spot" src="/art/kit/p-megaphone.webp?v=58f0def6" alt="" width="420" height="333" loading="lazy" decoding="async">
 <p>a bot that only does your inbox builds the right memory: who your clients are, how you sign off, which senders are noise. tell it once, &quot;dana approves anything over $500&quot; or &quot;recruiters go under read later&quot;, and it keeps a note you can read and edit later.</p>
 <p>keep your inbox bot out of everything else. it doesn't need your slack or your files, and you choose which connected apps each bot may use.</p>
 </section>
@@ -68,16 +68,23 @@ not sure: 1 email from an address i don't know, left in the inbox.</code></pre><
 <ol><li>for the first few days, add &quot;list what you would label, but don't label anything yet&quot; to the routine, and keep the bot on <strong>Ask for approval</strong>.</li><li>read the first few runs and correct it right in the chat: &quot;shorter&quot;, &quot;skip newsletters entirely&quot;, &quot;anything from the bank goes under receipts&quot;.</li><li>once the list looks right for a few days, take that line out so it labels on its own. sending stays behind <strong>Allow</strong>.</li></ol>
 <p>most of the work is in those first corrections. after that you mostly glance at the list.</p>
 </section>
-<section class="seo-sec" aria-labelledby="every-morning-or-as-mail-arrives"><h2 id="every-morning-or-as-mail-arrives">every morning or as mail arrives</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="every-morning-or-as-mail-arrives"><h2 id="every-morning-or-as-mail-arrives">every morning or as mail arrives</h2><img class="seo-spot" src="/art/s-key.webp?v=0df6fb55" alt="" width="420" height="288" loading="lazy" decoding="async">
 <p>a scheduled routine runs at a time you pick. an event routine starts when new mail matches what you said, for example &quot;whenever an email arrives from @acme.com, draft a reply&quot;. gmail is checked about every 15 minutes, so an event routine starts within that time, not the moment mail lands.</p>
 <p>on your own computer, routines run only while it's awake and dusk bot is open; a run missed by less than 12 hours runs once when you're back. if you want triage done before you wake, put the bot on <a href="/docs/dusk-cloud">dusk cloud</a>, which stays on.</p>
 </section>
-<section class="seo-sec" aria-labelledby="where-it-gets-things-wrong"><h2 id="where-it-gets-things-wrong">where it gets things wrong</h2>
+<section class="seo-sec seo-warned" aria-labelledby="where-it-gets-things-wrong"><h2 id="where-it-gets-things-wrong">where it gets things wrong</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-sun seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="starry"><g class="px" transform="translate(10 10) scale(4)"><path class="px-b" fill="currentColor" d="M9 2h2v3h-2zM8 5h4v2h-4zM3 7h14v2h-14zM3 9h5v1h-5zM12 9h5v1h-5zM4 10h4v1h-4zM12 10h4v1h-4zM5 11h3v1h-3zM9 9h2v3h-2zM12 11h3v1h-3zM6 12h8v2h-8zM5 14h10v2h-10zM5 16h3v1h-3zM12 16h3v1h-3zM4 17h2v1h-2zM14 17h2v1h-2zM4 18h1v1h-1zM15 18h1v1h-1z"/><path class="px-e" fill="#fff" d="M8 9h1v3h-1zM11 9h1v3h-1z"/></g></svg></span>
 <p>it can file a real person under read later, especially someone writing from a new address. the routine above asks it to leave anything it's unsure about in the inbox and tell you, which catches most of these. it also can't know context it was never given: if a client changed their name or a project ended, say so once and it updates its notes.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-cyan seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="puff"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 2h4v1h-4zM5 3h7v1h-7zM5 4h8v1h-8zM4 5h9v1h-9zM3 6h10v1h-10zM12 7h2v1h-2zM2 7h3v3h-3zM7 7h3v3h-3zM12 8h3v2h-3zM2 10h13v2h-13zM2 12h12v1h-12z"/><path class="px-e" fill="#fff" d="M5 7h2v3h-2zM10 7h2v3h-2z"/></g></svg></span>
 <ul><li>it never sends: sending stops at a card with <strong>Allow</strong> and <strong>Deny</strong>, unless you set a daily amount it may send on its own. keep this bot off <strong>Full access</strong>, where a bot with no sending rule of its own may send up to 25 a day without asking</li><li>it never archives or deletes in this routine, so nothing disappears from your inbox</li><li>give it read and write access to your mail app only, and to no other app</li><li>start on <strong>Ask for approval</strong> and loosen up once a week of runs look right</li><li><span class="keys"><kbd>⌘</kbd><kbd>.</kbd></span> stops it mid-run if something looks wrong</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="does-it-work-with-outlook-as-well-as-gmail">does it work with outlook as well as gmail?</h3>
 <p>yes. connect outlook in <strong>Connected apps</strong> and send the same routine. labels become outlook folders or categories; tell the bot which you use.</p>

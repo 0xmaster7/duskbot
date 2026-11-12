@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/notion/query-database-with-filter",
+  "type": "action",
+  "title": "Filter Notion database rows with AI by status or date",
+  "nav": "query database with filter",
+  "h1": "ask for the notion records that match your conditions",
+  "description": "Have a bot retrieve a filtered, sorted subset of a Notion database. Identify the database correctly and carry the query through every result page.",
+  "keyword": "notion filter database with ai",
+  "keywords": [
+    "chatgpt query notion database",
+    "claude filter notion rows by status",
+    "ai notion database search by date"
+  ],
+  "answer": "a bot can ask notion for rows matching a status, date or other property condition, sort them and return the relevant subset in chat. it needs the database's own link, rather than the link to a page containing it. although the operation retrieves records, dusk classifies this action as a write. a read-only bot cannot call it, so allow this exact action rather than enabling unrelated page edits.",
+  "tags": [
+    "notion",
+    "database filters",
+    "queries"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/upsert-database-rows"
+  ],
+  "og_line": "the matching rows, with their criteria clear.",
+  "what": "instead of fetching a whole tracker and asking you to scan it, the bot sends the conditions to notion. it can request confirmed bookings due in a date window, for example, and order them by the database's date property. the fields and their types must match the actual database structure.\n\nfirst have it inspect the database with fetch database. provide the database link or use notion search with its database filter to locate the right object. if the database sits inside a page, paste the database's own link, not the page's. for larger queries, the bot should keep reading until it has all the results.",
+  "uses": [
+    "retrieve confirmed studio bookings within the next fortnight",
+    "list equipment loans whose due date has passed and status is still out",
+    "find approved grant applications ordered by the decision date",
+    "pull only archived-year records when preparing a historical report"
+  ],
+  "routine": {
+    "message": "at 17:05 each sunday, query the studio bookings database i linked here for records marked confirmed with a session date in the coming week. inspect its properties first, order matches by session date and continue through every result page. return a dated booking list here, with missing dates and failed query pages called out. never update a booking, assign an owner or change the database structure.",
+    "when": "sundays at 17:05",
+    "needs": "notion connected with read and write access limited to this query action and the required database lookups",
+    "output": "confirmed studio bookings\n\nmonday: solveig, portrait room.\nthursday: oswin, recording booth.\nfilter: confirmed, coming week; sorted by session date.\nall results checked; records unchanged."
+  },
+  "steps": [
+    "locate notion in **Connected apps** and grant this bot **read and write**, restricted to the filtered query and database lookups it needs.",
+    "give the actual database reference and ask the bot to inspect the property names before constructing a condition.",
+    "try a query whose expected matches you know, then inspect the resulting dates and sort order.",
+    "save the weekly request as a routine and use **Edit** to check its next run; no row-edit actions are needed for the report."
+  ],
+  "watch": [
+    "paste the database's own link so the query reaches the tracker you intended.",
+    "results come back up to 100 at a time; the bot should keep going until it has them all.",
+    "sorting by when a row was made is different from sorting by your own date column; say which you mean.",
+    "dusk bot counts this action as a change even though it only reads, so it needs read and write. limit the bot to this action and it still can't edit anything."
+  ],
+  "faq": [
+    {
+      "q": "why does a database query need read and write access?",
+      "a": "dusk treats this particular action as a write. you can narrow the bot to this action plus the database lookups it needs, without enabling general page updates."
+    },
+    {
+      "q": "can it combine a status with a date condition?",
+      "a": "the action supports server-side conditions on database properties. the bot should first inspect the exact property names and types so the filter matches your tracker."
+    },
+    {
+      "q": "does sorting the query rearrange my notion database?",
+      "a": "the sort controls the returned results. this operation queries records rather than writing a new order into the database."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-magnifier",
+      "s-notebook"
+    ],
+    "bubble": "show confirmed bookings only"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_QUERY_DATABASE_WITH_FILTER"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

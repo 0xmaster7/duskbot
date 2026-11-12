@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/google-sheets/set-data-validation-rule",
+  "type": "action",
+  "title": "Add Google Sheets dropdowns and validation with AI",
+  "nav": "set data validation",
+  "h1": "give a google sheets range an explicit entry rule",
+  "description": "Ask a bot to add dropdowns, number checks or formula validation to a Google Sheets range. Choose rejection or warnings and include filtered rows deliberately.",
+  "keyword": "google sheets data validation with ai",
+  "keywords": [
+    "chatgpt add google sheets dropdown",
+    "claude set sheet validation rule",
+    "ai google sheets restrict cell values"
+  ],
+  "answer": "a bot can add or clear entry rules on a specific google sheets range: a dropdown, a numeric condition or a custom formula check. you choose whether invalid entries are rejected or merely warned about. it needs the sheet link, tab name and exact range of cells. adding the rule doesn't ask you first unless you tell it to, so review the target range before allowing it.",
+  "tags": [
+    "google sheets",
+    "dropdowns",
+    "data validation"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/create-a-google-sheet"
+  ],
+  "og_line": "clear choices in the cells people fill in.",
+  "what": "a dropdown makes a status column easier to fill consistently. the bot can use a fixed list, take choices from another range, or set a condition that each entry should satisfy. set mode applies the rule; clear mode removes validation from the target cells.\n\npaste the spreadsheet link and name the tab and range in familiar terms such as bookings!d2:d40. the bot can turn \"bookings!D2:D40\" into the numbers google needs. strict validation rejects invalid data by default.",
+  "uses": [
+    "limit a workshop booking status column to held, confirmed or cancelled",
+    "offer a team-approved category list to people entering expenses",
+    "require a quantity field to satisfy a numerical rule",
+    "remove an obsolete dropdown from a carefully identified range"
+  ],
+  "routine": {
+    "message": "every tuesday at 08:40, find the last filled row on the bookings tab of the workshop sheet i linked and make sure column d, from row 2 down to that row, only allows held, confirmed or cancelled. show me the range here and ask me before you add or extend the dropdown. never change what's typed in the cells or touch the header.",
+    "when": "tuesdays at 08:40",
+    "needs": "google sheets connection with read and write access for spreadsheet details and validation changes",
+    "output": "validation proposal for miren's workshops\n\nbookings!d2:d40\nchoices: held, confirmed, cancelled\ninvalid entry: reject\nfiltered rows: included\nwaiting for range approval; existing values untouched."
+  },
+  "steps": [
+    "enable the sheets bot through **Connected apps**, giving **read and write** for validation and the sheet lookup it needs.",
+    "paste the file link, tab name and exact cell range; the bot looks up the tab.",
+    "choose rejection or warnings, decide whether filtered rows count and have the bot present those choices before writing.",
+    "after approving one bounded rule, try a valid and invalid entry yourself; use **Edit** to narrow the routine if its range is wrong."
+  ],
+  "watch": [
+    "check the range the bot shows you. one row off can put the dropdown on your header or the next column.",
+    "rows hidden by filters are excluded by default. ask for them to be included if the rule should cover them too.",
+    "say what's allowed, not just the kind of rule: the list of choices, the cells to take choices from, or the number limit.",
+    "clear mode removes validation rather than clearing the cell contents. confirm that removing the entry rule is actually the intended change."
+  ],
+  "faq": [
+    {
+      "q": "can it warn people instead of blocking an entry?",
+      "a": "yes. by default a wrong entry is refused; ask for a warning instead and people can still type it."
+    },
+    {
+      "q": "can dropdown options come from cells on another tab?",
+      "a": "range-based dropdowns use a source range in a1 notation. give the bot both the options range and the target range."
+    },
+    {
+      "q": "does setting validation correct values already in the column?",
+      "a": "this action sets or clears the rule. it is not a value-cleaning action, so review existing entries separately instead of assuming they have been repaired."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "googlesheets"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "s-button",
+      "p-shield"
+    ],
+    "bubble": "choose a valid status"
+  },
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_SET_DATA_VALIDATION_RULE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

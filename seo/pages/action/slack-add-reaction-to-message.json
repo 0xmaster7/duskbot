@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/slack/add-reaction-to-message",
+  "type": "action",
+  "title": "Add Slack emoji reactions with AI under clear rules",
+  "nav": "add reaction to message",
+  "h1": "let a bot acknowledge a slack message with a reaction",
+  "description": "Have a bot add a specific Slack reaction to qualifying messages. Set the meaning of the emoji and learn why reaction changes do not ask first.",
+  "keyword": "slack add reaction with ai",
+  "keywords": [
+    "chatgpt react to slack message",
+    "claude add slack emoji reaction",
+    "ai slack message acknowledgement"
+  ],
+  "answer": "a bot can add an existing workspace emoji to a particular slack message. that can acknowledge a completed handoff without adding another message to the channel. reactions are visible changes, and dusk treats them as writes rather than sends. they do not automatically ask first, so define what the emoji means and add a review instruction if you need one.",
+  "tags": [
+    "slack",
+    "emoji",
+    "acknowledgement"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/search-messages"
+  ],
+  "og_line": "an acknowledgement with an agreed meaning.",
+  "what": "a reaction belongs to one message. the bot first finds that message through search or channel history, so the emoji lands on exactly the right message.\n\nyou provide the emoji's workspace name without surrounding colons. if that reaction is already present for the connected identity, the action reports success instead of adding another copy. it adds an acknowledgement, not proof that somebody checked the work.",
+  "uses": [
+    "mark a stock-count handoff received after it includes the agreed location and date",
+    "acknowledge a shift report with a designated emoji once its required fields appear",
+    "mark each new expense request with the eyes emoji so people know it's been seen",
+    "put an agreed receipt marker on a clearly identified delivery update"
+  ],
+  "routine": {
+    "message": "when a message arrives in #stock-handoffs, check whether it is a completed count report with a named location and count date. only for a complete report, add the eyes reaction to that exact message, meaning received for review rather than approved. tell me here which report you acknowledged and leave incomplete reports untouched. never react with a check mark, post a message or imply the figures have been verified.",
+    "when": "when a message arrives in #stock-handoffs",
+    "needs": "slack connection with read and write access for message reading and adding reactions",
+    "output": "receipt marker added\n\nfarren: count report for east loft, dated today.\neyes reaction added to the report message.\nthe quantities have not been checked."
+  },
+  "steps": [
+    "connect the workspace in **Connected apps** and permit **read and write** for this acknowledgement bot.",
+    "pick an emoji already available in the workspace and explain its exact meaning in the bot's job.",
+    "test on one message you identify, checking that the bot finds the exact one first.",
+    "watch the first event runs in **Automations**; choose **Pause** if the bot starts acknowledging messages that do not meet your rule."
+  ],
+  "watch": [
+    "if two posts look alike, the bot should ask which one.",
+    "custom emoji must already exist in that workspace. an invented emoji name will not create one.",
+    "a success result may mean the reaction was already there. it does not prove a fresh acknowledgement was added.",
+    "slack events arrive at once, but a bot on your computer cannot handle them while it sleeps or dusk bot is closed."
+  ],
+  "faq": [
+    {
+      "q": "does adding a reaction use the message sending approval?",
+      "a": "a reaction is a write in dusk. if you want to review each reaction, tell the bot to ask before adding it."
+    },
+    {
+      "q": "can i use our custom handoff emoji?",
+      "a": "yes, if it already exists in the connected workspace. give its exact name without the outer colons."
+    },
+    {
+      "q": "will it keep stacking the same emoji on a message?",
+      "a": "an already-existing reaction is treated as success. the action does not create repeated copies of the same reaction for that identity."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "slack"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-button",
+      "p-bubbles"
+    ],
+    "bubble": "mark the handoff received"
+  },
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_ADD_REACTION_TO_AN_ITEM"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

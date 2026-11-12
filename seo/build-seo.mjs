@@ -7,7 +7,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { plan, seoDir, HUBS, TYPES } from './records.mjs';
 import { templates, connector, day } from './templates.mjs';
-import { scene, sceneHtml, signature, altText, sceneId } from './art/scene.mjs';
+import { scene, sceneHtml, signature, altText, sceneId, PROPS } from './art/scene.mjs';
+const webpDims = (file) => { const b = fs.readFileSync(file), k = b.toString('ascii', 12, 16); if (k === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)]; if (k === 'VP8 ') return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff]; const n = b.readUInt32LE(21); return [1 + (n & 0x3fff), 1 + ((n >> 14) & 0x3fff)]; };
 import { checkPages } from './quality.mjs';
 
 // the footer's links to the hubs, read before any page is written. live hubs only, so it never points at nothing
@@ -64,7 +65,10 @@ export function buildSeo(ctx) {
   // the waitlist link carries the page that sent people, and goes straight home when the waitlist is the home page
   const cta = { ...config.cta[mode], ...(mode === 'waitlist' ? { source: true, ...(ctx.waitlistHome ? { href: '/' } : {}) } : {}) };
   const byPath = new Map(records.map((r) => [r.path, r]));
-  const t = templates({ ...ctx, records, byPath, config, cta, preview, hubs });
+  // each kit object's size, for the spot pictures
+  const kitSizes = Object.fromEntries(Object.keys(PROPS).map((k) => { const f = path.join(site, 'art', k.startsWith('p-') ? `kit/${k}.webp` : `${k}.webp`); return [k, fs.existsSync(f) ? webpDims(f) : [420, 420]]; }));
+  const plannedPaths = new Set(JSON.parse(fs.readFileSync(path.join(seoDir, 'planned.json'), 'utf8')).paths);
+  const t = templates({ ...ctx, records, byPath, config, cta, preview, hubs, kitSizes, plannedPaths });
   const crumb = (list) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: list.map(([name, at], i) => ({ '@type': 'ListItem', position: i + 1, name, item: `${SITE_URL}${at}` })) });
   const org = { '@type': 'Organization', name: 'Dusk Bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png` };
 
@@ -107,6 +111,10 @@ export function buildSeo(ctx) {
   // a page or hub that is not out must not be on disk either (a preview build, or a page set back to queued, leaves one)
   const unwrite = (at) => { const file = path.join(site, at, 'index.html'); if (fs.existsSync(file)) { fs.rmSync(file); try { fs.rmdirSync(path.dirname(file)); } catch {} } };
   for (const r of records) if (!r.built) unwrite(r.path);
+  // and addresses whose record is gone (a page rejected or removed after a preview build wrote it)
+  const rejectedFile = path.join(seoDir, 'action-rejected.json');
+  const gonePaths = [...JSON.parse(fs.readFileSync(path.join(seoDir, 'planned.json'), 'utf8')).paths, ...Object.keys(fs.existsSync(rejectedFile) ? JSON.parse(fs.readFileSync(rejectedFile, 'utf8')).paths : {})];
+  for (const at of gonePaths) if (!byPath.has(at)) unwrite(at);
   for (const h of Object.values(HUBS)) if (!hubs.some((x) => x.at === h.at)) unwrite(h.at);
   for (const { r, html } of rendered) if (r.built) write(r.path, html, { index: r.indexable, group: r.state.cohort, lastmodKey: hash(JSON.stringify({ ...r, state: undefined, alt: undefined })) });
   for (const { h, html, pages } of hubPages) write(h.at, html, { index: pages.some((o) => o.indexable), group: 'hubs' });

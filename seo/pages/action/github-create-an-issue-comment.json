@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/github/create-an-issue-comment",
+  "type": "action",
+  "title": "Comment on GitHub issues with AI after reviewing the text",
+  "nav": "add an issue comment",
+  "h1": "post a github issue comment you have checked",
+  "description": "Have a bot prepare and post a comment on a GitHub issue or pull request. Confirm the repository, issue number and sending rules before it goes out.",
+  "keyword": "comment github issue with ai",
+  "keywords": [
+    "github issue comment with ai",
+    "chatgpt post github comment",
+    "claude comment on github pull request"
+  ],
+  "answer": "a bot can post a markdown comment on a github issue or pull request after identifying the owner, repository and issue number. comments ask first by default unless you set a daily sending amount. a bot on **Full access** with no sending rule may send up to 25 a day without asking. set **Sending on your behalf** to **Ask every time** when you want each comment reviewed.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "github",
+    "issue comments",
+    "sending"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/search-issues-and-pull-requests",
+    "/routines/github-issue-triage"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-bubbles",
+      "s-key"
+    ],
+    "bubble": "review before commenting"
+  },
+  "og_line": "the right comment on the right issue.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CREATE_AN_ISSUE_COMMENT"
+  },
+  "what": "this adds a new comment to a numbered discussion in a specific repository. the same action can comment on an issue or a pull request. it can't edit an older comment or leave a code review on specific lines.\n\nstart from the issue or pull request link, which gives the bot the owner, repo and number, or let it search and then confirm the match. ask it to read the discussion before drafting so your comment does not promise work or repeat an answer without context.",
+  "uses": [
+    "ask a reporter for the missing reproduction step using wording you approve",
+    "post a confirmed workaround to an issue where users are waiting",
+    "leave a brief project-level follow-up on a pull request without treating it as a formal code review"
+  ],
+  "routine": {
+    "message": "when a new issue opens in fernwharf-labs/relay, read it and prepare a comment only if it is missing the device model needed for our support check. show me the proposed question here with the issue link, and wait for my approval before posting it. tell me here when the comment is posted. never promise a fix date, close the issue or post if the reporter already gave the model.",
+    "when": "when a new issue opens in fernwharf-labs/relay",
+    "needs": "github connected, with read and write access; **Sending on your behalf** set to **Ask every time**",
+    "output": "fernwharf-labs/relay #68\nproposed comment for lior: could you add the device model used when the connection drops?\nwaiting for your approval before posting; no issue changes made."
+  },
+  "steps": [
+    "give the repository bot **read and write** github access in **Connected apps**, allowing only the reading and commenting actions needed.",
+    "set **Sending on your behalf** to **Ask every time**, including for a bot on **Full access**.",
+    "send a specific issue link and ask for a proposed comment that quotes only what the issue supports.",
+    "check the repository and number on the proposal, then use **Allow** or **Deny** for the send. watch the first event runs in **Automations**."
+  ],
+  "watch": [
+    "the same issue number can exist in many repositories. owner, repo and number must all match before posting.",
+    "a comment is visible in the github discussion. keep private customer details out of the text even when they helped you investigate.",
+    "a comment isn't a code review, and it doesn't mean the bug is fixed.",
+    "github events arrive at once, but a bot on your own computer can't answer while it sleeps or the app is closed. on dusk cloud it runs on time."
+  ],
+  "faq": [
+    {
+      "q": "can it comment on a pull request too?",
+      "a": "yes. paste the pull request link."
+    },
+    {
+      "q": "can i force every comment to wait for me?",
+      "a": "set **Sending on your behalf** to **Ask every time** and keep that rule explicit for a **Full access** bot. without its own sending rule, a full-access bot can send up to 25 a day without asking."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

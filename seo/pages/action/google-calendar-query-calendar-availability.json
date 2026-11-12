@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/google-calendar/query-calendar-availability",
+  "type": "action",
+  "title": "Check Google Calendar availability with AI by date",
+  "nav": "query calendar availability",
+  "h1": "ask ai which google calendars are busy at a given time",
+  "description": "Compare busy intervals across Google calendars without fetching meeting titles. Give exact dates and a time zone, and distinguish errors from free time.",
+  "keyword": "google calendar availability with ai",
+  "keywords": [
+    "chatgpt check google calendar availability",
+    "claude google calendar free busy",
+    "ai compare busy calendars"
+  ],
+  "answer": "give your bot the calendars and a precise start and end, and it can collect their busy intervals without retrieving meeting titles. that helps you compare availability while leaving event details out of the result. it only looks, but dusk counts this action as a change, so the bot needs read and write access; you can limit it to just this action. if you'd rather keep the bot on read only, the find free slots action works with read access.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "availability",
+    "busy intervals",
+    "calendar privacy"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/get-event-instances",
+    "/routines/weekly-calendar-preview"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "p-chart"
+    ],
+    "bubble": "busy without meeting titles"
+  },
+  "og_line": "compare busy times without event details.",
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_FREE_BUSY_QUERY"
+  },
+  "what": "this query returns the stretches marked busy for each accessible calendar or group in your chosen window. it does not return named appointments or automatically calculate a list of free slots. ask the bot to explain the intervals in chat, or use find free slots for a tool that computes openings.\n\nthe calendar list and both time bounds are required. you can name the calendars yourself or let the bot list calendars first. it needs at least free-busy access to each one; errors for individual calendars must stay visible rather than becoming empty schedules.",
+  "uses": [
+    "compare two room calendars for a workshop without collecting their meeting subjects",
+    "check whether named colleagues have overlapping busy periods during a proposed interview window",
+    "report booked intervals on a shared duty calendar for a handover call",
+    "keep a scheduling enquiry limited to availability rather than private appointment details"
+  ],
+  "routine": {
+    "message": "every monday at 1, query the busy intervals for the studio east and studio west calendars for this friday from 13:00 to 17:00 in london time. show each room's busy intervals in this chat. list access failures separately and do not call an unavailable calendar free. never create, move or cancel an event.",
+    "when": "mondays at 13:00, for friday afternoon in london time",
+    "needs": "google calendar connected with read and write access for this action, plus free-busy access to both room calendars",
+    "output": "friday room availability check, london time\n\nstudio east: busy 13:00-14:00\nstudio west: access error, availability unknown\n\nno meeting names retrieved and no room booked. elodie should confirm access to studio west before choosing a room."
+  },
+  "steps": [
+    "select google calendar in **Connected apps**, and name the calendars and response time zone in your first request.",
+    "allow this query under **read and write** or a precise action list; **read only** blocks it even though its result is availability information.",
+    "try one short date window and check that the bot reports failures beside the correct calendar.",
+    "save the room check as a routine, then use **Pause** if the rooms or your planning window change."
+  ],
+  "watch": [
+    "the response uses utc unless you give a time zone. include your working zone to avoid reading afternoon meetings as morning ones.",
+    "keep the requested span within about 90 days; larger windows can produce empty or degraded results.",
+    "one check covers up to 50 calendars. a calendar that returns an error isn't free; it's unknown.",
+    "nothing is reserved by checking availability. the intervals can change before you make a booking."
+  ],
+  "faq": [
+    {
+      "q": "can it tell me why someone is busy?",
+      "a": "this action returns busy times without event titles or details. use an event-listing action, with the needed access, if the reason for a booking matters."
+    },
+    {
+      "q": "why does an availability check need write access in dusk?",
+      "a": "dusk classifies this specific query as a write, so its read-only gate blocks the call. you can limit the bot to this action without allowing event creation or edits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

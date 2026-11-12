@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>ask a bot to read web pages into a table</h1>
 <p class="lede seo-answer">for a small collection of pages, give a bot the urls and the exact fields you want back. it reads them in its own browser and returns a table you can check against the originals. ask it to leave missing values blank and record pages it could not open. this is a supervised reading task, with no promise of complete coverage, bulk crawling or access through a blocked page.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--web-scraping.webp?v=7a8d4d4d" srcset="/art/seo/use-cases--web-scraping-660.webp 660w, /art/seo/use-cases--web-scraping.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a coral pixel bot, a cyan pixel bot and a mint cat bot beside a desktop computer and a chart on an easel, on a lilac hill in front of sand dunes by the sea, one saying &quot;one row per page&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--web-scraping.webp?v=7a8d4d4d" srcset="/art/seo/use-cases--web-scraping-660.webp 660w, /art/seo/use-cases--web-scraping.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a coral pixel bot, a cyan pixel bot and a mint cat bot beside a desktop computer and a chart on an easel, on a lilac hill in front of sand dunes by the sea, one saying &quot;one row per page&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>send a short list of permitted public urls first. describe each field as you would to someone collecting it by hand. the example task below collects workshop listings, not personal contact details.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every wednesday at 11, read the public workshop pages in the url list i gave you, using your own browser. do not follow links beyond that list.
 
@@ -59,7 +59,7 @@ read: 12 november 2026
 failed: “weekend sessions” showed an access restriction. no rows collected from it.
 check: the repair basics page also mentions materials; no separate materials price is listed.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="define-the-rows-before-the-run"><h2 id="define-the-rows-before-the-run">define the rows before the run</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="define-the-rows-before-the-run"><h2 id="define-the-rows-before-the-run">define the rows before the run</h2><img class="seo-spot" src="/art/s-plug.webp?v=9ca8a981" alt="" width="420" height="377" loading="lazy" decoding="async">
 <p>a page can contain a headline price, an optional extra and an old offer. tell the bot which belongs in the table. keep the displayed wording when it matters: “from £25” should not become a guaranteed £25 booking.</p>
 <p>start with pages whose structure you can inspect. compare the first table against those pages yourself before adding more urls. a blank field is useful evidence that the page did not provide an answer. filling it from a guess would make the table harder to trust.</p>
 </section>
@@ -67,13 +67,20 @@ check: the repair basics page also mentions materials; no separate materials pri
 <p>a bot can have a browser separate from your own. <strong>Screen</strong> lets you watch it work, and <strong>Take control</strong> lets you step in.<sup><a href="#src-1" aria-label="source 1">1</a></sup> that gives you a way to inspect a difficult page, not a guarantee that every page can be read.</p>
 <p>it reads pages one by one like a person would; it isn't a bulk crawler. if your real question is what the pages mean, use <a href="/use-cases/market-research">market research</a>. if you only want to hear about changed pages, use <a href="/use-cases/competitor-monitoring">competitor monitoring</a>.</p>
 </section>
-<section class="seo-sec" aria-labelledby="check-permission-before-collecting"><h2 id="check-permission-before-collecting">check permission before collecting</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="check-permission-before-collecting"><h2 id="check-permission-before-collecting">check permission before collecting</h2><img class="seo-spot" src="/art/kit/p-newspaper.webp?v=d2312431" alt="" width="420" height="316" loading="lazy" decoding="async">
 <p>respect each site’s terms and robots rules, and the personal data laws that apply to your work. review those before approving a page list; do not treat a publicly visible page as permission for every use. this is a practical boundary, not legal advice.</p>
 <p>keep collection to fields needed for the task. for contact lists, the <a href="/use-cases/lead-research">lead research page</a> explains a narrower starting point. a browser task can also fail when content needs a sign-in or never finishes loading. ask for that failure in the result rather than an empty table that looks complete.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-tangerine seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="boxo"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 0h2v4h-2zM3 4h10v1h-10zM2 5h12v3h-12zM2 8h2v3h-2zM6 8h4v3h-4zM12 8h2v3h-2zM2 11h12v5h-12z"/><path class="px-e" fill="#fff" d="M4 8h2v3h-2zM10 8h2v3h-2z"/></g></svg></span>
 <ul><li>approve the page list after checking site terms and robots rules</li><li>exclude personal details unless you have established a lawful reason to collect them</li><li>keep the source url and reading date with every collected row</li><li>treat missing fields and blocked pages as gaps, never as instructions to bypass access</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="can-i-scrape-websites-with-ai-without-writing-code">can i scrape websites with ai without writing code?</h3>
 <p>you can describe a small browser reading task in chat and specify the table you want back. it works best on a short list of pages; check the first table against the originals.</p>

@@ -1,0 +1,99 @@
+{
+  "path": "/integrations/outlook/list-tasks-from-a-to-do-list",
+  "type": "action",
+  "title": "Read a Microsoft To Do list with AI through Outlook",
+  "nav": "list tasks from a to do list",
+  "h1": "review one microsoft to do list with your ai bot",
+  "description": "See one To Do list's open tasks and due dates with AI, without changing anything in Outlook.",
+  "keyword": "microsoft to do list with ai",
+  "keywords": [
+    "chatgpt read microsoft to do tasks",
+    "claude outlook to do list review",
+    "ai list tasks microsoft to do"
+  ],
+  "answer": "a bot can list the tasks in one microsoft to do list, including their status and due dates, through the outlook connection. name the list and the bot looks it up. this is read only, so it can prepare a private checklist without completing, moving or rewriting tasks. larger lists may need more than one result page.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "microsoft to do",
+    "task reading",
+    "due dates"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-calendar-event",
+    "/integrations/outlook/reply-to-email"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-notebook",
+      "p-briefcase"
+    ],
+    "bubble": "which tasks need you"
+  },
+  "og_line": "one task list, read without changes.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_LIST_TODO_TASKS"
+  },
+  "what": "use this action when you already know which to do list you want to review. the bot looks the list up first and can narrow the returned tasks by status, importance or dates. sorting can put earlier due dates or particular titles first, depending on the order you request.\n\nthere is no reason to turn an undated task into a made-up deadline. ask the bot to keep tasks with no due date separate, and say whether completed tasks should be included. for a long list, the bot keeps reading until it has every task.",
+  "uses": [
+    "get a due-date check from your named household maintenance list",
+    "review high-importance tasks before a planning call without marking them complete",
+    "see what is still not started in one specific project list",
+    "collect undated tasks for a decision about which ones deserve a deadline"
+  ],
+  "routine": {
+    "message": "every monday at 18:25, read the microsoft to do list called pinecross opening checks. follow all result pages and list unfinished tasks due before the coming friday, with undated tasks in a separate group here. preserve each task's recorded status and flag any date you cannot interpret. never mark work complete, assign deadlines or edit the list.",
+    "when": "mondays at 18:25",
+    "needs": "outlook connected with read only task access",
+    "output": "pinecross opening checks\n\ndue before friday\n- test the reception bell: not started, due thursday\n\nno due date\n- ask oisín where the spare signs are stored: not started\n\nall returned pages reviewed. tasks left unchanged."
+  },
+  "steps": [
+    "sign in to outlook in **Connected apps** and give this bot **read only** access for the task review.",
+    "name the list, let the bot look it up, and check that the first tasks it shows are from that list.",
+    "ask for the status and due-date groups you need, with undated items kept distinct from overdue ones.",
+    "after checking a sample review, set the weekly time and select **Pause** on the routine card when the opening checklist is retired."
+  ],
+  "watch": [
+    "the bot reads tasks within the list you name, so confirm it has found the right one.",
+    "a long list comes back in parts; the bot should read them all before saying it's done.",
+    "filters change which tasks come back. a review of not-started tasks should not claim to include unfinished tasks with every other status.",
+    "desktop schedules wait while the computer sleeps. a missed run less than 12 hours old runs once on return; older runs are skipped."
+  ],
+  "faq": [
+    {
+      "q": "will this mark the tasks as read or completed?",
+      "a": "this action lists task details and does not complete tasks. keep the bot read only and request the findings in dusk chat."
+    },
+    {
+      "q": "can i ask for only high-priority tasks?",
+      "a": "importance, status and dates can be used in the filter. have the bot state the filter in its report so you know what the list leaves out."
+    },
+    {
+      "q": "can i start with just the list name?",
+      "a": "yes. the bot looks up your lists by name first, then reads the right one."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

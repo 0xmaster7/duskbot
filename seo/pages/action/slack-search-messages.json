@@ -1,0 +1,97 @@
+{
+  "path": "/integrations/slack/search-messages",
+  "type": "action",
+  "title": "Search Slack with AI: track down a specific message",
+  "nav": "search messages",
+  "h1": "find the slack message behind a question",
+  "description": "Search Slack by phrase, person, channel or date with a bot. Get a focused set of matches and understand why a search hit is only part of a thread.",
+  "keyword": "slack search messages with ai",
+  "keywords": [
+    "chatgpt search slack messages",
+    "claude find slack conversation",
+    "ai slack message search by date"
+  ],
+  "answer": "describe the slack message you need and a bot can search across the connected workspace, narrowing by channel, person or date. it can order matches by relevance or time and collect more than one result page. searching leaves slack unchanged. the important boundary is context: a matching message may be a suggestion that later replies overturned, so ask for a thread check before treating it as a decision.",
+  "tags": [
+    "slack",
+    "message search",
+    "evidence"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/add-reaction-to-message"
+  ],
+  "og_line": "a focused search beats a remembered phrase.",
+  "what": "you might remember that someone discussed a discount in a particular channel last month. the bot can combine those clues in a slack query, then present the matching wording with its author and time. sorting by time helps when you need the earliest mention rather than the most relevant hit.\n\nsearching and reading a conversation are separate actions. once a promising message appears, a thread lookup can establish what followed. use the search result to locate evidence, rather than assuming it contains the final answer.",
+  "uses": [
+    "locate the first message that proposed a supplier discount",
+    "find where a teammate mentioned the missing adapter in an equipment channel",
+    "collect messages containing an old product name before planning a rename",
+    "trace the wording of a delivery promise within a known date window"
+  ],
+  "routine": {
+    "message": "each wednesday at 14:35, search #vendor-terms for messages mentioning freight surcharges posted during the previous seven days. sort the matches oldest first and list the author, date and exact relevant wording here. read the matching threads separately if a reply may change the meaning. never post a response or treat a proposed price as an agreed price.",
+    "when": "wednesdays at 14:35",
+    "needs": "slack connected with read only access for message search and thread reading",
+    "output": "freight surcharge evidence\n\nren at hollow pine supply, monday: proposed winter surcharge.\nleonie, tuesday: asked whether it covers returns.\nthread check: no agreement found in the replies returned."
+  },
+  "steps": [
+    "select slack in **Connected apps** and enable **read only** for your search bot.",
+    "start with a remembered phrase plus a channel or person, and check whether the returned matches are relevant.",
+    "specify relevance or date order, and ask the bot to continue through results when the first page is insufficient.",
+    "turn a recurring evidence search into a routine; check the next runs on the routine card before it starts."
+  ],
+  "watch": [
+    "if you expect lots of matches, ask the bot to collect all of them, not just the first page.",
+    "workspace search still depends on the connected account's access. it cannot reveal an inaccessible private conversation.",
+    "on a sleeping desktop the weekly search cannot start. keep the app running or place the routine on dusk cloud for scheduled delivery."
+  ],
+  "faq": [
+    {
+      "q": "can i search only messages from one person?",
+      "a": "the query supports a from modifier, along with channel and before or after date filters."
+    },
+    {
+      "q": "can it find the oldest mention instead of the best match?",
+      "a": "ask for timestamp sorting in ascending order. relevance sorting serves a different purpose and may put a newer message first."
+    },
+    {
+      "q": "does searching slack tell me whether the question was answered?",
+      "a": "a search match alone does not establish that. the bot should fetch the thread and read the replies before calling something unanswered."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "slack"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-magnifier",
+      "p-bubbles"
+    ],
+    "bubble": "found the price discussion"
+  },
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SEARCH_MESSAGES"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

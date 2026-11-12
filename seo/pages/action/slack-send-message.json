@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/slack/send-message",
+  "type": "action",
+  "title": "Send Slack messages with AI to the right conversation",
+  "nav": "send message",
+  "h1": "send a slack message or thread reply with ai",
+  "description": "Have AI post an approved Slack message to a channel, DM or thread. Check the destination, sending setting and duplicate risk before handing it a routine.",
+  "keyword": "send slack message with ai",
+  "keywords": [
+    "chatgpt send slack message",
+    "claude post slack thread reply",
+    "ai slack channel message"
+  ],
+  "answer": "a bot can post the message you request in a slack channel, direct message or private group it can access. it can also reply under an existing message after finding the original message. sends ask first by default unless you grant a daily amount. check the destination carefully: repeating the same call can post the same message twice.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "slack",
+    "outgoing messages",
+    "thread replies"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/list-unread-channel-messages",
+    "/integrations/slack/create-slack-canvas"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-bubbles",
+      "s-signpost"
+    ],
+    "bubble": "post in this thread"
+  },
+  "og_line": "the right words in the right channel.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SEND_MESSAGE"
+  },
+  "what": "give the bot a destination and the wording to send. for an ordinary note it can use markdown; for a structured slack layout it uses blocks instead. those are alternative ways to provide the visible message, not two bodies to combine.\n\nfor a thread reply, the bot finds the original message first. for a direct message, it opens the conversation with that person first. a thread reply can also be broadcast to the main channel, so say explicitly when the reply should stay within the thread.",
+  "uses": [
+    "post the maintenance notice you approved to the operations channel",
+    "reply beneath a specific delivery question without starting another channel conversation",
+    "send a direct message confirming the address a teammate asked you to check",
+    "put an agreed agenda in the project channel before the working session"
+  ],
+  "routine": {
+    "message": "every wednesday at 16:10, prepare a notice in slack channel kilnworks-maintenance using only the service window i confirmed here that day. show me the exact message and destination, then ask to send it. put the posting result back in this chat and stay quiet when no window was confirmed. never broadcast to other channels or retry an uncertain send until you have checked whether it appeared.",
+    "when": "wednesdays at 16:10",
+    "needs": "slack connected with read and write access, access to kilnworks-maintenance, and Ask every time enabled",
+    "output": "awaiting approval for kilnworks-maintenance\n\nmaelle confirmed that the loading bay will be unavailable during the agreed maintenance window. please use the side entrance.\n\nno mentions added. message not posted yet."
+  },
+  "steps": [
+    "connect the intended slack workspace in **Connected apps** and allow this bot **read and write** access to send.",
+    "under **Sending on your behalf**, pick **Ask every time** and confirm the channel or dm before a first test.",
+    "for replies, ask the bot to read the parent message and keep the reply in its thread without a channel broadcast.",
+    "approve a single test notice, inspect where it landed, then add the schedule you want."
+  ],
+  "watch": [
+    "**Full access** without a bot-specific sending rule allows up to 25 sends a day without asking. set **Ask every time** explicitly when you want every post reviewed.",
+    "a missing, archived or inaccessible channel causes the post to fail; a familiar channel name does not establish access.",
+    "duplicate calls create duplicate posts. after an uncertain result, check the conversation before trying again.",
+    "if slack says to slow down, the bot waits instead of resending."
+  ],
+  "faq": [
+    {
+      "q": "can it reply without alerting the whole channel?",
+      "a": "it can put a reply under the original message without broadcasting to the channel. tell it to keep the response inside that thread."
+    },
+    {
+      "q": "can it message a person by name alone?",
+      "a": "yes, if it can find them. it looks the person up, opens a direct message and shows you before posting."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

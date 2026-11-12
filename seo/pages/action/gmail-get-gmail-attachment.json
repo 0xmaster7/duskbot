@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/gmail/get-gmail-attachment",
+  "type": "action",
+  "title": "Download Gmail attachments with AI from the right email",
+  "nav": "get an attachment",
+  "h1": "get the gmail attachment you actually need",
+  "description": "Ask a bot to retrieve a Gmail attachment from a specific message, name the downloaded file and return it in chat. Learn which IDs it needs.",
+  "keyword": "download gmail attachment with ai",
+  "keywords": [
+    "gmail get attachment with ai",
+    "chatgpt download gmail attachments",
+    "claude retrieve gmail attachment"
+  ],
+  "answer": "a bot can retrieve an attached file from a gmail message and return a download in your chat. give it the sender, subject and filename so it can find the right email first. it finds the email first, then picks the file out of it, so the filename is just a clue. retrieving it does not alter the email or send anything.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "attachments",
+    "downloads"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/use-cases/file-organizer",
+    "/integrations/gmail/list-drafts"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-parcel",
+      "p-magnifier"
+    ],
+    "bubble": "the attached contract"
+  },
+  "og_line": "the file from the email you meant.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_GET_ATTACHMENT"
+  },
+  "what": "instead of searching your downloads folder for an old copy, ask the bot to fetch the attachment from its original email. it names the downloaded copy, which can make the result easier to recognise.\n\nthe bot searches for the email, looks at what's attached, and downloads the one you mean.",
+  "uses": [
+    "retrieve the signed venue agreement from the booking email before a planning call",
+    "pull the corrected drawing from a supplier message, distinguishing it from the earlier attachment",
+    "get a travel receipt from the airline email when you cannot remember where you saved it"
+  ],
+  "routine": {
+    "message": "every tuesday at 9:30, find emails received since last tuesday from rosa at fenwick hall with a pdf attachment named as a signed agreement. retrieve each matching attachment and return the downloads here with the email subject and date. if two files could be the signed version, ask which i mean. never forward the files or change the messages.",
+    "when": "tuesdays at 9:30",
+    "needs": "gmail connected with read only access; permission to fetch messages and get attachments",
+    "output": "fenwick hall: venue agreement\nemail from rosa, subject: countersigned venue terms\nfile: fenwick-signed-venue.pdf\nreturned here for you to open."
+  },
+  "steps": [
+    "open **Connected apps**, connect the gmail account holding the attachment and give this bot **read only** access.",
+    "describe one email by sender and subject, then name the attached file you want. ask the bot to fetch the message before downloading.",
+    "check that the returned filename belongs to the intended message, then send the routine message above. pause collection when the agreements are all in, using **Pause**."
+  ],
+  "watch": [
+    "if two emails carry a file with the same name, say which email you mean, by sender and rough date.",
+    "on your own computer the routine doesn't run while it sleeps or the app is closed; a run missed by less than 12 hours runs once when you're back. dusk cloud runs it on time."
+  ],
+  "faq": [
+    {
+      "q": "can i ask for an attachment by its filename?",
+      "a": "yes, as a way to describe what you want. the bot still has to find the email and pick the attachment from it before downloading."
+    },
+    {
+      "q": "does downloading remove the attachment from gmail?",
+      "a": "no. this is a read action that retrieves a copy. it does not remove the email or its attached file."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

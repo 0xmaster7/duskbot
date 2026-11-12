@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>your morning brief: today's meetings and the mail behind them</h1>
 <p class="lede seo-answer">start the day with a brief that connects your meetings to the messages behind them. give a bot read-only access to your work email and calendar, then ask for today’s first commitment, the latest context and any decision due before you finish. the result belongs in your chat. it is a reading list for today, with a source for each item, linked where one is available, rather than another inbox to clear.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--daily-briefing.webp?v=f9403105" srcset="/art/seo/use-cases--daily-briefing-660.webp 660w, /art/seo/use-cases--daily-briefing.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a sky blue pixel bot and a purple pixel bot beside an alarm clock and a calendar and a coffee mug, on a lilac hill in front of an open blue sky, one saying &quot;ready for this morning&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--daily-briefing.webp?v=f9403105" srcset="/art/seo/use-cases--daily-briefing-660.webp 660w, /art/seo/use-cases--daily-briefing.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot, a sky blue pixel bot and a purple pixel bot beside an alarm clock and a calendar and a coffee mug, on a lilac hill in front of an open blue sky, one saying &quot;ready for this morning&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>connect your work gmail and google calendar in <strong>Connected apps</strong>. allow this bot to read each. change the time and calendar name in the message to fit your morning.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every weekday at 8:15, give me a brief for today in this chat. use my work gmail and work calendar only.
 
@@ -59,7 +59,7 @@ decision due today: jo needs a yes on the workshop venue before noon. source: em
 suggested prep: read your delivery note before the handover.
 not checked: the attachment mentioned in priya’s message was unavailable. do not assume it matches your copy.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="join-the-context-not-every-message"><h2 id="join-the-context-not-every-message">join the context, not every message</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="join-the-context-not-every-message"><h2 id="join-the-context-not-every-message">join the context, not every message</h2><img class="seo-spot" src="/art/kit/p-folder.webp?v=0509bdb5" alt="" width="420" height="360" loading="lazy" decoding="async">
 <p>a useful brief answers “what do i need before my first conversation?” tell the bot which calendar belongs to work and which inbox carries the supporting mail. gmail can fetch messages and whole threads; google calendar has a find-event action. these are enough to build a brief without writing into either app.<sup><a href="#src-4" aria-label="source 4">4</a></sup><sup><a href="#src-5" aria-label="source 5">5</a></sup></p>
 <p>ask for the reason behind each suggested task. an attendee’s name appearing in a thread does not prove that thread is meeting prep. leave loose matches out, or put them under questions.</p>
 </section>
@@ -67,13 +67,20 @@ not checked: the attachment mentioned in priya’s message was unavailable. do n
 <p>a deadline stated in an email is different from the bot’s suggestion to prepare a document. keeping those apart lets you decide what matters without treating a guess as a commitment. if a meeting title is vague, add the project name to the routine.</p>
 <p>for a deeper look at one call, use the <a href="/routines/meeting-prep-brief">meeting prep brief</a>. the <a href="/integrations/gmail">gmail connection guide</a> explains the mail access; the <a href="/integrations/google-calendar">google calendar guide</a> covers the calendar side.</p>
 </section>
-<section class="seo-sec" aria-labelledby="a-brief-can-be-incomplete"><h2 id="a-brief-can-be-incomplete">a brief can be incomplete</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="a-brief-can-be-incomplete"><h2 id="a-brief-can-be-incomplete">a brief can be incomplete</h2><img class="seo-spot" src="/art/kit/p-chart.webp?v=61dbd4ae" alt="" width="297" height="419" loading="lazy" decoding="async">
 <p>it cannot know about a call arranged outside the connected calendar or a deadline someone only told you aloud. ask it to name unavailable sources instead of filling the gaps. check the original event before leaving for a meeting.</p>
 <p>on your computer, the morning run needs dusk bot open and the machine awake. a run missed by less than 12 hours runs once when you return; older runs are skipped. <a href="/docs/dusk-cloud">dusk cloud</a> runs routines on time if the brief must be ready before you open your laptop.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-blue seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="pip"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M5 4h6v1h-6zM4 5h8v1h-8zM3 6h10v1h-10zM2 7h2v4h-2zM6 7h4v4h-4zM12 7h2v4h-2zM2 11h12v2h-12zM3 13h10v1h-10zM4 14h8v1h-8zM5 15h6v1h-6z"/><path class="px-e" fill="#fff" d="M4 7h2v4h-2zM10 7h2v4h-2z"/></g></svg></span>
 <ul><li>keep both app connections read-only for this bot; the brief needs no edits</li><li>name the work accounts so personal appointments and mail stay outside the brief</li><li>require a source for each deadline and mark suggested prep as a suggestion</li><li>leave sensitive message text out of the brief when an event title and link are enough</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="what-are-people-actually-using-scheduled-ai-tasks-for">what are people actually using scheduled ai tasks for?</h3>
 <p>one small use is joining today’s meetings to relevant mail before work starts. this routine produces context you can read, without sorting the inbox or rearranging your week.</p>

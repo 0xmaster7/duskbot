@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/google-sheets/append-values-to-spreadsheet",
+  "type": "action",
+  "title": "Append Google Sheets rows with AI without replacing data",
+  "nav": "append values to spreadsheet",
+  "h1": "add new records to the end of a google sheets table",
+  "description": "Ask AI to append rows after a Google Sheets table. Confirm the tab name, column order and value interpretation before the bot adds your records.",
+  "keyword": "append google sheets rows with ai",
+  "keywords": [
+    "chatgpt append rows google sheets",
+    "claude add new google sheets records",
+    "ai append values to spreadsheet"
+  ],
+  "answer": "your bot can add new rows after the existing table in a google sheet. give it the spreadsheet, the exact tab and table range, and the values in column order. the range locates the table; it is not a promise to start writing in a particular empty cell. appending is a write, so ask explicitly for a preview if you want to approve the new rows.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "append rows",
+    "attendance log",
+    "google sheets"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/update-spreadsheet-values",
+    "/integrations/google-sheets/upsert-rows"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-notebook"
+    ],
+    "bubble": "new records below"
+  },
+  "og_line": "new entries after the table you chose.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND"
+  },
+  "what": "an append is useful for a log that grows over time. the bot adds one row per entry. paste the sheet's link and name the tab; it works out the rest.\n\nit checks the tab names and reads the column headings first, so each value lands in the right column.",
+  "uses": [
+    "add the attendance entries you recorded after a workshop",
+    "put newly approved equipment loans below the current loan log",
+    "record new visitor registrations in the order expected by the register",
+    "add a batch of completed inspections without replacing earlier inspection records"
+  ],
+  "routine": {
+    "message": "every saturday at 12, prepare attendance rows from the pottery workshop notes i marked final here for the foxmere studio attendance spreadsheet. get the actual sheet names, find the session log table and arrange each row as session date, attendee name and attendance status, keeping names exactly as written. show me the rows and destination here and ask me before you change anything; after approval, append them and report the returned range. never alter old attendance rows or append the same session batch again without checking with me.",
+    "when": "saturdays at 12:00",
+    "needs": "google sheets connected with read and write access; tab lookup, table reading and append allowed for the attendance spreadsheet",
+    "output": "attendance append proposal\n\nfoxmere studio, session log\nsession date | attendee name | attendance status\n14 november 2026 | thalia | attended\n14 november 2026 | rafael | attended\n\nwaiting for review before adding these rows. earlier sessions will not be edited."
+  },
+  "steps": [
+    "connect google sheets in **Connected apps** and paste the attendance spreadsheet link so the bot can find it.",
+    "give it **read and write** access for append plus the reading actions needed to confirm tab names and headers.",
+    "ask for one proposed row, specifying column order and whether text such as codes should be preserved literally.",
+    "check the table before approving the sample. between workshop seasons, choose **Pause** to stop new attendance checks."
+  ],
+  "watch": [
+    "the range locates a logical table, and rows go after that table. an unexpected table boundary can put new records somewhere other than the blank row you imagined.",
+    "ask the bot to read back the new rows if you want to see what was saved.",
+    "a repeat append adds records rather than matching existing keys. keep track of which batch you already approved before retrying."
+  ],
+  "faq": [
+    {
+      "q": "can i choose the exact row number it writes to?",
+      "a": "append finds the end of the table within the range you provide. use a deliberate range update when you need to write specific cells instead."
+    },
+    {
+      "q": "does it correct a record that is already there?",
+      "a": "no. it only adds new rows; changing an existing row is a different action."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

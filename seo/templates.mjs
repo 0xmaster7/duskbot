@@ -22,7 +22,9 @@ export function connector(toolkit) {
 
 export function templates(ctx) {
   const { markdown, esc, icon, bot, records, byPath, config, cta, preview } = ctx;
-  const linkable = (at) => { const r = byPath.get(at); return !r || r.built; };
+  // a planned seo address with no built page (queued, rejected, not written yet) stays as plain words
+  const plannedPaths = ctx.plannedPaths || new Set();
+  const linkable = (at) => { const r = byPath.get(at); return r ? r.built : !plannedPaths.has(at); };
   // a link to a seo page that is not out yet stays as words, so no page ever links to something that is not there
   const guard = (html) => html.replace(/<a href="(\/[^"#?]*)([^"]*)">([\s\S]*?)<\/a>/g, (all, at, rest, words) => (linkable(at.replace(/\/$/, '') || '/') ? all : words));
   const sup = (html) => html.replace(/\[\^(\d+)\]/g, (_, n) => `<sup><a href="#src-${n}" aria-label="source ${n}">${n}</a></sup>`);
@@ -30,7 +32,7 @@ export function templates(ctx) {
   const inline = (s) => md(s).replace(/^<p>([\s\S]*)<\/p>$/, '$1');
   const slug = (s) => s.toLowerCase().replace(/<[^>]+>|&\w+;/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const copyBox = (message, label) => `<div class="code seo-copy">${label ? `<p class="code-label">${esc(label)}</p>` : ''}<pre><code>${esc(message)}</code></pre><button class="copy" type="button" data-copy>copy</button></div>`;
-  const hero = (r, eager = true) => `<figure class="seo-hero"><img src="/art/seo/${sceneId(r.path)}.webp" srcset="/art/seo/${sceneId(r.path)}-660.webp 660w, /art/seo/${sceneId(r.path)}.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="${esc(r.alt)}" width="1320" height="528"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"></figure>`;
+  const hero = (r, eager = true) => `<figure class="seo-hero"><img src="/art/seo/${sceneId(r.path)}.webp" srcset="/art/seo/${sceneId(r.path)}-660.webp 660w, /art/seo/${sceneId(r.path)}.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="${esc(r.alt)}" width="1320" height="528"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>`;
   const section = (h, body, cls = '') => `<section class="seo-sec${cls ? ' ' + cls : ''}" aria-labelledby="${slug(h)}"><h2 id="${slug(h)}">${esc(h)}</h2>\n${body}\n</section>`;
   const list = (items) => `<ul>${items.map((i) => `<li>${inline(i)}</li>`).join('')}</ul>`;
   const sections = (r) => (r.sections || []).map((s) => section(s.h, md(s.md))).join('\n');
@@ -49,6 +51,22 @@ export function templates(ctx) {
   const faq = (r) => (r.faq?.length ? section('questions', r.faq.map((q) => `<h3 id="${slug(q.q)}">${esc(q.q)}</h3>\n${md(q.a)}`).join('\n'), 'seo-faq') : '');
   const sources = (r) => (r.sources?.length ? `<section class="seo-sources" aria-labelledby="sources"><h2 id="sources">sources</h2><ol>${r.sources.map((s, i) => `<li id="src-${i + 1}">${s.url.startsWith('/') ? `<a href="${s.url}">${esc(s.label)}</a>` : `<a href="${esc(s.url)}" rel="nofollow noopener">${esc(s.label)}</a>`}${s.checked ? `, checked ${day(s.checked)}` : ''}</li>`).join('')}</ol></section>` : '');
 
+  // the blocks any page may carry when they are true for it: try it in 2 minutes, a worked example, a checklist or decision
+  // table, a rough time estimate with its assumptions, common mistakes and fixes, and a mascot tip
+  const pick = (r, list) => list[[...r.path].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7) % list.length];
+  const BOTS = ['pip blue', 'hearty pink', 'boxo tangerine', 'starry sun', 'puff cyan', 'mochi pink', 'cheep sun', 'ribbit lime', 'goo mint', 'drip blue', 'hoot violet', 'loaf tangerine'];
+  const mini = (r, salt, cls = 'seo-mini') => { const [shape, colour] = pick({ path: r.path + salt }, BOTS).split(' '); return bot(shape, colour, cls); };
+  const extras = {
+    quick: (r) => r.quick ? section(r.quick.h || 'try it in 2 minutes', `<ol class="seo-quick">${r.quick.steps.map((x, i) => `<li>${mini(r, 'q' + i)}<span>${inline(x)}</span></li>`).join('')}</ol>`, 'seo-quick-sec') : '',
+    worked: (r) => r.worked ? section(r.worked.h || 'what it looks like', `${r.worked.intro ? md(r.worked.intro) : ''}<div class="seo-ba"><div><p class="code-label">${esc(r.worked.before_label || 'before')}</p><div class="code plain"><pre><code>${esc(r.worked.before)}</code></pre></div></div><div><p class="code-label">${esc(r.worked.after_label || 'after the bot')}</p><div class="code plain"><pre><code>${esc(r.worked.after)}</code></pre></div></div></div><p class="seo-fact">an illustration with made-up names and numbers.</p>`) : '',
+    checklist: (r) => r.checklist ? section(r.checklist.h || 'quick checklist', `<ul class="seo-check">${r.checklist.items.map((x) => `<li>${icon('check')}<span>${inline(x)}</span></li>`).join('')}</ul>`) : '',
+    decide: (r) => r.decide ? section(r.decide.h || 'which one fits', `${r.decide.intro ? md(r.decide.intro) : ''}${table(r.decide.cols.map(esc), r.decide.rows.map((row) => row.map((c) => inline(c))))}`) : '',
+    saves: (r) => r.saves ? section(r.saves.h || 'what it could save you', `<div class="seo-saves">${mini(r, 'saves', 'seo-mini big')}<div><p class="seo-saves-n">${inline(r.saves.estimate)}</p>${r.saves.formula ? `<div class="code plain seo-formula"><pre><code>${esc(r.saves.formula)}</code></pre></div>` : ''}<p class="code-label">a rough estimate. it assumes:</p>${list(r.saves.assumptions)}</div></div>`) : '',
+    mistakes: (r) => r.mistakes?.length ? section(r.mistakes_h || 'mistakes people make', `<div class="seo-mistakes">${r.mistakes.map((m, i) => `<div>${mini(r, 'm' + i)}<p><b>${inline(m.mistake)}</b></p><p>${inline(m.fix)}</p></div>`).join('')}</div>`) : '',
+    tip: (r) => r.tip ? `<aside class="seo-tip${r.tip.careful ? ' careful' : ''}">${mini(r, 'tip', 'seo-mini big')}<p>${inline(r.tip.text)}</p></aside>` : '',
+  };
+  const extraBlocks = (r) => { const order = [['tip', 'quick', 'worked', 'checklist', 'decide', 'saves', 'mistakes'], ['quick', 'tip', 'saves', 'worked', 'mistakes', 'decide', 'checklist'], ['worked', 'quick', 'decide', 'tip', 'checklist', 'mistakes', 'saves']][[...r.path].length % 3]; return order.map((k) => extras[k](r)).join('\n'); };
+
   // the body each kind of page is built around
   const BODY = {
     guide: (r) => `${r.table ? section(r.table.h, `${r.table.intro ? md(r.table.intro) : ''}${table(r.table.cols.map(esc), r.table.rows.map((row) => [inline(row.label), ...row.cells.map((c) => inline(c) || '')].map((c, i, all) => (i === all.length - 1 ? c + srcRefs(row.src) : c))))}`) : ''}${sections(r)}${r.steps ? section(r.steps.h, `<ol class="seo-steps">${r.steps.items.map((s) => `<li>${inline(s)}</li>`).join('')}</ol>`) : ''}`,
@@ -57,7 +75,8 @@ export function templates(ctx) {
       const name = r.competitor?.name || r.compare.cols[0];
       const verdict = `<div class="seo-verdict"><div><h3>pick ${esc(r.verdict.them_title || name)} if</h3>${list(r.verdict.them)}</div><div><h3>pick ${esc(r.verdict.dusk_title || 'dusk bot')} if</h3>${list(r.verdict.dusk)}</div></div>`;
       const rows = r.compare.rows.map((row) => [inline(row.label), ...row.cells.map((c, i) => inline(c) + (i === row.cells.length - 1 ? srcRefs(row.src) : ''))]);
-      return `${section('the short version', verdict)}\n${section(r.compare.h || 'side by side', `${r.compare.intro ? md(r.compare.intro) : ''}${table(['', ...r.compare.cols.map(esc)], rows)}`)}\n${sections(r)}\n${section('how we checked', md(r.method))}`;
+      const heads = r.compare.cols.map((c) => (c === 'Dusk Bot' ? `<span class="seo-th">${bot('kit', 'violet', 'seo-mini')}${esc(c)}</span>` : esc(c)));
+      return `${section('the short version', verdict)}\n${section(r.compare.h || 'side by side', `${r.compare.intro ? md(r.compare.intro) : ''}<div class="seo-compare">${table(['', ...heads], rows)}</div>`)}\n${sections(r)}\n${section('how we checked', md(r.method))}`;
     },
 
     integration: (r) => {
@@ -93,7 +112,7 @@ export function templates(ctx) {
       const app = records.find((o) => o.kind === 'integration' && o.app?.toolkit === r.action.toolkit);
       const appName = app?.app.name || f.name;
       const kindWords = { read: 'a read: it looks and changes nothing', write: 'a change: it alters something in ' + esc(appName) + ', and the sending setting does not cover it', send: 'a send: it reaches people or moves money, so it waits for your <b>Allow</b> (unless you set a daily amount, or the bot is on <b>Full access</b> with no sending rule, which lets it send up to 25 a day)' }[t.kind];
-      const inputs = (t.inputs || []).filter((i) => i.name !== 'user_id').slice(0, 10);
+      const inputs = (t.inputs || []).filter((i) => i.name !== 'user_id' && !/deprecated/i.test(i.about)).sort((a, b) => b.required - a.required).slice(0, 6);
       const variant = [...r.path].reduce((n, c) => n + c.charCodeAt(0), 0) % 3;
       const H = [
         { what: 'what it does', uses: 'when you would use it', try: 'try it', steps: 'set it up', needs: 'what it needs from you', rules: 'how dusk bot handles it', watch: 'where it stops' },
@@ -106,7 +125,7 @@ export function templates(ctx) {
         try: section(H.try, `${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>${r.routine.output ? `<p class="code-label">what comes back looks like this (an example)</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>` : ''}`),
         steps: section(H.steps, `<ol class="seo-steps">${r.steps.map((x) => `<li>${inline(x)}</li>`).join('')}</ol>`),
         needs: inputs.length ? section(H.needs, `${table(['input', 'required', 'what it is'], inputs.map((i) => [`<code>${esc(i.name)}</code>`, i.required ? 'yes' : 'no', esc(i.about.split(/(?<=\.)\s/)[0] || i.type)]))}<p class="seo-fact">from composio's catalog for ${esc(appName)} (action <code>${esc(t.slug)}</code>, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((x) => x.url === f.source) + 1])}). your bot fills these in from what you tell it.</p>`) : '',
-        rules: section(H.rules, `<p>dusk bot counts <b>${esc(t.name)}</b> as ${kindWords}.${t.kind === 'read' ? ' a bot you allow only to read can use it.' : ' a bot you allow only to read can never call it.'}</p>${(t.scopes || []).length ? `<p class="seo-fact">the permissions ${esc(appName)} asks for to run it: ${t.scopes.slice(0, 4).map((x) => `<code>${esc(x.replace(/^https:\/\/www\.googleapis\.com\/auth\//, ''))}</code>`).join(', ')}.</p>` : ''}${r.rules ? md(r.rules) : ''}`),
+        rules: section(H.rules, `<p>dusk bot counts <b>${esc(t.name)}</b> as ${kindWords}.${t.kind === 'read' ? ' a bot you allow only to read can use it.' : ' a bot you allow only to read can never call it.'}</p>${Array.isArray(t.scopes) && t.scopes.length ? `<p class="seo-fact">the permissions ${esc(appName)} asks for to run it: ${t.scopes.slice(0, 4).map((x) => `<code>${esc(x.replace(/^https:\/\/www\.googleapis\.com\/auth\//, ''))}</code>`).join(', ')}.</p>` : ''}${r.rules ? md(r.rules) : ''}`),
         watch: section(H.watch, list(r.watch)),
       };
       const order = [['what', 'uses', 'try', 'steps', 'needs', 'rules', 'watch'], ['what', 'try', 'uses', 'rules', 'steps', 'watch', 'needs'], ['uses', 'what', 'steps', 'try', 'watch', 'rules', 'needs']][variant];
@@ -130,9 +149,25 @@ export function templates(ctx) {
       + `<p class="seo-all"><a href="${hub.at}">every page in ${esc(hub.nav)}</a></p>`;
   }
 
+  // the art layer: a small kit object beside two of the page's section headings, and a mascot beside the sections about
+  // limits and mistakes; which object and which bot vary with the page's address
+  const SPOTS = ['p-magnifier', 'p-folder', 's-notebook', 'p-chart', 's-mailbox', 'p-bubbles', 'p-megaphone', 's-parcel', 's-key', 's-plug', 'p-mug', 'p-newspaper', 's-clock', 's-books', 'p-shield', 'p-receipt', 's-map', 'p-binoculars'];
+  const SIZE = ctx.kitSizes || {};
+  function decorate(r, html) {
+    let n = 0;
+    const want = new Set([1, 3]);
+    return html.replace(/<section class="seo-sec([^"]*)" aria-labelledby="([^"]+)"><h2 id="\2">([\s\S]*?)<\/h2>/g, (all, cls, id, h) => {
+      const i = n++;
+      if (/cannot|watch|limit|stops|wrong|mistake|careful|guard|asks/.test(id)) return `<section class="seo-sec seo-warned${cls}" aria-labelledby="${id}"><h2 id="${id}">${h}</h2><span class="seo-mascot" aria-hidden="true">${mini(r, 'warn' + i)}</span>`;
+      if (!want.has(i)) return all;
+      const prop = pick({ path: r.path + i }, SPOTS), file = prop.startsWith('p-') ? `kit/${prop}.webp` : `${prop}.webp`, [w, hh] = SIZE[prop] || [420, 420];
+      return `<section class="seo-sec seo-spotted${cls}" aria-labelledby="${id}"><h2 id="${id}">${h}</h2><img class="seo-spot" src="/art/${file}" alt="" width="${w}" height="${hh}" loading="lazy" decoding="async">`;
+    });
+  }
+
   function page(r) {
     const hub = HUBS[r.hub];
-    const main = BODY[r.kind](r);
+    const main = decorate(r, `${BODY[r.kind](r)}\n${extraBlocks(r)}`);
     const heads = [...main.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)];
     const rel = related(r);
     const toc = `<aside class="doc-toc"><nav aria-label="on this page"><h2>on this page</h2><ol>${heads.map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('')}${r.faq?.length ? '<li><a href="#questions">questions</a></li>' : ''}${r.sources?.length ? '<li><a href="#sources">sources</a></li>' : ''}</ol></nav></aside>`;

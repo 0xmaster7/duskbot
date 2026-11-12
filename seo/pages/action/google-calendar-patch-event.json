@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/google-calendar/patch-event",
+  "type": "action",
+  "title": "Edit one Google Calendar event detail with AI",
+  "nav": "patch event details",
+  "h1": "change a calendar detail without replacing the event",
+  "description": "Ask a bot to correct a Google Calendar location, title or time. Learn why attendee lists need care and how to identify the exact event.",
+  "keyword": "google calendar edit event with ai",
+  "keywords": [
+    "chatgpt change calendar location",
+    "claude patch google calendar event",
+    "ai update meeting details"
+  ],
+  "answer": "a bot can correct selected parts of an existing google calendar event, such as its location, title or start time, while leaving omitted fields alone. it needs the calendar id and the event's own id, which it can find before editing. lists behave differently: giving a guest list replaces the existing list. the edit is a write, so request a review explicitly if you want one before it runs.",
+  "tags": [
+    "google calendar",
+    "event corrections",
+    "locations"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/update-google-event"
+  ],
+  "og_line": "correct the detail that actually changed.",
+  "what": "use this when the appointment is still right but one detail is wrong. the bot finds the meeting, confirms the date and calendar, then changes only what you asked.\n\nan attendee list or recurrence list is replaced as a whole when provided. asking to add one guest therefore needs the current full list first. event update notifications also need an explicit choice, since leaving that setting out uses the account's default behaviour.",
+  "uses": [
+    "correct a meeting room after a building change without touching the guest list",
+    "replace a vague event title with the agreed workshop name",
+    "move one appointment to a new start time after confirming the exact occurrence",
+    "fix a description that still points visitors to the old entrance"
+  ],
+  "routine": {
+    "message": "every monday at 12:30, check the room corrections i have written in this chat for the current week's studio visits. find each matching event on my work calendar and show its date, current location and proposed location here. ask before applying a location-only patch, and explicitly turn guest update emails off for these room corrections. never alter attendees, recurrence, meeting links or times; leave ambiguous matches for me.",
+    "when": "mondays at 12:30",
+    "needs": "google calendar connected with read and write access for event lookup and patching",
+    "output": "location correction awaiting review\n\npriya's studio visit, wednesday 14:00\ncurrent: north entrance\nproposed: courtyard entrance, wren house\nother event fields will be omitted from the patch."
+  },
+  "steps": [
+    "allow the calendar bot in **Connected apps** with **read and write**, limiting its changes to the patch action if that is all it needs.",
+    "give the calendar and a date as well as the meeting title so the lookup can identify the correct event id.",
+    "ask for the before-and-after value in chat and make approval part of the instruction before applying the patch.",
+    "inspect the corrected field in calendar; use **Edit** on the routine card to narrow its matching rule if necessary."
+  ],
+  "watch": [
+    "the bot finds the exact event first; for a repeating meeting, say which date.",
+    "if the bot sends a guest list, it replaces the old one completely. to add one person, it has to include everyone already invited.",
+    "whether guests get an update email is set on the edit itself, not by your sending setting. tell the bot yes or no.",
+    "changing a time without a zone can be interpreted in utc. confirm both the time and zone before accepting a move."
+  ],
+  "faq": [
+    {
+      "q": "can it change just the address and keep the rest?",
+      "a": "a location-only patch leaves details you do not ask it to change unchanged. ask it to show the identified event before making that correction."
+    },
+    {
+      "q": "what happens if i ask it to add one attendee?",
+      "a": "the new list replaces the current one. the bot should read the existing attendees and build the complete intended list before applying it."
+    },
+    {
+      "q": "will my guests get an email about the change?",
+      "a": "only if you say so. tell the bot whether guests should be told; if you leave it out, your google default applies."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "googlecalendar"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-map",
+      "s-clock"
+    ],
+    "bubble": "use the new room"
+  },
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_PATCH_EVENT"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

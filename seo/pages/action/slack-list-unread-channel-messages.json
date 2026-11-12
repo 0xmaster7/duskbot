@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/slack/list-unread-channel-messages",
+  "type": "action",
+  "title": "Read unread Slack channel messages with AI",
+  "nav": "list unread channel messages",
+  "h1": "catch up on unread slack posts without posting a reply",
+  "description": "Get a private AI catch-up from unread Slack channel posts. Know whose read marker is used, why thread replies are missing and when more pages are needed.",
+  "keyword": "unread slack messages with ai",
+  "keywords": [
+    "chatgpt summarise unread slack messages",
+    "claude slack unread channel catch up",
+    "ai read unread slack posts"
+  ],
+  "answer": "your bot can retrieve unread posts from one slack channel using the connected user's last read position, then explain what needs attention in your dusk chat. this is a read action and works with read-only access. it returns main-channel posts, not replies inside threads. if slack doesn't know where you stopped reading, it starts from the oldest posts.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "unread posts",
+    "slack",
+    "private catch-up"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/send-message",
+    "/routines/slack-channel-digest"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-newspaper",
+      "p-binoculars"
+    ],
+    "bubble": "unread posts first"
+  },
+  "og_line": "a private catch-up from unread posts.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_LIST_UNREAD_CHANNEL_MESSAGES"
+  },
+  "what": "unread means unread for the account connected to slack, not for a bot's own memory. name the channel and the bot finds it. the connected user must belong to that channel, private channel or group dm.\n\nthe result is a page of timeline messages. the bot keeps reading until it reaches the newest post, and uses the separate thread-reading action if you also want replies. a summary based only on timeline posts should say that clearly, because an unanswered-looking question might already have an answer in its thread.",
+  "uses": [
+    "return from lunch to a private list of unread announcements in the duty channel",
+    "skim a group conversation before taking over the evening shift",
+    "separate unread channel questions from routine status posts without sending replies"
+  ],
+  "routine": {
+    "message": "every weekday at 13:35, collect unread main-channel messages from the greywick duty channel using my connected slack account. keep reading to finish the unread list and group the posts into questions, notices and other updates here in dusk. make clear that threaded replies have not been checked. never post, react or change the read position.",
+    "when": "weekdays at 13:35",
+    "needs": "slack connected with read only access; connected user is a member of the duty channel",
+    "output": "greywick duty: unread timeline posts\n\nquestions: soren asked who has the spare gate key.\nnotices: the east entrance is closed for cleaning.\nother updates: the evening rota has been shared.\n\nthread replies not checked. no slack messages sent."
+  },
+  "steps": [
+    "in **Connected apps**, choose the slack account whose unread position you want to use and grant **read only**.",
+    "name the duty channel and ask the bot to find it among the channels you can access.",
+    "request one catch-up and check that it distinguishes timeline posts from replies it has not read.",
+    "inspect the schedule card after sending the recurring instruction; use **Pause** during leave if you do not need lunchtime catch-ups."
+  ],
+  "watch": [
+    "only main-timeline messages are included. a full discussion needs a separate fetch of the relevant message thread.",
+    "if slack doesn't know where you stopped, it starts from the oldest posts and may bring back older posts you did not expect.",
+    "unread posts come back 25 at a time unless you ask for more; the bot should keep going to the end.",
+    "scheduled catch-ups stop while your own computer sleeps or dusk bot is closed. dusk cloud runs scheduled routines on time."
+  ],
+  "faq": [
+    {
+      "q": "does the summary include unread thread replies?",
+      "a": "not from this action. ask for a separate thread lookup on the posts that need discussion context."
+    },
+    {
+      "q": "why do i see posts i already remember reading?",
+      "a": "the query uses the connected user's read position and starts from the oldest posts when slack doesn't know where you stopped. confirm the connected account and ask the bot to report that limitation."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

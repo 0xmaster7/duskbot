@@ -1,0 +1,97 @@
+{
+  "path": "/integrations/google-drive/move-file",
+  "type": "action",
+  "title": "Move Google Drive files with AI to a chosen folder",
+  "nav": "move a file",
+  "h1": "move the exact drive file into its agreed folder",
+  "description": "Have a bot move a Google Drive file after checking its ID and destination. Understand one-parent folders, shared-drive restrictions and explicit approval.",
+  "keyword": "google drive move file with ai",
+  "keywords": [
+    "chatgpt move google drive file",
+    "claude organise drive files into folders",
+    "ai move file to shared drive folder"
+  ],
+  "answer": "a bot can move a google drive file into a specified destination folder after finding both. when you give it the destination, the action checks and removes the current parent automatically. drive files have one parent, so this is a move rather than a second placement. moving is a change, so it won't ask first; ask for a review before moving files whose location other people depend on.",
+  "tags": [
+    "google drive",
+    "file moves",
+    "folders"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/find-file"
+  ],
+  "og_line": "the right file, moved to the agreed folder.",
+  "what": "give the bot the file and destination folder references, or let find file and find folder locate candidates first. it checks where the file is now before moving it.\n\nthe bot takes the file out of its current folder and puts it in the new one. a drive file lives in one folder at a time; to have it show up in two places, ask for a shortcut instead. shared drives can have their own rules about who may move what.",
+  "uses": [
+    "file one signed agreement into the project folder you have selected",
+    "move a completed photography brief from intake to its commissioned-work folder",
+    "return a misfiled document to the folder confirmed by its owner",
+    "relocate a permitted shared-drive file after checking the destination and account role"
+  ],
+  "routine": {
+    "message": "at 11:30 on the last wednesday of each month, find the signed agreement file whose exact link i marked ready to file in this chat. check its current folder and the destination folder link i gave you, then show that single move here and ask me before changing anything. after approval, move the file and check its new folder before reporting completion. never rename, delete, copy or move another file, and stop if shared-drive permissions prevent the move.",
+    "when": "last wednesday of the month at 11:30",
+    "needs": "google drive connected, with read and write access",
+    "output": "single move proposed\n\nellery's signed agreement, windlass studio\nfrom: contract intake\nto: windlass studio signed agreements\nfile and folder checked from their links.\nawaiting approval; file remains in intake."
+  },
+  "steps": [
+    "choose google drive in **Connected apps**, permit **read and write** and restrict the bot to moves and their supporting lookups.",
+    "provide the file reference and destination folder reference, asking the bot to verify the current parent before proposing a move.",
+    "include an ask-before-moving instruction and inspect the source-to-destination proposal; the sending control does not supervise file moves.",
+    "check the new folder after one approved move, then schedule the job and use **Pause** while resolving any ambiguous destinations."
+  ],
+  "watch": [
+    "a drive file has one parent. moving it does not leave another folder placement behind; use a shortcut when you need an additional placement.",
+    "in a shared drive, your role there decides whether you can move files at all.",
+    "drive can't move a folder from your own drive into a shared drive; the bot should tell you rather than keep trying."
+  ],
+  "faq": [
+    {
+      "q": "do i have to tell it which folder to remove the file from?",
+      "a": "no. give it the new folder and it takes the file out of the old one for you."
+    },
+    {
+      "q": "can it keep the same file in both folders?",
+      "a": "drive files have one parent. moving changes that placement; a shortcut is the appropriate way to provide another folder entry."
+    },
+    {
+      "q": "will the move wait for an approval card?",
+      "a": "a file move is a write and is not covered by send approval. the sample routine explicitly asks before making the move; keep that instruction if you want review."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "googledrive"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "p-folder",
+      "s-signpost"
+    ],
+    "bubble": "put the signed copy away"
+  },
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_MOVE_FILE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

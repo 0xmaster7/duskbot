@@ -43,12 +43,12 @@
 <header class="seo-top"><h1>is openclaw safe enough for your accounts?</h1>
 <p class="lede seo-answer">openclaw has a substantial public security history, so treat it as software that needs careful setup and upkeep, not something to give every account at once. as of 12 november 2026, its repository lists 722 published advisories. that is a historical count, not a count of flaws still present in your install. the useful question is which versions and permissions affect you.<sup><a href="#src-1" aria-label="source 1">1</a></sup></p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/guides--is-openclaw-safe.webp?v=9ed2c689" srcset="/art/seo/guides--is-openclaw-safe-660.webp 660w, /art/seo/guides--is-openclaw-safe.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a mint pixel bot, a pink pixel bot and a purple cat bot beside a tile saying OpenClaw, a shield with a tick and a magnifying glass, on a lemon field in front of white cliffs with a waterfall, one saying &quot;check the version&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/guides--is-openclaw-safe.webp?v=9ed2c689" srcset="/art/seo/guides--is-openclaw-safe-660.webp 660w, /art/seo/guides--is-openclaw-safe.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a mint pixel bot, a pink pixel bot and a purple cat bot beside a tile saying OpenClaw, a shield with a tick and a magnifying glass, on a lemon field in front of white cliffs with a waterfall, one saying &quot;check the version&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-the-advisory-numbers-tell-you"><h2 id="what-the-advisory-numbers-tell-you">what the advisory numbers tell you</h2>
 <p>as of 12 november 2026, github lists <strong>722 published security advisories</strong>: 14 critical, 249 high, 390 medium and 69 low. the first was published on 31 january 2026. the record includes a one-click remote code execution advisory involving authentication-token theft, along with gateway privilege-escalation and sandbox-escape advisories from february to april.<sup><a href="#src-1" aria-label="source 1">1</a></sup></p>
 <p>those are reasons to read the advisory for the version you run. they are not proof that every release is vulnerable to every issue. a published-advisory total alone cannot tell you whether your installation is patched, exposed or compromised. compare the affected versions and fixes with your actual install before connecting sensitive accounts.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-malicious-skills-audit-is-a-separate-problem"><h2 id="the-malicious-skills-audit-is-a-separate-problem">the malicious skills audit is a separate problem</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="the-malicious-skills-audit-is-a-separate-problem"><h2 id="the-malicious-skills-audit-is-a-separate-problem">the malicious skills audit is a separate problem</h2><img class="seo-spot" src="/art/kit/p-newspaper.webp?v=d2312431" alt="" width="420" height="316" loading="lazy" decoding="async">
 <p>a vulnerability in the agent and a malicious add-on are different risks. koi security audited 2,857 clawhub skills and found 341 malicious ones, according to the hacker news report dated 2 february 2026. this was a particular audit, not a current measurement of the whole catalog.<sup><a href="#src-2" aria-label="source 2">2</a></sup></p>
 <p>a skill can look useful while asking you to run something unrelated to its job. before adding one, read its instructions and any scripts it carries. avoid instructions that require unexplained commands or secrets. if you cannot tell what the package does, leave it out. popularity is not a substitute for understanding what you are installing.</p>
 </section>
@@ -56,7 +56,7 @@
 <p>openclaw says it has added skill scanning with virustotal and nvidia, and had a trail of bits audit. those are meaningful responses to the earlier reports. they do not establish that every skill or configuration is safe.</p>
 <p>read the current advisory details rather than treating an old headline as a verdict forever. open development makes reports visible; visibility helps you inspect the history, but does not replace updating your own system. if you need someone else to maintain the machine, compare the responsibilities in <a href="/alternatives/openclaw">openclaw alternatives</a>.</p>
 </section>
-<section class="seo-sec" aria-labelledby="a-smaller-first-job-for-any-agent"><h2 id="a-smaller-first-job-for-any-agent">a smaller first job for any agent</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="a-smaller-first-job-for-any-agent"><h2 id="a-smaller-first-job-for-any-agent">a smaller first job for any agent</h2><img class="seo-spot" src="/art/s-books.webp?v=08b0004d" alt="" width="420" height="203" loading="lazy" decoding="async">
 <p>start on a separate machine or in a workspace without your private files. connect one account, with reading access only if the task is a summary. leave payments, publishing and broad file access out of the trial. decide what a wrong action would cost before enabling it.</p>
 <p>ask for a short explanation of the sources used and inspect the result yourself. then add only the access the next job needs. our <a href="/guides/is-it-safe-to-let-ai-control-your-computer">computer-use safety guide</a> goes through supervision and stopping a bot. a separate computer reduces what is in reach; it does not make a connected account harmless.</p>
 </section>
@@ -64,6 +64,13 @@
 <p>in dusk bot, <strong>Connected apps</strong> lets you choose access per bot: off, read only, or read and write. read-only restrictions are enforced before a call reaches the app.<sup><a href="#src-3" aria-label="source 3">3</a></sup> sending has a separate choice: <strong>Ask every time</strong> or <strong>Allow a daily amount</strong>. one exception: a bot on <strong>Full access</strong> with no sending rule of its own may send up to 25 a day without asking, so give full-access bots <strong>Ask every time</strong> under sending.<sup><a href="#src-4" aria-label="source 4">4</a></sup></p>
 <p>other changes, like labels or page edits, may not ask first. keep the bot read-only or say &quot;ask me before you change anything&quot;. only add trusted servers under <strong>Plugins</strong>, <strong>MCP servers</strong>; the <a href="/guides/what-is-mcp">mcp explainer</a> describes that connection boundary. these settings shrink what can go wrong; they don't make any agent risk-free.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="is-openclaw-safe-for-non-technical-users">is openclaw safe for non-technical users?</h3>
 <p>only take on the access and upkeep you understand. if advisory versions, permissions or add-on code are unfamiliar, start with a low-stakes reading task or get help before giving it important accounts.</p>

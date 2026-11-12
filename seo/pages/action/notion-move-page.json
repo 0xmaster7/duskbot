@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/notion/move-page",
+  "type": "action",
+  "title": "Move Notion pages with AI to the parent you choose",
+  "nav": "move page",
+  "h1": "put a notion page under its new parent",
+  "description": "Ask a bot to move an existing Notion page under another page or into a database data source. Confirm both references before changing its location.",
+  "keyword": "notion move page with ai",
+  "keywords": [
+    "chatgpt move notion page",
+    "claude organise notion pages",
+    "ai move notion page to database"
+  ],
+  "answer": "you can move an existing notion page under a different page, or place it in a database using that database's link. a bot needs the page to move and the exact destination. this is a location change without an automatic send approval, so make confirmation part of the instruction before you give it permission to move anything.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion",
+    "move page"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/insert-row-database"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "p-folder",
+      "s-signpost"
+    ],
+    "bubble": "under the right parent"
+  },
+  "og_line": "move the page, with a clear destination.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_MOVE_PAGE"
+  },
+  "what": "move page changes where an existing page sits. it needs the source page link and a destination, rather than a title that could point to several places. search notion pages and databases can help identify the source and a page destination from their names.\n\nthe destination type matters. moving into a database works differently from moving under a page; the bot checks which you mean before it moves anything.",
+  "uses": [
+    "file a completed event brief beneath the correct annual archive page",
+    "move a standalone project note into its agreed database destination",
+    "place a misplaced onboarding page under the team handbook without rewriting it"
+  ],
+  "routine": {
+    "message": "on the first friday of each month at 13:45, look under the events page i linked for event briefs whose event date has passed. list them here with where each would go under the archive page i linked, and ask me before moving any. never move a database, rewrite a brief or pick a destination by title alone.",
+    "when": "first friday of the month at 13:45",
+    "needs": "notion connected, with read and write access to the source and destination",
+    "output": "event briefs proposed for archive\n\nrookhaven winter fair brief: event date has passed\nfrom: events\nto: events archive / winter fairs\nwaiting for your ok before moving anything."
+  },
+  "steps": [
+    "open **Connected apps**, allow this bot to use notion and set **read and write** for the move.",
+    "give both source and destination references; ask the bot to distinguish a page from a database target.",
+    "ask the bot to name both pages and wait for your ok before it moves anything.",
+    "check the moved page in notion and **Pause** the routine after the filing job is complete."
+  ],
+  "watch": [
+    "if a move into a database fails, tell the bot it's a database, not a page.",
+    "a familiar title is not enough to identify which page should move when several copies exist.",
+    "read-only access blocks moves, while enabling writes does not make the sending setting supervise them."
+  ],
+  "faq": [
+    {
+      "q": "can it move a page into a database?",
+      "a": "yes. paste the database link and the bot finds the right place for it."
+    },
+    {
+      "q": "does this also rewrite the page for its new home?",
+      "a": "the action moves an existing page. any content revision is a different task and should have its own explicit instruction."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

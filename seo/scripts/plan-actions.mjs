@@ -14,6 +14,8 @@ const slugify = (s) => s.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9
 export function plan() {
   const records = loadRecords();
   const have = new Set(records.map((r) => r.path));
+  const rejectedFile = path.join(seoDir, 'action-rejected.json');
+  const rejected = new Set(Object.keys(fs.existsSync(rejectedFile) ? JSON.parse(fs.readFileSync(rejectedFile, 'utf8')).paths : {}));
   const apps = records.filter((r) => r.kind === 'integration' && r.app?.toolkit);
   const out = [];
   for (const app of apps) {
@@ -29,7 +31,7 @@ export function plan() {
     for (const t of mixed.sort((a, b) => rank(a) - rank(b))) {
       let p = `${app.path}/${slugify(t.name)}`;
       if (seen.has(p)) p = `${p}-${slugify(t.slug.slice(app.app.toolkit.length + 1)).slice(0, 20)}`;
-      if (seen.has(p)) continue;
+      if (seen.has(p) || rejected.has(p)) continue;
       seen.add(p);
       out.push({ path: p, toolkit: app.app.toolkit, app: app.app.name, slug: t.slug, name: t.name, kind: t.kind, important: rank(t) === 0, drafted: have.has(p) });
     }

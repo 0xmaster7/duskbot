@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/gmail/send-email",
+  "type": "action",
+  "title": "Send Gmail emails with AI: review the message first",
+  "nav": "send email",
+  "h1": "send a gmail email by telling your bot what to say",
+  "description": "Ask a bot to send a Gmail email with the right recipients, signature and files. Set the sending rule and check the attachment limit before it goes.",
+  "keyword": "send gmail email with ai",
+  "keywords": [
+    "chatgpt send gmail email",
+    "claude send gmail email",
+    "ai gmail send email with attachments"
+  ],
+  "answer": "tell your bot who should receive an email and what it should say, and it can send it through your connected gmail account. you can include cc, bcc and attachments, or ask for your gmail signature. sending asks you first by default, unless you set a daily amount. a bot on **Full access** with no sending rule can send up to 25 a day without asking, so pick **Ask every time** if you want to see every email.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "outgoing email",
+    "attachments"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/send-draft",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "s-parcel"
+    ],
+    "bubble": "check who gets it"
+  },
+  "og_line": "your words, checked before sending.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_SEND_EMAIL"
+  },
+  "what": "this action makes and sends an email in one step. give the bot at least one recipient address and a subject or body; a person's first name alone is not an address. additional to recipients, cc and bcc can be included when you name them.\n\nit accepts plain text or formatted email and can try to add the signature already configured in gmail. attachments can add up to 20 mb at most. it sends now, so ask for the wording in chat first if you are still deciding what to say.",
+  "uses": [
+    "send a supplier the delivery address you have just confirmed",
+    "email the signed order form you attached, copying only the buyer you name",
+    "turn an approved announcement into an email to a specified recipient list",
+    "send yourself a copy of the travel instructions you gave the bot"
+  ],
+  "routine": {
+    "message": "every friday at 4, email my weekly hours to payroll@harlow.example: add up the hours i logged in this chat since monday, show me the email here, and wait for my allow before sending. if i logged nothing, stay quiet. never add other recipients.",
+    "when": "fridays at 16:00",
+    "needs": "work gmail connected with read and write access; sending set to Ask every time",
+    "output": "ready for your allow\n\nto: payroll@harlow.example\nsubject: hours, week of 9 november\n\nhi, 31.5 hours this week: 7.5 mon, 8 tue, 8 wed, 8 thu.\n\nnot sent yet."
+  },
+  "steps": [
+    "choose your outgoing gmail account in **Connected apps** and give the bot **read and write** access; **read only** cannot send mail.",
+    "set **Sending on your behalf** to **Ask every time**, then give the exact addresses and the text or notes to use.",
+    "try a message to yourself and review the recipient, wording and files before tapping **Allow**.",
+    "send the weekly instruction once you are happy with the test, and inspect the schedule on the routine card."
+  ],
+  "watch": [
+    "a bot on **Full access** without its own sending rule may send up to 25 a day without asking. explicitly select **Ask every time** for that bot.",
+    "it sends from your connected address, or another address you've already set up in gmail under send mail as.",
+    "signature insertion can be skipped if no signature exists or the connection cannot read it. inspect the proposed sign-off.",
+    "files over 20 mb in total won't send."
+  ],
+  "faq": [
+    {
+      "q": "can i send to more than one person?",
+      "a": "specify the main recipient and any extra to, cc or bcc addresses. ask the bot to show those groups separately before you approve."
+    },
+    {
+      "q": "will this keep an email waiting in drafts?",
+      "a": "it sends the email rather than saving it for later. use the gmail create email draft action when you want to finish it in gmail yourself."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/slack/update-a-slack-message",
+  "type": "action",
+  "title": "Edit a Slack message with AI using the exact message",
+  "nav": "update a message",
+  "h1": "correct the slack message people already have",
+  "description": "Ask a bot to update one Slack message after finding the exact message. Review replacement wording and keep thread broadcasts under your instructions.",
+  "keyword": "edit slack message with ai",
+  "keywords": [
+    "slack update message with ai",
+    "chatgpt edit existing slack message",
+    "claude change slack message text"
+  ],
+  "answer": "a bot can replace the visible content of an existing slack message when you point it at the message; it finds the exact one before editing. editing is a write rather than a send in dusk. if you want to review the correction first, say so in the request before granting access to this action.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "slack",
+    "message edits",
+    "corrections"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/integrations/slack/fetch-conversation-history",
+    "/integrations/slack/create-a-reminder"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-bubbles",
+      "s-notebook"
+    ],
+    "bubble": "correct the posted time"
+  },
+  "og_line": "one existing message, corrected carefully.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_UPDATES_A_SLACK_MESSAGE"
+  },
+  "what": "use an edit when the message people already saved has the wrong address or a changed deadline. point the bot at the message and have it read the original before preparing a correction.\n\nfor ordinary wording, the action takes markdown text. structured slack blocks are an alternative for a layout that needs them; it can only attach files that are already in slack.",
+  "uses": [
+    "correct the check-in address in an event announcement people have already bookmarked",
+    "update a status message with a new confirmed delivery time",
+    "replace outdated instructions in a thread reply without broadcasting it to the whole channel"
+  ],
+  "routine": {
+    "message": "every friday at 08:50, find the specific slack announcement i linked for the brackley depot collection. compare its collection time with the confirmed time i gave you in this chat, and show me a replacement here only if they differ. ask before updating that exact message, using ordinary markdown and no thread broadcast. never post a second announcement or touch another message.",
+    "when": "fridays at 08:50",
+    "needs": "slack connected with read and write access to locate and update the specified message",
+    "output": "brackley depot announcement\noriginal: collection at 15:00, east entrance.\nproposed correction: collection at 16:00, east entrance.\noriginal message located; awaiting your permission to replace its wording."
+  },
+  "steps": [
+    "allow the message editor in **Connected apps** with **read and write** slack access and a restricted action list.",
+    "give it the message reference and ask it to confirm the channel and original text before any revision.",
+    "request a proposed replacement in chat, with an explicit wait for your agreement. **Ask every time** under sending does not supervise this edit.",
+    "inspect the changed message after the first correction. **Pause** the routine if the announcement no longer needs maintenance."
+  ],
+  "watch": [
+    "a channel name alone doesn't say which announcement to replace. point the bot at the message and check its original text.",
+    "broadcasting an edited thread reply is an optional input. leave it off when a correction should stay inside the thread."
+  ],
+  "faq": [
+    {
+      "q": "will editing show a sending approval card?",
+      "a": "this action is classified as a write. add an explicit ask-before-updating instruction if you need a checkpoint before the message changes."
+    },
+    {
+      "q": "can it attach a new local file during the edit?",
+      "a": "it can only attach files that are already uploaded to slack. uploading a new file is separate from this message update."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

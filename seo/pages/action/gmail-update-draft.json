@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/gmail/update-draft",
+  "type": "action",
+  "title": "Edit an existing Gmail draft with AI without sending it",
+  "nav": "update a draft",
+  "h1": "revise a gmail draft without starting over",
+  "description": "Change a Gmail draft’s wording, subject or recipients with a bot. Keep the right draft ID and supply attachments again so they are not lost.",
+  "keyword": "edit gmail draft with ai",
+  "keywords": [
+    "gmail update draft with ai",
+    "chatgpt edit gmail draft",
+    "claude revise gmail email draft"
+  ],
+  "answer": "a bot can revise an existing gmail draft when you want a clearer subject, a shorter body or different recipients. it finds the saved draft before replacing the message. the important catch is attachments: existing files are not kept unless the bot adds them again. it only edits; nothing is sent. edits don't ask first, so add \"show me before you change it\" if you want to check.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "drafts",
+    "editing"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/list-drafts",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-notebook",
+      "s-parcel"
+    ],
+    "bubble": "keep the attachment"
+  },
+  "og_line": "better wording, with files checked.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_UPDATE_DRAFT"
+  },
+  "what": "tell the bot which saved email to revise and what should change. anything you don't ask it to change, like the subject or recipients, stays as it was.\n\neven a one-word edit rebuilds the draft, so attached files have to be added again. ask the bot to identify the attached files before editing and to stop if it cannot add them again.",
+  "uses": [
+    "shorten a long proposal draft while keeping the pricing pdf attached",
+    "correct the recipient and subject of a saved introduction before you send it",
+    "replace a tentative delivery date with the date you have just confirmed",
+    "add your configured gmail signature to an otherwise finished draft"
+  ],
+  "routine": {
+    "message": "each wednesday at 3, list my gmail drafts and find the one to noor at willowquay ceramics about the kiln delivery. show me a shorter version here and ask before updating that draft. keep its recipients and subject, and reattach every existing file; stop if any file is unavailable. never send the message or edit other drafts.",
+    "when": "wednesdays at 15:00",
+    "needs": "gmail connected with read and write access, limited to draft listing and updating plus required file retrieval",
+    "output": "kiln delivery draft for noor\nproposed body: the delivery is confirmed for thursday. the handling notes are attached.\nattachment to preserve: kiln-handling.pdf\nwaiting for your agreement before replacing the draft."
+  },
+  "steps": [
+    "choose gmail in **Connected apps** and enable **read and write** for the draft editor, with only the actions it needs.",
+    "ask it to list drafts with full details and identify the intended recipient and subject.",
+    "give the replacement wording and explicitly require all attachments to be added again. include an ask-before-editing instruction if you want to review the revision.",
+    "open the revised email in gmail after your first trial and check the files as well as the prose. **Pause** the routine if it selects the wrong draft."
+  ],
+  "watch": [
+    "omitting attachments drops the existing ones. keeping the subject or recipient unchanged does not protect attached files.",
+    "ask the bot to show the full recipient list after the edit."
+  ],
+  "faq": [
+    {
+      "q": "will my old attachments survive a wording change?",
+      "a": "only if they are added again with the update. tell the bot to stop rather than save a revision with missing files."
+    },
+    {
+      "q": "can it change the draft without asking?",
+      "a": "yes, when you have allowed this write action. put a review checkpoint into your request; **Ask every time** for sending does not cover draft edits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

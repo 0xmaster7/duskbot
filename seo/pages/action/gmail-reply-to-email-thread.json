@@ -1,0 +1,90 @@
+{
+  "path": "/integrations/gmail/reply-to-email-thread",
+  "type": "action",
+  "title": "Reply to Gmail threads with AI, after checking recipients",
+  "nav": "reply to email thread",
+  "h1": "reply in the gmail conversation you mean",
+  "description": "Ask a bot to answer an existing Gmail thread with the original subject, quoted context and optional files. Check recipients and sending controls first.",
+  "keyword": "gmail reply to thread with ai",
+  "keywords": [
+    "chatgpt reply to gmail thread",
+    "claude gmail reply",
+    "ai gmail thread response"
+  ],
+  "answer": "a bot can answer an existing gmail conversation using its original subject and quoting the last message returned from that thread. give it the conversation and the people who should receive the reply. this sends a real email, not a draft. sending asks you first by default, unless you set a daily amount; a bot on **Full access** with no sending rule can send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** while you check the wording and recipients.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "reply to email thread"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/create-email-draft"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-bubbles"
+    ],
+    "bubble": "reply in this thread"
+  },
+  "og_line": "the same subject, with your answer.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_REPLY_TO_THREAD"
+  },
+  "what": "replying here keeps the answer attached to the conversation rather than starting another email. the bot finds the conversation, reads it, then replies to the people you name. it doesn't pick recipients from the thread by itself, so say who it should go to.\n\nyou can include files and request your gmail signature. the whole message, including attachments, must stay under 25 mb. ask for a draft instead when you want to keep editing in gmail before anything leaves.",
+  "uses": [
+    "answer a venue coordinator with the room choice you have already agreed",
+    "send the corrected brief back inside the supplier conversation it belongs to",
+    "reply to an introduction while leaving unrelated people off cc"
+  ],
+  "routine": {
+    "message": "when an email arrives from joss at linden press about the proof approval, read the entire thread and prepare a reply using only the corrections i gave you here. show me the recipient list, reply text and attachment before sending, and wait for my approval. after sending, report the subject here. never approve a proof or add recipients on your own.",
+    "when": "when matching mail arrives, checked about every 15 minutes",
+    "needs": "gmail connected, with read and write access; **Sending on your behalf** set to **Ask every time**",
+    "output": "awaiting approval\nto: joss at linden press\nsubject: re: cover proof\nreply: please use the revised subtitle from the attached brief.\nattachment: cover-corrections.pdf"
+  },
+  "steps": [
+    "open **Connected apps**, connect the gmail account used for this conversation and allow this bot **read and write** access.",
+    "set **Sending on your behalf** to **Ask every time** before trying the first thread reply.",
+    "paste a message reference and identify the intended recipients; ask the bot to fetch the thread before composing.",
+    "review the first reply and its recipients, then send the routine message; new mail is checked about every 15 minutes."
+  ],
+  "watch": [
+    "a bot on **Full access** with no sending rule may send up to 25 a day without asking; a daily sending amount also permits sends within that amount.",
+    "if two conversations share a subject, tell the bot the sender or date so it replies in the right one."
+  ],
+  "faq": [
+    {
+      "q": "does it automatically reply to everyone on the thread?",
+      "a": "do not assume that. the action takes explicit recipients; ask the bot to show who will receive the reply, including cc and bcc."
+    },
+    {
+      "q": "can i have it leave a reply unsent?",
+      "a": "use create email draft for that job. reply to email thread sends the email when allowed."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

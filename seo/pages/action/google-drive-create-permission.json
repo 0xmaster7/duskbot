@@ -1,0 +1,99 @@
+{
+  "path": "/integrations/google-drive/create-permission",
+  "type": "action",
+  "title": "Share a Google Drive file with AI using exact access",
+  "nav": "create permission",
+  "h1": "give a named person google drive access with ai",
+  "description": "Have AI grant Google Drive access to a file or folder. Review the recipient, role, notification and expiry, since this write is outside sending approvals.",
+  "keyword": "share google drive file with ai",
+  "keywords": [
+    "chatgpt grant google drive permission",
+    "claude share drive file with person",
+    "ai google drive access permissions"
+  ],
+  "answer": "a bot can grant access to a google drive file or folder for a person, group or domain, or make it available to anyone. it needs the file id, recipient type and access role, with an address for a person or group. sharing counts as a change in dusk, not a send, so it won't ask first, even when google emails the person. tell the bot to ask before it shares anything.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "drive sharing",
+    "permission creation",
+    "access roles"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/upload-file",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "s-key",
+      "p-shield"
+    ],
+    "bubble": "access for this person"
+  },
+  "og_line": "the named recipient, with the intended role.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_CREATE_PERMISSION"
+  },
+  "what": "sharing is a permission change, not just a link to a file. choose who gets access and what they may do: for example, reader, commenter or writer. user and group grants require an email address; a domain grant needs the domain. anyone access needs neither and can make the file publicly accessible.\n\nthe bot finds the file and shows you its name before sharing. notifications default to on for users and groups, with an optional custom message. expiry can be set for user and group grants only, at a future time no more than a year away.",
+  "uses": [
+    "give a named contractor reader access to a specific briefing file",
+    "let an agreed review group comment on a proposal without making it public",
+    "grant a temporary reviewer access with an explicit expiry date",
+    "give a particular collaborator writer access after you confirm they may edit"
+  ],
+  "routine": {
+    "message": "every tuesday at 3, review the drive file called amberwick lighting brief and prepare a reader permission for esteban@amberwickstage.example only if i marked that file ready here. show the file name, recipient address and reader role, with notification email off, then ask me before you change anything. after approval, share it and report the resulting access here. never grant anyone or domain access, transfer ownership or upgrade the role without a new instruction.",
+    "when": "tuesdays at 15:00",
+    "needs": "google drive connected with read and write access; file lookup, permission reading and permission creation allowed on the brief",
+    "output": "permission proposal\n\nfile: amberwick lighting brief\naddress: esteban@amberwickstage.example\nrole: reader\nnotification email: off\n\nwaiting for approval. no public or domain permission requested."
+  },
+  "steps": [
+    "connect drive through **Connected apps** and let the bot identify the exact file while still on **read only**.",
+    "decide the recipient type, address, role and whether a notification email is wanted; have the bot show all of them together.",
+    "enable **read and write** for the specific permission action only when you intend to grant access, and explicitly require confirmation before it runs.",
+    "check who has access after the first share. when the reviewer finishes, stop this routine with **Pause**."
+  ],
+  "watch": [
+    "change sharing on one file one person at a time; if two changes land together, only the last one sticks.",
+    "google emails the person by default when you share. say if you'd rather it didn't.",
+    "anyone or domain permissions have a broader audience than an individual grant. do not let a missing address turn into public access.",
+    "handing over ownership is a much bigger step than giving edit access: you become an editor on your own file. keep it out of routines."
+  ],
+  "faq": [
+    {
+      "q": "will it ask me before sharing?",
+      "a": "no. sharing is a change, not a send, even when google emails the person. put \"ask me before you share anything\" in the request."
+    },
+    {
+      "q": "can i give access that expires?",
+      "a": "the expiry option applies to user and group permissions. it must be in the future and no more than a year away."
+    },
+    {
+      "q": "does turning off notifications stop access being granted?",
+      "a": "the notification option controls the email, while the permission determines access. check both independently before approving."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

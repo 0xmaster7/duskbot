@@ -1,0 +1,100 @@
+{
+  "path": "/integrations/airtable/create-records",
+  "type": "action",
+  "title": "Add Airtable rows with AI from an attendance list",
+  "nav": "create records",
+  "h1": "add new airtable rows without rewriting existing records",
+  "description": "Turn an attendance list into Airtable records with an AI bot. Check the destination fields, the ten-row request limit and the risks of automatic conversion.",
+  "keyword": "create airtable records with ai",
+  "keywords": [
+    "airtable add rows with ai",
+    "chatgpt create airtable records",
+    "claude add airtable rows",
+    "airtable ai attendance records"
+  ],
+  "answer": "a bot can add new rows to an airtable table using the values you give it, such as a workshop attendance list. it finds the base and reads the table fields before preparing the rows. each request can create up to ten records. adding rows is a change, so dusk's sending approval does not pause it; tell the routine to ask before writing if you want review.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "airtable",
+    "new-records",
+    "attendance"
+  ],
+  "connectors": [
+    "airtable"
+  ],
+  "related": [
+    "/integrations/airtable",
+    "/integrations/airtable/get-base-schema",
+    "/integrations/airtable/list-records"
+  ],
+  "art": {
+    "logo": "airtable",
+    "label": "Airtable",
+    "props": [
+      "s-notebook",
+      "p-cap"
+    ],
+    "bubble": "attendance rows ready"
+  },
+  "og_line": "new rows with values you can check.",
+  "action": {
+    "toolkit": "airtable",
+    "slug": "AIRTABLE_CREATE_RECORDS"
+  },
+  "what": "creating records adds rows to a chosen base and table. the bot can use list bases and get base schema to find that destination from the names you give it, then match your list to the table's fields. this action creates new records rather than repairing existing ones.\n\nvalues normally need to match each field's expected type. optional automatic conversion asks airtable to interpret text as another type, which can produce a result you did not intend. keep conversion off for a first run and resolve mismatches before retrying a row.",
+  "uses": [
+    "add confirmed attendees from a completed workshop to the attendance table",
+    "log newly received equipment with its agreed category and arrival date",
+    "enter a set of approved expense rows without changing earlier entries",
+    "record new volunteer shifts from a checked sign-up list, leaving uncertain dates for review"
+  ],
+  "routine": {
+    "message": "on saturdays at 10, take only the new attendance lists i marked checked in this chat since the last run and add them to the workshop attendance table in the learning sessions base. inspect the fields and look for existing rows with the same session and email before preparing additions. show the proposed rows here and ask before writing, then report the rows created here. never overwrite existing records, guess an attendee's email or use automatic field conversion.",
+    "when": "saturdays at 10",
+    "needs": "airtable connected, with read and write access for this bot",
+    "output": "attendance rows added after confirmation\n\nworkshop: product sketching\nrue tan, rue@example.com, attended\nbela roy, bela@example.com, attended\n\none existing session-and-email match was skipped."
+  },
+  "steps": [
+    "connect airtable in **Connected apps** and grant the attendance bot **read and write**, since adding a row needs more than reading.",
+    "name the base and table, then ask the bot to describe the fields it will fill using a small attendance list.",
+    "allow the lookup and create-records actions while leaving record updates and table changes outside the bot's action list.",
+    "send the Saturday request with its explicit ask-before-writing sentence; use **Pause** if the saved rows differ from the reviewed values."
+  ],
+  "watch": [
+    "a create request holds at most ten records. larger lists need separate requests, and the base allows five requests per second.",
+    "automatic conversion is optional and off by default. switching it on can turn an unclear value into an unintended cell value.",
+    "repeating a create request can make duplicate rows. check existing records and inspect what was created before retrying an uncertain result.",
+    "the sending setting does not supervise record creation. the review in this routine comes from your written ask-before-writing rule."
+  ],
+  "faq": [
+    {
+      "q": "can it add more than ten airtable records?",
+      "a": "yes, by splitting the rows into separate requests of up to ten each. the bot must also respect the base's five-requests-per-second limit."
+    },
+    {
+      "q": "will creating records update a matching row?",
+      "a": "no. this action adds new rows. finding existing matches is a separate read, and this routine skips them rather than overwriting them."
+    },
+    {
+      "q": "what happens if a date or category does not fit the field?",
+      "a": "have the bot stop and show the mismatch. automatic conversion is available, but it is a best-effort interpretation and may produce an unexpected result."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "path": "/integrations/notion/update-page",
+  "type": "action",
+  "title": "Update Notion page properties with AI, field by field",
+  "nav": "update page properties",
+  "h1": "change a notion page property without rewriting its text",
+  "description": "Update a Notion page title, status, icon or cover with a bot. Discover the exact properties first and keep page text and archive changes separate.",
+  "keyword": "notion update page properties with ai",
+  "keywords": [
+    "chatgpt change notion page status",
+    "claude update notion page properties",
+    "ai change notion page icon"
+  ],
+  "answer": "a bot can update a notion page's properties, icon, cover or archive state. for a database page, that includes fields such as its title or status when those properties exist. this action does not rewrite the text blocks inside the page. property names are case-sensitive and valid status choices vary by database, so the bot should look them up first. it doesn't ask you before changing anything unless you tell it to.",
+  "tags": [
+    "notion",
+    "page properties",
+    "status updates"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/query-database-with-filter"
+  ],
+  "og_line": "a precise property change on a known page.",
+  "what": "you can hand over a small change, such as marking a reviewed record ready or replacing a page icon. paste the page link or name the page and let the bot find it. it then fetches the row or database structure to learn the exact field names and allowed options.\n\nthese are page details, not the paragraphs beneath them. rewriting paragraphs needs a block-content action. archiving is available here too, so a status-maintenance bot should receive a clear instruction to leave archive state alone.",
+  "uses": [
+    "change a reviewed catalogue entry to an existing ready status",
+    "correct the title property of a page with a known spelling error",
+    "replace a project page icon after the team chooses a new symbol",
+    "restore an archived database page when you explicitly request it"
+  ],
+  "routine": {
+    "message": "every thursday at 10:50, review the catalogue page links i marked approved in this conversation since the last run. fetch each row and its database properties, then propose changing only its review status to ready if that option exists. ask for my agreement before applying the property update and list the changed titles here afterward. never edit page text, add a new status option or archive a page.",
+    "when": "thursdays at 10:50",
+    "needs": "notion connection with read and write for page updates, plus row and database inspection",
+    "output": "status update proposal\n\nlio's ceramic vessels: review status, in review to ready.\nmarsh reed prints: skipped; database has no ready option.\nwaiting for approval; no page content changed."
+  },
+  "steps": [
+    "grant the page bot notion access in **Connected apps**, choosing **read and write** for property updates.",
+    "give it one page link and ask it to fetch the existing row properties and valid status options.",
+    "name the exact property to change and require a before-and-after proposal, including an explicit instruction to ask before writing.",
+    "check that one saved property in notion before scheduling the upkeep; use **Pause** if it proposes an unrelated page change."
+  ],
+  "watch": [
+    "a familiar field such as status may have another name or capitalisation in your workspace. guessed property names and invalid options will fail.",
+    "archive behaviour can be restricted for workspace-level pages. changing archived to true is not a harmless status edit.",
+    "page-property edits do not use the sending approval rule. only the review instruction in this routine provides its checkpoint."
+  ],
+  "faq": [
+    {
+      "q": "can it rewrite the paragraphs on the page?",
+      "a": "this action changes properties, icon, cover or archive status. editing the body requires a separate block-content action."
+    },
+    {
+      "q": "why does a status change say the option is invalid?",
+      "a": "the option has to exist in that database and use its exact name. fetch database lets the bot inspect the choices before updating."
+    },
+    {
+      "q": "can i change the icon without touching the status?",
+      "a": "yes. ask for just the icon and the bot leaves everything else alone."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "notion"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "s-button"
+    ],
+    "bubble": "set the approved status"
+  },
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_UPDATE_PAGE"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

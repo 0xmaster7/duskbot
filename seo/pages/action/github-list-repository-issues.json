@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/github/list-repository-issues",
+  "type": "action",
+  "title": "List GitHub issues with AI by label, owner or milestone",
+  "nav": "list repository issues",
+  "h1": "get a github issue list with the filters you mean",
+  "description": "Filter a GitHub repository's issues by labels, assignee, milestone or update time. Have a bot separate pull requests and report without editing the queue.",
+  "keyword": "github list issues with ai",
+  "keywords": [
+    "chatgpt list github repository issues",
+    "claude filter github issues",
+    "ai github issues by assignee"
+  ],
+  "answer": "a bot can read a github repository's issue list using filters such as label, assignee, milestone and last update time. github's issue list also includes pull requests, so say whether you want them in. you can keep the whole job read only, with references and a clear filter summary in chat rather than changes to the issue queue.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "github",
+    "list repository issues"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/routines/github-issue-triage"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-folder",
+      "p-magnifier"
+    ],
+    "bubble": "issues with these labels"
+  },
+  "og_line": "the queue, narrowed to your question.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_LIST_REPOSITORY_ISSUES"
+  },
+  "what": "start with the owner and repository from a github repo link. then say what belongs in the list: a named assignee, unassigned work, a label, a milestone or a chosen state. if you only know a milestone's name, the bot looks up its number first.\n\nthe since filter means updated at or after a time, not created since that date. a week of updated work may include much older reports. a long list comes in pages of up to 100, so ask the bot to read them all.",
+  "uses": [
+    "list unassigned reports carrying the accessibility label before a staffing decision",
+    "find the issues attributed to a named teammate for a coverage handover",
+    "collect work in a particular milestone without moving or reprioritising it",
+    "see which closed issues got new activity this week"
+  ],
+  "routine": {
+    "message": "every wednesday at 11, list open unassigned issues with the accessibility label in hazelpoint/atlas-desk. follow all result pages and separate any pull requests from the issue list. return issue numbers and titles here, showing the filters used and reporting failed pages. never assign people, add labels or close anything.",
+    "when": "wednesdays at 11:00",
+    "needs": "github connected, with read only repository access",
+    "output": "hazelpoint/atlas-desk\nfilters: open, unassigned, accessibility\n#118 keyboard focus missing on search\n#126 chart labels need text alternatives\npull requests excluded from the issue count."
+  },
+  "steps": [
+    "connect github through **Connected apps** and choose **read only** for this queue report.",
+    "identify the owner and repo, then give the exact label names or assignee login instead of a broad request to tidy issues.",
+    "ask for the filters beside the first list and check that pull requests are handled as requested.",
+    "create the weekly report and inspect its schedule; **Pause** it if the project or label stops being relevant."
+  ],
+  "watch": [
+    "the issue listing includes pull requests, which can inflate a report unless they are separated.",
+    "filtering by since finds updated records, including older issues; it is not a new-issue counter.",
+    "paste the repository link, not just its name."
+  ],
+  "faq": [
+    {
+      "q": "can it show only issues nobody owns?",
+      "a": "yes. the assignee filter supports unassigned issues. combine that with a label or milestone to keep the result useful."
+    },
+    {
+      "q": "why are old issues appearing in my weekly list?",
+      "a": "a since timestamp selects records updated during the window. an old issue with recent activity can therefore appear."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

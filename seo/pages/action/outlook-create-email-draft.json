@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/outlook/create-email-draft",
+  "type": "action",
+  "title": "Create Outlook email drafts with AI for new conversations",
+  "nav": "create an email draft",
+  "h1": "start a new outlook email as a draft",
+  "description": "Turn a brief into a standalone Outlook draft with a subject, body and optional files. Review recipients yourself and use a different action for replies.",
+  "keyword": "create outlook draft with ai",
+  "keywords": [
+    "outlook draft new email with ai",
+    "chatgpt create outlook email draft",
+    "claude write outlook email draft"
+  ],
+  "answer": "a bot can save a new outlook email with a subject, body, recipients and optional attachments for you to finish later. this action starts a standalone conversation; it does not create a reply inside an existing thread. saving it is a write that needs read and write access, but it does not send the email. ask for a preview if even saving the draft should wait for you.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "outlook",
+    "new email",
+    "drafts"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/download-outlook-attachment",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "p-briefcase"
+    ],
+    "bubble": "new introduction drafted"
+  },
+  "og_line": "a new email, saved for you to finish.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_CREATE_DRAFT"
+  },
+  "what": "give the bot the purpose of the email and the information it can safely use. subject and body are required; recipients can be left unset while you decide who should receive it. the action can add to, cc and bcc addresses and files.\n\nthis is for a fresh email, such as introducing a project to a new contact. to answer an email in its own thread, a different action, create draft reply, is used. dusk bot counts that one as a send, so it follows your sending setting. do not use a new standalone draft when keeping the original conversation is important.",
+  "uses": [
+    "prepare a new introduction from your notes while leaving the recipient for you to choose",
+    "save an event invitation email with the venue brief attached for your own review",
+    "turn a short project outline into an unsent announcement addressed to an approved list"
+  ],
+  "routine": {
+    "message": "each thursday at 09:50, use the outreach brief i added here this week to propose a new outlook introduction for hazelspoke interiors. show the subject and body here, then wait for my agreement before saving a standalone draft with the recipients left blank. attach only the brochure i explicitly provided and tell me here when the draft is saved. never send it or create a reply to an existing email.",
+    "when": "thursdays at 09:50",
+    "needs": "outlook connected with read and write access for create email draft",
+    "output": "new outlook draft proposal\nsubject: introducing hazelspoke interiors\nbody: a short introduction based on vera’s approved studio brief\nrecipient: left blank for you\nwaiting before saving; no email sent."
+  },
+  "steps": [
+    "connect outlook in **Connected apps** and enable **read and write** for new-draft creation.",
+    "tell the bot this is a new conversation, give the subject and brief, and decide whether to leave the recipient empty.",
+    "ask for one proposed draft in chat before saving. include an explicit checkpoint if you need that review on every run.",
+    "open the saved draft in outlook and inspect its addresses and files. **Pause** the outreach routine when the current campaign ends."
+  ],
+  "watch": [
+    "this action does not thread a reply to a received message. use the separate draft-reply action when that is the actual task.",
+    "html content needs the html flag. otherwise the markup can appear literally in the draft body.",
+    "read-only access cannot save a draft. you can limit the bot to this one action so it can't change anything else in outlook."
+  ],
+  "faq": [
+    {
+      "q": "can i save a draft without a recipient?",
+      "a": "yes. the subject and body are required, but recipient lists are optional. leaving them blank can be useful while the email is still being prepared."
+    },
+    {
+      "q": "does this send the email or reply in the old thread?",
+      "a": "neither. it saves a new standalone draft. sending or creating a draft reply uses separate actions with their own handling."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

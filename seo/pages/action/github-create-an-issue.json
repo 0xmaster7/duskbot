@@ -1,0 +1,95 @@
+{
+  "path": "/integrations/github/create-an-issue",
+  "type": "action",
+  "title": "Create a GitHub issue with AI from a clear bug report",
+  "nav": "create an issue",
+  "h1": "turn your bug notes into a github issue with ai",
+  "description": "Have a bot create a GitHub issue in a named repository. Review the title and evidence first, and check whether labels or assignees actually took effect.",
+  "keyword": "create github issue with ai",
+  "keywords": [
+    "chatgpt create github issue",
+    "claude write github bug report",
+    "ai turn notes into github issue"
+  ],
+  "answer": "your bot can turn the bug notes you give it into a github issue with a title and optional body, labels and assignees. it needs the repository owner and name, and that repository must have issues enabled. opening an issue is a change, not a send, so it won't ask first. say \"show me the issue before you file it\" if you want to check the wording.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "github issues",
+    "bug reports",
+    "issue creation"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/add-labels-to-an-issue",
+    "/integrations/github/close-an-issue"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "bug report ready"
+  },
+  "og_line": "give the report a clear place to land.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_CREATE_AN_ISSUE"
+  },
+  "what": "creating an issue gives a report its own entry in a repository. the required inputs are the owner, repository and issue title. give the bot the observed behaviour, expected behaviour and reproduction steps for the body, and tell it to leave uncertain details as questions.\n\nit can also add labels, assign someone or set a milestone, but only if your github account can make changes in that repository. if it can't, github files the issue and quietly skips those extras.",
+  "uses": [
+    "turn notes from a customer demonstration into a reproducible bug report",
+    "record a missing accessibility behaviour with the steps you observed",
+    "file a small documentation improvement in the repository that owns it",
+    "make an issue from an agreed task without adding an invented deadline or owner"
+  ],
+  "routine": {
+    "message": "every friday at 4, take the bug note i marked ready in this chat for copperfinch/booking-desk and prepare an issue title and body. search that repository for an existing report of the same behaviour, then show me any match and your proposed issue here. ask me before you change anything, and only create it after i confirm. never invent reproduction steps, assign someone or create an issue when a matching report already exists without asking me.",
+    "when": "fridays at 16:00",
+    "needs": "github connected with read and write access to copperfinch/booking-desk; issue search and creation enabled",
+    "output": "issue proposal: booking confirmation loses the room name\nrepository: copperfinch/booking-desk\n\nobserved by: renata\nsteps: choose a room, save a booking, reopen the confirmation.\nexpected: the selected room name remains visible.\nactual: the room field is blank.\n\nno matching report found in the search. waiting for approval to create."
+  },
+  "steps": [
+    "connect github in **Connected apps**, then provide the exact owner and repository rather than just a project nickname.",
+    "grant **read and write** with issue creation and any necessary search actions; **read only** cannot file the report.",
+    "ask for a proposed title and body and include an explicit instruction to wait for your confirmation.",
+    "after one approved creation, inspect the returned issue and any requested labels or assignments before relying on the routine."
+  ],
+  "watch": [
+    "issues must be enabled in an existing, accessible repository. this action does not create the repository or turn issues on.",
+    "if your account can't make changes in the repository, labels, assignees and milestones are quietly skipped. check the new issue in github.",
+    "opening an issue doesn't ask first. keep \"ask me first\" in the routine.",
+    "an issue body records the evidence you give it; opening the issue does not show that the bot reproduced or fixed the bug."
+  ],
+  "faq": [
+    {
+      "q": "can it file an issue without assigning a developer?",
+      "a": "the title, owner and repository are required, while assignees are optional. say that ownership should stay unset if you have not chosen someone."
+    },
+    {
+      "q": "why did my new issue appear without its label?",
+      "a": "adding labels when filing needs an account that can make changes in the repository. without that, the issue is filed and the label is quietly skipped."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "path": "/integrations/gmail/batch-modify-gmail-messages",
+  "type": "action",
+  "title": "Label or archive Gmail messages in bulk with AI",
+  "nav": "change message labels in bulk",
+  "h1": "apply one gmail filing decision to a batch of messages",
+  "description": "Give a bot a precise Gmail message list to label, archive or mark read. See the batch limit and why a success response needs checking.",
+  "keyword": "gmail bulk label emails with ai",
+  "keywords": [
+    "chatgpt archive gmail messages",
+    "claude bulk label gmail",
+    "gmail mark emails read with ai"
+  ],
+  "answer": "a bot can apply or remove gmail labels across a chosen set of messages, including archiving them or changing their read state. it first searches gmail to find the exact emails. each request can cover up to 1,000 messages. filing is a change, so it won't ask first; add \"show me the list before you change anything\" to the routine.",
+  "tags": [
+    "gmail",
+    "labels",
+    "archiving"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/fetch-emails"
+  ],
+  "og_line": "one filing rule for a checked message list.",
+  "what": "this is useful when every message in a carefully chosen group needs the same label change. removing the inbox label archives messages; removing the unread label marks them read. the action works on messages, so the bot should not treat one matched email as permission to change every message in its conversation.\n\nthe bot searches first to pick the emails, and looks up your own labels by name. when gmail says done, that means it accepted the batch, not that every email changed, so ask the bot to check afterwards.",
+  "uses": [
+    "archive delivery-status notices after the shipment has arrived",
+    "mark a checked batch of newsletters as read",
+    "apply an existing workshop label to registration emails from a named sender",
+    "remove an outdated project label from messages you have reviewed"
+  ],
+  "routine": {
+    "message": "on the second wednesday of each month at 4, find last month's delivery-status emails from heron parcel notices in my work gmail. show the sender, subject and date for every proposed match here and ask me before you change anything. after i agree, remove only their inbox label and check their labels again. never delete mail or include a customer-written message.",
+    "when": "second wednesday of the month at 16:00",
+    "needs": "work gmail connection, read and write access for message search and batch label changes",
+    "output": "proposed archive batch\n\nheron parcel notices, 3 october: delivered to studio.\nheron parcel notices, 9 october: delivery window updated.\n\nwaiting for your approval; no labels changed."
+  },
+  "steps": [
+    "enable gmail for this filing bot under **Connected apps**, allowing **read and write** for the needed actions.",
+    "ask it to search a small, recognisable group first and show the message list without applying labels.",
+    "name the exact label change, and include your own ask-before-changing instruction in the routine. **Ask every time** for sending does not govern batch labels.",
+    "review the labels after the first batch. if the search catches too much mail, stop future runs with **Pause**."
+  ],
+  "watch": [
+    "a batch accepts no more than 1,000 message ids. split larger approved sets and keep a record of which messages went into each request.",
+    "for your own labels the bot looks each one up first; a label it can't match can quietly do nothing.",
+    "acceptance is not a per-message receipt. inspect the resulting labels before reporting every message as filed."
+  ],
+  "faq": [
+    {
+      "q": "does archiving delete the emails?",
+      "a": "archiving here removes the inbox label. it does not permanently delete the messages."
+    },
+    {
+      "q": "can it mark a group of messages unread?",
+      "a": "it adds the unread label to the selected message ids. ask for the selection first if you want to inspect which emails qualify."
+    },
+    {
+      "q": "will it ask me before it files anything?",
+      "a": "not by itself. filing is a change, and your sending setting only covers sends. write \"ask me first\" into the request, or keep the bot on read only."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "gmail"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "p-folder",
+      "s-mailbox"
+    ],
+    "bubble": "ready to archive notices"
+  },
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_BATCH_MODIFY_MESSAGES"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

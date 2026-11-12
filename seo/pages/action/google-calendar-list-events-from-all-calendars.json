@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/google-calendar/list-events-from-all-calendars",
+  "type": "action",
+  "title": "List events across Google Calendars with AI",
+  "nav": "list events across calendars",
+  "h1": "see events from your google calendars together",
+  "description": "Gather events from selected Google Calendars into one view with a bot. Set an exact time window and surface calendar errors before trusting the list.",
+  "keyword": "list google calendar events with ai",
+  "keywords": [
+    "google calendar all calendars with ai",
+    "chatgpt list events across calendars",
+    "claude combine google calendar events"
+  ],
+  "answer": "a bot can collect and deduplicate events across selected google calendars for a time window, then show them together in chat. it can use your calendar list when you do not specify calendars. check for failed calendars before trusting the result as complete. it only looks, but dusk counts this action as a change, so the bot needs read and write access to google calendar; you can limit it to just this action.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google calendar",
+    "event lists",
+    "multiple calendars"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/create-a-new-calendar",
+    "/routines/weekly-calendar-preview"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "p-folder"
+    ],
+    "bubble": "across your calendars"
+  },
+  "og_line": "one window, several calendars.",
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS"
+  },
+  "what": "use this when an appointment may be on your studio, teaching or personal calendar and you want one combined list. the action removes duplicate events from the gathered results. a compact summary comes back by default; request full detail if the question needs more of each event.\n\ngive the bot a start and end with an explicit time zone. you can name the calendars to include, or let it check all of them. failures on individual calendars can leave a plausible-looking but incomplete combined result.",
+  "uses": [
+    "collect next month’s exhibition appointments from the gallery and travel calendars",
+    "check which calendars contain a customer’s named appointments during a handover",
+    "gather recurring class occurrences and one-off workshops into a dated list"
+  ],
+  "routine": {
+    "message": "every second thursday at 6, gather the next fortnight's events from my gallery and travel google calendars in london time. show them here grouped by date, with full details where needed to explain the location. report any calendar errors or unfinished pages before the list. never create, move or cancel an event.",
+    "when": "alternate thursdays at 18:00",
+    "needs": "google calendar connected with read and write access; allow this listing and calendar identification actions only",
+    "output": "mossglass gallery: next fortnight\n- tuesday, 10:00: lighting visit, gallery calendar.\n- thursday, 14:00: courier appointment, travel calendar.\ncoverage: both selected calendars returned results; no event edits requested."
+  },
+  "steps": [
+    "connect google calendar in **Connected apps**, then use **read and write** with a narrow action list because this listing is classified as a write.",
+    "ask the bot to list calendars and confirm the two calendars you want included.",
+    "set the date window and time zone, and request an explicit note about errors and remaining pages.",
+    "check one combined list against your calendars before scheduling it; **Edit** on the routine card lets you adjust the next review."
+  ],
+  "watch": [
+    "a missing time-zone offset is treated as utc. that can shift the intended local date window.",
+    "limits on each calendar and unread pages can cut the results short; the bot should check every page.",
+    "recurring events expand into occurrences by default. say whether you want occurrences or a different view before comparing counts."
+  ],
+  "rules": "allowing this action does not mean you need to allow event creation or deletion. restrict the bot to the listing actions needed for the combined view.",
+  "faq": [
+    {
+      "q": "why does a calendar listing need write access in dusk?",
+      "a": "dusk classifies this particular action as a write. give it an exact action allowance rather than enabling every calendar change."
+    },
+    {
+      "q": "does an empty combined list mean i am free?",
+      "a": "only after checking the selected calendars, time window and reported errors. a calendar that failed to return results cannot show whether you are free."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

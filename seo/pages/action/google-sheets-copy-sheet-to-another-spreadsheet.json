@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/google-sheets/copy-sheet-to-another-spreadsheet",
+  "type": "action",
+  "title": "Copy a Google Sheets tab to another file with AI",
+  "nav": "copy a tab to another spreadsheet",
+  "h1": "copy one google sheets tab into another spreadsheet",
+  "description": "Move a copy of one Google Sheets tab into an existing spreadsheet with a bot. Identify the source tab and destination file before creating the duplicate.",
+  "keyword": "copy google sheets tab with ai",
+  "keywords": [
+    "chatgpt copy sheet to another spreadsheet",
+    "claude duplicate google sheets tab",
+    "ai copy tab between google spreadsheets"
+  ],
+  "answer": "your bot can copy one tab from a google spreadsheet into another spreadsheet that already exists. it needs to know three things: the file to copy from, which tab, and the file to copy into. the source remains a separate sheet, and the action creates a copy rather than an ongoing sync. copying is a write, so tell the bot to show both files and ask before it adds the tab.",
+  "tags": [
+    "google sheets",
+    "tab copies",
+    "spreadsheet handoff"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/create-a-google-sheet"
+  ],
+  "og_line": "one selected tab, one checked destination.",
+  "what": "this is for handing over a selected sheet without copying an entire workbook. give the bot both spreadsheet links and the source tab name. it looks up the tab itself, so the tab's name is enough.\n\nthe destination must be an existing spreadsheet; this call does not create that file. it also has no input for choosing a new tab name or selecting only a few cells. plan a separate operation if the copied tab needs renaming or further editing.",
+  "uses": [
+    "copy a prepared agenda tab into a meeting workbook that already exists",
+    "give a new project an approved planning tab from a template spreadsheet",
+    "place a selected reporting tab into a handover workbook for review",
+    "duplicate a worksheet into a separate analysis file before experimenting there"
+  ],
+  "routine": {
+    "message": "every other wednesday at 15:10, copy this fortnight's briefing tab from the research workbook i linked into the steering workbook i linked. first check the steering workbook: if this fortnight's copy is already there, stop and tell me. otherwise show me both file names here and ask me before you copy. never copy any other tab or rename anything.",
+    "when": "alternate wednesdays at 15:10",
+    "needs": "google sheets connected with read and write, access to the source and permission to add a sheet to the destination",
+    "output": "tab copy awaiting approval\n\nsource: ivo marsh's research workbook, briefing tab\ndestination: willow bend steering\noperation: copy one complete tab\nsource tab confirmed; no destination changes made."
+  },
+  "steps": [
+    "connect google sheets for the transfer bot in **Connected apps**, with **read and write** and access to both files.",
+    "paste both spreadsheet links and name the tab you want copied.",
+    "review the bot's source-to-destination proposal, explicitly requiring your agreement before the copy.",
+    "check the added tab in the destination before recurring runs, and select **Pause** if you only needed a one-time handoff."
+  ],
+  "watch": [
+    "if two tabs have similar names, say exactly which one; the bot copies one tab only.",
+    "this copies one complete sheet, with no cell-range input. select another approach if the handoff should contain only a small excerpt.",
+    "copying again can add another copy. after a timeout or unclear response, inspect the destination before retrying.",
+    "nothing in this action keeps the two sheets synchronised after copying. later source edits need a separate decision about updating the destination."
+  ],
+  "faq": [
+    {
+      "q": "does it copy the whole spreadsheet?",
+      "a": "no, just the one tab you name. the rest of the file stays where it is."
+    },
+    {
+      "q": "can it make a new destination spreadsheet too?",
+      "a": "create that file first with create a google sheet. then give the bot that file's link as the destination for this copy."
+    },
+    {
+      "q": "can i choose the new tab name in the same request?",
+      "a": "this copy action has no naming input. renaming the returned sheet would need a separate permitted action."
+    }
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": [
+    "googlesheets"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-folder",
+      "s-parcel"
+    ],
+    "bubble": "copy only the briefing tab"
+  },
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_SPREADSHEETS_SHEETS_COPY_TO"
+  },
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

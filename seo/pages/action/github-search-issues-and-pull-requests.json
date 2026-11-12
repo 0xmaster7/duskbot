@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/github/search-issues-and-pull-requests",
+  "type": "action",
+  "title": "Search GitHub issues and pull requests with AI",
+  "nav": "search issues and pull requests",
+  "h1": "find github issues and pull requests by asking",
+  "description": "Turn a question into a focused GitHub issue or pull request search. Use repository and status qualifiers, inspect matches and report incomplete results.",
+  "keyword": "search github issues with ai",
+  "keywords": [
+    "github search pull requests with ai",
+    "chatgpt search github issues",
+    "claude find github issues and pull requests"
+  ],
+  "answer": "a bot can turn your question into a github search across issues and pull requests, narrowed by repository, author, label or status. ask it to show the query alongside the matches so you can see the scope. results only cover repositories the connection can access, and search limits can leave them incomplete. no match is not proof that nobody has reported the problem.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "github",
+    "issue search",
+    "pull request search"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/github/create-an-issue-comment",
+    "/routines/github-issue-triage"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-magnifier",
+      "p-folder"
+    ],
+    "bubble": "find the earlier report"
+  },
+  "og_line": "search with the repository in view.",
+  "action": {
+    "toolkit": "github",
+    "slug": "GITHUB_SEARCH_ISSUES"
+  },
+  "what": "describe what you're looking for and the bot writes the github search for you. the bot can combine ordinary keywords with qualifiers for a repository, label, involved person or open or closed status. specify issue or pull request when you do not want the two mixed together.\n\nsearch results can be sorted and retrieved by page. use them to identify candidates, then read the matched records before drawing a conclusion about cause or resolution. a similar title may describe a different failure, and a closed issue does not by itself show that your version contains a fix.",
+  "uses": [
+    "find closed reports of a named error before writing a new bug report",
+    "locate open pull requests mentioning a component you are about to change",
+    "list the issues assigned to a teammate before you cover for them on holiday"
+  ],
+  "routine": {
+    "message": "every tuesday at 9, search larchstone-dev/atlas for open issues and pull requests mentioning the phrase export timeout. return the query and matching references here, grouped by issue or pull request, and say whether more pages or search limits leave gaps. read the promising matches before saying they describe the same problem. never label, close, assign or comment on a result.",
+    "when": "tuesdays at 9:00",
+    "needs": "github connected with read only access for search and reading matched records",
+    "output": "larchstone-dev/atlas search\nquery: repo:larchstone-dev/atlas state:open \"export timeout\"\nissue #47: mireya reports a timeout on large exports.\npull request #52: retry change, relevance needs inspection.\nno repository changes made."
+  },
+  "steps": [
+    "connect github in **Connected apps** and keep this search bot **read only**.",
+    "state the owner and repository, the phrase to search and whether you want issues, pull requests or both.",
+    "ask for the exact query and any incomplete-search warning beside the results, then inspect one match yourself.",
+    "schedule the search after that trial and use **Edit** to change the question when the investigation moves to another component."
+  ],
+  "watch": [
+    "it only searches repositories your connected github account can see; a private one it can't see won't show up.",
+    "each page contains only a slice of results. unread pages and github search limits can both leave gaps the bot should disclose.",
+    "keywords and qualifiers narrow the search, but a match is only a candidate. read the report before calling it a duplicate or a fix."
+  ],
+  "faq": [
+    {
+      "q": "can it search only pull requests?",
+      "a": "yes. ask for pull requests only and it adds that to the search. ask it to show you the search it ran."
+    },
+    {
+      "q": "does an empty search prove an issue is new?",
+      "a": "no. access restrictions, wording differences and search limits can hide related records. try a narrower repository search and another phrase before deciding."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

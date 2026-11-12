@@ -43,12 +43,12 @@
 <header class="seo-top"><h1>claude code from telegram, discord or slack</h1>
 <p class="lede seo-answer">to talk to a claude code session through telegram, discord or slack, a custom bridge would need to carry messages between the chat app and the session. that means choosing how it handles identity, approvals and a running computer. alternatives include anthropic's remote control or texting a bot inside dusk bot. posting a result into slack is a separate job from controlling the bot there.<sup><a href="#src-1" aria-label="source 1">1</a></sup><sup><a href="#src-2" aria-label="source 2">2</a></sup></p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/guides--claude-code-telegram-discord-slack.webp?v=c6d34125" srcset="/art/seo/guides--claude-code-telegram-discord-slack-660.webp 660w, /art/seo/guides--claude-code-telegram-discord-slack.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a cyan pixel bot and a yellow pixel bot beside a tile saying Claude Code, a phone and two chat bubbles, on a grassy meadow in front of snowy hills and green fields, one saying &quot;chat, control or post?&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/guides--claude-code-telegram-discord-slack.webp?v=c6d34125" srcset="/art/seo/guides--claude-code-telegram-discord-slack-660.webp 660w, /art/seo/guides--claude-code-telegram-discord-slack.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a cyan pixel bot and a yellow pixel bot beside a tile saying Claude Code, a phone and two chat bubbles, on a grassy meadow in front of snowy hills and green fields, one saying &quot;chat, control or post?&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="first-decide-which-conversation-you-mean"><h2 id="first-decide-which-conversation-you-mean">first decide which conversation you mean</h2>
 <p>there are three different requests hidden in &quot;claude code in slack&quot;. you might want to control a session from a slack message. you might want a bot to read team discussion. or you might only want a finished report posted in a channel.</p>
 <p>choose one before installing a bridge. a posting action is not evidence that a chat app can control the whole session. access to conversation history is not permission to accept instructions from every person in that conversation. write down who should be able to direct the bot and where its replies should go.</p>
 </section>
-<section class="seo-sec" aria-labelledby="what-a-do-it-yourself-bridge-needs-to-solve"><h2 id="what-a-do-it-yourself-bridge-needs-to-solve">what a do-it-yourself bridge needs to solve</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="what-a-do-it-yourself-bridge-needs-to-solve"><h2 id="what-a-do-it-yourself-bridge-needs-to-solve">what a do-it-yourself bridge needs to solve</h2><img class="seo-spot" src="/art/s-plug.webp?v=9ca8a981" alt="" width="420" height="377" loading="lazy" decoding="async">
 <p>a bridge design would need an incoming-message path, a way to pass the request to the session and a way to return the result. it would also need decisions about:</p>
 <ul><li><strong>identity:</strong> which person or channel is allowed to issue a request.</li><li><strong>conversation:</strong> how a new message maps to an existing task.</li><li><strong>approvals:</strong> where questions reach you and how an answer gets back.</li><li><strong>uptime:</strong> which computer keeps the session alive.</li><li><strong>failures:</strong> how you tell a lost connection from a completed task.</li></ul>
 <p>we don't recommend a particular bridge project. if you cannot inspect how those boundaries work, choose a route you can understand before exposing an important account.</p>
@@ -56,7 +56,7 @@
 <section class="seo-sec" aria-labelledby="anthropic-remote-control-is-a-documented-route"><h2 id="anthropic-remote-control-is-a-documented-route">anthropic remote control is a documented route</h2>
 <p>as of 12 november 2026, remote control connects claude.ai/code or the claude ios and android app to a claude code session on your machine, which must stay on with the claude process running.<sup><a href="#src-1" aria-label="source 1">1</a></sup> it doesn't work from telegram, discord or slack; the <a href="/claude-code-from-your-phone">phone guide</a> compares where the session lives.</p>
 </section>
-<section class="seo-sec" aria-labelledby="dusk-bot-gives-the-bot-a-chat-of-its-own"><h2 id="dusk-bot-gives-the-bot-a-chat-of-its-own">dusk bot gives the bot a chat of its own</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="dusk-bot-gives-the-bot-a-chat-of-its-own"><h2 id="dusk-bot-gives-the-bot-a-chat-of-its-own">dusk bot gives the bot a chat of its own</h2><img class="seo-spot" src="/art/kit/p-newspaper.webp?v=d2312431" alt="" width="420" height="316" loading="lazy" decoding="async">
 <p>dusk bot is an app where you keep named bots with jobs, chats, memory and the ai you picked. it runs official ai command-line apps on the machine where the bots live. you text the bot in dusk bot rather than building a channel bridge yourself.<sup><a href="#src-2" aria-label="source 2">2</a></sup></p>
 </section>
 <section class="seo-sec" aria-labelledby="posting-to-slack-is-a-different-connection"><h2 id="posting-to-slack-is-a-different-connection">posting to slack is a different connection</h2>
@@ -68,6 +68,13 @@
 <p>use remote control when you want anthropic's documented window into a running local session. use dusk bot when you want your bots' own conversations and a separate app-connection setup. consider a custom bridge only when you need that specific chat entry point and can maintain the missing pieces.</p>
 <p>before connecting any route, use the <a href="/guides/is-it-safe-to-let-ai-control-your-computer">safety guide</a> to decide what the session may reach. a convenient message box is useful, but it is not a reason to widen access or hide approvals.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="is-there-an-official-telegram-bridge-for-claude-code">is there an official telegram bridge for claude code?</h3>
 <p>anthropic's documented phone route is remote control; we don't know of an official telegram bridge.<sup><a href="#src-1" aria-label="source 1">1</a></sup></p>

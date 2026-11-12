@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>meeting prep briefs for outside calls, every weekday at 8</h1>
 <p class="lede seo-answer">ask a bot every weekday at 8 for a brief for each meeting that day with someone outside your organisation. it reads the calendar entries and your recent email with the attendees, then tells you who they are according to those records, what you last discussed and what is still open. the briefs stay in your chat. missing background should come back as a question, not a guessed biography.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/routines--meeting-prep-brief.webp?v=069d9fec" srcset="/art/seo/routines--meeting-prep-brief-660.webp 660w, /art/seo/routines--meeting-prep-brief.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a indigo pixel bot, a pink pixel bot and a purple pixel bot beside a notebook and an alarm clock and a calendar, on a lilac hill in front of a birch wood under purple hills, one saying &quot;before you join&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/routines--meeting-prep-brief.webp?v=069d9fec" srcset="/art/seo/routines--meeting-prep-brief-660.webp 660w, /art/seo/routines--meeting-prep-brief.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a indigo pixel bot, a pink pixel bot and a purple pixel bot beside a notebook and an alarm clock and a calendar, on a lilac hill in front of a birch wood under purple hills, one saying &quot;before you join&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-message"><h2 id="the-message">the message</h2>
 <div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every weekday at 8, for each meeting today with someone outside my organisation, prepare a brief in this chat. use the work calendar and work mailbox i named. treat the internal email domains i give you as internal; ask if the boundary is unclear. skip cancelled events and meetings with only internal attendees.
 
@@ -55,7 +55,7 @@ read the event and recent email threads with the outside attendees. give me:
 
 include references to the event and relevant messages. say when you cannot find prior email or confirm someone's role. don't search unrelated personal mail, send anything or change the event.</code></pre><button class="copy" type="button" data-copy>copy</button></div><dl class="seo-specs"><div><dt>when</dt><dd>every weekday at 8:00, reviewing today’s meetings against the calendar and internal domains you specify</dd></div><div><dt>needs</dt><dd>google calendar and gmail, or outlook calendar and mail; read-only access to the chosen work accounts</dd></div></dl>
 </section>
-<section class="seo-sec" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="what-comes-back"><h2 id="what-comes-back">what comes back</h2><img class="seo-spot" src="/art/kit/p-binoculars.webp?v=81824b0d" alt="" width="420" height="406" loading="lazy" decoding="async">
 <p class="code-label">an example, not a real run</p><div class="code plain seo-sample"><pre><code>14:30 call with priya at northstar works
 purpose: review the draft support agreement, from the event description.
 who: priya's latest email signature says operations lead. sam is also invited; no role found.
@@ -67,13 +67,20 @@ source notes: today's calendar event and the latest northstar works email thread
 <section class="seo-sec" aria-labelledby="make-it-yours"><h2 id="make-it-yours">make it yours</h2>
 <ul><li>define outside precisely: list your internal email domains and any partner domains you want treated as internal</li><li>set a narrower mail window, such as the past month, if old conversations keep crowding out the current topic</li><li>limit the brief to one screen: purpose, last exchange, open promise and a question</li><li>exclude sensitive appointments by calendar or title rather than giving the bot every event you keep</li><li>choose a weekday run time before your first outside call and check the routine card’s next runs and time zone</li></ul>
 </section>
-<section class="seo-sec" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2>
+<section class="seo-sec seo-warned" aria-labelledby="when-it-goes-wrong"><h2 id="when-it-goes-wrong">when it goes wrong</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-pink seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="mochi"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M3 8h10v1h-10zM2 9h12v1h-12zM1 10h2v3h-2zM5 10h6v3h-6zM13 10h2v3h-2zM1 13h14v2h-14zM2 15h12v1h-12z"/><path class="px-e" fill="#fff" d="M3 10h2v3h-2zM11 10h2v3h-2z"/></g></svg></span>
 <ul><li>it mixes up two people with the same name. require the attendee's exact email address when finding prior conversations, and keep uncertain matches out of the brief.</li><li>a meeting changes after the morning review. ask the bot to refresh that brief before the call; the weekday 8:00 schedule does not automatically follow every calendar edit.</li><li>there is no prior email. a short brief saying that is correct. supply your call notes if the last discussion happened elsewhere.</li><li>the 8:00 briefs arrive late because the computer was asleep. a local run missed by less than 12 hours runs once when you return, which can be too late for morning preparation. check run history or use an always-on machine.</li></ul>
 </section>
 <section class="seo-sec" aria-labelledby="a-small-brief-with-a-clear-evidence-boundary"><h2 id="a-small-brief-with-a-clear-evidence-boundary">a small brief with a clear evidence boundary</h2>
 <p>this routine uses the event and mail you already have, not an invented profile of the person. <a href="/integrations/google-calendar">google calendar</a> provides event reads; see <a href="/integrations/outlook">outlook</a> if that is where your work account lives. gmail is another supported mailbox. keep each app read-only.</p>
 <p>an email signature can be old, so say where a role came from rather than calling it verified current employment. if you need a whole day's overview instead, the <a href="/use-cases/daily-briefing">daily briefing</a> is a better shape. after sending the message, inspect the schedule card and next runs before relying on the first brief.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="will-it-join-the-call-or-record-the-meeting">will it join the call or record the meeting?</h3>
 <p>this routine does neither. every weekday at 8 it reads today’s events and prior email to prepare text briefs for your outside meetings.</p>

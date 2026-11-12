@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/google-sheets/get-spreadsheet-values",
+  "type": "action",
+  "title": "Read Google Sheets cell values with AI from a set range",
+  "nav": "get spreadsheet values",
+  "h1": "ask about the values in a specific google sheets range",
+  "description": "Read a chosen Google Sheets range with a bot, using calculated values or formulas. Set the exact file, tab and range, and understand its Dusk access rule.",
+  "keyword": "read google sheets values with ai",
+  "keywords": [
+    "google sheets get cell values with ai",
+    "chatgpt read google sheets range",
+    "claude retrieve spreadsheet values"
+  ],
+  "answer": "a bot can retrieve values from a named range in a google spreadsheet and explain them in chat. choose whether you need formatted figures, raw calculated values or the formulas themselves. dusk classifies this action as a write, despite its value-reading purpose, so a read-only bot cannot call it. allow this exact action if you need the retrieval without enabling unrelated sheet changes.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google sheets",
+    "cell values",
+    "range reading"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/sort-range",
+    "/integrations/google-sheets/set-basic-filter"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-key"
+    ],
+    "bubble": "read this range"
+  },
+  "og_line": "the numbers from the range you chose.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_VALUES_GET"
+  },
+  "what": "paste the sheet's link and say which tab and cells you mean, like \"cost review, A1 to D12\".\n\nformatted values are the default, so a currency or date may arrive as displayed text. ask for unformatted calculated values when the job requires arithmetic, or formulas when you need to inspect the expression rather than its result.",
+  "uses": [
+    "read a quoted price table without editing the source spreadsheet",
+    "explain the formulas used in a small costing range",
+    "compare calculated figures from a named monthly summary without importing the whole workbook"
+  ],
+  "routine": {
+    "message": "every tuesday at 14:05, retrieve the values in A1:D12 of the cost review tab in the lunecrest print sheet i linked here. use unformatted calculated values for arithmetic and show the quoted range beside your comparison of paper and binding costs. return the comparison in this chat, marking blanks separately from zero. never update cells, reorder rows or widen the range without asking me.",
+    "when": "tuesdays at 14:05",
+    "needs": "google sheets connected with read and write access limited to get spreadsheet values",
+    "output": "lunecrest print, cost review A1:D12\npaper: 180\nbinding: 95\ndifference: 85\nblank delivery cost excluded; no cells changed."
+  },
+  "steps": [
+    "open **Connected apps** and enable **read and write** for sheets with only this retrieval action allowed.",
+    "paste the spreadsheet link and state the exact tab and cell range.",
+    "choose calculated values or formulas before asking the question so the bot reads the right representation.",
+    "confirm one result against the source range, then inspect the scheduled card. **Edit** lets you revise the range-reading schedule."
+  ],
+  "watch": [
+    "if the bot says it can't find the range, check the tab name is spelled exactly as in sheets.",
+    "very big ranges can fail. the bot can read a long sheet a few hundred rows at a time.",
+    "formula mode returns expressions, not their calculated answers. date rendering also needs an explicit choice when raw serial numbers would be confusing."
+  ],
+  "rules": "keep this retrieval on an exact action list. its write classification is an access requirement, not a reason to enable sorting, cell updates or other changes.",
+  "faq": [
+    {
+      "q": "can it show formulas instead of the displayed totals?",
+      "a": "yes. request the formula render option. use calculated-value options when you want to compare the resulting numbers instead."
+    },
+    {
+      "q": "why is read-only access refusing a cell lookup?",
+      "a": "dusk bot counts this action as a change, even though it only reads. give the bot read and write for sheets, but limit it to this one action so it still can't edit anything."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

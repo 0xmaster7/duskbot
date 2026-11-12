@@ -1,0 +1,92 @@
+{
+  "path": "/integrations/google-drive/export-google-workspace-file",
+  "type": "action",
+  "title": "Export Google Docs, Sheets or Slides with AI",
+  "nav": "export workspace file",
+  "h1": "get a portable copy of a google workspace file",
+  "description": "Have a bot export a Google Workspace file to a compatible format such as PDF or DOCX. Check the source, output type and 10 MB export limit first.",
+  "keyword": "google drive export workspace file with ai",
+  "keywords": [
+    "chatgpt export google doc",
+    "claude export google slides pdf",
+    "ai convert google workspace file"
+  ],
+  "answer": "a bot can export a google doc, spreadsheet, presentation or another supported workspace file into a compatible format and return the copy in your chat. it needs the source file id and the requested output type. google limits exported content to 10 mb, and even though it only makes a copy, dusk counts it as a change, so the bot needs read and write access to drive.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google-drive",
+    "export workspace file"
+  ],
+  "connectors": [
+    "googledrive"
+  ],
+  "related": [
+    "/integrations/google-drive",
+    "/integrations/google-drive/find-file"
+  ],
+  "art": {
+    "logo": "drive",
+    "label": "Google Drive",
+    "props": [
+      "s-parcel",
+      "p-folder"
+    ],
+    "bubble": "a copy to take away"
+  },
+  "og_line": "a portable copy, with its format chosen.",
+  "action": {
+    "toolkit": "googledrive",
+    "slug": "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE"
+  },
+  "what": "begin with the source file link or ask the bot to find it. then name the format you need. supported choices depend on the source: a google doc can become docx or pdf, a spreadsheet can become xlsx or csv, and a presentation can become pptx or pdf. you just say \"pdf\" or \"word\"; the bot handles the rest.\n\nthis exports file content rather than sharing the live original. it works on google docs, sheets, slides and drawings, not on pdfs or photos you uploaded. choose a supported workspace source and inspect the exported copy before using it elsewhere.",
+  "uses": [
+    "make a docx copy of a google doc for an offline editor",
+    "save a presentation as pdf before carrying it to a venue",
+    "get an xlsx version of a spreadsheet for a recipient who uses excel",
+    "export a plain-text copy of a document for a separate reading task"
+  ],
+  "routine": {
+    "message": "every sunday at 7, export the google document i linked for northmere choir's rehearsal notes as a docx file. show me the source title and requested format first and ask before exporting, then return the copy in this chat. report an export-size failure without promising a complete file. never share the source document, email the copy or change the original notes.",
+    "when": "sundays at 19:00",
+    "needs": "google drive connected, with read and write access for workspace-file export",
+    "output": "northmere choir rehearsal notes\nrequested copy: docx\nexported file: rehearsal-notes.docx\nreturned in chat for checking before offline editing."
+  },
+  "steps": [
+    "connect google drive in **Connected apps**, allowing **read and write** for this export task.",
+    "give the workspace file link and the format you need, then ask the bot to confirm the file and what kind it is.",
+    "include a review instruction before export if you want to approve the source and format; **Ask every time** for sends does not cover it.",
+    "open the returned file to check the conversion and **Pause** the routine when you no longer need regular copies."
+  ],
+  "watch": [
+    "google caps exported content at 10 mb, so larger exports can fail rather than return the whole document.",
+    "each kind of file has its own formats; a slide deck can't become a spreadsheet.",
+    "this is for supported google workspace sources, not a general converter for every file stored in drive."
+  ],
+  "faq": [
+    {
+      "q": "why does it need write access just to make a copy?",
+      "a": "dusk counts this export as a change, so read only won't do. you can give read and write and limit the bot to just this action."
+    },
+    {
+      "q": "does exporting give someone access to the original?",
+      "a": "the action returns exported file content. it does not change sharing permissions; sending that copy to somebody is a separate step."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "path": "/integrations/jira/add-comment",
+  "type": "action",
+  "title": "Write Jira comments with AI: post a clear test update",
+  "nav": "add issue comment",
+  "h1": "put a clear test update on a jira issue",
+  "description": "Turn test notes into a Jira comment with an AI bot. Review formatting, check who can see it and approve the comment before it reaches the issue.",
+  "keyword": "add jira comment with ai",
+  "keywords": [
+    "jira write comment with ai",
+    "chatgpt post jira comment",
+    "claude jira test update",
+    "ai jira comment formatting"
+  ],
+  "answer": "a bot can turn your test notes into a formatted comment on an existing jira issue, with lists, links and emphasis. it looks up the issue from the project and problem you name before preparing the comment. dusk treats posting it as a send, which asks first by default unless a daily allowance is set. check the audience as well as the wording before approving.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "jira",
+    "comments",
+    "testing"
+  ],
+  "connectors": [
+    "jira"
+  ],
+  "related": [
+    "/integrations/jira",
+    "/integrations/jira/assign-issue"
+  ],
+  "art": {
+    "label": "Jira",
+    "props": [
+      "p-bubbles",
+      "p-shield"
+    ],
+    "bubble": "test update ready"
+  },
+  "og_line": "test evidence where the team can read it.",
+  "action": {
+    "toolkit": "jira",
+    "slug": "JIRA_ADD_COMMENT"
+  },
+  "what": "when a test needs an explanation, the bot can add your outcome and reproduction steps to the issue's discussion. it uses jira issue search to locate the work, then posts the comment you approve. the input supports markdown, which is converted for jira's rich text comments; a clickable link needs link text rather than a bare address.\n\nyou can also request a comment restricted to a project role or group. the bot must check the actual role or group name, and group restrictions require an administrator to enable them. it should stop if your requested audience cannot be confirmed.",
+  "uses": [
+    "post the steps and observed result from a failed checkout test",
+    "leave a release verification note with labelled links to the evidence",
+    "keep an internal investigation comment limited to an existing project role",
+    "answer an issue question with the agreed facts and a clear distinction between expected and observed behaviour"
+  ],
+  "routine": {
+    "message": "every thursday at 4, gather the new verification notes i marked for jira in this chat since your previous run. find each matching issue in the payments project and write a comment with separate observed result and next check lines, using only those notes. show the issue, proposed comment and any visibility restriction here, and wait for my approval before posting. never include customer details, mention people or post with a wider audience if a requested restriction fails.",
+    "when": "thursdays at 4",
+    "needs": "jira connected, with read and write access for this bot",
+    "output": "comment posted after review on pay-73\n\nobserved result: liora at wildglass systems saw the retry screen after the test payment timed out.\nnext check: repeat with a fresh session.\nvisibility: the project role you approved."
+  },
+  "steps": [
+    "enable jira for the bot through **Connected apps**, using **read and write** so it can add the comment.",
+    "choose **Ask every time** under **Sending on your behalf**, then test a comment on an issue you can inspect.",
+    "for **Full access**, do not leave sending unset: a bot without its own sending rule may send up to 25 a day without asking.",
+    "check the proposed audience and links before choosing **Allow**; schedule the verification-note job once that first comment looks right."
+  ],
+  "watch": [
+    "a group-only comment needs group visibility enabled by a jira administrator. a role or group name from another project may not fit this issue.",
+    "plain web addresses are not made clickable by this input. ask the bot for a labelled markdown link.",
+    "a daily sending allowance permits comments within it without an individual yes, so confirm the bot's sending choice before relying on review.",
+    "the issue reference must come from the intended project. a similar title is not enough reason to post test evidence."
+  ],
+  "faq": [
+    {
+      "q": "can the bot make a jira comment internal?",
+      "a": "it can request a role or group restriction, using names valid for your jira setup. that is a specific audience rule, so the bot should confirm it can apply the restriction rather than assume 'internal' means the same everywhere."
+    },
+    {
+      "q": "can it mention a teammate in the comment?",
+      "a": "the comment input supports mentions by username or display name. ask for a mention only when you intend to include that person, and review it with the rest of the proposed text."
+    },
+    {
+      "q": "does it support a test checklist?",
+      "a": "it supports formatted lists and emphasis. tell the bot what passed, what failed and what remains unchecked so the formatting does not imply a test happened when it did not."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ]
+}

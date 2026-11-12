@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/google-sheets/sort-range",
+  "type": "action",
+  "title": "Sort Google Sheets rows with AI using clear column rules",
+  "nav": "sort a range",
+  "h1": "sort a google sheets range without splitting records",
+  "description": "Ask a bot to sort a bounded Google Sheets range by one or more columns. Keep headers and related cells together and approve the row order first.",
+  "keyword": "sort google sheets with ai",
+  "keywords": [
+    "google sheets sort rows with ai",
+    "chatgpt sort google sheets range",
+    "claude sort spreadsheet by multiple columns"
+  ],
+  "answer": "a bot can reorder the cells in a chosen google sheets range using one or more column rules. later rules break ties in earlier ones, such as sorting by due date and then by customer. include every column that belongs to each record so values stay together. sorting doesn't ask you first, so tell the bot to show you the plan and wait.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google sheets",
+    "sorting",
+    "row order"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/google-sheets/get-spreadsheet-values",
+    "/integrations/google-sheets/set-basic-filter"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "s-signpost"
+    ],
+    "bubble": "due dates in order"
+  },
+  "og_line": "sort records with all their columns.",
+  "action": {
+    "toolkit": "googlesheets",
+    "slug": "GOOGLESHEETS_SORT_RANGE"
+  },
+  "what": "this changes the row order inside the range you specify. a multi-column sort has a priority: the second column only decides order when the first has equal values. the bot needs the sheet link, the block of rows to sort and what to sort by.\n\nshare the spreadsheet link and identify the tab, headers, record columns and last row. have the bot confirm the grid range against that structure. sorting just one column of a wider record can separate dates or names from the values they describe.",
+  "uses": [
+    "put a dispatch queue in due-date order with customer name as the tie-breaker",
+    "sort a complete attendance table alphabetically while leaving the header above it",
+    "group a bounded job list by stage and then by scheduled date"
+  ],
+  "routine": {
+    "message": "every thursday at 16:30, inspect the dispatch tab in the ottervale joinery spreadsheet i linked. propose sorting all columns of its current job records by due date ascending, then customer ascending, excluding the header and totals. show the exact range and sort rules here, and wait for my agreement before sorting; confirm completion in this chat. never sort a single record column on its own or include the totals row.",
+    "when": "thursdays at 16:30",
+    "needs": "google sheets connected, read and write access for inspecting the table and sorting the agreed range",
+    "output": "ottervale dispatch sort proposal\nrecords: dispatch A2:F24\nfirst: due date, earliest first\nthen: customer, a to z\nheader and totals excluded; waiting before reordering."
+  },
+  "steps": [
+    "connect sheets in **Connected apps** with **read and write** and allow only the inspection and sort actions needed.",
+    "give the spreadsheet link and explain where complete records begin and end, including every related column.",
+    "name the primary sort column, its direction and any tie-breaker. require a range preview and your agreement before execution.",
+    "check that the first sorted records still have their own dates and quantities. **Pause** scheduled sorting if the table layout changes."
+  ],
+  "watch": [
+    "all cells inside the selected range are reordered. include the full record width and exclude headers or totals deliberately.",
+    "later sort rules only break ties. reversing the priority can produce a different queue even with the same columns.",
+    "open the sheet after the first sort and check a few rows still line up."
+  ],
+  "faq": [
+    {
+      "q": "can it sort by two columns?",
+      "a": "yes. provide the rules in priority order. the later rule is used when values match under the earlier rule."
+    },
+    {
+      "q": "will sorting wait for me to approve it?",
+      "a": "only if your instructions require that review. this is an app write, so sending approval settings do not automatically pause it."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

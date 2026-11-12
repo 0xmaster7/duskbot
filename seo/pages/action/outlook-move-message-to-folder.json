@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/outlook/move-message-to-folder",
+  "type": "action",
+  "title": "Move Outlook messages to a chosen folder with AI",
+  "nav": "move message to folder",
+  "h1": "move an outlook email into the right folder",
+  "description": "Have a bot move an Outlook email into the right folder, checking the email and the folder before anything moves.",
+  "keyword": "outlook move email to folder with ai",
+  "keywords": [
+    "chatgpt move outlook message",
+    "claude file outlook email",
+    "ai outlook folder filing"
+  ],
+  "answer": "a bot can move an outlook message from its current folder into another folder in the same mailbox. it finds the exact email and destination folder before filing. moving is a write, which the sending approval setting does not cover; ask explicitly for a preview if you want one.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "outlook",
+    "move message to folder"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-mailbox",
+      "p-folder"
+    ],
+    "bubble": "file this exact email"
+  },
+  "og_line": "a known message in a known folder.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_MOVE_MESSAGE"
+  },
+  "what": "the bot finds the email and the folder first, then moves it. it won't guess a folder from a similar name.\n\nif a move fails, ask the bot to find the email again before retrying. this action moves mail within one user's mailbox, not into another person's inbox.",
+  "uses": [
+    "file a completed warranty claim under its existing project folder",
+    "move an event confirmation out of the inbox after adding its details to your plan",
+    "return an incorrectly filed message to the intended folder",
+    "keep an agreed supplier thread's individual messages in the same mailbox folder"
+  ],
+  "routine": {
+    "message": "every friday at 11:55, find outlook messages i marked ready to file in this chat for oakmarsh warranties. look up the existing \"warranties / completed\" folder and show the selected subjects and destination here before moving them. after i confirm, move only those messages and report each result. never create folders, delete mail or guess which email i mean.",
+    "when": "fridays at 11:55",
+    "needs": "outlook connected, with read and write access to the mailbox folders",
+    "output": "oakmarsh warranties filing plan\nmessage: replacement hinge confirmation\ndestination: warranties / completed\nfull message and folder references found. awaiting your confirmation."
+  },
+  "steps": [
+    "choose the correct mailbox in **Connected apps** and permit **read and write** for the filing bot.",
+    "ask it to list folders and identify your destination before giving it a move request.",
+    "check one message subject and the destination folder, then put the approval checkpoint in the routine.",
+    "verify the destination after the first move and use **Pause** if any filing rule becomes unclear."
+  ],
+  "watch": [
+    "if a move fails, ask the bot to find the email again and try once more.",
+    "move a big batch a few at a time."
+  ],
+  "faq": [
+    {
+      "q": "can it make a new folder if it's missing?",
+      "a": "no. this only moves mail into a folder you already have. make the folder in outlook first."
+    },
+    {
+      "q": "will this move mail into a colleague's mailbox?",
+      "a": "the action moves a message between folders within the specified user's mailbox. transferring to another mailbox is not what it does."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

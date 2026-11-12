@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/gmail/send-draft",
+  "type": "action",
+  "title": "Send a Gmail draft with AI after checking its contents",
+  "nav": "send draft",
+  "h1": "ask ai to send the gmail draft you already checked",
+  "description": "Send an existing Gmail draft by its draft ID. Learn why the bot must check its saved recipients and content, and how to keep each send under review.",
+  "keyword": "send gmail draft with ai",
+  "keywords": [
+    "chatgpt send gmail draft",
+    "claude send existing gmail draft",
+    "ai send saved gmail drafts"
+  ],
+  "answer": "a saved gmail draft can be sent by your bot once it has found the right draft. this action delivers the recipients and content already stored in that draft; it cannot correct them as it sends. sending asks you first by default, unless you set a daily amount; a bot on **Full access** with no sending rule can send up to 25 a day without asking. read the saved draft itself before giving the go-ahead, especially its cc and bcc fields.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "saved drafts",
+    "send review"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/create-email-draft",
+    "/integrations/gmail/send-email"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-notebook",
+      "s-mailbox"
+    ],
+    "bubble": "send this saved draft"
+  },
+  "og_line": "check the saved copy before it leaves.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_SEND_DRAFT"
+  },
+  "what": "use this when the email is already sitting in gmail drafts, whether you wrote it yourself or a bot prepared it earlier. the bot lists your drafts, opens the one you mean and shows it to you before sending.\n\nthe send uses the to, cc and bcc headers already in the draft. if a recipient or sentence needs changing, do that separately and check the updated version before calling this action.",
+  "uses": [
+    "deliver a proposal you finished editing in gmail after the customer confirms the deadline",
+    "send the saved venue confirmation once you have checked the booking reference",
+    "release a prepared introduction email after both people agree to be introduced"
+  ],
+  "routine": {
+    "message": "every weekday at 4, list my gmail drafts whose subject starts with \"ready:\". show me each one's to, cc, bcc and full text here and ask before sending each. send only the ones i allow, exactly as saved. never rewrite a draft or send one i haven't seen.",
+    "when": "weekdays at 16:00",
+    "needs": "gmail connected, with read and write access; **Sending on your behalf** set to **Ask every time**",
+    "output": "1 draft marked ready\n\nsubject: ready: orchard quay venue confirmation\nto: anouk@orchardquay.example\ncc: none\nbcc: none\n\nwe confirm the room booking for the agreed date. please keep the entrance clear for our equipment.\n\nsend this saved copy?"
+  },
+  "steps": [
+    "enable gmail for your bot under **Connected apps**, with **read and write** rather than **read only**.",
+    "if you limit the bot to certain gmail actions, include listing and opening drafts as well as sending, so it can show you the draft first.",
+    "choose **Ask every time** in **Sending on your behalf** and try the process with a draft addressed to you.",
+    "confirm the saved copy, then approve its send. when you stop marking drafts ready, choose **Pause** to stop the daily check."
+  ],
+  "watch": [
+    "with **Full access** and no separate sending rule, a bot may send up to 25 a day without asking. assign **Ask every time** even if you already chose full access.",
+    "editing your message in dusk chat does not edit the gmail draft. change the saved draft through a separate draft update before sending it.",
+    "if two drafts share a subject, the bot should ask which one rather than guess."
+  ],
+  "faq": [
+    {
+      "q": "can it change the recipient when it sends the draft?",
+      "a": "the saved recipient headers decide where it goes. update and recheck the draft first if an address is wrong."
+    },
+    {
+      "q": "how does it know which draft i mean?",
+      "a": "give a distinctive subject and account, then have the bot list drafts and retrieve the match. if several fit, it should bring the choices back to you rather than pick one."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

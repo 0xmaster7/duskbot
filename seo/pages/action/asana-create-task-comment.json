@@ -1,0 +1,99 @@
+{
+  "path": "/integrations/asana/create-task-comment",
+  "type": "action",
+  "title": "Add Asana task comments with AI from your working notes",
+  "nav": "add task comment",
+  "h1": "turn your notes into a comment on the right asana task",
+  "description": "Have an AI bot add a plain text comment to an Asana task. Find the right task, review the words and keep rich formatting out of the request.",
+  "keyword": "add asana task comment with ai",
+  "keywords": [
+    "asana comment with ai",
+    "chatgpt write asana comment",
+    "claude add asana task comment",
+    "asana ai task updates"
+  ],
+  "answer": "a bot can turn the update you give it into a plain text comment on an existing asana task. it finds the task by name in the project you mean, checks the match and adds the comment to its activity feed. commenting counts as sending in dusk bot, so it asks first by default unless you have set a daily sending amount.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "asana",
+    "comments",
+    "task-updates"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/asana",
+    "/integrations/asana/get-a-task"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "p-bubbles",
+      "s-notebook"
+    ],
+    "bubble": "update on the task"
+  },
+  "og_line": "your update beside the work it describes.",
+  "action": {
+    "toolkit": "asana",
+    "slug": "ASANA_CREATE_TASK_COMMENT"
+  },
+  "what": "a task comment puts your progress note where the people following the work can read it. the bot can find the task through retrieve tasks for project, open it with get a task and then add your text. it needs both the chosen task and the words to post.\n\nthis comment action accepts plain text only. headings, links or emphasis that depend on html or rich text are outside its input. keep the message readable as ordinary sentences, and check that it names only work you actually reported.",
+  "uses": [
+    "leave a test outcome beside the task the team is about to review",
+    "record a supplier's confirmed delivery change without moving the task's due date",
+    "put an approved answer to a design question into the task's discussion",
+    "after a work session, post what finished and the one question still open"
+  ],
+  "routine": {
+    "message": "on fridays at 11, read the test summaries i have marked ready to post in this chat since the last run. find their matching tasks in the mobile checkout project and prepare one plain text comment per task using only my notes. show each task name and comment here for approval before posting, then tell me which comments reached asana. never invent a pass result or change the task itself.",
+    "when": "fridays at 11",
+    "needs": "asana connected, with read and write access for this bot",
+    "output": "posted after approval\n\nreceipt layout test: 'niko checked the tablet view at plumridge labs. the receipt fits; the footer spacing still needs review.'\n\nthe task's dates and assignment were left alone."
+  },
+  "steps": [
+    "choose asana in **Connected apps**, then allow **read and write** for this commenting bot; reading access cannot post comments.",
+    "set **Sending on your behalf** to **Ask every time** so each proposed task comment waits for review.",
+    "if the bot has **Full access**, give it that sending rule explicitly: without its own rule it may send up to 25 a day without asking.",
+    "try one short task update and check the activity feed before making the Friday message a routine."
+  ],
+  "watch": [
+    "the task must be accessible to the connected asana account. similar task names need a project check before posting.",
+    "html and rich text are not supported by this comment field. use plain text that stands on its own.",
+    "a daily sending amount can let comments go out without individual approval. keep the explicit sending rule when you want to read every update.",
+    "on your computer, the Friday routine waits while the machine sleeps or dusk bot is closed; dusk cloud runs scheduled jobs on time."
+  ],
+  "faq": [
+    {
+      "q": "can it post the comment without changing the deadline?",
+      "a": "yes. this action adds a comment to the task activity feed and does not edit task fields. restrict the bot to the lookup and comment actions if that is its whole job."
+    },
+    {
+      "q": "will bold text and formatted lists carry over?",
+      "a": "the text field supports plain text, not html or rich text. ask for short lines that remain clear without formatting."
+    },
+    {
+      "q": "what if two asana tasks have the same title?",
+      "a": "the bot should show the matches with their projects and let you choose. you name the work; it handles finding the right task before it posts."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and approval settings",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -43,7 +43,7 @@
 <header class="seo-top"><h1>turn your shipped work into posts you approve</h1>
 <p class="lede seo-answer">give a bot your approved shipping notes and ask it to draft posts about what actually changed. keep the drafts in chat until you have checked availability, wording and links. posting is a send, so choose ask every time and leave any daily sending allowance off. the x connection needs your own composio project key and auth configuration; you can still draft without connecting a social account.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/use-cases--social-media-posting.webp?v=42921c21" srcset="/art/seo/use-cases--social-media-posting-660.webp 660w, /art/seo/use-cases--social-media-posting.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a cyan pixel bot and a pink pixel bot beside a megaphone and a notebook, on a lemon field in front of a lily pond, one saying &quot;shipped, then shared&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/use-cases--social-media-posting.webp?v=42921c21" srcset="/art/seo/use-cases--social-media-posting-660.webp 660w, /art/seo/use-cases--social-media-posting.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a cyan pixel bot and a pink pixel bot beside a megaphone and a notebook, on a lemon field in front of a lily pond, one saying &quot;shipped, then shared&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="the-routine"><h2 id="the-routine">the routine</h2>
 <p>send the release notes you have cleared for public use, including the release link and anything still private. drafting in chat needs no social connection. connect x only if you want the bot to post after review.</p><div class="code seo-copy"><p class="code-label">paste this into a chat with your bot</p><pre><code>every friday at 1pm, use only this week’s approved shipping notes i supplied in this chat. draft two possible posts for x: one explaining a user-visible change, one showing a practical use for it. if there is no approved change, skip the drafts and say why.
 
@@ -60,7 +60,7 @@ source: the same shipping note; the handover scenario is an illustration.
 held back: jo’s mobile layout work is still private.
 needs review: no public release url supplied. neither option posted.</code></pre></div>
 </section>
-<section class="seo-sec" aria-labelledby="start-with-shipped-work-you-can-point-to"><h2 id="start-with-shipped-work-you-can-point-to">start with shipped work you can point to</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="start-with-shipped-work-you-can-point-to"><h2 id="start-with-shipped-work-you-can-point-to">start with shipped work you can point to</h2><img class="seo-spot" src="/art/s-key.webp?v=0df6fb55" alt="" width="420" height="288" loading="lazy" decoding="async">
 <p>a merge, a draft announcement and a feature available to customers are different things. tell the bot which notes are approved and which audience can use the change. if rollout is uncertain, the draft should ask you a question rather than announce availability.</p>
 <p>you can paste notes yourself. if you want to explore a repository connection later, read the <a href="/integrations/github">github guide</a> and choose its access separately. this routine does not require access to your code or private issues.</p>
 </section>
@@ -68,13 +68,20 @@ needs review: no public release url supplied. neither option posted.</code></pre
 <p>the twitter toolkit includes a create-post action, but its managed sign-in is unavailable. you need your own composio project key and auth configuration to connect x.<sup><a href="#src-3" aria-label="source 3">3</a></sup> do that setup before expecting the bot to publish. the <a href="/integrations/twitter">x integration guide</a> covers the connection.</p>
 <p>keep <strong>Ask every time</strong> selected for sending. when you ask the bot to publish, review the text and account before pressing <strong>Allow</strong>. posting is a send, even when the text began as a draft. do not use a daily sending allowance if every post needs a decision. one exception: a bot on <strong>Full access</strong> with no sending rule of its own may send up to 25 a day without asking, so give full-access bots <strong>Ask every time</strong> under sending.<sup><a href="#src-4" aria-label="source 4">4</a></sup></p>
 </section>
-<section class="seo-sec" aria-labelledby="a-draft-is-not-a-publishing-strategy"><h2 id="a-draft-is-not-a-publishing-strategy">a draft is not a publishing strategy</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="a-draft-is-not-a-publishing-strategy"><h2 id="a-draft-is-not-a-publishing-strategy">a draft is not a publishing strategy</h2><img class="seo-spot" src="/art/kit/p-mug.webp?v=3d4ab831" alt="" width="313" height="419" loading="lazy" decoding="async">
 <p>a draft can't tell you whether a post reaches the right people or sells anything. it also cannot infer your release status from missing notes. keep speculative benefits out of the final wording and check any linked page yourself.</p>
 <p>for a longer explanation of a release, use the <a href="/use-cases/newsletter">newsletter routine</a>. edit the social post for its own reader instead of squeezing an entire issue into it. revisit the notes after a release changes so an old draft does not announce something that is no longer available.</p>
 </section>
-<section class="seo-sec" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2>
+<section class="seo-sec seo-warned" aria-labelledby="the-guard-rails"><h2 id="the-guard-rails">the guard rails</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-lime seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="ribbit"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M3 4h3v1h-3zM10 4h3v1h-3zM2 5h5v1h-5zM9 5h5v1h-5zM1 6h14v1h-14zM1 7h3v2h-3zM12 7h3v2h-3zM2 9h2v1h-2zM6 7h4v3h-4zM12 9h2v1h-2zM1 10h14v4h-14zM2 14h12v1h-12zM4 15h8v1h-8z"/><path class="px-e" fill="#fff" d="M4 7h2v3h-2zM10 7h2v3h-2z"/></g></svg></span>
 <ul><li>use only notes you have cleared for public release; exclude private roadmap material</li><li>leave sending on <strong>Ask every time</strong>, with no daily allowance for posts</li><li>check the destination account and final text on the send decision before <strong>Allow</strong></li><li>remove unverified benefits, customer names and invented adoption numbers</li></ul>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="can-an-ai-agent-post-on-social-media-without-me">can an ai agent post on social media without me?</h3>
 <p>dusk bot can allow a daily sending amount, but this workflow leaves that off. drafts wait in chat, and a later supported post requires your <strong>Allow</strong> with <strong>Ask every time</strong> selected. one exception: a bot on <strong>Full access</strong> with no sending rule of its own may post up to 25 a day without asking, so give it <strong>Ask every time</strong>.<sup><a href="#src-4" aria-label="source 4">4</a></sup></p>

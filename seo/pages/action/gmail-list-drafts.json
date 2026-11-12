@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/gmail/list-drafts",
+  "type": "action",
+  "title": "List Gmail drafts with AI and find unfinished emails",
+  "nav": "list drafts",
+  "h1": "find the gmail drafts you have left unfinished",
+  "description": "Have a bot list Gmail drafts with recipients and subjects, spot messages you still need to finish and explain gaps in a paginated result.",
+  "keyword": "list gmail drafts with ai",
+  "keywords": [
+    "gmail find drafts with ai",
+    "chatgpt list gmail drafts",
+    "claude review unfinished gmail drafts"
+  ],
+  "answer": "a bot can list the drafts in your gmail account and bring an unfinished-email checklist into chat. ask for full details so it sees who each draft is to and what it says. the list has no guaranteed order, and a newly saved draft may take a little time to appear. it can inspect the drafts with read-only access without editing or sending them.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "draft inventory",
+    "unfinished mail"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/update-draft",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-binoculars"
+    ],
+    "bubble": "still in drafts"
+  },
+  "og_line": "unfinished mail, gathered for review.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_LIST_DRAFTS"
+  },
+  "what": "this gives you an inventory of saved emails, useful when a half-written note has slipped out of mind. full details help the bot tell a real follow-up from an abandoned draft.\n\na long list comes in pages, and gmail doesn't sort it by date, so the bot reads every page before telling you what's there.",
+  "uses": [
+    "find the unfinished email to a grant reviewer without opening every draft",
+    "collect draft subjects and recipients before you clear out your own drafts folder",
+    "check whether a proposal was saved as a draft after you lost track of the compose window"
+  ],
+  "routine": {
+    "message": "on mondays at 2, list all my gmail drafts with full details and finish every page of results. bring me a checklist here of drafts addressed to people at pebblewake arts, showing recipient, subject and a short note on what remains unfinished. mark missing details as unknown. never edit, delete or send any draft.",
+    "when": "mondays at 14:00",
+    "needs": "gmail connected, read only access for listing draft details",
+    "output": "pebblewake arts drafts\n- marina: workshop proposal, closing paragraph is unfinished.\n- jun: materials list, body refers to an attachment that needs checking.\nall returned pages reviewed; no drafts changed."
+  },
+  "steps": [
+    "give your inbox reviewer **read only** gmail access in **Connected apps**.",
+    "request full draft details and ask for recipients beside subjects so similar titles stay distinguishable.",
+    "try the checklist once before scheduling it, then inspect its schedule card. **Edit** changes the timing and **Pause** stops future reviews."
+  ],
+  "watch": [
+    "newly created drafts may be missing briefly. an immediate empty result does not prove a save failed.",
+    "a first page is not the entire folder. require the bot to say when unread pages or an error leave the list incomplete."
+  ],
+  "faq": [
+    {
+      "q": "can it list draft bodies as well as subjects?",
+      "a": "yes. ask for full details and it reads each draft's text, not just the subject."
+    },
+    {
+      "q": "why is the draft i just created missing?",
+      "a": "new drafts may not appear immediately in this listing. wait before checking again, and avoid rapid repeat calls that can trigger rate limits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

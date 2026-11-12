@@ -1,0 +1,94 @@
+{
+  "path": "/integrations/outlook/find-meeting-times",
+  "type": "action",
+  "title": "Find Outlook meeting times with AI before sending invites",
+  "nav": "find meeting times",
+  "h1": "find outlook meeting options that fit your attendees",
+  "description": "Ask a bot for Outlook meeting suggestions using attendees, duration and a time window. Check work-account requirements and who can actually attend.",
+  "keyword": "find outlook meeting times with ai",
+  "keywords": [
+    "outlook meeting availability with ai",
+    "chatgpt find outlook meeting times",
+    "claude suggest outlook meeting slots"
+  ],
+  "answer": "a bot can ask outlook for meeting-time suggestions using your attendees, preferred window and duration, then bring the options into chat. this only works with a work or school microsoft account. suggestions do not book a meeting, and the default attendance threshold does not require everyone to be available. tell the bot who must attend rather than treating every suggested slot as a complete match.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "outlook",
+    "availability",
+    "meeting options"
+  ],
+  "connectors": [
+    "outlook"
+  ],
+  "related": [
+    "/integrations/outlook",
+    "/integrations/outlook/create-email-draft",
+    "/routines/meeting-prep-brief"
+  ],
+  "art": {
+    "logo": "outlook",
+    "label": "Outlook",
+    "props": [
+      "s-clock",
+      "p-bubbles"
+    ],
+    "bubble": "options before invitations"
+  },
+  "og_line": "check the attendees before choosing.",
+  "action": {
+    "toolkit": "outlook",
+    "slug": "OUTLOOK_FIND_MEETING_TIMES"
+  },
+  "what": "use this for the question before the invitation: when could this group meet? the bot can pass attendees or resources, date and location constraints, meeting length and a preferred output time zone. requesting suggestion reasons helps explain why an option appeared.\n\nno attendees means only the organiser's availability is searched. unless you say otherwise, it looks for 30-minute slots, shows times in utc rather than your time zone, and can suggest a time when only half the people are free.",
+  "uses": [
+    "find candidate times for a supplier call that requires both buyer and workshop lead",
+    "look for a longer planning session within agreed afternoon windows",
+    "compare organiser-only openings before deciding which external attendees to ask"
+  ],
+  "routine": {
+    "message": "every other wednesday at 11:10, find options for a 45-minute outlook meeting next week with nadir and claudine at juniperwake textiles, using the attendee addresses i provided here. search between 13:00 and 16:00 in our agreed local time zone, require all named attendees and request reasons for the suggestions. return the options and any availability uncertainty in this chat. never create an event or send an invitation.",
+    "when": "alternate wednesdays at 11:10",
+    "needs": "outlook connected with read only access through a work or school account",
+    "output": "juniperwake planning options\n- monday, 14:00 to 14:45: all named attendees available in the returned suggestion.\n- thursday, 13:15 to 14:00: alternative for review.\nno time booked; choose an option before arranging the meeting."
+  },
+  "steps": [
+    "connect a work or school outlook account through **Connected apps** and keep the meeting finder **read only**.",
+    "provide the attendee email addresses, meeting length and a bounded date window. say which people must attend.",
+    "request your intended time zone and suggestion reasons so the options are readable and their limitations are visible.",
+    "check one set of options before scheduling repeat searches. use **Edit** if the meeting length or attendee group changes."
+  ],
+  "watch": [
+    "this doesn't work with a personal outlook.com account.",
+    "an empty attendee list checks the organiser alone. it is not a group availability check.",
+    "a suggestion can meet the default 50 percent attendee threshold while leaving people out. set a stricter requirement when everyone matters.",
+    "without an explicit preferred time zone, responses default to utc. confirm the displayed times before choosing."
+  ],
+  "faq": [
+    {
+      "q": "does finding a time send an invitation?",
+      "a": "no. this action returns suggestions. creating the event and inviting people are later tasks."
+    },
+    {
+      "q": "why does a suggested time exclude someone?",
+      "a": "the minimum attendee percentage defaults to 50, so suggestions do not automatically mean everyone can attend. specify the required attendance and inspect the suggestion reasons."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

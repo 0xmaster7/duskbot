@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/slack/schedule-message",
+  "type": "action",
+  "title": "Schedule Slack messages with AI for the right local time",
+  "nav": "schedule message",
+  "h1": "queue a slack message for later",
+  "description": "Ask a bot to schedule a Slack message for a channel, direct message or thread. Check the destination and time before it enters the queue.",
+  "keyword": "slack schedule message with ai",
+  "keywords": [
+    "chatgpt schedule slack message",
+    "claude slack scheduled message",
+    "ai queue slack reminder"
+  ],
+  "answer": "a bot can queue a slack message for a future time, including a reply inside a thread. you give it the channel, the words and the time. once it's queued, slack posts it at that time without asking again. there is an important permission catch: dusk bot counts scheduling as a write, so its sending setting does not ask before this action. tell the bot to get your approval before it schedules anything.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "slack",
+    "schedule message"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/routines/slack-channel-digest"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "s-clock",
+      "p-bubbles"
+    ],
+    "bubble": "send it after breakfast"
+  },
+  "og_line": "choose the time before it is queued.",
+  "action": {
+    "toolkit": "slack",
+    "slug": "SLACK_SCHEDULE_MESSAGE"
+  },
+  "what": "scheduling lets you prepare a note now for delivery later, up to 120 days ahead. say the time in your own time zone; the bot converts it for slack. the time must still be in the future when the call happens.\n\nname the channel to choose the destination, and the connected slack account must be a member of that channel. for a thread reply, point the bot at the original message and it finds the exact one. the attachments input here means message layout, not uploading a document.",
+  "uses": [
+    "queue a shift reminder for colleagues who start later than you",
+    "place the approved workshop instructions in the session thread before it begins",
+    "prepare an office closure notice during working hours for a later delivery"
+  ],
+  "routine": {
+    "message": "every friday at 14:40, prepare a slack message for #larkvale-studio saying \"please put monday's equipment requests in the booking list\". show me the text, channel and next monday at 08:45 europe/london, and wait for my agreement before scheduling it. after it is queued, put the confirmed delivery time here. never schedule a second copy if the first attempt has an unclear result.",
+    "when": "fridays at 14:40, to queue monday delivery after review",
+    "needs": "slack connected, with read and write access and membership in the destination channel",
+    "output": "larkvale studio reminder\nchannel: #larkvale-studio\nplanned delivery: monday 08:45 europe/london\nwaiting for confirmation before queueing."
+  },
+  "steps": [
+    "connect slack in **Connected apps** and enable **read and write** for the bot that will queue the note.",
+    "give the channel reference and local time zone; for a thread, include the parent message reference too.",
+    "say \"wait for my agreement before scheduling\" because **Ask every time** for sends does not cover the queue operation.",
+    "try one reminder and check the queued time before turning the request into a weekly routine."
+  ],
+  "watch": [
+    "past timestamps fail, and the queue cannot be set more than 120 days ahead.",
+    "a private destination still needs channel membership; knowing its name does not grant access.",
+    "turning off link previews may be ignored for scheduled messages, so avoid including links whose preview would reveal too much."
+  ],
+  "faq": [
+    {
+      "q": "does the send approval setting stop a scheduled message?",
+      "a": "scheduling is classified as a write in dusk bot. add an explicit approval instruction before the bot queues it."
+    },
+    {
+      "q": "can the scheduled note include a file attachment?",
+      "a": "no. this schedules text only; sharing a file is a separate step."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

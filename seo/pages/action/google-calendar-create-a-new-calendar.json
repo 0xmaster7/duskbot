@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/google-calendar/create-a-new-calendar",
+  "type": "action",
+  "title": "Create a separate Google Calendar with AI",
+  "nav": "create a calendar",
+  "h1": "make a separate google calendar for one project",
+  "description": "Ask a bot to create a secondary Google Calendar with a clear title, description and time zone. Keep event creation and sharing as separate decisions.",
+  "keyword": "create google calendar with ai",
+  "keywords": [
+    "google calendar create secondary calendar with ai",
+    "chatgpt create a google calendar",
+    "claude make new google calendar"
+  ],
+  "answer": "a bot can create a secondary google calendar for a project, season or separate part of your life. you give it a title and can add a description, location and time zone. the connected google account becomes the owner. specify the time zone explicitly because it defaults to utc. making a calendar is a change, so it won't ask first unless you tell it to.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "google calendar",
+    "new calendars",
+    "project setup"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/google-calendar",
+    "/integrations/google-calendar/list-events-from-all-calendars",
+    "/routines/weekly-calendar-preview"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "s-signpost"
+    ],
+    "bubble": "a calendar for rehearsals"
+  },
+  "og_line": "give the project its own calendar.",
+  "action": {
+    "toolkit": "googlecalendar",
+    "slug": "GOOGLECALENDAR_CREATE_CALENDAR"
+  },
+  "what": "a separate calendar gives a new activity its own place without adding every event to your primary calendar. this action creates that secondary calendar and its descriptive settings. it does not populate a rehearsal schedule merely because the calendar is called rehearsals.\n\nthe title is required. choose the account that should own it, and tell it your time zone, for example \"paris time\"; otherwise google sets the calendar to utc. adding events or arranging access for collaborators requires other work.",
+  "uses": [
+    "give a touring production a calendar separate from your personal appointments",
+    "create a fresh calendar for the next course intake with its location in the description",
+    "set up a temporary calendar for an office move before anyone starts adding appointments"
+  ],
+  "routine": {
+    "message": "on the first tuesday of each quarter at 11, ask whether the next harrow lane theatre season needs a new google calendar. show me the proposed season title, description, location and paris time zone here before creating it in my work account. create it only after i confirm, then return its details in this chat. never add events or change sharing.",
+    "when": "first tuesday of each quarter at 11:00",
+    "needs": "google calendar connected, read and write access for creating calendars",
+    "output": "ready to create: harrow lane winter rehearsals\nowner: your connected work account\nlocation: west rehearsal room\ntime zone: paris time\nawaiting your confirmation; no calendar created yet."
+  },
+  "steps": [
+    "select the intended google account in **Connected apps** and give the setup bot **read and write** access for calendar creation.",
+    "send the exact title and purpose, including the time zone rather than leaving it to the default.",
+    "require a confirmation in your message if you want the proposed calendar checked before creation.",
+    "inspect the new calendar details once it is created. use **Pause** if the quarterly setup prompt is no longer useful."
+  ],
+  "watch": [
+    "omitting the time zone creates a calendar in utc. a location description does not set the time zone for you.",
+    "ownership belongs to the authenticated account. selecting personal gmail by mistake can put a work calendar under the wrong owner.",
+    "creating a calendar is not creating its events, and this action has no sharing input. describe those as separate tasks if you need them."
+  ],
+  "faq": [
+    {
+      "q": "does this replace my primary google calendar?",
+      "a": "no. it creates a new secondary calendar owned by the connected account."
+    },
+    {
+      "q": "can i name the calendar and set its city?",
+      "a": "yes. the title is required, while location and description are optional. also specify the time zone, since the city text does not replace that setting."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

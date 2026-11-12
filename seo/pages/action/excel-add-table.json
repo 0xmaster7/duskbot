@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/excel/add-table",
+  "type": "action",
+  "title": "Create an Excel table with AI from a specific range",
+  "nav": "add table",
+  "h1": "make a real excel table from the range you choose",
+  "description": "Ask a bot to turn an Excel worksheet range into a table. Confirm the workbook, sheet, address and header row before it makes the change.",
+  "keyword": "excel create table with ai",
+  "keywords": [
+    "chatgpt add excel table",
+    "claude convert range to excel table",
+    "ai create table in excel worksheet"
+  ],
+  "answer": "a bot can create an excel table over a range in a connected workbook. you choose the cells and say whether their first row already contains column headers. it finds the workbook for you, then needs the sheet and the cells. making a table is a change, and changes don't ask first, so add \"show me the range before you make the table\" if you want to check.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "excel",
+    "add table"
+  ],
+  "connectors": [
+    "excel"
+  ],
+  "related": [
+    "/integrations/excel",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "label": "Excel",
+    "props": [
+      "p-chart",
+      "s-button"
+    ],
+    "bubble": "this range becomes a table"
+  },
+  "og_line": "a table with its boundaries agreed.",
+  "action": {
+    "toolkit": "excel",
+    "slug": "EXCEL_ADD_TABLE"
+  },
+  "what": "add table turns cells that already hold your data into an excel table. it doesn't type in any new rows. the bot can search your onedrive for the workbook by name, then read the cells before suggesting where the table starts and ends.\n\ntell it the sheet and the cells, like A1:D4 on the intake sheet, and say whether the first row holds column names. it has to know that, so don't leave it to guess.",
+  "uses": [
+    "turn a small visitor log into a table after checking its first row",
+    "turn a pasted list of orders into a table before you share the workbook",
+    "convert a supplier contact range while keeping the title above it outside the selection"
+  ],
+  "routine": {
+    "message": "on the first monday of each month at 10, inspect the new monthly intake sheet in the cloudbridge permits workbook i linked. propose a table around the intake columns only, show its exact range and whether the first row contains headers, and wait for my confirmation. after i agree, create the table and report the selected worksheet and range here. never include the notes beneath the data, change cell values or create another table if one is already present.",
+    "when": "first monday of the month at 10:00",
+    "needs": "excel connected, with read and write access to the workbook",
+    "output": "cloudbridge permits\nworksheet: november intake\nproposed range: A3:E18\nfirst selected row contains headers: yes\nnotes below row 18 excluded. waiting to create the table."
+  },
+  "steps": [
+    "connect excel in **Connected apps** and give this bot **read and write** access; making a table is a change, so read only won't do.",
+    "tell the bot the workbook's name and let it find the file.",
+    "review the proposed cell address and header choice; include an explicit wait-for-confirmation instruction.",
+    "open the workbook after the first creation and **Pause** the monthly job if the sheet layout changes."
+  ],
+  "watch": [
+    "always name the sheet as well as the cells, or the bot won't know where to put the table.",
+    "if there's a title above your column names, start the range at the column names, below the title.",
+    "this creates a table rather than populating one; importing records requires another action.",
+    "making a table doesn't ask first; your sending setting only covers sends. put \"ask me first\" in the request if you want to check."
+  ],
+  "faq": [
+    {
+      "q": "does the bot need me to type the table data again?",
+      "a": "not if it is already in the selected range. this action creates a table over that range; it has no input for a new set of row values."
+    },
+    {
+      "q": "what if my column labels are below a report title?",
+      "a": "start the selected range at the column-label row and say it contains headers. ask the bot to show that choice before creating the table."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

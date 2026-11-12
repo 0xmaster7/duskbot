@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/gmail/move-to-trash",
+  "type": "action",
+  "title": "Move Gmail messages to trash with AI and a recovery path",
+  "nav": "move to trash",
+  "h1": "clear one gmail message without deleting it forever",
+  "description": "Have a bot move selected Gmail messages to trash after checking the sender and subject. Keep recovery possible and ask explicitly before changes.",
+  "keyword": "gmail move to trash with ai",
+  "keywords": [
+    "chatgpt trash gmail messages",
+    "claude gmail delete email",
+    "ai clean gmail trash"
+  ],
+  "answer": "you can ask a bot to put a particular gmail message in trash after checking that it is the right one. the message remains recoverable and still counts toward your storage until trash is emptied. trashing is an app change, so the sending setting does not make it ask first; put that checkpoint directly into your request.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "gmail",
+    "move to trash"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/gmail/untrash-message"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-folder"
+    ],
+    "bubble": "check before trashing"
+  },
+  "og_line": "clear the message, keep recovery possible.",
+  "action": {
+    "toolkit": "gmail",
+    "slug": "GMAIL_MOVE_TO_TRASH"
+  },
+  "what": "move to trash works on one existing message at a time. the bot finds the email with a search and checks the subject and first lines against what you meant. it trashes one email, not the whole conversation.\n\nthis is a way to remove a selected message while keeping a route back. it is not permanent deletion, and it will not free storage merely by moving the email. for a big clear-out, a bulk action fits better.",
+  "uses": [
+    "remove an outdated delivery notice after the replacement has arrived",
+    "put a duplicate booking confirmation in trash while keeping the amended one",
+    "clear an old shipping notice without touching the replies around it"
+  ],
+  "routine": {
+    "message": "every saturday at 10, find this week's \"your order has shipped\" emails from mossgate outfitters. list each with its date here and ask me before moving any to trash. trash only the ones i approve and tell me which went. never empty trash or touch other mail.",
+    "when": "saturdays at 10:00",
+    "needs": "gmail connected, with read and write access for message moves",
+    "output": "mossgate outfitters: 2 shipping emails this week (thursday, friday).\nmove both to trash? nothing moved yet."
+  },
+  "steps": [
+    "choose the gmail account in **Connected apps** and give this bot **read and write** access.",
+    "ask for a search-only preview with exact sender and subject, so you can spot an overly broad match.",
+    "include the words \"ask me before moving any to trash\" when you turn that search into a routine.",
+    "if it picks mail you meant to keep, open the routine card and choose **Pause** before another run."
+  ],
+  "watch": [
+    "a trashed email still counts toward storage until trash is emptied; moving it won't free space.",
+    "it trashes one email; other emails in the same conversation stay where they are.",
+    "**Ask every time** for sending does not supervise trash moves; keep the explicit review instruction."
+  ],
+  "faq": [
+    {
+      "q": "can i get the email back after the bot trashes it?",
+      "a": "yes, until trash is emptied. the bot can restore it, or you can do it from gmail's trash."
+    },
+    {
+      "q": "will this erase all replies with the same subject?",
+      "a": "it targets one email. tell the bot to show each selected email rather than treating matching subjects as permission to remove a thread."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "path": "/integrations/notion/replace-page-content",
+  "type": "action",
+  "title": "Replace Notion page content with AI and preview it first",
+  "nav": "replace page content",
+  "h1": "review a notion rewrite before replacing its blocks",
+  "description": "Prepare a Notion page rewrite with a dry run and optional backup. Understand incomplete backups and partial failures before replacing existing blocks.",
+  "keyword": "replace notion page content with ai",
+  "keywords": [
+    "notion rewrite page with ai",
+    "chatgpt replace notion page content",
+    "claude rewrite notion page with backup"
+  ],
+  "answer": "a bot can replace the child blocks of a notion page with a new body, optionally creating a backup first. ask for a dry run before any replacement. the process happens in stages, so a failure can leave partial changes, and the backup omits some block types and nested content. it is a write with real deletion risk; the sending setting is not a review gate.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion",
+    "rewrites",
+    "backups"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/add-multiple-content-blocks",
+    "/integrations/notion/create-notion-page"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-shield"
+    ],
+    "bubble": "preview before replacing"
+  },
+  "og_line": "a rewrite needs more than a backup.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_REPLACE_PAGE_CONTENT"
+  },
+  "what": "use this for a deliberate replacement of a page body, such as turning an obsolete flat checklist into the approved new instructions. the bot needs the page and the new text. it can preview what would be archived and added without making those changes.\n\nreplacement normally involves archiving existing children and appending the new ones in batches. you can request a backup page, but it is not a complete copy of every possible page structure. a complex page with nested content needs special care before this workflow is appropriate.",
+  "uses": [
+    "replace a simple equipment checklist with the version you have approved",
+    "refresh a flat event instruction page after the venue signs off the new procedure",
+    "preview the impact of a full rewrite before deciding whether small additions would be safer"
+  ],
+  "routine": {
+    "message": "on the last wednesday of each month at 14:35, read the linked cinderbrook equipment checklist and compare it with the approved replacement text i provided here. run a dry preview of the proposed replacement and report the blocks affected in this chat. stop for my explicit approval; if approved, request a backup and replace only that page, reporting any partial failure. stop if the page has nested content, like toggles or sub-pages, that the backup might miss.",
+    "when": "last wednesday of the month at 14:35",
+    "needs": "notion connected with read and write access for inspecting, previewing and replacing this page",
+    "output": "cinderbrook checklist preview\nexisting body: flat checklist blocks\nreplacement: approved opening checks and closing checks\nbackup requested for a later approved run\npreview only; existing page unchanged."
+  },
+  "steps": [
+    "choose notion in **Connected apps** and allow **read and write** for the specific replacement workflow.",
+    "paste the page link and have the bot read the current page before preparing the new one.",
+    "require a dry run and a preservation check in chat. explicitly tell the bot to wait for you before any backup or replacement.",
+    "after an approved run, inspect both the result and backup. **Pause** the routine at the first partial failure instead of repeating the replacement blindly."
+  ],
+  "watch": [
+    "backups leave out some block types and nested content. do not treat the backup flag as a guarantee that everything can be restored.",
+    "the swap happens in steps. if it fails halfway, the old text can be gone before all the new text is in.",
+    "turning off archive existing children changes the operation into adding content alongside what is there. confirm that choice rather than assuming a replacement occurred."
+  ],
+  "faq": [
+    {
+      "q": "can i see what would change without rewriting the page?",
+      "a": "yes. the dry-run option previews what would be removed and appended without changing the page."
+    },
+    {
+      "q": "does a backup guarantee a full restore?",
+      "a": "no. some block types and nested content are omitted. inspect the structure and stop if losing those parts would make the replacement unacceptable."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: computer permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

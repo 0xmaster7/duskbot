@@ -43,13 +43,13 @@
 <header class="seo-top"><h1>an ai chief of staff for the loose ends</h1>
 <p class="lede seo-answer">an ai chief of staff can help collect loose ends, separate decisions from updates and hand preparation work to other bots. in dusk bot, make a lead bot, put it in a small group and set <strong>Who answers</strong> to <strong>Leader</strong>. the lead assigns tasks through @mentions. use recurring briefs to feed that conversation, while keeping priorities, promises and final decisions with you.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
-<figure class="seo-hero"><img src="/art/seo/ai-chief-of-staff.webp?v=5b8cb1e1" srcset="/art/seo/ai-chief-of-staff-660.webp 660w, /art/seo/ai-chief-of-staff.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a coral pixel bot, a cyan pixel bot and a yellow pixel bot beside a folded map and a notebook, on a sandy path in front of snowy hills and green fields, one saying &quot;what needs you?&quot;" width="1320" height="528" fetchpriority="high" decoding="async"></figure>
+<figure class="seo-hero"><img src="/art/seo/ai-chief-of-staff.webp?v=5b8cb1e1" srcset="/art/seo/ai-chief-of-staff-660.webp 660w, /art/seo/ai-chief-of-staff.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a coral pixel bot, a cyan pixel bot and a yellow pixel bot beside a folded map and a notebook, on a sandy path in front of snowy hills and green fields, one saying &quot;what needs you?&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="give-the-lead-a-coordination-job"><h2 id="give-the-lead-a-coordination-job">give the lead a coordination job</h2>
 <p>a chief of staff setup should reduce the work of keeping track. do not give the lead every account and hope it discovers your priorities. tell it what to gather, whom to ask and what needs your judgment.</p>
 <p>create a lead bot with this job: &quot;coordinate preparation in our group. @mention the specialist whose job fits each task. distinguish confirmed information, missing information and decisions for me. do not assign priorities or make promises on my behalf. ask me before you change anything.&quot;</p>
 <p>add two specialists to a group with it: a bot named inbox for reading mail and a bot named calendar for calendar preparation. set <strong>Who answers</strong> to <strong>Leader</strong> and select the lead. give the specialists narrow jobs instead of three versions of the same assistant. each bot keeps its own ai and permissions in the room.<sup><a href="#src-1" aria-label="source 1">1</a></sup></p>
 </section>
-<section class="seo-sec" aria-labelledby="make-the-handoff-visible"><h2 id="make-the-handoff-visible">make the handoff visible</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="make-the-handoff-visible"><h2 id="make-the-handoff-visible">make the handoff visible</h2><img class="seo-spot" src="/art/s-map.webp?v=5034aee7" alt="" width="420" height="277" loading="lazy" decoding="async">
 <p>use the group instructions for a shared rule: &quot;every handoff must name the question and what evidence is needed. return open questions to the lead. the lead asks me when priorities conflict.&quot;</p>
 <p>then send the room a bounded request: &quot;help me prepare for tomorrow. @calendar, find the events i need to prepare for. @inbox, read the threads i identify for those events. lead: give me a list of decisions after their replies, without changing any events or sending anything.&quot;</p>
 <p>the <a href="/ai-group-chat">group chat guide</a> explains the room settings. do not assume a routine result in a specialist's private chat is automatically delivered to the group. bring those findings into the room explicitly. each routine below asks for its result in the chat where you set it up; the lead coordinates the review once you share the material.</p>
@@ -60,7 +60,7 @@
 <p>check the routine's schedule card, especially the time zone. read the early briefs against your calendar. when you bring one to the lead, ask which questions need an answer before the first meeting.</p>
 <p>this is a preparation routine, not a claim that the bot knows your whole day. the <a href="/use-cases/daily-briefing">daily briefing page</a> is useful if you want to narrow the brief further.</p>
 </section>
-<section class="seo-sec" aria-labelledby="inbox-sweep-surface-requests-without-answering-them"><h2 id="inbox-sweep-surface-requests-without-answering-them">inbox sweep: surface requests without answering them</h2>
+<section class="seo-sec seo-spotted" aria-labelledby="inbox-sweep-surface-requests-without-answering-them"><h2 id="inbox-sweep-surface-requests-without-answering-them">inbox sweep: surface requests without answering them</h2><img class="seo-spot" src="/art/kit/p-magnifier.webp?v=cad31217" alt="" width="298" height="419" loading="lazy" decoding="async">
 <p>connect gmail to the inbox reader and keep it read only for this job. the connector can fetch emails and read threads.<sup><a href="#src-5" aria-label="source 5">5</a></sup> the lead does not need write access just to help you decide what deserves attention.</p>
 <p>send the inbox reader: &quot;every weekday at 11:30am, read new mail in the work account since the last sweep. list direct requests, stated deadlines and questions that need my judgment. point back to the relevant thread. do not label, archive, draft or send. say when a deadline is your interpretation rather than explicit text. return the list here.&quot;</p>
 <p>ask the lead to compare the findings with your stated priorities after you share them in the group. a demanding subject line is not evidence that a request matters more than the work already planned.</p>
@@ -76,6 +76,13 @@
 <p>local schedules need the computer awake and dusk bot running. a job missed by less than 12 hours runs once when you return; older runs are skipped. move to dusk cloud if the morning brief must run while your own computer is off.<sup><a href="#src-3" aria-label="source 3">3</a></sup></p>
 <p>keep priority calls, sensitive conversations and commitments with a person. if you mainly need meeting preparation and reply drafts, the <a href="/ai-executive-assistant">executive assistant setup</a> is the more direct starting point. this setup earns its extra bots only when coordinating several streams of preparation helps.</p>
 </section>
+
+
+
+
+
+
+
 <section class="seo-sec seo-faq" aria-labelledby="questions"><h2 id="questions">questions</h2>
 <h3 id="what-is-a-useful-ai-chief-of-staff-prompt">what is a useful ai chief of staff prompt?</h3>
 <p>name the handoff and the limit: coordinate specialists, separate facts from open questions, and bring decisions to me. then add the sources and the result you need for each task. a title by itself is too broad a prompt.</p>

@@ -1,0 +1,91 @@
+{
+  "path": "/integrations/notion/create-comment",
+  "type": "action",
+  "title": "Comment on Notion pages with AI after reviewing the words",
+  "nav": "create comment",
+  "h1": "leave a useful notion comment where it belongs",
+  "description": "Have a bot post a focused Notion page comment or reply in an existing discussion. Review the destination and wording, with clear sending controls.",
+  "keyword": "notion create comment with ai",
+  "keywords": [
+    "chatgpt comment on notion page",
+    "claude notion discussion reply",
+    "ai post notion review comment"
+  ],
+  "answer": "a bot can put your review note on a notion page or add it to an existing discussion. it needs the destination reference and the comment text, and it cannot start a new inline discussion on a specific block. comments count as sends in dusk bot, so posting asks you first by default, unless you set a daily amount the bot may send on its own. a bot on **Full access** with no sending rule may post up to 25 a day without asking.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "notion",
+    "create comment"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/notion",
+    "/integrations/notion/insert-row-database"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-bubbles"
+    ],
+    "bubble": "leave this review note"
+  },
+  "og_line": "a review note in its intended discussion.",
+  "action": {
+    "toolkit": "notion",
+    "slug": "NOTION_CREATE_COMMENT"
+  },
+  "what": "you can ask for a page-level comment when feedback applies to the whole document. paste the page link or name the page. to reply in a comment thread that's already there, point the bot at that comment and it finds the thread.\n\nchoose the destination before approving the text. this action accepts either a page or an existing discussion, but not a new block-specific inline thread. a request such as \"comment on this sentence\" needs clarification about where the comment will actually appear.",
+  "uses": [
+    "ask a document owner to clarify one disputed delivery date",
+    "reply in the existing design-review discussion with your agreed choice",
+    "leave a page-level question about a missing source behind a forecast"
+  ],
+  "routine": {
+    "message": "every other tuesday at 16:20, read the notion proposal page i linked for silvermere instruments and prepare one page-level comment about any delivery date that contradicts the date i confirmed here. show the exact page and wording in this chat, and wait for my approval before posting. report the posted comment reference afterwards. never invent a deadline or create extra comments for the same unresolved question.",
+    "when": "alternate tuesdays at 16:20",
+    "needs": "notion connected, with read and write access and comment permission; sending set to ask",
+    "output": "comment awaiting approval\npage: silvermere instruments proposal\ntext: the brief says delivery is friday, but our confirmed date is the following monday. could you clarify which date this proposal uses?"
+  },
+  "steps": [
+    "enable notion for the review bot in **Connected apps**, using **read and write** so it can post comments.",
+    "choose **Ask every time** under **Sending on your behalf** and check the destination page is accessible.",
+    "ask for one short proposed comment, naming whether it belongs to the page or an existing discussion.",
+    "read the approval card before allowing the post, then check it in notion before scheduling repeat reviews."
+  ],
+  "watch": [
+    "with **Full access** and no sending rule of its own, a bot may send up to 25 a day without asking; a daily allowance can also remove individual prompts.",
+    "creating a new inline discussion on a specific block is outside this action; use a page comment or reply to an existing discussion.",
+    "show the surrounding comments before replying so the bot uses the intended thread."
+  ],
+  "faq": [
+    {
+      "q": "can it reply to a notion comment that is already there?",
+      "a": "yes. point it at the comment; it reads the thread first, then replies in it."
+    },
+    {
+      "q": "can i keep the feedback private until i approve?",
+      "a": "have the bot prepare the words in dusk chat and keep sending on **Ask every time**. posting is the step that places the note in notion."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}
