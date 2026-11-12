@@ -81,7 +81,7 @@ test("yearly team quote merges extra members and uses service totals without bun
   assert.deepEqual(cartFromQuote(quote, plans), {
     lines: [
       { key: "license", label: "team license", detail: "5 members, 2 extra", monthly: 70 },
-      { key: "desktop", label: "dusk cloud, pro", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
+      { key: "desktop", label: "dusk cloud, pro", detail: "4 vcpu · 8 gb ram · 80 gb disk", monthly: 40 },
     ],
     subtotal: 110, bundle: null, bundleSaving: 0, discount: 22, perMonth: 88, dueNow: 1056, free: false,
   });
@@ -104,7 +104,7 @@ test("small dedicated quote keeps its service price below the default desktop pr
     totalCents: 2400, monthlyEquivalentCents: 2400, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null, members: 0,
   };
   assert.deepEqual(cartFromQuote(quote, plans), {
-    lines: [{ key: "desktop", label: "dusk cloud, dedicated", detail: "2 vcpu · 4 gb ram · 40 gb", monthly: 24 }],
+    lines: [{ key: "desktop", label: "dusk cloud, dedicated", detail: "2 vcpu · 4 gb ram · 40 gb disk", monthly: 24 }],
     subtotal: 24, bundle: null, bundleSaving: 0, discount: 0, perMonth: 24, dueNow: 24, free: false,
   });
   const free = cartFromQuote({ ...quote, cart: { interval: "year", license: { kind: "none" }, desktop: { kind: "none" } }, bundle: "free", lines: [{ kind: "discount", label: "Yearly discount", amountCents: 0 }], totalCents: 0, monthlyEquivalentCents: 0, machine: null }, plans);

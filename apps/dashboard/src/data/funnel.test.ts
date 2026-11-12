@@ -16,6 +16,6 @@ test("only a plan with a work license adds the work row", () => {
   const pro = bundleOf(fixtureCatalog, "pro")!;
   expect(freeTradeoffs(fixtureCatalog, "starter").some((r) => r.topic === "work use")).toBe(plus.license !== "personal");
   expect(freeTradeoffs(fixtureCatalog, "pro").some((r) => r.topic === "work use")).toBe(pro.license !== "personal");
-  expect(planLine(fixtureCatalog, "pro")).toBe("4 vcpu · 8 gb ram · 60 gb, priority wake, work license");
-  expect(planLine(fixtureCatalog, "starter")).toBe("2 vcpu · 4 gb ram · 20 gb");
+  expect(planLine(fixtureCatalog, "pro")).toBe("4 vcpu · 8 gb ram · 60 gb disk, priority wake, work license");
+  expect(planLine(fixtureCatalog, "starter")).toBe("2 vcpu · 4 gb ram · 20 gb disk");
 });

@@ -74,7 +74,7 @@ export function dollars(n: number, cents = false): string {
 }
 
 export const gb = (n: number) => (n >= 1000 ? `${+(n / 1000).toFixed(1)} tb` : `${n} gb`);
-export const specLine = (s: MachineSpec) => `${s.vcpu} vcpu · ${gb(s.ramGb)} ram · ${gb(s.diskGb)}`;
+export const specLine = (s: MachineSpec) => `${s.vcpu} vcpu · ${gb(s.ramGb)} ram · ${gb(s.diskGb)} disk`;
 /** a plan in one line: its machine, then priority wake and a work license when it has them */
 export const planSpecLine = (s: MachineSpec & { priority: boolean }, work = false) => `${specLine(s)}${s.priority ? ", priority wake" : ""}${work ? ", work license" : ""}`;
 
