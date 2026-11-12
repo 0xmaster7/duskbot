@@ -5,6 +5,32 @@ import { cn } from "@/lib/cn";
 const FILLS: Record<string, string> = { w: "#fafbfc", b: "#4a8fd0", B: "#9fd3f5", g: "#6cc58a", y: "#f2c94c", p: "#f29bb5", v: "#a78bfa", V: "#cdbefc", G: "#c7cfd9", r: "#f2994a", n: "#deaa6e", N: "#c48c50", K: "#8e9aab", R: "#e5484d" };
 
 const ICONS = {
+  battery: [
+    "...........",
+    "...........",
+    "...........",
+    "ooooooooo..",
+    "obbbbbwwo..",
+    "obbbbbwwooo",
+    "obbbbbwwooo",
+    "obbbbbwwo..",
+    "ooooooooo..",
+    "...........",
+    "...........",
+  ],
+  batteryFull: [
+    "...........",
+    "...........",
+    "...........",
+    "ooooooooo..",
+    "oRRRRRRRo..",
+    "oRRRRRRRooo",
+    "oRRRRRRRooo",
+    "oRRRRRRRo..",
+    "ooooooooo..",
+    "...........",
+    "...........",
+  ],
   gauge: [
     "...........",
     "...ooooo...",

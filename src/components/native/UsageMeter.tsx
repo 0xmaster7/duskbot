@@ -132,7 +132,7 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
   return (
     <div role="status" data-usage-banner={out ? "danger" : "warning"}
       className={cn("flex items-center gap-2.5 rounded-[14px] py-2 pe-2 ps-3", out ? "bg-danger/[0.07]" : "bg-ink/[0.04]")}>
-      <PixelIcon name={out ? "stop" : "gauge"} />
+      <PixelIcon name={out ? "batteryFull" : "battery"} />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">
           {out ? t("nativeUsage.banner.out", { engine: limit.name }) : t("nativeUsage.banner.near", { engine: limit.name, percent: used })}

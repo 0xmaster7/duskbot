@@ -21,6 +21,11 @@ export function createSpendRoutes(deps: SpendRouteDeps): RouteHandler {
       res.setHeader("cache-control", "no-store");
       return json(res, 200, deps.spend.battery({ bot: deps.botName, routine: (id) => deps.routine(auth, id) }));
     }
+    if (method === "GET" && path === "/api/usage/daily") {
+      res.setHeader("cache-control", "no-store");
+      const query = new URL(req.url ?? path, "http://local").searchParams;
+      return json(res, 200, deps.spend.daily({ days: query.get("days") ?? 14, offsetMinutes: query.get("tz") ?? 0, bot: deps.botName }));
+    }
     if (method === "PUT" && path === "/api/usage/caps") {
       if (!deps.mayChangeCaps(auth)) return json(res, 403, { error: "forbidden" });
       let body: unknown;
