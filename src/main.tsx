@@ -21,6 +21,7 @@ import { ReconnectScreen } from "./components/ReconnectScreen";
 import { PageBoundary } from "./components/PageBoundary";
 import { startBootReads } from "./state/boot-reads";
 import { endedBeforeReload, forgetEndedSession, SESSION_ENDED_REASON } from "./lib/session-ended";
+import "./font-faces.css";
 import "./styles.css";
 import "./styles/overlays.css";
 import "./styles/motion.css";

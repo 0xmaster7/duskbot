@@ -1,0 +1,6 @@
+/* the bundled faces, apart from styles.css: tailwind rewrites that sheet in development whenever a newly loaded screen
+   brings classes it has not seen, and a rewritten @font-face drops every face for a frame, so text flashed the fallback
+   font (first seen opening connect apps). this sheet never changes after load. */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";

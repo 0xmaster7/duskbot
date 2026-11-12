@@ -9,6 +9,8 @@ const css = readFileSync(
   "utf8",
 );
 
+const faces = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../font-faces.css"), "utf8");
+
 const blocks = new Set(
   [...css.matchAll(/:root\[data-font="([a-z-]+)"\]/g)].map(([, id]) => id),
 );
@@ -45,7 +47,8 @@ describe("fonts", () => {
       else if (skin === "pop") expect(first, skin).toBe('"Plus Jakarta Sans"');
       else expect(first, skin).toBe('"Geist Variable"');
     }
-    expect(css).toMatch(/@import "@fontsource-variable\/geist";/);
+    expect(faces).toMatch(/@import "@fontsource-variable\/geist";/);
+    expect(css).not.toMatch(/@fontsource/);
     expect(css).toMatch(/--font-mono:\s*"Geist Mono Variable"/);
   });
 
