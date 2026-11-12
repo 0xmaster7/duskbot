@@ -70,10 +70,10 @@ export function useSidebarApps(): SidebarApps {
   return apps;
 }
 
-/** Grok's footer logo: the 16px app tile on an 18px white square, 6px round, so overlapping tiles read apart. */
+/** The footer logo: the 16px app tile on an 18px square of the page's own surface, 6px round, so overlapping tiles read apart in either theme. */
 function AppFaceIcon({ face, className }: { face: AppFace; className?: string }) {
   return (
-    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-white p-px", className)}>
+    <span data-app-face={face.slug} className={cn("flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-composer p-px", className)}>
       <ServiceTile card={face} size={16} />
     </span>
   );

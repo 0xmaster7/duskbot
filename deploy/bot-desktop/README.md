@@ -4,7 +4,7 @@ The bot's own computer: a small dark Linux desktop in a hardened container, one 
 locally in Docker). Bots drive it through Cua Driver exactly as they drive the Cua XFCE image (screenshots, clicks,
 typing, AT-SPI, Chromium over CDP); people see it through noVNC when they take control.
 
-Image: `ghcr.io/sidddevz/omb-bot-desktop:v3` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
+Image: `ghcr.io/sidddevz/omb-bot-desktop:v4` (`BOT_DESKTOP_IMAGE` in `shared/bot-desktop.ts`). linux/arm64 and
 linux/amd64.
 
 ## What is inside
@@ -68,7 +68,7 @@ makes `sudo` inert. Read-only root filesystem; same network rules plus the host'
 The placeholders below use `electron/legacy-names.mjs`: `<name>` uses `DOCKER_NAMES.vpsPrefix`,
 `<desktop-network>` is `DOCKER_NAMES.desktopNetwork`, and each `<...-label>` is `DOCKER_NAMES.label("...")`.
 
-1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v3` unless present. If the pull fails (not published, private
+1. `docker pull ghcr.io/sidddevz/omb-bot-desktop:v4` unless present. If the pull fails (not published, private
    package, registry down) it builds the image on the docker host from this folder as shipped with the server
    (`deploy/bot-desktop/` beside `dist-server/`, or `DUSK_BOT_DESKTOP_KIT`), only when its Dockerfile's
    `ARG BOT_DESKTOP_VERSION` equals `BOT_DESKTOP_VERSION`; the turn's chat says the build is running. When neither

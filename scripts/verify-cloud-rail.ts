@@ -36,6 +36,8 @@ const VIEWS: Array<{ name: string; query: string; ready: string; height?: number
   { name: "rail-chrome-simple", query: "mode=simple&chrome=1", ready: "[data-rail-toggle]", button: "simple" },
   { name: "rail-chrome-hidden", query: "chrome=1&hidden=1", ready: "[data-rail-toggle][aria-expanded='false']", button: "advanced" },
   { name: "rail-chrome-hidden-simple", query: "mode=simple&chrome=1&hidden=1", ready: "[data-rail-toggle][aria-expanded='false']", button: "simple" },
+  { name: "place-button-simple", query: "place=computer&mode=simple&frame=off", ready: "[data-sidebar-place] button" },
+  { name: "place-button", query: "place=computer&frame=off", ready: "[data-sidebar-place] button" },
   { name: "general-settings-simple", query: "mode=simple&settings=general", ready: "[data-settings-block='appearance']" },
   { name: "strip-settings", query: "settings=strip", ready: "[data-rail-switch]" },
   { name: "strip-settings-simple", query: "mode=simple&settings=strip", ready: "[data-rail-switch]" },

@@ -4,9 +4,12 @@ import { openExternalLink } from "@/lib/app-links";
 import { t } from "@/lib/i18n";
 import type { NoticeTone } from "./ui/Notice";
 import { Toast } from "./ui/Toast";
+import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
 
-export function NoticeCard({ titleId, icon: Icon, title, onDismiss, dismissLabel = t("notice.dismiss"), notice, children }: {
+export function NoticeCard({ titleId, icon: Icon, pixel, title, onDismiss, dismissLabel = t("notice.dismiss"), notice, children }: {
   titleId: string; icon: GlyphIcon; title: string; onDismiss: () => void;
+  /** a pixel picture of what the notice is about, in place of the glyph */
+  pixel?: PixelIconName;
   dismissLabel?: string;
   notice?: string;
   children: ReactNode;
@@ -16,7 +19,7 @@ export function NoticeCard({ titleId, icon: Icon, title, onDismiss, dismissLabel
   }} className="fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-40 max-h-[calc(100dvh-32px)] w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] overflow-y-auto ui-corner-card p-3 text-[14px] leading-5">
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-3">
-        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center text-ink/68"><Icon size={16} /></span>
+        <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center text-ink/68">{pixel ? <PixelIcon name={pixel} size={20} /> : <Icon size={16} />}</span>
         <h2 id={titleId} className="m-0 text-[14px] font-medium leading-5 text-ink">{title}</h2>
       </div>
       <button type="button" onClick={onDismiss} aria-label={dismissLabel} className={DISMISS}><X size={14} /></button>
