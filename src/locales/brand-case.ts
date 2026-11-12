@@ -98,9 +98,10 @@ const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;
 const CHAT_FRAGMENTS = /^(chat\.event\.and|approval\.voice\.action\w+)$/;
 
 /** the bot side panel (and a group chat's panel) owns these keys: every label, heading, button and row starts with a capital, as
- * messages do. Words it shares with the left sidebar, settings or a chat line get a copy of their own under botPanel.ui. The place hub's own words
- * (runsOn.status, runsOn.hint) stay lowercase. */
-const PANEL_KEYS = /^(botPanel|room\.(panel|jev|folder)|runsOn)\./;
+ * messages do, and so do the cloud move sheets it opens (cloudMove, vpsMove) and its cloud desktop row (place.cloudDesktop). Words it shares
+ * with the left sidebar, settings or a chat line get a copy of their own under botPanel.ui, and the move progress lines under botPanel.move.
+ * The place hub's own words (runsOn.status, runsOn.hint) stay lowercase. */
+const PANEL_KEYS = /^(botPanel|room\.(panel|jev|folder)|runsOn|cloudMove|vpsMove|place\.cloudDesktop)\./;
 const PANEL_LOWER = /^runsOn\.(status|hint)\./;
 
 /** single labels outside the panel that read in sentence case too */

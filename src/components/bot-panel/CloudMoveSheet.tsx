@@ -82,12 +82,12 @@ export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; o
     : stage === "coming-back" ? t("cloudMove.comingBackTitle")
     : stage === "elsewhere" && target === "home" ? t("runsOn.moveHome", { device })
     : t("runsOn.moveCloud");
-  const line = cloudDesktop?.move ? moveLine(cloudDesktop.move, cloudDesktop.cloudPage ? "cloud" : "local") : null;
+  const line = cloudDesktop?.move ? moveLine(cloudDesktop.move, cloudDesktop.cloudPage ? "cloud" : "local", "panel") : null;
   const switchPlace = () => { onClose(); void window.duskDesktop?.workspaces?.menu().catch(() => {}); };
 
   const primary = (() => {
     switch (stage) {
-      case "buy": return { label: trialDays ? t("cloudIntro.start") : t("cloudMove.get"), act: buy };
+      case "buy": return { label: trialDays ? t("botPanel.ui.cloudIntroStart") : t("cloudMove.get"), act: buy };
       case "resume": return { label: t("place.cloudDesktop.finish"), act: buy };
       case "ready": return { label: bots === 1 ? t("cloudMove.moveOne") : t("cloudMove.moveMany", { count: bots }), act: move };
       case "moved": return back ? { label: t("place.cloudDesktop.backConfirm"), act: () => { setConfirmBack(false); keepHere(); } }
@@ -99,10 +99,10 @@ export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; o
     }
   })();
   const secondary = MOVE_IN_PROGRESS.has(stage)
-    ? stage === "moving" ? { label: t("cloudMove.stop"), act: keepHere } : { label: t("common.close"), act: onClose }
+    ? stage === "moving" ? { label: t("cloudMove.stop"), act: keepHere } : { label: t("botPanel.ui.commonClose"), act: onClose }
     : stage === "moved" && !back && !cloudDesktop?.cloudPage ? { label: t("cloudMove.back", { device }), act: () => setConfirmBack(true) }
-    : back && target !== "home" ? { label: t("common.cancel"), act: () => setConfirmBack(false) }
-    : { label: offering ? t("notice.notNow") : t("common.close"), act: onClose };
+    : back && target !== "home" ? { label: t("botPanel.ui.commonCancel"), act: () => setConfirmBack(false) }
+    : { label: offering ? t("notice.notNow") : t("botPanel.ui.commonClose"), act: onClose };
 
   return (
     <GrokDialog data-panel-modal="cloud-move" title={<span className="block whitespace-normal">{title}</span>} width={440} onClose={onClose}

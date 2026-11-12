@@ -66,7 +66,7 @@ describe("the cloud desktop row", () => {
   it("offers Add a Cloud to an account without one", async () => {
     const bridges = desktop({ account: { status: "connected", clouds: [] } });
     await render();
-    expect(row()?.textContent).toContain("get one");
+    expect(row()?.textContent).toContain("Get one");
     row()!.click();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_menu" });
     expect(bridges.cloudSendPage.setKeepHere).not.toHaveBeenCalled();
@@ -76,13 +76,13 @@ describe("the cloud desktop row", () => {
     desktop({ account: { status: "connected", clouds: [{ ...HOME, status: "setting_up", origin: null }] } });
     await render();
     expect(row()?.tagName).not.toBe("BUTTON");
-    expect(row()?.textContent).toContain("setting up…");
+    expect(row()?.textContent).toContain("Setting up…");
   });
 
   it("moves this computer's bots there only once the person confirms", async () => {
     const bridges = desktop();
     await render();
-    expect(row()?.textContent).toContain("move my bots there");
+    expect(row()?.textContent).toContain("Move my bots there");
     flushSync(() => row()!.click());
     expect(document.body.textContent).toContain("Move this computer's bots to Harbor?");
     flushSync(() => button("Cancel")!.click());
@@ -99,7 +99,7 @@ describe("the cloud desktop row", () => {
     const bridges = desktop({ keep: { shown: true, on: false, moved: true, coming: false } });
     bridges.cloudAccount.connectHome.mockRejectedValueOnce(new Error("The Cloud didn't answer."));
     await render();
-    expect(row()?.textContent).toContain("open");
+    expect(row()?.textContent).toContain("Open");
     row()!.click();
     await settle();
     expect(bridges.cloudAccount.connectHome).toHaveBeenCalledTimes(1);
@@ -111,7 +111,7 @@ describe("the cloud desktop row", () => {
     const bridges = desktop({ keep: { shown: true, on: false, moved: true, coming: false } });
     await render();
     expect(bridges.cloudAccount.state).not.toHaveBeenCalled();
-    expect(row()?.textContent).toContain("move back to this computer");
+    expect(row()?.textContent).toContain("Move back to this computer");
     flushSync(() => row()!.click());
     button("Move back")!.click();
     await settle();

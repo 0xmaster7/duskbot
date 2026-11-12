@@ -74,10 +74,10 @@ describe("move to cloud desktop", () => {
     expect(stage()).toBe("buy");
     const text = document.body.textContent ?? "";
     expect(text).toContain("All 3 bots move together, with their chats, memory, files and routines.");
-    expect(text).toContain("keeps working while your computer sleeps or is closed");
+    expect(text).toContain("Keeps working while your computer sleeps or is closed");
     expect(text).toContain("From $19/month + tax.");
     expect(text).toContain("After you pay, your bots move by themselves.");
-    button("get cloud desktop")!.click();
+    button("Get cloud desktop")!.click();
     await settle();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_computer_move" });
     expect(onClose).toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe("move to cloud desktop", () => {
   it("signed out: the same checkout begins with the sign-in", async () => {
     desktop({ account: { status: "signed-out" } as CloudAccountState });
     await render();
-    button("get cloud desktop")!.click();
+    button("Get cloud desktop")!.click();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_computer_move", signIn: true });
   });
 
@@ -96,7 +96,7 @@ describe("move to cloud desktop", () => {
     const bridges = desktop();
     await render();
     expect(stage()).toBe("ready");
-    button("move 3 bots")!.click();
+    button("Move 3 bots")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(false);
     expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -123,8 +123,8 @@ describe("move to cloud desktop", () => {
     await render();
     expect(stage()).toBe("moving");
     expect(document.body.querySelector("[role='status']")).not.toBeNull();
-    expect(button("get cloud desktop")).toBeUndefined();
-    button("stop and keep them here")!.click();
+    expect(button("Get cloud desktop")).toBeUndefined();
+    button("Stop and keep them here")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(true);
   });
@@ -133,12 +133,12 @@ describe("move to cloud desktop", () => {
     const bridges = desktop({ keep: { shown: true, on: false, moved: true, coming: false } });
     await render();
     expect(stage()).toBe("moved");
-    flushSync(() => button("move back to this computer")!.click());
-    expect(document.body.textContent).toContain("move this computer's bots back?");
-    flushSync(() => button("cancel")!.click());
+    flushSync(() => button("Move back to this computer")!.click());
+    expect(document.body.textContent).toContain("Move this computer's bots back?");
+    flushSync(() => button("Cancel")!.click());
     expect(bridges.cloudSendPage.setKeepHere).not.toHaveBeenCalled();
-    flushSync(() => button("move back to this computer")!.click());
-    button("move back")!.click();
+    flushSync(() => button("Move back to this computer")!.click());
+    button("Move back")!.click();
     await settle();
     expect(bridges.cloudSendPage.setKeepHere).toHaveBeenCalledWith(true);
     button("Open cloud desktop")!.click();
@@ -150,7 +150,7 @@ describe("move to cloud desktop", () => {
     const bridges = desktop();
     bridges.cloudSendPage.setKeepHere.mockRejectedValueOnce(new Error("My Cloud didn't answer."));
     await render();
-    button("move 3 bots")!.click();
+    button("Move 3 bots")!.click();
     await settle();
     expect(document.body.querySelector("[role='alert']")?.textContent).toBe("My Cloud didn't answer.");
     expect(onClose).not.toHaveBeenCalled();

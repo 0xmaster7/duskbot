@@ -59,19 +59,27 @@ const stayedHere = (items: OneHomeStayed[] | undefined) => (items ?? []).map((it
   ? t("cloudSend.move.stayedNeeds", { name: item.name, program: item.needs })
   : t("cloudSend.move.stayedHere", { name: item.name })));
 
+/** The bot panel's move sheet reads in sentence case, so it has its own copy of the lowercase progress lines. */
+type MoveWords = "page" | "panel";
+type PanelMoveLeaf = "copy" | "bringing" | "finishing" | "keeping" | "updating" | "doneLeft" | "failingNamed" | "finishingNamed" | "waitingNamed"
+  | "waitingAnyNamed" | "waitingSignInNamed" | "copyNamed" | "copyChatsNamed";
+type MoveSay = (leaf: PanelMoveLeaf, params?: Record<string, string | number>) => string;
+const moveSay = (words: MoveWords): MoveSay => (leaf, params) => t(words === "panel" ? `botPanel.move.${leaf}` : `cloudSend.move.${leaf}`, params);
+
 /** The one-time move's line on either page: on its way (with progress, or who it waits for), almost done, failing for a
  * day (with Try again), what arrived (on My Cloud's page, once), coming home, where the bots came home instead, or this
  * computer's bots on their way home and home because the person keeps them here.
  * `page`: which page shows it; `reason`: why a failing move failed, in main's words, when it said. */
-export function moveLine(move: OneHomeView, page: "local" | "cloud"): { kind: "sending" | "failed" | "done"; text: string; extra: string[]; phone?: true; retry?: true; reason?: string; place?: string } | null {
-  if (move.place) return ownMoveLine(move, move.place, page);
+export function moveLine(move: OneHomeView, page: "local" | "cloud", words: MoveWords = "page"): { kind: "sending" | "failed" | "done"; text: string; extra: string[]; phone?: true; retry?: true; reason?: string; place?: string } | null {
+  const say = moveSay(words);
+  if (move.place) return ownMoveLine(move, move.place, page, say);
   if (move.phase === "done") {
     if (page !== "cloud") return null;
     const list = move.counts ? arrivedList(move.counts) : [];
-    const text = move.left?.length || move.stayed?.length ? t("cloudSend.move.doneLeft") : list.length ? t("cloudSend.move.done", { list: listOf(list) }) : t("cloudSend.move.doneAll");
+    const text = move.left?.length || move.stayed?.length ? say("doneLeft") : list.length ? t("cloudSend.move.done", { list: listOf(list) }) : t("cloudSend.move.doneAll");
     return { kind: "done", text, extra: [...notCarried(move.left), ...stayedHere(move.stayed), ...move.held.map((key) => t("cloudSend.result.held", { key }))], ...(move.phone ? { phone: true as const } : {}) };
   }
-  if (move.phase === "keeping") return { kind: "sending", text: t(move.updating ? "cloudSend.move.keepingUpdating" : "cloudSend.move.keeping"), extra: [] };
+  if (move.phase === "keeping") return { kind: "sending", text: move.updating ? t("cloudSend.move.keepingUpdating") : say("keeping"), extra: [] };
   if (move.phase === "home-again" || move.phase === "back") {
     if (page !== "local") return null;
     if (move.phase === "back" && move.kept) return { kind: "done", text: t("cloudSend.move.kept"), extra: [] };
@@ -84,35 +92,35 @@ export function moveLine(move: OneHomeView, page: "local" | "cloud"): { kind: "s
     }
     return { kind: "done", text: t(move.phase === "home-again" ? "cloudSend.move.homeAgain" : move.lost ? "cloudSend.move.backLost" : "cloudSend.move.back"), extra: [] };
   }
-  if (move.phase === "copy" && move.updating) return { kind: "sending", text: t("cloudSend.move.updating"), extra: [] };
+  if (move.phase === "copy" && move.updating) return { kind: "sending", text: say("updating"), extra: [] };
   // One friendly line and Try again: what failed and why stay in the logs and the report to the Admin.
   if ("failing" in move && move.failing) return { kind: "failed", text: t("cloudSend.move.failingPlain"), extra: [], retry: true };
-  if (move.phase === "finishing") return { kind: "sending", text: t("cloudSend.move.finishing"), extra: [] };
-  return { kind: "sending", text: t(page === "cloud" ? "cloudSend.move.bringing" : "cloudSend.move.copy"), extra: [] };
+  if (move.phase === "finishing") return { kind: "sending", text: say("finishing"), extra: [] };
+  return { kind: "sending", text: say(page === "cloud" ? "bringing" : "copy"), extra: [] };
 }
 
 /** The move to a server of the person's own, named `place`, on this computer's page: on its way, almost done, waiting for
  * that server's update, or failing for a day with Try again. Once done the window shows that server, which says nothing
  * of it here. */
-function ownMoveLine(move: OneHomeView, place: string, page: "local" | "cloud"): ReturnType<typeof moveLine> {
+function ownMoveLine(move: OneHomeView, place: string, page: "local" | "cloud", say: MoveSay): ReturnType<typeof moveLine> {
   // What that server refused for good is said there, where the window opens once the move is done.
-  if (move.phase === "done" && page === "cloud" && (move.left?.length || move.stayed?.length)) return { kind: "done", text: t("cloudSend.move.doneLeft"), extra: [...notCarried(move.left), ...stayedHere(move.stayed)], place };
+  if (move.phase === "done" && page === "cloud" && (move.left?.length || move.stayed?.length)) return { kind: "done", text: say("doneLeft"), extra: [...notCarried(move.left), ...stayedHere(move.stayed)], place };
   if (page !== "local" || !["copy", "wait", "finishing"].includes(move.phase)) return null;
   const line = (kind: "sending" | "failed", text: string, more: { retry?: true; reason?: string; extra?: string[] } = {}) => ({ kind, text, extra: [], place, ...more });
   const failing = "failing" in move ? move.failing : undefined;
   if (failing) {
     const extra = notCarried(failing.items);
-    return failing.error ? line("failed", t("cloudSend.move.failingNamed", { place, error: failing.error }), { retry: true, reason: failing.error, extra })
+    return failing.error ? line("failed", say("failingNamed", { place, error: failing.error }), { retry: true, reason: failing.error, extra })
       : line("failed", t("cloudSend.move.failingPlainNamed", { place }), { retry: true, extra });
   }
   if (move.phase === "copy" && move.updating) return line("sending", t("cloudSend.move.updatingNamed", { place }));
-  if (move.phase === "finishing") return line("sending", t("cloudSend.move.finishingNamed", { place }));
+  if (move.phase === "finishing") return line("sending", say("finishingNamed", { place }));
   if (move.phase === "wait" && move.waitingFor !== undefined) {
-    return line("sending", move.waitingFor ? t("cloudSend.move.waitingNamed", { place, name: move.waitingFor })
-      : t(move.waitingWhat === "sign-in" ? "cloudSend.move.waitingSignInNamed" : "cloudSend.move.waitingAnyNamed", { place }));
+    return line("sending", move.waitingFor ? say("waitingNamed", { place, name: move.waitingFor })
+      : say(move.waitingWhat === "sign-in" ? "waitingSignInNamed" : "waitingAnyNamed", { place }));
   }
   const chats = move.phase === "copy" ? move.chats : undefined;
-  return line("sending", chats ? t("cloudSend.move.copyChatsNamed", { place, done: chats.done, total: chats.total }) : t("cloudSend.move.copyNamed", { place }));
+  return line("sending", chats ? say("copyChatsNamed", { place, done: chats.done, total: chats.total }) : say("copyNamed", { place }));
 }
 
 /** A bot moving from My Cloud into a team, on My Cloud's page: on its way, failed (it is still here, unchanged), or done. */

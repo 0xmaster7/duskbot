@@ -86,9 +86,9 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
     : step === "failed" ? t("vpsMove.failedTitle")
     : t("vpsMove.doneTitle");
 
-  const close = { label: t("common.close"), act: onClose };
+  const close = { label: t("botPanel.ui.commonClose"), act: onClose };
   const notNow = { label: t("notice.notNow"), act: onClose };
-  const primary = step === "buy" ? { label: trialDays ? t("cloudIntro.start") : t("vpsMove.get"), act: buy }
+  const primary = step === "buy" ? { label: trialDays ? t("botPanel.ui.cloudIntroStart") : t("vpsMove.get"), act: buy }
     : step === "ready" ? { label: bots === 1 ? t("cloudMove.moveOne") : t("cloudMove.moveMany", { count: bots }), act: start }
     : step === "failed" ? { label: t("vpsMove.retry"), act: retry }
     : null;
