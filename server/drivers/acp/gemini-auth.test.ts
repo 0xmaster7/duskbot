@@ -44,7 +44,7 @@ describe("gemini auth detection (#28)", () => {
     expect(geminiIsAuthenticated({})).toBe(true);
   });
 
-  it("reads the common post-shutdown consumer shape — expired, no refresh — as signed out", () => {
+  it("reads the common post-shutdown consumer shape, expired, no refresh, as signed out", () => {
     writeCreds({ access_token: "at", expiry_date: Date.now() - 86_400_000 });
     expect(geminiIsAuthenticated({})).toBe(false);
   });

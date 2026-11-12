@@ -299,7 +299,7 @@ export function describeSpawnFailure(err: NodeJS.ErrnoException, cli: string, cw
     return { message: `\`${cli}\` isn't installed, or isn't on this app's PATH`, setup: true };
   }
   if (err.code === "EACCES" || err.code === "EPERM")
-    return { message: `\`${cli}\` isn't executable — check its file permissions`, setup: true };
+    return { message: `\`${cli}\` isn't executable: check its file permissions`, setup: true };
   if (err.code === "ENAMETOOLONG")
     return {
       message: `\`${cli}\` received too much launch data for Windows; update this provider or pass its prompt through stdin/a file`,

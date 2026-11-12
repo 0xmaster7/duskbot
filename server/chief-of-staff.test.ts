@@ -68,12 +68,12 @@ describe("chiefOfStaffSystemPrompt", () => {
     const prompt = chiefOfStaffSystemPrompt("chief", bots, true);
 
     expect(prompt).toContain("Chief of Staff for the Work department");
-    expect(prompt).toContain("Quill — Writer: Drafts concise copy [id: writer]");
-    expect(prompt).toContain("Patch — Engineer [id: coder]");
+    expect(prompt).toContain("Quill, Writer: Drafts concise copy [id: writer]");
+    expect(prompt).toContain("Patch, Engineer [id: coder]");
     expect(prompt).not.toContain("working right now");
     expect(prompt).not.toContain("(available)");
     expect(prompt).not.toContain("Secret");
-    expect(prompt).toContain("Other bots you can reach, in other departments:\n- Scout — Travel planner (Personal) [id: personal]");
+    expect(prompt).toContain("Other bots you can reach, in other departments:\n- Scout, Travel planner (Personal) [id: personal]");
     expect(prompt).not.toContain("Travel planner (Personal): ");
     expect(prompt).not.toContain("Atlas —");
     expect(prompt).toContain("Use coordinate_bots to assign actual teammates concrete work");
@@ -127,14 +127,14 @@ describe("chiefOfStaffSystemPrompt", () => {
         "A standing preference the person states for all their bots (where reminders go, how replies should sound) is one line you save yourself with memory_update action prefer: every bot reads it. Never send it to each bot with coordinate_bots.",
         "When a job needs a specialist you do not have (an ongoing area of work, a different skill set, or work to run in parallel), add one with create_bot without asking first, then tell the person in one line; they can undo it. When their goal matches a ready-made team, list_team_library has its roles to create the same way. Never add a bot just to look busy, or one that duplicates a teammate.",
         EVERYONE_ON_THE_MAP,
-        "Use list_bots or list_room_targets for the live reachable roster. Use coordinate_bots to assign actual teammates concrete work, or with consult: true to ask them for advice. It returns immediately and keeps you available to the user; give clear, self-contained briefs, then end your turn — you resume automatically when their results return, success or failure. Say that work is assigned, not completed; only claim completion after the teammate's result has actually arrived, and if a teammate fails or stalls, tell the user plainly and decide the next step yourself. Leads can coordinate their own specialists. Do not poll or wait, send acknowledgements as new work, or substitute native helpers for named bots. On return, verify the requested outcome, resolve decisions within the user's scope, request concrete corrections with rework=true when necessary, and return one consolidated answer. Consultations are advice, not proof that work or tests ran. A refusal from coordinate_bots means nothing was sent: fix what it names (usually the id — copy it from list_bots or your roster; a unique teammate name also works) and retry, and never describe a handoff the tool did not accept.",
+        "Use list_bots or list_room_targets for the live reachable roster. Use coordinate_bots to assign actual teammates concrete work, or with consult: true to ask them for advice. It returns immediately and keeps you available to the user; give clear, self-contained briefs, then end your turn, you resume automatically when their results return, success or failure. Say that work is assigned, not completed; only claim completion after the teammate's result has actually arrived, and if a teammate fails or stalls, tell the user plainly and decide the next step yourself. Leads can coordinate their own specialists. Do not poll or wait, send acknowledgements as new work, or substitute native helpers for named bots. On return, verify the requested outcome, resolve decisions within the user's scope, request concrete corrections with rework=true when necessary, and return one consolidated answer. Consultations are advice, not proof that work or tests ran. A refusal from coordinate_bots means nothing was sent: fix what it names (usually the id, copy it from list_bots or your roster; a unique teammate name also works) and retry, and never describe a handoff the tool did not accept.",
         "Housekeeping: list_threads also shows threads one teammate opened on another (marked \"opened by\"), and you may close_thread those once they are idle and their work is done. Threads the person started are theirs: never close them.",
         "When the user asks you to assemble or configure a team, use list_team_setup for the exact authorized teams, bot IDs and model catalog, then propose_team_setup once with all named specialists and their profile/model changes. Include new teams explicitly; the plan covers their creation and your access. Existing thread models and other bots' execution permissions stay unchanged. Follow the tool result: the plan applies immediately at every access level and the person can undo it; after an applied result, continue already-requested work without another confirmation. Only if review is pending, end your turn: the user's decision automatically resumes you once with a structured result. Report failed or cancelled results honestly. Do not ask for another yes, poll, or repeat the proposal. After successful setup, use the available coordination tools for already requested work. For explicitly requested bot deletion, use propose_bot_deletion separately and follow its applied or pending result too.",
         "Current Work department (your team):",
-        "- Quill — Writer: Drafts concise copy [id: writer]",
-        "- Patch — Engineer [id: coder]",
+        "- Quill, Writer: Drafts concise copy [id: writer]",
+        "- Patch, Engineer [id: coder]",
         "Other bots you can reach, in other departments:",
-        "- Scout — Travel planner (Personal) [id: personal]",
+        "- Scout, Travel planner (Personal) [id: personal]",
       ].join("\n"),
     );
   });
@@ -155,7 +155,7 @@ describe("chiefOfStaffSystemPrompt", () => {
       true,
     );
 
-    expect(prompt).toContain("Patch — Engineer [id: coder]");
+    expect(prompt).toContain("Patch, Engineer [id: coder]");
     expect(prompt).not.toContain("Quill");
   });
 });

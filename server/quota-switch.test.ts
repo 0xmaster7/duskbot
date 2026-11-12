@@ -469,7 +469,7 @@ describe("quota switch", () => {
       expect(thread().modelSelection.instanceId).toBe("codex");
       expect(notices().some((tool) => tool.name.includes("continuing on"))).toBe(false);
       expect(notices()).toContainEqual({
-        name: "notice: switched to Codex, but the message that hit quota could not be found to resend — send it again.", ok: false,
+        name: "notice: switched to Codex, but the message that hit quota could not be found to resend: send it again.", ok: false,
       });
     });
 
@@ -486,14 +486,14 @@ describe("quota switch", () => {
       const card = (await failed(QUOTA, { messageId: said("hi") }))!;
       const sent: Message[] = [];
       store.onChange((change) => { if (change.type === "message.patch" && change.message.id === card.id) sent.push(change.message); });
-      switchRefusal = "the bot is working — stop it before changing models";
+      switchRefusal = "the bot is working: stop it before changing models";
 
       expect(await answer(card, "Codex")).toBe("unavailable");
 
       expect(thread().modelSelection).toEqual({ instanceId: "claude", model: "claude-default" });
       expect(resend).not.toHaveBeenCalled();
       expect(notices()).toContainEqual({
-        name: "notice: could not switch to Codex — the bot is working — stop it before changing models", ok: false,
+        name: "notice: could not switch to Codex: the bot is working: stop it before changing models", ok: false,
       });
       // Not spent: a transient refusal must not cost the person the offer.
       expect(pending()?.id).toBe(card.id);
@@ -514,7 +514,7 @@ describe("quota switch", () => {
 
       expect(thread().modelSelection.instanceId).toBe("claude");
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toContainEqual({ name: "notice: could not switch to Codex — the model switch could not be saved.", ok: false });
+      expect(notices()).toContainEqual({ name: "notice: could not switch to Codex: the model switch could not be saved.", ok: false });
       expect(pending()?.id).toBe(card.id);
     });
 
@@ -526,7 +526,7 @@ describe("quota switch", () => {
 
       expect(thread().modelSelection).toEqual({ instanceId: "claude", model: "claude-default" });
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toContainEqual({ name: "notice: Codex is no longer available — nothing switched.", ok: false });
+      expect(notices()).toContainEqual({ name: "notice: Codex is no longer available: nothing switched.", ok: false });
       // the other engine on the card can still be chosen
       await answer(card, "Cursor");
       expect(thread().modelSelection.instanceId).toBe("cursor");
@@ -545,7 +545,7 @@ describe("quota switch", () => {
       // It is the conversation's own engine that is gone, not Codex: no backup
       // can be checked against it, now or on the next press.
       expect(notices()).toEqual([{
-        name: "notice: this conversation's own AI is no longer configured here, so no other AI can be checked against it — nothing switched. Choose a model for this conversation instead.",
+        name: "notice: this conversation's own AI is no longer configured here, so no other AI can be checked against it: nothing switched. Choose a model for this conversation instead.",
         ok: false,
       }]);
       expect(cardNow(card)).toMatchObject({ answered: "unavailable", dismissed: true });
@@ -559,7 +559,7 @@ describe("quota switch", () => {
 
       expect(thread().modelSelection.instanceId).toBe("claude");
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toEqual([{ name: "notice: Codex is no longer configured — nothing switched.", ok: false }]);
+      expect(notices()).toEqual([{ name: "notice: Codex is no longer configured: nothing switched.", ok: false }]);
       // Gone for good, so it leaves the card; what is left can still be chosen.
       expect(pending()?.id).toBe(card.id);
       expect(cardNow(card)).toMatchObject({ options: ["Cursor", NOT_NOW], quotaSwitch: { engines: [{ instanceId: "cursor", name: "Cursor" }] } });
@@ -576,7 +576,7 @@ describe("quota switch", () => {
 
       expect(await answer(card, "Codex")).toBe("unavailable");
 
-      expect(notices()).toEqual([{ name: "notice: Codex is no longer configured, and the card offered no other AI — nothing switched.", ok: false }]);
+      expect(notices()).toEqual([{ name: "notice: Codex is no longer configured, and the card offered no other AI: nothing switched.", ok: false }]);
       expect(cardNow(card)).toMatchObject({ answered: "unavailable", dismissed: true });
       expect(pending()).toBeUndefined();
     });
@@ -595,7 +595,7 @@ describe("quota switch", () => {
       expect(thread().modelSelection.instanceId).toBe("claude");
       expect(gate).not.toHaveBeenCalled();
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toEqual([{ name: "notice: Codex did not answer in time — nothing switched. Try again in a moment.", ok: false }]);
+      expect(notices()).toEqual([{ name: "notice: Codex did not answer in time: nothing switched. Try again in a moment.", ok: false }]);
       // the card is free again: another engine on it can be chosen
       expect(pending()?.id).toBe(card.id);
       expect(await answer(card, "Cursor")).toBe("answered");
@@ -639,7 +639,7 @@ describe("quota switch", () => {
 
       expect(thread().modelSelection.instanceId).toBe("claude");
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toContainEqual({ name: "notice: Codex is no longer available — nothing switched.", ok: false });
+      expect(notices()).toContainEqual({ name: "notice: Codex is no longer available: nothing switched.", ok: false });
     });
 
     describe("a request the job runtime still holds", () => {
@@ -720,7 +720,7 @@ describe("quota switch", () => {
         expect(thread().modelSelection.instanceId).toBe("codex");
         expect(resend).not.toHaveBeenCalled();
         expect(notices()).toEqual([{
-          name: "notice: switched to Codex. A teammate's question is waiting for your answer in this conversation, so your message was not sent again — answer it, then send your message again.",
+          name: "notice: switched to Codex. A teammate's question is waiting for your answer in this conversation, so your message was not sent again: answer it, then send your message again.",
           ok: false,
         }]);
       });
@@ -734,7 +734,7 @@ describe("quota switch", () => {
 
       expect(thread().modelSelection.instanceId).toBe("codex");
       expect(notices()).toContainEqual({
-        name: "notice: could not continue on Codex — this bot has reached its limit of 3 parallel threads", ok: false,
+        name: "notice: could not continue on Codex: this bot has reached its limit of 3 parallel threads", ok: false,
       });
     });
 
@@ -865,7 +865,7 @@ describe("quota switch", () => {
       await answer(card, "Codex");
       expect(thread().modelSelection.instanceId).toBe("claude");
       expect(resend).not.toHaveBeenCalled();
-      expect(notices()).toContainEqual({ name: "notice: continuing with another AI is switched off — nothing switched.", ok: false });
+      expect(notices()).toContainEqual({ name: "notice: continuing with another AI is switched off: nothing switched.", ok: false });
       expect(cardNow(card)).toMatchObject({ answered: "unavailable", dismissed: true });
     });
   });

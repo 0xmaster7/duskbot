@@ -30,7 +30,7 @@ const ordinal = (position: number): string => {
 
 export function computerWaitingText(holder?: ComputerHolder | null, queue?: WaitQueueFact): string {
   const position = queue?.position && queue.position > 0 ? queue.position : undefined;
-  const place = position ? ` — ${ordinal(position)} in queue` : "";
+  const place = position ? `, ${ordinal(position)} in queue` : "";
   const estimate = queue?.estimateMs !== undefined ? `; recent waits here have taken ${computerWaitDuration(queue.estimateMs)}` : "";
   // Behind more than the holder: the freed seat goes to the front waiter first.
   const starts = position && position > 1
@@ -39,22 +39,22 @@ export function computerWaitingText(holder?: ComputerHolder | null, queue?: Wait
       ? "Starts automatically when that finishes"
       : "Starts automatically when it is free";
   if (!holder) return `Waiting for its turn on this computer${place}. ${starts}${estimate}.`;
-  return `Waiting for its turn on this computer${place} — ${holderPhrase(holder)}. ${starts}${estimate}.`;
+  return `Waiting for its turn on this computer${place}: ${holderPhrase(holder)}. ${starts}${estimate}.`;
 }
 
 export function computerFreeAfterText(holder: ComputerHolder | null | undefined, waitedMs: number): string {
   const who = holder ? ` (${holder.task ? `${holder.name} · ${holder.task}` : holder.name} held it)` : "";
-  return `Computer free — continuing after waiting ${computerWaitDuration(waitedMs)}${who}`;
+  return `Computer free: continuing after waiting ${computerWaitDuration(waitedMs)}${who}`;
 }
 
 export function computerStoppedWaitingText(holder: ComputerHolder | null | undefined, waitedMs: number): string {
-  const who = holder ? ` — ${holderPhrase(holder)}` : "";
+  const who = holder ? ` (${holderPhrase(holder)})` : "";
   return `Stopped waiting for the computer after ${computerWaitDuration(waitedMs)}${who}.`;
 }
 
 export function computerParkedText(holder: ComputerHolder | null | undefined, ceilingMs: number): string {
-  const who = holder ? ` — ${holderPhrase(holder).replace(" is running ", " is still running ").replace(" is using it", " is still using it")}` : "";
-  return `Computer still busy after ${minutes(ceilingMs)}${who}. Parked — it continues automatically when the computer is free.`;
+  const who = holder ? ` (${holderPhrase(holder).replace(" is running ", " is still running ").replace(" is using it", " is still using it")})` : "";
+  return `Computer still busy after ${minutes(ceilingMs)}${who}. Parked: it continues automatically when the computer is free.`;
 }
 
 export function computerPersonAwayText(ceilingMs: number): string {

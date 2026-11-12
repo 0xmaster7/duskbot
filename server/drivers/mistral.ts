@@ -100,7 +100,7 @@ export const MistralDriver: ProviderDriver<MistralConfig> = {
       requestBody: (model, messages, stream) => ({ model, messages, stream }),
       httpErrorLabel: "Mistral",
       missingKeyError: "Save a Mistral API key in Settings → API keys, or set MISTRAL_API_KEY.",
-      unavailableReason: "No Mistral API key — open Settings → API keys.",
+      unavailableReason: "No Mistral API key: open Settings → API keys.",
       timeoutMs: 180_000, billing: "metered", includeUsageInCompleted: true,
       nativeLog: {
         source: "mistral.chat.completions",

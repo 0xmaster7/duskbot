@@ -103,11 +103,11 @@ describe("topic headers and the index", () => {
       { name: "dining.md", header: { title: "Dining", aliases: ["food"] } },
     ]);
     expect(text.split("\n")).toEqual([
-      "- memory/dining.md — Dining (also: food)",
-      "- memory/archive.md — older notes moved out of MEMORY.md, kept for the record",
+      "- memory/dining.md: Dining (also: food)",
+      "- memory/archive.md: older notes moved out of MEMORY.md, kept for the record",
     ]);
     expect(renderTopicIndex([{ name: "archive.md", header: { title: "Archive", description: "expired notes moved out by the tidy-up", aliases: [] } }]))
-      .toBe("- memory/archive.md — older notes moved out of MEMORY.md, kept for the record");
+      .toBe("- memory/archive.md: older notes moved out of MEMORY.md, kept for the record");
     const many = Array.from({ length: TOPIC_INDEX_MAX_TOPICS + 5 }, (_, i) => ({ name: `t${String(i).padStart(2, "0")}.md`, header: { aliases: [] } }));
     expect(renderTopicIndex(many)).toContain("…and 5 more in memory/");
   });
@@ -141,7 +141,7 @@ describe("memory with until dates and topics, on disk", () => {
     writeFileSync(join(WORKSPACES_DIR, BOT, "memory", "notes.md"), "plain topic\n");
     const prompt = memorySystemPrompt(BOT, { managedWrites: true, fileTools: true });
     expect(prompt).toContain(`Your topic notes (not loaded; paths are relative to ${JSON.stringify(join(WORKSPACES_DIR, BOT))}, not your working folder; when a request touches one of these topics, read that file with your file tools before you answer):`);
-    expect(prompt).toContain("- memory/dining.md — Dining (also: food, lunch, restaurants)");
+    expect(prompt).toContain("- memory/dining.md: Dining (also: food, lunch, restaurants)");
     expect(prompt).toContain("- memory/notes.md");
     expect(memorySystemPrompt(BOT, { fileTools: false })).toContain("look it up with session_search before you answer");
     expect(searchMemoryFiles(BOT, "restaurants").map((hit) => hit.file)).toContain("memory/dining.md");

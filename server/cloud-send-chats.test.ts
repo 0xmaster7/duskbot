@@ -480,7 +480,7 @@ describe("over the owner's own session", () => {
     // As an earlier send or a Bring left them on My Cloud: every line names nobody.
     const mine = say(store, ava.threadId, "Book the flight.", 1);
     const peer = store.appendMessage(ava.threadId, { role: "user", kind: "text", text: "From Chief", peerAsk: { botId: "chief", name: "Chief" }, at: 2 });
-    const routine = say(store, ava.threadId, "[Routine \"Inbox\" — do this now:]\nRead my inbox.", 3);
+    const routine = say(store, ava.threadId, "[Routine \"Inbox\", do this now:]\nRead my inbox.", 3);
     const card = store.appendMessage(ava.threadId, { role: "bot", kind: "options", at: 4,
       card: { title: "Run it?", subtitle: "", options: ["Allow"], requestId: "q1", answered: "Allow", answeredBy: { kind: "loopback" } } });
     const notNamed = say(store, ava.threadId, "Typed on My Cloud by nobody known.", 5);

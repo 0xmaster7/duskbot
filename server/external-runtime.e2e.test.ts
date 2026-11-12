@@ -107,7 +107,7 @@ describe("a bot's external runtime", () => {
     try {
       expect((await asRuntime("GET", "/api/internal/agents")).status).toBe(401);
 
-      // the file is read on demand — no restart between writing it and using it
+      // the file is read on demand, no restart between writing it and using it
       writeFileSync(runtimesFile(), JSON.stringify({ [runtime.id]: { token: TOKEN, threadId: runtime.threadId } }), { mode: 0o600 });
       const roster = await asRuntime("GET", "/api/internal/agents");
       expect(roster.status).toBe(200);

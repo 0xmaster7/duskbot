@@ -172,7 +172,7 @@ export function prepareShareNote(
     skill.enabled && withheld.has(skill.name) && assignedNow.has(skill.name) && !noted.has(skill.name) && !shadowed.has(skill.name));
   if (!fresh.length) return NO_NOTE;
   const text = `\n\n${fresh.map((skill) =>
-    `New team skill available: ${skill.name} — ${skill.description} Read ${JSON.stringify(librarySkillFilePath(skill.name, root))} with your file tools before a task it covers.`,
+    `New team skill available: ${skill.name}. ${skill.description} Read ${JSON.stringify(librarySkillFilePath(skill.name, root))} with your file tools before a task it covers.`,
   ).join("\n")}`;
   let committed = false;
   return {
@@ -241,17 +241,17 @@ export function shareLearnedSkill(args: {
   const { author, name } = args;
   const audience = args.audience === undefined ? author.visibility : args.audience;
   const copy = listMigratableSkills(author.id).find((skill) => skill.name === name);
-  const changed = { error: `"${name}" changed since this receipt — share it from its latest receipt`, stale: true as const };
+  const changed = { error: `"${name}" changed since this receipt: share it from its latest receipt`, stale: true as const };
   let library: SkillShareRecord["library"];
   if (copy) {
     if (args.expectSha256 !== undefined && copy.sha256 !== args.expectSha256) return changed;
-    if (!copy.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `"${name}" was imported, not learned — only learned skills are shared` };
+    if (!copy.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `"${name}" was imported, not learned; only learned skills are shared` };
     if (!copy.intact || !copy.directory) return { error: "the stored SKILL.md is missing or changed after review" };
     if (!copy.enabled) return { error: `"${name}" is switched off` };
     let instructions: string;
     try {
       if (readdirSync(copy.directory).some((entry) => entry !== "SKILL.md")) {
-        return { error: "the skill has supporting files — the library stores SKILL.md only" };
+        return { error: "the skill has supporting files: the library stores SKILL.md only" };
       }
       instructions = readFileSync(join(copy.directory, "SKILL.md"), "utf8");
     } catch {
@@ -294,7 +294,7 @@ export function shareLearnedSkill(args: {
     const entry = readSkillLibraryIndex(root)[name];
     if (!entry || !author.assignedSkills?.includes(name)) return { error: `no learned skill named "${name}"` };
     if (args.expectSha256 !== undefined && entry.sha256 !== args.expectSha256) return changed;
-    if (!entry.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `"${name}" was imported, not learned — only learned skills are shared` };
+    if (!entry.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `"${name}" was imported, not learned; only learned skills are shared` };
     if (entry.reviewState !== "approved") return { error: `the library's "${name}" is switched off` };
     library = "assigned";
   }
@@ -336,24 +336,24 @@ export function updateSharedLearnedSkill(args: {
   const at = args.now ?? Date.now();
   const entry = readSkillLibraryIndex(root)[args.name];
   if (!entry || !args.bot.assignedSkills?.includes(args.name)) return { error: `no shared skill named "${args.name}"` };
-  if (!entry.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `skill "${args.name}" was imported — it cannot be rewritten` };
+  if (!entry.source.startsWith(LEARN_SOURCE_PREFIX)) return { error: `skill "${args.name}" was imported: it cannot be rewritten` };
   if (entry.reviewState !== "approved") return { error: `the library's "${args.name}" is switched off` };
   const audience = args.audience === undefined ? args.bot.visibility : args.audience;
   const wider = args.bots.filter((other) => other.id !== args.bot.id && other.assignedSkills?.includes(args.name) && !audienceWithin(other.visibility, audience));
   if (wider.length) {
-    return { error: `skill "${args.name}" is also assigned to ${wider.map((other) => other.name).join(", ")}, which more people can see than can see this conversation — it is not updated from here` };
+    return { error: `skill "${args.name}" is also assigned to ${wider.map((other) => other.name).join(", ")}, which more people can see than can see this conversation: it is not updated from here` };
   }
   const prepared = prepareLearnedSkillMd(args.skillMd);
   if ("error" in prepared) return prepared;
   if (prepared.name !== args.name) return { error: `updated SKILL.md name must remain "${args.name}"` };
   const previous = readLibrarySkillFile(args.name, root);
-  if (previous === null) return { error: "stored SKILL.md changed after review — restore or remove it before proposing an update" };
+  if (previous === null) return { error: "stored SKILL.md changed after review: restore or remove it before proposing an update" };
   const read = args.expectSha256.trim().toLowerCase();
-  if (read.length < SHARED_REVISION_CHARS || !entry.sha256.startsWith(read)) return { error: `skill "${args.name}" changed since it was read — read it again first` };
+  if (read.length < SHARED_REVISION_CHARS || !entry.sha256.startsWith(read)) return { error: `skill "${args.name}" changed since it was read: read it again first` };
   const base = entry.sha256;
   if (prepared.sha256 === entry.sha256) return { error: `skill "${args.name}" already matches the proposed SKILL.md` };
   const updated = updateLibrarySkill({ name: args.name, instructions: prepared.content, expectSha256: base, root });
-  if ("stale" in updated) return { error: `skill "${args.name}" changed since it was read — read it again first` };
+  if ("stale" in updated) return { error: `skill "${args.name}" changed since it was read: read it again first` };
   if ("error" in updated) return updated;
   const team = args.assignOnward
     ? assignTeam({ author: args.bot, bots: args.bots, name: args.name, patchAssigned: args.patchAssigned, at, root, assignAuthor: false, audience })

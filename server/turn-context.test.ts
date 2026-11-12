@@ -25,7 +25,7 @@ describe("buildTurnContext", () => {
     expect(out.turnText.endsWith("hi")).toBe(true);
   });
 
-  it("replays inline for a fresh engine with prior history — the model-switch fix", () => {
+  it("replays inline for a fresh engine with prior history: the model-switch fix", () => {
     const out = buildTurnContext({ text: "hi", transcript, rewound: false, fresh: true, externallyUpdated: false, replaysNatively: false });
     expect(out.resume).toBe(false);
     expect(out.turnText).toContain("joining this conversation");
@@ -34,7 +34,7 @@ describe("buildTurnContext", () => {
     expect(out.turnText.endsWith("hi")).toBe(true);
   });
 
-  it("never wraps for native-replay drivers — they get history via SendTurnInput.transcript", () => {
+  it("never wraps for native-replay drivers: they get history via SendTurnInput.transcript", () => {
     for (const flags of [
       { rewound: true, fresh: false, externallyUpdated: false },
       { rewound: false, fresh: true, externallyUpdated: false },
@@ -46,7 +46,7 @@ describe("buildTurnContext", () => {
     }
   });
 
-  it("does not wrap a fresh engine on an empty thread — nothing to replay", () => {
+  it("does not wrap a fresh engine on an empty thread: nothing to replay", () => {
     const out = buildTurnContext({ text: "hi", transcript: [], rewound: false, fresh: true, externallyUpdated: false, replaysNatively: false });
     expect(out).toEqual({ turnText: "hi", resume: false });
   });
@@ -83,7 +83,7 @@ describe("engineIsFresh", () => {
     expect(engineIsFresh({ instanceId: "pi", lastInstanceId: "pi", resumeCursors: {}, transcript: withUser })).toBe(true);
   });
 
-  it("is true when another instance ran the last turn — even if this one has an older cursor", () => {
+  it("is true when another instance ran the last turn, even if this one has an older cursor", () => {
     expect(
       engineIsFresh({ instanceId: "claude", lastInstanceId: "antigravity", resumeCursors: { claude: "old", antigravity: "s2" }, transcript: withUser }),
     ).toBe(true);
@@ -154,11 +154,11 @@ describe("tool history in an inline replay", () => {
   const rebuilds = [{ rewound: true }, { fresh: true }, { externallyUpdated: true }];
   const conversation = [
     "User: run the tests",
-    "Assistant: [ran: Bash: pnpm test — failed]",
-    "Assistant: [ran: Read: server/config.test.ts — ok]",
+    "Assistant: [ran: Bash: pnpm test (failed)]",
+    "Assistant: [ran: Read: server/config.test.ts (ok)]",
     "Assistant: They fail in config.test.ts.",
     "User: fix it",
-    "Assistant: [ran: git diff --stat — ok]",
+    "Assistant: [ran: git diff --stat (ok)]",
     "Assistant: Fixed.",
   ].join("\n");
 
@@ -222,7 +222,7 @@ describe("tool history in an inline replay", () => {
       expect(engineIsFresh({ ...input, transcript: replay(ON).inline })).toBe(engineIsFresh({ ...input, transcript: plain }));
     }
     // a tool line is never a user turn: a greeting plus tool calls is still nothing to join
-    const greeted = [{ role: "assistant" as const, text: "Hey — I'm Wren." }, { role: "assistant" as const, text: "[ran: Read — ok]" }];
+    const greeted = [{ role: "assistant" as const, text: "Hey — I'm Wren." }, { role: "assistant" as const, text: "[ran: Read (ok)]" }];
     expect(engineIsFresh({ instanceId: "codex", lastInstanceId: "claude", resumeCursors: { claude: "s1" }, transcript: greeted })).toBe(false);
   });
 });

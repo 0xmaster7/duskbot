@@ -93,7 +93,7 @@ export function contradictionPrompt(candidates: readonly MemoryEntryLine[]): str
     "",
     listed || "(nothing)",
     "",
-    "Find pairs of lines that cannot both be true now: a direct contradiction about the same thing (a changed number, a new city, a reversed preference) — not a refinement, not two different topics, not two facts that can both hold.",
+    "Find pairs of lines that cannot both be true now: a direct contradiction about the same thing (a changed number, a new city, a reversed preference), not a refinement, not two different topics, not two facts that can both hold.",
     "Numbers, signs and symbols matter: \"balance is -10\" and \"balance is 10\" contradict; \"uses C\" and \"uses C++\" may both be true.",
     "For each pair say which to keep: the later line unless the earlier one is clearly the correction.",
     "When the line that loses also states other facts that are still true, give them as remainder, one sentence, worded as in the line; otherwise omit remainder.",

@@ -42,9 +42,9 @@ const ROWLESS_STOPS = new Set(["shutdown_timeout", "auth_required", "update_requ
 const FIXED_CAUSES: ReadonlyArray<[RegExp, string]> = [
   [/ran out of memory while \d+ tasks? ran at once/, "out_of_memory"],
   [/^Ran out of room, so I (closed the browser|stopped this task) to keep everything else running\./, "out_of_memory"],
-  [/^no activity for \d+ minutes — the turn was stopped$/, "stalled"],
-  [/^turn interrupted — dusk bot restarted$/i, "restart"],
-  [/could not start — /, "could_not_start"],
+  [/^no activity for \d+ minutes: the turn was stopped$/, "stalled"],
+  [/^turn interrupted: dusk bot restarted$/i, "restart"],
+  [/could not start: /, "could_not_start"],
   [/^the problem report could not reach /, "incident_undelivered"],
   [/^could not deliver approval to the provider/, "approval_undelivered"],
   [/^Canonical event history is incomplete/, "event_log"],

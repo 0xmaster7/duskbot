@@ -80,10 +80,10 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
     const notYours = cloudThreadRefusal(auth, threadId);
     if (notYours) return { status: 403, error: notYours };
     if (phoneSecretSubmissions.hasThread(threadId)) {
-      return { status: 409, error: "this task is securely saving a credential — try again when it finishes" };
+      return { status: 409, error: "this task is securely saving a credential: try again when it finishes" };
     }
     if (threadBusy(botId, threadId) || deps.routines()!.isActiveThread(threadId)) {
-      return { status: 409, error: "this task is running — stop it first" };
+      return { status: 409, error: "this task is running: stop it first" };
     }
     return null;
   };
@@ -174,7 +174,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
         return json(res, 403, { error: "New Full tasks require the operator's dedicated shared-workspace policy" });
       }
       if (phoneSecretSubmissions.hasBot(bot.id)) {
-        return json(res, 409, { error: "this bot is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this bot is securely saving a credential: try again when it finishes" });
       }
       if (body.projectId !== undefined && (typeof body.projectId !== "string" || !store.project(bot.id, body.projectId))) {
         return json(res, 400, { error: "projectId must belong to this bot" });
@@ -208,7 +208,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       const bot = store.bot(m[1]);
       if (!bot) return json(res, 404, { error: "no such bot" });
       if (phoneSecretSubmissions.hasBot(bot.id)) {
-        return json(res, 409, { error: "this bot is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this bot is securely saving a credential: try again when it finishes" });
       }
       // Navigation only: execution owns its thread, never this selected id.
       const requestedMessages = url.searchParams.get("messages");
@@ -396,7 +396,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       titleRegenerations.add(m[2]);
       try {
         const title = await generateThreadTitle(gate.instance, excerpt, "conversation");
-        if (!title) return json(res, 502, { error: "couldn't generate a title — try again, or rename the thread" });
+        if (!title) return json(res, 502, { error: "couldn't generate a title: try again, or rename the thread" });
         const task = store.retitleTask(m[1], m[2], startedFrom, title) ?? store.taskByThread(m[1], m[2]);
         if (!task) return json(res, 404, { error: "no such task" });
         return json(res, 200, { task: wireTask(task, store.bot(m[1])!.modelSelection) });

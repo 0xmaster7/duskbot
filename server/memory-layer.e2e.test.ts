@@ -61,7 +61,7 @@ it("recalls, captures, suggests, forgets and tidies a bot's memory", async () =>
 
     await api(`/api/bots/${bot.id}/memory/file`, "PUT", { path: "memory/dining.md", text: "---\ntitle: Dining\naliases: [food, restaurants, lunch]\n---\n- Loves pasta, hates olives\n" });
     const preview = JSON.stringify(await api(`/api/bots/${bot.id}/system-prompt`));
-    expect(preview).toContain("memory/dining.md — Dining (also: food, restaurants, lunch)");
+    expect(preview).toContain("memory/dining.md: Dining (also: food, restaurants, lunch)");
     let before = sentCount();
     await turn(bot.id, bot.threadId, "Can you suggest some restaurants for Friday?");
     expect(sentSince(before)).toContain("Recalled for this message");

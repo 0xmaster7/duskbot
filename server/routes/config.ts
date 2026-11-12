@@ -206,7 +206,7 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
         );
         if (pendingReuse) {
           return json(res, 409, {
-            error: `the previous “${pendingReuse.name}” browser session is still being erased — wait before reusing it`,
+            error: `the previous “${pendingReuse.name}” browser session is still being erased: wait before reusing it`,
           });
         }
       }

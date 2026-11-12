@@ -242,7 +242,7 @@ describe("the stall handler", () => {
   it("tells a stalled turn's requester why it stopped and what it did", () => {
     const { context, settled, delegations } = load();
     context.watchdog.options.onStall({ threadId: "t1", botId: "eli" }, 20 * 60_000);
-    const told = 'No activity for 20 minutes — the turn was stopped. Before it stopped it made 1 tool call: Bash ×1.\nIts last message, quoted: "Exporting the second half now."';
+    const told = 'No activity for 20 minutes: the turn was stopped. Before it stopped it made 1 tool call: Bash ×1.\nIts last message, quoted: "Exporting the second half now."';
     expect(settled).toEqual([{ generation: "gen-1", text: told }]);
     expect(delegations).toEqual([]);
   });
@@ -250,7 +250,7 @@ describe("the stall handler", () => {
   it("names the silence that stopped a turn whose tool was running", () => {
     const { context, settled } = load();
     context.watchdog.options.onStall({ threadId: "t1", botId: "eli" }, 120 * 60_000);
-    expect(settled[0]!.text).toMatch(/^No activity for 120 minutes — the turn was stopped\. Before it stopped/);
+    expect(settled[0]!.text).toMatch(/^No activity for 120 minutes: the turn was stopped\. Before it stopped/);
   });
 
   it("never lets the environment switch the watchdog off", () => {
@@ -269,14 +269,14 @@ describe("the stall handler", () => {
     memory.tick();
     const { context, settled } = load(memory);
     context.watchdog.options.onStall({ threadId: "t1", botId: "eli" }, 20 * 60_000);
-    expect(settled[0]!.text).toMatch(/^No activity for 20 minutes — the turn was stopped\. This Cloud ran out of memory while 1 task ran at once \(not a problem with the AI provider\)\. Before it stopped/);
+    expect(settled[0]!.text).toMatch(/^No activity for 20 minutes: the turn was stopped\. This Cloud ran out of memory while 1 task ran at once \(not a problem with the AI provider\)\. Before it stopped/);
   });
 
   it("gives a stopped turn's own end the cause the harness noted before interrupting it", () => {
     const { context } = load();
     expect(context.stoppedTurnText("t1", "turn-1", undefined, "interrupted")).toMatch(/^The turn did not complete \(interrupted\)\. /);
-    vm.runInContext('turnStops.stopping("t1", "turn-1", "turn interrupted — the Company connection changed")', context);
-    expect(context.stoppedTurnText("t1", "turn-1", undefined, "interrupted")).toMatch(/^Turn interrupted — the Company connection changed\. Before it stopped/);
+    vm.runInContext('turnStops.stopping("t1", "turn-1", "turn interrupted: the Company connection changed")', context);
+    expect(context.stoppedTurnText("t1", "turn-1", undefined, "interrupted")).toMatch(/^Turn interrupted: the Company connection changed\. Before it stopped/);
   });
 });
 

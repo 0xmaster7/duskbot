@@ -871,9 +871,9 @@ describe("ACP turns (fake CLI)", () => {
     );
     await send("turn 1");
     expect(planSteps(lastTurn())).toEqual([
-      { title: "Plan: 0 of 3 done — next: Read the brief", ok: true },
-      { title: "Plan: 0 of 3 done — Read the brief", ok: true },
-      { title: "Plan: 1 of 3 done — Write the tests", ok: true },
+      { title: "Plan: 0 of 3 done, next: Read the brief", ok: true },
+      { title: "Plan: 0 of 3 done, Read the brief", ok: true },
+      { title: "Plan: 1 of 3 done, Write the tests", ok: true },
       { title: "Plan: 3 of 3 done", ok: true },
     ]);
     // each line is its own step, with the whole list one click away
@@ -886,7 +886,7 @@ describe("ACP turns (fake CLI)", () => {
     expect(planSteps(lastTurn())).toEqual([]);
     report(plan(["completed", "Read the brief"], ["completed", "Write the tests"], ["completed", "Ship it on Friday"], ["pending", "Tell the team"]));
     await send("turn 3");
-    expect(planSteps(lastTurn())).toEqual([{ title: "Plan: 3 of 4 done — next: Tell the team", ok: true }]);
+    expect(planSteps(lastTurn())).toEqual([{ title: "Plan: 3 of 4 done, next: Tell the team", ok: true }]);
   });
 
   it("bounds a plan line and redacts it before it is cut", async () => {
@@ -896,8 +896,8 @@ describe("ACP turns (fake CLI)", () => {
     report(plan(["in_progress", `Rotate the deploy key ${secret} on every runner in the fleet, then check each one of them twice`]));
     await send("turn 1");
     const [step] = planSteps(lastTurn());
-    expect(step!.title).toMatch(/^Plan: 0 of 1 done — Rotate the deploy key «redacted \d+ chars» on every runner.*…$/);
-    expect(step!.title.length).toBeLessThanOrEqual("Plan: 0 of 1 done — ".length + 80);
+    expect(step!.title).toMatch(/^Plan: 0 of 1 done, Rotate the deploy key «redacted \d+ chars» on every runner.*…$/);
+    expect(step!.title.length).toBeLessThanOrEqual("Plan: 0 of 1 done, ".length + 80);
     expect(JSON.stringify(lastTurn())).not.toContain(secret);
   });
 
@@ -908,7 +908,7 @@ describe("ACP turns (fake CLI)", () => {
     report(plan(["in_progress", "Read the brief"]));
     // a turn that only planned is still a lost turn, not a success
     await send("turn 1", false);
-    expect(planSteps(lastTurn())).toEqual([{ title: "Plan: 0 of 1 done — Read the brief", ok: true }]);
+    expect(planSteps(lastTurn())).toEqual([{ title: "Plan: 0 of 1 done, Read the brief", ok: true }]);
     expect(lastTurn().at(-1)).toMatchObject({ type: "turn.completed", ok: false, stopReason: "empty_turn" });
   });
 

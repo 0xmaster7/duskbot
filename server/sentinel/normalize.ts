@@ -8,7 +8,7 @@ const MAX_TEXT = 240;
 
 export function normalizeSignatureText(text: string): string {
   return text
-    // quoted values: "a.txt", 'Acme', `cmd` — not the apostrophe in "can't"
+    // quoted values: "a.txt", 'Acme', `cmd`, not the apostrophe in "can't"
     .replace(/"[^"\n]*"|(?<![\w])'[^'\n]*'(?![\w])|`[^`\n]*`/g, "<q>")
     .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, "<url>")
     .replace(/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, "<email>")

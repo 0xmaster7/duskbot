@@ -155,7 +155,7 @@ posixOnly("engine hooks e2e: compaction", () => {
     const chips: Msg[] = after.messages.filter((m: Msg) => m.kind === "activity" && m.tool?.name.startsWith("context compact"));
     expect(chips.map((m) => m.tool!.name)).toEqual([
       "context compaction started (auto)",
-      "context compacted — re-sent the last 1 digest",
+      "context compacted: re-sent the last 1 digest",
     ]);
     // The fake echoes what SessionStart's stdout gave it: the first turn's digest line.
     const replies: Msg[] = after.messages.filter((m: Msg) => m.role === "bot" && m.kind === "text" && m.text);

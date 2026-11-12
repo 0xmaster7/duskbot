@@ -214,7 +214,7 @@ export function importLegacyDelegations(store: RuntimeStore, dataDir: string, no
         store.update(root, { kind: "started", at: now, detail: `running: turn 1 (host), level ${root.level}` });
         if (awaited) store.update(root, { kind: "waiting", at: now, detail: "waiting: imported queue" });
         else {
-          store.update(root, { kind: "settled", at: now, detail: "completed: done — imported queue awaits nothing" });
+          store.update(root, { kind: "settled", at: now, detail: "completed: done, imported queue awaits nothing" });
           store.update(root, { kind: "reported", at: now, detail: "own turn" });
         }
         written += 1;
@@ -256,7 +256,7 @@ export function importLegacyDelegations(store: RuntimeStore, dataDir: string, no
         };
         store.insert(root, { kind: "enqueued", at: now, detail: "queued: root, imported from delegation-receipts.json" });
         store.update(root, { kind: "started", at: now, detail: `running: turn 1 (host), level ${root.level}` });
-        store.update(root, { kind: "settled", at: now, detail: "completed: done — imported receipts" });
+        store.update(root, { kind: "settled", at: now, detail: "completed: done, imported receipts" });
         store.update(root, { kind: "reported", at: now, detail: "own turn" });
         written += 1;
       }
@@ -274,7 +274,7 @@ export function importLegacyDelegations(store: RuntimeStore, dataDir: string, no
       };
       store.insert(row, { kind: "enqueued", at: now, detail: "queued: imported from delegation-receipts.json" });
       if (ran) store.update(row, { kind: "started", at: now, detail: `running: imported turn 1, level ${row.level}` });
-      store.update(row, { kind: end.status === "cancelled" ? "cancelled" : "settled", at: now, detail: `${end.status}: ${end.outcome} — imported receipt ${receipt.status}` });
+      store.update(row, { kind: end.status === "cancelled" ? "cancelled" : "settled", at: now, detail: `${end.status}: ${end.outcome}, imported receipt ${receipt.status}` });
       store.update(row, { kind: "reported", at: now, detail: "reported: imported receipt" });
       written += 1;
     }

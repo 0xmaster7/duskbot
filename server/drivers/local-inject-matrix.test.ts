@@ -289,7 +289,7 @@ describe("Qwen writer × hosts", () => {
   });
 });
 
-describe("Hermes writer — OpenRouter 401 class", () => {
+describe("Hermes writer: OpenRouter 401 class", () => {
   it.each([...LIVE_MODEL_IDS])("ACP model id for %s is custom:host:model, not a bare slug", (model) => {
     expect(hermesAcpModelId(encodeInjectId("omlx", model))).toBe(`custom:omlx:${model}`);
   });
@@ -531,7 +531,7 @@ describe("Qwen / Hermes ACP turns", () => {
 });
 
 describe("room turns must pass the picker model", () => {
-  it("Qwen without a model never injects — the room used to do this", async () => {
+  it("Qwen without a model never injects: the room used to do this", async () => {
     const home = scratchHome("dusk-qwen-noroom-");
     const dump = join(home, "env.json");
     const instance = await QwenAgentDriver.create({
@@ -553,7 +553,7 @@ describe("room turns must pass the picker model", () => {
     }
   });
 
-  it("Hermes without a model never session/set_model — that is the OpenRouter 401", async () => {
+  it("Hermes without a model never session/set_model, that is the OpenRouter 401", async () => {
     const home = scratchHome("dusk-hermes-noroom-");
     mkdirSync(join(home, ".hermes"), { recursive: true });
     const dump = join(home, "env.json");

@@ -285,7 +285,7 @@ function librarySkillListing(root: string, entry: SkillLibraryEntry): LibrarySki
     tags: entry.tags ?? [],
     warnings: intact
       ? entry.warnings
-      : [...entry.warnings, "stored SKILL.md changed after review — enablement is blocked"],
+      : [...entry.warnings, "stored SKILL.md changed after review: enablement is blocked"],
     skippedFiles: entry.skippedFiles,
   };
 }
@@ -341,7 +341,7 @@ export function installLibrarySkill(input: {
   const existing = index[input.name];
   if (existing) {
     if (existing.sha256 === sha256) return librarySkillListing(root, existing);
-    return { error: `a skill named "${input.name}" is already in the library — choose a different name` };
+    return { error: `a skill named "${input.name}" is already in the library: choose a different name` };
   }
   const tags = input.tags?.length ? input.tags : parsed.tags;
   const entry: SkillLibraryEntry = {
@@ -389,7 +389,7 @@ export function setLibrarySkillReviewState(
   const entry = index[name];
   if (!entry) return { error: `no library skill named "${name}"` };
   if (reviewState === "approved" && !libraryContentMatches(root, entry)) {
-    return { error: "stored SKILL.md changed after review — the library entry cannot be approved" };
+    return { error: "stored SKILL.md changed after review: the library entry cannot be approved" };
   }
   entry.reviewState = reviewState;
   writeSkillLibraryIndex(root, index);

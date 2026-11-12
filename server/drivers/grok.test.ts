@@ -185,7 +185,7 @@ describe("GrokDriver turns (fake fetch)", () => {
 
   it("an interrupt during the retry backoff cancels cleanly without another attempt", async () => {
     script = [{ status: 503 }];
-    process.env.FAKE_GROK_RETRY_SCALE = "60"; // long backoff — we cancel inside it
+    process.env.FAKE_GROK_RETRY_SCALE = "60"; // long backoff, we cancel inside it
     await create();
     await instance.adapter.sendTurn({ threadId: "t-cancel-backoff", text: "go" });
     await recorder.until((e) => e.type === "turn.retrying");

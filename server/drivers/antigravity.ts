@@ -69,7 +69,7 @@ const support: AcpSupport = {
   models: STATIC_ANTIGRAVITY_MODELS,
   defaultCli: "agy", // migration alias: resolveAntigravityRuntime treats it as managed
   nativeSource: "antigravity.acp",
-  loginNote: "Antigravity needs a Google account — choose Sign in with Google in engine setup",
+  loginNote: "Antigravity needs a Google account: choose Sign in with Google in engine setup",
   install: {
     docsUrl: "https://github.com/agentclientprotocol/registry/tree/main/antigravity-acp",
     ...(managedAsset

@@ -52,7 +52,7 @@ const RESPONDER = `require("node:readline").createInterface({ input: process.std
 it("reads a turn's own words: a replayed history and recalled passages are not the turn's", () => {
   const replayed = "[This conversation received an update outside your provider session. The complete current history follows so you can use that update in your next response:]\n\nUser: OTHER-JOB\n\n[Now reply to the user's latest message:]\n\nTHIS-JOB";
   expect(ownTurnText({ message: { content: replayed } })).toBe("\n\nTHIS-JOB");
-  const recalled = "Recalled for this message — passages from your own memory files and earlier conversations: OTHER-JOB\n[end of recalled passages — the message follows]\nTHIS-JOB";
+  const recalled = "Recalled for this message: passages from your own memory files and earlier conversations: OTHER-JOB\n[end of recalled passages: the message follows]\nTHIS-JOB";
   expect(ownTurnText({ message: { content: [{ type: "text", text: recalled }] } })).toBe("\nTHIS-JOB");
 });
 

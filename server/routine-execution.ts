@@ -30,7 +30,7 @@ function fenceCarriedReport(output: string): string {
 function routineHeader(name: string, trigger: RoutineRunTrigger): string {
   if (trigger === "webhook") return "";
   const label = JSON.stringify(name.replace(/[[\]\s]+/g, " ").trim());
-  return `[${trigger === "schedule" ? "Scheduled routine" : "Routine"} ${label} — do this now:]\n`;
+  return `[${trigger === "schedule" ? "Scheduled routine" : "Routine"} ${label}, do this now:]\n`;
 }
 
 export const routinePrompt = (text: string): boolean => /^\[(?:Scheduled routine|Routine) "/u.test(text);

@@ -81,7 +81,7 @@ describe("a one-on-one goal whose turn keeps losing its slot", () => {
     const chat = goalChat(() => Promise.reject(refused(code)));
     await vi.advanceTimersByTimeAsync(GROUP_GOAL_WAIT_MAX_MS + 1_000);
     expect(chat.finished).toEqual([
-      { status: "blocked", detail: expect.stringMatching(/^Solo stayed busy for \d+ minutes? — send the goal again when they are free\.$/) },
+      { status: "blocked", detail: expect.stringMatching(/^Solo stayed busy for \d+ minutes?: send the goal again when they are free\.$/) },
     ]);
     expect(chat.run.turnCount).toBe(0);
     const starts = chat.starts();

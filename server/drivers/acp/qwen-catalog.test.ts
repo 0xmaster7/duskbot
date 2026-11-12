@@ -64,10 +64,10 @@ describe("readQwenModelCatalog", () => {
     expect(catalog).toEqual({
       default: "qwen3.7-plus(openai)",
       options: [
-        { id: "qwen3.7-plus(openai)", label: "qwen3.7-plus — Qwen Plus", custom: true, provider: "openai" },
+        { id: "qwen3.7-plus(openai)", label: "qwen3.7-plus: Qwen Plus", custom: true, provider: "openai" },
         { id: "qwen3.8-max(openai)", label: "qwen3.8-max", custom: true, provider: "openai" },
         { id: "fallback-label(openai)", label: "fallback-label", custom: true, provider: "openai" },
-        { id: "custom/model(anthropic)", label: "custom/model — Custom Model", custom: true, provider: "customProvider" },
+        { id: "custom/model(anthropic)", label: "custom/model: Custom Model", custom: true, provider: "customProvider" },
       ],
     });
     expect(JSON.stringify(catalog)).not.toContain("must-not-leak");
@@ -88,9 +88,9 @@ describe("readQwenModelCatalog", () => {
     });
 
     expect(readQwenModelCatalog(homeEnv(home)).options).toEqual([
-      { id: "same-model(openai)", label: "same-model — First Label", custom: true, provider: "openai" },
-      { id: "same-model(anthropic)", label: "same-model — Second Label", custom: true, provider: "anthropic" },
-      { id: "unique-model(anthropic)", label: "unique-model — Unique", custom: true, provider: "anthropic" },
+      { id: "same-model(openai)", label: "same-model: First Label", custom: true, provider: "openai" },
+      { id: "same-model(anthropic)", label: "same-model: Second Label", custom: true, provider: "anthropic" },
+      { id: "unique-model(anthropic)", label: "unique-model: Unique", custom: true, provider: "anthropic" },
     ]);
   });
 
@@ -116,7 +116,7 @@ describe("QwenAgentDriver catalog", () => {
       expect(instance.models.default).toBe("configured-qwen(openai)");
       expect(instance.models.options).toContainEqual({
         id: "configured-qwen(openai)",
-        label: "configured-qwen — Configured Qwen",
+        label: "configured-qwen: Configured Qwen",
         custom: true,
         provider: "openai",
       });

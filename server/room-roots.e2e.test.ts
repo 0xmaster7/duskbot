@@ -22,7 +22,7 @@ const SEAT_FREE = "the computer this conversation waited for is free again";
 const INTERRUPTED_OUTWARD = "Interrupted by a dusk bot restart after it already";
 const SETTLED = "Your downstream room requests have settled.";
 const GOAL_RUN_ENDED = "The goal run this step belonged to ended with the restart.";
-const INTERRUPTED_LINE = "turn interrupted — dusk bot restarted";
+const INTERRUPTED_LINE = "turn interrupted: dusk bot restarted";
 
 const jsonl = (path: string): any[] => existsSync(path)
   ? readFileSync(path, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
@@ -389,7 +389,7 @@ itHost("R5 queues a member's root on the computer seat at the wait ceiling, FIFO
     expect(eventsOf(root.id)).toContain("continued");
     expect(root.createdAt).toBeGreaterThan(direct.createdAt);
     await until(() => botOf(member.id), (bot) => bot?.busy === false);
-    const parkedChip = (await chat(room.threadId)).find((message) => chipText(message).includes("Parked — it continues automatically when the computer is free"));
+    const parkedChip = (await chat(room.threadId)).find((message) => chipText(message).includes("Parked: it continues automatically when the computer is free"));
     expect(parkedChip, JSON.stringify((await chat(room.threadId)).map(chipText))).toBeDefined();
     expect(chipText(parkedChip)).toContain("Seat Holder");
     expect((await roomOf(room.id)).busyBotId).toBeNull();
@@ -414,7 +414,7 @@ itHost("R5 queues a member's root on the computer seat at the wait ceiling, FIFO
     const shown = JSON.stringify(rows.map((message) => [message.kind, message.from?.name, message.turnId, chipText(message).slice(0, 80)]));
     expect(new Set(replies.map((message) => message.turnId)).size, shown).toBe(2);
     expect(replies.some((message) => String(message.text).includes(SEAT_FREE)), shown).toBe(true);
-    expect(rows.filter((message) => chipText(message).includes("Parked — it continues automatically")).length).toBe(1);
+    expect(rows.filter((message) => chipText(message).includes("Parked: it continues automatically")).length).toBe(1);
     await until(() => roomOf(room.id), (group) => group?.working === false && group.busyBotId === null);
     await until(() => botOf(member.id), (bot) => bot?.busy === false);
   } finally {

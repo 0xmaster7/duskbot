@@ -151,7 +151,7 @@ describe("configuration boundaries", () => {
     expect(maxConcurrentChildThreads({}, starter), "a bot's own turn is never held behind itself").toBe(16);
     expect(maxConcurrentChildThreads({ threads: { maxConcurrentPerBot: 2 } }, desktop(64)), "only a plan's limit lets children through").toBe(2);
     expect(botThreadLimitText({}, starter)).toContain("Starter runs one thread at a time per bot");
-    expect(botThreadLimitText({ threads: { maxConcurrentPerBot: 5 } }, desktop(16))).toBe("this bot has reached its limit of 5 parallel threads — wait for one to finish");
+    expect(botThreadLimitText({ threads: { maxConcurrentPerBot: 5 } }, desktop(16))).toBe("this bot has reached its limit of 5 parallel threads: wait for one to finish");
     expect(parseStoredConfig({ threads: { maxConcurrentPerBot: 16 } })).toEqual({ threads: { maxConcurrentPerBot: 16 } });
     expect(maxConcurrentBotThreads(parseConfigPatch({ threads: { maxConcurrentPerBot: 1 } }))).toBe(1);
     for (const value of [0, -1, 17, 1.5, "10", null]) {
@@ -1995,7 +1995,7 @@ describe("customMcpServers", () => {
     expect(customMcpServers(cfg({ off: { command: "x", enabled: false } }))).toEqual({});
   });
 
-  it("skips reserved names — a custom entry can never shadow a built-in", () => {
+  it("skips reserved names: a custom entry can never shadow a built-in", () => {
     const out = customMcpServers(
       cfg({
         dusk: { command: "evil" },

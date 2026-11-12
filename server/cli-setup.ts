@@ -122,8 +122,8 @@ async function chooseModel(io: SetupIo, models: ModelCatalog): Promise<string> {
 }
 
 const NATIVE = [
-  { id: "codex", driver: "codex", label: "ChatGPT / Codex — sign in with your account", cli: "codex", pkg: "@openai/codex" },
-  { id: "claude", driver: "claudeAgent", label: "Claude Code — sign in with your account", cli: "claude", pkg: "@anthropic-ai/claude-code" },
+  { id: "codex", driver: "codex", label: "ChatGPT / Codex: sign in with your account", cli: "codex", pkg: "@openai/codex" },
+  { id: "claude", driver: "claudeAgent", label: "Claude Code: sign in with your account", cli: "claude", pkg: "@anthropic-ai/claude-code" },
 ] as const;
 
 async function connectNative(
@@ -155,7 +155,7 @@ async function connectNative(
       throw new Error("Sign-in was not confirmed. Your dusk bot settings are unchanged; complete provider sign-in and try again.");
     }
   } else {
-    io.log("Existing sign-in found — you do not need to sign in again.");
+    io.log("Existing sign-in found: you do not need to sign in again.");
   }
   if (state.snapshot.update) io.log(`${state.snapshot.update.title}: ${state.snapshot.update.command}`);
   io.log("Sign-in confirmed. Model access is checked by the provider when you send your first message.");
@@ -182,8 +182,8 @@ export async function runSetup(
     const existingDefault = existing.findIndex(([id]) => id === cfg.defaultModelSelection?.instanceId);
     const providerOptions = [
       ...NATIVE.map((n) => n.label),
-      "API key — OpenAI, OpenRouter, Groq or a compatible service (chat only)",
-      ...existing.map(([id, entry]) => `Use existing: ${entry.displayName ?? id}${id === cfg.defaultModelSelection?.instanceId ? " — current" : ""}`),
+      "API key: OpenAI, OpenRouter, Groq or a compatible service (chat only)",
+      ...existing.map(([id, entry]) => `Use existing: ${entry.displayName ?? id}${id === cfg.defaultModelSelection?.instanceId ? " (current)" : ""}`),
     ];
     let pick: number | undefined;
 

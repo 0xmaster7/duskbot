@@ -1523,7 +1523,7 @@ describe("RoutineRequestService", () => {
     const card = store.messagesFor("thread-a")[0]!.card!;
     expect(card.subtitle).toContain("Action: Update routine");
     expect(card.subtitle).toContain("Name: Still paused");
-    expect(card.subtitle).toContain("Next run: None — this routine remains paused");
+    expect(card.subtitle).toContain("Next run: None: this routine remains paused");
     expect(card.subtitle).toContain("Instructions:\nStay paused");
   });
 
@@ -1728,7 +1728,7 @@ describe("cross-bot routine targeting", () => {
     })).rejects.toMatchObject({ message: "@Ops belongs to a different section", status: 403 });
   });
 
-  it("re-checks the target at confirm time — a deleted bot refuses without creating anything", async () => {
+  it("re-checks the target at confirm time: a deleted bot refuses without creating anything", async () => {
     let gone = false;
     const { routines, service, store } = targetedHarness(() => (gone ? "@Ops no longer exists, so this routine cannot be scheduled for it" : null));
     const proposed = await service.propose({

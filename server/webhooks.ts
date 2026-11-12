@@ -672,7 +672,7 @@ export class WebhookManager {
     return { deliveryId: requestedDeliveryId || randomUUID() };
   }
 
-  /** A room post never starts a turn: it stages the whole message — voice note and images included — and only then
+  /** A room post never starts a turn: it stages the whole message, voice note and images included, and only then
    *  appends once. The receipt is written after the append, so a failed synthesis retries cleanly. */
   private async deliverRoom(trigger: StoredWebhookTrigger, event: WebhookEvent, byPerson: boolean): Promise<WebhookReceiveResult> {
     const inFlight = this.roomInFlight.get(`${trigger.endpointId}:${String(event.deliveryId ?? "").trim().slice(0, 200)}`);

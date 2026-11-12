@@ -55,7 +55,7 @@ function errorMessage(status: number, action: string, body: unknown): string {
     return "Fish Audio rejected that API key, or the key cannot access voice models.";
   }
   if (status === 402) return detail || "Fish Audio says this account has insufficient balance.";
-  if (status === 429) return detail || "Fish Audio is rate-limiting this account — wait a moment and try again.";
+  if (status === 429) return detail || "Fish Audio is rate-limiting this account: wait a moment and try again.";
   return detail ? `${action} failed: ${detail}` : `${action} failed (${status})`;
 }
 
@@ -69,7 +69,7 @@ export async function verifyKey(key: string): Promise<VerifyResult> {
     if (res.ok) return { ok: true };
     return { ok: false, message: errorMessage(res.status, "checking that key", await safeBody(res)) };
   } catch {
-    return { ok: false, message: "Couldn't reach Fish Audio to check that key — check your connection." };
+    return { ok: false, message: "Couldn't reach Fish Audio to check that key: check your connection." };
   }
 }
 
@@ -81,7 +81,7 @@ async function fishGet(key: string, path: string): Promise<{ status: number; bod
       signal: AbortSignal.timeout(20_000),
     });
   } catch {
-    throw new Error("Couldn't reach Fish Audio to list voices — check your connection.");
+    throw new Error("Couldn't reach Fish Audio to list voices: check your connection.");
   }
   return { status: response.status, body: await safeBody(response) };
 }
@@ -199,7 +199,7 @@ export async function synthesize(
       signal: AbortSignal.timeout(60_000),
     });
   } catch {
-    throw new Error("Couldn't reach Fish Audio to generate speech — check your connection.");
+    throw new Error("Couldn't reach Fish Audio to generate speech: check your connection.");
   }
   if (!res.ok) throw new Error(errorMessage(res.status, "speaking", await safeBody(res)));
   return { bytes: new Uint8Array(await res.arrayBuffer()), mime: "audio/mpeg" };
@@ -220,7 +220,7 @@ export async function transcribe(audio: Uint8Array, mime: string, key: string): 
       signal: AbortSignal.timeout(60_000),
     });
   } catch {
-    throw new Error("Couldn't reach Fish Audio to hear you — check your connection.");
+    throw new Error("Couldn't reach Fish Audio to hear you: check your connection.");
   }
   const body = await safeBody(res);
   if (!res.ok) throw new Error(errorMessage(res.status, "hearing you", body));

@@ -46,7 +46,7 @@ export class MemoryStoreError extends Error {
 const BOT_ID = /^[\w-]{1,128}$/;
 
 function pathError(path: string): MemoryStoreError {
-  return new MemoryStoreError("path", 400, `not a memory file: ${JSON.stringify(path)} — use MEMORY.md, memory/<topic>.md or memory/log/<day>.md`);
+  return new MemoryStoreError("path", 400, `not a memory file: ${JSON.stringify(path)} (use MEMORY.md, memory/<topic>.md or memory/log/<day>.md)`);
 }
 
 /** An allowlist of three shapes, not a sanitiser: anything else would be an arbitrary file read. */
@@ -238,7 +238,7 @@ export function writeMemoryDoc(
     throw new MemoryStoreError(
       "too-large",
       413,
-      `memory files are capped at ${Math.round(MEMORY_FILE_MAX_BYTES / 1024)}KB — move longer notes into memory/<topic>.md files`,
+      `memory files are capped at ${Math.round(MEMORY_FILE_MAX_BYTES / 1024)}KB: move longer notes into memory/<topic>.md files`,
     );
   }
   const current = readMemoryDoc(botId, path);
@@ -246,7 +246,7 @@ export function writeMemoryDoc(
     throw new MemoryStoreError(
       "conflict",
       409,
-      "this file changed since you opened it — reload to see the new version, or save again to overwrite it",
+      "this file changed since you opened it: reload to see the new version, or save again to overwrite it",
       { currentHash: current.hash, current: current.text },
     );
   }
@@ -257,7 +257,7 @@ export function writeMemoryDoc(
 export function deleteMemoryDoc(botId: string, path: string): { path: string; before: string | null } {
   const ref = parseMemoryPath(path);
   if (ref.kind === "index") {
-    throw new MemoryStoreError("forbidden", 400, "MEMORY.md cannot be deleted — clear its text instead");
+    throw new MemoryStoreError("forbidden", 400, "MEMORY.md cannot be deleted: clear its text instead");
   }
   const absolute = resolveMemoryPath(botId, path);
   const current = readMemoryDoc(botId, path);

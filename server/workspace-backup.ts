@@ -843,7 +843,7 @@ function prepareRestore(dataDir: string, id: string, manifest: Manifest): string
         delete assignment.question;
         delete assignment.answer;
         update.run(now, JSON.stringify(assignment), row.id);
-        event.run(row.id, now, "failed: interrupted — Not resumed after workspace restore.");
+        event.run(row.id, now, "failed: interrupted. Not resumed after workspace restore.");
       }
       db.exec("COMMIT");
       db.exec("PRAGMA journal_mode = DELETE");

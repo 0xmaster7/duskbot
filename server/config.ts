@@ -1229,7 +1229,7 @@ function skipMcpEntry(name: string, why: string): void {
   const key = `${name}: ${why}`;
   if (reportedMcpSkips.has(key)) return;
   reportedMcpSkips.add(key);
-  console.error(`mcpServers.${JSON.stringify(name)} skipped — ${why}`);
+  console.error(`mcpServers.${JSON.stringify(name)} skipped: ${why}`);
 }
 
 export function customMcpServers(cfg: AppConfig, only?: string[], botId?: string): Record<string, CustomMcpServer> {

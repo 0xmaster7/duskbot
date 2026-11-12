@@ -19,10 +19,10 @@ const START = new Date(2026, 7, 17, 8, 0, 0).getTime();
 const SECOND = 1_000;
 const MINUTE = 60_000;
 const ROUTING = "stream error: workspace routing discovery failed: error sending request";
-const STALL = "No activity for 20 minutes — the routine was stopped";
+const STALL = "No activity for 20 minutes: the routine was stopped";
 const SIGNED_OUT = "Not logged in · Please run /login";
 const SIGN_IN_ACTION = "This bot's AI is signed out. Sign in again in Settings → AI.";
-const BUSY = "this thread is already working — interrupt it first";
+const BUSY = "this thread is already working: interrupt it first";
 const CRASH = "claude exited 3 before result: fake-claude: simulated crash before result";
 const CAPPED = "Stopped after 40 tool calls without a final answer";
 const DENIED = "One or more tool operations failed or were denied. See the tool results; the final response is not an execution receipt.";
@@ -335,9 +335,9 @@ describe("an unattended run whose bot is busy when it starts", () => {
     expect(h.failed).toHaveLength(1);
 
     const other = harness();
-    other.refuse(Object.assign(new Error('provider instance "gone" is unavailable — pick another model in settings'), { status: 409 }));
+    other.refuse(Object.assign(new Error('provider instance "gone" is unavailable: pick another model in settings'), { status: 409 }));
     const refused = await other.start(other.routine().id);
-    expect(other.run(refused.id)).toMatchObject({ status: "failed", error: 'provider instance "gone" is unavailable — pick another model in settings' });
+    expect(other.run(refused.id)).toMatchObject({ status: "failed", error: 'provider instance "gone" is unavailable: pick another model in settings' });
   });
 });
 

@@ -12,9 +12,9 @@ import { readHandoffs } from "./testing/handoff-rows.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 import { openSse, type SseRecorder } from "./testing/sse.ts";
 
-const STALLED = "No activity for 20 minutes — the routine was stopped";
+const STALLED = "No activity for 20 minutes: the routine was stopped";
 const SIGN_IN = "This bot's AI is signed out. Sign in again in Settings → AI.";
-const ROUTINE_HEADER = '[Routine "Inbox brief" — do this now:]';
+const ROUTINE_HEADER = '[Routine "Inbox brief", do this now:]';
 
 let fixture: VerificationServer | undefined;
 let restarted: ChildProcess | undefined;
@@ -195,7 +195,7 @@ it("waits for the conversation it joins to be free instead of failing, then runs
   const { id } = await s.runNow(routine.id);
   await expect.poll(() => s.run(id), { timeout: hostTimeout(15_000) }).toMatchObject({
     status: "queued", threadId: s.bot.activeTaskId, deferredAt: expect.any(Number),
-    attention: "Waiting to start: this thread is already working — interrupt it first",
+    attention: "Waiting to start: this thread is already working: interrupt it first",
   });
   writeFileSync(join(s.dataDir, "release"), "");
 

@@ -35,7 +35,7 @@ if (args.join(" ") === "--version") {
   const page = mode === "evil" ? "https://x.ai.evil.test/device"
     : mode === "complete" ? `https://accounts.x.ai/device?user_code=${code}` : "https://accounts.x.ai/device";
   process.stderr.write(`\nTo sign in, open this URL in your browser:\n    \u001b[1m${page}\u001b[0m\n`);
-  process.stderr.write("    (Could not open browser automatically — open the URL above manually.)\n");
+  process.stderr.write("    (Could not open browser automatically: open the URL above manually.)\n");
   process.stderr.write(`\n${mode === "complete" ? "Confirm this code in your browser:" : "Then enter this code:"}\n    \u001b[1m${code}\u001b[0m\n`);
   process.stderr.write("\u001b[90mOnly continue with a code you requested. Don't share it with anyone.\u001b[0m\nWaiting for authorization...\n");
   const later = (then: () => void) => setTimeout(then, 80);

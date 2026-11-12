@@ -113,7 +113,7 @@ describe("computeBackoff", () => {
   });
 });
 
-describe("classifyError — usage limits", () => {
+describe("classifyError: usage limits", () => {
   it("keeps a generic short-lived 429 transient in both transport shapes", () => {
     const text = "HTTP 429: rate limit reached; retry after 1s";
     expect(classifyError({ text })).toEqual({ transient: true, reason: "rate_limited" });

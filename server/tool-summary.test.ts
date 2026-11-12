@@ -50,7 +50,7 @@ describe("commandSummary", () => {
     expect(commandSummary({ command: "x".repeat(260) })).toBe("x".repeat(200));
   });
 
-  it("says nothing for a call that runs no command — a Read, an Edit, a fetch", () => {
+  it("says nothing for a call that runs no command: a Read, an Edit, a fetch", () => {
     expect(commandSummary({ file_path: "/tmp/notes.md" })).toBeUndefined();
     expect(commandSummary({ file_path: "scripts/control-dusk.ts", old_string: "a", new_string: "b" })).toBeUndefined();
     expect(commandSummary({ url: "https://example.com/docs" })).toBeUndefined();
@@ -82,7 +82,7 @@ describe("askInputSummary", () => {
     expect(askInputSummary({ question, command: "ls" })).toBe(question.trim());
   });
 
-  it("keeps a multi-line command multi-line — the card shows it as it will run", () => {
+  it("keeps a multi-line command multi-line: the card shows it as it will run", () => {
     expect(askInputSummary({ command: "cd repo &&\n  pnpm test \\\n  --run" })).toBe("cd repo &&\n  pnpm test \\\n  --run");
     expect(askInputSummary({ command: "x".repeat(260) })).toBe("x".repeat(200));
   });

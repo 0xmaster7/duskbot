@@ -283,11 +283,11 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
       }
       const vmOwner = localVmLeaseFor(SHARED_LOCAL_VM_TARGET).current(localVmOwnerBusy);
       if (vmOwner && (action === "stop" || action === "remove" || action === "run")) {
-        return json(res, 409, { error: "the Local VM is being used by a bot — stop that turn first" });
+        return json(res, 409, { error: "the Local VM is being used by a bot: stop that turn first" });
       }
       // A lease can lapse under a long, quiet turn, so also refuse while the thread registry or a setup action pins it.
       if ((action === "stop" || action === "remove") && (localVmActiveThreads.has(SHARED_LOCAL_VM_TARGET.key) || localVmLifecycleBusy.has(SHARED_LOCAL_VM_TARGET.key))) {
-        return json(res, 409, { error: localVmActiveThreads.has(SHARED_LOCAL_VM_TARGET.key) ? "the Local VM is being used by a bot — stop that turn first" : "another Local VM setup action is still running" });
+        return json(res, 409, { error: localVmActiveThreads.has(SHARED_LOCAL_VM_TARGET.key) ? "the Local VM is being used by a bot: stop that turn first" : "another Local VM setup action is still running" });
       }
       if (action === "pull") localVmImageBusy.set(true);
       else localVmLifecycleBusy.add(SHARED_LOCAL_VM_TARGET.key);
@@ -333,7 +333,7 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
       const bot = store.bot(m[1]);
       if (!bot) return json(res, 404, { error: "no such bot" });
       if (remoteComputerLifecycleBusyOwners.has(bot.id)) {
-        return json(res, 409, { error: "this bot's computer is being changed or deleted — wait for it to finish" });
+        return json(res, 409, { error: "this bot's computer is being changed or deleted: wait for it to finish" });
       }
       const action = z.enum(["run", "start", "stop", "remove"]).parse(m[2]);
       const target = localVmTargetForBot(bot.id);
@@ -344,12 +344,12 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
         return json(res, 409, { error: "this bot's Local VM setup action is still running" });
       }
       if (action === "run" && localVmProvisionBusy.get()) {
-        return json(res, 409, { error: "another per-bot Local VM is being created — retry after it finishes" });
+        return json(res, 409, { error: "another per-bot Local VM is being created: retry after it finishes" });
       }
       const vmOwner = localVmLeaseFor(target).current(localVmOwnerBusy);
-      if (vmOwner) return json(res, 409, { error: "this bot is using its Local VM — stop the turn first" });
+      if (vmOwner) return json(res, 409, { error: "this bot is using its Local VM: stop the turn first" });
       if ((action === "stop" || action === "remove") && (localVmActiveThreads.has(target.key) || localVmLifecycleBusy.has(target.key))) {
-        return json(res, 409, { error: localVmActiveThreads.has(target.key) ? "this bot is using its Local VM — stop the turn first" : "this bot's Local VM setup action is still running" });
+        return json(res, 409, { error: localVmActiveThreads.has(target.key) ? "this bot is using its Local VM: stop the turn first" : "this bot's Local VM setup action is still running" });
       }
       // Fenced before the first await, so two requests cannot both pass the limit.
       localVmLifecycleBusy.add(target.key);
@@ -362,7 +362,7 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
             const count = await existingPerBotLocalVmCount(before.runtime);
             if (count >= localVmMaxInstances(cfg)) {
               return json(res, 409, {
-                error: `The per-bot Local VM limit is ${localVmMaxInstances(cfg)} — delete an unused bot VM or raise the limit in App Settings`,
+                error: `The per-bot Local VM limit is ${localVmMaxInstances(cfg)}: delete an unused bot VM or raise the limit in App Settings`,
               });
             }
           }

@@ -78,7 +78,7 @@ function entriesFor(messages: readonly ReviewMessage[], bot: { id: string; name:
       if (message.role === "user") entries.push({ role: "person", speaker: "Person", text: message.text });
       else entries.push({ role: mine ? "self" : "other", speaker: mine ? bot.name : message.from?.name ?? "Another bot", text: message.text });
     } else if (message.kind === "activity" && message.tool?.name && !message.tool.setup && mine) {
-      const detail = [message.tool.input, message.tool.summary].filter((part): part is string => Boolean(part?.trim())).map((part) => oneLine(part, 160)).join(" — ");
+      const detail = [message.tool.input, message.tool.summary].filter((part): part is string => Boolean(part?.trim())).map((part) => oneLine(part, 160)).join(": ");
       entries.push({ role: "tool", speaker: bot.name, text: `${message.tool.name}${message.tool.ok === false ? " (failed)" : ""}${detail ? `: ${detail}` : ""}` });
     } else if (message.kind === "options" && message.card?.skillRequest && (message.card.skillRequest.botId === bot.id)) {
       const request = message.card.skillRequest;
@@ -434,7 +434,7 @@ export function createSkillReview(deps: SkillReviewDeps): SkillReview {
     const applied: string[] = [];
     for (const change of pending.changes) {
       if (change.action === "update" && deps.currentSha(botId, change.name) !== change.baseSha256) {
-        log(`${botId}: left "${change.name}" alone — it changed after the review read it`);
+        log(`${botId}: left "${change.name}" alone because it changed after the review read it`);
         continue;
       }
       const result = deps.apply(botId, pending.threadId, change);

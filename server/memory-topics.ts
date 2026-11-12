@@ -90,9 +90,9 @@ export function renderTopicIndex(topics: ReadonlyArray<{ name: string; header: T
     }
     const about = name === "archive.md"
       ? "older notes moved out of MEMORY.md, kept for the record"
-      : [header.title, header.description].filter(Boolean).join(" — ");
+      : [header.title, header.description].filter(Boolean).join(": ");
     const also = header.aliases.length ? ` (also: ${header.aliases.join(", ")})` : "";
-    const line = `- memory/${name}${about ? ` — ${about}` : ""}${also}`.replace(/\s+/g, " ");
+    const line = `- memory/${name}${about ? `: ${about}` : ""}${also}`.replace(/\s+/g, " ");
     if (length + line.length + 1 > TOPIC_INDEX_MAX_CHARS) {
       omitted += 1;
       continue;

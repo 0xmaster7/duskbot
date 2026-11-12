@@ -72,8 +72,8 @@ it("names earlier tool calls in a rebuilt session only when switched on", async 
     // request it followed and the reply it led to: the command that ran,
     // and the file that was read.
     const on = await rewind("SECOND_REQUEST, edited again");
-    expect(toolLines(on)).toEqual(["Assistant: [ran: Bash: pnpm test — failed]", "Assistant: [ran: Read: /fixture/notes.md — ok]"]);
-    expect(on).toMatch(/User: FIRST_REQUEST run the tests\nAssistant: \[ran: Bash: pnpm test — failed\]\nAssistant: \[ran: Read: \/fixture\/notes\.md — ok\]\nAssistant: (?!\[)/);
+    expect(toolLines(on)).toEqual(["Assistant: [ran: Bash: pnpm test (failed)]", "Assistant: [ran: Read: /fixture/notes.md (ok)]"]);
+    expect(on).toMatch(/User: FIRST_REQUEST run the tests\nAssistant: \[ran: Bash: pnpm test \(failed\)\]\nAssistant: \[ran: Read: \/fixture\/notes\.md \(ok\)\]\nAssistant: (?!\[)/);
     // no tool result, and of the input preview behind the chip only its target
     expect(on).not.toContain("RESULT_BODY");
     expect(on).not.toContain("INPUT_PREVIEW_ONLY");

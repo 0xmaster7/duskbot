@@ -101,7 +101,7 @@ describe("sharing learned skills with the team", () => {
     const first = share.shareLearnedSkill({ author, bots, name: "rough-cut", patchAssigned, root });
     if ("error" in first) throw new Error(first.error);
     const stale = share.updateSharedLearnedSkill({ bot: mate, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "v2"), expectSha256: "0".repeat(64), patchAssigned, root });
-    expect(stale).toEqual({ error: 'skill "rough-cut" changed since it was read — read it again first' });
+    expect(stale).toEqual({ error: 'skill "rough-cut" changed since it was read: read it again first' });
     const updated = share.updateSharedLearnedSkill({ bot: mate, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "v2"), expectSha256: first.sha256, patchAssigned, root });
     if ("error" in updated) throw new Error(updated.error);
     expect(updated.share.library).toBe("updated");
@@ -123,10 +123,10 @@ describe("sharing learned skills with the team", () => {
     const fromAuthor = share.updateSharedLearnedSkill({ bot: author, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "author's v2"), expectSha256: read, patchAssigned, root });
     if ("error" in fromAuthor) throw new Error(fromAuthor.error);
     const fromMate = share.updateSharedLearnedSkill({ bot: mate, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "mate's v2 from v1"), expectSha256: read, patchAssigned, root });
-    expect(fromMate).toEqual({ error: 'skill "rough-cut" changed since it was read — read it again first' });
+    expect(fromMate).toEqual({ error: 'skill "rough-cut" changed since it was read: read it again first' });
     expect(library.readLibrarySkillFile("rough-cut", root)).toBe(SKILL("rough-cut", "author's v2"));
     const loose = share.updateSharedLearnedSkill({ bot: mate, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "v3"), expectSha256: fromAuthor.sha256.slice(0, 4), patchAssigned, root });
-    expect(loose).toEqual({ error: 'skill "rough-cut" changed since it was read — read it again first' });
+    expect(loose).toEqual({ error: 'skill "rough-cut" changed since it was read: read it again first' });
     const reread = share.updateSharedLearnedSkill({ bot: mate, bots, name: "rough-cut", skillMd: SKILL("rough-cut", "mate's v3"), expectSha256: fromAuthor.sha256.slice(0, share.SHARED_REVISION_CHARS), patchAssigned, root });
     if ("error" in reread) throw new Error(reread.error);
     expect(library.readLibrarySkillFile("rough-cut", root)).toBe(SKILL("rough-cut", "mate's v3"));

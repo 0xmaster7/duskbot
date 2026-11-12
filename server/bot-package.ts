@@ -67,7 +67,7 @@ export function renderBotPackageMarkdown(document: ParsedBotPackage): string {
   const pkg = parseBotPackage(document).package;
   const frontmatter = stringifyYaml({ botmrr: BOTMRR_MARKDOWN_VERSION, ...pkg }, { lineWidth: 0 }).trim();
   const agents = pkg.agents.map((agent) => [
-    `### ${agent.name} — ${agent.title || "Specialist"}`,
+    `### ${agent.name}: ${agent.title || "Specialist"}`,
     `**Role key:** \`${agent.key}\``,
     agent.playbooks?.length ? `**Use these playbooks:** ${agent.playbooks.map((key) => `\`${key}\``).join(", ")}` : "",
     "",
@@ -94,7 +94,7 @@ export function renderBotPackageMarkdown(document: ParsedBotPackage): string {
     }  `,
     `**Run limit:** ${routine.timeoutMinutes === undefined ? "none" : `${routine.timeoutMinutes} minutes`}  `,
     `**While busy:** ${routine.overlap === "queue" ? "queue one scheduled run" : "skip scheduled occurrences"}  `,
-    "**Initial state:** paused — the user must enable it",
+    "**Initial state:** paused: the user must enable it",
     "",
     routine.prompt,
   ].join("\n")).join("\n\n");

@@ -57,7 +57,7 @@ describe("expandLearnTurnText", () => {
 });
 
 describe("a run saved from the card, in plain words", () => {
-    const request = "Goal: publish the release\nKeep the exact commands and note the failed ones as gotchas. Do not re-run anything.\n\n✓ git push — git push origin main\n";
+    const request = "Goal: publish the release\nKeep the exact commands and note the failed ones as gotchas. Do not re-run anything.\n\n✓ git push: git push origin main\n";
     const plain = `${SAVE_RUN_AS_SKILL_LINE}\n${request}`;
 
     it("expands to the same authoring prompt as /learn with the same request", () => {

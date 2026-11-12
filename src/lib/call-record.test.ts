@@ -88,8 +88,8 @@ describe("callRecordLines", () => {
       chip("h3", "m1", "approved Bash (full access): pnpm test"),
       chip("h4", "m1", "Approve for me: Claude's automatic reviewer is not available for Haiku 4.5, so this bot asks before each action."),
       chip("h5", "m1", "The provider rejected this action despite Full access.", { ok: false }),
-      chip("h6", "m1", "generated image could not be attached — invalid image", { ok: false }),
-      chip("h7", "m1", "retrying — attempt 2/3 in 5s — the engine dropped the connection"),
+      chip("h6", "m1", "generated image could not be attached: invalid image", { ok: false }),
+      chip("h7", "m1", "retrying, attempt 2/3 in 5s: the engine dropped the connection"),
       callRow("r1", "c1"),
     ];
     expect(ids(transcript, "c1")).toEqual(["step:s1", "step:s2"]);

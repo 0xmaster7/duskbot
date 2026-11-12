@@ -61,7 +61,7 @@ async function server(env: NodeJS.ProcessEnv = {}) {
   const reported = (id: string, state: string) => expect.poll(async () => (await run(id))?.report?.state, { timeout: 30_000 }).toBe(state);
   const savedBot = async () => (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id);
   const notified = () => events!.frames.filter((frame) => frame.kind === "notify").map((frame) => frame.notification as { kind: string; threadId: string; body: string });
-  const header = (name: string) => `Routine ${JSON.stringify(name)} — do this now:`;
+  const header = (name: string) => `Routine ${JSON.stringify(name)}, do this now:`;
   /** Whether the turn the script answered with `key` was told that only its last reply leaves the run. */
   const toldOnlyReplyLeaves = (key: string) => {
     const turns = readFileSync(`${planPath}.evidence.jsonl`, "utf8").trim().split("\n").map((line) => JSON.parse(line) as { planKey?: string; system?: string; prompt?: unknown });

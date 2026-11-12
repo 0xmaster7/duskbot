@@ -86,7 +86,7 @@ export async function list(ctx: VerbContext): Promise<VerbOutcome> {
   const tool = ctx.verb === "bots" ? "list_bots" : ctx.verb === "channels" ? "list_channels" : "list_available_models";
   const result = await (await ctx.client()).tool(tool, {});
   const human = ctx.verb === "bots"
-    ? (result.bots as Rec[]).map((bot) => `${bot.name}${bot.title ? ` — ${bot.title}` : ""} · ${bot.section ? `team ${bot.section}` : "no team"}${bot.chiefOfStaff ? " · Chief of Staff" : ""} · ${bot.activity === "waiting-on-you" ? "waiting on you" : bot.busy ? "working" : bot.waitingForTeammates ? "waiting on teammates" : "idle"} · id ${bot.id}`)
+    ? (result.bots as Rec[]).map((bot) => `${bot.name}${bot.title ? `: ${bot.title}` : ""} · ${bot.section ? `team ${bot.section}` : "no team"}${bot.chiefOfStaff ? " · Chief of Staff" : ""} · ${bot.activity === "waiting-on-you" ? "waiting on you" : bot.busy ? "working" : bot.waitingForTeammates ? "waiting on teammates" : "idle"} · id ${bot.id}`)
     : ctx.verb === "channels"
       ? (result.channels as Rec[]).map((room) => `${room.name} · ${room.memberIds?.length ?? 0} members · ${room.working ? "working" : "idle"} · id ${room.id}`)
       : (result.instances as Rec[]).map((instance) => `${instance.instanceId} · ${instance.snapshot?.state ?? "unknown"}${instance.models?.default ? ` · default ${instance.models.default}` : ""}${Array.isArray(instance.models?.options) ? ` · ${instance.models.options.length} models` : ""}`);
@@ -101,7 +101,7 @@ export async function messages(ctx: VerbContext): Promise<VerbOutcome> {
     const who = message.role === "user" ? "you" : message.from?.name ?? target.name ?? "bot";
     const what = message.kind === "text" ? oneLine(message.text ?? "", 400)
       : message.kind === "activity" ? `[${message.tool?.name ?? "activity"}${message.tool?.ok === false ? ", failed" : ""}]`
-      : message.card ? `[card: ${message.card.title}${message.card.answered ? ` — ${message.card.answered}` : ""}]` : `[${message.kind}]`;
+      : message.card ? `[card: ${message.card.title}${message.card.answered ? ` (${message.card.answered})` : ""}]` : `[${message.kind}]`;
     return `${who}: ${what}`;
   });
   return { result, exitCode: EXIT.done, human: human.length ? human : ["No messages yet."] };

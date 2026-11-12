@@ -300,7 +300,7 @@ export function importedSkillsFor(botId: string, shadowed: ReadonlySet<string>, 
   });
 }
 
-export const IMPORTED_CHANGED_WARNING = "its files changed after it was brought in — bring it in again from Settings → Replay welcome tour";
+export const IMPORTED_CHANGED_WARNING = "its files changed after it was brought in: bring it in again from Settings → Replay welcome tour";
 
 /** Bot Settings → Skills: every imported skill not shadowed by one of the bot's own, with its switch for this bot. */
 export function importedSkillListings(botId: string, shadowed: ReadonlySet<string>): Array<SkillListing & { origin: "imported" }> {

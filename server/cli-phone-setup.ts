@@ -58,8 +58,8 @@ export async function runPhoneSetup(
   for (;;) {
     const device = await io.choose("Use dusk bot on your phone?", [
       "Skip for now",
-      "iPhone / iPad — native app or Safari",
-      "Android — app or browser",
+      "iPhone / iPad: native app or Safari",
+      "Android: app or browser",
     ], 0);
     if (device === 0) return skip();
     const phone: PhoneKind = device === 1 ? "ios" : "android";
@@ -77,9 +77,9 @@ export async function runPhoneSetup(
     let back = false;
     while (!back) {
       const route = await io.choose("How should your phone reach this computer?", [
-        "Managed HTTPS address — protected by pairing",
-        "Existing Tailscale — only your tailnet",
-        "Existing HTTPS address — advanced",
+        "Managed HTTPS address: protected by pairing",
+        "Existing Tailscale, only your tailnet",
+        "Existing HTTPS address: advanced",
         "Back to phone choice",
         "Skip for now",
       ], 4);

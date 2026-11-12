@@ -584,7 +584,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         else if (msg.kind === "activity" && msg.tool) lines.push(`> ${msg.tool.name}`, "");
         else if (msg.kind === "screen") lines.push("> [screen capture]", "");
         else if (msg.kind === "options" && msg.card) {
-          lines.push(`> ${msg.card.title}${msg.card.answered ? ` — answered: ${msg.card.answered}` : ""}`, "");
+          lines.push(`> ${msg.card.title}${msg.card.answered ? `, answered: ${msg.card.answered}` : ""}`, "");
         }
       }
       res.writeHead(200, {

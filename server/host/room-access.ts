@@ -12,8 +12,8 @@ export interface RoomAccessDeps {
 /** Security: what is said in a Team Cloud member's private chat never reaches a room. */
 export const PRIVATE_CHAT_ROOM_WRITE = "This is a private chat, and nothing said here goes into a room, where others would read it. Hand the work to the bot directly (leave group_id out), or tell the person what you wanted to post so they can post it themselves.";
 
-/** The one copy of "may this bot speak into this room". Every caller — the bot's post_to_room tool, a
- *  webhook's room delivery — maps these problems to its own audience's wording; none adds a rule. */
+/** The one copy of "may this bot speak into this room". Every caller, the bot's post_to_room tool, a
+ *  webhook's room delivery, maps these problems to its own audience's wording; none adds a rule. */
 export type RoomTalksVerdict =
   | { ok: true }
   | { ok: false; problem: "dm" }

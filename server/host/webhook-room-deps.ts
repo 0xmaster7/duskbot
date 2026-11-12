@@ -22,7 +22,7 @@ function fail(status: number, message: string): never {
 function roomPostProblem(bot: BotRecord, group: GroupRecord, verdict: Exclude<RoomTalksVerdict, { ok: true }>): string {
   if (verdict.problem === "dm") return `@${bot.name} reaches that bot in a one-to-one channel; a webhook room post needs a room`;
   if (verdict.problem === "not-member") return `@${bot.name} is not a member of the room “${group.name}”. Add @${bot.name} to the room, or point the webhook at a room it is in.`;
-  return `the room “${group.name}” is still being set up — it cannot receive messages yet`;
+  return `the room “${group.name}” is still being set up: it cannot receive messages yet`;
 }
 
 const ROOM_GONE = "The room this webhook posts to no longer exists. Point the webhook at another room, or delete it.";

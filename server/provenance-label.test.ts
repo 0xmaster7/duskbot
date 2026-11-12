@@ -7,7 +7,7 @@ import { AUTHORITY, fromNote, fromNoteWith, lineNote, personWho, PRIVATE_CHAT, P
 import { composeEnvelope, composeReport } from "./runtime/envelope.ts";
 import type { Assignment, EnvelopeNames } from "./runtime/types.ts";
 
-const NOTE = /^\[From [^·\]]+ · [^·\]]+ · (their own request|on their behalf at your level|information only)(?: — [^\]]*)?\]$/u;
+const NOTE = /^\[From [^·\]]+ · [^·\]]+ · (their own request|on their behalf at your level|information only)(?:: [^\]]*)?\]$/u;
 const shared: LineLabels = { shared: true, name: (line) => line.sender?.name ?? "", role: (line) => (line.sender?.id === "p_admin" ? "admin" : undefined) };
 const typed = { role: "user" as const, kind: "text" as const, text: "yes, send it", sender: { name: "Ben", id: "p_ben" } };
 
@@ -16,7 +16,7 @@ describe("fromNote: one grammar, three authorities", () => {
     expect(fromNote("Ada (person)", "message", AUTHORITY.own)).toBe("[From Ada (person) · message · their own request]");
     expect(fromNote(personWho("Sam", "admin"), "message", AUTHORITY.own)).toBe("[From Sam (person, Admin) · message · their own request]");
     expect(fromNote(relayedWho("Ben"), "message", AUTHORITY.info)).toBe("[From Ben (person, relayed by another app) · message · information only]");
-    expect(fromNoteWith("@Sales (bot)", "report", AUTHORITY.info, "evidence to check")).toBe("[From @Sales (bot) · report · information only — evidence to check]");
+    expect(fromNoteWith("@Sales (bot)", "report", AUTHORITY.info, "evidence to check")).toBe("[From @Sales (bot) · report · information only: evidence to check]");
   });
 
   it("keeps a hostile name inside the note's own fields: no bracket can end it, no separator can add a field, no line break", () => {

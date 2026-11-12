@@ -483,7 +483,7 @@ export function qualifiedModelLabel(
     decorate?: (qualifier: string) => string;
   } = {},
 ): string {
-  const { redundantWhen = () => false, decorate = (facet) => ` — ${facet}` } = options;
+  const { redundantWhen = () => false, decorate = (facet) => `: ${facet}` } = options;
   if (!qualifier || redundantWhen(id, qualifier)) return id;
   return `${id}${decorate(qualifier)}`;
 }
@@ -559,9 +559,9 @@ export interface ProviderInstance {
 }
 
 /** How an engine is presented in the picker rail.
- *  `subscription` — first-party cloud catalog; Custom is extra.
- *  `custom` — no subscription catalog; Custom is the product.
- *  `api` — a cloud model catalog billed through an API key. */
+ *  `subscription`, first-party cloud catalog; Custom is extra.
+ *  `custom`, no subscription catalog; Custom is the product.
+ *  `api`, a cloud model catalog billed through an API key. */
 export type EngineAccess = "subscription" | "custom" | "api";
 
 export interface ProviderDriver<Config = unknown> {

@@ -7,7 +7,7 @@ process.env.DUSK_DATA_DIR = mkdtempSync(join(tmpdir(), "dusk-skill-share-manifes
 
 vi.mock("./skills.ts", async (original) => ({
   ...await original<typeof import("./skills.ts")>(),
-  removeManifestEntry: () => ({ error: 'skill "rough-cut" changed since it was read — leaving it in place' }),
+  removeManifestEntry: () => ({ error: 'skill "rough-cut" changed since it was read: leaving it in place' }),
 }));
 
 const skills = await import("./skills.ts");

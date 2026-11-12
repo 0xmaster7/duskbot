@@ -1,4 +1,4 @@
-// Fan-in event bus — port of upstream's ProviderService fan-in + EventNdjsonLogger tee, minus Effect.
+// Fan-in event bus, port of upstream's ProviderService fan-in + EventNdjsonLogger tee, minus Effect.
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 

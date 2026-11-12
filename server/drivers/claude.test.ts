@@ -1080,7 +1080,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
   });
 
-  it("still shows an unknown permission tool's raw arguments — they are the whole decision", async () => {
+  it("still shows an unknown permission tool's raw arguments: they are the whole decision", async () => {
     await create("hang");
     await instance.adapter.sendTurn({ threadId: "t-perm-raw", text: "go" });
     await recorder.until((e) => e.type === "session.started");
@@ -1099,7 +1099,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
   });
 
-  it("answers to unknown or already-resolved asks resolve `unavailable` — typed, never a throw", async () => {
+  it("answers to unknown or already-resolved asks resolve `unavailable`: typed, never a throw", async () => {
     await create("hang");
     await instance.adapter.sendTurn({ threadId: "t-perm-2", text: "go" });
     await expect(instance.adapter.respondToRequest("t-perm-2", "never-asked", { behavior: "allow" })).resolves.toBe("unavailable");
@@ -3494,7 +3494,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
   }, 20_000);
 
   it("never retries a terminal (auth-shaped) exit", async () => {
-    await create("exit-early"); // exit 3 with no transient vocabulary — terminal
+    await create("exit-early"); // exit 3 with no transient vocabulary, terminal
     await instance.adapter.sendTurn({ threadId: "t-terminal", text: "go" });
 
     await recorder.until((e) => e.type === "turn.completed" && e.ok === false);
@@ -3517,7 +3517,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
   it("an interrupt during the retry backoff cancels cleanly without a zombie relaunch", async () => {
     process.env.FAKE_CLAUDE_TRANSIENTS = "9";
     process.env.FAKE_CLAUDE_STATE = join(scratch, "launches-cancel");
-    process.env.FAKE_CLAUDE_RETRY_SCALE = "60"; // long backoff — we cancel inside it
+    process.env.FAKE_CLAUDE_RETRY_SCALE = "60"; // long backoff, we cancel inside it
     await create();
     await instance.adapter.sendTurn({ threadId: "t-cancel-backoff", text: "go" });
 
@@ -3764,7 +3764,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     }
   });
 
-  it("answers to unknown or already-resolved asks resolve `unavailable` — typed, never a throw", async () => {
+  it("answers to unknown or already-resolved asks resolve `unavailable`: typed, never a throw", async () => {
     await create("hang");
     await instance.adapter.sendTurn({ threadId: "t-perm-2", text: "go" });
     await expect(instance.adapter.respondToRequest("t-perm-2", "never-asked", { behavior: "allow" })).resolves.toBe("unavailable");
@@ -3808,7 +3808,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await nextAnswer()).toMatchObject({
       id: "dup-1",
       behavior: "deny",
-      message: "dusk bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id, skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-1")).toHaveLength(1);
 
@@ -3837,7 +3837,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await conn2Answer).toMatchObject({
       id: "dup-2",
       behavior: "deny",
-      message: "dusk bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id, skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-2")).toHaveLength(1);
 
@@ -3851,7 +3851,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
   });
 
-  it("accepts an ask id reused after the original already resolved — not a collision", async () => {
+  it("accepts an ask id reused after the original already resolved, not a collision", async () => {
     await create("hang");
     await instance.adapter.sendTurn({ threadId: COLLISION_THREAD_IDS[2], text: "go" });
     await recorder.until((e) => e.type === "session.started");
@@ -3890,7 +3890,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await nextAnswer()).toMatchObject({
       id: "dup-4",
       behavior: "deny",
-      message: "dusk bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id, skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-4")).toHaveLength(1);
 
@@ -3960,7 +3960,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await reply).toMatchObject({
       id: "q-late",
       behavior: "answer",
-      message: "dusk bot: the turn is ending — wrap up.",
+      message: "dusk bot: the turn is ending, wrap up.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened")).toHaveLength(opensBefore);
     await expect(
@@ -4432,7 +4432,7 @@ describe("ClaudeDriver billing (fake CLI)", () => {
   const instances: ProviderInstance[] = [];
   const KEY = { billing: "metered", method: "api-key" };
   const LOGIN = { billing: "subscription", method: null };
-  const NO_KEY = { unavailable: "No Anthropic API key — open Settings → API keys." };
+  const NO_KEY = { unavailable: "No Anthropic API key: open Settings → API keys." };
 
   const billed = async (id: "claude" | "claudeApi", anthropic: AppConfig["anthropic"]) => {
     const entry = instanceConfigs({ anthropic })[id]!;

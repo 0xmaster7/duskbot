@@ -96,7 +96,7 @@ function normalizeScheduleInput(args: Json): NormalizedSchedule {
       weekdays = Array.isArray(raw.weekdays) && raw.weekdays.length ? raw.weekdays : [...WEEKDAYS];
     } else {
       if (!Array.isArray(raw.weekdays) || raw.weekdays.length === 0) {
-        return { error: `A weekly schedule needs "weekdays", for example ["monday","friday"] — or use {"type":"daily"} to run every day.` };
+        return { error: `A weekly schedule needs "weekdays", for example ["monday","friday"], or use {"type":"daily"} to run every day.` };
       }
       weekdays = raw.weekdays;
     }

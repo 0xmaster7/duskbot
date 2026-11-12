@@ -37,12 +37,12 @@ function messageText(message: Message): string {
   const parts = [message.text ?? ""];
   if (message.card) parts.push(message.card.title, message.card.subtitle, ...message.card.options, message.card.answered ?? "");
   if (message.tool) parts.push(`[${message.tool.name}${message.tool.ok === false ? ": failed" : ""}]`);
-  if (message.kind === "connector") parts.push("[Connection card — reconnect in Settings]");
-  if (message.kind === "secret") parts.push("[Secret request — not restored]");
-  if (message.kind === "signin") parts.push("[Sign-in request — not restored]");
-  if (message.routineRun) parts.push(`[Routine: ${message.routineRun.routineName} — ${message.routineRun.status}]`, message.routineRun.summary ?? "", message.routineRun.error ?? "");
+  if (message.kind === "connector") parts.push("[Connection card: reconnect in Settings]");
+  if (message.kind === "secret") parts.push("[Secret request, not restored]");
+  if (message.kind === "signin") parts.push("[Sign-in request, not restored]");
+  if (message.routineRun) parts.push(`[Routine: ${message.routineRun.routineName} (${message.routineRun.status})]`, message.routineRun.summary ?? "", message.routineRun.error ?? "");
   if (message.goalRun) parts.push(`[Goal: ${message.goalRun.status}]`, message.goalRun.goal, message.goalRun.detail ?? "");
-  if (message.kind === "screen" || message.attachments?.length) parts.push("[Image or attachment — file not included in this backup]");
+  if (message.kind === "screen" || message.attachments?.length) parts.push("[Image or attachment: file not included in this backup]");
   return parts.filter(Boolean).join("\n");
 }
 

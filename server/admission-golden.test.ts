@@ -109,7 +109,7 @@ describe("admission golden tables", () => {
     expect(admit("unattended", {}, { botPresent: true, threadBusy: true, botBusy: true })).toEqual({ action: "start" });
   });
 
-  it("peer: admits on the landing thread, a slot, and no room turn — never whole-bot idleness", () => {
+  it("peer: admits on the landing thread, a slot, and no room turn, never whole-bot idleness", () => {
     expect(admit("peer", {}, {})).toEqual({ action: "start" });
     expect(admit("peer", {}, { threadBusy: true })).toEqual({ action: "refuse", code: "busy" });
     expect(admit("peer", {}, { atCapacity: true })).toEqual({ action: "refuse", code: "busy" });

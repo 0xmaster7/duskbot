@@ -8,7 +8,7 @@ import { afterEach, expect, it } from "vitest";
 import { launchVerificationServer, runControlDusk, type VerificationServer } from "../scripts/control-dusk.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 
-const STALLED = "error: no activity for 20 minutes — the turn was stopped";
+const STALLED = "error: no activity for 20 minutes: the turn was stopped";
 
 let fixture: VerificationServer | undefined;
 afterEach(async () => {

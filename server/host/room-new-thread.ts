@@ -14,7 +14,7 @@ export function openRoomThread({ store, turn, room, name, savingCredential }: {
   savingCredential: boolean;
 }): { status: number; body: Record<string, unknown> } {
   if ((turn.openedRoomThreads ?? 0) >= MAX_ROOM_THREADS_PER_TURN) return { status: 429, body: { error: "you can open at most 4 room threads in one turn" } };
-  if (savingCredential) return { status: 409, body: { error: "this room is securely saving a credential — try again when it finishes" } };
+  if (savingCredential) return { status: 409, body: { error: "this room is securely saving a credential: try again when it finishes" } };
   if (name !== undefined && (name.length > TITLE_MAX || !fitsOnOneLine(name))) return { status: 400, body: { error: "a new_thread title must fit on one line, at most 80 characters" } };
   const task = store.createGroupTask(room.id, name === undefined ? undefined : redactSecretsInText(name));
   if (!task) return { status: 500, body: { error: "couldn't open a thread in that room" } };

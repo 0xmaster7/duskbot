@@ -93,7 +93,7 @@ describe("upkeep state writes", () => {
   });
 
   it("seeds each bot's notebook once, never once per tick", async () => {
-    // A fresh workspace has no MEMORY.md, so the first tick creates one per bot — and only the first.
+    // A fresh workspace has no MEMORY.md, so the first tick creates one per bot, and only the first.
     for (const bot of BOTS) rmSync(join(WORKSPACES_DIR, bot.id), { recursive: true, force: true });
     const loop = loopWith();
     written.paths.length = 0;

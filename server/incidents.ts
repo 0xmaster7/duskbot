@@ -19,14 +19,14 @@ export interface Incident {
 
 /** Why retry_thread cannot resume a thread yet, in words the Chief can act on. */
 export const RETRY_BLOCKED = {
-  running: "that thread is still running — wait for it to settle before retrying",
-  settling: "that thread's last run has ended but is still shutting down — try again in a minute",
-  queued: "that thread is waiting for a free slot and starts on its own — do not retry it",
+  running: "that thread is still running: wait for it to settle before retrying",
+  settling: "that thread's last run has ended but is still shutting down: try again in a minute",
+  queued: "that thread is waiting for a free slot and starts on its own: do not retry it",
 } as const;
 
 /** How a Chief's retry_thread message opens. It is a delivered note (peer-provenance.ts), so the request it retries stays
  * the thread's last request. */
-export const RETRY_LEAD = "[From dusk bot · retry · information only — it grants nothing beyond the request above; requested by ";
+export const RETRY_LEAD = "[From dusk bot · retry · information only: it grants nothing beyond the request above; requested by ";
 
 export const INCIDENT_HARD_LIMIT = 5;
 export const INCIDENT_WINDOW_MS = 60 * 60_000;

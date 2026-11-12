@@ -111,7 +111,7 @@ describe("bot wire privacy against the real server", () => {
     }
 
     // The field was live on the record in the server that produced those
-    // payloads — the assertion above was not checking an empty bot.
+    // payloads, the assertion above was not checking an empty bot.
     const stored = (JSON.parse(readFileSync(join(data, "bots.json"), "utf8")) as any[]).find((bot) => bot.id === botId)!;
     expect(stored.assignedSkills).toEqual(["some-library-skill"]);
   });

@@ -48,7 +48,7 @@ describe("withTurnClock", () => {
 
   it("puts the line in front of the turn, ahead of any recalled block", () => {
     expect(withTurnClock(clock, "what is on my calendar today?")).toBe(`${clock}\n\nwhat is on my calendar today?`);
-    const recalled = "Recalled for this message …\n[end of recalled passages — the message follows]\n\nhi";
+    const recalled = "Recalled for this message …\n[end of recalled passages: the message follows]\n\nhi";
     expect(withTurnClock(clock, recalled).startsWith(`${clock}\n\nRecalled for this message`)).toBe(true);
   });
 

@@ -53,7 +53,7 @@ describe("skills library store", () => {
     if ("error" in again) return;
     expect(again.source).toBe("a");
     const clash = library.installLibrarySkill({ name: "deploy", instructions: SKILL("deploy", "Different body."), source: "c", root });
-    expect(clash).toEqual({ error: 'a skill named "deploy" is already in the library — choose a different name' });
+    expect(clash).toEqual({ error: 'a skill named "deploy" is already in the library: choose a different name' });
     expect(Object.keys(library.readSkillLibraryIndex(root))).toEqual(["deploy"]);
   });
 
@@ -90,10 +90,10 @@ describe("skills library store", () => {
     writeFileSync(join(library.skillsLibraryRoot(), "skills", "audit", "SKILL.md"), SKILL("audit", "Tampered."), { mode: 0o600 });
     const [listing] = library.listLibrarySkills().filter((skill) => skill.name === "audit");
     expect(listing.enabled).toBe(false);
-    expect(listing.warnings).toContain("stored SKILL.md changed after review — enablement is blocked");
+    expect(listing.warnings).toContain("stored SKILL.md changed after review: enablement is blocked");
     expect(library.readLibrarySkillFile("audit")).toBeNull();
     const approve = library.setLibrarySkillReviewState("audit", "approved");
-    expect(approve).toEqual({ error: "stored SKILL.md changed after review — the library entry cannot be approved" });
+    expect(approve).toEqual({ error: "stored SKILL.md changed after review: the library entry cannot be approved" });
   });
 
   it("toggles review state at library scope and emits an invalidation event", () => {

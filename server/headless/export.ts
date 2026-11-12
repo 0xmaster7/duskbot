@@ -77,7 +77,7 @@ function markdownOf(title: string, messages: readonly Rec[], botName: string): s
     if (message.kind === "text" && message.text) lines.push(`**${who}:**`, "", String(message.text), "");
     else if (message.kind === "activity" && message.tool) lines.push(`> ${message.tool.name}`, "");
     else if (message.kind === "screen") lines.push("> [screen capture]", "");
-    else if (message.kind === "options" && message.card) lines.push(`> ${message.card.title}${message.card.answered ? ` — answered: ${message.card.answered}` : ""}`, "");
+    else if (message.kind === "options" && message.card) lines.push(`> ${message.card.title}${message.card.answered ? `, answered: ${message.card.answered}` : ""}`, "");
   }
   return lines.join("\n");
 }

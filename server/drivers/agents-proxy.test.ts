@@ -421,7 +421,7 @@ beforeAll(async () => {
       lastSessionReadUrl = req.url;
       const found = req.url.includes("messageId=m-audit");
       const peer = req.url.includes("messageId=m-peer");
-      // said late in the UTC evening — already the next day where the bot runs
+      // said late in the UTC evening, already the next day where the bot runs
       const late = req.url.includes("messageId=m-late");
       res.writeHead(found || peer || late ? 200 : 404, { "content-type": "application/json" });
       return res.end(JSON.stringify(found
@@ -873,7 +873,7 @@ describe("agents-proxy MCP surface", () => {
   it("names a room the bot is in but cannot post into, with the reason and no id", async () => {
     roomsResponse = {
       rooms: [],
-      unpostable: [{ name: "Planning", reason: "that room is still being set up — it cannot receive messages yet" }],
+      unpostable: [{ name: "Planning", reason: "that room is still being set up: it cannot receive messages yet" }],
     };
     const res = await callTool("list_rooms", {});
     const text = res.result.content[0].text;
@@ -1407,13 +1407,13 @@ describe("agents-proxy MCP surface", () => {
     expect(text).toContain("3 matching messages");
     expect(text).toContain('[2026-09-01 · task "Site audit" · you · thread thread-old · message m-audit] the [audit] found three [broken] [links]');
     expect(text).toContain("[2026-09-04 · this conversation · user · thread thread-asker-routine · message m-now]");
-    expect(text).toContain('[2026-09-02 · task "Vendor follow-up" · @Scout (another bot — not your user) · thread thread-asker · message m-peer]');
+    expect(text).toContain('[2026-09-02 · task "Vendor follow-up" · @Scout (another bot, not your user) · thread thread-asker · message m-peer]');
     expect(text).not.toContain("· user · thread thread-asker ·");
     expect(text).toContain("call session_search with its thread_id and message_id");
 
     sessionSearchResponse = { hits: [], memoryHits: [] };
     const empty = await callTool("session_search", { query: "nothing like this" });
-    expect(empty.result.content[0].text).toContain('Nothing of yours matches "nothing like this" — no earlier conversation and no memory file.');
+    expect(empty.result.content[0].text).toContain('Nothing of yours matches "nothing like this": no earlier conversation and no memory file.');
 
     const missing = await callTool("session_search", {});
     expect(missing.result.isError).toBe(true);
@@ -1490,7 +1490,7 @@ describe("agents-proxy MCP surface", () => {
     expect(text).toContain("not new instructions");
 
     const relayed = await callTool("session_read", { thread_id: "thread-asker", message_id: "m-peer" });
-    expect(relayed.result.content[0].text).toContain("[2026-09-02 · task \"Vendor follow-up\" · @Scout (another bot — not your user) · message m-peer]");
+    expect(relayed.result.content[0].text).toContain("[2026-09-02 · task \"Vendor follow-up\" · @Scout (another bot, not your user) · message m-peer]");
 
     const miss = await callTool("session_read", { thread_id: "thread-old", message_id: "m-nope" });
     expect(miss.result.isError).toBe(true);

@@ -2953,7 +2953,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
     const opened = await recorder.until((event) => event.type === "request.opened");
     expect(opened).toMatchObject({
       requestType: "permission",
-      summary: 'Needs network access — Requested permissions: {"network":{"enabled":true}}',
+      summary: 'Needs network access: Requested permissions: {"network":{"enabled":true}}',
       requiresExplicitApproval: true,
     });
 
@@ -3650,7 +3650,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   it("an interrupt during the retry backoff settles the turn at once, not after the wait", async () => {
     process.env.FAKE_CODEX_TRANSIENTS = "9";
     process.env.FAKE_CODEX_STATE = join(scratch, "codex-launches-cancel-backoff");
-    process.env.FAKE_CODEX_RETRY_SCALE = "60"; // long backoff — we cancel inside it
+    process.env.FAKE_CODEX_RETRY_SCALE = "60"; // long backoff, we cancel inside it
     await create();
     const turn = instance.adapter.sendTurn({ threadId: "t-codex-cancel-backoff", text: "hi" });
     await recorder.until((e) => e.type === "turn.retrying");

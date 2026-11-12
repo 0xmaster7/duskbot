@@ -6,7 +6,7 @@ import { serverLine } from "./server-lines.ts";
 
 const oneLine = (text: string | undefined) => text?.replace(/\s+/g, " ").trim() ?? "";
 
-/** "Connect GitHub to continue." — or, for a second account, the alias too. */
+/** "Connect GitHub to continue.", or, for a second account, the alias too. */
 export function connectorCardText(label: string, alias?: string, language?: string): string {
   const app = oneLine(label) || serverLine(language, "server.connect.thisApp");
   const account = oneLine(alias);

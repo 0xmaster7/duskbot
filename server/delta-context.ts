@@ -22,7 +22,7 @@ export function voiceNoteTexts(m: Pick<Message, "attachments">): string[] {
 /** What a provider reads for a message: its text, then each voice note's words. This is the exact string the
  * turn fold used to store as the message text, so moving the words onto the attachment changed no replay.
  * A room post (`peerPost`, stamped on every post_to_room append) or a webhook post (`webhookPost`) never had
- * its note folded in — the note is usually the caption itself — so those keep their post text alone. */
+ * its note folded in, the note is usually the caption itself, so those keep their post text alone. */
 export function contextText(m: Pick<Message, "text" | "attachments" | "peerPost" | "webhookPost">): string {
   const spoken = m.peerPost !== undefined || m.webhookPost ? [] : voiceNoteTexts(m);
   return spoken.length ? [m.text?.trim(), ...spoken].filter(Boolean).join("\n\n") : m.text ?? "";

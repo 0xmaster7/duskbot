@@ -58,7 +58,7 @@ describe("tasks", () => {
     expect(store.activeTask(bot.id)?.resumeCursors.claude).toBeUndefined();
   });
 
-  it("keeps provider sessions apart — the whole point of a task", async () => {
+  it("keeps provider sessions apart: the whole point of a task", async () => {
     const { store } = await freshStore();
     const bot = store.createBot();
     const first = bot.threadId;

@@ -180,8 +180,8 @@ export const OpenAICompatDriver: ProviderDriver<OpenAICompatConfig> = {
       (ownKeyVariable ? undefined : process.env[DEFAULT_KEY_ENV]) ??
       "";
     const missingKey = !ownKeyVariable || OWN_KEY_ENVS.has(config.apiKeyEnv)
-      ? "No API key — open Settings → API keys."
-      : `no API key — set ${config.apiKeyEnv} or add it to the instance config`;
+      ? "No API key: open Settings → API keys."
+      : `no API key: set ${config.apiKeyEnv} or add it to the instance config`;
     const seeded = config.catalog === "openai" ? OPENAI_MODELS : DEFAULT_MODELS;
     let catalog: ModelCatalog = config.managedModels
       ? { default: config.managedModels[0], options: config.managedModels.map(id => ({ id, label: id })) }

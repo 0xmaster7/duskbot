@@ -938,7 +938,7 @@ async function withVpsLifecycleLock<T>(key: string, operation: () => Promise<T>,
         release();
         if (lifecycleLocks.get(key) === current) lifecycleLocks.delete(key);
       });
-      throw Object.assign(new Error("the VPS is being prepared — try again shortly"), { status: 409 });
+      throw Object.assign(new Error("the VPS is being prepared: try again shortly"), { status: 409 });
     }
   }
   try {
@@ -964,7 +964,7 @@ export async function removeManagedVpsComputer(
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
   if (!alias) {
-    throw Object.assign(new Error("VPS is not configured — add an SSH config alias in Settings → API keys"), { status: 409 });
+    throw Object.assign(new Error("VPS is not configured: add an SSH config alias in Settings → API keys"), { status: 409 });
   }
   if (!MANAGED_VPS_CONTAINER_NAME.test(containerName)) {
     throw Object.assign(new Error("invalid managed VPS computer name"), { status: 400 });
@@ -979,10 +979,10 @@ export async function removeManagedVpsComputer(
     const instance = scan.instances.find((candidate) => candidate.name === containerName);
     if (!instance) throw Object.assign(new Error("managed VPS computer not found"), { status: 404 });
     if (instance.inUse) {
-      throw Object.assign(new Error("this VPS computer is in use — stop its bot's work first"), { status: 409 });
+      throw Object.assign(new Error("this VPS computer is in use: stop its bot's work first"), { status: 409 });
     }
     if (confirmName !== instance.name) {
-      throw Object.assign(new Error("confirmation no longer matches this VPS computer — refresh and try again"), { status: 400 });
+      throw Object.assign(new Error("confirmation no longer matches this VPS computer: refresh and try again"), { status: 400 });
     }
 
     const containerId = scan.containerIds.get(instance.name);
@@ -1019,7 +1019,7 @@ export async function vpsComputerAction(
 ): Promise<VpsComputerStatus> {
   cfg = snapshotVpsConfig(cfg);
   const alias = vpsSshAlias(cfg);
-  if (!alias) throw Object.assign(new Error("VPS is not configured — add an SSH config alias in Settings → API keys"), { status: 409 });
+  if (!alias) throw Object.assign(new Error("VPS is not configured: add an SSH config alias in Settings → API keys"), { status: 409 });
   const key = `${alias}:${vpsContainerName(botId)}`;
   const pending = action === "provision" ? pendingProvisions.get(key) : undefined;
   if (pending) return pending;
@@ -1078,7 +1078,7 @@ export async function vpsComputerAction(
         if (before.container === "missing") return before;
         if (!before.managed) {
           throw Object.assign(
-            new Error("The VPS container name is occupied by a container dusk bot did not create — remove it on the VPS yourself"),
+            new Error("The VPS container name is occupied by a container dusk bot did not create: remove it on the VPS yourself"),
             { status: 409 },
           );
         }
@@ -1158,7 +1158,7 @@ export async function vpsComputerJoin(
   const connection = viewerConnections.get(`${alias}:${status.container_name}`);
   if (!connection) {
     throw Object.assign(
-      new Error("This VPS computer predates secure live desktop access — replace its managed container once"),
+      new Error("This VPS computer predates secure live desktop access: replace its managed container once"),
       { status: 409 },
     );
   }
@@ -1246,7 +1246,7 @@ export function vpsComputerMcp(cfg: AppConfig, botId: string, containerRef?: str
   env: Record<string, string>;
 } {
   const alias = vpsSshAlias(cfg);
-  if (!alias) throw new Error("VPS is not configured — add an SSH config alias first");
+  if (!alias) throw new Error("VPS is not configured: add an SSH config alias first");
   if (screen) { screenKey(botId, screen); if (containerRef !== screen.containerId) throw new Error("Independent screen container changed"); }
   return {
     command: process.execPath,

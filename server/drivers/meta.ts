@@ -108,7 +108,7 @@ export const MetaDriver: ProviderDriver<MetaConfig> = {
       }),
       httpErrorLabel: "Meta",
       missingKeyError: "Save a Meta Model API key in Settings → API keys, or set META_API_KEY.",
-      unavailableReason: "No Meta Model API key — open Settings → API keys.",
+      unavailableReason: "No Meta Model API key: open Settings → API keys.",
       // Muse reasons privately and streams nothing until it answers.
       timeoutMs: 600_000, billing: "metered", includeUsageInCompleted: true,
       nativeLog: {

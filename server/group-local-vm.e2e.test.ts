@@ -861,7 +861,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
     expect(existsSync(dumpFile)).toBe(false);
     const root = await until(() => readHandoffs(join(fixtureHome, "data")).findLast(node => node.groupId === group.id), node => node?.outcome !== undefined);
     expect(root).toMatchObject({ outcome: "stalled", restarts: 1 });
-    expect(root?.result).toContain("No activity for 20 minutes — the turn was stopped");
+    expect(root?.result).toContain("No activity for 20 minutes: the turn was stopped");
   });
   it("says which limit stopped a room turn that stalled during VM readiness, though setup ends before the turn has an outcome", async () => {
     const { bots, group } = await room();
@@ -877,7 +877,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
     expect(existsSync(dumpFile)).toBe(false);
     const root = await until(() => readHandoffs(join(fixtureHome, "data")).findLast(node => node.groupId === group.id), node => node?.outcome !== undefined);
     expect(root).toMatchObject({ outcome: "stalled" });
-    expect(root?.result).toContain("No activity for 20 minutes — the turn was stopped");
+    expect(root?.result).toContain("No activity for 20 minutes: the turn was stopped");
   });
   it("revokes the previous member and rejects cross-bot control after a shared desktop handoff", async () => {
     const { bots, group } = await room();
@@ -935,7 +935,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       vmState({ containers: ["shared"], stopped: ["shared"] });
       await api("POST", `/api/bots/${auto.id}/messages`, { text: "Use the stopped shared VM when available" });
       await until(async () => JSON.stringify((await api("GET", `/api/threads/${auto.threadId}/messages`)).messages)
-        .includes("Parked — it continues automatically when the computer is free"), Boolean);
+        .includes("Parked: it continues automatically when the computer is free"), Boolean);
       const parked = await until(() => api("GET", "/api/bots?messages=0"), state => {
         const task = state.bots.find((bot: any) => bot.id === auto.id)?.tasks.find((task: any) => task.threadId === auto.threadId);
         return task?.activity === "parked.computer" || existsSync(dumpFile);
@@ -1056,7 +1056,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
         const state = await api("GET", "/api/bots?messages=30");
         return (state.bots.find((b: any) => b.id === auto.id)?.messages ?? [])
           .some((m: any) => m.kind === "activity" &&
-            String(m.tool?.name ?? "").startsWith("error: computer unavailable — the Local VM could not be claimed for this turn"));
+            String(m.tool?.name ?? "").startsWith("error: computer unavailable: the Local VM could not be claimed for this turn"));
       }, Boolean);
       await idle(auto.id);
       expect((await gate(autoComputer)).status).toBe(401);

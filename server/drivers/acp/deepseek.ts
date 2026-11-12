@@ -1,4 +1,4 @@
-// DeepSeek Harness support — DeepSeek's `dsh` (github.com/deepseek-ai/deepseek-harness)
+// DeepSeek Harness support, DeepSeek's `dsh` (github.com/deepseek-ai/deepseek-harness)
 // over ACP stdio (`dsh --profile acp`). The generic protocol runtime lives in
 // acp/core.ts; this file is only the per-harness quirks. Verified against
 // @deepseek-ai/dsh 0.2.1-rc.2 on 2026-10-22:
@@ -6,7 +6,7 @@
 //   - initialize answers protocolVersion 1, authMethods [] (no sign-in step:
 //     the DeepSeek key is read from DEEPSEEK_API_KEY or dsh's own
 //     $DSH_HOME/.credentials.yaml), promptCapabilities.image false,
-//     sessionCapabilities {close, list, resume} — resume is session/resume,
+//     sessionCapabilities {close, list, resume}, resume is session/resume,
 //     there is no session/load.
 //   - session/new advertises two config options: `model` (category "model",
 //     values are JSON pairs such as ["deepseek-official","deepseek-v4-flash"],
@@ -288,7 +288,7 @@ export const deepseekSupport: AcpSupport = {
   models: DEEPSEEK_MODELS,
   defaultCli: "dsh",
   nativeSource: "deepseek.acp",
-  loginNote: "DeepSeek Harness has no DeepSeek API key — paste one under Settings → Connections → Model providers, or set DEEPSEEK_API_KEY",
+  loginNote: "DeepSeek Harness has no DeepSeek API key: paste one under Settings → Connections → Model providers, or set DEEPSEEK_API_KEY",
 
   install: {
     command: {

@@ -327,7 +327,7 @@ export async function runPair(options: CliOptions): Promise<number> {
     }
     const ui = defaultSetupIo();
     try {
-      const selected = await ui.choose("Which phone are you connecting?", ["iPhone / iPad — app or Safari", "Android — app or browser", "Cancel"], 0);
+      const selected = await ui.choose("Which phone are you connecting?", ["iPhone / iPad: app or Safari", "Android: app or browser", "Cancel"], 0);
       if (selected === 2) return 0;
       launch = { ...launch, phone: selected === 0 ? "ios" : "android" };
       return await showPhonePairing(launch, origin, ui.log) ? 0 : 1;

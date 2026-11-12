@@ -817,7 +817,7 @@ describe("RuntimeCoordinator: a stop the person made is remembered", () => {
     const first = send(h, chief, "gen-1", undefined, builder, "Build it");
     h.coordinator.tick();
     await tick();
-    h.coordinator.stopAwaitingDirect("builder-work", "Turn interrupted — provider settings changed");
+    h.coordinator.stopAwaitingDirect("builder-work", "Turn interrupted: provider settings changed");
     expect(h.coordinator.node(first.node.id)?.status).toBe("cancelled");
     expect(send(h, chief, "gen-1", undefined, builder, "Build it again").node).toMatchObject({ botId: "builder" });
 

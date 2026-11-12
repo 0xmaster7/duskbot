@@ -194,13 +194,13 @@ it("skips a later snapshot entry replaced while an earlier group interrupt is pe
 it("stops a Company room turn with the cause, not as the person's Stop", async () => {
   const f = fixture("group"), stopping = f.stop();
   await f.started("first"); f.finish("first"); await stopping;
-  expect(f.roomStops).toEqual([{ threadId: "first", status: "stopped", detail: "turn interrupted — the Company connection changed", byHarness: true }]);
+  expect(f.roomStops).toEqual([{ threadId: "first", status: "stopped", detail: "turn interrupted: the Company connection changed", byHarness: true }]);
 });
 
 it("notes the Company cause for each direct turn before interrupting it", async () => {
   const f = fixture("direct", ["first", "second"]), stopping = f.stop();
   await Promise.all([f.started("first"), f.started("second")]); f.finish("first"); f.finish("second"); await stopping;
-  expect(f.causes).toEqual(["first", "second"].map(threadId => ({ threadId, cause: "turn interrupted — the Company connection changed", interrupted: false })));
+  expect(f.causes).toEqual(["first", "second"].map(threadId => ({ threadId, cause: "turn interrupted: the Company connection changed", interrupted: false })));
 });
 
 it("also fences group resource-generation changes when the speaker object is unchanged", async () => {
@@ -367,9 +367,9 @@ it("a changed key replaces only its engine and tells only that engine's requeste
     "room-compat": ["mira agents"], "room-claude": ["mira agents"],
   });
   expect(f.log).toEqual(expect.arrayContaining(["auth:compat", "detach:compat", "cancel:eli-work", "load:compat", "attach:compat",
-    "message:eli-work:turn interrupted — provider settings changed",
-    "room-stop:room-compat:stopped:turn interrupted — provider settings changed:true"]));
-  expect(f.settled).toEqual([{ generation: "gen-eli-work", text: "turn interrupted — provider settings changed (eli-work)" }]);
+    "message:eli-work:turn interrupted: provider settings changed",
+    "room-stop:room-compat:stopped:turn interrupted: provider settings changed:true"]));
+  expect(f.settled).toEqual([{ generation: "gen-eli-work", text: "turn interrupted: provider settings changed (eli-work)" }]);
   expect(f.threads.find(thread => thread.threadId === "mira-work")?.busy).toBe(true);
   expect(f.threads.find(thread => thread.threadId === "eli-work")?.busy).toBe(false);
   expect(f.context.providerInstancesChanging.size).toBe(0);
@@ -395,10 +395,10 @@ it("ends a room stopped by the harness with its cause, and one the person stoppe
     context.cancelGroupTurnOperations("g", "room", outcome);
     return calls;
   };
-  expect(run({ status: "stopped", detail: "Turn interrupted — provider settings changed.", byHarness: true })).toEqual([
-    "assignments:g|room|Turn interrupted — provider settings changed.|failed",
+  expect(run({ status: "stopped", detail: "Turn interrupted: provider settings changed.", byHarness: true })).toEqual([
+    "assignments:g|room|Turn interrupted: provider settings changed.|failed",
     "member-claims:room",
-    "goal:stopped|Turn interrupted — provider settings changed.",
+    "goal:stopped|Turn interrupted: provider settings changed.",
   ]);
   expect(run()).toEqual([
     "cards-stopped:room", "stop-awaiting:room",

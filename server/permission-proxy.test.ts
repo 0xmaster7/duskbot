@@ -237,10 +237,10 @@ describe("permission proxy", () => {
     expect(resultJson(await waitFor(2)).updatedInput.answers).toEqual({});
   });
 
-  it("treats the turn ending the same way — system words are not the user's answer", async () => {
+  it("treats the turn ending the same way: system words are not the user's answer", async () => {
     answerWith = () => ({
       behavior: "answer",
-      message: "dusk bot: the turn is ending — wrap up.",
+      message: "dusk bot: the turn is ending, wrap up.",
       source: "system",
     });
     rpc({

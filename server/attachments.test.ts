@@ -90,7 +90,7 @@ describe("extensionForMime", () => {
     expect(extensionForMime("  image/webp  ")).toBe(".webp");
   });
 
-  it("refuses everything else — including svg, which executes script", () => {
+  it("refuses everything else, including svg, which executes script", () => {
     expect(extensionForMime("image/svg+xml")).toBeNull();
     expect(extensionForMime("text/plain")).toBeNull();
     expect(extensionForMime(undefined)).toBeNull();

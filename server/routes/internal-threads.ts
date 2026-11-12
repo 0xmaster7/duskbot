@@ -88,16 +88,16 @@ export function createInternalThreadRoutes(deps: {
     const threadId = closeMatch[1]!;
     const owner = [from, ...reachablePeers(store.bots, from)].find((bot) => store.taskByThread(bot.id, threadId));
     const task = owner ? store.taskByThread(owner.id, threadId) : undefined;
-    if (!owner || !task || !deps.shown(threadId)) return json(res, 404, { error: "no such thread — call list_threads for the ones you can see" });
+    if (!owner || !task || !deps.shown(threadId)) return json(res, 404, { error: "no such thread: call list_threads for the ones you can see" });
     if (owner.id !== from.id && task.openedBy?.botId !== from.id && !chiefTidies(from, task, task.openedBy ? store.bot(task.openedBy.botId) : undefined, owner)) {
-      return json(res, 403, { error: "that thread is not yours to close — only the bot that opened it, its own bot, or (for a thread a bot opened) a Chief of Staff can" });
+      return json(res, 403, { error: "that thread is not yours to close, only the bot that opened it, its own bot, or (for a thread a bot opened) a Chief of Staff can" });
     }
-    if (threadId === fromThreadId) return json(res, 400, { error: "you cannot close the thread you are speaking in — finish your turn instead" });
+    if (threadId === fromThreadId) return json(res, 400, { error: "you cannot close the thread you are speaking in: finish your turn instead" });
     if (coordinator.awaitingAnswer(threadId)) {
-      return json(res, 409, { error: `#${task.title} is waiting on the person's answer to its question — it continues once they reply there, so leave it open` });
+      return json(res, 409, { error: `#${task.title} is waiting on the person's answer to its question: it continues once they reply there, so leave it open` });
     }
     if (deps.threadBusy(owner.id, threadId) || deps.queuedThreadPosition(owner.id, threadId) !== null || coordinator.activeDirect(threadId)) {
-      return json(res, 409, { error: `#${task.title} is still running — wait for it to finish (list_threads), or the person can stop it from the app` });
+      return json(res, 409, { error: `#${task.title} is still running: wait for it to finish (list_threads), or the person can stop it from the app` });
     }
     if (task.closedBy) {
       return json(res, 200, { closed: true, alreadyClosed: true, threadId, title: task.title, botName: owner.name, closedBy: task.closedBy.name });

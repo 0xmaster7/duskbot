@@ -31,6 +31,6 @@ export function maxConcurrentChildThreads(cfg: SavedThreads, host: BotThreadsHos
 
 export function botThreadLimitText(cfg: SavedThreads, host: BotThreadsHost = botThreadsHost()): string {
   return host.oneThreadPerBot
-    ? "Starter runs one thread at a time per bot — wait for it to finish, or move to a bigger plan to run more"
-    : `this bot has reached its limit of ${maxConcurrentBotThreads(cfg, host)} parallel threads — wait for one to finish`;
+    ? "Starter runs one thread at a time per bot: wait for it to finish, or move to a bigger plan to run more"
+    : `this bot has reached its limit of ${maxConcurrentBotThreads(cfg, host)} parallel threads: wait for one to finish`;
 }

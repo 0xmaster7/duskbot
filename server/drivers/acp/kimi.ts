@@ -526,7 +526,7 @@ const support: AcpSupport = {
   resolveModels: (env) => mergeLocalInject(readKimiModelCatalog(env), env),
   defaultCli: "kimi",
   nativeSource: "kimi.acp",
-  loginNote: "Kimi is not signed in to your Kimi Code account — choose Sign in to Kimi in engine setup",
+  loginNote: "Kimi is not signed in to your Kimi Code account: choose Sign in to Kimi in engine setup",
 
   install: {
     command: {

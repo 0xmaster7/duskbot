@@ -26,7 +26,7 @@ describe("a room's status rows", () => {
   it("are recognized in every language when read back", () => {
     expect(isHeldMemberLine(heldMemberLine("Biber", "de"))).toBe(true);
     expect(isHeldMemberLine(heldMemberLine("Ada Lovelace", "ja"))).toBe(true);
-    expect(isHeldMemberLine("Biber is busy in another conversation — skipped this round")).toBe(false);
+    expect(isHeldMemberLine("Biber is busy in another conversation: skipped this round")).toBe(false);
     expect(isServerLine("server.rooms.postedIn", "Gepostet in Standup")).toBe(true);
     expect(isServerLine("server.rooms.postedIn", "Posted in Standup")).toBe(true);
     expect(isServerLine("server.rooms.postedIn", "Posted Standup")).toBe(false);

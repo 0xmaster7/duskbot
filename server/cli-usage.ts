@@ -19,7 +19,7 @@ export const HEADLESS_USAGE = `Drive a running workspace (scripts, CI, other age
   Token: DUSK_TOKEN or --token-file FILE. --json prints one JSON document;
   progress goes to stderr (--quiet drops it). duskbot help VERB for the details.`;
 
-export const USAGE = `duskbot — your team of AI bots, ready in a few steps
+export const USAGE = `duskbot: your team of AI bots, ready in a few steps
 
   duskbot                         set up once, then open your workspace
   duskbot setup [--data-dir DIR]

@@ -187,7 +187,7 @@ describe("buildBotOverview", () => {
   });
 
   it("states 'Has no connected apps.' when apps are off for the bot, even if the inventory is unverifiable", () => {
-    // Apps off is a definite negative that needs no inventory — saying
+    // Apps off is a definite negative that needs no inventory, saying
     // "could not be checked" here would imply the bot might have apps.
     const facts = baseFacts({
       bot: { ...baseFacts().bot, composio: false, computer: "local" },

@@ -112,7 +112,7 @@ export const GreenferenceDriver: ProviderDriver<GreenferenceConfig> = {
       requestBody: (model, messages, stream) => ({ model, messages, stream }),
       httpErrorLabel: "Greenference",
       missingKeyError: "Save a Greenference API key in Settings → API keys, or set GREENFERENCE_API_KEY.",
-      unavailableReason: "No Greenference API key — open Settings → API keys.",
+      unavailableReason: "No Greenference API key: open Settings → API keys.",
       timeoutMs: 180_000, billing: "metered", includeUsageInCompleted: true,
       nativeLog: {
         source: "greenference.chat.completions",

@@ -353,7 +353,7 @@ it("T5 reruns a person's cut turn once after a restart, with the restart note fi
   expect(f.roots()[0]).toMatchObject({ id: cut.id, status: "completed", outcome: "done", restarts: 1, executions: 2, result: "T5-FINAL: migrated once." });
   expect(f.eventsOf(cut.id)).toContain("restart_reconciled");
   expect(await f.chips(job, RERUN_CHIP)).toHaveLength(1);
-  expect(await f.chips(job, "turn interrupted — dusk bot restarted")).toHaveLength(0);
+  expect(await f.chips(job, "turn interrupted: dusk bot restarted")).toHaveLength(0);
   await f.settle(500);
   expect(f.turns(f.clive.id).filter((record: any) => record.planKey === "C-RERUN")).toHaveLength(1);
 }), hostTimeout(90_000));
@@ -478,7 +478,7 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
     expect(eventsOf(root.id)).toContain("continued");
     await until(() => taskOf(waiter.id, wait.threadId), (task) => task?.activity === "parked.computer" && task.busy === false);
     const chat = (await api("GET", `/api/threads/${wait.threadId}/messages?limit=100`)).body.messages as any[];
-    const parkedChip = chat.find((message) => chipText(message).includes("Parked — it continues automatically when the computer is free"));
+    const parkedChip = chat.find((message) => chipText(message).includes("Parked: it continues automatically when the computer is free"));
     expect(parkedChip, JSON.stringify(chat.map(chipText))).toBeDefined();
     expect(chipText(parkedChip)).toContain("Seat Holder");
     const { bot: second } = await apiOk("POST", "/api/bots", { name: "Seat Second", settings: { approvalMode: "ask" } });
@@ -507,7 +507,7 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
     const resumed = await dumpFor(second.id);
     expect(JSON.stringify(resumed.prompt)).toContain(SEAT_FREE);
     const after = (await api("GET", `/api/threads/${wait.threadId}/messages?limit=100`)).body.messages as any[];
-    expect(after.filter((message) => chipText(message).includes("Parked — it continues automatically")).length).toBe(1);
+    expect(after.filter((message) => chipText(message).includes("Parked: it continues automatically")).length).toBe(1);
     await until(() => taskOf(waiter.id, wait.threadId), (task) => task?.busy === false && task.activity === "idle");
     await until(() => taskOf(second.id, wait2.threadId), (task) => task?.busy === false && task.activity === "idle");
   } finally {
@@ -717,7 +717,7 @@ it("T11 does not rerun a cut turn that already pushed: the root ends with what i
       expect(line.tool.name.startsWith("error: ")).toBe(true);
       expect(line.tool.name).toContain("git push");
       expect(await f.chips(job, RERUN_CHIP)).toHaveLength(0);
-      expect(await f.chips(job, "turn interrupted — dusk bot restarted")).toHaveLength(0);
+      expect(await f.chips(job, "turn interrupted: dusk bot restarted")).toHaveLength(0);
       await f.settle(1_500);
       expect(f.roots()).toHaveLength(1);
       expect(f.roots()[0]).toMatchObject({ status: "failed", executions: 1 });
@@ -756,7 +756,7 @@ const stallOverCards = async (f: StallFixture, job: string, ids: string[]) => {
   expect(f.roots()[0]).toMatchObject({ status: "failed", outcome: "stalled", executions: 1 });
   expect(f.roots()[0]!.cards).toBeUndefined();
   expect((await f.messages(job)).filter((message) => message.kind === "activity" && message.tool?.name.startsWith("error:")).map((message) => message.tool!.name))
-    .toEqual(["error: no activity for 20 minutes — the turn was stopped"]);
+    .toEqual(["error: no activity for 20 minutes: the turn was stopped"]);
   const cards = (await f.messages(job)).filter((message) => ids.includes(message.id));
   expect(cards.map((message) => (message.secret ?? message.connector ?? message.signIn)?.stopped)).toEqual(ids.map(() => true));
 };

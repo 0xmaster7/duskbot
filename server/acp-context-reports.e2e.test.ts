@@ -138,5 +138,5 @@ it("shows an agent's plan in the chat as activity only once plan lines are switc
   };
   expect(await planRows("Planner, lines off")).toEqual([]);
   expect((await api("PATCH", "/api/config", { features: { acpPlanLines: true } })).status).toBe(200);
-  expect(await planRows("Planner, lines on")).toEqual([{ name: "Plan: 0 of 2 done — Read the brief", ok: true }]);
+  expect(await planRows("Planner, lines on")).toEqual([{ name: "Plan: 0 of 2 done, Read the brief", ok: true }]);
 }), 120_000);

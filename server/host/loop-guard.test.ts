@@ -34,7 +34,7 @@ const times = (count: number, play: (index: number) => void) => { for (let i = 0
 const note = (call: string, count: number) =>
   `[dusk bot: this exact call has failed the same way ${count} times in a row: “${call}”. Change approach, or stop and report what is blocking.]`;
 const stopped = (call: string, count: number) =>
-  `the same call failed the same way ${count} times in a row: “${call}” — the turn was stopped`;
+  `the same call failed the same way ${count} times in a row: “${call}”, so the turn was stopped`;
 /** Every promise the guard is waiting on has settled. */
 const settled = () => new Promise<void>((resolve) => { setImmediate(resolve); });
 
@@ -123,7 +123,7 @@ describe("loop guard, setting off", () => {
     const r = rig({ settings: { enabled: false } });
     r.repeat(25);
     expect(r.rows).toEqual([5, 10, 20].map((count) => ({
-      threadId: T, name: `Same call repeated ${count}× — tool: git status — it may be stuck`, ok: false,
+      threadId: T, name: `Same call repeated ${count}× (tool: git status), it may be stuck`, ok: false,
     })));
     expect(r.steers).toEqual([]);
     expect(r.interrupts).toEqual([]);
@@ -147,8 +147,8 @@ describe("loop guard, setting off", () => {
     for (let i = 0; i < 5; i++) r.ask("Bash", "npm   test\n");
     r.repeat(5, `cat ${"x".repeat(200)}`);
     expect(r.notices()).toEqual([
-      "Same call repeated 5× — Bash: npm test — it may be stuck",
-      `Same call repeated 5× — tool: cat ${"x".repeat(76)}… — it may be stuck`,
+      "Same call repeated 5× (Bash: npm test), it may be stuck",
+      `Same call repeated 5× (tool: cat ${"x".repeat(76)}…), it may be stuck`,
     ]);
   });
 
@@ -158,7 +158,7 @@ describe("loop guard, setting off", () => {
     r.loop(30, "gh run view 1 --json status", WAITING);
     expect(r.rows).toEqual([]);
     times(25, () => r.play(codex("git status")));
-    expect(r.rows.map((row) => row.name)).toEqual([5, 10, 20].map((count) => `Same call repeated ${count}× — tool: git status — it may be stuck`));
+    expect(r.rows.map((row) => row.name)).toEqual([5, 10, 20].map((count) => `Same call repeated ${count}× (tool: git status), it may be stuck`));
     expect(r.steers).toEqual([]);
     expect(r.interrupts).toEqual([]);
     expect(r.state.settingsReads).toBeGreaterThan(0);
@@ -426,7 +426,7 @@ describe("loop guard, which turns it leaves alone", () => {
   it("never acts on a permission ask: the turn is stopping for a person there", () => {
     const r = rig({ settings: STOPS });
     for (let i = 0; i < 25; i++) r.ask();
-    expect(r.notices()).toEqual([5, 10, 20].map((count) => `Same call repeated ${count}× — Bash: npm test — it may be stuck`));
+    expect(r.notices()).toEqual([5, 10, 20].map((count) => `Same call repeated ${count}× (Bash: npm test), it may be stuck`));
     expect(r.steers).toEqual([]);
     expect(r.interrupts).toEqual([]);
   });
@@ -723,7 +723,7 @@ describe("loop guard, the same command", () => {
     expect(r.failures()).toEqual([]);
     // the chip counts a title with arguments, as it always has
     expect(r.notices()).toEqual(["Read src/x.ts", "Wait for selector", "git status"].flatMap((title) =>
-      [5, 10].map((count) => `Same call repeated ${count}× — tool: ${title} — it may be stuck`)));
+      [5, 10].map((count) => `Same call repeated ${count}× (tool: ${title}), it may be stuck`)));
     // the same ACP agent's shell command, which does carry one, is acted on
     const command = { title: "git status", summary: "git status", input: '{\n  "command": "git status"\n}' };
     times(10, () => r.play(command));

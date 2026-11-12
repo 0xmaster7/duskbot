@@ -112,13 +112,13 @@ describe("the failure code a Cloud home reports", () => {
 
   it("names the failures the server writes itself, and a trial credit's refusal", () => {
     const w = world();
-    w.fail("no activity for 20 minutes — the turn was stopped");
-    w.fail("turn interrupted — dusk bot restarted");
-    w.fail("this thread could not start — the engine is not installed");
-    w.fail("queued message could not start — the engine is not installed");
+    w.fail("no activity for 20 minutes: the turn was stopped");
+    w.fail("turn interrupted: dusk bot restarted");
+    w.fail("this thread could not start: the engine is not installed");
+    w.fail("queued message could not start: the engine is not installed");
     w.fail(TRIAL_CREDIT_REFUSED.used_up);
     w.fail(`${memoryStopText(false)} (opencodeGo exited null before the prompt result)`);
-    w.fail(memoryStallText("no activity for 20 minutes — the turn was stopped", 1));
+    w.fail(memoryStallText("no activity for 20 minutes: the turn was stopped", 1));
     w.fail(memoryStopText(true));
     expect(incidents(w)).toEqual([
       { kind: "turn", code: "stalled", engine: null, count: 1 },
@@ -147,12 +147,12 @@ describe("the failure code a Cloud home reports", () => {
 describe("the ledger", () => {
   it("dedupes by kind, code and engine, and a cursor reads only what changed since", () => {
     const w = world();
-    for (let i = 0; i < 3; i++) { w.fail("turn interrupted — dusk bot restarted"); w.advance(60_000); }
+    for (let i = 0; i < 3; i++) { w.fail("turn interrupted: dusk bot restarted"); w.advance(60_000); }
     const first = w.health.report(null);
     expect(first.incidents).toEqual([expect.objectContaining({ code: "restart", count: 3, firstAt: START, lastAt: START + 120_000, botId: w.bot.id, threadId: w.bot.threadId })]);
     expect(w.health.report(first.cursor).incidents).toEqual([]);
-    w.fail("this thread could not start — no engine");
-    w.fail("turn interrupted — dusk bot restarted");
+    w.fail("this thread could not start: no engine");
+    w.fail("turn interrupted: dusk bot restarted");
     const next = w.health.report(first.cursor);
     expect(next.incidents.map(({ code, count }) => ({ code, count }))).toEqual([{ code: "could_not_start", count: 1 }, { code: "restart", count: 4 }]);
     // Another boot's cursor, or one from the future, reads from the start.
@@ -166,7 +166,7 @@ describe("the ledger", () => {
     const ledger = createCloudHealthLedger({ now: () => clock });
     for (let i = 0; i <= HEALTH_BUCKET_CAP; i++) {
       ledger.noteEvent({ eventId: "e", provider: `engine${i}`, threadId: `thread-${i}`, createdAt: "", type: "turn.started" });
-      ledger.noteMessage(`thread-${i}`, { at: clock, tool: failedTurnTool("turn interrupted — dusk bot restarted") });
+      ledger.noteMessage(`thread-${i}`, { at: clock, tool: failedTurnTool("turn interrupted: dusk bot restarted") });
       clock += 1000;
     }
     const read = ledger.read(null);
@@ -178,10 +178,10 @@ describe("the ledger", () => {
   it("rates turns over 15 minutes and a day", () => {
     const w = world();
     for (let i = 0; i < 4; i++) w.emit(w.bot.threadId, { type: "turn.started" });
-    w.fail("turn interrupted — dusk bot restarted");
+    w.fail("turn interrupted: dusk bot restarted");
     w.advance(20 * 60_000);
     w.emit(w.bot.threadId, { type: "turn.started" });
-    w.fail("no activity for 20 minutes — the turn was stopped");
+    w.fail("no activity for 20 minutes: the turn was stopped");
     expect(w.health.report(null).turns).toEqual({ started15m: 1, failed15m: 1, started24h: 5, failed24h: 2 });
     w.advance(24 * 3600_000);
     expect(w.health.report(null).turns).toEqual({ started15m: 0, failed15m: 0, started24h: 0, failed24h: 0 });
@@ -289,7 +289,7 @@ function routes(w: ReturnType<typeof world>) {
 describe("GET /api/cloud/health", () => {
   it("answers the Admin's signed read with the report", async () => {
     const w = world();
-    w.fail("turn interrupted — dusk bot restarted");
+    w.fail("turn interrupted: dusk bot restarted");
     const { sign, send } = routes(w);
     const target = `${CLOUD_HEALTH_PATH}?after=0`;
     const answer = await send("GET", target, sign(target));

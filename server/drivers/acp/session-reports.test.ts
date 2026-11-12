@@ -128,27 +128,27 @@ const entry = (status: string, content: string) => ({ content, priority: "medium
 describe("planLine", () => {
   it("counts what is done and names the entry in hand", () => {
     expect(planLine([entry("completed", "Read the brief"), entry("in_progress", "Write the tests"), entry("pending", "Ship it")]))
-      .toBe("Plan: 1 of 3 done — Write the tests");
+      .toBe("Plan: 1 of 3 done, Write the tests");
     // the first entry in hand, when an agent marks several
-    expect(planLine([entry("in_progress", "One"), entry("in_progress", "Two")])).toBe("Plan: 0 of 2 done — One");
+    expect(planLine([entry("in_progress", "One"), entry("in_progress", "Two")])).toBe("Plan: 0 of 2 done, One");
   });
 
   it("names what comes next when nothing is in hand, and nothing once all is done", () => {
     expect(planLine([entry("pending", "Read the brief"), entry("pending", "Write the tests")]))
-      .toBe("Plan: 0 of 2 done — next: Read the brief");
+      .toBe("Plan: 0 of 2 done, next: Read the brief");
     expect(planLine([entry("completed", "Read the brief"), entry("pending", "Write the tests")]))
-      .toBe("Plan: 1 of 2 done — next: Write the tests");
+      .toBe("Plan: 1 of 2 done, next: Write the tests");
     // a status this reader does not know is simply not done yet
     expect(planLine([entry("completed", "Read the brief"), entry("blocked", "Write the tests")]))
-      .toBe("Plan: 1 of 2 done — next: Write the tests");
+      .toBe("Plan: 1 of 2 done, next: Write the tests");
     expect(planLine([entry("completed", "Read the brief"), entry("completed", "Write the tests")])).toBe("Plan: 2 of 2 done");
   });
 
   it("keeps the line to one line of bounded length", () => {
-    expect(planLine([entry("in_progress", "  Write\n the\ttests  ")])).toBe("Plan: 0 of 1 done — Write the tests");
+    expect(planLine([entry("in_progress", "  Write\n the\ttests  ")])).toBe("Plan: 0 of 1 done, Write the tests");
     const line = planLine([entry("in_progress", "word ".repeat(60))])!;
     expect(line.endsWith("…")).toBe(true);
-    expect(line.length).toBeLessThanOrEqual("Plan: 0 of 1 done — ".length + 80);
+    expect(line.length).toBeLessThanOrEqual("Plan: 0 of 1 done, ".length + 80);
   });
 
   it("redacts a credential before the text is cut", () => {
@@ -208,7 +208,7 @@ describe("readSessionReport: plan", () => {
   it("gives one step each time the plan reads differently, with the list as its input", () => {
     const session = live();
     expect(readSessionReport(plan(["in_progress", "Read the brief"], ["pending", "Ship it"]), undefined, turn(), session, on)).toEqual({
-      step: { title: "Plan: 0 of 2 done — Read the brief", input: expect.stringContaining("Ship it") },
+      step: { title: "Plan: 0 of 2 done, Read the brief", input: expect.stringContaining("Ship it") },
     });
     // the same line again, in this turn or a later one, says nothing new
     expect(readSessionReport(plan(["in_progress", "Read the brief"], ["pending", "Ship it on Friday"]), undefined, turn(), session, on)).toEqual({});
@@ -216,7 +216,7 @@ describe("readSessionReport: plan", () => {
     expect(readSessionReport({ sessionUpdate: "plan", entries: [] }, undefined, turn(), session, on)).toEqual({});
     expect(readSessionReport(plan(["in_progress", "Read the brief"], ["pending", "Ship it"]), undefined, turn(), session, on)).toEqual({});
     expect(readSessionReport(plan(["completed", "Read the brief"], ["in_progress", "Ship it"]), undefined, turn(), session, on))
-      .toMatchObject({ step: { title: "Plan: 1 of 2 done — Ship it" } });
+      .toMatchObject({ step: { title: "Plan: 1 of 2 done, Ship it" } });
     // a plan is not a compaction and not a reply
     const state = turn();
     readSessionReport(plan(["pending", "Tell the team"]), undefined, state, session, on);

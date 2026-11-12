@@ -294,34 +294,34 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
       return false;
     };
     const closed = () => ({ answered: "unavailable", dismissed: true });
-    if (!enabled()) return refuse("continuing with another AI is switched off — nothing switched.", closed);
+    if (!enabled()) return refuse("continuing with another AI is switched off: nothing switched.", closed);
     const engines = deps.registry.instances();
     const engine = engines.find((candidate) => candidate.instanceId === chosen.instanceId);
     if (!engine) {
       const rest = (offer()?.quotaSwitch!.engines ?? []).filter((other) => other.instanceId !== chosen.instanceId);
-      if (!rest.length) return refuse(`${chosen.name} is no longer configured, and the card offered no other AI — nothing switched.`, closed);
-      return refuse(`${chosen.name} is no longer configured — nothing switched.`,
+      if (!rest.length) return refuse(`${chosen.name} is no longer configured, and the card offered no other AI: nothing switched.`, closed);
+      return refuse(`${chosen.name} is no longer configured: nothing switched.`,
         (card) => ({ options: [...rest.map((other) => other.name), NOT_NOW], quotaSwitch: { ...card.quotaSwitch!, engines: rest } }));
     }
     const before = store.projectBotForTask(botId, threadId);
     if (!before) return false;
     const current = engines.find((candidate) => candidate.instanceId === before.modelSelection.instanceId);
-    if (!current) return refuse("this conversation's own AI is no longer configured here, so no other AI can be checked against it — nothing switched. Choose a model for this conversation instead.", closed);
+    if (!current) return refuse("this conversation's own AI is no longer configured here, so no other AI can be checked against it: nothing switched. Choose a model for this conversation instead.", closed);
     const selection = await takeover(engine, before, current);
     // No await from here to the resend: the gate, the switch and the resend must see one state.
     const card = offer();
     const bot = store.projectBotForTask(botId, threadId);
     if (!card || !bot) return false;
-    if (selection === "timed-out") return refuse(`${chosen.name} did not answer in time — nothing switched. Try again in a moment.`);
-    if (!selection) return refuse(`${chosen.name} is no longer available — nothing switched.`);
+    if (selection === "timed-out") return refuse(`${chosen.name} did not answer in time: nothing switched. Try again in a moment.`);
+    if (!selection) return refuse(`${chosen.name} is no longer available: nothing switched.`);
     const already = bot.modelSelection.instanceId === selection.instanceId;
     if (!already) {
       const checked = deps.gate(bot, selection);
-      if (!checked.ok) return refuse(`could not switch to ${chosen.name} — ${checked.error}`);
+      if (!checked.ok) return refuse(`could not switch to ${chosen.name}: ${checked.error}`);
       try {
         store.switchTaskModel(botId, threadId, checked.selection, false, false, deps.reset?.(bot.modelSelection, checked.selection));
       } catch {
-        return refuse(`could not switch to ${chosen.name} — the model switch could not be saved.`);
+        return refuse(`could not switch to ${chosen.name}: the model switch could not be saved.`);
       }
     }
     store.patchMessage(threadId, cardId, { card: { ...card, answered: "answer", answeredText: chosen.name } });
@@ -332,16 +332,16 @@ export function createQuotaSwitch(deps: QuotaSwitchDeps): QuotaSwitch {
     else if (held === "runtime") notice(threadId, `${now}. Your request is still under way here and continues on ${chosen.name}.`, true);
     else if (held === "busy") notice(threadId, `${now}. This conversation is working, so your message was not sent again.`, true);
     else if (held === "question") {
-      notice(threadId, `${now}. A teammate's question is waiting for your answer in this conversation, so your message was not sent again — answer it, then send your message again.`, false);
+      notice(threadId, `${now}. A teammate's question is waiting for your answer in this conversation, so your message was not sent again: answer it, then send your message again.`, false);
     } else if (!original) {
-      notice(threadId, `${now}, but the message that hit quota could not be found to resend — send it again.`, false);
+      notice(threadId, `${now}, but the message that hit quota could not be found to resend: send it again.`, false);
     } else {
       notice(threadId, `continuing on ${chosen.name} after hitting quota`, true);
       try {
         await deps.resend(botId, threadId, original, original.replyToId ? store.messagesFor(threadId).find((message) => message.id === original.replyToId) : undefined, spokenLineFields(original.via, original.callId));
       } catch (error) {
         if (store.taskByThread(botId, threadId)) {
-          notice(threadId, `could not continue on ${chosen.name} — ${(error instanceof Error ? error.message : String(error)).slice(0, 200)}`, false);
+          notice(threadId, `could not continue on ${chosen.name}: ${(error instanceof Error ? error.message : String(error)).slice(0, 200)}`, false);
         }
       }
     }

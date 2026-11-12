@@ -1072,7 +1072,7 @@ describe("LiveCallController relay", () => {
       expect(t.socket().appends("instructions").at(-1)).toMatchObject({ content: expect.stringContaining("not a clear yes or no") });
     });
 
-    it.each(["yes, but do not delete it", "yes — wait, no", "yes, what does that delete?"])("never grants an ambiguous spoken decision: %s", async (said) => {
+    it.each(["yes, but do not delete it", "yes: wait, no", "yes, what does that delete?"])("never grants an ambiguous spoken decision: %s", async (said) => {
       const t = await live();
       t.message(approval());
       await vi.advanceTimersByTimeAsync(0);

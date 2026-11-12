@@ -39,7 +39,7 @@ describe("classifyResumeFailure", () => {
     expect(mayReplay("unknown")).toBe(false);
   });
 
-  it("classifies from state alone — no error text is consulted", () => {
+  it("classifies from state alone: no error text is consulted", () => {
     for (const value of Object.values(state())) expect(typeof value).toBe("boolean");
   });
 });

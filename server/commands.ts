@@ -6,7 +6,7 @@ import { readCommandReceipt, withCommandReceipt } from "./message-db.ts";
 export interface Command {
   /** Stable, dotted name of the mutation: "digest.append", "hook.ingest". */
   kind: string;
-  /** Idempotency key within the kind — a turn id, a tool_use_id, a ticket. */
+  /** Idempotency key within the kind, a turn id, a tool_use_id, a ticket. */
   key: string;
 }
 

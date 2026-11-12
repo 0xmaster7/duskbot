@@ -409,9 +409,9 @@ it.each([
   expect(await f.messages(f.destination.activeTaskId)).toEqual([]);
   const refused = f.provider().find((turn: any) => turn.botId === f.sender.id)
     .evidence.find((entry: any) => entry.step).response.result.content[0].text;
-  if (hidden) expect(refused).toBe(`The bot with id "${botId}" is no longer available — call list_bots for the ones you can reach`);
+  if (hidden) expect(refused).toBe(`The bot with id "${botId}" is no longer available: call list_bots for the ones you can reach`);
   else {
-    expect(refused.startsWith(`No bot with id or name "${botId}" — call list_bots and copy the exact id from the result. You can reach: `)).toBe(true);
+    expect(refused.startsWith(`No bot with id or name "${botId}": call list_bots and copy the exact id from the result. You can reach: `)).toBe(true);
     expect(refused).toContain(`${f.target.name} (id ${f.target.id})`);
     expect(refused.endsWith(` ${PEER_ACCESS_HELP}`)).toBe(true);
   }

@@ -677,7 +677,7 @@ function cardCopy(
     definition.schedule.type === "interval" &&
     intervalHasRestrictions(definition.schedule);
   const nextDescription = remainsPaused
-    ? "None — this routine remains paused"
+    ? "None: this routine remains paused"
     : deferredInterval
       ? deferredRestrictedInterval
         ? `Next allowed time after confirmation (${plainTimeZone(timeZone)})`
@@ -685,9 +685,9 @@ function cardCopy(
       : nextRunAt !== null
         ? formatInstant(nextRunAt, scheduleTimeZone)
         : operation.action === "pause"
-          ? "None — this routine will be paused"
+          ? "None: this routine will be paused"
           : operation.action === "delete"
-            ? "None — this routine will be deleted"
+            ? "None: this routine will be deleted"
             : definition.schedule.type === "limit_reset" ? "When that limit resets (the time is not known yet)" : "None";
   const status = remainsPaused ? " · Remains paused" : "";
   // Credential-shaped values never travel back through the bot's MCP response or into the transcript.
@@ -701,7 +701,7 @@ function cardCopy(
     detail: [
       `Action: ${actionCopy.detail}`,
       `Name: ${name}`,
-      ...(forBot ? [`For: @${redactSecretsInText(forBot.name)} — each run uses that bot's AI and permissions`] : []),
+      ...(forBot ? [`For: @${redactSecretsInText(forBot.name)}, each run uses that bot's AI and permissions`] : []),
       `Schedule: ${when}`,
       `Next run: ${nextDescription}`,
       ...(definition.schedule.type === "cron" && nextRunAt !== null && operation.action !== "run_now"

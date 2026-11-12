@@ -186,7 +186,7 @@ describe("surfacePrompt", () => {
     expect(text).toMatch(/Web tasks → the built-in browser/);
     expect(text).toMatch(/Desktop apps, files and shell → the cloud computer tools/);
     expect(text).toMatch(/Pick one surface for a task and stay on it/);
-    expect(text).toMatch(/say which surface — the Browser tab or the cloud computer/);
+    expect(text).toMatch(/say which surface: the Browser tab or the cloud computer/);
   });
 
   it("names only the computer when it is the only surface", () => {

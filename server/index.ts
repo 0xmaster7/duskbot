@@ -2557,11 +2557,11 @@ function checkedModelSelection(
     selection.variant !== current.selection.variant
   );
   if (current?.busy && changed) {
-    return { ok: false, status: 409, error: "the bot is working — stop it before changing models" };
+    return { ok: false, status: 409, error: "the bot is working: stop it before changing models" };
   }
   const target = registry.get(selection.instanceId);
   if (providerInstancesChanging.has(selection.instanceId)) {
-    return { ok: false, status: 409, error: "this provider account is being updated — try again shortly" };
+    return { ok: false, status: 409, error: "this provider account is being updated: try again shortly" };
   }
     // Free-form model ids: custom engines accept ids outside their catalog, and some drivers learn the catalog only at turn start.
   if (requireAvailableModel) {
@@ -2715,7 +2715,7 @@ function checkedMemberIds(value: unknown): { ok: true; memberIds: string[] } | {
   if (memberIds.every((id) => store.bot(id)?.hidden)) {
     return {
       ok: false,
-      error: "a channel needs at least one active bot — every member given is archived",
+      error: "a channel needs at least one active bot: every member given is archived",
     };
   }
   return { ok: true, memberIds };
@@ -3585,13 +3585,13 @@ function updateChannel(groupId: string, value: unknown): GroupRecord {
   const existing = store.group(groupId);
   if (!existing) throw Object.assign(new Error("no such room"), { status: 404 });
   if (body.memberIds !== undefined && phoneSecretSubmissions.hasGroup(existing.id)) {
-    throw Object.assign(new Error("this channel is securely saving a credential — try again when it finishes"), { status: 409 });
+    throw Object.assign(new Error("this channel is securely saving a credential: try again when it finishes"), { status: 409 });
   }
   if (
     channelTaskBlocked(existing) &&
     (body.memberIds !== undefined || body.defaultResponder !== undefined || body.bulletin !== undefined)
   ) {
-    throw Object.assign(new Error("this channel is working or waiting on you — finish that turn first"), { status: 409 });
+    throw Object.assign(new Error("this channel is working or waiting on you: finish that turn first"), { status: 409 });
   }
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) {
@@ -4050,7 +4050,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
     outward: node => {
       const followup = node.parentId || node.groupId ? undefined : followupAtBoot(node.threadId);
       if (followup) {
-        followupEndedRoots.set(node.id, followup === "pending" ? "turn interrupted — dusk bot restarted" : undefined);
+        followupEndedRoots.set(node.id, followup === "pending" ? "turn interrupted: dusk bot restarted" : undefined);
         return [followup === "pending" ? "queued follow-up waiting" : "queued follow-up dispatched"];
       }
       return outwardActions(turnRows(node));
@@ -4847,7 +4847,7 @@ async function answerRequest(
     if (!persistentQuestion && !existing?.card?.answered) store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
-      tool: { name: "Couldn't deliver that answer — the request is no longer open, so the action was not run", ok: false },
+      tool: { name: "Couldn't deliver that answer: the request is no longer open, so the action was not run", ok: false },
     });
   }
   return outcome;
@@ -4990,10 +4990,10 @@ const watchdog = new TurnWatchdog({
     const bot = botForThread(turn.botId, turn.threadId);
     const routineRun = activeRoutineRunForThread(turn.threadId);
     void runningTurnInstance(bot, turn.threadId)?.adapter.interruptTurn(turn.threadId).catch(() => {});
-    const minutes = Math.round(silentMs / 60_000), cause = engineMemory.stallCause(turn.threadId, `no activity for ${minutes} minutes — the turn was stopped`);
+    const minutes = Math.round(silentMs / 60_000), cause = engineMemory.stallCause(turn.threadId, `no activity for ${minutes} minutes: the turn was stopped`);
     const stalled = stoppedTurnText(turn.threadId, liveTurnByThread.get(turn.threadId), cause);
     if (routineRun?.target === "bot") {
-      routines?.failThread(turn.threadId, engineMemory.stallCause(turn.threadId, `No activity for ${minutes} minutes — the routine was stopped`), { cause: "stalled" });
+      routines?.failThread(turn.threadId, engineMemory.stallCause(turn.threadId, `No activity for ${minutes} minutes: the routine was stopped`), { cause: "stalled" });
     }
     store.appendMessage(turn.threadId, {
       role: "bot",
@@ -5443,7 +5443,7 @@ function ingestEngineHook(capability: InternalCapability, body: unknown): { ok: 
     if (payload.source !== "compact") return { ok: true, ignored: `SessionStart ${String(payload.source ?? "")}` };
     const bot = store.bot(capability.botId);
     const digests = store.activePath(threadId).filter((m) => m.kind === "digest" && m.digest).slice(-DIGESTS_AFTER_COMPACTION);
-    chip(`context compacted — re-sent the last ${digests.length} digest${digests.length === 1 ? "" : "s"}`);
+    chip(`context compacted: re-sent the last ${digests.length} digest${digests.length === 1 ? "" : "s"}`);
     if (!digests.length) return { ok: true };
     const context = digests.map((m) => digestPromptLine(m.digest!, m.from?.name ?? store.bot(m.digest!.botId)?.name ?? bot?.name ?? "the bot")).join("\n");
     return { ok: true, context };
@@ -6110,8 +6110,8 @@ function cloudEngine(instance: ReturnType<typeof registry.get>, model?: string):
 async function mountHostComputer(owner: TurnOwner, botId: string, providerSupportsLocal: boolean, onRejected: (failure: string, error?: unknown) => void, askNow: () => boolean = () => false) {
   if (!shouldMountLocalComputer({ requested: "local", hostPlatform: process.platform, providerSupportsLocal })) {
     throw new Error(providerSupportsLocal
-      ? "bots can't use this computer on this system — choose another place for this bot to work"
-      : "this bot's AI can't use this computer — pick another AI for this bot, or choose another place for it to work");
+      ? "bots can't use this computer on this system: choose another place for this bot to work"
+      : "this bot's AI can't use this computer: pick another AI for this bot, or choose another place for it to work");
   }
   const cua = await desktopComputer.waitForConnection({ isCurrent: () =>
     activeInternalGenerationByThread.get(owner.threadId) === owner.generation &&
@@ -6422,10 +6422,10 @@ async function joinWhileWaking(bot: Pick<BotRecord, "id" | "threadId">, ownerId:
 
 function claimBotComputerLifecycle(botId: string, allowPreview = false): () => void {
   if (remoteComputerLifecycleBusyOwners.has(botId)) {
-    throw Object.assign(new Error("this bot's cloud computer is being changed — wait for it to finish"), { status: 409 });
+    throw Object.assign(new Error("this bot's cloud computer is being changed: wait for it to finish"), { status: 409 });
   }
   if (!allowPreview && computerPreviews.has(botId)) {
-    throw Object.assign(new Error("a screen preview is still refreshing — wait before changing this computer"), { status: 409 });
+    throw Object.assign(new Error("a screen preview is still refreshing: wait before changing this computer"), { status: 409 });
   }
   remoteComputerLifecycleBusyOwners.add(botId);
   return () => remoteComputerLifecycleBusyOwners.delete(botId);
@@ -6438,7 +6438,7 @@ function claimManagedVpsMutation(containerName: string): () => void {
   if (!owner) return () => {};
   const ownerState = managedVpsOwners().find((candidate) => candidate.botId === owner.id);
   if (ownerState?.inUse) {
-    throw Object.assign(new Error("this VPS computer is in use — stop its bot's work first"), { status: 409 });
+    throw Object.assign(new Error("this VPS computer is in use: stop its bot's work first"), { status: 409 });
   }
   return claimBotComputerLifecycle(owner.id);
 }
@@ -6758,7 +6758,7 @@ bus.subscribe((event: RuntimeEvent) => {
             role: "bot",
             kind: "activity",
             tool: {
-              name: `generated image could not be attached — ${error instanceof Error ? error.message : "invalid image"}`.slice(0, 160),
+              name: `generated image could not be attached: ${error instanceof Error ? error.message : "invalid image"}`.slice(0, 160),
               ok: false,
             },
           });
@@ -6992,7 +6992,7 @@ bus.subscribe((event: RuntimeEvent) => {
       pushMessage({
         role: "bot",
         kind: "activity",
-        tool: { name: `retrying — attempt ${event.attempt + 1}/${RETRY_MAX_ATTEMPTS} in ${Math.round(event.delayMs / 1000)}s — ${event.reason}`, ok: true },
+        tool: { name: `retrying, attempt ${event.attempt + 1}/${RETRY_MAX_ATTEMPTS} in ${Math.round(event.delayMs / 1000)}s: ${event.reason}`, ok: true },
       });
       break;
     case "runtime.notice":
@@ -7389,7 +7389,7 @@ async function compactConversation(input: {
     if (!idle && !directTurnClaimIsCurrent(bot.id, generation, threadId)) throw new DirectTurnSetupCancelled("context summarization stopped");
     controller.signal.throwIfAborted();
     if (prefix !== JSON.stringify(store.activePath(threadId).slice(0, messages.length))) {
-      if (manual) throw new Error("the conversation changed during summarization — please retry");
+      if (manual) throw new Error("the conversation changed during summarization: please retry");
       return;
     }
     store.appendMessage(threadId, {
@@ -7479,7 +7479,7 @@ function drainQueuedSendsNow() {
         const why = err instanceof Error ? err.message : String(err);
         store.appendMessage(threadId, {
           role: "bot", kind: "activity",
-          tool: failedTurnTool(`queued message could not start — ${why}`),
+          tool: failedTurnTool(`queued message could not start: ${why}`),
         });
         resolve();
           // A turn that never started publishes no completion to wake the groups behind it.
@@ -7710,7 +7710,7 @@ async function startOrQueueOpenedThread(
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
-      tool: failedTurnTool(`this thread could not start — ${why}`),
+      tool: failedTurnTool(`this thread could not start: ${why}`),
     });
     return { state: "failed", error: why };
   }
@@ -7820,7 +7820,7 @@ async function finalScreenFrame(_botId: string, threadId: string): Promise<Frame
 function threadTitleGate(bot: Pick<BotRecord, "modelSelection">): { ok: true; instance: ProviderInstance } | { ok: false; refusal: string } {
   if (!llmThreadTitlesEnabled(cfg)) return { ok: false, refusal: "generated thread titles are turned off on this server" };
   const instance = registry.get(bot.modelSelection.instanceId);
-  if (!instance?.generateText) return { ok: false, refusal: "this bot's model can't generate a title — rename the thread instead" };
+  if (!instance?.generateText) return { ok: false, refusal: "this bot's model can't generate a title: rename the thread instead" };
   const refusal = policyModelRefusal(instance);
   if (refusal) return { ok: false, refusal };
   return { ok: true, instance };
@@ -7893,7 +7893,7 @@ async function beginTurn(
   const bot = store.projectBotForTask(botId, threadId);
   if (!bot) throw Object.assign(new Error("no such task"), { status: 404 });
   if (bot.approvalGrant) {
-    throw Object.assign(new Error("this bot's approval level is still being confirmed — try again"), { status: 409, code: "settling" });
+    throw Object.assign(new Error("this bot's approval level is still being confirmed: try again"), { status: 409, code: "settling" });
   }
   const answer = turnAnswers(threadId, opts);
   let computerSkipped: string | undefined;
@@ -7901,16 +7901,16 @@ async function beginTurn(
   if (transitionError && !answer.incident) throw Object.assign(new Error(transitionError), { status: 409 });
   if (transitionError) computerSkipped = transitionError;
   if (providerInstancesChanging.has(bot.modelSelection.instanceId)) {
-    throw Object.assign(new Error("this provider account is being updated — try again shortly"), { status: 409, code: "settling" });
+    throw Object.assign(new Error("this provider account is being updated: try again shortly"), { status: 409, code: "settling" });
   }
   if (remoteComputerLifecycleBusyOwners.has(botId)) {
-    const changing = "this bot's cloud computer is being changed — wait for it to finish";
+    const changing = "this bot's cloud computer is being changed: wait for it to finish";
     if (!answer.incident) throw Object.assign(new Error(changing), { status: 409, code: "settling" });
     computerSkipped ??= changing;
   }
-  if (threadBusy(botId, threadId)) throw Object.assign(new Error("this thread is already working — interrupt it first"), { status: 409, code: "thread_busy" }); routineHost.assertMayStart(threadId, Boolean(opts?.coordination || opts?.peerAsk || opts?.commsDepth || opts?.cardContinuation || opts?.computerSelectionContinuation || opts?.automationSource !== undefined || opts?.unattended || opts?.compactOnly || answer.incident));
+  if (threadBusy(botId, threadId)) throw Object.assign(new Error("this thread is already working: interrupt it first"), { status: 409, code: "thread_busy" }); routineHost.assertMayStart(threadId, Boolean(opts?.coordination || opts?.peerAsk || opts?.commsDepth || opts?.cardContinuation || opts?.computerSelectionContinuation || opts?.automationSource !== undefined || opts?.unattended || opts?.compactOnly || answer.incident));
   if (roomTurnHolds(activeGroupTurnForBot(botId), threadId, opts?.allowRoomTurnElsewhere === true)) {
-    throw Object.assign(new Error("the bot is already working in a channel — wait for it to finish"), { status: 409, code: "thread_busy" });
+    throw Object.assign(new Error("the bot is already working in a channel: wait for it to finish"), { status: 409, code: "thread_busy" });
   }
   if (botAtThreadCapacity(botId, threadId, Boolean(opts?.coordination || opts?.peerAsk || opts?.commsDepth || opts?.cardContinuation || opts?.computerSelectionContinuation))) {
     throw Object.assign(new Error(botThreadLimitText(cfg, botThreadsHost(cloudPlanTier.starter()))), { status: 409, code: "thread_limit" });
@@ -7925,7 +7925,7 @@ async function beginTurn(
   const instance = registry.get(bot.modelSelection.instanceId);
   if (!instance) {
     if (removedComputerInstanceIds(cfg.instances).has(bot.modelSelection.instanceId)) void retryComputerEngineMove();
-    throw noAiNotice.refusal(threadId, opts?.sender, bot.modelSelection.instanceId) ?? Object.assign(new Error(`provider instance "${bot.modelSelection.instanceId}" is unavailable — pick another model in settings`), { status: 409 });
+    throw noAiNotice.refusal(threadId, opts?.sender, bot.modelSelection.instanceId) ?? Object.assign(new Error(`provider instance "${bot.modelSelection.instanceId}" is unavailable: pick another model in settings`), { status: 409 });
   }
   const policyRefusal = policyModelRefusal(instance);
   if (policyRefusal) throw Object.assign(new Error(policyRefusal), { status: 409, code: "managed_policy" });
@@ -7971,7 +7971,7 @@ async function beginTurn(
   assertModelVariantSupported({ variant, effort }, instance.adapter.capabilities);
   if (effort && !instance.adapter.capabilities.effortLevels?.includes(effort)) {
     throw Object.assign(
-      new Error(`effort "${effort}" is not offered by this bot's engine — choose another level in settings`),
+      new Error(`effort "${effort}" is not offered by this bot's engine: choose another level in settings`),
       { status: 409 },
     );
   }
@@ -8316,11 +8316,11 @@ async function beginTurn(
         await waitForLocalVmUpdate(localVmTarget, claimThreadId, () => directTurnClaimIsCurrent(bot.id, dispatchClaimId, claimThreadId));
         await bindTurnComputer(resourceOwner, `computer:vm:${localVmTarget.key}`, true);
         if (localVmImageBusy || localVmModeChangeBusy || localVmLifecycleBusy.has(localVmTarget.key)) {
-          throw new Error("this Local VM is being started, stopped, or replaced — wait for setup to finish");
+          throw new Error("this Local VM is being started, stopped, or replaced: wait for setup to finish");
         }
         // Claim before the first await; the lifecycle route checks synchronously too.
         if (!localVmLeaseFor(localVmTarget).claim(claimThreadId, bot.id, localVmOwnerBusy)) {
-          throw new Error("this Local VM is already being used by another turn — wait for that turn to finish");
+          throw new Error("this Local VM is already being used by another turn: wait for that turn to finish");
         }
         if (localVmMode(cfg) === "pool") localVmSeatPool.touch(claimThreadId);
         localVmThreadTargets.set(claimThreadId, localVmTarget);
@@ -8366,7 +8366,7 @@ async function beginTurn(
         }
         const placeFailure = error instanceof PlaceUnavailableError ? error : undefined;
         if (placeFailure) clearFailedAutoPin(bot.id, threadId, placeFailure.place);
-        const message = placeFailure?.message ?? `computer unavailable — ${label} could not be claimed for this turn (${failure})`;
+        const message = placeFailure?.message ?? `computer unavailable: ${label} could not be claimed for this turn (${failure})`;
         store.appendMessage(threadId, {
           role: "bot",
           kind: "activity",
@@ -8400,7 +8400,7 @@ async function beginTurn(
       const attachLocalVm = async (strict: boolean): Promise<boolean> => {
         if (!mountsComputerMcp) {
           if (!strict) return false;
-          throw new Error("this model can't use the private desktop — choose a model that can, such as Claude, or pick another place for it to work");
+          throw new Error("this model can't use the private desktop: choose a model that can, such as Claude, or pick another place for it to work");
         }
         if (!strict && localVmMode(cfg) === "pool") {
           const poolCandidate = poolLocalVmTarget(localVmSeatPool.candidate(threadId, localVmPoolSeatHolder));
@@ -9315,10 +9315,10 @@ async function deleteBotWithLifecycle(botId: string, revalidate: () => void = ()
       const bot = store.bot(botId);
       if (!bot) return deletionResponse( 404, { error: "no such bot" }); if (bot.defaultBot) return deletionResponse(409, { error: defaultBotRefusal(bot.name) });
       if (computerProviderConfigTransitions.size > 0) {
-        return deletionResponse( 409, { error: "computer provider settings are being updated — wait before deleting this bot" });
+        return deletionResponse( 409, { error: "computer provider settings are being updated: wait before deleting this bot" });
       }
       if (localVmModeChangeBusy) {
-        return deletionResponse(409, { error: "Local VM settings are being updated — wait before deleting this bot" });
+        return deletionResponse(409, { error: "Local VM settings are being updated: wait before deleting this bot" });
       }
       const sharedComputer = inheritedTeamComputer(bot);
       if (remoteComputerLifecycleBusyOwners.has(bot.id) || (sharedComputer && remoteComputerLifecycleBusyOwners.has(teamComputerOwner(sharedComputer.id)))) {
@@ -9951,7 +9951,7 @@ async function runClaimedGroupMemberTurn(
   }
   heldInterrupts.delete(`${threadId}:${bot.id}`);
   if (bot.approvalGrant) {
-    onDispatchError?.(`${bot.name}'s approval level is still being confirmed — skipped this round`);
+    onDispatchError?.(`${bot.name}'s approval level is still being confirmed: skipped this round`);
     return true;
   }
   revokeEarlierTurnCapabilities(threadId);
@@ -9963,7 +9963,7 @@ async function runClaimedGroupMemberTurn(
   const instance = registry.get(bot.modelSelection.instanceId);
   const userName = userNameFor(threadId);
   if (providerInstancesChanging.has(bot.modelSelection.instanceId)) {
-    onDispatchError?.(`${bot.name}'s provider account is being updated — try again shortly`);
+    onDispatchError?.(`${bot.name}'s provider account is being updated: try again shortly`);
     return true;
   }
   const roomPolicyRefusal = instance ? policyModelRefusal(instance) : undefined;
@@ -9987,7 +9987,7 @@ async function runClaimedGroupMemberTurn(
       orchestration.result.outcome = "busy";
       return true;
     }
-    const message = `${bot.name} is busy in another conversation — skipped this round`;
+    const message = `${bot.name} is busy in another conversation: skipped this round`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -10099,7 +10099,7 @@ async function runClaimedGroupMemberTurn(
       Object.assign(integrations, await teamConnections.appsIntegrations(bot, threadId, internalGeneration, instance.adapter.capabilities.mcpToolsFoundByName ? "dotted" : "plain"));
     }
   } catch (error) {
-    const message = `connected apps are unavailable — ${error instanceof Error ? error.message : String(error)}`;
+    const message = `connected apps are unavailable: ${error instanceof Error ? error.message : String(error)}`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -10154,7 +10154,7 @@ async function runClaimedGroupMemberTurn(
       orchestration.result.outcome = "busy";
       return true;
     }
-    const message = `${readyBot.name}'s settings changed while starting — skipped this round`;
+    const message = `${readyBot.name}'s settings changed while starting: skipped this round`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -10170,7 +10170,7 @@ async function runClaimedGroupMemberTurn(
       orchestration.result.outcome = "busy";
       return true;
     }
-    const message = `${bot.name}'s computer provider is being updated — skipped this round`;
+    const message = `${bot.name}'s computer provider is being updated: skipped this round`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -10185,7 +10185,7 @@ async function runClaimedGroupMemberTurn(
       orchestration.result.outcome = "busy";
       return true;
     }
-    const message = `${bot.name}'s cloud computer is being changed — skipped this round`;
+    const message = `${bot.name}'s cloud computer is being changed: skipped this round`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -10200,7 +10200,7 @@ async function runClaimedGroupMemberTurn(
       orchestration.result.outcome = "busy";
       return true;
     }
-    const message = `${bot.name} became busy in another conversation — skipped this round`;
+    const message = `${bot.name} became busy in another conversation: skipped this round`;
     store.appendMessage(threadId, {
       role: "bot",
       kind: "activity",
@@ -11362,7 +11362,7 @@ function drainQueuedChannelSendsNow(): void {
         store.appendMessage(threadId, {
           role: "bot",
           kind: "activity",
-          tool: failedTurnTool(`queued channel message could not start — ${error instanceof Error ? error.message : String(error)}`),
+          tool: failedTurnTool(`queued channel message could not start: ${error instanceof Error ? error.message : String(error)}`),
         });
       }
       queueMicrotask(drainQueuedChannelSends);
@@ -11458,12 +11458,12 @@ function roomPostEligibility(
   const verdict = roomTalks(bot, group, fromThreadId);
   if (verdict.ok) return verdict;
   if (verdict.problem === "dm") {
-    return { ok: false, status: 400, error: "that is a one-to-one bot channel, not a room — use coordinate_bots to reach a single bot" };
+    return { ok: false, status: 400, error: "that is a one-to-one bot channel, not a room: use coordinate_bots to reach a single bot" };
   }
   if (verdict.problem === "not-member") return { ok: false, status: 403, error: "you are not a member of that room" };
   if (verdict.problem === "private") return { ok: false, status: 403, error: PRIVATE_CHAT_ROOM_WRITE };
   // A bot must never settle whether a room's unfinished setup still counts as pending.
-  return { ok: false, status: 409, error: "that room is still being set up — it cannot receive messages yet" };
+  return { ok: false, status: 409, error: "that room is still being set up: it cannot receive messages yet" };
 }
 
 function proposalPersistence(botId: string, threadId: string, opensCard = true) {
@@ -11675,7 +11675,7 @@ function resolveSkillRequest(args: {
     return {
       claimed: true,
       status: 409,
-      error: "this proposal was created by an older build — deny it and ask the bot to create it again",
+      error: "this proposal was created by an older build: deny it and ask the bot to create it again",
     };
   }
   if (args.reviewedSha256 !== request.sha256) {
@@ -11687,7 +11687,7 @@ function resolveSkillRequest(args: {
   }
   const previewSha256 = createHash("sha256").update(request.preview).digest("hex");
   if (previewSha256 !== request.sha256 || skillReferencesSha256(request.references ?? []) !== request.referencesSha256) {
-    return { claimed: true, status: 422, error: "the skill preview changed after review — deny and recreate it" };
+    return { claimed: true, status: 422, error: "the skill preview changed after review: deny and recreate it" };
   }
   const staged = getStagedSkillWrite(args.botId, request.stagedId);
   if (!staged) {
@@ -12162,7 +12162,7 @@ async function stopCompanyInstances(ids: string[]) {
     for (const id of ids) { providerAuthSessions.clearInstance(id); bus.detach(id); }
     return;
   }
-  const cause = "turn interrupted — the Company connection changed";
+  const cause = "turn interrupted: the Company connection changed";
   const selected = new Set(ids);
   for (const id of ids) providerInstancesChanging.add(id);
   const direct = store.bots.flatMap(bot => store.tasks(bot.id)
@@ -12181,7 +12181,7 @@ async function stopCompanyInstances(ids: string[]) {
     watchdog.settle(threadId); closeOpenApprovals(threadId); directTurnBots.delete(threadId);
     routines?.failThread(threadId, "Company connection changed while this thread was running", { stopReason: "interrupted" });
     if (store.taskByThread(botId, threadId)) {
-      store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: "Company connection changed — choose whether to reconnect or use a personal model", ok: false } });
+      store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: "Company connection changed: choose whether to reconnect or use a personal model", ok: false } });
       store.setTaskActivity(botId, threadId, "idle");
     }
   }
@@ -12251,7 +12251,7 @@ async function reloadProviders(before: Record<string, unknown>) {
     .filter((task) => threadBusy(bot.id, task.threadId) && onChanged(bot.id, task.threadId))
     .map((task) => ({ botId: bot.id, threadId: task.threadId, owner: turnResourceOwners.get(task.threadId) })));
   const rooms = [...groupSpeakers.entries()].filter(([threadId, speaker]) => onChanged(speaker.botId, threadId));
-  const cause = "turn interrupted — provider settings changed";
+  const cause = "turn interrupted: provider settings changed";
   providerFleetReloading = true;
   for (const id of changed) providerInstancesChanging.add(id);
   // Those engines' processes are about to die: revoke before the first await.
@@ -13370,7 +13370,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             if (snapshot.held || !claimTurnResource(internalCapability, resource)) throw Object.assign(new Error("This computer is held by another person or turn; wait before browsing"), { status: 409 });
           }
           if (body.method === "tools/call" && !claimTurnResource(internalCapability, `browser:${browser.session}`)) {
-            throw Object.assign(new Error("another thread is using this browser — pause browser work until that thread finishes"), { status: 409 });
+            throw Object.assign(new Error("another thread is using this browser: pause browser work until that thread finishes"), { status: 409 });
           }
         }, stepContext(bot, internalCapability, () => liveTurnByThread.get(internalCapability.threadId) ?? null));
         requireActiveInternalCapability(); if (body.method === "tools/call") { browserSeats.used(internalCapability, browser.session); if (!(result as { isError?: boolean })?.isError) noteVpsTurnActivity(internalCapability); }
@@ -13910,7 +13910,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           if ("error" in resolved) return refuse(403, resolved.error);
           botIds.push(resolved.id);
         }
-        if (new Set(botIds).size !== botIds.length) return refuse(400, "bot_ids name the same teammate twice — send each teammate once");
+        if (new Set(botIds).size !== botIds.length) return refuse(400, "bot_ids name the same teammate twice: send each teammate once");
         const addressedRoom = destination && { id: destination.id, name: destination.name, here: destination.id === source?.id };
         const roomThreadId = destination && (addressedRoom?.here ? address.threadId : destination.threadId);
         const targets = botIds.map(botId => roomHandoffTarget({ groupId: destination?.id, threadId: roomThreadId ?? store.bot(botId)?.threadId ?? "", botId }, address));
@@ -13918,15 +13918,15 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const folder = inMyFolderCwd(call.inMyFolder, direct, store.taskByThread(internalSender.id, address.threadId)?.cwd, DATA_DIR);
         if (folder.error) return refuse(400, folder.error);
         if (fresh && !EXTERNAL && internalCapability.openedThreads >= MAX_THREADS_OPENED_PER_TURN) {
-          return refuse(429, `You have already opened ${MAX_THREADS_OPENED_PER_TURN} threads this turn, which is the limit. Do not retry — finish your turn and tell the person which threads you still wanted to open, so they can open them or ask you again.`);
+          return refuse(429, `You have already opened ${MAX_THREADS_OPENED_PER_TURN} threads this turn, which is the limit. Do not retry: finish your turn and tell the person which threads you still wanted to open, so they can open them or ask you again.`);
         }
         for (const target of targets) {
             // Echo only the id the caller sent, never a bot's name.
           const addressed = store.bot(target.botId);
           const eligibility =
             target.botId === internalSender.id ? "Choose a teammate, not yourself"
-            : !addressed ? `No bot with id "${target.botId}" — call list_bots and copy the exact id from the result`
-            : addressed.hidden ? `The bot with id "${target.botId}" is no longer available — call list_bots for the ones you can reach`
+            : !addressed ? `No bot with id "${target.botId}": call list_bots and copy the exact id from the result`
+            : addressed.hidden ? `The bot with id "${target.botId}" is no longer available: call list_bots for the ones you can reach`
             : roomHandoffProblem(target, address);
           if (eligibility) return refuse(403, eligibility);
         }
@@ -14156,9 +14156,9 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const target = store.bot(botId);
         if (!target || target.id === from.id) return json(res, 404, { error: "no such teammate" });
         if (!canManage(from, target)) {
-          return json(res, 403, { error: "that bot is not on this Chief's team — call list_bots for the ones you can reach" });
+          return json(res, 403, { error: "that bot is not on this Chief's team: call list_bots for the ones you can reach" });
         }
-        if (store.groupByThread(threadId)) return json(res, 400, { error: "that is a room thread — use coordinate_bots in the room instead" });
+        if (store.groupByThread(threadId)) return json(res, 400, { error: "that is a room thread: use coordinate_bots in the room instead" });
         const task = store.taskByThread(target.id, threadId);
         if (!task || (CLOUD_TEAM && !teamHost.readableFrom(fromThreadId)(threadId))) return json(res, 404, { error: "no such thread on that bot" });
         if (!outsideLineage.mayReach(fromThreadId, threadId)) return json(res, 403, { error: OUTSIDE_STAYS_HERE });
@@ -14174,7 +14174,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           tool: { name: `Retried ${target.name}'s thread #${task.title}`, ok: true },
           threadRef: { botId: target.id, threadId, title: task.title },
         });
-        return json(res, 200, { started: true, message: `${target.name}'s thread #${task.title} is running again. Its result stays in that thread; you are not woken for it — check later with list_threads or session_search if you need to.` });
+        return json(res, 200, { started: true, message: `${target.name}'s thread #${task.title} is running again. Its result stays in that thread; you are not woken for it: check later with list_threads or session_search if you need to.` });
       }
       // post_to_room appends role "bot", never "user" (which would start a round of real turns), starts no turn, and takes membership from the record.
       if (method === "POST" && path === "/api/internal/post-to-room") {
@@ -14193,18 +14193,18 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           return json(res, 400, { error: "post_to_room needs group_id (from list_rooms) and message" });
         }
         if ((internalCapability.roomPosts ?? 0) >= MAX_ROOM_POSTS_PER_TURN) {
-          return json(res, 429, { error: `You have already posted ${MAX_ROOM_POSTS_PER_TURN} times this turn, which is the limit. Do not retry — finish your turn and say anything further to the user directly.` });
+          return json(res, 429, { error: `You have already posted ${MAX_ROOM_POSTS_PER_TURN} times this turn, which is the limit. Do not retry: finish your turn and say anything further to the user directly.` });
         }
         if (message.length > ROOM_POST_MAX_CHARS) {
           return json(res, 400, {
-            error: `a room post is at most ${ROOM_POST_MAX_CHARS} characters — post the short version and keep the detail in your own reply`,
+            error: `a room post is at most ${ROOM_POST_MAX_CHARS} characters: post the short version and keep the detail in your own reply`,
           });
         }
         let room = store.group(groupId);
-        if (!room) return json(res, 404, { error: "no such room — call list_rooms and copy the exact id from the result" });
+        if (!room) return json(res, 404, { error: "no such room: call list_rooms and copy the exact id from the result" });
         if (!outsideLineage.mayReach(fromThreadId, room.threadId)) return json(res, 403, { error: OUTSIDE_STAYS_HERE });
         if (room.id === owner.group?.id) {
-          return json(res, 409, { error: "you are already speaking in that room — say it in your reply instead" });
+          return json(res, 409, { error: "you are already speaking in that room: say it in your reply instead" });
         }
         const eligibility = roomPostEligibility(from, room, fromThreadId);
         if (!eligibility.ok) return json(res, eligibility.status, { error: eligibility.error });
@@ -14263,7 +14263,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           const parked = turnAttachmentsByTurn.get(parkedKey) ?? [];
           const audio = parked.filter((attachment) => attachment.kind === "audio");
           if (!audio.length) {
-            return json(res, 400, { error: "no voice note to attach — call send_voice_note in this turn first" });
+            return json(res, 400, { error: "no voice note to attach: call send_voice_note in this turn first" });
           }
           stagedAttachments = audio.map((attachment) => ({
             kind: "audio" as const,
@@ -14319,7 +14319,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         if (title.length > 80) return json(res, 400, { error: "title must be at most 80 characters" });
         if (!fitsOnOneLine(title)) return json(res, 400, { error: "title must fit on one line" });
         if (internalCapability.openedThreads >= MAX_THREADS_OPENED_PER_TURN) {
-          return json(res, 429, { error: `You have already opened ${MAX_THREADS_OPENED_PER_TURN} threads this turn, which is the limit. Do not retry — finish your turn and tell the person which threads you still wanted to open, so they can open them or ask you again.` });
+          return json(res, 429, { error: `You have already opened ${MAX_THREADS_OPENED_PER_TURN} threads this turn, which is the limit. Do not retry: finish your turn and tell the person which threads you still wanted to open, so they can open them or ask you again.` });
         }
         const toBotId = typeof body.toBotId === "string" && body.toBotId.trim() ? body.toBotId.trim() : from.id;
         const target = store.bot(toBotId);
@@ -14332,7 +14332,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           );
           if (!project) {
             const names = (target.projects ?? []).map((candidate) => candidate.name).join(", ");
-            return json(res, 400, { error: `@${target.name} has no folder named "${folder}"${names ? ` — the folders are: ${names}` : " — it has no folders; leave folder out"}` });
+            return json(res, 400, { error: `@${target.name} has no folder named "${folder}"${names ? `, the folders are: ${names}` : ": it has no folders; leave folder out"}` });
           }
           projectId = project.id;
         }
@@ -15044,7 +15044,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         const parsed = parseSkillMd(file.content);
         if ("error" in parsed) return json(res, 422, { error: parsed.error });
         const skippedWarnings = skill.files.filter(candidate => candidate !== file)
-          .map(candidate => `skipped supporting file "${candidate.path}" — v1 imports only SKILL.md`);
+          .map(candidate => `skipped supporting file "${candidate.path}": v1 imports only SKILL.md`);
         const template = botSkillTemplateSchema.safeParse({ name: parsed.name, description: parsed.description, source: skill.source, text: file.content,
           enabled: false, warnings: [...scanSkillText(file.content), ...skippedWarnings] });
         if (!template.success) return json(res, 422, { error: template.error.message });
@@ -15407,7 +15407,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         const controlLeaseId = leaseResult?.data;
         if (action === "take" && (remoteComputerLifecycleBusyOwners.has(bot.id) || remoteComputerLifecycleBusyOwners.has(controlKey))) {
-          return json(res, 409, { error: "this bot's cloud computer is being changed — wait before taking control" });
+          return json(res, 409, { error: "this bot's cloud computer is being changed: wait before taking control" });
         }
         if (action === "take" && vpsDefaults().independentScreens && inheritedTeamComputer(currentBot)) {
           const shared = inheritedTeamComputer(currentBot)!; const target = teamComputerVpsTarget(cfg, shared);
@@ -15598,7 +15598,7 @@ for (const row of chatFollowups()) {
   if (!messages.some((message) => message.queueId === row.id && message.kind === "activity")) {
     store.appendMessage(row.threadId, {
       role: "bot", kind: "activity", queueId: row.id,
-      tool: { name: "Queued follow-up interrupted by restart or restore — it may have already run. Review the result before sending it again.", ok: false },
+      tool: { name: "Queued follow-up interrupted by restart or restore: it may have already run. Review the result before sending it again.", ok: false },
     });
   }
   settleChatFollowups([row.id], null);
@@ -15658,7 +15658,7 @@ function noteTurnsCutByShutdown(): void {
   for (const bot of store.bots) {
     for (const task of store.tasks(bot.id)) {
       if (threadBusy(bot.id, task.threadId) && cut(task.threadId)) {
-        store.appendMessage(task.threadId, { role: "bot", kind: "activity", tool: failedTurnTool("turn interrupted — dusk bot restarted") });
+        store.appendMessage(task.threadId, { role: "bot", kind: "activity", tool: failedTurnTool("turn interrupted: dusk bot restarted") });
       }
     }
   }
@@ -15666,7 +15666,7 @@ function noteTurnsCutByShutdown(): void {
     for (const threadId of group.dm ? [group.threadId] : store.groupTasks(group.id).map((task) => task.threadId)) {
       if (!groupThreadIsWorking(group.id, threadId) || !cut(threadId)) continue;
       const speaker = groupSpeakers.get(threadId);
-      store.appendMessage(threadId, { role: "bot", kind: "activity", ...(speaker ? { from: speaker } : {}), tool: failedTurnTool("turn interrupted — dusk bot restarted") });
+      store.appendMessage(threadId, { role: "bot", kind: "activity", ...(speaker ? { from: speaker } : {}), tool: failedTurnTool("turn interrupted: dusk bot restarted") });
     }
   }
 }

@@ -11,7 +11,7 @@ function boundedImportFetch(fetcher: typeof fetch): typeof fetch {
   let bytes = 0;
   const signal = AbortSignal.timeout(60_000);
   return async (input, init) => {
-    if (++requests > 128) throw new ImportLimitError("Import request limit reached — paste a specific skill folder instead.");
+    if (++requests > 128) throw new ImportLimitError("Import request limit reached: paste a specific skill folder instead.");
     signal.throwIfAborted();
     const response = await fetcher(input, { ...init, signal });
     if (!response.ok) {
@@ -30,7 +30,7 @@ function boundedImportFetch(fetcher: typeof fetch): typeof fetch {
         size += chunk.value.byteLength;
         bytes += chunk.value.byteLength;
         if (size > (listing ? 1_048_576 : MAX_FILE_BYTES) || bytes > 8 * 1_048_576) {
-          throw new ImportLimitError("Import size limit reached — paste a smaller skill folder instead.");
+          throw new ImportLimitError("Import size limit reached: paste a smaller skill folder instead.");
         }
         chunks.push(chunk.value);
       }
@@ -117,10 +117,10 @@ function assertPinnedRawUrl(url: string): void {
   try {
     parsed = new URL(url);
   } catch {
-    throw new Error(`refusing to download ${url} — not a valid URL`);
+    throw new Error(`refusing to download ${url}: not a valid URL`);
   }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.hostname !== "raw.githubusercontent.com") {
-    throw new Error(`refusing to download ${url} — skill files must be https://raw.githubusercontent.com links`);
+    throw new Error(`refusing to download ${url}: skill files must be https://raw.githubusercontent.com links`);
   }
 }
 
@@ -254,8 +254,8 @@ export async function fetchSkillFromSource(
     if (!dirs.length) {
       return {
         error: parsed.skill
-          ? `no skill named "${parsed.skill}" found there — check the exact name on the skills.sh page`
-          : "no SKILL.md found there — paste a skill folder or a repo with a skills/ directory",
+          ? `no skill named "${parsed.skill}" found there: check the exact name on the skills.sh page`
+          : "no SKILL.md found there: paste a skill folder or a repo with a skills/ directory",
       };
     }
     const skills: FetchedSkill[] = [];

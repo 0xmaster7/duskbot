@@ -444,7 +444,7 @@ const support = (run: typeof execCli): AcpSupport => ({
   // Other coding agents can install a generic `agent` shim; `cursor-agent` is unambiguous.
   defaultCli: "cursor-agent",
   nativeSource: "cursor.acp",
-  loginNote: "Cursor CLI is not signed in — run `cursor-agent login` in a terminal, or set CURSOR_API_KEY",
+  loginNote: "Cursor CLI is not signed in: run `cursor-agent login` in a terminal, or set CURSOR_API_KEY",
 
   install: {
     command: {

@@ -184,7 +184,7 @@ describe("parseSkillMd", () => {
     if (!("error" in parsed)) expect(parsed.body).toContain("Do the thing.");
   });
 
-  it("rejects names the spec rejects — including traversal shapes", () => {
+  it("rejects names the spec rejects, including traversal shapes", () => {
     for (const bad of ["Code-Review", "code_review", "-lead", "a--b", "..", "a/b", ""]) {
       const parsed = parseSkillMd(SKILL(bad));
       expect("error" in parsed, `name ${JSON.stringify(bad)} must be rejected`).toBe(true);

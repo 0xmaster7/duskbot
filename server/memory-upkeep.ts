@@ -480,7 +480,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
     const report: CaptureReport = { at, added, topics, aboutMe, organized };
     if (cancelled(started)) return report;
     record(id, { lastCapture: report });
-    if (added || topics || aboutMe) log(`memory upkeep: noticed ${added} fact(s) for MEMORY.md, ${topics} for topic files and ${aboutMe} for About me — ${bot.name} (${id}) from ${conversations.map((conversation) => conversation.threadId).join(", ")}`);
+    if (added || topics || aboutMe) log(`memory upkeep: noticed ${added} fact(s) for MEMORY.md, ${topics} for topic files and ${aboutMe} for About me: ${bot.name} (${id}) from ${conversations.map((conversation) => conversation.threadId).join(", ")}`);
     return report;
   }
 
@@ -714,7 +714,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       ...(note ? { note } : {}),
     };
     record(botId, { lastTidy: report, topicCursor });
-    if (report.expired || report.duplicates || report.superseded || organized) log(`memory upkeep: tidied ${bot?.name ?? botId} — ${report.expired} expired, ${report.duplicates} duplicate(s), ${report.superseded} contradicted`);
+    if (report.expired || report.duplicates || report.superseded || organized) log(`memory upkeep: tidied ${bot?.name ?? botId}: ${report.expired} expired, ${report.duplicates} duplicate(s), ${report.superseded} contradicted`);
     return report;
   }
 
@@ -797,7 +797,7 @@ export function createMemoryUpkeep(deps: UpkeepDeps): MemoryUpkeep {
       ...(written.stale ? { note: "The notes changed during the dream, so outdated notes wait for the next one." } : {}),
     };
     record(botId, { lastDream: done, dreamedTo: at });
-    log(`memory upkeep: ${bot.name} (${botId}) dreamt over ${conversations.length} chats — ${done.learned.length} learned, ${done.outdated.length} updated, ${done.ideas.length} idea(s), ${aboutMe} for About me`);
+    log(`memory upkeep: ${bot.name} (${botId}) dreamt over ${conversations.length} chats: ${done.learned.length} learned, ${done.outdated.length} updated, ${done.ideas.length} idea(s), ${aboutMe} for About me`);
     return done;
   }
 

@@ -51,7 +51,7 @@ async function churnUntilCollected(bot: string, cwd: string): Promise<void> {
   await drain(bot, cwd);
 }
 
-/** The user's own git, as the user would run it — no shadow env involved. */
+/** The user's own git, as the user would run it, no shadow env involved. */
 function userGit(cwd: string, ...args: string[]): string {
   return execFileSync("git", args, {
     cwd,

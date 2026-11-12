@@ -60,7 +60,7 @@ export function migrateBotSkillsToLibrary(botId: string, root: string = skillsLi
     }
     try {
       if (readdirSync(copy.directory).some((name) => name !== "SKILL.md")) {
-        outcomes.push({ botId, name: copy.name, outcome: "skipped", detail: "skill has auxiliary files — keeping its complete private directory" });
+        outcomes.push({ botId, name: copy.name, outcome: "skipped", detail: "skill has auxiliary files: keeping its complete private directory" });
         continue;
       }
     } catch {
@@ -80,7 +80,7 @@ export function migrateBotSkillsToLibrary(botId: string, root: string = skillsLi
     }
     const existing = readSkillLibraryIndex(root)[copy.name];
     if (existing && existing.sha256 !== copy.sha256) {
-      outcomes.push({ botId, name: copy.name, outcome: "skipped", detail: `the library already has a different "${copy.name}" — rename one of them` });
+      outcomes.push({ botId, name: copy.name, outcome: "skipped", detail: `the library already has a different "${copy.name}": rename one of them` });
       continue;
     }
     // The entry's review state is shared: deduplicating a copy whose on/off differs would flip that bot's switch.
@@ -89,7 +89,7 @@ export function migrateBotSkillsToLibrary(botId: string, root: string = skillsLi
         botId,
         name: copy.name,
         outcome: "skipped",
-        detail: `the library "${copy.name}" is ${existing.reviewState === "approved" ? "enabled" : "disabled"} while this bot had it ${copy.enabled ? "enabled" : "disabled"} — align them before migrating`,
+        detail: `the library "${copy.name}" is ${existing.reviewState === "approved" ? "enabled" : "disabled"} while this bot had it ${copy.enabled ? "enabled" : "disabled"}: align them before migrating`,
       });
       continue;
     }

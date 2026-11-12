@@ -152,7 +152,7 @@ const renamedMcpServers = new Set<string>();
 function noteRenamedMcpServer(name: string, mountName: string): void {
   if (renamedMcpServers.has(name)) return;
   renamedMcpServers.add(name);
-  console.error(`codex: MCP server ${JSON.stringify(name)} is also declared in Codex's own config.toml — mounted as ${JSON.stringify(mountName)} for this bot so the two do not merge`);
+  console.error(`codex: MCP server ${JSON.stringify(name)} is also declared in Codex's own config.toml: mounted as ${JSON.stringify(mountName)} for this bot so the two do not merge`);
 }
 
 
@@ -168,7 +168,7 @@ function grantedPermissions(raw: unknown): Record<string, unknown> {
 function additionalPermissionSummary(permissions: unknown, reason: unknown): string {
   const requested = grantedPermissions(permissions);
   const exact = JSON.stringify(requested);
-  const prefix = typeof reason === "string" && reason.trim() ? `${reason.trim()} — ` : "";
+  const prefix = typeof reason === "string" && reason.trim() ? `${reason.trim()}: ` : "";
   return `${prefix}Requested permissions: ${exact}`;
 }
 
@@ -907,7 +907,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
             error: {
               code: -32602,
               message: Array.isArray(params.questions)
-                ? "ask needs at least one answerable question — a string id and question text each; this request sent none."
+                ? "ask needs at least one answerable question: a string id and question text each; this request sent none."
                 : "ask needs params.questions to be an array of questions, each with a string id and question text.",
             },
           });

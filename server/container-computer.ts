@@ -128,7 +128,7 @@ RUN set -eux; \\
     esac; \\
     for ssl_lib in "/lib/$lib_triplet/libssl.so.3" "/lib/$lib_triplet/libcrypto.so.3"; do \\
       if [ -e "$ssl_lib" ] && [ ! -s "$ssl_lib" ]; then \\
-        echo "pinned base image is defective on $arch: $ssl_lib is zero bytes, so curl cannot start — re-pull or replace the base image instead of debugging the wheel download" >&2; \\
+        echo "pinned base image is defective on $arch: $ssl_lib is zero bytes, so curl cannot start, re-pull or replace the base image instead of debugging the wheel download" >&2; \\
         exit 1; \\
       fi; \\
     done; \\

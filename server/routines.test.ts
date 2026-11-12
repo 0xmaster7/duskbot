@@ -18,7 +18,7 @@ import {
 const dirs: string[] = [];
 
 const routineTurn = (id: string, name: string, text: string, trigger: "schedule" | "manual" = "schedule") =>
-  `[${trigger === "schedule" ? "Scheduled routine" : "Routine"} ${JSON.stringify(name)} — do this now:]\nTrigger id: ${id}\n${text}`;
+  `[${trigger === "schedule" ? "Scheduled routine" : "Routine"} ${JSON.stringify(name)}, do this now:]\nTrigger id: ${id}\n${text}`;
 
 function tempFile() {
   const dir = mkdtempSync(join(tmpdir(), "dusk-routines-"));

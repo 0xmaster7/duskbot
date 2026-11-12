@@ -1812,7 +1812,7 @@ describe("§5 outward / §2 loop guard", () => {
     expect(ended.result).toBe(ended.outcomeDetail);
     expect(kinds(w, root.id)).toEqual(["enqueued", "started", "restart_reconciled", "settled", "reported"]);
     expect(w.store.events(root.id).map((e) => e.detail)).toEqual(["queued: root", "running: turn 1 (host), level auto", "failed: outward action done",
-      `failed: interrupted — ${ended.outcomeDetail}`, "reported"]);
+      `failed: interrupted, ${ended.outcomeDetail}`, "reported"]);
     expect(w.runner.callsOf("outward").map((c) => c.id)).toEqual([root.id]);
     expect(w.runner.reports(root.id)).toHaveLength(1);
     expect(w.runner.reports(root.id)[0].parent).toBeUndefined();
@@ -1928,7 +1928,7 @@ describe("§5 outward / §2 loop guard", () => {
     expect(stopped.continuation).toBeUndefined();
     expect(kinds(w, root.id)).toEqual(["enqueued", "started", "continued", "admitted", "started", "stalled", "settled", "reported"]);
     expect(w.store.events(root.id).at(-3)?.detail).toBe("no progress: 2 continuations without a successful tool call");
-    expect(w.store.events(root.id).at(-2)?.detail).toBe("failed: stalled — Stopped after 2 continuations without progress: still nothing");
+    expect(w.store.events(root.id).at(-2)?.detail).toBe("failed: stalled, Stopped after 2 continuations without progress: still nothing");
     expect(replayStatus(w.store.events(root.id))).toBe("failed");
     expect(w.runner.reports(root.id)).toHaveLength(1);
     expect(w.runner.reports(root.id)[0].parent).toBeUndefined();

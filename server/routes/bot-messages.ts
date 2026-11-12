@@ -488,16 +488,16 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         if (accepted.kind === "match") return json(res, 202, { ok: true, message: accepted.message });
       }
       // Synchronous from here: startTurn flips busy before the next request, so two racing edits cannot both pass.
-      if (threadBusy(bot.id, bot.threadId)) return json(res, 409, { error: "the thread is working — stop it before editing" });
+      if (threadBusy(bot.id, bot.threadId)) return json(res, 409, { error: "the thread is working: stop it before editing" });
       if (phoneSecretSubmissions.hasThread(bot.threadId)) {
-        return json(res, 409, { error: "this task is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this task is securely saving a credential: try again when it finishes" });
       }
       const rerunSelection = turnSelection(bot.id, bot.threadId) ?? bot.modelSelection;
       if (!registry.get(rerunSelection.instanceId)) {
         const noAi = deps.noAiRefusal?.(bot.threadId, messageSender(auth), rerunSelection.instanceId);
         if (noAi) throw noAi;
         return json(res, 409, {
-          error: `provider instance "${rerunSelection.instanceId}" is unavailable — pick another model in settings`,
+          error: `provider instance "${rerunSelection.instanceId}" is unavailable: pick another model in settings`,
         });
       }
       const rerunInstance = registry.get(rerunSelection.instanceId)!;
@@ -518,9 +518,9 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const bot = requestedTaskBot(m[1], body.threadId);
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
-      if (threadBusy(bot.id, bot.threadId)) return json(res, 409, { error: "the thread is working — stop it before switching versions" });
+      if (threadBusy(bot.id, bot.threadId)) return json(res, 409, { error: "the thread is working: stop it before switching versions" });
       if (phoneSecretSubmissions.hasThread(bot.threadId)) {
-        return json(res, 409, { error: "this task is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this task is securely saving a credential: try again when it finishes" });
       }
       const leaf = store.setActiveLeaf(bot.threadId, String(body.messageId ?? ""));
       if (!leaf) return json(res, 404, { error: "no such message" });

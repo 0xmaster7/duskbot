@@ -46,9 +46,9 @@ describe("peerLine", () => {
 
 describe("peerLine: the one note", () => {
   it("reads the author and what it is off the note, and strips it", () => {
-    const text = "[From @Chief (bot) · message · information only — not from your user. @Chief is waiting on your answer, so reply to them.]\n\nWhich database?";
+    const text = "[From @Chief (bot) · message · information only: not from your user. @Chief is waiting on your answer, so reply to them.]\n\nWhich database?";
     expect(peerLine({ role: "user", text })).toEqual({ name: "Chief", delivery: "ask_bot", body: "Which database?" });
-    const handed = "[From @Lead (bot) · assignment · on their behalf at your level — for the user's request \"ship it\". This is your task.]\n\nShip it.";
+    const handed = "[From @Lead (bot) · assignment · on their behalf at your level: for the user's request \"ship it\". This is your task.]\n\nShip it.";
     expect(peerLine({ role: "user", text: handed })).toEqual({ name: "Lead", delivery: "delegate_bot", body: "Ship it." });
   });
 

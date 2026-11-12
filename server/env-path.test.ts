@@ -77,7 +77,7 @@ describe("augmentedPath", () => {
       execFile(
         "dusk-fake-cli",
         [],
-        // bare GUI-style PATH + our augmentation — the augmentation must win
+        // bare GUI-style PATH + our augmentation, the augmentation must win
         { env: { PATH: augmentedPath() } },
         (err, out) => (err ? reject(err) : resolve(out)),
       );
@@ -344,7 +344,7 @@ IF EXIST "%dp0%\\node.exe" (
 endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\pkg\\bin\\duskfake.js" %*
 `;
 
-// ...and for one whose bin is an extensionless `#!/usr/bin/env node` script — cmd-shim keeps the
+// ...and for one whose bin is an extensionless `#!/usr/bin/env node` script, cmd-shim keeps the
 // package.json bin name verbatim (droid, grok)
 const EXTENSIONLESS_SHIM = `@ECHO off
 GOTO start
@@ -394,7 +394,7 @@ IF EXIST "%NPM_PREFIX_${upper}_CLI_JS%" (
 };
 
 describe("resolveCli", () => {
-  it.skipIf(process.platform === "win32")("is identity off Windows — the kernel already resolves PATH and #!", () => {
+  it.skipIf(process.platform === "win32")("is identity off Windows: the kernel already resolves PATH and #!", () => {
     expect(resolveCli("claude", ["-p", "hi"])).toEqual({ command: "claude", args: ["-p", "hi"] });
   });
 });
@@ -488,7 +488,7 @@ winOnly("resolveCli (Windows)", () => {
     expect(resolveCli("duskfake", []).command).toBe(join(dir, "node_modules", "pkg", "bin", "duskfake.exe"));
   });
 
-  it("runs a #!node script through node — Windows has no shebang support", async () => {
+  it("runs a #!node script through node: Windows has no shebang support", async () => {
     const script = join(dir, "duskfake-cli.ts");
     writeFileSync(script, "#!/usr/bin/env node\nconsole.log('shebang ' + process.argv.slice(2).join(','));\n");
     const r = resolveCli(script, ["a", "b"]);
@@ -591,7 +591,7 @@ describe("splitCliString", () => {
     expect(splitCliString("  ")).toEqual([]);
   });
 
-  it("strips quotes from a lone quoted path — the spaced-path case", () => {
+  it("strips quotes from a lone quoted path: the spaced-path case", () => {
     // a user quoting a path with spaces pastes ONE token; the quotes must
     // not survive into the spawn, or every turn dies ENOENT on a filename
     // that literally contains quote characters

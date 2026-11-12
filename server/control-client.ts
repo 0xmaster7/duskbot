@@ -12,16 +12,16 @@ const WAIT_WORDS = `${CONTROL_WAIT_MS / 1000} seconds`;
 /** Only while a person holds the computer (the harness marks it `reason: "person"`). */
 export const CONTROL_REFUSAL_PLAIN =
   "A person has taken control of this computer, so this call was NOT performed. " +
-  "Do not act until they hand it back — the screen is changing under their hands. " +
+  "Do not act until they hand it back: the screen is changing under their hands. " +
   `To wait for them, take a screenshot: each computer call waits up to ${WAIT_WORDS} and returns as soon as they hand control back. ` +
   "Meanwhile you may work on anything that does not need this computer.";
 /** Not forwarded: a click composed before their hands moved must never land on whatever is under it now. */
 export const CONTROL_HANDED_BACK =
-  "The person has handed this computer back. This call was NOT performed — the screen may have changed while they had it. " +
+  "The person has handed this computer back. This call was NOT performed: the screen may have changed while they had it. " +
   "Take a fresh screenshot, then continue the task.";
 export const CONTROL_WAITED =
   "This computer is free now, but this call had to wait for it, so it was NOT performed. " +
-  "Call again: the next call goes through at once. If you meant to click or type from an earlier screenshot, take a fresh one first — the screen may have changed while you waited.";
+  "Call again: the next call goes through at once. If you meant to click or type from an earlier screenshot, take a fresh one first, the screen may have changed while you waited.";
 export const CONTROL_BUSY =
   "Another thread is using this computer. This call was not performed. This turn gets the computer as soon as it is free: " +
   `to keep waiting, take a screenshot (each computer call waits up to ${WAIT_WORDS}) instead of ending your turn.`;

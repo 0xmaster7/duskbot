@@ -206,7 +206,7 @@ const TRANSIENT_STEP: ReadonlySet<GoalStepOutcome | undefined> = new Set(["provi
 async function stepOnceRetried<Bot extends GoalRunMember>(deps: GoalRunDeps<Bot>, bot: Bot, coordinator: boolean, instructions: string): Promise<GoalStepResult> {
   const first = await deps.step(bot, coordinator, instructions);
   if (!TRANSIENT_STEP.has(first.outcome) || deps.cancelled()) return first;
-  deps.progress(`${bot.name}'s turn did not settle (${first.outcome!.replace("_", " ")}) — retrying once.`);
+  deps.progress(`${bot.name}'s turn did not settle (${first.outcome!.replace("_", " ")}): retrying once.`);
   return deps.step(bot, coordinator, instructions);
 }
 
@@ -242,19 +242,19 @@ export async function runGoalRun<Bot extends GoalRunMember>(deps: GoalRunDeps<Bo
       return;
     }
     if (coordinatorResult.outcome === "busy") {
-      deps.finish("blocked", `${coordinatorResult.stopReason ?? `${coordinator.name} stayed busy`} — send the goal again when they are free.`);
+      deps.finish("blocked", `${coordinatorResult.stopReason ?? `${coordinator.name} stayed busy`}: send the goal again when they are free.`);
       return;
     }
     if (coordinatorResult.outcome === "parked") {
       deps.finish(
         "blocked",
-        `${coordinatorResult.stopReason ?? `${coordinator.name} parked waiting for the computer`} — send the goal again when the computer is free.`,
+        `${coordinatorResult.stopReason ?? `${coordinator.name} parked waiting for the computer`}: send the goal again when the computer is free.`,
       );
       return;
     }
     if (!coordinatorResult.ran || coordinatorResult.outcome !== "settled") {
       const reason = coordinatorResult.stopReason?.trim().slice(0, 120);
-      deps.finish("failed", `${coordinator.name} could not complete the coordination step${reason ? ` — ${reason}` : ""}.`);
+      deps.finish("failed", `${coordinator.name} could not complete the coordination step${reason ? `: ${reason}` : ""}.`);
       return;
     }
 
@@ -307,11 +307,11 @@ export async function runGoalRun<Bot extends GoalRunMember>(deps: GoalRunDeps<Bo
     if (workerResult.outcome === "busy" || workerResult.outcome === "parked") {
       waitExhaustions += 1;
       if (waitExhaustions >= GROUP_GOAL_MAX_WAIT_EXHAUSTIONS) {
-        deps.finish("blocked", `Teammates stayed busy past the wait limit ${waitExhaustions} times — try again when the team is free.`);
+        deps.finish("blocked", `Teammates stayed busy past the wait limit ${waitExhaustions} times: try again when the team is free.`);
         return;
       }
       const reason = workerResult.stopReason?.trim().slice(0, 120) ?? `${workerBot.name} stayed busy`;
-      deps.note(`${reason} — asking ${coordinator.name} to reassign`);
+      deps.note(`${reason}: asking ${coordinator.name} to reassign`);
       deps.progress(`${reason}. ${coordinator.name} is reassigning.`);
       coordinatorNote =
         `${reason} and could not take the assignment "${decision.instruction.slice(0, 160)}". ` +
@@ -320,7 +320,7 @@ export async function runGoalRun<Bot extends GoalRunMember>(deps: GoalRunDeps<Bo
     }
     if (!workerResult.ran || workerResult.outcome !== "settled" || !workerResult.replyText.trim()) {
       const reason = workerResult.stopReason?.trim().slice(0, 120);
-      deps.finish("failed", `${workerBot.name} could not return a result to ${coordinator.name}${reason ? ` — ${reason}` : ""}.`);
+      deps.finish("failed", `${workerBot.name} could not return a result to ${coordinator.name}${reason ? `: ${reason}` : ""}.`);
       return;
     }
   }

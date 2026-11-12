@@ -746,7 +746,7 @@ export function createAcpDriver(support: AcpSupport): ProviderDriver<AcpConfig> 
             emit({
               ...base(threadId, current.turnId),
               type: "runtime.error",
-              message: `${support.displayName} offered no "${want}" permission option — cancelling the request instead of guessing`,
+              message: `${support.displayName} offered no "${want}" permission option: cancelling the request instead of guessing`,
             });
 
           const toolCall = params.toolCall ?? {};

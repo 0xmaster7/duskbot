@@ -146,7 +146,7 @@ it("lets a bot ask a bot in another department directly, with nothing set up fir
   expect((await f.cli("wait", "--bot", f.lead.id, "--task", f.lead.activeTaskId, "--timeout", "30")).status).toBe("settled");
   const asked = f.evidence().find((turn: any) => turn.botId === f.lead.id);
   expect(asked.system).toContain("You can reach every other bot on this team, in every department");
-  expect(asked.system).toContain("Clive — General assistant (Leadership) [Chief of Staff]");
+  expect(asked.system).toContain("Clive, General assistant (Leadership) [Chief of Staff]");
   const response = asked.evidence.find((entry: any) => entry.step).response;
   expect(response.result.isError).toBeFalsy();
   const child = f.nodes().find((node: any) => node.parentId);
@@ -1049,9 +1049,9 @@ it("tells the Chief a teammate's turn stopped because its engine's settings chan
   expect((await f.wait()).status).toBe("settled");
   const child = f.nodes().find((node: any) => node.botId === f.lead.id);
   expect(child.status).toBe("failed");
-  expect(child.result).toMatch(/^Turn interrupted — provider settings changed\.(?: |$)/);
+  expect(child.result).toMatch(/^Turn interrupted: provider settings changed\.(?: |$)/);
   const resumed = f.evidence().find((turn: any) => turn.botId === f.chief.id && turn.resumed);
-  expect(resumed.prompt.message.content).toContain("Turn interrupted — provider settings changed.");
+  expect(resumed.prompt.message.content).toContain("Turn interrupted: provider settings changed.");
   expect(resumed.prompt.message.content).not.toContain("The coordinated turn was interrupted");
 }), 45_000);
 

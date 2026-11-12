@@ -167,7 +167,7 @@ const TOOLS = [
   {
     name: "ask_user",
     description:
-      "Ask the human who owns this bot a question and wait for their answer. Use whenever you need a decision, a preference, missing information, or sign-off before doing something consequential — do not guess on things the owner would want to decide. Returns their answer as text.",
+      "Ask the human who owns this bot a question and wait for their answer. Use whenever you need a decision, a preference, missing information, or sign-off before doing something consequential: do not guess on things the owner would want to decide. Returns their answer as text.",
     inputSchema: {
       type: "object",
       properties: {
@@ -224,7 +224,7 @@ async function handle(msg: any) {
         : { t: "ask", id: askId, tool: args.tool_name, input: args.input },
       isQuestion ? "question" : "permission",
     );
-    let text = answer.message || "No answer was given — use your best judgment.";
+    let text = answer.message || "No answer was given: use your best judgment.";
     if (picksSeveral && answer.source === "user" && typeof answer.message === "string") {
       text = questionAnswersByQuestion(answer.message, picksSeveral)[picksSeveral[0]!.question] ?? text;
     }

@@ -1,4 +1,4 @@
-# server/host — the server's host modules
+# server/host, the server's host modules
 
 `server/index.ts` is being taken apart into modules that live here (and in
 `server/routes/` for HTTP routes). The rules, so the file never grows back:

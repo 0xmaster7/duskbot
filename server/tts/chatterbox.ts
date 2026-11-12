@@ -35,9 +35,9 @@ async function request(url: string, init: RequestInit, what: string, baseUrl: st
     return await fetch(url, init);
   } catch (e) {
     if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) {
-      throw new Error(`${what} timed out — the Chatterbox server at ${baseUrl.trim()} did not answer`);
+      throw new Error(`${what} timed out: the Chatterbox server at ${baseUrl.trim()} did not answer`);
     }
-    throw new Error(`couldn't reach the Chatterbox server at ${baseUrl.trim()} — check that it is running`);
+    throw new Error(`couldn't reach the Chatterbox server at ${baseUrl.trim()}: check that it is running`);
   }
 }
 

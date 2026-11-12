@@ -26,7 +26,7 @@ export function organizePrompt(candidates: readonly MemoryEntryLine[], topics: s
     "",
     `Topic files it already keeps:\n${topics.trim() || "(none yet)"}`,
     "",
-    "Core, never moved: facts about the person themselves that matter in any conversation — their name, where they live now, their company and role, their diet, allergies and health needs, how they like to be spoken to, and standing decisions.",
+    "Core, never moved: facts about the person themselves that matter in any conversation, their name, where they live now, their company and role, their diet, allergies and health needs, how they like to be spoken to, and standing decisions.",
     "Move a line only when it is detail about a particular subject: another person (\"asha\"), a project or client, a trip or a place, likes and dislikes in one domain (\"food\"). Reuse an existing topic name when one fits; otherwise name a new one in one or two words.",
     "When in doubt, keep the line in the notebook.",
     "For each line to move, give its number, the topic, and aliases: two to five other words someone might use when asking about that subject.",

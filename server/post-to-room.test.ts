@@ -70,7 +70,7 @@ const asTurn = async (token: string, method: string, path: string, body?: unknow
     body: body ? JSON.stringify(body) : undefined,
   });
   const parsed: unknown = await res.json().catch(() => ({}));
-  // SAFETY: same contract as `api` above — internal routes answer JSON too.
+  // SAFETY: same contract as `api` above, internal routes answer JSON too.
   return { status: res.status, body: (parsed ?? {}) as Record<string, unknown> };
 };
 
@@ -356,7 +356,7 @@ describe("a room turn and the teammates outside the room", () => {
     expect(system).toContain("list_room_targets");
     expect(system).toContain("coordinate_bots");
     expect(system).not.toContain("ask_bot");
-    expect(system).not.toContain("- Room Inside — General assistant");
+    expect(system).not.toContain("- Room Inside, General assistant");
     expect(system).not.toContain("Elsewhere Bot");
 
     const chip = await (async () => {

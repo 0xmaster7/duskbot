@@ -43,7 +43,7 @@ export interface RoomPostDeps {
 export interface RoomPostResult {
   posted: true;
   attachments: number;
-  /** The room's conversation thread — never the room id, which is a different identifier. */
+  /** The room's conversation thread, never the room id, which is a different identifier. */
   threadId: string;
 }
 

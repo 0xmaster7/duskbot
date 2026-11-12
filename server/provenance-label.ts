@@ -34,7 +34,7 @@ export function fromNote(who: string, what: string, authority: Authority): strin
 /** The note with one sentence of what to do with the line, inside the same bracket so the whole note is one line. */
 export function fromNoteWith(who: string, what: string, authority: Authority, sentence: string): string {
   const note = fromNote(who, what, authority);
-  return `${note.slice(0, -1)} — ${noteField(sentence, SENTENCE_MAX)}]`;
+  return `${note.slice(0, -1)}: ${noteField(sentence, SENTENCE_MAX)}]`;
 }
 
 export const ROLE_WORDS: Record<string, string> = { owner: "Super admin", admin: "Admin" };

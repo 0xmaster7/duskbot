@@ -54,7 +54,7 @@ export function hermesCompaction(meta: unknown, lastDepth: number): { compacted:
 
 const PLAN_TEXT_MAX = 80;
 
-/** `Plan: 2 of 5 done — Write the tests`. Redacted before it is cut, so a cut cannot slip a credential past redaction. */
+/** `Plan: 2 of 5 done, Write the tests`. Redacted before it is cut, so a cut cannot slip a credential past redaction. */
 export function planLine(entries: unknown): string | null {
   if (!Array.isArray(entries)) return null;
   const plan = entries.flatMap((entry) => {
@@ -70,7 +70,7 @@ export function planLine(entries: unknown): string | null {
   if (!focus) return progress;
   const text = redactSecretsInText(focus.content);
   const shown = text.length > PLAN_TEXT_MAX ? `${text.slice(0, PLAN_TEXT_MAX - 1).trimEnd()}…` : text;
-  return `${progress} — ${inHand ? "" : "next: "}${shown}`;
+  return `${progress}, ${inHand ? "" : "next: "}${shown}`;
 }
 
 const planLinesInConfig = cacheUntilConfigChanges((config) => config.features?.acpPlanLines === true);

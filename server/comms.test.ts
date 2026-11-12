@@ -1017,7 +1017,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       }, 30_000, "provider reload did not fail the hand-off");
       const failed = askerBot.messages.filter((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper — failed:"));
       expect(failed).toHaveLength(1);
-      expect(failed[0].tool.name).toBe("Helper — failed: Turn interrupted — provider settings changed. No tool calls were seen before it stopped.");
+      expect(failed[0].tool.name).toBe("Helper — failed: Turn interrupted: provider settings changed. No tool calls were seen before it stopped.");
       expect(failed[0].from?.botId).toBe(helper.id);
       expect(assignments(helper.id, asker.id)[0]).toMatchObject({ status: "failed" });
     },
@@ -1104,7 +1104,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
     "reports a hand-off whose turn could not start as a failed chip",
     async () => {
       await hideAll();
-      // no such instance — startTurn rejects, so B's turn never starts
+      // no such instance, startTurn rejects, so B's turn never starts
       const helper = await named("Helper", { modelSelection: { instanceId: "missing-instance", model: "fake-model" } });
       const asker = await named("Asker", { modelSelection: DELEGATOR });
 

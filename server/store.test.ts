@@ -2167,7 +2167,7 @@ describe("Store redacts bot-authored secrets on write", () => {
     rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
-  it("masks a key in bot text, tools and cards — but never in what the user typed", () => {
+  it("masks a key in bot text, tools and cards, but never in what the user typed", () => {
     const store = new Store(selection);
     const bot = store.createBot();
     const key = `sk-ant-api03-${"abcdefghijklmnopqrstuvwxyz0123456789"}`;
@@ -2525,7 +2525,7 @@ describe("Store room working folder", () => {
   });
 });
 
-describe("Store task working folder — cloud runs", () => {
+describe("Store task working folder: cloud runs", () => {
   beforeEach(() => {
     rmSync(DATA_DIR, { recursive: true, force: true });
   });

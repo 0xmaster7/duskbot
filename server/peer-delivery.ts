@@ -38,7 +38,7 @@ const named = (receipt: PeerDeliveryReceipt): string =>
 
 export function renderPeerDeliveryReceipts(receipts: readonly PeerDeliveryReceipt[]): string {
   if (!receipts.length) return "";
-  const line = (receipt: PeerDeliveryReceipt) => `${named(receipt)}: ${receipt.outcome} — ${receipt.detail}`;
+  const line = (receipt: PeerDeliveryReceipt) => `${named(receipt)}: ${receipt.outcome}, ${receipt.detail}`;
   if (receipts.length === 1) return `Delivery to ${line(receipts[0]!)}`;
   return ["Delivery receipts:", ...receipts.map(receipt => `- ${line(receipt)}`)].join("\n");
 }

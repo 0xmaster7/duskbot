@@ -151,7 +151,7 @@ export function claudeInheritWarning(env: NodeJS.ProcessEnv): ProviderSnapshot["
     title: "Bots inherit this machine's Claude Code setup",
     message:
       "DUSK_CLAUDE_INHERIT_USER_CONFIG=1 is set on the dusk bot process, so every Claude bot also loads this " +
-      "computer's own MCP servers, connectors, skills, hooks and personal CLAUDE.md on every turn — often thousands " +
+      "computer's own MCP servers, connectors, skills, hooks and personal CLAUDE.md on every turn: often thousands " +
       "of extra tokens per model call, and tools nobody gave the bot. Unless a bot genuinely needs a server from " +
       "your user-scope Claude config, remove the variable and restart; add the server under Settings → MCP servers " +
       "or the bot project's .mcp.json instead.",
@@ -239,7 +239,7 @@ export function claudeCliUpdate(version: string | null, cli: string): ProviderSn
 
 const DRIVER_KIND = "claudeAgent";
 
-const NO_ANTHROPIC_KEY = "No Anthropic API key — open Settings → API keys.";
+const NO_ANTHROPIC_KEY = "No Anthropic API key: open Settings → API keys.";
 
 export interface ClaudeConfig {
   cli: string;
@@ -329,11 +329,11 @@ type AskResolutionSource = "user" | "timeout" | "system";
 
 const DENY_TIMEOUT_NOTE =
   "dusk bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
-const DUPLICATE_ASK_ID_NOTE = "dusk bot: duplicate ask id — skipping this request.";
+const DUPLICATE_ASK_ID_NOTE = "dusk bot: duplicate ask id, skipping this request.";
 
 function systemEndedReply(kind: Ask["kind"]): { behavior: AskBehavior; message: string } {
   return kind === "question"
-    ? { behavior: "answer", message: "dusk bot: the turn is ending — wrap up." }
+    ? { behavior: "answer", message: "dusk bot: the turn is ending, wrap up." }
     : { behavior: "deny", message: "dusk bot: the turn ended" };
 }
 
@@ -488,7 +488,7 @@ export async function createPermissionBroker(opts: {
         // `pending` is server-scoped: a duplicate id would orphan the first ask.
         if (pending.has(askId)) {
           // askId is client-controlled; JSON.stringify keeps it from corrupting the log line.
-          console.error(`permission broker on ${boundPath}: duplicate ask id ${JSON.stringify(askId)} — denying`);
+          console.error(`permission broker on ${boundPath}: duplicate ask id ${JSON.stringify(askId)}, denying`);
           try {
             conn.write(JSON.stringify({ t: "answer", id: askId, behavior: "deny", message: DUPLICATE_ASK_ID_NOTE }) + "\n");
           } catch {}
@@ -541,7 +541,7 @@ export async function createPermissionBroker(opts: {
     }
     if (outcome === "listening") {
       if (index > 0) {
-        console.error(`permission broker: ${opts.socketPaths[0]} is still held — bound fallback ${candidate}`);
+        console.error(`permission broker: ${opts.socketPaths[0]} is still held: bound fallback ${candidate}`);
       }
       boundPath = candidate;
       server = attempt;
@@ -763,7 +763,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       claudeEnvironment(config.managed ? undefined : model, { ...process.env, ...input.environment }, config.configDir, input.environment);
     const catalogEnv = environment();
     if (inheritsUserConfig(catalogEnv)) {
-      console.error(`claude (${instanceId}): DUSK_CLAUDE_INHERIT_USER_CONFIG=1 — bots inherit this machine's Claude Code MCP servers, skills, hooks and CLAUDE.md on every turn; remove it unless a bot needs a user-scope server`);
+      console.error(`claude (${instanceId}): DUSK_CLAUDE_INHERIT_USER_CONFIG=1, bots inherit this machine's Claude Code MCP servers, skills, hooks and CLAUDE.md on every turn; remove it unless a bot needs a user-scope server`);
     }
     let models = config.managedModels ? { default: config.managedModels[0], options: config.managedModels.map(id => ({ id, label: id })) } : STATIC_CLAUDE_MODELS;
     const orgBlocks = createOrgModelBlocks(() => engineHomes.everyHome(catalogEnv), (blocked) => { models = withOrgBlocks(models, blocked); });
@@ -1143,7 +1143,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         writeFileAtomicIfChanged(hookTokenPath, hooks.token, { mode: 0o600, durable: false });
         env.DUSK_HOOK_URL = hooks.url;
         env.DUSK_HOOK_TOKEN_FILE = hookTokenPath;
-        // in the packaged app process.execPath is Electron — run the helper as node
+        // in the packaged app process.execPath is Electron, run the helper as node
         if (process.versions.electron) env.ELECTRON_RUN_AS_NODE = "1";
       }
       const cwd = turn.cwd ?? homedir();

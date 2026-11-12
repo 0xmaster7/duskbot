@@ -89,8 +89,8 @@ it("lets Scout, in Bob's private chat, ask Bolt in another department and brings
 
   const asked = turns().find((turn) => turn.botId === scout.id && turn.turnIndex === 0)!;
   expect(asked.system).toContain("You can reach every other bot on this team, in every department");
-  expect(asked.system).toContain(`- Bolt — Developer (Dev) [id: ${bolt.id}]`);
-  expect(asked.system).toContain(`- Quill — Support writer (Support) [id: ${quill.id}]`);
+  expect(asked.system).toContain(`- Bolt, Developer (Dev) [id: ${bolt.id}]`);
+  expect(asked.system).toContain(`- Quill, Support writer (Support) [id: ${quill.id}]`);
   expect(asked.system).toContain(`[Chief of Staff] [id: ${chief.id}]`);
   expect(asked.system).not.toMatch(/allowed peer|team membership/i);
   expect(`${asked.system}\n${JSON.stringify(asked.prompt)}`).toContain(`The user named these existing teammates: Bolt (${bolt.id})`);

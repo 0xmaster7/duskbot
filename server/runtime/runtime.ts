@@ -663,7 +663,7 @@ export class Runtime {
     const kind: EventKind = status === "cancelled" ? "cancelled" : outcome === "refused" ? "refused" : "settled";
     const root = n.parentId ? this.store.get(n.rootId) : n;
     this.store.transaction(() => {
-      this.store.update(n, { kind, at: now, detail: `${status}: ${outcome}${detail ? ` — ${clip(detail, DETAIL_MAX)}` : ""}` });
+      this.store.update(n, { kind, at: now, detail: `${status}: ${outcome}${detail ? `, ${clip(detail, DETAIL_MAX)}` : ""}` });
       if (root && root.id !== n.id && !isTerminal(root)) { this.renew(root, now); this.store.update(root); }
     });
     this.turns.get(n.id)?.controller.abort();

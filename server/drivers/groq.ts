@@ -91,7 +91,7 @@ export const GroqDriver: ProviderDriver<GroqConfig> = {
       requestBody: (model, messages, stream) => ({ model, messages, stream }),
       httpErrorLabel: "Groq",
       missingKeyError: "Save a Groq API key in Settings → API keys, or set GROQ_API_KEY.",
-      unavailableReason: "No Groq API key — open Settings → API keys.",
+      unavailableReason: "No Groq API key: open Settings → API keys.",
       timeoutMs: 180_000, billing: "metered", includeUsageInCompleted: true,
       nativeLog: {
         source: "groq.chat.completions",

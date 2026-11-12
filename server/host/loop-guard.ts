@@ -134,7 +134,7 @@ function loopNote(call: string, streak: number): string {
 }
 
 function loopCause(call: string, streak: number): string {
-  return `the same call failed the same way ${streak} times in a row: ${call} — the turn was stopped`;
+  return `the same call failed the same way ${streak} times in a row: ${call}, so the turn was stopped`;
 }
 
 export function createLoopGuard(deps: LoopGuardDeps): LoopGuard {
@@ -215,7 +215,7 @@ export function createLoopGuard(deps: LoopGuardDeps): LoopGuard {
       const { threshold } = repeats.record(threadId, counted.key);
       if (threshold) {
         const { tool, args } = counted;
-        deps.append(threadId, { name: `Same call repeated ${threshold}× — ${tool}: ${args.slice(0, 80)}${args.length > 80 ? "…" : ""} — it may be stuck`, ok: false });
+        deps.append(threadId, { name: `Same call repeated ${threshold}× (${tool}: ${args.slice(0, 80)}${args.length > 80 ? "…" : ""}), it may be stuck`, ok: false });
       }
     }
 

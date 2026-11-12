@@ -110,9 +110,9 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
   const DESKTOP_MANAGED = deps.desktopManaged;
   const deleteRefusal = (auth: RequestAuth, groupId: string, threadId: string): { status: 403 | 404 | 409; error: string } | null => {
     if (phoneSecretSubmissions.hasThread(threadId)) {
-      return { status: 409, error: "this task is securely saving a credential — try again when it finishes" };
+      return { status: 409, error: "this task is securely saving a credential: try again when it finishes" };
     }
-    if (groupThreadIsWorking(groupId, threadId)) return { status: 409, error: "this task is running — stop it first" };
+    if (groupThreadIsWorking(groupId, threadId)) return { status: 409, error: "this task is running: stop it first" };
     if (!store.groupTaskByThread(groupId, threadId)) return { status: 404, error: "no such channel task" };
     const notYours = cloudThreadRefusal(auth, threadId);
     return notYours ? { status: 403, error: notYours } : null;
@@ -141,7 +141,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       if (!group) return json(res, 404, { error: "no such channel" });
       if (group.dm) return json(res, 400, { error: "bot-to-bot channels keep one canonical conversation" });
       if (phoneSecretSubmissions.hasGroup(group.id)) {
-        return json(res, 409, { error: "this channel is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this channel is securely saving a credential: try again when it finishes" });
       }
       if (!body || typeof body !== "object" || Array.isArray(body)) {
         return json(res, 400, { error: "body must be a JSON object" });
@@ -181,7 +181,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       if (!group) return json(res, 404, { error: "no such channel" });
       if (group.dm) return json(res, 400, { error: "bot-to-bot channels keep one canonical conversation" });
       if (phoneSecretSubmissions.hasGroup(group.id)) {
-        return json(res, 409, { error: "this channel is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this channel is securely saving a credential: try again when it finishes" });
       }
       // Parsed before the switch: a rejected parameter must not leave the channel on another thread.
       const requestedMessages = url.searchParams.get("messages");
@@ -227,7 +227,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       const notYours = titleChange ? cloudThreadRefusal(auth, m[2]) : null;
       if (notYours) return json(res, 403, { error: notYours });
       if (titleChange && groupThreadIsWorking(group.id, m[2])) {
-        return json(res, 409, { error: "this task is running — stop it first" });
+        return json(res, 409, { error: "this task is running: stop it first" });
       }
       const patch: GroupTaskPatch = {
         ...(parsedLimit?.ok ? { turnTimeoutMinutes: parsedLimit.minutes } : {}),
@@ -292,10 +292,10 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       const group = store.group(m[1]);
       if (!group) return json(res, 404, { error: "no such room" });
       if (phoneSecretSubmissions.hasGroup(group.id)) {
-        return json(res, 409, { error: "this channel is securely saving a credential — try again when it finishes" });
+        return json(res, 409, { error: "this channel is securely saving a credential: try again when it finishes" });
       }
       if (groupIsWorking(group)) {
-        return json(res, 409, { error: "this channel is working — stop that turn first" });
+        return json(res, 409, { error: "this channel is working: stop that turn first" });
       }
       const threadIds = new Set([group.threadId, ...(group.tasks ?? []).map((task) => task.threadId)]);
       const stagedSkillCleanups = [...threadIds].flatMap(stagedSkillCleanupsForThread);

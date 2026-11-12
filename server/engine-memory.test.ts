@@ -331,8 +331,8 @@ describe("running short", () => {
     await settle();
     expect(h.signals).toHaveLength(1);
     // The others ran short too: a stall among them says memory was the reason.
-    expect(h.memory.stallCause("a", "no activity for 20 minutes — the turn was stopped"))
-      .toBe("no activity for 20 minutes — the turn was stopped. This Cloud ran out of memory while 5 tasks ran at once (not a problem with the AI provider)");
+    expect(h.memory.stallCause("a", "no activity for 20 minutes: the turn was stopped"))
+      .toBe("no activity for 20 minutes: the turn was stopped. This Cloud ran out of memory while 5 tasks ran at once (not a problem with the AI provider)");
     h.memory.turnEnded("a");
     expect(h.memory.stallCause("a", "x")).toBe("x");
   });
@@ -701,7 +701,7 @@ describe("engines that run several threads' sessions", () => {
 });
 
 it("words a stall the same way the Cloud's health report classifies it", () => {
-  expect(memoryStallText("no activity for 20 minutes — the turn was stopped", 1)).toMatch(/ran out of memory while 1 task ran at once/);
+  expect(memoryStallText("no activity for 20 minutes: the turn was stopped", 1)).toMatch(/ran out of memory while 1 task ran at once/);
 });
 
 describe("the day's memory pressure, for the Admin", () => {

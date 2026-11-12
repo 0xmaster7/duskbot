@@ -209,7 +209,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "coordinate_bots",
-    description: "The one way to hand work on: ask existing dusk bot teammates a question or assign them concrete work. In a room it defaults to this room; use group_id from list_room_targets for a specific room. Outside a room, what you send a teammate from this conversation goes to one standing work thread with them; thread \"new\" opens a fresh one, a thread id picks one you opened. Where work you gave is still open, it goes into that work: it answers the question that work waits on, or reaches the turn running it. Give 1-4 bot_ids — teammate ids as list_bots or your roster prints them; a unique teammate name also resolves: they see only what you send them and use their own model, tools and permissions. They can consult their own specialists; every result returns here and resumes you automatically, so after sending all assignments END your turn: do not poll or wait, and never call assignment_status in the same turn. consult true asks a question the teammate answers from what it knows, acting on nothing; reply \"none\" is a one-way notice nothing comes back from. Include exact file paths, constraints and what must be verified (done_when). On return, resolve tradeoffs, verify the requested outcome and request concrete corrections with rework true if necessary before giving one final answer. Never target whoever assigned you this work or anyone above it: to ask or report back, end your turn and your reply resumes them. Never thank or approve a finished teammate; its result already returned. Never repeat a refused call unchanged.",
+    description: "The one way to hand work on: ask existing dusk bot teammates a question or assign them concrete work. In a room it defaults to this room; use group_id from list_room_targets for a specific room. Outside a room, what you send a teammate from this conversation goes to one standing work thread with them; thread \"new\" opens a fresh one, a thread id picks one you opened. Where work you gave is still open, it goes into that work: it answers the question that work waits on, or reaches the turn running it. Give 1-4 bot_ids, teammate ids as list_bots or your roster prints them; a unique teammate name also resolves: they see only what you send them and use their own model, tools and permissions. They can consult their own specialists; every result returns here and resumes you automatically, so after sending all assignments END your turn: do not poll or wait, and never call assignment_status in the same turn. consult true asks a question the teammate answers from what it knows, acting on nothing; reply \"none\" is a one-way notice nothing comes back from. Include exact file paths, constraints and what must be verified (done_when). On return, resolve tradeoffs, verify the requested outcome and request concrete corrections with rework true if necessary before giving one final answer. Never target whoever assigned you this work or anyone above it: to ask or report back, end your turn and your reply resumes them. Never thank or approve a finished teammate; its result already returned. Never repeat a refused call unchanged.",
     inputSchema: { type: "object", additionalProperties: false, properties: {
       group_id: { type: "string", description: "Optional destination room; omit for this room or, outside a room, your thread with each teammate." },
       bot_ids: { type: "array", items: { type: "string", description: "A teammate's id exactly as list_bots or your roster prints it ([id: …]). A teammate's unique display name also resolves; a name shared by two reachable teammates is refused." }, minItems: 1, maxItems: 4, uniqueItems: true },
@@ -263,7 +263,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "close_thread",
     description:
-      "Mark a thread you opened (or one of your own) as finished once you have read its result: it leaves the person's default sidebar list (still under all threads, with a note saying you closed it) and list_threads reports it as closed. Nothing is deleted — deleting stays the person's decision — and a thread that is still running cannot be closed; wait for it or leave it. Use the thread id from list_threads or from the start_thread result. If a close is refused, do not retry it.",
+      "Mark a thread you opened (or one of your own) as finished once you have read its result: it leaves the person's default sidebar list (still under all threads, with a note saying you closed it) and list_threads reports it as closed. Nothing is deleted, deleting stays the person's decision, and a thread that is still running cannot be closed; wait for it or leave it. Use the thread id from list_threads or from the start_thread result. If a close is refused, do not retry it.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -274,13 +274,13 @@ const TOOL_DEFINITIONS = [
   {
     name: "start_thread",
     description:
-      "Open a separate job on yourself: one conversation with its own history and its own run, shown to the person as a row under you, without switching the person's selected conversation. Use it only when the user requests independent jobs (for example one review per pull request, \"review each pull request\" — one thread per pull request) instead of doing them inside this conversation. The title becomes the row's name, so make it short and specific, and write it as #Title when you mention it to the person; give complete instructions, since the run will not see this conversation. You can open at most five per turn; a self-opened job cannot open more jobs. This is not a teammate handoff: use coordinate_bots for teammates (thread \"new\" opens a fresh thread on them) and their automatic replies. If a call is refused, do not retry it: say what you still wanted opened.",
+      "Open a separate job on yourself: one conversation with its own history and its own run, shown to the person as a row under you, without switching the person's selected conversation. Use it only when the user requests independent jobs (for example one review per pull request, \"review each pull request\", one thread per pull request) instead of doing them inside this conversation. The title becomes the row's name, so make it short and specific, and write it as #Title when you mention it to the person; give complete instructions, since the run will not see this conversation. You can open at most five per turn; a self-opened job cannot open more jobs. This is not a teammate handoff: use coordinate_bots for teammates (thread \"new\" opens a fresh thread on them) and their automatic replies. If a call is refused, do not retry it: say what you still wanted opened.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         title: { type: "string", description: "The thread's name: one short line, at most 80 characters, specific enough to tell it apart from the others (for example \"QA: PR #412 login fix\")." },
-        message: { type: "string", description: "The complete first message of the thread — everything the run needs, since it will not see this conversation." },
+        message: { type: "string", description: "The complete first message of the thread: everything the run needs, since it will not see this conversation." },
         folder: { type: "string", description: "Optional: the name of one of your existing folders to file the thread under. Leave out unless the person named one." },
         model_selection: {
           type: "object",
@@ -325,7 +325,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "post_to_room",
     description:
-      "Put one message into a shared room you belong to, for example when the user asks you to tell the team something. Get group_id from list_rooms. This posts and returns: no room member's turn starts, nobody replies, and nothing comes back except confirmation — so never use it to ask a question or hand out work (use coordinate_bots for those). Post once, say it in full, and tell the user what you posted. Set attach_voice_note true to attach this turn's voice note. If a post is refused, do not retry it unless the refusal says how: say what you wanted to post in your reply instead.",
+      "Put one message into a shared room you belong to, for example when the user asks you to tell the team something. Get group_id from list_rooms. This posts and returns: no room member's turn starts, nobody replies, and nothing comes back except confirmation, so never use it to ask a question or hand out work (use coordinate_bots for those). Post once, say it in full, and tell the user what you posted. Set attach_voice_note true to attach this turn's voice note. If a post is refused, do not retry it unless the refusal says how: say what you wanted to post in your reply instead.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -492,7 +492,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "send_voice_note",
     description:
-      "Send the user a voice note: a short spoken message synthesized with your configured voice, stored as audio, and attached to your reply when the turn ends. Write the note as speakable words, exactly as it should be said — no lists, links or markdown meant for screens. The words are kept as the note's transcript, which the person can open to read instead of listening; they are not repeated in your reply, so do not write them out again. Use it for warmth, tone or emphasis a written line cannot carry; use ordinary text otherwise.",
+      "Send the user a voice note: a short spoken message synthesized with your configured voice, stored as audio, and attached to your reply when the turn ends. Write the note as speakable words, exactly as it should be said, no lists, links or markdown meant for screens. The words are kept as the note's transcript, which the person can open to read instead of listening; they are not repeated in your reply, so do not write them out again. Use it for warmth, tone or emphasis a written line cannot carry; use ordinary text otherwise.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -542,7 +542,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "memory_log",
     description:
-      "Write one line to today's log file, memory/log/YYYY-MM-DD.md, stamped with the time and this conversation: what happened, not what is true. Use it for events worth a trace — a deploy went out, a person decided something, a check failed — that should not shape future sessions. Logs are never loaded into your prompt; the person can read them, and session_search finds them later. A fact that should hold in every session goes to memory_update instead.",
+      "Write one line to today's log file, memory/log/YYYY-MM-DD.md, stamped with the time and this conversation: what happened, not what is true. Use it for events worth a trace, a deploy went out, a person decided something, a check failed, that should not shape future sessions. Logs are never loaded into your prompt; the person can read them, and session_search finds them later. A fact that should hold in every session goes to memory_update instead.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -642,7 +642,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "propose_profile",
     description:
-      "Submit user-requested changes to your own name, title, description, standing instructions (SOUL.md), working folder (cwd), or your alert and voice toggles (notifications, speakReplies). Keep SOUL.md short — who you are and the rules you never break; put step-by-step procedure into a skill instead." + CHIEF_PROFILE_TARGET + APPLIES_OUTCOME,
+      "Submit user-requested changes to your own name, title, description, standing instructions (SOUL.md), working folder (cwd), or your alert and voice toggles (notifications, speakReplies). Keep SOUL.md short, who you are and the rules you never break; put step-by-step procedure into a skill instead." + CHIEF_PROFILE_TARGET + APPLIES_OUTCOME,
     inputSchema: {
       type: "object",
       additionalProperties: false,

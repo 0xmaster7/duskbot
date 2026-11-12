@@ -93,7 +93,7 @@ export const CerebrasDriver: ProviderDriver<CerebrasConfig> = {
       }),
       httpErrorLabel: "Cerebras",
       missingKeyError: "Save a Cerebras API key in Settings → API keys, or set CEREBRAS_API_KEY.",
-      unavailableReason: "No Cerebras API key — open Settings → API keys.",
+      unavailableReason: "No Cerebras API key: open Settings → API keys.",
       timeoutMs: 180_000, billing: "metered", includeUsageInCompleted: true,
       nativeLog: {
         source: "cerebras.chat.completions",

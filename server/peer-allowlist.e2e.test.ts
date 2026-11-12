@@ -261,8 +261,8 @@ describe("peer allow-list", () => {
 
       const systemPrompt = String(dump.systemPrompt);
       expect(systemPrompt).toContain("[TEAM ROSTER]");
-      expect(systemPrompt).toContain(`- Quill — General assistant (General) [id: ${quill.id}]`);
-      expect(systemPrompt).toContain(`- Patch — General assistant (General) [id: ${patch.id}]`);
+      expect(systemPrompt).toContain(`- Quill, General assistant (General) [id: ${quill.id}]`);
+      expect(systemPrompt).toContain(`- Patch, General assistant (General) [id: ${patch.id}]`);
       expect(systemPrompt).toContain("(Starter) [id: ");
       expect(systemPrompt).toContain("Team availability: every teammate is available.");
       expect(systemPrompt).toContain("Use coordinate_bots");
@@ -348,7 +348,7 @@ describe("peer allow-list", () => {
       await expect.poll(() => readDump(boundDump)()?.systemPrompt, { timeout: 10_000 }).toBeTruthy();
 
       const systemPrompt = String(readDump(boundDump)()!.systemPrompt);
-      expect(systemPrompt).toContain(`- Near — General assistant [id: ${near.id}]`);
+      expect(systemPrompt).toContain(`- Near, General assistant [id: ${near.id}]`);
       expect(systemPrompt).not.toContain("Farside");
     } finally {
       for (const bot of [bound, near, far]) {

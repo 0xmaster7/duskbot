@@ -907,14 +907,14 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
         expect(controlRefusal(contended)).not.toBe(CONTROL_REFUSAL_PLAIN);
         expect(Date.now() - started).toBeGreaterThanOrEqual(CALL_WAIT_MS - 200);
         // The chip may add a queue position and an estimate; the holder it names is what is under test.
-        const waitChip = /^Waiting for its turn on this computer(?: — \d+(?:st|nd|rd|th) in queue)? — TCPR operator is running Queue check\. Starts automatically when that finishes(?:; recent waits here have taken [^.]+)?\.$/;
+        const waitChip = /^Waiting for its turn on this computer(?:, \d+(?:st|nd|rd|th) in queue)?: TCPR operator is running Queue check\. Starts automatically when that finishes(?:; recent waits here have taken [^.]+)?\.$/;
         await until(async () => (await activities(refill.threadId)).some((name) => waitChip.test(name)), "the wait chip naming the holder");
 
         writeFileSync(gateFile, "open");
         await until(async () => (await botById(bot.id))?.busy === false, "both turns settling");
         const settled = await activities(refill.threadId);
         expect(settled.some((name) =>
-          name.startsWith("Computer free — continuing after ") || name.startsWith("Stopped waiting for the computer after "))).toBe(true);
+          name.startsWith("Computer free: continuing after ") || name.startsWith("Stopped waiting for the computer after "))).toBe(true);
         expect(settled.join("|")).not.toMatch(/still busy|error/i);
         expect((await api("PUT", "/api/config", { vps: { sshAlias: "production-vps", mode: "per-bot" } })).status).toBe(200);
       } finally {

@@ -1,4 +1,4 @@
-// Provider instance registry — port of upstream's ProviderInstanceRegistryLive behavior, minus Effect.
+// Provider instance registry, port of upstream's ProviderInstanceRegistryLive behavior, minus Effect.
 import { findCliCandidates } from "../env-path.ts";
 import { installNpmEngine, npmAvailable, serverInstallFor, standaloneLookupPath } from "../engine-install.ts";
 import { installStandaloneEngine, isAppStandaloneCopy, type StandaloneInstalled } from "../engine-standalone.ts";
@@ -166,7 +166,7 @@ export class ProviderRegistry {
           displayName: entry.displayName,
           cli: cliOfRaw(entry.config),
           shadow: true,
-          reason: `unknown driver "${entry.driver}" — kept as configured, unavailable here`,
+          reason: `unknown driver "${entry.driver}": kept as configured, unavailable here`,
         },
       };
     }

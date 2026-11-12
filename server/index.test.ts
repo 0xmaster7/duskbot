@@ -2805,7 +2805,7 @@ describe("harness HTTP API", () => {
 
   it("searches transcripts and exports a conversation", async () => {
     const bot = (await api("POST", "/api/bots")).body.bot;
-    // every new bot opens with a seeded greeting — a known searchable string
+    // every new bot opens with a seeded greeting, a known searchable string
     const hits = await api("GET", "/api/search?q=what%20would%20you%20like");
     expect(hits.status).toBe(200);
     const hit = hits.body.hits.find((h: { botId?: string }) => h.botId === bot.id);
@@ -3314,7 +3314,7 @@ describe("harness HTTP API", () => {
 
       await expect.poll(async () => JSON.stringify((await api("GET", "/api/bots?messages=30")).body.groups.find(
         (group: { id: string }) => group.id === roomId,
-      )), { timeout: 5_000 }).toMatch(/Computer free — continuing after waiting /);
+      )), { timeout: 5_000 }).toMatch(/Computer free: continuing after waiting /);
       const roomMessages: Array<{ tool?: { name?: string } }> = (await api("GET", "/api/bots?messages=30")).body.groups.find(
         (group: { id: string }) => group.id === roomId,
       ).messages;
@@ -3405,7 +3405,7 @@ describe("harness HTTP API", () => {
       expect(promptsOnBox(), "every waiter ran from the start").toBe(4);
       expect((await api("POST", `/api/bots/${botId}/interrupt`, { threadId: holderThread })).status).toBe(200);
       await expect.poll(async () => JSON.stringify(await threadMessages(waiterThreads[0]!)), { timeout: 5_000 })
-        .toMatch(/Computer free — continuing after waiting /);
+        .toMatch(/Computer free: continuing after waiting /);
       expect(JSON.stringify(await threadMessages(waiterThreads[1]!))).not.toMatch(/Computer free/);
 
       const fourth = (await api("POST", `/api/bots/${botId}/tasks`, { title: "Fourth waiter" })).body.task;
@@ -3422,7 +3422,7 @@ describe("harness HTTP API", () => {
 
       expect((await api("POST", `/api/bots/${botId}/interrupt`, { threadId: waiterThreads[0] })).status).toBe(200);
       await expect.poll(async () => JSON.stringify(await threadMessages(waiterThreads[1]!)), { timeout: 10_000 })
-        .toMatch(/Computer free — continuing after waiting /);
+        .toMatch(/Computer free: continuing after waiting /);
     } finally {
       if (holderThread) await api("POST", `/api/bots/${botId}/interrupt`, { threadId: holderThread }).catch(() => undefined);
       for (const threadId of waiterThreads) await api("POST", `/api/bots/${botId}/interrupt`, { threadId }).catch(() => undefined);
@@ -3512,7 +3512,7 @@ describe("harness HTTP API", () => {
       await expect.poll(async () => JSON.stringify((await isolatedApi("GET", `/api/threads/${sibling.threadId}/messages`)).body),
         { timeout: 5_000 }).toMatch(/Waiting for its turn on this computer/);
       await expect.poll(async () => JSON.stringify((await isolatedApi("GET", `/api/threads/${sibling.threadId}/messages`)).body),
-        { timeout: 8_000 }).toMatch(/Parked — it continues automatically when the computer is free/);
+        { timeout: 8_000 }).toMatch(/Parked: it continues automatically when the computer is free/);
       const siblingMessages: Array<{ tool?: { name?: string; ok?: boolean } }> =
         (await isolatedApi("GET", `/api/threads/${sibling.threadId}/messages`)).body.messages;
       expect(siblingMessages.some((message) => (message.tool?.name ?? "").startsWith("Waiting for its turn on this computer"))).toBe(true);
@@ -3555,7 +3555,7 @@ describe("harness HTTP API", () => {
         .map((node) => [node.botId, node.parentId ?? null, node.status, node.executions, node.continuation?.note ?? null]);
       expect((await isolatedApi("POST", `/api/groups/${room.id}/messages`, { text: "wait for the same occupied desktop" })).status).toBe(202);
       await expect.poll(async () => JSON.stringify((await isolatedApi("GET", `/api/threads/${room.threadId}/messages`)).body),
-        { timeout: 8_000 }).toMatch(/Parked — it continues automatically when the computer is free/);
+        { timeout: 8_000 }).toMatch(/Parked: it continues automatically when the computer is free/);
       await expect.poll(roomRows, { timeout: 5_000 }).toEqual([[roomBot.id, null, "queued", 1, COMPUTER_FREE_NOTE]]);
       const roomMessages = (await isolatedApi("GET", `/api/threads/${room.threadId}/messages`)).body.messages;
       expect(roomMessages.filter((message: any) => message.tool?.ok === false && /Computer still busy|Parked/.test(message.tool.name))).toHaveLength(0);
@@ -3572,7 +3572,7 @@ describe("harness HTTP API", () => {
       // Every turn counts once as it starts, and a resume once more: a stale resume would show as one prompt too many.
       expect((await isolatedApi("POST", `/api/bots/${botId}/messages`, { text: "wait past the ceiling a second time", threadId: siblingThreadId })).status).toBe(202);
       await expect.poll(async () => JSON.stringify((await isolatedApi("GET", `/api/threads/${siblingThreadId}/messages`)).body),
-        { timeout: 8_000 }).toMatch(/wait past the ceiling a second time[\s\S]*Parked — it continues automatically when the computer is free/);
+        { timeout: 8_000 }).toMatch(/wait past the ceiling a second time[\s\S]*Parked: it continues automatically when the computer is free/);
       // Parked once its engine has gone: until then a message would go into the turn that is being stopped.
       await expect.poll(async () => (await isolatedApi("GET", "/api/bots?messages=0")).body.bots
         .find((entry: any) => entry.id === botId)?.tasks.find((task: any) => task.threadId === siblingThreadId)?.activity,
@@ -3600,7 +3600,7 @@ describe("harness HTTP API", () => {
         .find((entry: any) => entry.id === botId)?.tasks.find((task: any) => task.threadId === stoppedThreadId)?.activity).toBe("idle");
       expect((await isolatedApi("POST", `/api/groups/${roomId}/messages`, { text: "park then stop this room" })).status).toBe(202);
       await expect.poll(async () => JSON.stringify((await isolatedApi("GET", `/api/threads/${room.threadId}/messages`)).body),
-        { timeout: 8_000 }).toMatch(/park then stop this room[\s\S]*Parked — it continues automatically when the computer is free/);
+        { timeout: 8_000 }).toMatch(/park then stop this room[\s\S]*Parked: it continues automatically when the computer is free/);
       await expect.poll(roomRows, { timeout: 5_000 }).toEqual([[roomBot.id, null, "cancelled", 2, null], [roomBot.id, null, "queued", 1, COMPUTER_FREE_NOTE]]);
       expect((await isolatedApi("POST", `/api/groups/${roomId}/interrupt`, {})).status).toBe(200);
       await expect.poll(roomRows, { timeout: 5_000 }).toEqual([[roomBot.id, null, "cancelled", 2, null], [roomBot.id, null, "cancelled", 1, COMPUTER_FREE_NOTE]]);
@@ -13041,7 +13041,7 @@ describe("computer control API (who is driving)", () => {
     expect(ghost.status).toBe(404);
   });
 
-  it("refuses a form-shaped POST — control mutations are JSON-only", async () => {
+  it("refuses a form-shaped POST: control mutations are JSON-only", async () => {
     const res = await fetch(`${BASE}/api/bots/${botId}/computer/control`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },

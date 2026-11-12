@@ -510,7 +510,7 @@ describe("built-in macOS voices", () => {
   const system = { provider: "system" as const, voice: "Albert" };
   const onMac = process.platform === "darwin";
 
-  it("needs no key — only a picked voice — once selected", async () => {
+  it("needs no key, only a picked voice, once selected", async () => {
     const { voiceConfigured, voiceReady, describeVoice } = await voice();
     expect(voiceConfigured(cfg(system))).toBe(onMac);
     expect(voiceReady(cfg({ provider: "system" }), "Albert")).toBe(onMac);
@@ -530,9 +530,9 @@ describe("built-in macOS voices", () => {
     const { listVoices } = await voice();
     const record: string[][] = [];
     expect(await listVoices(cfg({ provider: "system" }), fakeSay(record))).toEqual([
-      { id: "Albert", label: "Albert", description: "en_US — Hello! My name is Albert." },
-      { id: "Bad News", label: "Bad News", description: "en_US — The things I could tell you…" },
-      { id: "Amélie", label: "Amélie", description: "fr_CA — Bonjour! Je m’appelle Amélie." },
+      { id: "Albert", label: "Albert", description: "en_US: Hello! My name is Albert." },
+      { id: "Bad News", label: "Bad News", description: "en_US: The things I could tell you…" },
+      { id: "Amélie", label: "Amélie", description: "fr_CA: Bonjour! Je m’appelle Amélie." },
     ]);
     expect(record[0].slice(0, 2)).toEqual(["-v", "?"]);
   });

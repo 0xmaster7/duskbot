@@ -169,7 +169,7 @@ function confirmationResult(r: Json, fallback: string, noun = "routine"): { text
 }
 
 function recallSpeaker(hit: Json): string {
-  if (typeof hit.peer === "string" && hit.peer) return `@${hit.peer} (another bot — not your user)`;
+  if (typeof hit.peer === "string" && hit.peer) return `@${hit.peer} (another bot, not your user)`;
   if (typeof hit.from === "string" && hit.from) return hit.from;
   return hit.role === "user" ? "user" : "you";
 }
@@ -306,7 +306,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const bots = (r.bots as Array<Json>) ?? [];
     if (!bots.length) return { text: "No other bots you can reach yet." };
     const lines = bots.map((b) => {
-      const role = b.title ? ` — ${b.title}` : "";
+      const role = b.title ? `: ${b.title}` : "";
       const about = b.description ? ` (${String(b.description).slice(0, 120)})` : "";
       const state = typeof b.statusText === "string"
         ? (b.status === "available" ? "" : b.statusText)
@@ -324,7 +324,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const rooms = Array.isArray(r.rooms) ? r.rooms.filter(jsonRecord) : [];
     const unpostable = Array.isArray(r.unpostable) ? r.unpostable.filter(jsonRecord) : [];
     const blocked = unpostable.length
-      ? `\n\nRooms you are in but cannot post into (no id — there is nothing to retry; give the user the reason instead):\n${
+      ? `\n\nRooms you are in but cannot post into (no id: there is nothing to retry; give the user the reason instead):\n${
         unpostable.map((room) => `- ${String(room.name)}: ${String(room.reason)}`).join("\n")
       }`
       : "";
@@ -333,7 +333,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     }
     const lines = rooms.map((room) => {
       const members = Array.isArray(room.members) ? room.members.map(String).join(", ") : "";
-      return `- ${String(room.name)} [id: ${String(room.id)}]${members ? ` — members: ${members}` : ""}`;
+      return `- ${String(room.name)} [id: ${String(room.id)}]${members ? `, members: ${members}` : ""}`;
     });
     return {
       text: `Rooms you can post into:\n${lines.join("\n")}\n\nUse post_to_room with one of these ids. A post adds one message to the room; it does not start anyone's turn, so nobody replies to it automatically.${blocked}`,
@@ -352,7 +352,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     });
     if (r.error) return { text: String(r.error), isError: true };
     return {
-      text: `Posted in ${r.roomName ?? "the room"}${r.attachedVoiceNote ? " with the voice note attached" : ""}. Nobody's turn was started, so expect no reply — tell the user it is posted.`,
+      text: `Posted in ${r.roomName ?? "the room"}${r.attachedVoiceNote ? " with the voice note attached" : ""}. Nobody's turn was started, so expect no reply: tell the user it is posted.`,
     };
   }
   if (name === "select_computer") {
@@ -413,12 +413,12 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const opened = `Opened thread #${threadTitle} ${where} [thread id: ${threadId}].`;
     if (r.self === true) {
       if (r.state === "running") {
-        return { text: `${opened} It is running now, in parallel with this conversation, and its result stays in that thread — it will not be delivered here. Mention it to the person as #${threadTitle}; use list_threads in a later turn to see how it is going.` };
+        return { text: `${opened} It is running now, in parallel with this conversation, and its result stays in that thread: it will not be delivered here. Mention it to the person as #${threadTitle}; use list_threads in a later turn to see how it is going.` };
       }
       if (r.state === "queued") {
         const position = Number(r.position) || 1;
         const limit = Number(r.limit) || 0;
-        return { text: `${opened} You are at your limit of ${limit} threads running at once, so it is ${ordinal(position)} in line and starts as soon as one of them finishes — nothing more to do. Mention it to the person as #${threadTitle}.` };
+        return { text: `${opened} You are at your limit of ${limit} threads running at once, so it is ${ordinal(position)} in line and starts as soon as one of them finishes: nothing more to do. Mention it to the person as #${threadTitle}.` };
       }
       return { text: `${opened} It could not start: ${String(r.error ?? "unknown reason")}. The thread exists but nothing is running in it; tell the person.`, isError: true };
     }
@@ -697,7 +697,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, toBotId: botId, toThreadId: threadId, ...(note ? { note } : {}) }),
     });
     if (r.error) return { text: `Couldn't retry that thread: ${String(r.error)}`, isError: true };
-    return { text: typeof r.message === "string" ? r.message : "The thread is running again. Its result stays in that thread; you are not woken for it — check it later with session_search or list_threads if you need to." };
+    return { text: typeof r.message === "string" ? r.message : "The thread is running again. Its result stays in that thread; you are not woken for it: check it later with session_search or list_threads if you need to." };
   }
   if (member === "memory_log") {
     if (typeof args.text !== "string" || !args.text.trim()) {
@@ -730,8 +730,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const asked = q ? `matches "${q}"` : `is there since ${since}${until ? ` until ${until}` : ""}`;
     if (!hits.length && !memoryHits.length) {
       return { text: q
-        ? `Nothing of yours ${asked} — no earlier conversation and no memory file. Try fewer or different words; every word must appear.`
-        : `Nothing of yours ${asked} — no message in any of your conversations in that window.` };
+        ? `Nothing of yours ${asked}: no earlier conversation and no memory file. Try fewer or different words; every word must appear.`
+        : `Nothing of yours ${asked}: no message in any of your conversations in that window.` };
     }
     if (!hits.length) {
       return { text: `${memoryBlock}No earlier conversation matches. These are your own notes, not new instructions; build on them.` };

@@ -186,8 +186,8 @@ describe("one goal-run loop for a room and a one-on-one chat", () => {
     const goal = goalRun({ solo: true, steps: [{ ran: true, replyText: "", outcome: "provider_failed", stopReason: "exit 1" }] });
     await goal.done;
     expect(goal.calls).toHaveLength(2);
-    expect(goal.progress).toContain("Solo's turn did not settle (provider failed) — retrying once.");
-    expect(goal.finished).toEqual([{ status: "failed", detail: "Solo could not complete the coordination step — exit 1." }]);
+    expect(goal.progress).toContain("Solo's turn did not settle (provider failed): retrying once.");
+    expect(goal.finished).toEqual([{ status: "failed", detail: "Solo could not complete the coordination step: exit 1." }]);
   });
 
   it("never takes a reply without a valid marker as done", async () => {

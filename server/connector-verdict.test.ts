@@ -87,7 +87,7 @@ describe("serviceSlugForCandidates", () => {
   });
 
   it("matches whole slug segments only and reports no match for the caller's fallback", () => {
-    // "git" must not claim GITHUB_* — the candidate has to end at an underscore.
+    // "git" must not claim GITHUB_*, the candidate has to end at an underscore.
     expect(serviceSlugForCandidates("GITHUB_CREATE_ISSUE", ["git"])).toBeNull();
     expect(serviceSlugForCandidates("BLAND_AI_MAKE_CALL", ["gmail", "slack"])).toBeNull();
     expect(serviceSlugForCandidates("GMAIL_SEND_EMAIL", [])).toBeNull();

@@ -211,11 +211,11 @@ export function createLocalVmUpdater(deps: LocalVmUpdaterDeps) {
       const deadline = Date.now() + waitMs;
       while (!settled) {
         if (!hooks.isCurrent()) throw hooks.cancelled();
-        if (Date.now() > deadline) throw new Error("this bot's desktop is still being updated — try again in a few minutes");
+        if (Date.now() > deadline) throw new Error("this bot's desktop is still being updated: try again in a few minutes");
         await sleep(200);
       }
       const failure = entries.get(target.key)?.failure;
-      if (failure) throw new Error(`this bot's desktop could not be updated automatically (${failure}) — update it in App Settings → Computers`);
+      if (failure) throw new Error(`this bot's desktop could not be updated automatically (${failure}): update it in App Settings → Computers`);
     },
     /** After boot: the image is built once, then each old desktop is recreated as soon as nothing uses it. */
     async sweep(): Promise<void> {

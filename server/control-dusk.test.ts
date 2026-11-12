@@ -157,7 +157,7 @@ describe("control-dusk command mapping", () => {
 
   it("maps the rewind that makes the harness rebuild instead of resume", async () => {
     // `edit` is the composer rewind. It is the only mapped way to reach a
-    // replay path, which is what compaction needs to be observable at all —
+    // replay path, which is what compaction needs to be observable at all,
     // a cleanly resumed turn never compacts.
     const callTool = vi.fn(async (name: string, args: Record<string, unknown>) => ({ name, args }));
     const env = { DUSK_URL: "http://127.0.0.1:19999" };

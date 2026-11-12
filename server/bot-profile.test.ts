@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseBotProfilePatch } from "./bot-profile.ts";
 
-describe("parseBotProfilePatch (strict — the paired boundary)", () => {
+describe("parseBotProfilePatch (strict: the paired boundary)", () => {
   it("refuses every privilege-bearing bot field by name", () => {
     for (const field of [
       "autoApprove",
@@ -22,7 +22,7 @@ describe("parseBotProfilePatch (strict — the paired boundary)", () => {
     }
   });
 
-  it("refuses unknown cosmetic keys too — strict means the allowlist IS the contract", () => {
+  it("refuses unknown cosmetic keys too: strict means the allowlist IS the contract", () => {
     const result = parseBotProfilePatch({ color: "red" } as never, true);
     expect(result).toEqual({ ok: false, error: "unsupported profile field: color" });
   });
@@ -60,7 +60,7 @@ describe("parseBotProfilePatch (both modes)", () => {
     expect(parseBotProfilePatch({ name: "Señora Ops — 2nd shift", title: "Lead (EU)" }, true).ok).toBe(true);
   });
 
-  it("lenient mode drops unknown keys instead of failing — the desktop PATCH mixes fields", () => {
+  it("lenient mode drops unknown keys instead of failing: the desktop PATCH mixes fields", () => {
     const result = parseBotProfilePatch({ name: "Mira", color: "red" } as never, false);
     expect(result).toEqual({ ok: true, patch: { name: "Mira" } });
   });

@@ -37,7 +37,7 @@ export function formatKb(bytes: number): string {
 
 export const REFERENCES_ADVICE =
   "Keep SKILL.md to the core steps and move detail (long rule lists, examples, lookup tables) into " +
-  "references/<topic>.md files inside the skill — pass them as skill_manage references — then link each one " +
+  "references/<topic>.md files inside the skill, pass them as skill_manage references, then link each one " +
   "from SKILL.md, for example \"For edge cases, read references/<topic>.md.\"";
 
 export type DirectoryEntryState = "missing" | "directory" | "unsafe";

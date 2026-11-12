@@ -14,7 +14,7 @@ const source: DataColumn[] = [
   { name: "amount", type: "DECIMAL(10,2)" },
 ];
 const { vegaLite } = compileChart({ type: "bar", x: "region", y: "amount" }, source, "sales");
-// What the reduced SQL returns: x as text, the sum as a decimal — a string in JSON.
+// What the reduced SQL returns: x as text, the sum as a decimal, a string in JSON.
 const columns: DataColumn[] = [
   { name: "x", type: "VARCHAR" },
   { name: "y", type: "DECIMAL(38,2)" },
