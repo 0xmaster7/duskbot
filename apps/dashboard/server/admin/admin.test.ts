@@ -81,7 +81,7 @@ describe("admin panel api", () => {
 
   describe("authorization on every route", () => {
     const reads = ["/v1/admin/me", "/v1/admin/overview", "/v1/admin/overview?days=7", "/v1/admin/users", "/v1/admin/users?q=owner&filter=all", "/v1/admin/clouds", "/v1/admin/clouds?status=all",
-      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit", "/v1/admin/revenue/infra"];
+      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit", "/v1/admin/revenue/infra", "/v1/admin/ops"];
 
     it("answers 401 signed out, 403 for an account not on the list, and 200 for the admin", async () => {
       const admin = await login(ADMIN), other = await login(OTHER);

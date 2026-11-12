@@ -3,7 +3,7 @@ import { scrubText, stackFrames } from "../../../../electron/error-report.mjs";
 import type { ErrorFrame } from "../../../../electron/error-report.mjs";
 
 /** where an incident came from: the service itself, or a client that posted to /v1/errors */
-export const SERVER_SOURCES = ["server", "process", "log", "database", "upstream", "test"] as const;
+export const SERVER_SOURCES = ["server", "process", "log", "database", "upstream", "test", "ops"] as const;
 export const CLIENT_SOURCES = ["web", "admin", "desktop", "desktop-main"] as const;
 export type ClientSource = (typeof CLIENT_SOURCES)[number];
 export type IncidentSource = (typeof SERVER_SOURCES)[number] | ClientSource;

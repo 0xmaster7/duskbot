@@ -139,7 +139,7 @@ export function createIncidents(options: IncidentsOptions) {
     if (entries.size >= RULES.tracked) entries.delete(entries.keys().next().value!);
   }
 
-  async function send(kind: IncidentMailKind, items: Incident[], extra: { test?: boolean; capped?: boolean } = {}): Promise<boolean> {
+  async function send(kind: IncidentMailKind, items: Incident[], extra: { test?: boolean; capped?: boolean; note?: string } = {}): Promise<boolean> {
     const to = options.to();
     if (!options.mail || !to.length || !items.length) return false;
     const message = incidentEmail(options.email, { kind, env: options.env, incidents: items, panelUrl: options.panelUrl, ...extra });
@@ -247,6 +247,17 @@ export function createIncidents(options: IncidentsOptions) {
       entry.fast = false;
       if (await send("new", [{ ...entry.incident }], { test: true })) markMailed([entry.incident.id]);
       return id;
+    },
+    /** the one "back to normal" email for a problem that was mailed; a second call, or a restart, sends nothing */
+    async recovered(id: string, note: string): Promise<boolean> {
+      await save();
+      const incident = entries.get(id)?.incident ?? (await store.list({ limit: 200, source: "ops" })).find(item => item.id === id);
+      if (!incident || incident.notifiedAt === null || muted(incident) || !options.mail || !options.to().length) return false;
+      if (!await store.once(`recovered|${id}|${incident.firstSeen}`, now() + 30 * DAY)) return false;
+      const day = count();
+      if (day.mails >= RULES.mailsPerDay) return false;
+      day.mails++;
+      return send("recovered", [{ ...incident, lastSeen: now() }], { note });
     },
     async list(query: { limit: number; before?: number; source?: string }) { await save(); return store.list(query); },
     async mute(id: string, until: number | null) {

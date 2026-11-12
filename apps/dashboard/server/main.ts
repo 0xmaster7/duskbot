@@ -12,6 +12,7 @@ import { openMongoBackend } from "./persistence/mongo.ts";
 import { mongoSink } from "./analytics/sink.ts";
 import { mongoUsageStore } from "./analytics/usage.ts";
 import { mongoInfraStore } from "./admin/infra.ts";
+import { mongoOpsStore } from "./admin/ops/store.ts";
 import { mongoWaitlist } from "./admin/waitlist.ts";
 import { parseAdminEmails } from "./admin/index.ts";
 import { emailConfig } from "./email/templates.ts";
@@ -44,7 +45,7 @@ const database = process.env.MONGODB_URI
   : null;
 if (database) { useStateBackend(database.backend); console.log("state: mongodb"); } else console.log("state: json files (development)");
 const trackOrigins = (process.env.DUSK_TRACK_ORIGINS ?? "").split(",").map(item => item.trim()).filter(Boolean);
-const analytics = { ...(database ? { sink: await mongoSink(database.db), usage: await mongoUsageStore(database.db), infra: await mongoInfraStore(database.db), waitlist: mongoWaitlist(process.env.DUSK_WAITLIST_DB ? database.sibling(process.env.DUSK_WAITLIST_DB) : database.db) } : {}), trackOrigins };
+const analytics = { ...(database ? { sink: await mongoSink(database.db), usage: await mongoUsageStore(database.db), infra: await mongoInfraStore(database.db), ops: await mongoOpsStore(database.db), db: database.db, waitlist: mongoWaitlist(process.env.DUSK_WAITLIST_DB ? database.sibling(process.env.DUSK_WAITLIST_DB) : database.db) } : {}), trackOrigins };
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 

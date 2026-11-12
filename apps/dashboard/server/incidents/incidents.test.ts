@@ -259,3 +259,25 @@ describe("error endpoints", () => {
     expect(list.map(item => item.name)).toEqual(["SiteUpstreamDown"]);
   });
 });
+
+describe("an ops alert's end", () => {
+  it("sends one back-to-normal email for a mailed problem, and never a second", async () => {
+    const { time, mailer, incidents } = setup();
+    const id = incidents.report({ source: "ops", name: "contabo disk", message: "91% (alert when > 85%)", key: "ops-contabo-disk-1" })!;
+    await incidents.flushNew();
+    expect(mailer.outbox).toHaveLength(1);
+    expect(mailer.outbox[0]!.subject).toBe("something's wrong: contabo disk (ops monitor)");
+    time.now += HOUR;
+    expect(await incidents.recovered(id, "contabo disk is back to normal: 60%.")).toBe(true);
+    expect(await incidents.recovered(id, "contabo disk is back to normal: 60%.")).toBe(false);
+    expect(mailer.outbox).toHaveLength(2);
+    expect(mailer.outbox[1]!.subject).toBe("back to normal: contabo disk");
+    expect(mailer.outbox[1]!.text).toContain("contabo disk is back to normal: 60%.");
+  });
+  it("sends nothing for a problem that was never mailed", async () => {
+    const { mailer, incidents } = setup();
+    const id = incidents.report({ source: "ops", name: "r2 storage", message: "9 gb", key: "ops-r2-1" })!;
+    expect(await incidents.recovered(id, "fine")).toBe(false);
+    expect(mailer.outbox).toHaveLength(0);
+  });
+});

@@ -2,12 +2,12 @@ import { render } from "../email/layout.ts";
 import type { Block, EmailConfig, Rendered } from "../email/layout.ts";
 import type { Incident } from "./store.ts";
 
-export type IncidentMailKind = "new" | "daily";
+export type IncidentMailKind = "new" | "daily" | "recovered";
 const SHOWN = 8;
 
 export const when = (at: number) => `${new Date(at).toISOString().slice(0, 16).replace("T", " ")} utc`;
 const SOURCE_LABEL: Record<string, string> = {
-  server: "account service", process: "account service crashed", log: "service log", database: "database", upstream: "site upstream", test: "test",
+  server: "account service", ops: "ops monitor", process: "account service crashed", log: "service log", database: "database", upstream: "site upstream", test: "test",
   web: "dashboard page", admin: "admin page", desktop: "desktop app page", "desktop-main": "desktop app",
 };
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -31,9 +31,23 @@ function incidentBlocks(incident: Incident): Block[] {
 }
 
 /** the owner's "something's wrong" email: problems that just opened, or the daily email of ones the caps held back */
-export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind; env: string; incidents: Incident[]; panelUrl: string; test?: boolean; capped?: boolean }): Rendered {
+export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind; env: string; incidents: Incident[]; panelUrl: string; test?: boolean; capped?: boolean; note?: string }): Rendered {
   const { kind, incidents } = input;
   const prefix = input.env === "production" ? "" : `[${input.env}] `;
+  if (kind === "recovered") {
+    const first = incidents[0]!;
+    return render(cfg, {
+      subject: `${prefix}back to normal: ${first.name}`, preheader: (input.note ?? first.name).slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`, hero: null,
+      blocks: [
+        { t: "h1", text: "back to normal" },
+        { t: "p", text: input.note ?? `${first.name} is back to normal.` },
+        { t: "facts", rows: [["started", when(first.firstSeen)], ["ended", when(first.lastSeen)], ["id", first.id]] },
+        { t: "p", small: true, text: "this is the last email about this one." },
+        { t: "button", label: "open admin ops", href: input.panelUrl.replace(/\/admin\/health$/, "/admin/ops") },
+      ],
+      reason: "you got this because your address is in DUSK_ALERT_EMAILS (or DUSK_ADMIN_EMAILS) for this dusk bot service.",
+    });
+  }
   const first = incidents[0]!;
   const subject = input.test ? `${prefix}test alert: this is what a problem looks like`
     : kind === "new" ? `${prefix}something's wrong: ${first.name}${first.route ? ` on ${first.route}` : ` (${SOURCE_LABEL[first.source] ?? first.source})`}${incidents.length > 1 ? ` and ${incidents.length - 1} more` : ""}`

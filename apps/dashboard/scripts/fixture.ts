@@ -36,7 +36,7 @@ let csrfToken = "";
 // --demo also makes the fixture's account the admin and fills the admin panel with made-up people, clouds and events
 const seeded = values.demo ? seedAdminAuth(dataDir, Date.now()) : [];
 const app = createDashboardApp({ dataDir, publicUrl: url, mailer, oauth: providers.config, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname),
-  analytics: { sink: memorySink(), waitlist: values.demo ? seedWaitlist(Date.now()) : null }, admin: { emails: values.demo ? [values.email] : [], env: {} } });
+  analytics: { sink: memorySink(), waitlist: values.demo ? seedWaitlist(Date.now()) : null }, admin: { emails: values.demo ? [values.email] : [], env: {}, opsFixture: values.demo } });
 const server = createServer(app.handle);
 await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
 

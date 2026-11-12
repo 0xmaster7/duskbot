@@ -45,6 +45,8 @@ export interface AdminOptions {
   errors: ErrorCounter;
   /** daily InstaBox usage per managed cloud, for the revenue page's cost and margin */
   infra?: { store: InfraStore };
+  /** the ops page: spend, health, outliers and alert rules, from what the ops collectors stored */
+  ops?: { answer(): Promise<unknown>; collect(): Promise<unknown> };
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
   readBody(req: IncomingMessage): Promise<Buffer>;
   bodyObject(body: Buffer): Record<string, unknown>;
@@ -382,6 +384,10 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/events") return send(await events(url));
       if (route === "/usage") return send(await usageAnswer(url));
       if (route === "/revenue/infra") return send(await infraAnswer());
+      if (route === "/ops") {
+        if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
+        return send(await options.ops.answer());
+      }
       try {
         if (route === "/revenue") return send(await deep.revenue(url));
         if (route === "/web") return send(await deep.web(url));
@@ -433,6 +439,12 @@ export function createAdmin(options: AdminOptions) {
         await plans.edit(owner, { id: account.id, email: account.email }, options.bodyObject(await options.readBody(req))).catch(rethrow);
         return send(await user(account.id));
       }
+      if (route === "/ops/collect") {
+        if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
+        const result = await options.ops.collect();
+        await audit(owner.id, "ops.collect", null);
+        return send(result);
+      }
       if (route === "/revenue/sync") {
         const result = await deep.syncRevenue().catch(rethrow);
         await audit(owner.id, "revenue.sync", null, result);
@@ -443,5 +455,5 @@ export function createAdmin(options: AdminOptions) {
     }
     throw new AdminError(404, "not_found", "Route not found.");
   }
-  return { handle, isAdmin: (email: string) => allowed.has(email.toLowerCase()) };
+  return { handle, isAdmin: (email: string) => allowed.has(email.toLowerCase()), customers: () => deep.customers() };
 }

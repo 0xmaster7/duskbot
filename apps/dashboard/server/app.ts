@@ -32,6 +32,11 @@ import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { createUsage, memoryUsageStore, type UsageStore } from "./analytics/usage.ts";
 import { createInfraCollector, memoryInfraStore, type InfraStore } from "./admin/infra.ts";
+import { opsFixture } from "./admin/ops/fixture.ts";
+import { createOps } from "./admin/ops/index.ts";
+import { memoryOpsStore, type OpsStore } from "./admin/ops/store.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
+import type { Db } from "mongodb";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
 import { churnThreshold, createAlerts, parseAlerts } from "./admin/alerts.ts";
@@ -68,9 +73,9 @@ export interface DashboardAppOptions {
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
   /** product analytics: MongoDB in production (main.ts), memory otherwise; the waitlist is dusk.waitlist when connected */
-  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[]; usage?: UsageStore; infra?: InfraStore };
+  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[]; usage?: UsageStore; infra?: InfraStore; ops?: OpsStore; db?: Db | null };
   /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
-  admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
+  admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv; opsFixture?: boolean };
   /** the owner's alert emails (main.ts); without it incidents are kept in memory and nothing is mailed */
   incidents?: Incidents;
 }
@@ -265,7 +270,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const infraStore = options.analytics?.infra ?? memoryInfraStore();
   const infra = createInfraCollector({ store: infraStore, clouds: () => billing.clouds.all?.() ?? [], usage: managedUsage ? (c, from) => managedUsage(c, from) : null, now });
   infra.start();
-  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, infra: { store: infraStore }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, infra: { store: infraStore },
+    ops: { answer: () => ops.answer(), collect: () => ops.collect() }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
@@ -274,6 +280,17 @@ export function createDashboardApp(options: DashboardAppOptions) {
       paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null,
       money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to) }),
     churnCents: churnThreshold((options.admin?.env ?? process.env).DUSK_ALERT_CHURN_CENTS) });
+  const adminEnv = options.admin?.env ?? process.env;
+  const ops = createOps({ store: options.analytics?.ops ?? memoryOpsStore(), env: adminEnv, now, fetch: options.fetch, db: options.analytics?.db ?? null, infra: infraStore,
+    clouds: () => billing.clouds.all?.() ?? [],
+    egress: c => { const state = c.managed ? billing.clouds.view(c).egress?.state : undefined; return state === "slowed" || state === "paused" ? state : null; },
+    emails: () => new Map(auth.directory().accounts.map(account => [account.id, account.email])), customers: () => admin.customers(),
+    ledger: () => billing.store.state.ledger ?? [], invoices: () => billing.store.state.invoices, errors: errorsSeen,
+    incidents: options.incidents ? { report: input => incidents.report(input), recovered: (id, note) => incidents.recovered(id, note) } : null,
+    selfUrl: dev ? null : new URL(publicUrl).origin, environment: options.admin?.environment ?? (dev ? "development" : "production"),
+    fixture: options.admin?.opsFixture ? () => opsFixture(now()) : undefined, host: !options.admin?.opsFixture && !!options.analytics?.ops });
+  if (options.analytics?.ops) ops.start();
+  auth.onAccountCreated(owner => ops.noteSignup(requestIp.getStore() ?? null, owner.id));
   auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {
     if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
@@ -281,6 +298,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
   });
   const incidentRoutes = createIncidentRoutes({ incidents, json, readBody, bodyObject, rate, onClientError: (error, page) => { errorsSeen.note("page"); options.errors?.page.capture(error, { tags: { page } }); },
     admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); } });
+  const requestIp = new AsyncLocalStorage<string>();
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -510,6 +528,13 @@ export function createDashboardApp(options: DashboardAppOptions) {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
     if (await incidentRoutes.handle(req, res, url)) return;
+    if (path === "/v1/ops/report" && method === "POST") {
+      const verdict = ops.authorizeReport(typeof req.headers.authorization === "string" ? req.headers.authorization : undefined);
+      if (verdict === "off") fail(404, "not_found", "Route not found.");
+      if (verdict === "denied") { rate(req, "ops-report-denied", 20); fail(401, "unauthorized", "Not allowed."); }
+      if (!await ops.report(bodyObject(await readBody(req)))) fail(400, "invalid_request", "Invalid report.");
+      return json(res, 200, { ok: true });
+    }
     if (await admin.handle(req, res, url)) return;
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
     if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
@@ -735,10 +760,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
       const requestId = random(9);
       res.setHeader("x-request-id", requestId);
       res.once("finish", () => {
+        if (res.statusCode === 429) ops.noteLimited(clientIp(req, options.trustProxy ?? false));
         if (res.statusCode >= 500 && !reported.has(res) && !(res.statusCode === 503 && closed))
           incidents.report({ source: "server", name: `Http${res.statusCode}`, message: `${req.method ?? "GET"} answered ${res.statusCode}`, key: `http-${res.statusCode}`, route: req.url, status: res.statusCode, requestId });
       });
-      return route(req, res).catch(error => {
+      return requestIp.run(clientIp(req, options.trustProxy ?? false), () => route(req, res)).catch(error => {
         if (error instanceof RequestError || error instanceof AuthError || error instanceof AdminError || error instanceof IncidentRouteError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
         else {
           reported.add(res);
@@ -752,6 +778,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     },
     close() {
       infra.close();
+      ops.close();
       edgeHost.close();
       billing.close();
       closed = true;

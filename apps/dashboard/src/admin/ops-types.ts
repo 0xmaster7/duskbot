@@ -1,0 +1,106 @@
+// GET /v1/admin/ops: everything that costs money or can go down, read from what the ops collectors stored (never a live
+// third-party call on page load). money is in us cents, bytes are bytes, times are epoch ms. null means "not collected".
+// the server (apps/dashboard/server/admin/ops) builds this shape; keep the two in step.
+
+export type OpsLevel = "ok" | "watch" | "bad" | "unknown";
+
+/** one quota bar: what was used so far this period, the plan's included amount, where the period ends at this pace */
+export interface OpsMeter { used: number; limit: number | null; projected: number | null; level: OpsLevel }
+
+/** one collector: when it last ran, whether it worked, and whether it has what it needs (a token, a url) */
+export interface OpsSource { id: OpsSourceId; label: string; configured: boolean; at: number | null; ok: boolean; error: string | null; every: "5m" | "1h" }
+export type OpsSourceId = "host" | "probes" | "mongo" | "certs" | "cloudflare" | "brevo" | "composio" | "relay" | "oracle";
+
+export interface OpsInstaboxMachine {
+  cloudId: string; accountId: string; email: string | null; serverId: string;
+  awakeHours: number; vcpuHours: number; memGiBHours: number; diskGiB: number; egressGb: number;
+  costCents: number; todayCents: number; egressState: "slowed" | "paused" | null;
+}
+export interface OpsInstaboxCustomer {
+  accountId: string; email: string | null; plan: string; machines: number;
+  awakeHours: number; vcpuHours: number; memGiBHours: number; egressGb: number; costCents: number; projectedCents: number; egressState: "slowed" | "paused" | null;
+}
+export interface OpsOutlier { accountId: string; email: string | null; metric: OpsSignalKind; value: number; median: number; ratio: number | null; z: number | null }
+
+export interface OpsInstabox {
+  totals: { machines: number; customers: number; awakeHours: number; vcpuHours: number; memGiBHours: number; egressGb: number; costCents: number; todayCents: number; projectedCents: number };
+  days: Array<{ day: string; costCents: number; egressGb: number; awakeHours: number }>;
+  machines: OpsInstaboxMachine[];
+  customers: OpsInstaboxCustomer[];
+  /** the ten furthest from the fleet's median, by any of awake hours, egress and cost */
+  outliers: OpsOutlier[];
+  /** customers whose cloud sits at a slowed or paused egress step right now */
+  limited: Array<{ accountId: string; email: string | null; cloudId: string; state: "slowed" | "paused"; egressGb: number }>;
+}
+
+export interface OpsWorkers {
+  plan: { label: string; baseCents: number; includedRequests: number; includedCpuMs: number; requestCentsPerMillion: number; cpuCentsPerMillionMs: number };
+  requests: OpsMeter; cpuMs: OpsMeter;
+  /** what this month ends up costing over the base at this pace */
+  overageCents: number;
+  scripts: Array<{ name: string; requests: number; cpuMs: number; errors: number; todayRequests: number; todayCpuMs: number }>;
+  days: Array<{ day: string; requests: number; cpuMs: number }>;
+}
+export interface OpsR2 { freeBytes: number; total: OpsMeter; overageCents: number; buckets: Array<{ name: string; bytes: number; objects: number }> }
+export interface OpsComposio {
+  limits: { installation: number; account: number };
+  today: { calls: number; installations: number }; week: { calls: number };
+  days: Array<{ day: string; calls: number }>;
+  top: Array<{ installationId: string; accountId: string | null; email: string | null; today: number; week: number; share: number }>;
+  /** installations past 80% of their daily limit today */
+  nearLimit: number;
+  queue: { events: number; bytes: number } | null;
+  registrationsTopIp: Array<{ ip: string; today: number }>;
+}
+export interface OpsBrevo { today: { sent: number; delivered: number; bounced: number; blocked: number }; month: { sent: number }; daily: OpsMeter; monthly: OpsMeter; plan: string | null }
+export interface OpsDodo { monthCents: number; todayCents: number; payments: number; grossCents: number; rate: { rate: number; fixedCents: number }; estimated: boolean; lastWebhookAt: number | null }
+export interface OpsRelay {
+  dailyLimitBytes: number;
+  today: { bytes: number; tunnels: number; limited: number }; month: { bytes: number };
+  days: Array<{ day: string; bytes: number }>;
+  top: Array<{ tunnelId: string; accountId: string | null; email: string | null; todayBytes: number; monthBytes: number; limited: number }>;
+}
+
+export interface OpsSpend {
+  /** every provider's month to date, in cents, and where the month ends at this pace */
+  totals: { monthCents: number; projectedCents: number; todayCents: number };
+  lines: Array<{ provider: "instabox" | "workers" | "r2" | "dodo" | "brevo" | "composio" | "relay"; label: string; monthCents: number; projectedCents: number; note: string }>;
+  instabox: OpsInstabox;
+  workers: OpsWorkers | null;
+  r2: OpsR2 | null;
+  composio: OpsComposio | null;
+  brevo: OpsBrevo | null;
+  dodo: OpsDodo;
+  relay: OpsRelay | null;
+}
+
+export type OpsCheckGroup = "boxes" | "services" | "data" | "providers" | "backups" | "certs";
+export interface OpsCheck { id: string; group: OpsCheckGroup; name: string; level: OpsLevel; value: string; detail: string | null; at: number | null; latencyMs: number | null }
+export interface OpsBox {
+  name: "contabo" | "oracle"; at: number | null;
+  cpu: number | null; mem: number | null; disk: number | null; load: [number, number, number] | null; cores: number | null;
+  memTotalBytes: number | null; diskTotalBytes: number | null;
+  /** bytes since 00:00 utc, and the last sample's rate in bytes a second */
+  net: { inToday: number; outToday: number; inRate: number; outRate: number } | null;
+  /** the last 24 hours, one point per sample */
+  series: Array<{ at: number; cpu: number | null; mem: number | null; disk: number | null }>;
+}
+export interface OpsHealth { checks: OpsCheck[]; boxes: OpsBox[] }
+
+export type OpsSignalKind = "egress" | "awake" | "cost" | "relay" | "tool_calls" | "signups_ip" | "failed_payments" | "rate_limited";
+export interface OpsSignal { kind: OpsSignalKind; value: number; median: number; ratio: number | null; label: string }
+export interface OpsSuspect { key: string; accountId: string | null; email: string | null; ip: string | null; score: number; signals: OpsSignal[]; why: string }
+
+export interface OpsRule { id: string; label: string; threshold: string; state: "ok" | "pending" | "firing"; since: number | null; value: string | null; lastFiredAt: number | null }
+
+export interface OpsAnswer {
+  now: number; month: string;
+  /** how much of the month has passed, 0 to 1 */
+  elapsed: number;
+  fixture: boolean;
+  sources: OpsSource[];
+  spend: OpsSpend;
+  health: OpsHealth;
+  abuse: OpsSuspect[];
+  alerts: OpsRule[];
+}
