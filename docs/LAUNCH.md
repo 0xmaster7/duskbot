@@ -92,7 +92,8 @@ the same paths and the full marketing site. `app.dusk.bot`, `dev.dusk.bot` and `
 and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` and `/app/admin/...` links redirect too.
 
 1. On the VPS the service runs on `/opt/node24` (it runs TypeScript directly).
-2. Fill `~/.config/duskbot/account-production.env` (0600) from `deploy/account/production.env.example`: production uses
+2. Fill the `[production]` part of `~/.config/duskbot/dusk.env` (0600; names from `deploy/account/production.env.example`
+   with a `_PRODUCTION` suffix, shared values in `[account]`, see `deploy/env.mjs`): production uses
    `MONGODB_DB=dusk_prod` (its own writer lease) with the `dusk_prod` user, `DUSK_WAITLIST_DB=dusk` for the admin's
    waitlist view, `DUSK_DASHBOARD_PAGE_BASE=/dashboard`, `DUSK_SITE_UPSTREAM=http://127.0.0.1:3103` (dusk-landing).
 3. `deploy/account/deploy.sh production` (or `preview`), then `curl -fsS https://dusk.bot/v1/health`.

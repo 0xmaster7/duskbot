@@ -6,14 +6,16 @@
 # site: the landing build runs with DUSK_WAITLIST_HOME=1 (set DUSK_WAITLIST_HOME=0 for the full home page at launch).
 #   apps/site/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
-# LANDING_ENV is the landing app's env file (mongodb + brevo for the waitlist, names in .env.example); it is uploaded
-# when it exists, otherwise the env already on the server stays.
+# the landing app's env (mongodb + brevo for the waitlist, names in .env.example) is built from the [landing] part of
+# ~/.config/duskbot/dusk.env by deploy/env.mjs in the Dusk Bot repo; LANDING_ENV sends a ready env file instead. with
+# neither, the env already on the server stays.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DUSK_REPO="${DUSK_REPO:-$(cd "$HERE/../.." && pwd)}"
 INSTALLER="${INSTALLER:-$DUSK_REPO/apps/link-service/install.sh}"
-LANDING_ENV="${LANDING_ENV:-$HOME/.config/duskbot/site-landing.env}"
+LANDING_ENV="${LANDING_ENV:-}"
+DUSK_ENV="${DUSK_ENV:-$HOME/.config/duskbot/dusk.env}"
 DEPLOY="${DEPLOY:-deploy}"
 WHICH="${1:-all}"
 
@@ -40,6 +42,10 @@ fi
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dusk-sites.XXXXXX")
 trap 'rm -rf "$stage"; if [ "${RESTORE:-0}" = 1 ]; then node "$HERE/build-pages.mjs" "$DUSK_REPO" > /dev/null; fi' EXIT
+if [ -z "$LANDING_ENV" ] && [ -f "$DUSK_ENV" ]; then
+  LANDING_ENV="$stage/landing.env"
+  DUSK_ENV="$DUSK_ENV" node "$DUSK_REPO/deploy/env.mjs" landing "$LANDING_ENV"
+fi
 
 ran=0
 for row in "${SITES[@]}"; do
@@ -56,7 +62,7 @@ for row in "${SITES[@]}"; do
     echo "install.sh from $INSTALLER ($(shasum -a 256 "$INSTALLER" | cut -c1-12))"
   fi
   envargs=()
-  [ "$site" = landing ] && [ -f "$LANDING_ENV" ] && envargs=(--env-file "$LANDING_ENV")
+  [ "$site" = landing ] && [ -n "$LANDING_ENV" ] && [ -f "$LANDING_ENV" ] && envargs=(--env-file "$LANDING_ENV")
   "$DEPLOY" "$dir" --name "$name" --domain "$domain" --install "npm install --omit=dev --no-audit --no-fund" ${envargs[@]+"${envargs[@]}"} \
     --cmd "set -a; [ -f ./.env ] && . ./.env; set +a; exec node server.js $site"
   ran=1

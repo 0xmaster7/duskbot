@@ -21,7 +21,7 @@ state files for operator data; add a collection instead.
   for make.design's database (read-only `mongodump`). The age private key lives only on
   the operator's Mac (`~/.config/duskbot/backup-age.key`).
 - Values: the operator's `.env` (repo root, git-ignored) and
-  `~/.config/duskbot/`. Never commit them.
+  `~/.config/duskbot/dusk.env`. Never commit them.
 
 The ops runbook (users, restore, rotation) is `dusk-ref/DUSK-MONGO.md` on the
 operator's Mac.
