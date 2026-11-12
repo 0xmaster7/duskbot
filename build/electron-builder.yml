@@ -137,6 +137,8 @@ mac:
 
 dmg:
   sign: true
+  # the mounted volume's name in the Finder sidebar and the install window's title bar
+  title: dusk bot
   # ${arch} is load-bearing: without it the x64 dmg silently overwrites
   # the arm64 one when both arches build (this section overrides both the
   # top-level and mac-level artifactName, so it must carry the arch itself)

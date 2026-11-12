@@ -1,99 +1,59 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { crc32, deflateSync } from "node:zlib";
-import { Resvg } from "@resvg/resvg-js";
+import { writeFileSync } from "node:fs";
+import { C, opaquePng72, renderPixels, scene } from "../art/pixel-scene.mjs";
 
-const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const RGB_BYTES = 3;
-// Finder sizes the background by its dpi while dmg-builder (electron-builder 26.15.3) sizes the window by
-// its pixels, so both images carry 72 dpi; `tiffutil -cathidpicheck` marks the @2x as 144 dpi in the TIFF.
-const PIXELS_PER_METRE_AT_72_DPI = 2835;
+// icon centres and size must match dmg.contents and dmg.iconSize in build/electron-builder.yml
+const W = 720;
+const H = 440;
+const APP = { x: 180, y: 206 };
+const APPLICATIONS = { x: 540, y: 206 };
+const ICON = 112;
 
-function chunk(type, data) {
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([length, body, crc]);
-}
+export function dmgScene() {
+  const s = scene(W, H, { cell: 8, seed: 41 });
+  s.sky([
+    [C.sky0, 0],
+    [C.sky1, 5],
+    [C.sky2, 13],
+    [C.sky3, 31],
+    [C.canvas, 34],
+  ]);
+  s.cloud(96, 3, 14, C.pink);
+  s.cloud(636, 6, 10, C.lemon);
+  s.ground(41, { flowers: 7, avoid: [[180, 360, 360, 50]] });
 
-function paeth(left, up, upLeft) {
-  const estimate = left + up - upLeft;
-  const toLeft = Math.abs(estimate - left);
-  const toUp = Math.abs(estimate - up);
-  const toUpLeft = Math.abs(estimate - upLeft);
-  if (toLeft <= toUp && toLeft <= toUpLeft) return left;
-  return toUp <= toUpLeft ? up : upLeft;
-}
-
-function predict(filter, left, up, upLeft) {
-  switch (filter) {
-    case 1:
-      return left;
-    case 2:
-      return up;
-    case 3:
-      return (left + up) >> 1;
-    case 4:
-      return paeth(left, up, upLeft);
-    default:
-      return 0;
+  // the way across: a dashed trail of white blocks with a pink shadow, ending in a stepped arrowhead
+  const u = 8;
+  const mid = APP.y;
+  const from = APP.x + ICON / 2 + 36;
+  const head = APPLICATIONS.x - ICON / 2 - 36 - 4 * u;
+  for (let x = from; x + 2 * u <= head - u; x += 3 * u) {
+    s.rect(x + 2, mid - u / 2 + 3, 2 * u, u, C.pink).rect(x, mid - u / 2, 2 * u, u, C.cloud);
   }
+  [7, 5, 3, 1].forEach((n, i) => s.rect(head + i * u + 2, mid - (n * u) / 2 + 3, u, n * u, C.pink));
+  [7, 5, 3, 1].forEach((n, i) => s.rect(head + i * u, mid - (n * u) / 2, u, n * u, C.cloud));
+
+  // a blue bot hopping along the trail, saying where to go
+  const botX = from + 3 * u;
+  s.bot("pip", C.blue, botX, mid - u / 2, 3);
+  s.bubble(botX + 4, mid - 56, "this way!", { size: 17, pad: 12, tail: "left" });
+
+  // friends on the horizon, clear of both icons and their labels
+  s.bot("mochi", C.pinkBot, 54, 328, 3);
+  s.bot("loaf", C.tangerine, 92, 328, 2.5);
+  s.bot("hoot", C.violet, 660, 328, 3, { flip: true });
+
+  s.text(W / 2, 384, "drag dusk bot into Applications", { size: 22, anchor: "middle" });
+  s.text(W / 2, 410, "then open it from there, it will say hi", { size: 14, fill: C.inkSoft, anchor: "middle" });
+  return s.svg();
 }
 
-function filterRow(row, previous) {
-  let best = null;
-  for (let filter = 0; filter <= 4; filter++) {
-    const filtered = Buffer.alloc(row.length + 1);
-    filtered[0] = filter;
-    let cost = 0;
-    for (let i = 0; i < row.length; i++) {
-      const left = i >= RGB_BYTES ? row[i - RGB_BYTES] : 0;
-      const upLeft = i >= RGB_BYTES ? previous[i - RGB_BYTES] : 0;
-      const value = (row[i] - predict(filter, left, previous[i], upLeft)) & 0xff;
-      filtered[i + 1] = value;
-      cost += value < 128 ? value : 256 - value;
-    }
-    if (!best || cost < best.cost) best = { filtered, cost };
-  }
-  return best.filtered;
-}
-
-function encodeOpaquePng(width, height, rgba) {
-  const stride = width * RGB_BYTES;
-  const rows = [];
-  let previous = Buffer.alloc(stride);
-  for (let y = 0; y < height; y++) {
-    const row = Buffer.alloc(stride);
-    for (let x = 0; x < width; x++) {
-      const source = (y * width + x) * 4;
-      // Finder shows its own window colour through transparent pixels.
-      if (rgba[source + 3] !== 255) throw new Error(`background.svg leaves pixel ${x},${y} transparent`);
-      rgba.copy(row, x * RGB_BYTES, source, source + RGB_BYTES);
-    }
-    rows.push(filterRow(row, previous));
-    previous = row;
-  }
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(width, 0);
-  header.writeUInt32BE(height, 4);
-  header[8] = 8;
-  header[9] = 2;
-  const density = Buffer.alloc(9);
-  density.writeUInt32BE(PIXELS_PER_METRE_AT_72_DPI, 0);
-  density.writeUInt32BE(PIXELS_PER_METRE_AT_72_DPI, 4);
-  density[8] = 1;
-  const pixels = deflateSync(Buffer.concat(rows), { level: 9, memLevel: 9 });
-  return Buffer.concat([PNG_SIGNATURE, chunk("IHDR", header), chunk("pHYs", density), chunk("IDAT", pixels), chunk("IEND", Buffer.alloc(0))]);
-}
-
-const svg = readFileSync(new URL("background.svg", import.meta.url), "utf8");
+const svg = dmgScene();
 for (const [scale, name] of [
   [1, "background.png"],
   [2, "background@2x.png"],
 ]) {
-  const image = new Resvg(svg, { fitTo: { mode: "zoom", value: scale }, font: { loadSystemFonts: false } }).render();
-  const png = encodeOpaquePng(image.width, image.height, image.pixels);
+  const png = opaquePng72(renderPixels(svg, scale));
   writeFileSync(new URL(`../${name}`, import.meta.url), png);
-  console.log(`build/${name}: ${image.width}x${image.height}, ${png.length} bytes`);
+  console.log(`build/${name}: ${W * scale}x${H * scale}, ${png.length} bytes`);
 }
+if (process.argv.includes("--svg")) writeFileSync(process.argv[process.argv.indexOf("--svg") + 1], svg);
