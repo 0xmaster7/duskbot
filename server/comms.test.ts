@@ -154,8 +154,8 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   const awaitIdle = () => waitUntil(async () => !rows().some((node) => ["source", "queued", "running", "resume"].includes(node.status))
     && (await api("GET", "/api/bots?messages=0")).body.bots.every((candidate: any) => !candidate.busy), 30_000, "the fleet never went idle");
   const named = async (name: string, patch: Record<string, unknown>) => {
-    if (patch.section !== undefined) await awaitIdle();
     const created = (await api("POST", "/api/bots")).body.bot;
+    if (patch.section !== undefined) await awaitIdle();
     const patched = await api("PATCH", `/api/bots/${created.id}`, { name, ...patch });
     expect(patched.status, JSON.stringify(patched.body)).toBe(200);
     return created;
