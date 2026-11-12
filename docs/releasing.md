@@ -47,14 +47,14 @@ scripts/publish-downloads.sh v0.1.142            # DRY_RUN=1 first to only verif
 It downloads the release, checks every installer against the run's signed `SHA256SUMS`, uploads the installers to
 the public `DuskBotAI/duskbot-releases` release (stable `/releases/latest/download/` names that
 dusk.bot/download links to), then puts `latest.json` and `SHA256SUMS` on dusk.bot through the deployd landing site.
-Desktop apps read `https://dusk.bot/releases/latest.json` once a day and accept it only when a pinned release key
+Desktop apps read `https://dusk.bot/releases/latest.json` (the Mac app hourly, the others daily) and accept it only when a pinned release key
 signed it.
 
 ### How the Mac app updates itself
 
 `electron/app-update.mjs`, packaged Mac builds only:
 
-1. Reads `latest.json`, checks its signature, and when the version is newer reads
+1. Every hour (plus up to 15 minutes of jitter, the first 2 minutes after start), reads `latest.json`, checks its signature, and when the version is newer reads
    `https://dusk.bot/releases/<version>/SHA256SUMS` and checks it against the sha256 the signature vouches for.
 2. Downloads `DuskBot-<version>-<arch>.zip` from the public downloads release
    (`https://github.com/DuskBotAI/duskbot-releases/releases/download/v<version>/...`) into

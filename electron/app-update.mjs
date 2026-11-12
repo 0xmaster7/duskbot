@@ -18,7 +18,9 @@ export const sumsUrl = (version) => `https://dusk.bot/releases/${version}/SHA256
 export const zipUrl = (version, name) => `https://github.com/DuskBotAI/duskbot-releases/releases/download/v${version}/${name}`;
 /** CI's release keys (apps/cloud-service/src/release-signing.ts pins the same ones; a test keeps them equal) */
 export const RELEASE_KEYS = Object.freeze([{ kid: "rel-2026-11", x: "wtwZypDwVPBXZ25XsZOVpd0PZPBbVMhugheUj5_NLIM" }]);
-const DAY_MS = 24 * 60 * 60_000;
+const HOUR_MS = 60 * 60_000;
+/** each check lands somewhere in this much more, so every app does not ask dusk.bot in the same minute */
+const JITTER_MS = 15 * 60_000;
 export const QUIET_IDLE_MS = 10 * 60_000;
 
 /** `{ version, sums }` from a desktop release manifest signed by a pinned key, or null */
@@ -123,7 +125,7 @@ export async function quietNow(signals, now = Date.now()) {
  * anything on the way fails, `fallback.check()` (update-notice.mjs) tells the person instead. `onState({ ready })` says
  * a downloaded version waits for a restart.
  */
-export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 2 * 60_000, intervalMs = DAY_MS, quietEveryMs = 60_000, timers = globalThis }) {
+export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 2 * 60_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
   let ready = null, timer = null, quietTimer = null, checking = null, installing = false;
 
   async function text(url, limit) {
@@ -201,7 +203,7 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     state: () => ({ ready }),
     start() {
       if (timer) return;
-      const again = (delay) => { timer = timers.setTimeout(() => { void check().finally(() => again(intervalMs)); }, delay); timer?.unref?.(); };
+      const again = (delay) => { timer = timers.setTimeout(() => { void check().finally(() => again(intervalMs + Math.floor(random() * jitterMs))); }, delay); timer?.unref?.(); };
       again(firstDelayMs);
     },
     stop() { if (timer) timers.clearTimeout(timer); if (quietTimer) timers.clearTimeout(quietTimer); timer = quietTimer = null; },
