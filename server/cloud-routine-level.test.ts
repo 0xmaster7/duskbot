@@ -44,7 +44,7 @@ describe("a routine a bot made where only the owner spoke runs at the owner's le
     expect(ids(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1", { answered: "allow", dismissed: true })])))).toEqual(["r1"]);
     expect(ids(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1", { answered: "allow", answeredBy: { kind: "session", person: OWNER } })])))).toEqual(["r1"]);
     // the waking-hours window the server fitted it into is no change to what the card showed
-    const fitted = { ...asSchedule(definition.schedule, 0) as Record<string, unknown>, window: { start: "07:00", end: "23:00" } };
+    const fitted = { ...asSchedule(definition.schedule as unknown as Parameters<typeof asSchedule>[0], 0) as Record<string, unknown>, window: { start: "07:00", end: "23:00" } };
     expect(ids(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1")], { shape: () => approvalShape({ prompt: definition.instructions, botId: "bot-1", schedule: fitted }) })))).toEqual(["r1"]);
     // What came after the card does not decide who made it.
     expect(ids(ownersRoutinesMadeInChat(input([said("m1", OWNER), made("r1"), said("g1", GUEST)])))).toEqual(["r1"]);
