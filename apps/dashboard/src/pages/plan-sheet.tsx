@@ -14,7 +14,7 @@ import { CHECKOUT_SOON } from "./cloud-offer";
 
 export const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
 
-/** a monthly list price on the chosen period: per month, or the whole year (two months free reads as $200, not $16.67) */
+/** a monthly list price on the chosen period: per month, or the whole year (one month free reads as $220, not $18.33) */
 export const per = (monthly: number, interval: BillingInterval, c: Pick<PlanCatalog, "yearlyDiscount">) => (interval === "year" ? { amount: money(perMonthOn(monthly, interval, c) * 12), unit: "/yr" } : { amount: money(monthly), unit: "/mo" });
 export const priceText = (monthly: number, interval: BillingInterval, c: Pick<PlanCatalog, "yearlyDiscount">) => { const p = per(monthly, interval, c); return `${p.amount}${p.unit}`; };
 
@@ -123,7 +123,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
       title={owned ? `switch to ${b?.name}` : `get ${b?.name}`}
       footer={
         <div>
-          {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>two months free</span><span>-{money(cart.discount * 12)}</span></p>}
+          {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>{yearlyPerk(catalog)}</span><span>-{money(cart.discount * 12)}</span></p>}
           <div className="mt-1 flex items-baseline justify-between gap-4">
             <span className="text-14 text-ink-3">total</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
@@ -215,7 +215,7 @@ export function LicenseSheet({ start, source, onClose, onNothingLeft }: { source
       title="work license"
       footer={
         <div>
-          {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>two months free</span><span>-{money(cart.discount * 12)}</span></p>}
+          {cart && cart.discount > 0 && <p className="num flex justify-between text-13 text-ink-3"><span>{yearlyPerk(catalog)}</span><span>-{money(cart.discount * 12)}</span></p>}
           <div className="mt-1 flex items-baseline justify-between gap-4">
             <span className="text-14 text-ink-3">{owned ? "your plan in total" : "total"}</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(sel.interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{sel.interval === "year" ? "/yr" : "/mo"}</span></span>

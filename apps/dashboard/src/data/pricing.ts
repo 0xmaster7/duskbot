@@ -78,8 +78,11 @@ export const specLine = (s: MachineSpec) => `${s.vcpu} vcpu · ${gb(s.ramGb)} ra
 /** a plan in one line: its machine, then priority wake and a work license when it has them */
 export const planSpecLine = (s: MachineSpec & { priority: boolean }, work = false) => `${specLine(s)}${s.priority ? ", priority wake" : ""}${work ? ", work license" : ""}`;
 
-/** how the yearly saving reads: "2 months free" when it is exactly that, else a percent */
-export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => (Math.abs(c.yearlyDiscount * 12 - 2) < 0.05 ? "2 months free" : `-${Math.round(c.yearlyDiscount * 100)}%`);
+/** how the yearly saving reads: "1 month free" when it is whole months, else a percent */
+export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => {
+  const months = Math.round(c.yearlyDiscount * 12);
+  return months > 0 && Math.abs(c.yearlyDiscount * 12 - months) < 0.05 ? `${months} ${months === 1 ? "month" : "months"} free` : `-${Math.round(c.yearlyDiscount * 100)}%`;
+};
 
 /** a measured wake as it reads on a card: one decimal under 10 s, never "0.0" */
 export const wakeSeconds = (medianMs: number): string => (Math.max(100, medianMs) / 1000).toFixed(medianMs < 9_950 ? 1 : 0);

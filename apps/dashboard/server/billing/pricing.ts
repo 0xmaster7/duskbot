@@ -48,6 +48,11 @@ export function bundleOf(cart: Cart, config: BillingConfig = BILLING_CONFIG): Qu
   const plain = (c: Cart): Cart => c.desktop.kind === "none" ? c : { ...c, desktop: { ...c.desktop, region: "" } };
   return config.bundles.find(bundle => sameCart(plain(cart), plain({ ...bundle.cart, interval: cart.interval })))?.id ?? null;
 }
+/** "Yearly, 1 month free" when the discount is whole months, else the percent */
+function yearlyLabel(percent: number): string {
+  const months = Math.round(percent * 12 / 100);
+  return months > 0 && Math.abs(percent * 12 / 100 - months) < 0.001 ? `Yearly, ${months} ${months === 1 ? "month" : "months"} free` : `Yearly discount (${Number(percent.toFixed(1))}%)`;
+}
 export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote {
   const lines: Quote["lines"] = [], multiplier = cart.interval === "year" ? 12 : 1;
   const members = cart.license.kind === "none" ? 0 : cart.license.kind === "solo" ? 1 : cart.license.members!;
@@ -65,7 +70,7 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
       amountCents: (cart.desktop.kind === "dedicated" ? dedicatedMonthlyCents(machine, config) : desktop.monthlyCents!) * multiplier });
   }
   const sum = lines.reduce((sum, line) => sum + line.amountCents, 0);
-  if (cart.interval === "year") lines.push({ kind: "discount", label: Math.abs(config.yearlyDiscountPercent - 100 / 6) < 0.001 ? "Yearly, 2 months free" : `Yearly discount (${Number(config.yearlyDiscountPercent.toFixed(1))}%)`, amountCents: -Math.round(sum * config.yearlyDiscountPercent / 100) });
+  if (cart.interval === "year") lines.push({ kind: "discount", label: yearlyLabel(config.yearlyDiscountPercent), amountCents: -Math.round(sum * config.yearlyDiscountPercent / 100) });
   const totalCents = lines.reduce((sum, line) => sum + line.amountCents, 0);
   return { cart: structuredClone(cart), bundle: bundleOf(cart, config),
     lines, totalCents, monthlyEquivalentCents: cart.interval === "year" ? Math.round(totalCents / 12) : totalCents, machine, botComputers, members };

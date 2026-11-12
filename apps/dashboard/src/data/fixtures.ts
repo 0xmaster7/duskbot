@@ -29,8 +29,8 @@ export const fixtureCatalog: PlanCatalog = {
     { id: "ap-southeast", name: "Singapore", city: "Singapore" },
   ],
   custom: { base: 7, perVcpu: 4, perGbRam: 2, per20GbDisk: 3, includedDiskGb: 40, vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 } },
-  // two months free
-  yearlyDiscount: 1 / 6,
+  // one month free
+  yearlyDiscount: 1 / 12,
   workFreeUntil: new Date(2026, 11, 1).getTime(),
 };
 
