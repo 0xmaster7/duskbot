@@ -50,12 +50,13 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
   </form>;
 }
 
-export function Choice({ icon, title, sub, onClick, kind, tag }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string }) {
+/** `art`: the icon is a drawn mark of its own, shown as it is rather than on a tinted tile. */
+export function Choice({ icon, title, sub, onClick, kind, tag, art = false }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string; tag?: string; art?: boolean }) {
   return <button type="button" data-place-add-choice={kind} onClick={onClick}
-    className={cn("flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border bg-card p-5 text-start transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    className={cn("flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border bg-ink/[0.035] p-5 text-start transition-colors hover:bg-ink/[0.06] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
       "border-transparent")}>
     <span className="flex w-full items-center justify-between gap-2">
-      <span aria-hidden="true" className="grid size-9 place-items-center rounded-[10px] bg-accent/12 text-accent-text">{icon}</span>
+      <span aria-hidden="true" className={cn("grid place-items-center", art ? "size-11" : "size-9", !art && "rounded-[10px] bg-accent/12 text-accent-text")}>{icon}</span>
       {tag && <Tag data-place-add-tag="">{tag}</Tag>}
     </span>
     <span className="text-[15px] font-semibold text-ink">{title}</span>

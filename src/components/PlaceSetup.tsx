@@ -1,7 +1,7 @@
 // Add a place, without leaving where the person is: dusk cloud (the buying sheet), or a server of their own, linked by one
 // line through the relay with its progress shown live, or reached at an address it already has.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ChevronRight, Cloud, Loader2, Server } from "../icons";
+import { ChevronRight, Loader2 } from "../icons";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
@@ -12,11 +12,14 @@ import { BackLink, Checklist, Heading, Tag } from "./cloud-buy/parts";
 import { Choice, RailSheet } from "./PlaceAddSheet";
 import { vpsProgress } from "./vps-link/progress";
 import { message, useNow } from "./vps-link/parts";
+import { PlaceArt, type PlaceArtName } from "./ui/PlaceArt";
+import "../styles/place-setup.css";
 
 type View = "choose" | "server" | "install" | "address";
 
-const ROW = "flex w-full min-w-0 items-start gap-3 rounded-[12px] bg-ink/[0.035] px-4 py-3 text-start transition-colors hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
+const ROW = "flex w-full min-w-0 items-start gap-3.5 rounded-[12px] bg-ink/[0.035] px-4 py-3 text-start transition-colors hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
 const BODY = "flex flex-col gap-5 px-[30px] pb-[26px] pt-7";
+const ORDER: View[] = ["choose", "server", "install", "address"];
 
 export function PlaceSetupHost() {
   const open = usePlaceSetupOpen();
@@ -27,15 +30,18 @@ export function PlaceSetupHost() {
 export function PlaceSetup({ onClose, start }: { onClose: () => void; start?: View }) {
   const { dispatch } = useStore();
   const canBuy = Boolean(window.duskDesktop?.cloudAccount) && window.duskDesktop?.remoteClient?.active !== true;
-  const [view, setView] = useState<View>(start ?? (canBuy ? "choose" : "server"));
+  const [view, setViewNow] = useState<View>(start ?? (canBuy ? "choose" : "server"));
+  // which side the step came from, so it slides in from there
+  const [from, setFrom] = useState<"next" | "back">("next");
+  const setView = (next: View) => { setFrom(ORDER.indexOf(next) < ORDER.indexOf(view) ? "back" : "next"); setViewNow(next); };
   const cloud = () => { onClose(); dispatch({ type: "openCloudAdd", source: "app_settings" }); };
   return <RailSheet focusKey={view} onClose={onClose}>
-    <div data-place-setup={view}>
+    <div key={view} data-place-setup={view} data-from={from} className="place-step">
       {view === "choose" && <div className={BODY}>
         <Heading title={t("placeSetup.title")} />
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Choice kind="cloud" icon={<Cloud size={19} />} title={t("rail.buy")} sub={t("placeSetup.cloudSub")} tag={t("rail.recommended")} onClick={cloud} />
-          <Choice kind="server" icon={<Server size={19} />} title={t("placeSetup.server")} sub={t("placeSetup.serverSub")} onClick={() => setView("server")} />
+          <Choice kind="cloud" art icon={<PlaceArt name="cloud" size={44} />} title={t("rail.buy")} sub={t("placeSetup.cloudSub")} tag={t("rail.recommended")} onClick={cloud} />
+          <Choice kind="server" art icon={<PlaceArt name="server" size={44} />} title={t("placeSetup.server")} sub={t("placeSetup.serverSub")} onClick={() => setView("server")} />
         </div>
       </div>}
       {view === "server" && <div className={BODY}>
@@ -43,16 +49,26 @@ export function PlaceSetup({ onClose, start }: { onClose: () => void; start?: Vi
         <Heading title={t("placeSetup.how")} />
         <div className="flex flex-col gap-2">
           <button type="button" data-autofocus="" data-setup-method="relay" className={ROW} onClick={() => setView("install")}>
+            <PlaceArt name="relay" size={33} className="-my-0.5" />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2 text-[14px] leading-5 text-ink">{t("placeSetup.relay")}<Tag>{t("rail.recommended")}</Tag></span>
               <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.relaySub")}</span>
+              <span data-setup-direct="" className="mt-1 flex items-center gap-1.5 text-[12px] leading-4 text-ink-secondary">
+                <PlaceArt name="direct" size={22} />{t("placeSetup.relayDirect")}
+              </span>
             </span>
+            <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
           </button>
           <button type="button" data-setup-method="address" className={ROW} onClick={() => setView("address")}>
+            <PlaceArt name="address" size={33} className="-my-0.5" />
             <span className="min-w-0 flex-1">
               <span className="block text-[14px] leading-5 text-ink">{t("placeSetup.address")}</span>
               <span className="block text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.addressSub")}</span>
+              <span aria-hidden="true" className="mt-1 flex items-center gap-2">
+                {WAYS.map((entry) => <PlaceArt key={entry.key} name={entry.art} size={22} />)}
+              </span>
             </span>
+            <ChevronRight size={14} aria-hidden="true" className="mt-[3px] shrink-0 text-ink-tertiary rtl:-scale-x-100" />
           </button>
         </div>
       </div>}
@@ -73,6 +89,10 @@ function CopyLine({ text, label }: { text: string; label: string }) {
     </button>
   </div>;
 }
+
+const PHASE_ART: Record<ReturnType<typeof installPhase>, PlaceArtName> = {
+  starting: "waiting", waiting: "waiting", found: "found", connecting: "setup", done: "connected", failed: "error", expired: "expired",
+};
 
 const STEP_WORD = { waiting: "placeSetup.step.waiting", found: "placeSetup.step.found", connecting: "placeSetup.step.connecting", done: "placeSetup.step.done" } as const;
 
@@ -119,14 +139,22 @@ export function InstallSetup({ onBack, onClose }: { onBack: () => void; onClose:
 
   return <div className={BODY} data-install-phase={phase}>
     <BackLink label={t("rail.back")} onClick={onBack} />
-    <Heading title={phase === "done" ? t("placeSetup.doneTitle", { name }) : t("placeSetup.install.title")}
-      sub={phase === "done" ? t("placeSetup.doneBody") : t("placeSetup.install.what")} />
+    <div className="flex items-start gap-4">
+      <span key={PHASE_ART[phase]} data-phase-art={PHASE_ART[phase]} className="place-mark grid size-12 shrink-0 place-items-center rounded-[12px] bg-ink/[0.04]">
+        <PlaceArt name={PHASE_ART[phase]} size={33} />
+      </span>
+      <Heading title={phase === "done" ? t("placeSetup.doneTitle", { name }) : t("placeSetup.install.title")}
+        sub={phase === "done" ? t("placeSetup.doneBody") : t("placeSetup.install.what")} />
+    </div>
     {phase !== "done" && (shown.command && phase !== "expired"
       ? <CopyLine text={shown.command} label={t("vpsLink.copyAria")} />
-      : phase !== "expired" && <p role="status" className="flex min-h-11 items-center rounded-[12px] bg-inset px-3.5 text-[13px] text-ink-secondary">{t("vpsLink.command.making")}</p>)}
+      : phase !== "expired" && <p role="status" className="flex min-h-11 items-center rounded-[12px] bg-inset px-3.5 text-[13px] text-ink-secondary motion-safe:animate-pulse">{t("vpsLink.command.making")}</p>)}
+    {phase === "done" && shown.mode && <p data-setup-via={shown.mode} className="place-reveal -mt-1 flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+      <PlaceArt name={shown.mode === "direct" ? "direct" : "relay"} size={22} />{t(shown.mode === "direct" ? "placeSetup.via.direct" : "placeSetup.via.relay")}
+    </p>}
     <div aria-live="polite"><Checklist items={steps} /></div>
-    {phase === "failed" && <p role="alert" className="text-[13px] leading-[18px] text-danger [overflow-wrap:anywhere]">{progress.error ?? shown.error ?? t("vpsLink.move.failed")}</p>}
-    {phase === "expired" && <p role="alert" className="text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.expired")}</p>}
+    {phase === "failed" && <p role="alert" className="place-reveal text-[13px] leading-[18px] text-danger [overflow-wrap:anywhere]">{progress.error ?? shown.error ?? t("vpsLink.move.failed")}</p>}
+    {phase === "expired" && <p role="alert" className="place-reveal text-[13px] leading-[18px] text-ink-secondary">{t("placeSetup.expired")}</p>}
     <div className="flex flex-wrap items-center gap-2">
       {phase === "done" && <button type="button" data-autofocus="" className="ui-button ui-button-primary inline-flex items-center gap-2" disabled={busy} onClick={openIt}>
         {busy && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}{t("placeSetup.open", { name })}
@@ -134,17 +162,17 @@ export function InstallSetup({ onBack, onClose }: { onBack: () => void; onClose:
       {(phase === "failed" || phase === "expired") && <button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={fresh}>
         {phase === "expired" ? t("placeSetup.newLine") : t("vpsLink.tryAgain")}
       </button>}
-      {phase !== "starting" && <button type="button" data-setup-details="" className="ui-button" onClick={() => { onClose(); openAddVps(); }}>{t("placeSetup.details")}</button>}
+      {phase !== "starting" && phase !== "done" && <button type="button" data-setup-details="" className="ui-button" onClick={() => { onClose(); openAddVps(); }}>{t("placeSetup.details")}</button>}
     </div>
   </div>;
 }
 
 const WAYS = [
-  { key: "domain", title: "placeSetup.way.domain", hint: "placeSetup.way.domainHint", command: "duskbot serve --domain bots.example.com" },
-  { key: "tailscale", title: "placeSetup.way.tailscale", hint: "placeSetup.way.tailscaleHint", command: "duskbot serve --tailscale" },
-  { key: "tunnel", title: "placeSetup.way.tunnel", hint: "placeSetup.way.tunnelHint", command: "duskbot login && duskbot serve --tunnel" },
-  { key: "ssh", title: "placeSetup.way.ssh", hint: "placeSetup.way.sshHint", command: "ssh -N -L 8790:127.0.0.1:8799 you@your-server" },
-] as const;
+  { key: "domain", art: "domain", title: "placeSetup.way.domain", hint: "placeSetup.way.domainHint", command: "duskbot serve --domain bots.example.com" },
+  { key: "tailscale", art: "mesh", title: "placeSetup.way.tailscale", hint: "placeSetup.way.tailscaleHint", command: "duskbot serve --tailscale" },
+  { key: "tunnel", art: "tunnel", title: "placeSetup.way.tunnel", hint: "placeSetup.way.tunnelHint", command: "duskbot login && duskbot serve --tunnel" },
+  { key: "ssh", art: "ssh", title: "placeSetup.way.ssh", hint: "placeSetup.way.sshHint", command: "ssh -N -L 8790:127.0.0.1:8799 you@your-server" },
+] as const satisfies ReadonlyArray<{ key: string; art: PlaceArtName; title: string; hint: string; command: string }>;
 
 const FIELD = "w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[14px] font-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus/60";
 
@@ -194,10 +222,10 @@ export function AddressSetup({ onBack, onClose }: { onBack: () => void; onClose:
         const shown = way === entry.key;
         return <div key={entry.key} data-setup-way={entry.key} className="flex flex-col gap-2">
           <button type="button" aria-expanded={shown} onClick={() => setWay(shown ? null : entry.key)}
-            className="-mx-2 flex items-center justify-between rounded-lg px-2 py-1.5 text-start text-[14px] leading-5 text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-2 focus-visible:outline-focus motion-reduce:transition-none">
-            {t(entry.title)}<ChevronRight size={14} aria-hidden="true" className={cn("shrink-0 text-ink-tertiary transition-transform duration-150 ease-out motion-reduce:transition-none", shown && "rotate-90")} />
+            className="-mx-2 flex min-h-9 items-center gap-2.5 rounded-lg px-2 py-1.5 text-start text-[14px] leading-5 text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-2 focus-visible:outline-focus motion-reduce:transition-none">
+            <PlaceArt name={entry.art} size={22} /><span className="min-w-0 flex-1">{t(entry.title)}</span><ChevronRight size={14} aria-hidden="true" className={cn("shrink-0 text-ink-tertiary transition-transform duration-150 ease-out motion-reduce:transition-none", shown && "rotate-90")} />
           </button>
-          {shown && <div className="flex flex-col gap-2 pb-2">
+          {shown && <div className="place-reveal flex flex-col gap-2 pb-2 ps-[32px]">
             <p className="text-[13px] leading-[18px] text-ink-secondary">{t(entry.hint)}</p>
             <CopyLine text={entry.command} label={t("vpsLink.copyAria")} />
           </div>}
