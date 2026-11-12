@@ -1,13 +1,13 @@
 // This computer's own app while it has no bots and the person's live somewhere else: a dialog over the normal chat, once
-// per place, saying what is missing and the two ways on, a new bot here, or their bots back from that place (or opening
-// it, when they can't come).
+// per place, saying where they are and the ways on: switch to that place (as its row on the places hub does), or bring
+// them back here when they moved off this computer.
 import { useCallback, useState, useSyncExternalStore, useEffect } from "react";
-import { Plus } from "../icons";
 import type { ElsewherePlace } from "@/lib/bots-elsewhere";
 import { t } from "@/lib/i18n";
+import { usePlaces } from "@/lib/places";
 import { vpsLinkBridge, type VpsWhere } from "@/lib/vps-link";
-import { openCreateBot } from "./CreateBotDialog";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls, rowHintCls } from "./ui/GrokDialog";
+import { PlaceArt } from "./ui/PlaceArt";
 import { deviceWord, message } from "./vps-link/parts";
 
 const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
@@ -46,7 +46,7 @@ export function MacEmptyMain({ from, onClose }: { from: ElsewherePlace; onClose:
     void link?.where().then((place) => { if (alive) setWhere(place); }, () => {});
     return () => { alive = false; };
   }, [link]);
-  // the bots come back only from the server this computer moved them to; anywhere else they can be opened where they are
+  // the bots come back only from the server this computer moved them to; anywhere else they are only switched to
   const back = Boolean(link && where?.place === "vps" && where.server);
   const name = back ? where!.server!.name : from.name;
   const bringBack = async () => {
@@ -54,32 +54,28 @@ export function MacEmptyMain({ from, onClose }: { from: ElsewherePlace; onClose:
     setBusy(true); setError("");
     try { await link.moveBack(); setNote(t("macEmpty.bringing")); } catch (cause) { setError(message(cause)); } finally { setBusy(false); }
   };
-  const openThere = () => {
+  const rail = usePlaces();
+  const switchThere = () => {
     if (busy) return;
-    const go = window.duskDesktop?.elsewhere?.open(from.id);
+    const workspaces = window.duskDesktop?.workspaces;
+    const go = rail.places.some((place) => place.id === from.id) && workspaces?.open ? workspaces.open(from.id) : window.duskDesktop?.elsewhere?.open(from.id);
     if (!go) return;
     setBusy(true); setError("");
-    void go.then((opened) => { if (opened === false) setError(t("macEmpty.failed", { name })); }, () => setError(t("macEmpty.failed", { name }))).finally(() => setBusy(false));
+    void Promise.resolve(go).then((opened) => { if (opened === false) setError(t("macEmpty.failed", { name })); }, () => setError(t("macEmpty.failed", { name }))).finally(() => setBusy(false));
   };
-  const create = () => { onClose(); openCreateBot(); };
-  const actionCls = "max-w-full min-w-0";
   return (
     <GrokDialog
       data-mac-empty={from.id}
-      width={560}
-      title={t("macEmpty.title", { device })}
-      description={t(back ? "macEmpty.body" : "macEmpty.bodyOpen", { name, device })}
+      width={480}
+      art={<PlaceArt name={from.why === "cloud" || from.why === "team" ? "cloud" : "server"} size={44} />}
+      title={<span title={name}>{t("macEmpty.title", { name })}</span>}
+      description={t(back ? "macEmpty.body" : "macEmpty.bodyOpen", { device })}
       onClose={onClose}
       footer={
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
           <button type="button" data-mac-empty-later="" className={mdSecondaryCls} onClick={onClose}>{t("macEmpty.notNow")}</button>
-          <button type="button" data-mac-empty-create="" className={mdSecondaryCls} onClick={create}>
-            <Plus size={14} aria-hidden="true" />
-            {t("macEmpty.create")}
-          </button>
-          {back
-            ? <button type="button" data-mac-empty-back="" data-autofocus="" className={`${mdPrimaryCls} ${actionCls}`} disabled={busy || Boolean(note)} onClick={() => void bringBack()}><span className="truncate">{t("macEmpty.bringBack", { name })}</span></button>
-            : <button type="button" data-mac-empty-open="" data-autofocus="" className={`${mdPrimaryCls} ${actionCls}`} disabled={busy} onClick={openThere}><span className="truncate">{t("macEmpty.open", { name })}</span></button>}
+          {back && <button type="button" data-mac-empty-back="" className={mdSecondaryCls} disabled={busy || Boolean(note)} onClick={() => void bringBack()}>{t("macEmpty.bringBack", { device })}</button>}
+          <button type="button" data-mac-empty-open="" data-autofocus="" className={`${mdPrimaryCls} max-w-full min-w-0`} disabled={busy || Boolean(note)} onClick={switchThere}><span className="truncate">{t("macEmpty.open", { name })}</span></button>
         </div>
       }
     >

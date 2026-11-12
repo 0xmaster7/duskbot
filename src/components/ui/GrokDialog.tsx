@@ -103,6 +103,8 @@ export function GrokDialog(props: DialogProps) {
 interface DialogProps {
   title: ReactNode;
   description?: ReactNode;
+  /** a small picture over the title, sheet only */
+  art?: ReactNode;
   width?: number;
   onClose: () => void;
   footer?: ReactNode;
@@ -115,7 +117,7 @@ const titleCls = "m-0 min-w-0 truncate pl-2 text-[17px] font-medium leading-6 tr
 
 /** The same dialog as one pane of a railed sheet: Settings' header and scrolling body, the footer right under its content.
  * Grok's panes carry a title and nothing under it, so a description is left to the dialog on its own. */
-function PaneView({ title, description: _description, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
+function PaneView({ title, description: _description, art: _art, footer, children, onClose: _onClose, width: _width, ...rest }: DialogProps) {
   const titleId = useId();
   return (
     <section {...rest} aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
@@ -130,7 +132,7 @@ function PaneView({ title, description: _description, footer, children, onClose:
   );
 }
 
-function SheetView({ title, description, width = 440, onClose, footer, children, ...rest }: DialogProps) {
+function SheetView({ title, description, art, width = 440, onClose, footer, children, ...rest }: DialogProps) {
   const sheet = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -151,7 +153,9 @@ function SheetView({ title, description, width = 440, onClose, footer, children,
         className={formSheetCls}
       >
         <header className={formHeaderCls}>
-          <h2 id={titleId} className={formTitleCls}>{title}</h2>
+          {art
+            ? <div className="flex min-w-0 flex-1 flex-col items-start gap-3 pt-1">{art}<h2 id={titleId} className={cn(formTitleCls, "w-full")}>{title}</h2></div>
+            : <h2 id={titleId} className={formTitleCls}>{title}</h2>}
           <button type="button" aria-label={t("common.close")} onClick={() => close.current()} className={formCloseCls}>
             <Icon name="close" size={16} />
           </button>
