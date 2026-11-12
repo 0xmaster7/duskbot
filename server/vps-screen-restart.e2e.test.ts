@@ -5,7 +5,8 @@ import { launchVerificationServer, type VerificationServer } from "../scripts/co
 import { fixtureApi } from "../scripts/testing/preview-fixture.ts";
 import { createTeamVpsFixture } from "../scripts/testing/team-vps-fixture.ts";
 
-it.skipIf(process.platform === "win32").each(["provision", "join?viewer=proxy"])("reinitializes bot screens through %s after a same-container restart without revoking a healthy boot", async action => {
+// opening a viewer never wakes a screen, so after a restart join?viewer=proxy asks for the wake and provision does it
+it.skipIf(process.platform === "win32").each([false, true])("reinitializes bot screens through provision after a same-container restart without revoking a healthy boot (viewer first: %s)", async viewerFirst => {
   const vps = await createTeamVpsFixture({ screens: true });
   let fixture: VerificationServer | undefined;
   try {
@@ -43,7 +44,11 @@ it.skipIf(process.platform === "win32").each(["provision", "join?viewer=proxy"])
     restarted.State = { ...restarted.State, Running: true, Status: "running", StartedAt: "2026-11-07T00:00:01.000000001Z" };
     writeFileSync(recordPath, JSON.stringify(restarted));
     for (const file of readdirSync(vps.screenRecords)) unlinkSync(join(vps.screenRecords, file));
-    const result = await api("POST", `/api/bots/${bot.id}/computer/${action}`, {});
+    if (viewerFirst) {
+      await expect(api("POST", `/api/bots/${bot.id}/computer/join?viewer=proxy`, {})).rejects.toThrow("Wake this bot screen before opening it");
+      expect(resets()).toBe(firstResetCount);
+    }
+    const result = await api("POST", `/api/bots/${bot.id}/computer/provision`, {});
     const ready = await api("GET", `/api/bots/${bot.id}/computer`);
     expect(result.viewerKey).toBe(ready.viewerKey);
     expect(ready.container_id).toBe(initial.container_id);
