@@ -34,7 +34,7 @@ import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import 
 import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLink, organizationRestartIntent, withOrganizationRestartIntent, withoutOrganizationRestartIntent } from "./organization-entry.mjs";
 import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
-import { createStartupScreen, startupDark } from "./startup-screen.mjs";
+import { createStartupScreen, expectedLoadMs, rememberLoad, startupDark } from "./startup-screen.mjs";
 import { createStartupTrace } from "./startup-trace.mjs";
 import { createDevServerChild, devOwnServerWanted, devServerConflictMessage, watchServerSource } from "./dev-server-child.mjs";
 import { createSystemTray } from "./system-tray.mjs";
@@ -2436,6 +2436,14 @@ function rememberStartupTheme(light) {
   startupThemeSaved = next;
   fs.promises.writeFile(startupThemeFile(), next).catch(() => {});
 }
+// how long the last few launches took to load, so the opening card can pace its crew over that
+const startupLoadsFile = () => path.join(app.getPath("userData"), "startup-loads.json");
+function readStartupLoads() {
+  try { return JSON.parse(fs.readFileSync(startupLoadsFile(), "utf8"))?.loads ?? []; } catch { return []; }
+}
+function rememberStartupLoad(ms) {
+  fs.promises.writeFile(startupLoadsFile(), JSON.stringify({ loads: rememberLoad(readStartupLoads(), ms) })).catch(() => {});
+}
 ipcMain.handle("desktop:skin", (event, skin) => {
   if (!isKnownSkin(skin)) return false;
   if (chromeRail.owns(event)) return true;
@@ -3025,6 +3033,8 @@ app.whenReady().then(async () => {
     onShow: (win) => desktopTray?.windowShown(win),
     onFinished: () => { startupScreen = null; },
     dark: startupDark({ systemDark: nativeTheme.shouldUseDarkColors, saved: readStartupTheme() }),
+    expectedMs: expectedLoadMs(readStartupLoads()),
+    onLoaded: rememberStartupLoad,
   });
   // the splash is a data: page and paints on its own, so nothing waits for it
   const credentialsLoading = evictStartupCacheOnce({

@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 /** How long a page that shows its own waiting mascot keeps the splash up before it takes over. */
 export const BOOT_SHELL_HANDOFF_MS = 600;
 export const CROSSFADE_MS = 280;
-export const SLOW_AFTER_MS = 8_000;
 export const STUCK_AFTER_MS = 45_000;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -48,6 +47,56 @@ const CREW_COLORS = { goo: "#f75e51", pip: "#286ef9", mochi: "#f12b93", boxo: "#
 
 /** How long the crew cheers once the app is ready, before the app fades in over them. */
 export const CHEER_MS = 520;
+/** The longest the app waits for late mascots to finish arriving before the cheer. */
+export const CATCH_UP_MAX_MS = 1_800;
+
+/**
+ * The card paces itself by time, not by the launch marks (they land almost together, then the page load takes the rest).
+ * `firstRunMs` is the guess with no history; loads are clamped so five arrivals always fit with room between them.
+ */
+export const PACE = Object.freeze({ firstRunMs: 7_000, minMs: 4_500, maxMs: 20_000, gapMs: 1_000, burstGapMs: 240, waitLineMs: 3_200, remember: 5 });
+/** When the first four mascots turn up, as a share of the expected load; the fifth waits for the page to load. */
+export const ARRIVE_AT = Object.freeze([0, 0.22, 0.45, 0.7]);
+/** What the line says once the expected time has passed and the app still has not loaded, one after another. */
+export const WAIT_LINES = Object.freeze(["waking your bots", "loading your chats", "almost there", "taking a little longer\u2026"]);
+
+/** The load time to plan for: the median of the last few launches (splash shown to page loaded), else the first-run guess. */
+export function expectedLoadMs(history, pace = PACE) {
+  const loads = (Array.isArray(history) ? history : []).filter(ms => Number.isFinite(ms) && ms > 0).slice(-pace.remember).sort((a, b) => a - b);
+  if (!loads.length) return pace.firstRunMs;
+  const mid = loads.length >> 1, median = loads.length % 2 ? loads[mid] : (loads[mid - 1] + loads[mid]) / 2;
+  return Math.round(Math.min(pace.maxMs, Math.max(pace.minMs, median)));
+}
+
+/** The history with this launch added, keeping the last few. */
+export function rememberLoad(history, ms, pace = PACE) {
+  const loads = (Array.isArray(history) ? history : []).filter(value => Number.isFinite(value) && value > 0);
+  return Number.isFinite(ms) && ms > 0 && ms < 120_000 ? [...loads, Math.round(ms)].slice(-pace.remember) : loads.slice(-pace.remember);
+}
+
+// the two below also run inside the card, so they only use their arguments
+/**
+ * When each mascot arrives, in ms since the card opened: the first four spread over the expected load at least `gapMs` apart,
+ * the last only once the page has loaded. A load that beats the plan brings the rest in a short stagger. null is still waiting.
+ */
+export function crewArrivals({ expectedMs, loadedAt = null, pace, arriveAt, count }) {
+  const out = [];
+  let last = -Infinity;
+  for (let k = 0; k < count; k++) {
+    let at = k < arriveAt.length ? Math.max(arriveAt[k] * expectedMs, last + pace.gapMs) : Infinity;
+    if (loadedAt !== null && at > loadedAt) at = Math.max(loadedAt, last + pace.burstGapMs);
+    if (at === Infinity) { out.push(null); continue; }
+    out.push(at); last = at;
+  }
+  return out;
+}
+
+/** The percent shown at `t` ms: eased out to 90 over the expected load, then creeping toward 99 and never reaching it. */
+export function progressAt(t, expectedMs) {
+  if (t <= 0) return 0;
+  if (t < expectedMs) return 90 * (1 - (1 - t / expectedMs) ** 1.6);
+  return 90 + 9 * (1 - Math.exp(-(t - expectedMs) / (expectedMs * 1.5)));
+}
 
 /**
  * Light or dark for the card. `saved` is the last skin the app wore and whether the system was dark then:
@@ -58,7 +107,7 @@ export function startupDark({ systemDark, saved }) {
   return saved.light === saved.systemDark ? !saved.light : systemDark;
 }
 
-export function startupScreenHtml({ dark = false } = {}) {
+export function startupScreenHtml({ dark = false, expectedMs = PACE.firstRunMs } = {}) {
   const t = dark ? THEMES.dark : THEMES.light;
   const crew = CREW.map(name => ({ name, color: CREW_COLORS[name] ?? t.ink, eyeColor: CREW_COLORS[name] ? "#ffffff" : t.kitEyes, ...SPRITES[name] }));
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="${dark ? "dark" : "light"}"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>dusk bot</title><style>
@@ -100,17 +149,20 @@ export function startupScreenHtml({ dark = false } = {}) {
   <div class="meta" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="0 of ${CREW.length} here" aria-label="opening dusk bot"><b class="here">0 of ${CREW.length}</b> here<span class="pct">0%</span></div>
   <p class="detail"></p>
   <div class="actions"><button class="go" data-act="retry">try again</button><button class="stop" data-act="quit">quit</button></div>
-  </main><script>${pageScript({ crew, ghost: t.ghost, shadow: t.shadow, track: t.track })}</script></body></html>`;
+  </main><script>${pageScript({ crew, ghost: t.ghost, shadow: t.shadow, track: t.track, expectedMs })}</script></body></html>`;
 }
 
-// one mascot hops in from the right when its step lands; the percent creeps toward the next step and never reaches it first.
+// the crew turns up on a schedule spread over how long launches usually take; the last one waits for the page to load.
 // the canvas redraws on animation frames only while someone is moving, otherwise a few times a second for the idle bob.
-const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
+const pageScript = ({ crew, ghost, shadow, track, expectedMs }) => `(() => {
   const CREW = ${JSON.stringify(crew)}, GHOST = ${JSON.stringify(ghost)}, SHADOW = ${JSON.stringify(shadow)}, TRACK = ${JSON.stringify(track)};
-  const W = ${W}, H = ${H}, S = 4, FLOOR = 178, HOP_MS = 600, GAP_MS = 160, CHEER_HOP = 260, CHEER_GAP = 60;
+  const W = ${W}, H = ${H}, S = 4, FLOOR = 178, HOP_MS = 600, CHEER_HOP = 260, CHEER_GAP = 60, PACE_TICK = 200;
+  const PACE = ${JSON.stringify(PACE)}, ARRIVE_AT = ${JSON.stringify(ARRIVE_AT)}, WAIT_LINES = ${JSON.stringify(WAIT_LINES)}, EXPECTED = ${Math.round(expectedMs)};
+  const crewArrivals = ${crewArrivals.toString()};
+  const progressAt = ${progressAt.toString()};
   const body = document.body, line = document.querySelector('.line'), detail = document.querySelector('.detail');
   const meta = document.querySelector('.meta'), here = document.querySelector('.here'), pct = document.querySelector('.pct');
-  const lines = ${JSON.stringify(STEPS.map(([, text]) => text))}, total = lines.length, span = 100 / total;
+  const lines = ${JSON.stringify(STEPS.map(([, text]) => text))}, total = lines.length;
   const still = matchMedia('(prefers-reduced-motion: reduce)');
   const canvas = document.querySelector('.scene'), dpr = Math.max(1, Math.round(devicePixelRatio || 1));
   canvas.width = W * dpr; canvas.height = H * dpr;
@@ -129,7 +181,8 @@ const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
   };
   const ease = v => 1 - (1 - v) ** 3, snap = v => Math.round(v / S) * S;
   const slot = k => W / 2 + (k - (CREW.length - 1) / 2) * 78 - 32;
-  let mood = 'idle', step = 0, value = 0, cheerAt = 0, pinned = false, over = false, lastArrival = -Infinity, frame = 0, timer = 0;
+  const t0 = performance.now();
+  let mood = 'idle', value = 0, cheerAt = 0, pinned = false, over = false, loadedAt = null, ready = false, waitShown = -1, frame = 0, timer = 0;
   const arrivals = CREW.map(() => null);
   const draw = now => {
     g.clearRect(0, 0, W, H);
@@ -179,13 +232,10 @@ const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
     else if (!still.matches && mood === 'idle') timer = setTimeout(tick, 125);
   };
   const wake = () => { if (!frame) { clearTimeout(timer); frame = requestAnimationFrame(tick); } };
-  const arrive = n => {
-    const now = performance.now();
-    for (let k = 0; k < n; k++) if (arrivals[k] === null) { lastArrival = Math.max(now, lastArrival + GAP_MS); arrivals[k] = lastArrival; }
-    wake();
-  };
+  let wrote = line.textContent;
   const write = text => {
-    if (line.textContent === text) return;
+    if (wrote === text) return;
+    wrote = text;
     line.classList.add('out');
     setTimeout(() => { line.textContent = text; line.classList.remove('out'); }, 180);
   };
@@ -193,16 +243,35 @@ const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
     const shown = Math.floor(value);
     pct.textContent = shown + '%'; meta.setAttribute('aria-valuenow', String(shown));
   };
-  const creep = setInterval(() => {
-    const ceiling = step * span - 2;
-    if (value < ceiling) { value += (ceiling - value) * 0.05; show(); }
-  }, 250);
-  const quiet = () => over || body.classList.contains('stuck');
-  const slowly = setTimeout(() => { if (!pinned && !quiet()) write('taking a little longer\\u2026'); }, ${SLOW_AFTER_MS});
+  const quiet = () => over || pinned || body.classList.contains('stuck');
+  const plan = () => crewArrivals({ expectedMs: EXPECTED, loadedAt, pace: PACE, arriveAt: ARRIVE_AT, count: total });
+  // places whoever is due, moves the percent along the eased curve and picks the line; nothing here follows the raw marks
+  const pace = () => {
+    if (over) return;
+    const t = performance.now() - t0, due = plan();
+    let newest = -1, landed = false;
+    due.forEach((at, k) => {
+      if (at === null || at > t) return;
+      newest = k;
+      if (arrivals[k] === null) { arrivals[k] = t0 + at; landed = true; }
+    });
+    if (landed) wake();
+    // once loaded, the percent closes in on 99 over the catch-up; it only reads 100 when the cheer starts
+    const goal = loadedAt === null ? progressAt(t, EXPECTED) : 99;
+    value = mood === 'cheer' ? 100 : Math.max(value, loadedAt === null ? goal : value + (goal - value) * .35);
+    show();
+    if (quiet() || mood === 'cheer') return;
+    const lastPlanned = due[ARRIVE_AT.length - 1] ?? 0, waiting = t - Math.max(EXPECTED, lastPlanned + PACE.gapMs);
+    if (loadedAt === null && waiting >= 0) {
+      const n = Math.min(WAIT_LINES.length - 1, Math.floor(waiting / PACE.waitLineMs));
+      if (n !== waitShown) { waitShown = n; write(WAIT_LINES[n]); }
+    } else if (newest >= 0 && (waitShown < 0 || newest === total - 1)) write(lines[newest]);
+  };
+  const pacer = setInterval(pace, PACE_TICK);
   const trouble = (kind, text, why = '') => {
     if (over) return;
-    over = kind === 'failed'; clearTimeout(slowly);
-    if (over) clearInterval(creep);
+    over = kind === 'failed';
+    if (over) clearInterval(pacer);
     detail.textContent = why; detail.title = why;
     body.classList.remove('stuck'); body.classList.add(kind);
     mood = kind; write(text); wake();
@@ -215,26 +284,32 @@ const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
     window.startupScreen?.[button.dataset.act]?.();
   });
   still.addEventListener?.('change', wake);
+  const loaded = () => { if (loadedAt === null) { loadedAt = performance.now() - t0; pace(); } };
   window.card = {
     say: text => { pinned = true; if (!over) write(text); },
-    step: n => {
-      if (over || !(n > step) || n > total) return;
-      step = n; value = Math.max(value, (n - 1) * span); show(); arrive(n);
-      if (!pinned && !quiet()) write(lines[n - 1]);
-    },
+    // only the last mark (the page loaded) changes the plan; the earlier ones land together and would rush the crew
+    step: n => { if (!over && n >= total) loaded(); },
     fail: why => { clearTimeout(stuck); trouble('failed', "couldn't start", why || ''); },
+    // returns how long until everyone has landed and the cheer starts, so the app waits for it
     ready: () => {
-      clearTimeout(slowly); clearTimeout(stuck); clearInterval(creep);
-      if (over) return;
-      body.classList.remove('stuck');
-      // anyone still on the way is simply there; then everyone cheers
-      for (let k = 0; k < total; k++) arrivals[k] = -Infinity;
-      step = total; value = 100; show(); mood = 'cheer'; cheerAt = performance.now();
-      if (!pinned) write("everyone's here");
-      wake();
+      if (over || ready) return 0;
+      ready = true; clearTimeout(stuck); loaded();
+      body.classList.remove('stuck'); if (mood === 'stuck') mood = 'idle';
+      const last = Math.max(0, ...plan().filter(at => at !== null)) + t0;
+      const lead = Math.min(${CATCH_UP_MAX_MS}, Math.max(0, last - performance.now() + (still.matches ? 0 : HOP_MS)));
+      setTimeout(() => {
+        if (over) return;
+        clearInterval(pacer);
+        // anyone the cap cut short is simply there
+        for (let k = 0; k < total; k++) if (arrivals[k] === null || arrivals[k] > performance.now() - HOP_MS) arrivals[k] = -Infinity;
+        value = 100; show(); mood = 'cheer'; cheerAt = performance.now();
+        if (!pinned) write("everyone's here");
+        wake();
+      }, lead);
+      return lead;
     },
   };
-  window.card.step(1);
+  pace();
   // a reload or a late script can land before the first paint
   draw(performance.now());
 })();`;
@@ -242,6 +317,7 @@ const pageScript = ({ crew, ghost, shadow, track }) => `(() => {
 export function createStartupScreen({
   BrowserWindow, iconPath, platform = process.platform, isQuitting, onQuit, onRetry,
   onHide, isHidden = () => false, onShow, onFinished, dark = false,
+  expectedMs = PACE.firstRunMs, onLoaded, now = Date.now,
 }) {
   let disposed = false, revealed = false, fallback, resolveReady;
   // window opacity is a no-op on Linux, so there the app just appears
@@ -279,10 +355,11 @@ export function createStartupScreen({
     else if (channel === "startup-screen:quit") onQuit();
     else if (channel === "startup-screen:retry") (onRetry ?? onQuit)();
   });
-  let shown = false;
+  let shown = false, shownAt = null;
+  const openedAt = now();
   const showSplash = () => {
     if (shown || disposed || isQuitting()) return;
-    shown = true; splash.show(); resolveReady();
+    shown = true; shownAt = now(); splash.show(); resolveReady();
   };
   splash.once("ready-to-show", showSplash);
   // Some Wayland compositors (COSMIC) never paint a hidden window, so ready-to-show never comes.
@@ -304,7 +381,7 @@ export function createStartupScreen({
   splash.webContents.on("did-finish-load", tell);
   const startupFallback = setTimeout(resolveReady, 10_000);
   startupFallback.unref?.();
-  void splash.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupScreenHtml({ dark })))
+  void splash.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(startupScreenHtml({ dark, expectedMs })))
     .catch(resolveReady);
   const attach = (win, { maximized = false } = {}) => {
     const reveal = () => {
@@ -324,8 +401,9 @@ export function createStartupScreen({
       dispose();
     };
     const fadeIn = async (win) => {
-      void page("window.card?.ready()");
-      await wait(CHEER_MS);
+      // late mascots finish landing first; the card says how long that takes
+      const lead = Number(await page("window.card?.ready()")) || 0;
+      await wait(Math.min(CATCH_UP_MAX_MS, Math.max(0, lead)) + CHEER_MS);
       if (win.isDestroyed() || isQuitting()) { dispose(); return; }
       win.setOpacity(0); win.show(); win.focus();
       await crossfade(win, splash);
@@ -357,6 +435,8 @@ export function createStartupScreen({
     const at = STEPS.findIndex(([name]) => name === mark) + 1;
     if (at <= step) return;
     step = at; tell();
+    // how long this launch took from the card showing to the page loading, so the next one can pace itself
+    if (mark === STEPS.at(-1)[0]) { try { onLoaded?.(now() - (shownAt ?? openedAt)); } catch {} }
   };
   /** Startup gave up: the card says so and offers try again and quit instead of waiting forever. */
   const fail = (error) => {

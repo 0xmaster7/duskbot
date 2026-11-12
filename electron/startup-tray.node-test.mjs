@@ -236,15 +236,19 @@ test("startup marks move the card forward, never back, and a reload shows the st
   class Said extends UnreadyWindow {
     constructor(options) { super(options); this.webContents.executeJavaScript = async (code) => { ran.push(code); }; }
   }
-  const { splash } = fixture({ BrowserWindow: Said, dark: true });
+  const loads = [];
+  let clock = 1_000;
+  const { splash } = fixture({ BrowserWindow: Said, dark: true, now: () => clock, onLoaded: ms => loads.push(ms) });
   assert.equal(splash.window.options.backgroundColor, "#141418");
   assert.equal(splash.window.options.transparent, undefined);
   splash.progress("splash"); splash.progress("server"); splash.progress("credentials");
   assert.deepEqual(ran, ["window.card?.step(3)"]);
   splash.window.webContents.emit("did-finish-load");
   assert.deepEqual(ran, ["window.card?.step(3)", "window.card?.step(3)"]);
+  clock = 8_200;
   splash.progress("loaded");
   assert.equal(ran.at(-1), "window.card?.step(5)");
+  assert.deepEqual(loads, [7_200], "the load time is kept so the next launch paces itself");
 });
 
 test("the macOS tray icon is a template image, elsewhere the logo", () => {

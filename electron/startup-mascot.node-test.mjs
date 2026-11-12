@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { bootShellHtml } from "./startup-mascot.mjs";
-import { CREW, STEPS, startupDark, startupScreenHtml } from "./startup-screen.mjs";
+import { ARRIVE_AT, CREW, PACE, STEPS, crewArrivals, expectedLoadMs, progressAt, rememberLoad, startupDark, startupScreenHtml } from "./startup-screen.mjs";
 
 test("the splash is the crew on their line, one empty spot per step, in the theme it was asked for", () => {
   const light = startupScreenHtml(), dark = startupScreenHtml({ dark: true });
@@ -49,4 +49,52 @@ test("the boot shell hides itself once the app renders into #root", () => {
   const html = bootShellHtml();
   assert.match(html, /#root:not\(:empty\)\+#boot-shell\{display:none\}/);
   assert.match(html, /<div id="boot-shell" aria-hidden="true"><svg/);
+});
+
+const arrivals = (expectedMs, loadedAt = null) => crewArrivals({ expectedMs, loadedAt, pace: PACE, arriveAt: ARRIVE_AT, count: CREW.length });
+
+test("marks that land together then a long page load still bring the crew in one by one, spread over the wait", () => {
+  // the real trace: credentials, server and window within a few hundred ms, then the page takes seconds to load
+  const expectedMs = expectedLoadMs([6_800, 7_400, 7_100]);
+  assert.equal(expectedMs, 7_100);
+  const before = arrivals(expectedMs);
+  assert.equal(before.at(-1), null, "the last mascot waits for the page to load");
+  const landed = before.filter(at => at !== null);
+  assert.equal(landed.length, 4);
+  for (let k = 1; k < landed.length; k++) assert.ok(landed[k] - landed[k - 1] >= PACE.gapMs, `gap before mascot ${k}`);
+  assert.ok(landed.at(-1) >= expectedMs * 0.6, "the fourth arrives late in the wait, not with its mark");
+  const done = arrivals(expectedMs, 7_300);
+  assert.deepEqual(done.slice(0, 4), landed);
+  assert.equal(done.at(-1), 7_300);
+  // percent eases out, stays below 100 even when the load runs long, and never goes back
+  let last = 0;
+  for (let t = 0; t <= 60_000; t += 250) { const p = progressAt(t, expectedMs); assert.ok(p >= last && p < 99, `${t}ms ${p}`); last = p; }
+  assert.ok(progressAt(expectedMs / 2, expectedMs) > 50, "ease-out: more than half by halfway");
+  assert.ok(progressAt(expectedMs, expectedMs) <= 90);
+});
+
+test("a load that beats the plan brings the rest in a short stagger, not all at once", () => {
+  const out = arrivals(7_000, 2_000);
+  assert.deepEqual(out.slice(0, 2), [0, 0.22 * 7_000]);
+  assert.equal(out[2], 2_000);
+  for (let k = 3; k < out.length; k++) assert.equal(out[k] - out[k - 1], PACE.burstGapMs);
+});
+
+test("the plan is the median of the last few launches, clamped, with a first-run guess", () => {
+  assert.equal(expectedLoadMs(null), PACE.firstRunMs);
+  assert.equal(expectedLoadMs([1_000]), PACE.minMs);
+  assert.equal(expectedLoadMs([90_000, 60_000]), PACE.maxMs);
+  assert.equal(expectedLoadMs([5_000, 40_000, 6_000]), 6_000, "one slow cold start does not drag the plan");
+  assert.deepEqual(rememberLoad([1, 2, 3, 4, 5], 6_000.4), [2, 3, 4, 5, 6_000]);
+  assert.deepEqual(rememberLoad([5_000], -1), [5_000]);
+  assert.deepEqual(rememberLoad("junk", 4_000), [4_000]);
+});
+
+test("the card script parses and carries the plan it was given", () => {
+  const html = startupScreenHtml({ expectedMs: 9_000 });
+  const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+  assert.doesNotThrow(() => new Function(script));
+  assert.match(script, /EXPECTED = 9000/);
+  assert.match(script, /waking your bots/);
+  assert.doesNotMatch(script, /\u2014/);
 });
