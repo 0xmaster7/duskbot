@@ -77,7 +77,7 @@ export function fixtureClouds(scenario: Scenario, now = Date.now()): CloudDeskto
 
 function fixtureBots(kind: WorkspaceKind, now: number): BotReport[] {
   const names = kind === "mac" ? [["nova", "Nova", "blue", "blob"], ["quill", "Quill", "purple", "clover"], ["juno", "Juno", "pink", "heart"], ["basil", "Basil", "yellow", "teardrop"]] : kind === "vps" ? [["rivet", "Rivet", "orange", "hex"]] : [["tally", "Tally", "green", "star"], ["echo", "Echo", "teal", "capsule"]];
-  return names.map(([id, name, color, body], i) => ({ id, name, color, body: body ?? null, model: i === 1 ? "claude-opus-4.6" : "gpt-5.5", engine: i === 1 ? "Claude" : "Codex", computer: kind === "mac" ? "local-vm" : "vps", busy: (kind === "mac" || kind === "linux") && i === 0, lastActiveAt: now - i * 18 * 60_000, routines: [{ id: `${id}-brief`, name: i === 0 ? "Morning brief" : "Weekly review", schedule: i === 0 ? "Every day at 8:00" : "Every Friday at 17:00", paused: false, nextRunAt: now + (i + 1) * 3600_000, lastRunAt: now - DAY }] }));
+  return names.map(([id, name, color, body], i) => ({ id, name, color, body: body ?? null, model: i === 1 ? "claude-opus-4.6" : "gpt-5.5", engine: i === 1 ? "Claude" : "Codex", computer: kind === "mac" ? "local-vm" : "vps", busy: (kind === "mac" || kind === "linux") && i === 0, lastActiveAt: now - i * 18 * 60_000, routines: [{ id: `${id}-brief`, name: i === 0 ? "Morning brief" : "Weekly review", schedule: i === 0 ? "Every day at 8:00" : "Every Friday at 17:00", paused: false, nextRunAt: now + (i + 1) * 3600_000, lastRunAt: kind === "linux" && i === 0 ? now - 4 * 60_000 : now - DAY, ...(kind === "linux" && i === 0 ? { running: true } : {}) }] }));
 }
 
 function fixtureActivity(bots: BotReport[], seed: number, now: number): ActivityReport {
