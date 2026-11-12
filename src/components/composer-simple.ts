@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import type { CSSProperties } from "react";
 import { BOT_BUTTON, botButtonStyle, botButtonTone, type BotButton } from "@/lib/bot-button";
 import { cn } from "@/lib/cn";
-import { GROK_BOT_FILLS } from "./chat-bubble";
+import { GROK_BOT_FILLS } from "@/lib/user-bubble-tone";
 
 // inset-ring, not ring-inset: the --color-inset token turns ring-inset into a ring colour that beats ring-ink
 /** Simple mode's composer pill on a wider screen: the field, the mic and the round button in one shell. */

@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { contrastRatio, mixSrgb, toOklch } from "./color-contrast";
-import { MAUS_COLORS, type MausColor } from "./mascot";
+import { MAUS_COLOR_NAMES, MAUS_COLORS, type MausColor } from "./mascot";
 
 const WHITE = "#ffffff";
 const BLACK = "#000000";
@@ -240,3 +240,9 @@ export function userBubbleStyle(color: MausColor, { flat = false }: { flat?: boo
     "--bubble-selection-ink": tone.selectionInk,
   } as CSSProperties;
 }
+
+/** Grok's per-colour fills, as css values that follow the color-scheme. Here rather than in chat-bubble, so the home
+ * page's composer can read them without pulling the chat (and the store) into its bundle. */
+export const GROK_BOT_FILLS: Partial<Record<MausColor, GrokFill>> = Object.fromEntries(
+  MAUS_COLOR_NAMES.map((color) => [color, grokFills(color)]),
+);

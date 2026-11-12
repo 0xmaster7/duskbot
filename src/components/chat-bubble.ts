@@ -1,11 +1,11 @@
 import { cn } from "@/lib/cn";
-import { grokFills, type GrokFill } from "@/lib/user-bubble-tone";
+import { GROK_BOT_FILLS } from "@/lib/user-bubble-tone";
 import { failedTurnCause } from "@/lib/failed-turn";
 import { isStatusActivity } from "@/lib/activity-runs";
 import { peerLine, peerRequest } from "@/lib/peer-message";
 import { localDay } from "@/lib/transcript-derivations";
 import type { TranscriptItem } from "@/lib/activity-runs";
-import { MAUS_COLOR_NAMES, type MausColor } from "@/lib/mascot";
+import { type MausColor } from "@/lib/mascot";
 import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
@@ -21,10 +21,7 @@ export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} chat-bubble-bot text-in
 /** Simple mode's own bubble, 15/20 like grok's; the bot's colour, when on, comes from its inline style. */
 export const SIMPLE_USER_BUBBLE = `min-w-9 rounded-[18px] px-3 py-[7px] text-[15px] leading-5 chat-bubble-user bg-bubble-user font-normal`;
 
-/** Grok's per-colour fills (user-bubble-tone.ts holds the table), as css values that follow the color-scheme. */
-export const GROK_BOT_FILLS: Partial<Record<MausColor, GrokFill>> = Object.fromEntries(
-  MAUS_COLOR_NAMES.map((color) => [color, grokFills(color)]),
-);
+export { GROK_BOT_FILLS };
 
 /** Your bubble's fill in Simple mode on the grok skins: grok's own value for the bot's colour. */
 export function grokUserBubbleFill(color: MausColor | undefined): string | undefined {
