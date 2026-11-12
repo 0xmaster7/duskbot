@@ -58,6 +58,8 @@ it("discovers custom ACP models and preserves independent bot and thread choices
       environment: { FAKE_CUSTOM_ACP_DIRECTORY: nativeDir } };
     writeFileSync(configPath, JSON.stringify(config));
     await restart();
+    // health answers before a loaded machine has registered the custom engine
+    await expect.poll(async () => (await api("GET", "/api/instances")).instances.some((entry: any) => entry.instanceId === engineId), { timeout: 20_000 }).toBe(true);
     await api("POST", `/api/instances/${engineId}/refresh-models`, {});
     // a start answers before its first status read (Checking engine status), so wait for that read
     let engine: any;
