@@ -8,7 +8,7 @@ import { Icon } from "./Icon";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
-import { Art, type ArtName } from "./ui/Art";
+import { Art, HeadArt, type ArtName } from "./ui/Art";
 
 /* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
    30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
@@ -30,9 +30,9 @@ export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "m
 
 export function CardLabel({ children, action, id, art }: { children: ReactNode; action?: ReactNode; id?: string; art?: ArtName }) {
   return (
-    <div data-settings-group-head="" className="mb-2.5 flex min-h-[18px] flex-col items-start px-3 text-[13px] leading-[18px] tracking-normal text-ink-secondary">
-      {art && <Art name={art} className="mb-2.5" />}
-      <div className="flex w-full items-center justify-between gap-1">
+    <div data-settings-group-head="" className="mb-2.5 flex min-h-[18px] items-center gap-3 px-3 text-[13px] leading-[18px] tracking-normal text-ink-secondary">
+      {art && <HeadArt name={art} />}
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
         <h3 id={id} data-settings-heading="" className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
         {action}
       </div>

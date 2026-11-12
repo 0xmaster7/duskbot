@@ -1,7 +1,7 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { useOptimisticSwitch } from "./ui/optimistic-switch";
-import { Art, type ArtName } from "./ui/Art";
+import { HeadArt, type ArtName } from "./ui/Art";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
 export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-transparent bg-composer p-1";
@@ -124,13 +124,15 @@ export function SettingsGroup({ label, art, hint, block, actions, footnote, chil
       className="flex scroll-mt-4 flex-col gap-2.5 has-[>[data-settings-rows]:empty]:hidden has-[>[data-settings-rows]>:only-child:empty]:hidden"
     >
       {(label || actions) && (
-        <div data-settings-group-head="" className="flex min-h-[18px] flex-col items-start gap-0 px-3">
-          {art && <Art name={art} className="mb-2.5" />}
-          <div className="flex w-full items-center justify-between gap-3">
-            {label && <h3 id={labelId} data-settings-heading="" className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
-            {actions}
+        <div data-settings-group-head="" className="flex min-h-[18px] items-center gap-3 px-3">
+          {art && <HeadArt name={art} />}
+          <div className="min-w-0 flex-1">
+            <div className="flex w-full items-center justify-between gap-3">
+              {label && <h3 id={labelId} data-settings-heading="" className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
+              {actions}
+            </div>
+            {hint && <p data-settings-group-hint="" className="text-[13px] leading-[18px] text-ink-secondary">{hint}</p>}
           </div>
-          {hint && <p data-settings-group-hint="" className="text-[13px] leading-[18px] text-ink-secondary">{hint}</p>}
         </div>
       )}
       {children}

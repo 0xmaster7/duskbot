@@ -2,7 +2,7 @@
 import { act, createElement, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
-import { placeHealth } from "./WorkspacesSettings";
+import { currentKind, placeHealth } from "./WorkspacesSettings";
 import { Segmented } from "./ui/Segmented";
 
 it("dots a place green while it answers, gray while asleep or setting up, red when it needs the person", () => {
@@ -12,6 +12,14 @@ it("dots a place green while it answers, gray while asleep or setting up, red wh
   expect(placeHealth({ opens: true, progress: 0.4 })).toBe("setting-up");
   expect(placeHealth({ opens: true, ended: true })).toBe("problem");
   expect(placeHealth({ opens: false, waiting: true, progress: 0 })).toBe("problem");
+});
+
+it("names the window's own place by what it is when there is no list: a server connected by hand is never this computer", () => {
+  expect(currentKind({ local: false })).toBe("server");
+  expect(currentKind({ local: false, role: "Admin" })).toBe("team");
+  expect(currentKind({ local: false, home: true })).toBe("cloud");
+  expect(currentKind({ local: true })).toBe("computer");
+  expect(currentKind(null)).toBe("computer");
 });
 
 it("moves a segmented pill's choice with the arrows, wrapping, and keeps one tab stop", async () => {

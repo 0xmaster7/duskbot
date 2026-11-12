@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { removePlace, usePlaces, type RailPlace } from "@/lib/places";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
-import { Trash2 } from "../icons";
+import { Cloud, Plus, Trash2 } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { useWorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { NavRow, NoteRow } from "./ListRows";
@@ -43,7 +43,16 @@ function kindWord(kind: RailPlace["kind"]): string {
 
 const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 
-/** One workspace: a status dot, its name and what it is, then "current" or a click that switches to it. */
+/** What a place is, from the window's own word for it when there is no list of places to read: a Cloud that is home,
+ * this computer's own data, a team's Cloud (it carries a role), or else a server connected by hand. */
+export function currentKind(current: { local?: boolean; home?: boolean; role?: string } | null): RailPlace["kind"] {
+  if (current?.home) return "cloud";
+  if (!current || current.local) return "computer";
+  return current.role ? "team" : "server";
+}
+
+/** One workspace: a status dot in the row's leading slot, its name and what it is, then the remove button and "current"
+ * or the switch pill, flush with the other rows' chevrons. */
 function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onOpen: () => void; onRemove?: () => void; busy: boolean }) {
   const health = placeHealth(place);
   const current = place.active === true;
@@ -51,31 +60,33 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
   const hint = place.name === kind ? t(HEALTH_WORD[health]) : `${kind} · ${t(HEALTH_WORD[health])}`;
   const body = (
     <>
-      <span aria-hidden="true" data-workspace-dot={health} className={cn("size-2 shrink-0 rounded-full", DOT[health])} />
+      <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">
+        <span data-workspace-dot={health} className={cn("size-2 rounded-full", DOT[health])} />
+      </span>
       <span className="min-w-0 flex-1">
         <span data-row-title="" className="block truncate text-[13px] leading-[18px] text-ink">{place.name}</span>
         <span data-row-hint="" className="block truncate text-[12px] leading-4 text-ink-secondary">{hint}</span>
       </span>
-      {current
-        ? <span data-workspace-current="" className="flex shrink-0 items-center gap-1 px-2.5 py-1 text-[12px] font-semibold leading-4 text-ink"><Icon name="check" size={12} />{t("connectedWorkspaces.current")}</span>
-        : <span aria-hidden="true" className="shrink-0 rounded-full bg-ink/[0.06] px-2.5 py-1 text-[12px] font-medium leading-4 text-ink">{t("connectedWorkspaces.switch")}</span>}
     </>
   );
+  const status = current
+    ? <span data-workspace-current="" className="flex h-7 shrink-0 items-center gap-1 ps-2.5 text-[12px] font-semibold leading-4 text-ink"><Icon name="check" size={12} />{t("connectedWorkspaces.current")}</span>
+    : <span aria-hidden="true" className="flex h-7 shrink-0 items-center rounded-full bg-ink/[0.06] px-2.5 text-[12px] font-medium leading-4 text-ink">{t("connectedWorkspaces.switch")}</span>;
   return (
-    <div data-workspace={place.kind} data-workspace-health={health} className="flex min-w-0 items-center gap-1">
+    <div data-workspace={place.kind} data-workspace-health={health} className="relative flex min-w-0 items-center gap-4">
       {current
-        ? <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[12px] px-2.5 py-2" aria-current="true">{body}</div>
+        ? <div className="flex min-w-0 flex-1 items-center gap-4" aria-current="true">{body}</div>
         : <button type="button" disabled={busy || !place.opens} onClick={onOpen} aria-label={t("settings.s2.servers.switchTo", { name: place.name })}
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-[12px] px-2.5 py-2 text-start outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default disabled:opacity-60">
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 text-start outline-none after:absolute after:inset-0 after:rounded-[12px] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus disabled:cursor-default disabled:opacity-60">
             {body}
           </button>}
-      {!onRemove && <span aria-hidden="true" className="size-8 shrink-0" />}
       {onRemove && !current && (
         <button type="button" disabled={busy} onClick={onRemove} aria-label={t("settings.s2.servers.forget", { name: place.name })} title={t("settings.s2.servers.forget", { name: place.name })}
-          className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary outline-none hover:bg-ink/[0.05] hover:text-danger focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-45">
+          className="relative z-10 -my-1 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary outline-none hover:bg-ink/[0.06] hover:text-danger focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-45">
           <Trash2 size={13} aria-hidden="true" />
         </button>
       )}
+      {status}
     </div>
   );
 }
@@ -91,8 +102,8 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
   const mine = rail.places[0]?.group;
   const listed = rail.places.filter((place) => place.kind !== "account" && place.group === mine);
   const places: RailPlace[] = listed.length ? listed : [{
-    id: "local", name: here.current?.name || kindWord("computer"), color: null, opens: true, active: true,
-    kind: here.current?.home ? "cloud" : "computer",
+    id: "local", name: here.current?.name || kindWord(currentKind(here.current)), color: null, opens: true, active: true,
+    kind: currentKind(here.current),
   }];
   const hasCloud = places.some((place) => place.kind === "cloud" || place.kind === "team");
   const canBuy = Boolean(window.duskDesktop?.cloudAccount) && window.duskDesktop?.remoteClient?.active !== true;
@@ -119,10 +130,10 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
             onRemove={place.removable ? () => void remove(place) : undefined} />
         ))}
         <CloudMoveRow otherwise={!hasCloud && canBuy
-          ? <NavRow data-settings-open="get-cloud" title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
+          ? <NavRow data-settings-open="get-cloud" icon={Cloud} title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
               onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings" })} />
           : null} />
-        <NavRow data-settings-open="add-workspace" title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
+        <NavRow data-settings-open="add-workspace" icon={Plus} title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
         {(error || here.error) && <NoteRow tone="danger">{error || here.error}</NoteRow>}
       </SettingsRows>
     </SettingsGroup>

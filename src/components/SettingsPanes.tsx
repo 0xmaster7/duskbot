@@ -10,7 +10,6 @@ import { resolveSkin } from "@/lib/skins";
 import { setDressUp, useDressUp } from "@/lib/halloween-dress";
 import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
-import { Art } from "./ui/Art";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
 import { AdminOnly } from "./AdminOnly";
@@ -233,15 +232,14 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
 export function AdvancedFold({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: ReactNode }) {
   const id = useId();
   return (
-    <section data-settings-block="advanced-fold" data-settings-art="map" className="flex flex-col gap-1.5">
+    <section data-settings-block="advanced-fold" className="flex flex-col gap-1.5">
       <button type="button" aria-expanded={open} aria-controls={id} onClick={onToggle} data-settings-fold=""
         className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-start outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
-        <Art name="map" size="sm" />
         <span className="min-w-0 flex-1">
           <span className="block text-[14px] font-semibold leading-[19px] tracking-[-0.01em] text-ink">{t("settings.docs.advanced")}</span>
           <span className="block text-[13px] font-medium leading-[17px] text-ink-secondary">{t("settings.docs.advancedHint")}</span>
         </span>
-        <ChevronRight size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-90 motion-reduce:transition-none rtl:-scale-x-100" />
+        <ChevronRight size={14} aria-hidden="true" className="-me-0.5 shrink-0 text-ink-tertiary transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-90 motion-reduce:transition-none rtl:-scale-x-100" />
       </button>
       <div id={id} hidden={!open} className="flex flex-col gap-6">{children}</div>
     </section>
@@ -309,7 +307,7 @@ export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActiv
         )}
         <RoutineWakeRow />
         {has("computer") && (
-          <SettingsGroup label={t("settings.grok.group.browser")} art="binoculars" block="browser">
+          <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
             <SettingsRows>
               <BuiltInBrowserRow />
               <ServerSitesRow />
@@ -462,13 +460,13 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
       {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /></AdminOnly>}
       {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
       {((!limits.length && !usage) || usage || has("usage")) && (
-        <RowsCard label={t("settings.docs.usageMore")} art="chart" data-settings-block={!limits.length && !usage ? "usage" : undefined}>
+        <RowsCard label={t("settings.docs.usageMore")} data-settings-block={!limits.length && !usage ? "usage" : undefined}>
           {!limits.length && !usage && <ItemRow title={t("settings.usage.empty.title")} hint={t("settings.s2.usage.emptyHint")} />}
           {(usage || has("usage")) && <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />}
         </RowsCard>
       )}
       {has("cloudAccount") && (
-        <SettingsGroup label={t("settings.simple.billing.plan")} art="receipt" block="cloudAccount" footnote={<CloudPlanFootnote />}>
+        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount" footnote={<CloudPlanFootnote />}>
           <SettingsRows>
             <CloudPlanRow place="plan" usage={usage} upgrade={upgrade} />
             {!signedOut && cloudAccount && <PageRow page="plan" title={t("settings.section.cloudAccount")} />}
@@ -532,7 +530,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
     <>
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {has("connections") && (
-        <RowsCard label={t("settings.rows.more")} art="key" data-settings-block="models-more">
+        <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
           {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
           <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
         </RowsCard>

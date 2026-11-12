@@ -40,6 +40,11 @@ export type ArtName = keyof typeof ART;
 
 const SIZES = { sm: "h-8", md: "h-10", lg: "h-14", xl: "h-20" } as const;
 
+/** A group heading's prop: a fixed square beside the heading and its line, whatever the drawing's own proportions. */
+export function HeadArt({ name }: { name: ArtName }) {
+  return <Art name={name} className="size-8 object-contain" />;
+}
+
 export function Art({ name, size = "md", className }: { name: ArtName; size?: keyof typeof SIZES; className?: string }) {
   return (
     <img
@@ -48,7 +53,7 @@ export function Art({ name, size = "md", className }: { name: ArtName; size?: ke
       aria-hidden="true"
       draggable={false}
       data-art={name}
-      className={cn("dusk-art pointer-events-none w-auto max-w-none shrink-0 select-none object-contain", SIZES[size], className)}
+      className={cn("dusk-art pointer-events-none w-auto shrink-0 select-none object-contain", SIZES[size], className)}
     />
   );
 }

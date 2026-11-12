@@ -492,8 +492,8 @@
 }
 :root .settings-dialog .settings-pane [data-panel-value] { font-weight: 500; color: color-mix(in srgb, var(--color-ink) 62%, transparent); }
 
-/* the props: a docs-sized object over the heading that tips over when the group is hovered, as the site's do */
-:root .settings-dialog .settings-pane [data-settings-group-head] > .dusk-art { height: 40px; margin-bottom: 10px; }
+/* the props: a small object at the start of the heading line, centred on the heading and its hint; it tips over when the
+   group is hovered, as the site's do */
 
 /* a select is a filled chip on the row's right (SettingsSelect, SelectPill); older selects drawn by their own screens
    take the same chip */
