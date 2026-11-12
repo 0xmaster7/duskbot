@@ -25,7 +25,7 @@ OPT=/opt/duskbot-link
 MANIFEST=/var/lib/duskbot/install-manifest
 FENCE=/usr/local/sbin/omb-host-fence
 UNITS=/etc/systemd/system
-OUR_UNITS="duskbot-link.service duskbot.service duskbot-engines.path duskbot-restart.service duskbot-handoff.service omb-docker-gate.service omb-box-fence.service"
+OUR_UNITS="duskbot-server-update.timer duskbot-server-update.service duskbot-link.service duskbot.service duskbot-engines.path duskbot-restart.service duskbot-handoff.service omb-docker-gate.service omb-box-fence.service"
 # the accounts install.sh splits the server into (link agent, docker gate) and their files
 LINK_USER=omb-link
 LINK_HOME=/var/lib/omb-link

@@ -1,7 +1,7 @@
 // the link service end to end on loopback: a setup session as the app and the install script use it, the agent's real
 // `link` command sealing a result only the app opens, and the sealed relay tunnel carrying requests, streams and control.
 import { execFile } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createPublicKey, generateKeyPairSync, randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer, request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
@@ -11,7 +11,8 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService, publicIp } from "../src/app.mjs";
-import { createTunnelAgent, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
+import { createServerUpdater, createTunnelAgent, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
+import { signRelease } from "../../cloud-service/src/release-signing.ts";
 import { createRelayClient, createTunnelProxy, frameGuard, newLinkKeys, openFrame, openResult, seal, sealBytes, sealFrame, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
 
 const run = promisify(execFile);
@@ -352,6 +353,73 @@ describe("the private server build", () => {
     const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
     const claim = await (await post(`/v1/sessions/${made.id}/claim`, vpsTokenOf(keys.secret), {})).json();
     expect(claim.package).toBeUndefined();
+  });
+});
+
+describe("a linked server's own update", () => {
+  async function linked() {
+    const relay = createRelayClient({ base });
+    const keys = newLinkKeys();
+    const made = await relay.create({ verifier: keys.verifier, appPub: keys.pub });
+    const vpsToken = vpsTokenOf(keys.secret);
+    await post(`/v1/sessions/${made.id}/claim`, vpsToken, {});
+    const token = randomBytes(24).toString("base64url"), app = randomBytes(24).toString("base64url");
+    await post(`/v1/sessions/${made.id}/result`, vpsToken, { sealed: seal(Buffer.alloc(32), made.id, Buffer.from("{}")), vpsPub: keys.pub, tunnel: { vps: sha256hex(token), app: sha256hex(app) } });
+    return { id: made.id, token, app };
+  }
+  function publish(bytes, extra = {}) {
+    const packages = join(dir, "data", "packages");
+    rmSync(packages, { recursive: true, force: true });
+    mkdirSync(packages, { recursive: true });
+    writeFileSync(join(packages, `${sha256hex(bytes)}.tgz`), bytes);
+    writeFileSync(join(packages, "current.json"), JSON.stringify({ sha256: sha256hex(bytes), version: "1.2.0", ...extra }));
+    return sha256hex(bytes);
+  }
+  const get = (route, token, headers = {}) => fetch(`${base}${route}`, { headers: { ...headers, ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+
+  it("names and hands the current build only to the tunnel's own server token, and only the current one", async () => {
+    const bytes = Buffer.from("server build ".repeat(500));
+    const sha = publish(bytes);
+    const { id, token, app } = await linked();
+    for (const who of [null, app, "x".repeat(43)]) expect((await get(`/v1/tunnels/${id}/server`, who)).status).toBe(404);
+    const offer = await (await get(`/v1/tunnels/${id}/server`, token)).json();
+    expect(offer).toEqual({ v: 1, package: { sha256: sha, size: bytes.length, version: "1.2.0" } });
+    expect((await get(`/v1/tunnels/${id}/server/${sha}.tgz`, app)).status).toBe(404);
+    expect((await get(`/v1/tunnels/${id}/server/${"0".repeat(64)}.tgz`, token)).status).toBe(404);
+    const part = await get(`/v1/tunnels/${id}/server/${sha}.tgz`, token, { range: "bytes=13-" });
+    expect(part.status).toBe(206);
+    expect(Buffer.from(await part.arrayBuffer())).toEqual(bytes.subarray(13));
+  });
+
+  it("limits update checks and downloads per server", async () => {
+    const sha = publish(Buffer.from("rate limited build"));
+    const { id, token } = await linked();
+    for (let i = 0; i < 12; i += 1) await (await get(`/v1/tunnels/${id}/server`, token)).arrayBuffer();
+    expect((await get(`/v1/tunnels/${id}/server`, token)).status).toBe(429);
+    for (let i = 0; i < 12; i += 1) await (await get(`/v1/tunnels/${id}/server/${sha}.tgz`, token)).arrayBuffer();
+    expect((await get(`/v1/tunnels/${id}/server/${sha}.tgz`, token)).status).toBe(429);
+  });
+
+  it("the agent stages a newer signed build with its policy, and refuses a forged one or one that is not newer", async () => {
+    const { privateKey } = generateKeyPairSync("ed25519");
+    const signing = `test-vps:${privateKey.export({ format: "der", type: "pkcs8" }).toString("base64url")}`;
+    const keys = [`test-vps:${createPublicKey(privateKey).export({ format: "jwk" }).x}`];
+    const bytes = Buffer.from("signed server build ".repeat(300));
+    const sha = sha256hex(bytes);
+    publish(bytes, { signature: signRelease({ kind: "vps-package", name: "duskbot", version: "1.2.0", sha256: sha, signedAt: 1 }, signing) });
+    const { id, token } = await linked();
+    const staged = join(dir, `server-release-${id}`);
+    const updater = (current, k = keys) => createServerUpdater({ base, id, token, dir: staged, keys: k, current: async () => current });
+
+    expect(await updater("1.2.0").check()).toBeNull();
+    expect(await updater("1.1.0", ["test-vps:" + "A".repeat(43)]).check()).toBeNull();
+    expect(() => readFileSync(join(staged, "ready.json"))).toThrow();
+
+    expect(await updater("1.1.0").check()).toBe("1.2.0");
+    const ready = JSON.parse(readFileSync(join(staged, "ready.json"), "utf8"));
+    expect(ready).toMatchObject({ v: 1, sha256: sha, size: bytes.length, version: "1.2.0" });
+    expect(readFileSync(join(staged, `${sha}.tgz`)).equals(bytes)).toBe(true);
+    expect(statSync(join(staged, "ready.json")).mode & 0o777).toBe(0o600);
   });
 });
 

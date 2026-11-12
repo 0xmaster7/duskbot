@@ -1,16 +1,29 @@
 // The update digest the app shows once (`GET /api/updates/digest`, then `POST /api/updates/digest/seen`), and a managed
-// home's update report for the Admin (`GET /api/cloud/update`, signed with the bootstrap secret like the power read).
+// home's update report for the Admin (`GET /api/cloud/update`, signed with the bootstrap secret like the power read), and
+// what would hold a VPS install's update back (`GET /api/updates/busy`, owner-trust loopback only: root's updater,
+// apps/link-service/install.sh --update-server, asks it before it replaces the server).
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createCloudRequestVerifier } from "../cloud-home.ts";
 import { json } from "../harness/http.ts";
+import type { RequestAuth } from "../request-auth.ts";
 import type { UpdateState } from "../update-state.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export const UPDATE_DIGEST_PATH = "/api/updates/digest";
 export const CLOUD_UPDATE_PATH = "/api/cloud/update";
+export const UPDATE_BUSY_PATH = "/api/updates/busy";
 
-export function createUpdateRoutes(state: () => UpdateState | null): RouteHandler {
-  return async ({ res, path, method, json: send }) => {
+const ownerLoopback = (auth: RequestAuth) => auth.kind === "loopback" && auth.trust !== "service" && !auth.companionDevice;
+
+/** `busy`: the update holds now (shared/update-guard.ts UPDATE_HOLDS codes); empty when an update may restart the server */
+export function createUpdateRoutes(state: () => UpdateState | null, busy: () => string[] = () => []): RouteHandler {
+  return async ({ res, path, method, auth, json: send }) => {
+    if (path === UPDATE_BUSY_PATH) {
+      if (method !== "GET") return send(res, 405, { error: "method_not_allowed" });
+      if (!ownerLoopback(auth)) return send(res, 403, { error: "only this server's own updater asks this" });
+      res.setHeader("cache-control", "no-store");
+      return send(res, 200, { busy: busy() });
+    }
     if (path !== UPDATE_DIGEST_PATH && path !== `${UPDATE_DIGEST_PATH}/seen`) return PASS;
     const updates = state();
     if (path === UPDATE_DIGEST_PATH) {

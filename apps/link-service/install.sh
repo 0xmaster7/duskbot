@@ -64,6 +64,10 @@ LOGS_SHOWN=$LOGS
 MANIFEST=/var/lib/duskbot/install-manifest
 INSTALL_LOCK=/run/duskbot-install.lock
 AGENT=/opt/duskbot-link/agent.mjs
+# root's copy of this script, run by duskbot-server-update.timer as `--update-server`; the build it installs is the one
+# the link agent staged in its own folder, which this script checks again from scratch
+UPDATER=/usr/local/lib/duskbot/install.sh
+SERVER_RELEASE=/var/lib/omb-link/.config/duskbot-link/server-release
 PORT=8799
 UNITS=/etc/systemd/system
 CADDY_SITE=/etc/caddy/duskbot.caddy
@@ -1279,6 +1283,34 @@ IPAddressDeny=any
 WantedBy=multi-user.target
 EOF
   put_file "$UNITS/omb-docker-gate.service" 0644 && changed=0
+  cat > "$TMP/new" <<EOF
+# managed by duskbot-link: installs a server build the link agent staged, only while no bot is working, and puts the
+# build before back when the new one does not answer or fails its self-test
+[Unit]
+Description=Dusk Bot server update
+After=duskbot.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh $UPDATER --update-server
+StandardOutput=append:$LOGS/server-update.log
+StandardError=inherit
+EOF
+  put_file "$UNITS/duskbot-server-update.service" 0644 && changed=0
+  cat > "$TMP/new" <<EOF
+# managed by duskbot-link
+[Unit]
+Description=Look for a staged Dusk Bot server build
+
+[Timer]
+OnBootSec=15min
+OnUnitInactiveSec=15min
+RandomizedDelaySec=3min
+
+[Install]
+WantedBy=timers.target
+EOF
+  put_file "$UNITS/duskbot-server-update.timer" 0644 && changed=0
   return "$changed"
 }
 
@@ -1352,6 +1384,7 @@ do_service() {
   [ "$reload" = 0 ] && x systemctl daemon-reload
   systemctl enable duskbot.service duskbot-engines.path >/dev/null 2>&1
   x systemctl restart duskbot-engines.path
+  if get_updater; then systemctl enable --now duskbot-server-update.timer >/dev/null 2>&1 || true; fi
   gate_up
   if box_works >/dev/null 2>&1; then echo "bot box: bubblewrap works for $SVC_USER"; else echo "bot box: bubblewrap cannot make a user namespace here; bots' turns are refused until it can"; fi
   # `start` leaves a running server on the build it started with: a new build needs a restart even when no unit changed
@@ -1793,6 +1826,106 @@ finale() {
 
 
 
+# root's own copy of this script for the update timer: the one the link service serves (the same trust as the line),
+# replaced later only from a signed build that carries it (refresh_updater)
+get_updater() {
+  install -d -o root -g root -m 0755 "$LIB"
+  if fetch "$LINK_BASE/install.sh" "$TMP/updater.sh" && sh -n "$TMP/updater.sh"; then
+    install -o root -g root -m 0755 "$TMP/updater.sh" "$UPDATER"
+  fi
+  [ -f "$UPDATER" ]
+}
+refresh_updater() { # verified tgz
+  [ "$(state_get signed)" = 1 ] || return 0
+  tar -xzOf "$1" package/link/install.sh > "$TMP/updater.sh" 2>/dev/null && [ -s "$TMP/updater.sh" ] && sh -n "$TMP/updater.sh" || return 0
+  install -o root -g root -m 0755 "$TMP/updater.sh" "$UPDATER" && echo "the updater now matches the build"
+}
+
+# the build the link agent staged, read as data: "<sha256> <size> <version|-> <signature|-> <policy body|-> <policy signature|->",
+# every field checked against its own pattern, so nothing from that folder reaches the shell unchecked
+staged_offer() {
+  "$NODE_BIN" -e '
+const fs = require("node:fs");
+const SIG = /^r1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]{1,4000}\.[A-Za-z0-9_-]{40,200}$/;
+let r; try { r = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); } catch { process.exit(1); }
+if (!/^[0-9a-f]{64}$/.test(r?.sha256 ?? "") || !Number.isSafeInteger(r.size) || r.size <= 0) process.exit(1);
+const or = (ok, v) => (ok ? v : "-");
+const body = r.policy?.body, psig = r.policy?.signature;
+const policy = typeof body === "string" && /^[A-Za-z0-9_-]{1,32000}$/.test(body) && SIG.test(psig ?? "");
+console.log([r.sha256, r.size, or(/^\d+\.\d+\.\d+$/.test(r.version ?? ""), r.version), or(SIG.test(r.signature ?? ""), r.signature), or(policy, body), or(policy, psig)].join(" "));
+' "$SERVER_RELEASE/ready.json" 2>/dev/null
+}
+
+# what holds an update back now (server/routes/updates.ts): nothing when idle, the hold codes, or "unknown". a server
+# that refuses the connection runs nothing, so an update (which may well fix it) goes ahead
+server_holds() {
+  _code=$(curl -sS -m 10 -o "$TMP/busy" -w '%{http_code}' "http://127.0.0.1:$PORT/api/updates/busy" 2>/dev/null) && _rc=0 || _rc=$?
+  [ "$_rc" = 7 ] && return 0
+  [ "$_rc" = 0 ] && [ "$_code" = 200 ] || { echo unknown; return 0; }
+  "$NODE_BIN" -e 'try { const b = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).busy; if (!Array.isArray(b)) throw 0; console.log(b.filter((c) => /^[a-z-]{1,30}$/.test(c)).join(" ")); } catch { console.log("unknown"); }' "$TMP/busy"
+}
+
+# `sh install.sh --update-server` (root, from duskbot-server-update.timer): the staged build, checked again here (hash,
+# signature, policy, never older, never one that failed here), installed only while no bot is working, then the server
+# restarts and must answer and pass its self-test, or the build before goes back (update_settle)
+update_server() {
+  [ "$(id -u)" -eq 0 ] || { echo "--update-server runs as root"; return 1; }
+  if command -v flock >/dev/null 2>&1; then exec 9>>"$INSTALL_LOCK"; flock -n 9 || { echo "an install is running; the update waits for the next round"; return 0; }; LOCKED=1; fi
+  [ -f "$STATE/linked" ] || return 0
+  TMP=$(mktemp -d) LINK_ID=$(state_get id) VPS_TOKEN="" OFFLINE=0
+  PROGRESS="$TMP/progress"
+  trap 'rm -rf "$TMP"' EXIT
+  # a run cut off part way (power, a stop) settles first: its rollback, or the finish of its npm install
+  if [ -n "$(state_get update-pending)" ] && [ "$(state_get running-package)" != "$(state_get package)" ] || [ -n "$(state_get app-installing)" ]; then
+    restart_settle; return
+  fi
+  [ -f "$SERVER_RELEASE/ready.json" ] || return 0
+  offer=$(staged_offer) || { echo "the staged server build is not readable"; return 0; }
+  set -f; set -- $offer; set +f
+  [ "$#" = 6 ] || return 0
+  dash() { [ "$1" = - ] && echo "" || echo "$1"; }
+  PKG_SHA=$1 PKG_SIZE=$2 PKG_VERSION=$(dash "$3") PKG_SIG=$(dash "$4") POLICY_BODY=$(dash "$5") POLICY_SIG=$(dash "$6")
+  [ "$(state_get package)" != "sha256:$PKG_SHA" ] || return 0
+  [ "$(state_get server-update-refused)" != "$PKG_SHA" ] || return 0
+  holds=$(server_holds)
+  if [ -n "$holds" ]; then echo "$(date -u '+%F %T') build ${PKG_VERSION:-$PKG_SHA} waits: $holds"; return 0; fi
+  echo "$(date -u '+%F %T') installing build ${PKG_VERSION:-$PKG_SHA}"
+  # root's own copy, checked here: the staged folder is the link account's
+  own="$STATE/server-update"
+  install -d -m 0700 "$own"
+  find "$own" -type f ! -name "$PKG_SHA.tgz" -exec rm -f {} + 2>/dev/null || true
+  cp "$SERVER_RELEASE/$PKG_SHA.tgz" "$own/$PKG_SHA.tgz.tmp" && mv "$own/$PKG_SHA.tgz.tmp" "$own/$PKG_SHA.tgz" || { echo "the staged build is gone"; return 0; }
+  if [ "$(sha256sum "$own/$PKG_SHA.tgz" | cut -d' ' -f1)" != "$PKG_SHA" ]; then echo "the staged build does not match its hash"; rm -f "$own/$PKG_SHA.tgz"; return 0; fi
+  cache="$SVC_HOME/.cache/duskbot-link"
+  install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
+  cp "$own/$PKG_SHA.tgz" "$cache/duskbot-$PKG_SHA.tgz"
+  before=$(state_get package)
+  set +e; ( set -e; do_app ); _rc=$?; set -e
+  if [ "$(state_get package)" = "$before" ] && [ -z "$(state_get app-installing)" ]; then
+    # not taken (older, blocked, unsigned, failed here before): not offered to npm again; anything else retries next round
+    [ "$_rc" != 0 ] || state_set server-update-refused "$PKG_SHA"
+    return 0
+  fi
+  if [ "$_rc" = 0 ]; then refresh_updater "$own/$PKG_SHA.tgz"; fi
+  restart_settle
+}
+# the server restarted on what is installed now, then settled: kept when it answers and passes its self-test, else the
+# build before goes back. an npm install cut off part way is finished first
+restart_settle() {
+  if [ -n "$(state_get app-installing)" ]; then
+    set +e; ( set -e; finish_interrupted ); _rc=$?; set -e
+    [ "$_rc" = 0 ] || [ -z "$(state_get update-pending)" ] || { update_settle 0 || true; return 1; }
+  fi
+  x systemctl restart duskbot.service
+  if wait_health "http://127.0.0.1:$PORT/api/health" 120; then
+    if update_settle 1; then state_set running-package "$(state_get package)"; return 0; fi
+    return 1
+  fi
+  echo "the server did not answer on 127.0.0.1:$PORT within two minutes"
+  if update_settle 0; then state_set running-package "$(state_get package)"; return 0; fi
+  return 1
+}
+
 # ---------- session ----------
 claim() {
   arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
@@ -1908,6 +2041,7 @@ intro() {
 }
 
 main() {
+  if [ "$TOKEN" = "--update-server" ]; then update_server; return; fi
   if [ -n "$DEMO" ]; then
     TOKEN="demodemoab-$(printf '%026d' 0 | tr 0 a)"
   fi

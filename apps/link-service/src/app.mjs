@@ -57,6 +57,9 @@ const LOOKUP_MISSES_PER_HOUR = 240;
 const MAX_LOOKUPS = 5000;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
 const PACKAGE_DOWNLOADS = 20;
+/** a linked server's own update reads (apps/link-service/agent.mjs createServerUpdater): checks per hour, downloads (resumes count) per day */
+export const SERVER_RELEASE_READS_PER_HOUR = 12;
+export const SERVER_DOWNLOADS_PER_DAY = 12;
 /** a tunnel's sustained relay rate, the burst it may post at once, and its daily total (both directions together) */
 export const TUNNEL_BYTES_PER_SECOND = 12 * 1024 * 1024;
 export const TUNNEL_BURST_BYTES = 32 * 1024 * 1024;
@@ -289,6 +292,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   const lookups = new Map();
   const lookupCreated = new Map();
   const lookupMisses = new Map();
+  const serverReads = new Map();
+  const serverDownloads = new Map();
   const sweepStore = store.sweep;
   store.sweep = () => { sweepStore(); sweepLookups(); sweepCreated(); sweepQueues(); };
 
@@ -385,6 +390,8 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     channelReaders.get(id)?.close();
     channelReaders.delete(id);
     tunnelRates.delete(id);
+    serverReads.delete(id);
+    serverDownloads.delete(id);
     clearQueues(id);
   }
   function sweepQueues() {
@@ -516,9 +523,9 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
   function sweepLookups() {
     const t = now();
     for (const [id, lookup] of lookups) if (lookup.expiresAt <= t) lookups.delete(id);
-    for (const map of [lookupCreated, lookupMisses]) {
+    for (const [map, ms] of [[lookupCreated, 3_600_000], [lookupMisses, 3_600_000], [serverReads, 3_600_000], [serverDownloads, 86_400_000]]) {
       for (const [ip, list] of map) {
-        const kept = list.filter((at) => t - at < 3_600_000);
+        const kept = list.filter((at) => t - at < ms);
         if (kept.length) map.set(ip, kept); else map.delete(ip);
       }
     }
@@ -603,6 +610,22 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (!response.ok) { await response.body?.cancel().catch(() => {}); return false; }
       return (await firstBytes(response, 200)).trim() === nonce;
     } catch { return false; }
+  }
+
+  /** a published tgz with open byte ranges; `count` charges the download and says whether it is allowed */
+  async function sendPackage(req, res, build, count) {
+    if (!build) return fail(res, 404, "not found", "not_found");
+    const range = req.headers.range;
+    const match = typeof range === "string" ? /^bytes=(0|[1-9][0-9]*)-$/.exec(range) : null;
+    const start = range === undefined ? 0 : match ? Number(match[1]) : NaN;
+    if (!nonnegativeInteger(start) || start >= build.size) return send(res, 416, { error: "invalid package range" }, { "content-range": `bytes */${build.size}` });
+    if (!count()) return fail(res, 429, "too many downloads", "rate_limited");
+    res.writeHead(range === undefined ? 200 : 206, { "content-type": "application/gzip", "content-length": String(build.size - start), "accept-ranges": "bytes",
+      ...(range === undefined ? {} : { "content-range": `bytes ${start}-${build.size - 1}/${build.size}` }), "cache-control": "no-store, private", "x-content-type-options": "nosniff" });
+    await pipeline(createReadStream(build.path, { start }), res).catch((error) => {
+      // the server closing mid-download is normal (it resumes); anything else is ours
+      if (error?.code !== "ERR_STREAM_PREMATURE_CLOSE") throw error;
+    });
   }
 
   async function handle(req, res) {
@@ -845,19 +868,36 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       if (session.state !== "installing") return fail(res, 409, "claim first", "not_claimed");
       const build = packages.find(sha);
       if (!build) return fail(res, 404, "not found", "not_found");
-      const range = req.headers.range;
-      const match = typeof range === "string" ? /^bytes=(0|[1-9][0-9]*)-$/.exec(range) : null;
-      const start = range === undefined ? 0 : match ? Number(match[1]) : NaN;
-      if (!nonnegativeInteger(start) || start >= build.size) return send(res, 416, { error: "invalid package range" }, { "content-range": `bytes */${build.size}` });
-      if ((session.downloads = (session.downloads ?? 0) + 1) > PACKAGE_DOWNLOADS) return fail(res, 429, "too many downloads", "rate_limited");
-      store.save();
-      res.writeHead(range === undefined ? 200 : 206, { "content-type": "application/gzip", "content-length": String(build.size - start), "accept-ranges": "bytes",
-        ...(range === undefined ? {} : { "content-range": `bytes ${start}-${build.size - 1}/${build.size}` }), "cache-control": "no-store, private", "x-content-type-options": "nosniff" });
-      await pipeline(createReadStream(build.path, { start }), res).catch((error) => {
-        // the server closing mid-download is normal (install.sh retries); anything else is ours
-        if (error?.code !== "ERR_STREAM_PREMATURE_CLOSE") throw error;
+      return sendPackage(req, res, build, () => {
+        if ((session.downloads = (session.downloads ?? 0) + 1) > PACKAGE_DOWNLOADS) return false;
+        store.save();
+        return true;
       });
-      return;
+    }
+
+    // a linked server updating itself: the build new installs get, to the tunnel's own vps token only, rate limited
+    if (method === "GET" && (parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/server(?:\/([0-9a-f]{64})\.tgz)?$/.exec(path))) {
+      const [, id, sha] = parts;
+      const tunnel = tunnelFor(req, res, id, "vps");
+      if (!tunnel) return;
+      const build = packages.current();
+      if (!sha) {
+        const reads = recent(serverReads, id, 3_600_000);
+        if (reads.length >= SERVER_RELEASE_READS_PER_HOUR) return fail(res, 429, "too many update checks", "rate_limited");
+        reads.push(now());
+        res.setHeader("cache-control", "no-store, private");
+        if (!build) return fail(res, 404, "no build is published", "no_build");
+        const policy = packages.policy();
+        return send(res, 200, { v: 1, package: { sha256: build.sha256, size: build.size, version: build.version, ...(build.signature ? { signature: build.signature } : {}) }, ...(policy ? { policy } : {}) });
+      }
+      // only the current build: an old one is never handed out again this way
+      if (!build || build.sha256 !== sha) return fail(res, 404, "not found", "not_found");
+      return sendPackage(req, res, packages.find(sha), () => {
+        const downloads = recent(serverDownloads, id, 86_400_000);
+        if (downloads.length >= SERVER_DOWNLOADS_PER_DAY) return false;
+        downloads.push(now());
+        return true;
+      });
     }
 
     if ((parts = /^\/v1\/tunnels\/([a-z2-7]{10})\/channels(?:\/(to-vps)|\/([a-z2-7]{10})\/to-app)?$/.exec(path))) {

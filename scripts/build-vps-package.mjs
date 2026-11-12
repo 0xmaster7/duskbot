@@ -58,7 +58,10 @@ for (const file of kitFiles.filter((path) => path.startsWith("deploy/bot-desktop
   mkdirSync(dirname(join(npmDir, file)), { recursive: true });
   copyFileSync(join(root, file), join(npmDir, file));
 }
-pkg.files = [...new Set([...(pkg.files ?? []), "deploy"])];
+// root's updater on the server (install.sh --update-server) takes its next copy from a signed build that carries it
+mkdirSync(join(npmDir, "link"), { recursive: true });
+copyFileSync(join(root, "apps", "link-service", "install.sh"), join(npmDir, "link", "install.sh"));
+pkg.files = [...new Set([...(pkg.files ?? []), "deploy", "link"])];
 writeFileSync(manifestPath, JSON.stringify(pkg, null, 2) + "\n");
 
 const out = join(root, "release", "vps");

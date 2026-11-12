@@ -11,7 +11,7 @@
 import { spawn } from "node:child_process";
 import { X509Certificate, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, verify as verifySignature } from "node:crypto";
 import { createSocket } from "node:dgram";
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { BlockList, createConnection, createServer as createTcpServer } from "node:net";
 import { Agent as HttpAgent, createServer, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
@@ -21,6 +21,7 @@ import { connect as tlsConnect } from "node:tls";
 import { connect as http2Connect, constants as h2Constants } from "node:http2";
 import { homedir, hostname, networkInterfaces, userInfo } from "node:os";
 import { dirname, join } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
@@ -1307,6 +1308,100 @@ export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSI
   };
 }
 
+// ---- the server's own updates ----
+
+/**
+ * CI's release keys for the server build (apps/cloud-service/src/release-signing.ts PINNED_RELEASE_KEYS, as kid:x), the
+ * same install.sh pins. this check only saves a wasted download: root's updater checks everything again
+ */
+export const SERVER_RELEASE_KEYS = Object.freeze(["rel-2026-11:wtwZypDwVPBXZ25XsZOVpd0PZPBbVMhugheUj5_NLIM"]);
+const SERVER_UPDATE_EVERY_MS = 3 * 60 * 60_000;
+const SERVER_UPDATE_FIRST_MS = 10 * 60_000;
+const SIGNATURE = /^r1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]{1,4000}\.[A-Za-z0-9_-]{40,200}$/;
+export const serverReleaseDir = () => join(configDir(), "server-release");
+
+/** the signed manifest of a vps-package signature over `sha256`, or null */
+export function serverReleaseSigned(signature, sha256, keys = SERVER_RELEASE_KEYS) {
+  const parts = String(signature ?? "").trim().split(".");
+  if (parts.length !== 4 || parts[0] !== "r1") return null;
+  const key = keys.map((item) => item.split(":")).find(([kid, x]) => kid === parts[1] && x);
+  if (!key) return null;
+  try {
+    const pub = createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: key[1] }, format: "jwk" });
+    if (!verifySignature(null, Buffer.from(parts.slice(0, 3).join(".")), pub, Buffer.from(parts[3], "base64url"))) return null;
+    const manifest = JSON.parse(Buffer.from(parts[2], "base64url").toString("utf8"));
+    return manifest?.v === 1 && manifest.kind === "vps-package" && manifest.sha256 === sha256 && /^\d+\.\d+\.\d+$/.test(manifest.version ?? "") ? manifest : null;
+  } catch { return null; }
+}
+
+/**
+ * stages the server build the link service hands out for root's updater (install.sh --update-server, run by
+ * duskbot-server-update.timer): `<sha256>.tgz` once it matches its hash and, when signed, a pinned key; `ready.json`
+ * last. it never installs anything: the server is root's. an unsigned offer is staged for root to judge (root refuses
+ * one once this server took a signed build); a bad signature is not
+ */
+export function createServerUpdater({ base, id, token, dir = serverReleaseDir(), keys = [...SERVER_RELEASE_KEYS, ...(process.env.DUSK_RELEASE_PUBLIC_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, current = async () => (await serverLink())?.version ?? null, now = Date.now, log = () => {}, everyMs = SERVER_UPDATE_EVERY_MS, firstMs = SERVER_UPDATE_FIRST_MS }) {
+  let checking = null, timer = null, last = { checkedAt: null, staged: null, error: null };
+  const auth = { authorization: `Bearer ${token}` };
+
+  async function download(sha256, size) {
+    const file = join(dir, `${sha256}.tgz`), part = `${file}.part`;
+    let offset = 0;
+    try { offset = statSync(part).size; } catch { /* fresh */ }
+    if (offset >= size) { rmSync(part, { force: true }); offset = 0; }
+    const answer = await fetchImpl(`${base}/v1/tunnels/${id}/server/${sha256}.tgz`, { headers: { ...auth, ...(offset ? { range: `bytes=${offset}-` } : {}) }, signal: AbortSignal.timeout(30 * 60_000) });
+    if (answer.status !== 200 && answer.status !== 206) { await answer.body?.cancel().catch(() => {}); throw new Error(`the link service answered ${answer.status} for the build`); }
+    await pipeline(Readable.fromWeb(answer.body), createWriteStream(part, { flags: answer.status === 206 ? "a" : "w", mode: 0o600 }));
+    if (createHash("sha256").update(readFileSync(part)).digest("hex") !== sha256) { rmSync(part, { force: true }); throw new Error("the build did not match its hash"); }
+    renameSync(part, file);
+  }
+
+  async function stage() {
+    const answer = await fetchImpl(`${base}/v1/tunnels/${id}/server`, { headers: auth, signal: AbortSignal.timeout(30_000) });
+    if (answer.status === 404) { await answer.body?.cancel().catch(() => {}); return null; }
+    if (!answer.ok) throw new Error(`the link service answered ${answer.status} for the server release`);
+    const offer = await answer.json();
+    const pkg = offer?.package, sha256 = String(pkg?.sha256 ?? ""), size = pkg?.size;
+    if (!/^[0-9a-f]{64}$/.test(sha256) || !Number.isSafeInteger(size) || size <= 0 || size > 2 * 1024 ** 3) throw new Error("the server release is not usable");
+    const signature = typeof pkg.signature === "string" ? pkg.signature : null;
+    const signed = signature ? serverReleaseSigned(signature, sha256, keys) : null;
+    if (signature && !signed) throw new Error("the server release is not signed by a pinned key");
+    const version = signed?.version ?? (/^\d+\.\d+\.\d+$/.test(pkg.version ?? "") ? pkg.version : null);
+    const running = await current().catch(() => null);
+    if (version && running && compareVersions(version, running) <= 0) return null;
+    let ready = null;
+    try { ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8")); } catch { /* nothing staged */ }
+    if (ready?.sha256 === sha256 && existsSync(join(dir, `${sha256}.tgz`))) return version;
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    await download(sha256, size);
+    const policy = offer.policy && typeof offer.policy.body === "string" && /^[A-Za-z0-9_-]{1,32000}$/.test(offer.policy.body) && SIGNATURE.test(offer.policy.signature ?? "")
+      ? { body: offer.policy.body, signature: offer.policy.signature } : null;
+    writePrivate(join(dir, "ready.json"), JSON.stringify({ v: 1, sha256, size, version, ...(signature ? { signature } : {}), ...(policy ? { policy } : {}), at: now() }));
+    for (const name of readdirSync(dir)) if (/^[0-9a-f]{64}\.tgz(\.part)?$/.test(name) && !name.startsWith(sha256)) rmSync(join(dir, name), { force: true });
+    log(`link: server build ${version ?? sha256.slice(0, 12)} is staged; it installs once no bot is working`);
+    return version;
+  }
+
+  function check() {
+    checking ??= stage().then((staged) => { last = { checkedAt: now(), staged, error: null }; return staged; },
+      (failed) => { last = { checkedAt: now(), staged: null, error: failed?.message ?? String(failed) }; log(`link: no server update (${last.error})`); return null; })
+      .finally(() => { checking = null; });
+    return checking;
+  }
+
+  return {
+    check,
+    status: () => ({ ...last }),
+    start() {
+      if (timer) return;
+      const again = () => { void check(); timer = setTimeout(again, everyMs); timer.unref?.(); };
+      timer = setTimeout(again, firstMs);
+      timer.unref?.();
+    },
+    stop() { clearTimeout(timer); timer = null; },
+  };
+}
+
 /**
  * at start: the staged release this installed file should run instead of itself, or null. a release is launched only
  * when newer than this file and still matching its hash; one that did not stay up for TRIAL_GOOD_MS on TRIAL_STARTS
@@ -2288,8 +2383,10 @@ async function tunnel() {
     if (keys && (typeof keys.pub !== "string" || typeof keys.priv !== "string")) { console.error("link: phone keys are not valid; phones are off"); keys = null; }
     if (keys) phones = createPhoneHub({ base: saved.base, id: saved.id, token: saved.token, keys, origin: saved.mode === "direct" ? saved.origin : null, spki: null, sync: harnessSync(SERVER) });
   }
+  const serverUpdates = process.env.DUSK_LINK_SERVER_UPDATES === "off" ? null : createServerUpdater({ base: saved.base, id: saved.id, token: saved.token, log: (line) => console.error(line) });
+  serverUpdates?.start();
   const [directSocket, directWs] = await Promise.all([listenDirectSocket(agent.direct), process.env.DUSK_LINK_DIRECT === "off" ? null : listenDirectWss(agent.direct)]);
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => { serverUpdates?.stop(); phones?.stop(); agent.stop(); directSocket?.close(); directWs?.close(); process.exit(0); });
   const phoneRun = phones?.run();
   const how = await agent.run();
   phones?.stop();
