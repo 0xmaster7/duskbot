@@ -221,7 +221,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     rmSync(expiry, { force: true });
     await expect.poll(async () => (await chiefChips()).map((chip) => [chip.tool.name, chip.tool.ok])).toEqual([
       ["@Release Peer's request was denied", false],
-      ["Nobody answered @Release Peer's approval in time — that step did not run", false],
+      ["Nobody answered @Release Peer's approval in time, so that step did not run", false],
     ]);
     expect((await card("unanswered-approval")).card).toMatchObject({ answered: "deny", dismissed: true });
 
@@ -236,8 +236,8 @@ describe("independent bot tasks through the isolated control surface", () => {
     await expect.poll(() => retried.find((answer) => answer.id === "lint-retry")).toMatchObject({ behavior: "allow" });
     await expect.poll(async () => (await chiefChips()).map((chip) => [chip.tool.name, chip.tool.ok])).toEqual([
       ["@Release Peer's request was denied", false],
-      ["Nobody answered @Release Peer's approval in time — that step did not run", false],
-      ["Nobody answered @Release Peer's approval in time — that step did not run", false],
+      ["Nobody answered @Release Peer's approval in time, so that step did not run", false],
+      ["Nobody answered @Release Peer's approval in time, so that step did not run", false],
       ["@Release Peer got your approval", true],
     ]);
 
@@ -303,7 +303,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     } else {
       await expect.poll(reported, { timeout: 20_000 }).toBeTruthy();
       expect(await reported()).toMatchObject({ ok: false });
-      expect((await reported())!.name).toBe("Delegated Peer — failed: Fixture turn failed. Before it stopped it made 1 tool call: Bash ×1.");
+      expect((await reported())!.name).toBe("Delegated Peer · failed: Fixture turn failed. Before it stopped it made 1 tool call: Bash ×1.");
       await expect.poll(() => handoff()?.status, { timeout: 20_000 }).toBe("failed");
     }
     const woken = async () => JSON.stringify((await dump(models[0])).prompt);

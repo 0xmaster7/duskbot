@@ -9,11 +9,11 @@ describe("the waiting-on-you chip once its card settles", () => {
     ["approval", "allow", "auto", "@Mira's request was approved", true],
     ["approval", "deny", "user", "@Mira's request was denied", false],
     ["answer", "deny", "user", "@Mira's question was dismissed", false],
-    ["approval", "deny", "timeout", "Nobody answered @Mira's approval in time — that step did not run", false],
+    ["approval", "deny", "timeout", "Nobody answered @Mira's approval in time, so that step did not run", false],
     // Claude files an unanswered question as an "answer" carrying its own note.
     ["answer", "answer", "timeout", "Nobody answered @Mira's question in time", false],
-    ["approval", "deny", "system", "@Mira's approval closed before anyone answered — that step did not run", false],
-    ["approval", "deny", "unavailable", "@Mira's approval closed before anyone answered — that step did not run", false],
+    ["approval", "deny", "system", "@Mira's approval closed before anyone answered, so that step did not run", false],
+    ["approval", "deny", "unavailable", "@Mira's approval closed before anyone answered, so that step did not run", false],
     ["answer", "answer", "system", "@Mira's turn ended before anyone answered its question", false],
   ] as const)("a %s settled %s by %s reads %j", (kind, behavior, source, name, ok) => {
     expect(settledWaitingChip("Mira", kind, behavior, source)).toEqual({ name, ok });

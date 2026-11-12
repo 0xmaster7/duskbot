@@ -13,7 +13,7 @@ const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(SERVER_DIR, "..");
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
 
-const WAIT_CHIP = (name: string) => `${name} is finishing another conversation — will reply here when free`;
+const WAIT_CHIP = (name: string) => `${name} is finishing another conversation and will reply here when free`;
 
 let child: ChildProcess;
 let home = "";

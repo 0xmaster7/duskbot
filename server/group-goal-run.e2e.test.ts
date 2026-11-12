@@ -464,7 +464,7 @@ describe("goal-driven channel runs", () => {
     const chips = (messages: Array<{ kind: string; role?: string; tool?: { name?: string; ok?: boolean } }>) => ({
       waiting: messages.some((message) =>
         message.kind === "activity" &&
-        /finishing another conversation — will reply here when free/i.test(message.tool?.name ?? "") &&
+        /finishing another conversation and will reply here when free/i.test(message.tool?.name ?? "") &&
         message.tool?.ok === undefined
       ),
       skipped: messages.some((message) => /skipped this round/i.test(message.tool?.name ?? "")),

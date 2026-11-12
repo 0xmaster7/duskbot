@@ -15,7 +15,7 @@ import type { DetectorConfig, SentinelRecord } from "./sentinel/types.ts";
 describe("a room's status rows", () => {
   it("read in the room's language, and in English for a coordinator", () => {
     expect(heldMemberLine("Biber", "de")).toBe("Biber ist angehalten (von dir gestoppt). Erwähne ihn mit @ oder schreib „resume“");
-    expect(heldMemberLine("Biber")).toBe("Biber is held (stopped by you) — @mention it or say resume");
+    expect(heldMemberLine("Biber")).toBe("Biber is held (stopped by you): @mention it or say resume");
     expect(finishedWithoutSummaryLine("Biber", true, "de")).toBe("Biber ist ohne Zusammenfassung fertig geworden, ich frage nach einem kurzen Ergebnis");
     expect(roomTurnTimeoutMessage("Biber", 1, "de")).toBe("Biber kam im Raum 1 Minute lang nicht voran und wurde gestoppt");
     expect(roomTurnTimeoutMessage("Biber", 20, "de")).toBe("Biber kam im Raum 20 Minuten lang nicht voran und wurde gestoppt");

@@ -245,7 +245,7 @@ describe("goal wait cap and transient retry", () => {
       };
     }, { timeout: 20_000 }).toEqual({
       working: false,
-      chip: "Stuck stayed busy in another conversation for 1 minute — skipped this round",
+      chip: "Stuck stayed busy in another conversation for 1 minute, skipped this round",
       chipOk: false,
       waitChips: 1,
       stuckSpoke: false,

@@ -74,7 +74,7 @@ describe("a bot's or another app's room line that tags a name two bots share", (
   it("tells the person under a bot's reply which tags reached nobody", () => {
     const outsider = { id: "bolt", name: "Bolt" };
     expect(unreachedMentionLines("@Quill and @Bolt, and @Scout", room, [outsider], undefined)).toEqual([
-      "Bolt isn't in this room, so that mention didn't reach them — add them to the room to bring them in.",
+      "Bolt isn't in this room, so that mention didn't reach them. Add them to the room to bring them in.",
       'More than one bot here is named "Quill", so that mention reached none of them.',
     ]);
     expect(unreachedMentionLines("@Scout look", room, [outsider], undefined)).toEqual([]);

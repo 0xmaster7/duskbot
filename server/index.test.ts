@@ -4009,12 +4009,12 @@ describe("harness HTTP API", () => {
       expect(messages.at(-1)).toMatchObject({
         kind: "activity",
         tool: {
-          name: "Quill is archived and can't respond — restore it or mention an active room member.",
+          name: "Quill is archived and can't respond. Restore it or mention an active room member.",
           ok: false,
         },
       });
 
-      const archivedError = "Quill is archived and can't respond — restore it or mention an active room member.";
+      const archivedError = "Quill is archived and can't respond. Restore it or mention an active room member.";
       const beforeMixedMention = messages.filter((message: { tool?: { name?: string } }) =>
         message.tool?.name === archivedError
       ).length;
@@ -4056,7 +4056,7 @@ describe("harness HTTP API", () => {
       expect(messages.at(-1)).toMatchObject({
         kind: "activity",
         tool: {
-          name: "No active room members can respond — restore an archived bot or add an active member.",
+          name: "No active room members can respond. Restore an archived bot or add an active member.",
           ok: false,
         },
       });

@@ -370,7 +370,7 @@ describe("a room turn and the teammates outside the room", () => {
         await new Promise((wake) => setTimeout(wake, 100));
       }
     })();
-    expect(chip.tool?.name).toBe(`${OUTSIDE_BOT} isn't in this room, so that mention didn't reach them — add them to the room to bring them in.`);
+    expect(chip.tool?.name).toBe(`${OUTSIDE_BOT} isn't in this room, so that mention didn't reach them. Add them to the room to bring them in.`);
     expect((await messagesOf(outside.threadId)).some((message) => message.role === "user")).toBe(false);
     expect((await messagesOf(elsewhere.threadId)).some((message) => message.role === "user")).toBe(false);
 

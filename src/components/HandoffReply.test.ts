@@ -52,9 +52,9 @@ describe("HandoffChip", () => {
   });
 
   it("marks the chip when the teammate's hand-off failed", () => {
-    const failed: Message = { ...row("result"), tool: { name: "Mira — failed: the build broke", ok: false } };
+    const failed: Message = { ...row("result"), tool: { name: "Mira · failed: the build broke", ok: false } };
     const markup = render(failed);
-    expect(markup).toContain("Mira — failed: the build broke");
+    expect(markup).toContain("Mira · failed: the build broke");
     expect(markup).toMatch(/<button[^>]*class="[^"]*text-danger/);
     expect(render(row("result", "Done."))).not.toContain("text-danger");
   });

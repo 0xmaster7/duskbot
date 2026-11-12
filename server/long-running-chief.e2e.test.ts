@@ -230,7 +230,7 @@ it("carries a consult-and-implement job over several teammate turns, through a s
   expect(continued[0]!.lastUser).toContain("IMPLEMENT-CAP");
   expect(continued[0]!.lastUser.indexOf(STEP_CAP_CONTINUES)).toBeLessThan(continued[0]!.lastUser.search(ASSIGNED_BY_CLIVE));
   const chiefRows = await f.rows(job);
-  expect(chiefRows.filter((name: string) => name.startsWith("Eli — failed: "))).toEqual([]);
+  expect(chiefRows.filter((name: string) => name.startsWith("Eli · failed: "))).toEqual([]);
   expect(chiefRows.filter((name: string) => name.startsWith("Resumed with"))).toEqual(["Resumed with Mira, Eli results, reviewing", "Resumed with Mira, Eli results, reviewing"]);
   for (const node of f.tree(job).filter((candidate: any) => candidate.parentId)) expect(await f.cards(node.threadId)).toEqual([]);
   expect(f.notifications.filter((notification: any) => notification.kind === "approval")).toEqual([]);
@@ -295,7 +295,7 @@ it("tells the Chief what happened to each approval: allowed, denied, or never an
   expect(f.turns(f.clive.id).map((record: any) => record.planKey)).toEqual(["B0", "B1", "B2", "B3"]);
   expect(f.turns(f.mira.id).map((record: any) => [record.planKey, record.approval?.behavior])).toEqual([["MA", "allow"], ["MB", "deny"], ["MC", "deny"]]);
   const settled = (await f.rows(job)).filter((name: string) => name.includes("@Mira"));
-  expect(settled).toEqual(["@Mira got your approval", "@Mira's request was denied", "Nobody answered @Mira's approval in time — that step did not run"]);
+  expect(settled).toEqual(["@Mira got your approval", "@Mira's request was denied", "Nobody answered @Mira's approval in time, so that step did not run"]);
   expect(f.child(job, f.mira.id, "CHECK-HISTORY").result).toBe("HISTORY-RESULT: checked the history.");
   expect(f.child(job, f.mira.id, "PUSH-BRANCH").result).toBe("PUSH-RESULT: not pushed; the push was denied.");
   const unanswered = "[dusk bot: nobody answered the approval for “Bash: pnpm test” in time, so it did not run. Do not report it as done; it needs the person's approval.]";
@@ -413,7 +413,7 @@ it("tells the Chief a teammate's turn stalled, in the watchdog's words", () => c
   const review = f.prompt(f.turn("D1"));
   expect(review).toContain("No activity for 20 minutes: the turn was stopped.");
   expect(review).not.toContain("The coordinated turn was interrupted");
-  expect(await f.rows(job)).toContain("Mira — failed: No activity for 20 minutes: the turn was stopped. No tool calls were seen before it stopped.");
+  expect(await f.rows(job)).toContain("Mira · failed: No activity for 20 minutes: the turn was stopped. No tool calls were seen before it stopped.");
   expect(await f.rows(stalled.threadId)).toContain("error: no activity for 20 minutes: the turn was stopped");
   f.open("suite");
   await new Promise((resolve) => setTimeout(resolve, 500));

@@ -26,7 +26,7 @@ describe("what a conversation shows about a teammate's work", () => {
     expect(teammateResultRow("de", { status: "completed", result: "Done", groupId: "g" }, "Biber", undefined, "Launch")).toBe("Biber hat geantwortet · Launch");
     expect(teammateResultRow("de", { status: "failed", result: "boom\nmore" }, "Biber", undefined, undefined)).toBe("Biber: fehlgeschlagen: boom");
     expect(teammateResultRow("de", { status: "completed", result: "" }, undefined, "team access changed", undefined)).toBe("Ergebnis zurückgehalten: team access changed");
-    expect(teammateResultRow(undefined, { status: "cancelled", result: "stopped" }, undefined, undefined, undefined)).toBe("Teammate — cancelled: stopped");
+    expect(teammateResultRow(undefined, { status: "cancelled", result: "stopped" }, undefined, undefined, undefined)).toBe("Teammate · cancelled: stopped");
   });
 
   it("says what came of a teammate's question or approval, and what waits behind the person", () => {

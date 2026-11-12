@@ -1012,12 +1012,12 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       let askerBot: any;
       await waitUntil(async () => {
         askerBot = await bot(asker.id);
-        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper — failed:"))
+        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper · failed:"))
           && lastText(askerBot.messages)?.text === WOKE_WITH_FAILURE && !askerBot.busy;
       }, 30_000, "provider reload did not fail the hand-off");
-      const failed = askerBot.messages.filter((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper — failed:"));
+      const failed = askerBot.messages.filter((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper · failed:"));
       expect(failed).toHaveLength(1);
-      expect(failed[0].tool.name).toBe("Helper — failed: Turn interrupted: provider settings changed. No tool calls were seen before it stopped.");
+      expect(failed[0].tool.name).toBe("Helper · failed: Turn interrupted: provider settings changed. No tool calls were seen before it stopped.");
       expect(failed[0].from?.botId).toBe(helper.id);
       expect(assignments(helper.id, asker.id)[0]).toMatchObject({ status: "failed" });
     },
@@ -1040,7 +1040,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
           failed = askerBot.messages.find((m: any) => m.kind === "activity" && m.tool?.ok === false && m.from?.botId === helper.id);
           return Boolean(failed) && lastText(askerBot.messages)?.text === WOKE_WITH_FAILURE && !askerBot.busy;
         }, 90_000, "the stall never reached the delegator");
-        expect(failed.tool.name).toMatch(/^CapHelper — failed: Stopped after 64 steps without a final answer\./);
+        expect(failed.tool.name).toMatch(/^CapHelper · failed: Stopped after 64 steps without a final answer\./);
         expect(failed.tool.name).not.toContain("\n");
         const tasks = (await bot(helper.id)).tasks;
         expect(tasks.map((task: any) => task.title).filter((title: string) => title?.startsWith("Continue:"))).toEqual([]);
@@ -1090,7 +1090,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       let askerBot: any;
       await waitUntil(async () => {
         askerBot = await bot(asker.id);
-        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper — failed:"))
+        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper · failed:"))
           && lastText(askerBot.messages)?.text === WOKE_WITH_FAILURE && !askerBot.busy;
       }, 30_000, "no failed chip for the crashed turn");
       const [work] = assignments(helper.id, asker.id);
@@ -1112,7 +1112,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       let askerBot: any;
       await waitUntil(async () => {
         askerBot = await bot(asker.id);
-        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper — failed:"))
+        return askerBot.messages.some((m: any) => m.kind === "activity" && m.tool?.ok === false && m.tool?.name?.startsWith("Helper · failed:"))
           && lastText(askerBot.messages)?.text === WOKE_WITH_FAILURE && !askerBot.busy;
       }, 30_000, "could-not-start was not reported");
       expect(assignments(helper.id, asker.id)[0]).toMatchObject({ status: "failed" });

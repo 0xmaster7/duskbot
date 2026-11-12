@@ -12,7 +12,7 @@ import { freePortBlock } from "./testing/ports.ts";
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(SERVER_DIR, "..");
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
-const HELD = (name: string) => `${name} is held (stopped by you) — @mention it or say resume`;
+const HELD = (name: string) => `${name} is held (stopped by you): @mention it or say resume`;
 
 let child: ChildProcess;
 let home = "";
@@ -252,7 +252,7 @@ describe("a member's room reply is its final message", { timeout: 60_000 }, () =
         const { room: current, messages } = await snapshot(room.id);
         return {
           working: current?.working,
-          chip: chips(messages, "Pat finished without a summary — asking for a short result").length,
+          chip: chips(messages, "Pat finished without a summary, asking for a short result").length,
           final: botTexts(messages, pat.id).at(-1)?.text,
         };
       }, { timeout: 15_000 }).toEqual({ working: false, chip: 1, final: "Result: the title is fixed." });
