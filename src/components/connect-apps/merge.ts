@@ -27,7 +27,7 @@ export function matchKeys(entry: AppEntry): string[] {
   return [...new Set(keys.filter(Boolean))];
 }
 
-const OWN: ReadonlySet<AppEntry["kind"]> = new Set(["native", "hosted", "logins"]);
+const OWN: ReadonlySet<AppEntry["kind"]> = new Set(["native", "hosted", "logins", "token"]);
 const variant = (entry: AppEntry) => VARIANT.test(entry.id);
 
 /** One row per app across our own cards, Composio's catalog and the vendors' own servers. `entries` come in the order

@@ -64,6 +64,13 @@ const ENTRY_POINTS = [
   "bot-box/box-check.ts",
 ];
 
+/** The values of the env names shared/native-connectors.json lists, the ones this build's environment has. */
+function nativeClients() {
+  const { connectors } = JSON.parse(readFileSync(join(root, "shared", "native-connectors.json"), "utf8"));
+  const names = connectors.flatMap((one) => [one.clientIdEnv, one.clientSecretEnv].filter(Boolean));
+  return Object.fromEntries(names.flatMap((name) => process.env[name] ? [[name, process.env[name]]] : []));
+}
+
 await build({
   entryPoints: ENTRY_POINTS.map((entry) => join(server, entry)),
   bundle: true,
@@ -83,10 +90,8 @@ await build({
   banner: NODE_REQUIRE,
   // every entry reads the old env names first, whichever process starts it
   inject: [join(root, "electron", "legacy-names.mjs")],
-  // dusk bot's own GitHub App and Google Drive device clients (server/app-tokens/device.ts), from the release environment
-  define: { DUSK_BUILD_DEVICE_CLIENTS: JSON.stringify(JSON.stringify(Object.fromEntries(
-    ["DUSK_GITHUB_APP_CLIENT_ID", "DUSK_GOOGLE_DRIVE_CLIENT_ID", "DUSK_GOOGLE_DRIVE_CLIENT_SECRET"].flatMap((name) => process.env[name] ? [[name, process.env[name]]] : []),
-  ))) },
+  // dusk bot's own OAuth clients (shared/native-connectors.json), from the release environment
+  define: { DUSK_BUILD_DEVICE_CLIENTS: JSON.stringify(JSON.stringify(nativeClients())) },
 });
 
 // External MCP clients launch this as an independent stdio process, so release

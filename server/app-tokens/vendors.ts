@@ -1,7 +1,7 @@
 // How each token app is reached: the live check that proves a pasted token works, and either the vendor's own MCP
 // server (which takes the token in a header) or the API origin dusk bot's own api_request tool calls with it.
 // Endpoints and header formats are from each vendor's API docs (checked 2026-11-13).
-import type { TokenAppId } from "../../shared/app-tokens.ts";
+import { nativeConnector, type NativeConnector } from "../../shared/native-connectors.ts";
 
 export type TokenFields = Partial<Record<"token" | "key" | "email" | "site" | "shop" | "refresh", string>>;
 
@@ -65,7 +65,7 @@ async function read(fetchImpl: Fetch, url: string, init: RequestInit, signal: Ab
 const bearer = (value: string) => ({ authorization: `Bearer ${value}` });
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim().slice(0, 120) : null);
 
-export const VENDORS: Record<TokenAppId, Vendor> = {
+export const VENDORS: Record<string, Vendor> = {
   github: {
     async check(fields, fetchImpl, signal) {
       const body = await read(fetchImpl, "https://api.github.com/user", { headers: { ...bearer(need(fields, "token", "token")), accept: "application/vnd.github+json", "user-agent": "dusk-bot" } }, signal);
@@ -167,11 +167,27 @@ export const VENDORS: Record<TokenAppId, Vendor> = {
     // Cloudflare's API MCP server takes user and account API tokens as a bearer
     mcp: (fields) => ({ url: "https://mcp.cloudflare.com/mcp", headers: bearer(fields.token!) }),
   },
-  googledrive: {
-    async check(fields, fetchImpl, signal) {
-      const body = await read(fetchImpl, "https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", { headers: bearer(need(fields, "token", "token")) }, signal);
-      return text(body.user?.emailAddress) ?? text(body.user?.displayName) ?? "Google Drive";
-    },
-    api: (fields) => ({ origin: "https://www.googleapis.com", headers: bearer(fields.token!), docs: "https://developers.google.com/workspace/drive/api/reference/rest/v3 (only files this app made or the person opened with it)" }),
-  },
 };
+
+const at = (body: unknown, path: string): unknown => path.split(".").reduce<unknown>((value, key) => (value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined), body);
+
+/** A native connector's vendor, from its row alone: the check and the way bots use it, the token always a bearer. */
+export function configuredVendor(connector: NativeConnector): Vendor {
+  return {
+    async check(fields, fetchImpl, signal) {
+      const body = await read(fetchImpl, connector.check.url, { headers: { ...bearer(need(fields, "token", "token")), accept: "application/json", "user-agent": "dusk-bot" } }, signal);
+      return text(at(body, connector.check.label)) ?? connector.label;
+    },
+    ...("mcp" in connector.use
+      ? { mcp: (fields: TokenFields) => ({ url: (connector.use as { mcp: string }).mcp, headers: bearer(fields.token!) }) }
+      : { api: (fields: TokenFields) => ({ origin: (connector.use as { api: string }).api, headers: bearer(fields.token!), docs: (connector.use as { docs: string }).docs }) }),
+  };
+}
+
+/** A pasted-token app's own vendor entry, else the native connector's row. */
+export function vendorFor(id: string): Vendor | undefined {
+  const own = Object.hasOwn(VENDORS, id) ? VENDORS[id] : undefined;
+  if (own) return own;
+  const connector = nativeConnector(id);
+  return connector ? configuredVendor(connector) : undefined;
+}

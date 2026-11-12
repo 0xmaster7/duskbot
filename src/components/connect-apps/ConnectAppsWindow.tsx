@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 
-import { useStore, type Action } from "@/state/store";
+import { api, useStore, type Action } from "@/state/store";
+import type { LocaleKey } from "@/locales";
 import { t } from "@/lib/i18n";
 import { connectorDescription } from "@/lib/app-catalog";
 import { listLogins } from "@/lib/logins";
@@ -21,6 +22,9 @@ import { botsUsingService } from "./connector-helpers";
 import { AppRow, AppTile, GlyphTile, type RowAction } from "./AppRow";
 import { AppFacts, AppPage, appFacts, type AppPageModel, type Way } from "./AppPage";
 import { OnePasswordBody } from "./OnePasswordBody";
+import { GmailPasswordNote, TokenCard } from "./TokenCard";
+import { useTokenApps } from "./use-token-apps";
+import { TOKEN_APPS, tokenApp, type TokenAppId } from "../../../shared/app-tokens";
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
 import {
@@ -41,6 +45,9 @@ import "./connect-apps.css";
 type NativeId = "x" | "email";
 const NATIVE_IDS: readonly NativeId[] = ["email", "x"];
 const RECOMMENDED = "recommended";
+const ONE_CLICK = "one-click";
+const PASTE = "paste";
+const COMPOSIO_APPS = "composio";
 const CONNECTED = "connected";
 /** Any MCP server by its URL, kept with the MCP servers Settings has. */
 const CUSTOM_MCP = "custom-mcp";
@@ -49,7 +56,9 @@ const WINDOW_FROM = 40;
 const SETTINGS = (section: "logins" | "skills"): Action => ({ type: "toggleAppSettings", open: true, section });
 // the longest the window waits for what it has not read yet before it draws its rows anyway
 const READY_WAIT_MS = 1_200;
-const OWN_KINDS: ReadonlySet<AppEntry["kind"]> = new Set(["native", "hosted", "logins"]);
+const OWN_KINDS: ReadonlySet<AppEntry["kind"]> = new Set(["native", "hosted", "logins", "token"]);
+const GMAIL = "gmail";
+const GMAIL_ADDRESS = /@(gmail|googlemail)\.com$/i;
 
 // what the last open learned, so the next one draws its first frame with it instead of filling in
 const memory: {
@@ -67,7 +76,7 @@ export function stableOrder(entries: readonly AppEntry[], order: Map<string, num
   return [...entries].sort((a, b) => order.get(a.id)! - order.get(b.id)!);
 }
 
-interface Section { key: string; title: string; ids: string[]; viewAll?: ConnectAppsPage }
+interface Section { key: string; title: string; note?: string; ids: string[]; viewAll?: ConnectAppsPage }
 /** One view's chips and sections, fixed when it is first drawn: later answers change a row's button, never its place. */
 interface Layout { view: number; categories: Category[]; sections: Section[] }
 
@@ -90,11 +99,22 @@ function remoteIcon(app: DirectoryApp): AppEntry["icon"] {
 }
 
 
+const TOKEN_CATEGORY: Record<TokenAppId, string> = {
+  github: "developer code", notion: "documents notes", linear: "project management", airtable: "database", todoist: "task",
+  trello: "project management", clickup: "project management", hubspot: "crm", jira: "project management", shopify: "commerce",
+  stripe: "payments", cloudflare: "developer cloud", googledrive: "file storage",
+};
+
 function nativeEntries(): AppEntry[] {
   return [
     { id: "1password", kind: "logins", label: "1Password", description: t("connectApps.onePassword.description"), categories: ["credentials"], icon: logoIcon("1password"), website: "1password.com", keywords: "password vault logins" },
     { id: "email", kind: "native", label: t("email.title"), description: t("email.description"), categories: ["communication"], icon: { glyph: "envelope", glyphPaint: "rgb(229 47 139)" }, keywords: "email mail imap smtp mailbox" },
     { id: "x", kind: "native", label: t("apps.x.title"), description: t("apps.x.description"), categories: ["marketing"], icon: logoIcon("x"), website: "x.com", keywords: "x twitter posts" },
+    { id: GMAIL, kind: "native", label: "Gmail", description: t("tokenApps.gmail.description"), categories: ["communication"], icon: logoIcon("gmail"), website: "mail.google.com", keywords: "gmail google mail app password imap" },
+    ...TOKEN_APPS.map((app): AppEntry => ({
+      id: app.id, kind: "token", label: app.label, description: t(`tokenApps.description.${app.id}` as LocaleKey), categories: grokCategories([TOKEN_CATEGORY[app.id]]),
+      icon: logoIcon(app.id, app.label).image ? logoIcon(app.id, app.label) : { domain: app.domain }, website: app.domain, keywords: `${app.id} token api key`,
+    })),
     { id: CUSTOM_MCP, kind: "native", label: t("connectApps.customMcp"), description: t("connectApps.customMcp.description"), categories: ["code"], icon: { glyph: "plug" }, keywords: "custom mcp server url remote http headers oauth" },
     ...HOSTED_MCP_APPS.map((app): AppEntry => ({
       id: app.id, kind: "hosted", label: app.label, description: t(app.description), categories: ["finance"],
@@ -134,6 +154,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
 }) {
   const { state, dispatch } = useStore();
   const connectors = useConnectors();
+  const tokens = useTokenApps();
+  const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
   const remote = useRemoteApps({
     needsPanel: () => window.duskDesktop?.remoteClient?.active === true,
     openPanel: () => go({ kind: "detail", id: MCP_PAGE }),
@@ -184,6 +206,11 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (dialog.current && !dialog.current.contains(document.activeElement)) dialog.current.focus({ preventScroll: true });
   }, [page]);
 
+  useEffect(() => {
+    let alive = true;
+    api("/api/email").then((answer: { accounts?: Array<{ address: string }> }) => { if (alive) setGmailConnected((answer.accounts ?? []).some((one) => GMAIL_ADDRESS.test(one.address))); }).catch(() => {});
+    return () => { alive = false; };
+  }, [natives.email]);
   useEffect(() => {
     let alive = true;
     listLogins().then((answer) => { if (alive) setOnePassword(answer.onePassword ?? { connected: false }); }).catch(() => { if (alive) setOnePassword(null); });
@@ -246,8 +273,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     if (entry.kind === "custom") return known(serverOn.get(id));
     if (entry.kind === "logins") return known(onePassword?.connected);
     if (entry.kind === "hosted") return known(hosted?.[id as HostedMcpAppId]);
+    if (entry.kind === "token") return tokens.status ? (tokens.accounts(id).length ? "connected" : "disconnected") : "unknown";
+    if (id === GMAIL) return known(gmailConnected);
     return known(natives[id as NativeId]);
-  }, [connectors, hosted, natives, onePassword, remote, serverOn]);
+  }, [connectors, hosted, natives, onePassword, remote, serverOn, tokens, gmailConnected]);
   const composioConnected = useCallback((entry: AppEntry) => [entry.kind === "composio" ? entry.id : entry.composio, ...(entry.aliases ?? [])]
     .some((slug) => slug !== undefined && connectors.isConnected(slug)), [connectors]);
 
@@ -368,6 +397,18 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   );
 
   const label = (category: Category) => t(CATEGORY_LABEL[category]);
+  /** The free ways in, as the home page groups them: a one-click sign-in (the vendor's own server, or a device code to
+   * our own GitHub App or Google client), a pasted token or app password, and the long tail on the person's Composio. */
+  const freeGroups = (list: readonly AppEntry[]) => {
+    const deviceReady = (entry: AppEntry) => entry.kind === "token" && tokens.status?.native[entry.id] === true;
+    const oneClick = list.filter((entry) => entry.kind === "remote" || (entry.remote !== undefined && remoteApps.has(entry.remote)) || deviceReady(entry));
+    const inOneClick = new Set(oneClick.map((entry) => entry.id));
+    const paste = list.filter((entry) => !inOneClick.has(entry.id) && (entry.kind === "token" || entry.id === GMAIL || entry.id === "email") && !(entry.kind === "token" && !tokenApp(entry.id)?.fields.length));
+    const own = new Set([...inOneClick, ...paste.map((entry) => entry.id)]);
+    const composio = recommended(list.filter((entry) => entry.kind === "composio" && !own.has(entry.id)), () => "disconnected", Infinity);
+    const longTail = list.filter((entry) => entry.kind === "composio" && !own.has(entry.id) && !composio.includes(entry));
+    return { oneClick, paste, composio: [...composio, ...longTail] };
+  };
   const arrange = (): Omit<Layout, "view"> => {
     const categories = presentCategories(entries);
     const sections: Section[] = [];
@@ -376,13 +417,29 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const rest = (list: AppEntry[]) => list.filter((entry) => !isConnected.has(entry.id));
     const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
     if (page.kind === "category") {
-      const members = page.category === RECOMMENDED ? picks : inCategory(entries, page.category);
+      const groups = freeGroups(entries);
+      const special: Record<string, { list: AppEntry[]; title: string; note?: string }> = {
+        [RECOMMENDED]: { list: picks, title: t("connectApps.recommended") },
+        [ONE_CLICK]: { list: groups.oneClick, title: t("connectApps.section.oneClick") },
+        [PASTE]: { list: groups.paste, title: t("connectApps.section.token") },
+        [COMPOSIO_APPS]: { list: groups.composio, title: t("connectApps.section.composio"), note: t("connectApps.composio.note") },
+      };
+      const chosen = special[page.category];
+      const members = chosen ? chosen.list : inCategory(entries, page.category);
       const mine = members.filter((entry) => isConnected.has(entry.id));
       if (mine.length) sections.push({ key: CONNECTED, title: t("apps.connected"), ids: ids(mine) });
-      sections.push({ key: page.category, title: page.category === RECOMMENDED ? t("connectApps.recommended") : label(page.category as Category), ids: ids(rest(members)) });
+      sections.push({ key: page.category, title: chosen ? chosen.title : label(page.category as Category), ...(chosen?.note ? { note: chosen.note } : {}), ids: ids(rest(members)) });
     } else if (page.kind === "home") {
       if (connected.length) sections.push({ key: CONNECTED, title: t("apps.connected"), ids: ids(connected.slice(0, SECTION_SIZE)), viewAll: connected.length > SECTION_SIZE ? { kind: "yours" } : undefined });
-      if (picks.length) sections.push({ key: RECOMMENDED, title: t("connectApps.recommended"), ids: ids(picks.slice(0, SECTION_SIZE)), viewAll: picks.length > SECTION_SIZE ? { kind: "category", category: RECOMMENDED } : undefined });
+      // free first: what signs in with one click, then what takes a pasted token, then the person's own Composio
+      const groups = freeGroups(entries);
+      const section = (key: string, title: string, list: AppEntry[], note?: string) => {
+        const shown = rest(list);
+        if (shown.length) sections.push({ key, title, ...(note ? { note } : {}), ids: ids(shown.slice(0, SECTION_SIZE)), viewAll: shown.length > SECTION_SIZE ? { kind: "category", category: key } : undefined });
+      };
+      section(ONE_CLICK, t("connectApps.section.oneClick"), groups.oneClick);
+      section(PASTE, t("connectApps.section.token"), groups.paste);
+      section(COMPOSIO_APPS, t("connectApps.section.composio"), groups.composio, t("connectApps.composio.note"));
       for (const category of categories) {
         const members = rest(inCategory(entries, category));
         if (!members.length) continue;
@@ -448,10 +505,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const nativeCardsShown = detailId && (NATIVE_IDS as readonly string[]).includes(detailId) ? detailId : null;
   const hostedShown = detailId && HOSTED_MCP_APPS.some((app) => app.id === detailId) ? detailId : null;
   const onePasswordShown = detailId === "1password";
+
   const setNative = useCallback((id: NativeId) => (value: boolean | null) => setNatives((current) => current[id] === value ? current : { ...current, [id]: value }), []);
   const nativeSetters = useMemo(() => Object.fromEntries(NATIVE_IDS.map((id) => [id, setNative(id)])) as Record<NativeId, (value: boolean | null) => void>, [setNative]);
 
   const detailEntry = detailId ? byId.get(detailId) : undefined;
+  const tokenShown = detailEntry?.kind === "token" ? detailEntry.id as TokenAppId : null;
+  const gmailShown = detailEntry?.id === GMAIL;
   const sub = page.kind === "detail" || page.kind === "yours";
 
   const body = (() => {
@@ -476,7 +536,10 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       const vendor = detailEntry.kind === "remote" ? remoteApps.get(detailEntry.id) : detailEntry.remote ? remoteApps.get(detailEntry.remote) : undefined;
       const ways: Way[] = [];
       if (OWN_KINDS.has(detailEntry.kind)) {
-        ways.push({ key: "own", label: t(detailEntry.kind === "logins" ? "connectApps.way.vault" : "connectApps.way.builtIn"), connected: ownConnection(detailEntry) === "connected" });
+        const own: LocaleKey = detailEntry.kind === "logins" ? "connectApps.way.vault"
+          : detailEntry.kind === "token" ? (tokenApp(detailEntry.id)?.fields.length ? "connectApps.way.token" : "connectApps.way.device")
+            : detailEntry.id === GMAIL ? "connectApps.way.appPassword" : "connectApps.way.builtIn";
+        ways.push({ key: "own", label: t(own), connected: ownConnection(detailEntry) === "connected" });
       }
       if (vendor) {
         ways.push({ key: "remote", label: t("connectApps.way.server", { name: detailEntry.label }), connected: remote.connection(vendor.id) === "connected",
@@ -559,7 +622,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
           const members = section.ids.flatMap((id) => byId.get(id) ?? []);
           const viewAll = section.viewAll;
           return (
-            <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title}
+            <AppsSection key={section.key} id={`ca-section-${section.key}`} title={section.title} note={section.note}
               viewAll={viewAll ? { label: t("apps.viewAll"), onClick: () => go(viewAll) } : undefined}>
               {members.length > WINDOW_FROM
                 ? <WindowedRows items={members} scroller={scroller} render={row} />
@@ -695,12 +758,14 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
                   </div>
                 )}
                 {body}
-                <div className={nativeCardsShown || hostedShown || onePasswordShown ? "ca-native-host" : "hidden"} data-native-host="">
+                <div className={nativeCardsShown || hostedShown || onePasswordShown || tokenShown || gmailShown ? "ca-native-host" : "hidden"} data-native-host="">
+                  {tokenShown && <TokenCard app={tokenShown} tokens={tokens} />}
+                  {gmailShown && <GmailPasswordNote />}
                   <div className={hostedShown ? "contents" : "hidden"}>
                     <McpServersPanel hostedCards={{ shown: (id) => id === hostedShown, onConnections: setHosted }} />
                   </div>
                   <div className={nativeCardsShown === "x" ? "contents" : "hidden"}><XCard onConnection={nativeSetters.x} /></div>
-                  <div className={nativeCardsShown === "email" ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} /></div>
+                  <div className={nativeCardsShown === "email" || gmailShown ? "contents" : "hidden"}><EmailCard onConnection={nativeSetters.email} /></div>
                   {onePasswordShown && <OnePasswordBody status={onePassword} onChange={setOnePassword} onManage={() => leaveFor(SETTINGS("logins"))} />}
                 </div>
                 {detailEntry && detailEntry.kind !== "composio" && detailEntry.id !== CUSTOM_MCP && (

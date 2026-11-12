@@ -1,0 +1,29 @@
+{
+  "connectors": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "domain": "github.com",
+      "flow": "device",
+      "clientIdEnv": "DUSK_GITHUB_APP_CLIENT_ID",
+      "deviceUrl": "https://github.com/login/device/code",
+      "tokenUrl": "https://github.com/login/oauth/access_token",
+      "scopes": [],
+      "check": { "url": "https://api.github.com/user", "label": "login" },
+      "use": { "mcp": "https://api.githubcopilot.com/mcp/" }
+    },
+    {
+      "id": "googledrive",
+      "label": "Google Drive",
+      "domain": "drive.google.com",
+      "flow": "device",
+      "clientIdEnv": "DUSK_GOOGLE_DRIVE_CLIENT_ID",
+      "clientSecretEnv": "DUSK_GOOGLE_DRIVE_CLIENT_SECRET",
+      "deviceUrl": "https://oauth2.googleapis.com/device/code",
+      "tokenUrl": "https://oauth2.googleapis.com/token",
+      "scopes": ["https://www.googleapis.com/auth/drive.file"],
+      "check": { "url": "https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)", "label": "user.emailAddress" },
+      "use": { "api": "https://www.googleapis.com", "docs": "https://developers.google.com/workspace/drive/api/reference/rest/v3" }
+    }
+  ]
+}

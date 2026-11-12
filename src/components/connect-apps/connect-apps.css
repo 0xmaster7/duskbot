@@ -831,6 +831,20 @@ a.ca-pill { color: inherit; text-decoration: none; }
   line-height: 16px;
 }
 .ca-kit-status[data-tone="ok"] { color: var(--color-success); }
+/* a device sign-in's code, read off the screen and typed on the vendor's page */
+.ca-token-code {
+  margin: 0;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--color-inset, rgb(0 0 0 / 0.05));
+  color: var(--color-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: 0.08em;
+  user-select: all;
+}
 .ca-kit-status[data-tone="warning"] { color: var(--color-warning); }
 .ca-kit-status[data-tone="danger"] { color: var(--color-danger); }
 .ca-kit-card { align-self: stretch; }
@@ -896,3 +910,50 @@ a.ca-pill { color: inherit; text-decoration: none; }
   font-size: 12px;
 }
 .ca-account-select:hover { background: var(--ca-ink-8); }
+
+/* a step-by-step guide: number, mascot and picture, one line, the one thing to do; tonal, no outlines */
+.ca-guide { display: flex; flex-direction: column; gap: 10px; align-self: stretch; }
+.ca-guide-steps { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ca-guide-step {
+  display: grid;
+  grid-template-columns: 20px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ca-guide-step[data-state="current"] { background: color-mix(in srgb, var(--color-ink) 5%, transparent); }
+.ca-guide-step[data-state="next"] { opacity: 0.62; }
+.ca-guide-number {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--ca-ink-68);
+  font-size: 11px;
+  line-height: 1;
+}
+.ca-guide-step[data-state="done"] .ca-guide-number { background: color-mix(in srgb, var(--color-success) 16%, transparent); color: var(--color-success); }
+.ca-guide-art { display: inline-flex; align-items: flex-end; gap: 2px; }
+.ca-guide-body { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ca-guide-text { color: var(--color-ink); line-height: 18px; }
+.ca-guide-step[data-state="done"] .ca-guide-text { color: var(--ca-ink-68); }
+.ca-guide-action { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ca-guide-action input {
+  height: 30px;
+  min-width: 220px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-inset, rgb(0 0 0 / 0.05));
+  color: var(--color-ink);
+  font-size: 13px;
+}
+.ca-guide-action input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.ca-guide-tick { color: var(--color-success); display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.ca-guide-finished { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 12px; background: color-mix(in srgb, var(--color-success) 10%, transparent); color: var(--color-ink); }
+@media (prefers-reduced-motion: reduce) { .ca-guide-step { transition: none; } }

@@ -741,9 +741,7 @@ export class AppTriggerManager {
   private assertAvailable(): void {
     const service = this.options.service();
     if (service.available) return;
-    throw new AppTriggerError(service.reason === "self-hosted"
-      ? "App events need dusk bot's connected apps. This server uses its own Composio key, so it cannot watch apps yet: use a schedule that checks the app, or a webhook."
-      : "Connected apps are not set up here, so app events are unavailable.", 409);
+    throw new AppTriggerError("App events aren't available here. Use a schedule that checks the app every few minutes instead, or a webhook if the app can send one.", 409);
   }
 
   private assertWritable(): void {

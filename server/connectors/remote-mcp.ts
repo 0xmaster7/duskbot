@@ -6,11 +6,12 @@ type Row = [id: string, label: string, url: string, domain: string, category: st
 // vendors' own hosted MCP servers. "oauth" rows were probed 2026-11-06: a 401 naming an authorization server whose
 // metadata has a registration_endpoint, so anyone signs in with their own account and no app is registered per vendor.
 // left out on purpose: no dynamic registration (github, hubspot, slack, box, xero, docusign, asana v2, render,
-// pagerduty, zendesk). figma and vercel advertise registration but wait for an end-to-end sign-in test.
+// pagerduty, zendesk). figma refuses registration (403, approved clients only, probed 2026-11-13); vercel registers but its
+// docs admit only clients it reviewed or that send a client id metadata document. todoist and fastmail probed 2026-11-13.
 const OAUTH: readonly Row[] = [
   ["linear", "Linear", "https://mcp.linear.app/mcp", "linear.app", "project management", "Issues, projects and cycles in Linear"],
   ["notion", "Notion", "https://mcp.notion.com/mcp", "notion.so", "documents notes", "Search, read and write pages and databases"],
-  ["atlassian", "Atlassian", "https://mcp.atlassian.com/v1/mcp", "atlassian.com", "project management", "Jira issues and Confluence pages"],
+  ["atlassian", "Atlassian", "https://mcp.atlassian.com/v2/mcp", "atlassian.com", "project management", "Jira issues and Confluence pages"],
   ["sentry", "Sentry", "https://mcp.sentry.dev/mcp", "sentry.io", "developer monitoring", "Errors, issues and releases from Sentry"],
   ["stripe", "Stripe", "https://mcp.stripe.com", "stripe.com", "payments", "Customers, payments, invoices and refunds"],
   ["cloudflare", "Cloudflare", "https://bindings.mcp.cloudflare.com/mcp", "cloudflare.com", "developer cloud", "Workers, KV, R2 and D1 in your account"],
@@ -47,6 +48,8 @@ const OAUTH: readonly Row[] = [
   ["railway", "Railway", "https://mcp.railway.com/mcp", "railway.com", "developer hosting", "Projects, services and deploys"],
   ["mercury", "Mercury", "https://mcp.mercury.com/mcp", "mercury.com", "banking", "Accounts, balances and transactions"],
   ["ramp", "Ramp", "https://mcp.ramp.com/mcp", "ramp.com", "finance", "Cards, spend and reimbursements"],
+  ["todoist", "Todoist", "https://ai.todoist.net/mcp", "todoist.com", "productivity task", "Tasks, projects and due dates"],
+  ["fastmail", "Fastmail", "https://api.fastmail.com/mcp", "fastmail.com", "email calendar", "Mail, calendars and contacts in Fastmail"],
 ];
 
 // answer without a sign-in

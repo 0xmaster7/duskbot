@@ -1,21 +1,20 @@
-// Device sign-in (RFC 8628) to dusk bot's own GitHub App and Google client: the person types a short code on the
-// vendor's page, so nothing needs a callback URL and neither app needs a review. GitHub App device tokens refresh with
-// the client id alone; Google's device flow needs its installed-app secret, which is not confidential (Google's docs).
-// Google allows only drive.file and drive.appdata among Drive scopes for this flow; dusk bot asks for drive.file only.
+// Sign-in to dusk bot's own OAuth apps (shared/native-connectors.json): a device code (RFC 8628) the person types on the
+// vendor's page, or the vendor's page sending the browser back to this computer's loopback address with PKCE (RFC 8252).
+// Neither needs an app review for the scopes listed there. GitHub App device tokens refresh with the client id alone;
+// Google's installed-app secret is not confidential (Google's OAuth docs), so a release may carry it.
+import { createHash, randomBytes } from "node:crypto";
 
-export type DeviceApp = "github" | "googledrive";
+import { NATIVE_CLIENT_ENVS, NATIVE_CONNECTORS, type NativeConnector } from "../../shared/native-connectors.ts";
 
 export interface DeviceClient {
   clientId: string;
   clientSecret?: string;
 }
 
-export interface DeviceClients {
-  github: DeviceClient | null;
-  googledrive: DeviceClient | null;
-}
+/** Each native connector's client, or null when this build has none (that sign-in is then off). */
+export type DeviceClients = Record<string, DeviceClient | null>;
 
-/** JSON of the three client values, set by scripts/bundle-server.mjs from the release environment; absent from source. */
+/** JSON of the client values, set by scripts/bundle-server.mjs from the release environment; absent from source. */
 declare const DUSK_BUILD_DEVICE_CLIENTS: string | undefined;
 
 function built(): Record<string, string> {
@@ -26,23 +25,19 @@ function built(): Record<string, string> {
   }
 }
 
-/** The clients this build may use: DUSK_GITHUB_APP_CLIENT_ID, DUSK_GOOGLE_DRIVE_CLIENT_ID and DUSK_GOOGLE_DRIVE_CLIENT_SECRET
- * from the environment, else as the release was built with them. Unset leaves that sign-in off; a pasted token still works. */
-export function deviceClients(env: NodeJS.ProcessEnv = process.env, baked: Record<string, string> = built()): DeviceClients {
-  const value = (name: string) => (env[name] ?? baked[name])?.trim();
-  const github = value("DUSK_GITHUB_APP_CLIENT_ID");
-  const googleId = value("DUSK_GOOGLE_DRIVE_CLIENT_ID");
-  const googleSecret = value("DUSK_GOOGLE_DRIVE_CLIENT_SECRET");
-  return {
-    github: github ? { clientId: github } : null,
-    googledrive: googleId && googleSecret ? { clientId: googleId, clientSecret: googleSecret } : null,
-  };
+/** The clients this build may use: the environment first, else as the release was built. A connector whose secret env is
+ * named needs it too. */
+export function deviceClients(env: NodeJS.ProcessEnv = process.env, baked: Record<string, string> = built(), connectors: readonly NativeConnector[] = NATIVE_CONNECTORS): DeviceClients {
+  const value = (name: string | undefined) => (name ? (env[name] ?? baked[name])?.trim() : undefined);
+  return Object.fromEntries(connectors.map((one) => {
+    const clientId = value(one.clientIdEnv);
+    const clientSecret = value(one.clientSecretEnv);
+    const ready = clientId && (!one.clientSecretEnv || clientSecret);
+    return [one.id, ready ? { clientId, ...(clientSecret ? { clientSecret } : {}) } : null];
+  }));
 }
 
-const ENDPOINTS: Record<DeviceApp, { code: string; token: string; scope: string }> = {
-  github: { code: "https://github.com/login/device/code", token: "https://github.com/login/oauth/access_token", scope: "" },
-  googledrive: { code: "https://oauth2.googleapis.com/device/code", token: "https://oauth2.googleapis.com/token", scope: "https://www.googleapis.com/auth/drive.file" },
-};
+export { NATIVE_CLIENT_ENVS };
 
 export interface DeviceCode {
   deviceCode: string;
@@ -79,8 +74,11 @@ async function post(fetchImpl: typeof fetch, url: string, values: Record<string,
   return { ok: response.ok, body: body ?? {} };
 }
 
-export async function startDevice(app: DeviceApp, client: DeviceClient, fetchImpl: typeof fetch = fetch): Promise<DeviceCode> {
-  const { body } = await post(fetchImpl, ENDPOINTS[app].code, { client_id: client.clientId, scope: ENDPOINTS[app].scope || undefined });
+const scope = (connector: NativeConnector) => connector.scopes.join(" ") || undefined;
+
+export async function startDevice(connector: NativeConnector, client: DeviceClient, fetchImpl: typeof fetch = fetch): Promise<DeviceCode> {
+  if (!connector.deviceUrl) throw new Error(`${connector.label} has no device sign-in.`);
+  const { body } = await post(fetchImpl, connector.deviceUrl, { client_id: client.clientId, scope: scope(connector) });
   const url = body.verification_uri ?? body.verification_url;
   if (typeof body.device_code !== "string" || typeof body.user_code !== "string" || typeof url !== "string" || !url.startsWith("https://")) {
     throw new Error(typeof body.error_description === "string" ? body.error_description : "The sign-in didn't start. Try again.");
@@ -98,8 +96,8 @@ function tokensOf(body: Record<string, unknown>, now: number): DeviceTokens | nu
   };
 }
 
-export async function pollDevice(app: DeviceApp, client: DeviceClient, deviceCode: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceAnswer> {
-  const { body } = await post(fetchImpl, ENDPOINTS[app].token, {
+export async function pollDevice(connector: NativeConnector, client: DeviceClient, deviceCode: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceAnswer> {
+  const { body } = await post(fetchImpl, connector.tokenUrl, {
     client_id: client.clientId, client_secret: client.clientSecret, device_code: deviceCode, grant_type: "urn:ietf:params:oauth:grant-type:device_code",
   });
   const tokens = tokensOf(body, now);
@@ -111,9 +109,32 @@ export async function pollDevice(app: DeviceApp, client: DeviceClient, deviceCod
   return { status: "failed", message: "The sign-in didn't finish. Start again." };
 }
 
+/** A code-flow sign-in's page and what its answer is checked against. */
+export function authorizePage(connector: NativeConnector, client: DeviceClient, redirectUri: string): { url: string; state: string; verifier: string } {
+  if (!connector.authorizeUrl) throw new Error(`${connector.label} has no browser sign-in.`);
+  const state = randomBytes(16).toString("hex");
+  const verifier = randomBytes(32).toString("base64url");
+  const url = new URL(connector.authorizeUrl);
+  const params: Record<string, string | undefined> = {
+    response_type: "code", client_id: client.clientId, redirect_uri: redirectUri, state, scope: scope(connector),
+    code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", ...connector.authorizeParams,
+  };
+  for (const [key, value] of Object.entries(params)) if (value) url.searchParams.set(key, value);
+  return { url: url.toString(), state, verifier };
+}
+
+export async function exchangeCode(connector: NativeConnector, client: DeviceClient, code: string, verifier: string, redirectUri: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceTokens> {
+  const { body } = await post(fetchImpl, connector.tokenUrl, {
+    grant_type: "authorization_code", code, redirect_uri: redirectUri, client_id: client.clientId, client_secret: client.clientSecret, code_verifier: verifier,
+  });
+  const tokens = tokensOf(body, now);
+  if (!tokens) throw new Error("The sign-in didn't finish. Start again.");
+  return tokens;
+}
+
 /** A new token from a refresh token; each GitHub refresh token works once, so the answer carries the next one. */
-export async function refreshDevice(app: DeviceApp, client: DeviceClient, refresh: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceTokens> {
-  const { body } = await post(fetchImpl, ENDPOINTS[app].token, { client_id: client.clientId, client_secret: client.clientSecret, refresh_token: refresh, grant_type: "refresh_token" });
+export async function refreshDevice(connector: NativeConnector, client: DeviceClient, refresh: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<DeviceTokens> {
+  const { body } = await post(fetchImpl, connector.tokenUrl, { client_id: client.clientId, client_secret: client.clientSecret, refresh_token: refresh, grant_type: "refresh_token" });
   const tokens = tokensOf(body, now);
   if (!tokens) throw new Error("The sign-in expired. Connect the app again.");
   return { ...tokens, refresh: tokens.refresh ?? refresh };

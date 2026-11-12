@@ -4,14 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TOKEN_APPS, type TokenAppId } from "../../shared/app-tokens.ts";
+import { TOKEN_APPS } from "../../shared/app-tokens.ts";
 import type { StoredMcpServer } from "../mcp-registry.ts";
 import { PASS, type RouteContext } from "../routes/table.ts";
-import { pollDevice, refreshDevice, startDevice } from "./device.ts";
+import { authorizePage, exchangeCode, pollDevice, refreshDevice, startDevice } from "./device.ts";
+import { nativeConnector, type NativeConnector } from "../../shared/native-connectors.ts";
 import { apiUrl, callApi, handleApiRpc } from "./mcp.ts";
 import { APP_TOKENS_MCP_PREFIX, createTokenApps, freeName } from "./service.ts";
 import { APP_TOKENS_FILE } from "./store.ts";
-import { subdomain, TokenCheckError, VENDORS, type TokenFields } from "./vendors.ts";
+import { configuredVendor, subdomain, TokenCheckError, VENDORS, vendorFor, type TokenFields } from "./vendors.ts";
 
 type Call = { url: string; init: RequestInit };
 /** A fetch that answers by URL prefix and records every call. */
@@ -32,7 +33,7 @@ const header = (call: Call, name: string) => new Headers(call.init.headers).get(
 const signal = () => AbortSignal.timeout(5_000);
 
 // one live-check answer per app, from each vendor's documented response shape
-const WHOAMI: Record<TokenAppId, { fields: TokenFields; url: string; body: unknown; label: string; auth: [string, string] }> = {
+const WHOAMI: Record<string, { fields: TokenFields; url: string; body: unknown; label: string; auth: [string, string] }> = {
   github: { fields: { token: "github_pat_x" }, url: "https://api.github.com/user", body: { login: "octo" }, label: "octo", auth: ["authorization", "Bearer github_pat_x"] },
   notion: { fields: { token: "ntn_x" }, url: "https://api.notion.com/v1/users/me", body: { name: "bot", bot: { workspace_name: "Acme" } }, label: "Acme", auth: ["authorization", "Bearer ntn_x"] },
   linear: { fields: { token: "lin_api_x" }, url: "https://api.linear.app/graphql", body: { data: { viewer: { name: "Ada" } } }, label: "Ada", auth: ["authorization", "lin_api_x"] },
@@ -53,16 +54,16 @@ describe("vendor checks", () => {
     const fixture = WHOAMI[app.id];
     it(`${app.id}: checks the token live and names the account`, async () => {
       const fake = fakeFetch({ [fixture.url]: () => ({ body: fixture.body }) });
-      expect(await VENDORS[app.id].check(fixture.fields, fake.impl, signal())).toBe(fixture.label);
+      expect(await vendorFor(app.id)!.check(fixture.fields, fake.impl, signal())).toBe(fixture.label);
       const [name, value] = fixture.auth;
       if (value) expect(header(fake.calls[0]!, name)).toBe(value);
       expect(fake.calls[0]!.init.redirect).toBe("error");
       // every app is reachable one way or the other
-      expect(Boolean(VENDORS[app.id].mcp) || Boolean(VENDORS[app.id].api)).toBe(true);
+      expect(Boolean(vendorFor(app.id)!.mcp) || Boolean(vendorFor(app.id)!.api)).toBe(true);
     });
     it(`${app.id}: says the app refused a token`, async () => {
       const fake = fakeFetch({ [fixture.url]: () => ({ status: 401, body: {} }) });
-      await expect(VENDORS[app.id].check(fixture.fields, fake.impl, signal())).rejects.toMatchObject({ kind: "refused" });
+      await expect(vendorFor(app.id)!.check(fixture.fields, fake.impl, signal())).rejects.toMatchObject({ kind: "refused" });
     });
   }
 
@@ -143,16 +144,19 @@ describe("api_request", () => {
   });
 });
 
+const GITHUB = nativeConnector("github")!;
+const DRIVE = nativeConnector("googledrive")!;
+
 describe("device sign-in", () => {
   it("starts GitHub's with the client id only and polls until done", async () => {
     const fake = fakeFetch({
       "https://github.com/login/device/code": () => ({ body: { device_code: "dc", user_code: "ABCD-1234", verification_uri: "https://github.com/login/device", expires_in: 900, interval: 5 } }),
       "https://github.com/login/oauth/access_token": () => ({ body: { error: "authorization_pending" } }),
     });
-    const code = await startDevice("github", { clientId: "Iv1.x" }, fake.impl);
+    const code = await startDevice(GITHUB, { clientId: "Iv1.x" }, fake.impl);
     expect(code).toMatchObject({ userCode: "ABCD-1234", verificationUrl: "https://github.com/login/device", interval: 5 });
     expect(String(fake.calls[0]!.init.body)).toBe("client_id=Iv1.x");
-    expect(await pollDevice("github", { clientId: "Iv1.x" }, "dc", fake.impl)).toEqual({ status: "waiting" });
+    expect(await pollDevice(GITHUB, { clientId: "Iv1.x" }, "dc", fake.impl)).toEqual({ status: "waiting" });
     expect(String(fake.calls[1]!.init.body)).not.toContain("client_secret");
   });
 
@@ -161,19 +165,19 @@ describe("device sign-in", () => {
       "https://oauth2.googleapis.com/device/code": () => ({ body: { device_code: "dc", user_code: "XYZ", verification_url: "https://www.google.com/device", expires_in: 1800, interval: 5 } }),
       "https://oauth2.googleapis.com/token": () => ({ body: { access_token: "ya29", refresh_token: "1//r", expires_in: 3599 } }),
     });
-    await startDevice("googledrive", { clientId: "c", clientSecret: "s" }, fake.impl);
+    await startDevice(DRIVE, { clientId: "c", clientSecret: "s" }, fake.impl);
     expect(new URLSearchParams(String(fake.calls[0]!.init.body)).get("scope")).toBe("https://www.googleapis.com/auth/drive.file");
-    const done = await pollDevice("googledrive", { clientId: "c", clientSecret: "s" }, "dc", fake.impl, 1_000);
+    const done = await pollDevice(DRIVE, { clientId: "c", clientSecret: "s" }, "dc", fake.impl, 1_000);
     expect(done).toEqual({ status: "done", tokens: { token: "ya29", refresh: "1//r", expiresAt: 1_000 + 3_599_000 } });
-    const next = await refreshDevice("googledrive", { clientId: "c", clientSecret: "s" }, "1//r", fake.impl, 0);
+    const next = await refreshDevice(DRIVE, { clientId: "c", clientSecret: "s" }, "1//r", fake.impl, 0);
     expect(next.refresh).toBe("1//r");
   });
 
   it("reads a denial and an expired code", async () => {
     const denied = fakeFetch({ "https://github.com/": () => ({ body: { error: "access_denied" } }) });
-    expect(await pollDevice("github", { clientId: "c" }, "dc", denied.impl)).toMatchObject({ status: "failed" });
+    expect(await pollDevice(GITHUB, { clientId: "c" }, "dc", denied.impl)).toMatchObject({ status: "failed" });
     const expired = fakeFetch({ "https://github.com/": () => ({ body: { error: "expired_token" } }) });
-    expect(await pollDevice("github", { clientId: "c" }, "dc", expired.impl)).toMatchObject({ status: "failed" });
+    expect(await pollDevice(GITHUB, { clientId: "c" }, "dc", expired.impl)).toMatchObject({ status: "failed" });
   });
 });
 
@@ -282,7 +286,7 @@ describe("token apps service", () => {
         : { body: { access_token: "ya29", refresh_token: "1//r", expires_in: 3600 } },
       "https://www.googleapis.com/": () => ({ body: { user: { emailAddress: "g@b.test" } } }),
     }, { github: null, googledrive: { clientId: "c", clientSecret: "s" } } as never);
-    expect(apps.status().device).toEqual({ github: false, googledrive: true });
+    expect(apps.status().native).toEqual({ github: false, googledrive: true });
     const start = await route(apps, "POST", "/api/app-tokens/googledrive/device");
     expect(start.answer).toMatchObject({ userCode: "XYZ", verificationUrl: "https://www.google.com/device" });
     expect((await route(apps, "GET", `/api/app-tokens/device/${start.answer.handle}`)).answer).toEqual({ status: "waiting" });
@@ -312,7 +316,51 @@ describe("device clients", () => {
     const { deviceClients } = await import("./device.ts");
     expect(deviceClients({}, {})).toEqual({ github: null, googledrive: null });
     expect(deviceClients({ DUSK_GITHUB_APP_CLIENT_ID: "Iv1.env" }, { DUSK_GITHUB_APP_CLIENT_ID: "Iv1.built" }).github).toEqual({ clientId: "Iv1.env" });
+    expect(deviceClients({}, { DUSK_GITHUB_APP_CLIENT_ID: "Iv1.built" }).github).toEqual({ clientId: "Iv1.built" });
     expect(deviceClients({}, { DUSK_GOOGLE_DRIVE_CLIENT_ID: "g" }).googledrive).toBeNull();
     expect(deviceClients({}, { DUSK_GOOGLE_DRIVE_CLIENT_ID: "g", DUSK_GOOGLE_DRIVE_CLIENT_SECRET: "s" }).googledrive).toEqual({ clientId: "g", clientSecret: "s" });
+  });
+});
+
+describe("a native connector added as a row", () => {
+  const row: NativeConnector = {
+    id: "acme", label: "Acme", domain: "acme.test", flow: "code", clientIdEnv: "DUSK_ACME_CLIENT_ID", clientSecretEnv: "DUSK_ACME_CLIENT_SECRET",
+    authorizeUrl: "https://acme.test/oauth/authorize", tokenUrl: "https://acme.test/oauth/token", scopes: ["read", "write"], authorizeParams: { access_type: "offline" },
+    check: { url: "https://api.acme.test/me", label: "profile.name" }, use: { api: "https://api.acme.test", docs: "https://acme.test/docs" },
+  };
+
+  it("reads its client from the env names it lists, needing the secret it names", async () => {
+    const { deviceClients } = await import("./device.ts");
+    expect(deviceClients({ DUSK_ACME_CLIENT_ID: "id" }, {}, [row]).acme).toBeNull();
+    expect(deviceClients({ DUSK_ACME_CLIENT_ID: "id", DUSK_ACME_CLIENT_SECRET: "s" }, {}, [row]).acme).toEqual({ clientId: "id", clientSecret: "s" });
+  });
+
+  it("checks and serves the token from the row alone", async () => {
+    const fake = fakeFetch({ "https://api.acme.test/me": () => ({ body: { profile: { name: "Ada" } } }) });
+    const vendor = configuredVendor(row);
+    expect(await vendor.check({ token: "tok" }, fake.impl, signal())).toBe("Ada");
+    expect(header(fake.calls[0]!, "authorization")).toBe("Bearer tok");
+    expect(vendor.api!({ token: "tok" })).toMatchObject({ origin: "https://api.acme.test", headers: { authorization: "Bearer tok" } });
+    expect(configuredVendor({ ...row, use: { mcp: "https://mcp.acme.test/mcp" } }).mcp!({ token: "tok" })).toEqual({ url: "https://mcp.acme.test/mcp", headers: { authorization: "Bearer tok" } });
+  });
+
+  it("signs in with a loopback redirect and PKCE, then trades the code", async () => {
+    const page = authorizePage(row, { clientId: "id", clientSecret: "s" }, "http://127.0.0.1:8799/api/app-tokens/callback");
+    const url = new URL(page.url);
+    expect(url.origin + url.pathname).toBe("https://acme.test/oauth/authorize");
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ response_type: "code", client_id: "id", redirect_uri: "http://127.0.0.1:8799/api/app-tokens/callback", state: page.state, scope: "read write", code_challenge_method: "S256", access_type: "offline" });
+    expect(url.searchParams.has("client_secret")).toBe(false);
+    const fake = fakeFetch({ "https://acme.test/oauth/token": () => ({ body: { access_token: "at", refresh_token: "rt", expires_in: 60 } }) });
+    expect(await exchangeCode(row, { clientId: "id", clientSecret: "s" }, "c0de", page.verifier, "http://127.0.0.1:8799/api/app-tokens/callback", fake.impl, 0)).toEqual({ token: "at", refresh: "rt", expiresAt: 60_000 });
+    expect(new URLSearchParams(String(fake.calls[0]!.init.body)).get("code_verifier")).toBe(page.verifier);
+  });
+});
+
+describe("the GitHub and Google Drive rows", () => {
+  it("ask for no review: GitHub without scopes, Drive for drive.file only", () => {
+    expect(GITHUB).toMatchObject({ flow: "device", clientIdEnv: "DUSK_GITHUB_APP_CLIENT_ID", scopes: [] });
+    expect(DRIVE.scopes).toEqual(["https://www.googleapis.com/auth/drive.file"]);
+    expect(TOKEN_APPS.find((app) => app.id === "github")).toMatchObject({ native: true });
+    expect(TOKEN_APPS.find((app) => app.id === "googledrive")).toMatchObject({ native: true, fields: [] });
   });
 });

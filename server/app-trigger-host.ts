@@ -58,6 +58,8 @@ function status(error: unknown): number {
   return error instanceof AppTriggerError ? error.status : typeof (error as { status?: unknown }).status === "number" ? (error as { status: number }).status : 400;
 }
 
+export const POLL_INSTEAD = "A bot can't be woken by app events here. Use a schedule that checks the app every few minutes instead (for new mail: search messages since the last run), or a webhook if the app can send one.";
+
 export function createAppTriggerHost(deps: AppTriggerHostDeps) {
   const broker = deps.broker ?? brokerClient(deps.access);
   const service = () => {
@@ -82,9 +84,7 @@ export function createAppTriggerHost(deps: AppTriggerHostDeps) {
   });
   const requests = new AppTriggerRequestService({ store: deps.store, triggers: manager, botName: (botId) => deps.store.bot(botId)?.name ?? "the bot" });
 
-  const unavailableText = (reason: "self-hosted" | "unavailable") => reason === "self-hosted"
-    ? "App events need dusk bot's connected apps. This server uses its own Composio key, so a bot cannot watch apps here yet: use a schedule that checks the app, or a webhook."
-    : "Connected apps are not set up here, so a bot cannot watch apps yet.";
+  const unavailableText = (_reason: "self-hosted" | "unavailable") => POLL_INSTEAD;
 
   async function catalog(bot: Bot, app?: string, search?: string): Promise<AppEventCatalog> {
     const current = service();

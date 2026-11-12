@@ -8,6 +8,8 @@ import { Icon } from "../Icon";
 import { cleanKey, saveCredential } from "../keys/key-save";
 import type { Connectors } from "./use-connectors";
 import type { ViaFailure, ViaFlow } from "./via-flow";
+import { KitButton } from "./detail-kit";
+import { StepGuide, type GuideStep } from "./StepGuide";
 
 /** Composio's own sign-up / log-in, then the project page that lists its API keys
  * (https://docs.composio.dev/reference/authenticating-to-composio). */
@@ -51,8 +53,8 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
   const connected = flow?.step === "done";
   const line = viaLine(flow, name);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     const key = cleanKey(draft);
     if (busy || !key) return;
     if (!/^ak_\S+$/.test(key)) { setProblem("connectApps.key.shape"); return; }
@@ -69,13 +71,37 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
       return;
     }
     setDraft("");
+    setSaved(true);
     await connectors.continueAfterKey(slug, launch);
     setBusy(false);
   };
 
-  const steps = [
-    { key: "authorize", done: authorized, current: !authorized, title: t(authorized ? "connectApps.via.authorized" : "connectApps.via.authorize"), sub: null },
-    { key: "connect", done: connected, current: authorized && !connected, title: t("connectApps.connectApp", { name }), sub: t("connectApps.via.connectLine", { name }) },
+  const [openedComposio, setOpenedComposio] = useState(false);
+  const [openedKeys, setOpenedKeys] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const viaSteps: GuideStep[] = [
+    { key: "authorize", attrs: { "data-via-step": "authorize" }, pixel: "idcard", done: authorized, text: t("connectApps.guide.signIn"),
+      action: <KitButton onClick={() => void connectors.authorizeComposio(slug)}>{t("connectApps.via.authorize")}</KitButton> },
+    { key: "connect", attrs: { "data-via-step": "connect" }, pixel: "globe", done: connected, text: t("connectApps.guide.pick", { name }),
+      action: authorized ? <KitButton onClick={() => void connectors.connect(slug)}>{t("connectApps.connectApp", { name })}</KitButton> : undefined },
+  ];
+  const keySteps: GuideStep[] = [
+    { key: "open", pixel: "globe", done: openedComposio || openedKeys || Boolean(draft), text: t("connectApps.guide.openComposio"),
+      action: <a className="ca-kit-button" data-variant="primary" href={COMPOSIO_SIGN_UP_URL} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedComposio(true)}>{t("connectApps.key.signUp")}</a> },
+    { key: "google", pixel: "idcard", done: openedKeys || Boolean(draft), text: t("connectApps.guide.google") },
+    { key: "copy", pixel: "key", done: Boolean(draft), text: t("connectApps.guide.copyKey"),
+      action: <a className="ca-kit-button" data-variant="secondary" href={COMPOSIO_API_KEYS_URL} target="_blank" rel="noopener noreferrer" onClick={() => setOpenedKeys(true)}>{t("connectApps.key.openKeys")}</a> },
+    { key: "paste", pixel: "note", done: saved, text: t("connectApps.guide.paste"),
+      action: (
+        <form className="ca-guide-action" onSubmit={(event) => void submit(event)}>
+          <input type="password" value={draft} autoFocus autoComplete="off" spellCheck={false} placeholder="ak_…"
+            aria-label={t("connectApps.key.label")} aria-invalid={problem ? true : undefined} aria-describedby={problem ? "ca-key-problem" : undefined}
+            onChange={(event) => { setDraft(event.target.value); setProblem(null); }} />
+          <KitButton type="submit" disabled={busy || !draft.trim()} aria-busy={busy || undefined}>{busy ? t("tokenApps.checking") : t("connectApps.connectApp", { name })}</KitButton>
+        </form>
+      ) },
+    { key: "pick", pixel: "check", done: connected, text: t("connectApps.guide.pick", { name }) },
   ];
 
   return (
@@ -83,65 +109,20 @@ export function ComposioKeyStep({ slug, name, connectors }: { slug: string; name
       <h3 id="ca-key-title" className="ca-group-label">{t("connectApps.via.title", { name })}</h3>
       <div className="ca-card">
         <p className="ca-card-row ca-key-why">{t("connectApps.via.why", { name })}</p>
-        {!ownKey && (
-          <ol className="ca-key-steps">
-            {steps.map((step, index) => (
-              <li key={step.key} className="ca-card-row" data-via-step={step.key} data-state={step.done ? "done" : step.current ? "current" : "next"}
-                aria-current={step.current ? "step" : undefined}>
-                <span data-step="" aria-hidden="true">{step.done ? <Icon name="check" size={11} /> : index + 1}</span>
-                <span>
-                  {step.title}
-                  {step.sub && !step.done && <span className="ca-key-sub">{step.sub}</span>}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
+        <div className="ca-card-row">
+          <StepGuide label={t("tokenApps.guide", { name })} steps={ownKey ? keySteps : viaSteps} finished={null} />
+        </div>
         {line && (
           <p role={line.tone === "alert" ? "alert" : "status"} className="ca-card-row ca-key-line" data-tone={line.tone} data-via-line="">
             <Icon name={line.tone === "alert" ? "exclamation-circle" : line.tone === "done" ? "check" : "clock"} size={13} />
             <span>{line.text}</span>
           </p>
         )}
-        {!ownKey && !authorized && (
+        {!authorized && !connected && (
           <p className="ca-card-row ca-key-why">
-            {t("connectApps.via.shares", { name })}{" "}
-            <button type="button" className="ca-link" onClick={() => { setOwnKey(true); setProblem(null); }}>{t("connectApps.signIn.ownKey")}</button>
+            {!ownKey && <>{t("connectApps.via.shares", { name })}{" "}</>}
+            <button type="button" className="ca-link" onClick={() => { setOwnKey(!ownKey); setProblem(null); }}>{t(ownKey ? "connectApps.guide.useSignIn" : "connectApps.signIn.ownKey")}</button>
           </p>
-        )}
-        {ownKey && (
-          <>
-            <ol className="ca-key-steps">
-              <li className="ca-card-row">
-                <span data-step="" aria-hidden="true">1</span>
-                <span>{t("connectApps.key.step1")}</span>
-                <a className="ca-pill" data-size="sm" href={COMPOSIO_SIGN_UP_URL} target="_blank" rel="noopener noreferrer">
-                  <span>{t("connectApps.key.signUp")}</span>
-                </a>
-              </li>
-              <li className="ca-card-row">
-                <span data-step="" aria-hidden="true">2</span>
-                <span>{t("connectApps.key.step2")}</span>
-                <a className="ca-pill" data-size="sm" href={COMPOSIO_API_KEYS_URL} target="_blank" rel="noopener noreferrer">
-                  <span>{t("connectApps.key.openKeys")}</span>
-                </a>
-              </li>
-              <li className="ca-card-row">
-                <span data-step="" aria-hidden="true">3</span>
-                <span>{t("connectApps.key.step3", { name })}</span>
-              </li>
-            </ol>
-            <form className="ca-alias" onSubmit={(event) => void submit(event)}>
-              <input type="password" value={draft} autoFocus autoComplete="off" spellCheck={false} placeholder="ak_…"
-                aria-label={t("connectApps.key.label")} aria-invalid={problem ? true : undefined} aria-describedby={problem ? "ca-key-problem" : undefined}
-                onChange={(event) => { setDraft(event.target.value); setProblem(null); }} />
-              <button type="submit" className="ca-primary" disabled={busy || !draft.trim()} aria-busy={busy || undefined}>
-                {[t("connectApps.connectApp", { name }), t("connectApps.connecting")].map((label, index) => (
-                  <span key={label} aria-hidden={(index === 1) === busy ? undefined : true}>{label}</span>
-                ))}
-              </button>
-            </form>
-          </>
         )}
         {problem && (
           <p id="ca-key-problem" role="alert" className="ca-card-row ca-key-problem">

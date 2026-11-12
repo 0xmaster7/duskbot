@@ -85,7 +85,7 @@ import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
-import { APP_TOKENS_MCP_PREFIX, createTokenApps } from "./app-tokens/service.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
+import { createTokenApps } from "./app-tokens/service.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
 import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
 import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
@@ -12833,7 +12833,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (refusal) return json(res, 403, { error: refusal, code: "managed_policy" });
     }
     // Public like the loopback listener it stands in for: the state is the credential, checked once.
-    if (path.startsWith(APP_TOKENS_MCP_PREFIX)) return await tokenApps.mcp(req, res, path, method, () => readBody(req), json);
+    if (path.startsWith("/api/app-tokens/") && await tokenApps.publicRoute(req, res, url, method, () => readBody(req), json)) return;
     if (path === MCP_OAUTH_CALLBACK_PATH) {
       const answer = method === "GET"
         ? await teamConnections.mcpCallback(req.headers.host, url.search)

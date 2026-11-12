@@ -58,8 +58,9 @@ export function grokCategories(names: readonly string[] | undefined): Category[]
 }
 
 /** composio: an aggregator's catalog app. remote: the vendor's own hosted MCP server, signed in with dynamic client
- * registration. native, hosted, logins: dusk bot's own cards. custom: an MCP server the person added by its URL. */
-export type AppKind = "composio" | "remote" | "native" | "hosted" | "logins" | "custom";
+ * registration. native, hosted, logins: dusk bot's own cards. token: connected with the person's own token or a device
+ * code. custom: an MCP server the person added by its URL. */
+export type AppKind = "composio" | "remote" | "native" | "hosted" | "logins" | "token" | "custom";
 
 /** Apps from a provider's catalog, as opposed to dusk bot's own cards. */
 export const fromCatalog = (entry: Pick<AppEntry, "kind">): boolean => entry.kind === "composio" || entry.kind === "remote";
