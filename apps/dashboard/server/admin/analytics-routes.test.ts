@@ -9,7 +9,7 @@ import { createDashboardApp } from "../app.ts";
 import { memoryMailer } from "../auth/mail.ts";
 import { memorySink, type Note, type AuditEntry } from "../analytics/sink.ts";
 import { DAY, HOUR, DIMENSIONS } from "../analytics/web.ts";
-import type { createAnalyticsRoutes } from "./analytics-routes.ts";
+import { upsellsOf, type createAnalyticsRoutes } from "./analytics-routes.ts";
 import type { EventName } from "../analytics/events.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 
@@ -413,5 +413,28 @@ describe("admin analytics routes", () => {
     expect((await call("/v1/admin/notes/note_missing123", { method: "DELETE", cookie: admin, body: {} })).status).toBe(404);
     const { entries } = await read<{ entries: AuditEntry[] }>("/v1/admin/audit", admin);
     for (const action of ["note.add", "note.edit", "note.delete"]) expect(entries).toEqual(expect.arrayContaining([expect.objectContaining({ action, target: note.id, actor })]));
+  });
+});
+
+describe("upsells by source", () => {
+  it("counts people who saw, opened and dismissed each upsell, from the page and the apps, and who paid through it", () => {
+    const at = 1_000;
+    const ev = (name: string, accountId: string | null, props: Record<string, string>, visitor?: string) => ({ id: `e${Math.random()}`, name, at, accountId, props, ...(visitor ? { ctx: { visitor } } : {}) });
+    const rows = upsellsOf([
+      ev("page_action", "a1", { action: "upsell_shown", label: "dash_sidebar" }), ev("page_action", "a1", { action: "upsell_shown", label: "dash_sidebar" }),
+      ev("page_action", "a2", { action: "upsell_shown", label: "dash_sidebar" }), ev("page_action", "a2", { action: "upsell_click", label: "dash_sidebar" }),
+      ev("page_action", null, { action: "upsell_dismiss", label: "dash_invested" }, "v1"), ev("page_action", "a3", { action: "cta_click", label: "dash_sidebar" }),
+      ev("upsell_shown", "a4", { source: "desktop_sleep" }), ev("upsell_click", "a4", { source: "desktop_sleep" }),
+      { ...ev("page_action", "a5", { action: "upsell_shown", label: "dash_sidebar" }), at: 5_000 },
+    ], [
+      { source: "dash_sidebar", status: "active", currentPeriodStart: at, createdAt: at },
+      { source: "dash_sidebar", status: "pending", currentPeriodStart: null, createdAt: at },
+      { source: "admin_comp", status: "active", currentPeriodStart: at, createdAt: at },
+    ], 0, 2_000);
+    expect(rows).toEqual([
+      { source: "dash_sidebar", shown: 2, clicked: 1, dismissed: 0, paid: 1 },
+      { source: "desktop_sleep", shown: 1, clicked: 1, dismissed: 0, paid: 0 },
+      { source: "dash_invested", shown: 0, clicked: 0, dismissed: 1, paid: 0 },
+    ]);
   });
 });

@@ -25,6 +25,10 @@ export type BillingNotice =
   | { kind: "payment_failed"; accountId: string; amountCents: number; currency: string; description: string; cloudId: string | null; fixBy: number | null }
   | { kind: "cancelled"; accountId: string; description: string; cloudId: string | null; endsAt: number | null; graceDays: number };
 const day = 86_400_000;
+/** an open-ended comp's period end: far enough out that every entitlement check reads it as current */
+export const OPEN_ENDED_AT = Date.UTC(2100, 0, 1);
+/** a plan the operator gave rather than sold: its own checkout source, and what its one payment records */
+export interface OperatorGrant { source: "ops_grant" | "admin_comp"; amountCents?: number }
 const emailOf = (email: string) => email.trim().toLowerCase();
 function fail(status: number, code: BillingErrorCode): never { throw new BillingError(status, code); }
 function serviceError(error: unknown): never { if (error instanceof BillingError) throw error; throw new BillingError(503, "unavailable"); }
@@ -281,6 +285,10 @@ export function createBillingService(options: BillingServiceOptions) {
     }
     sub.currentPeriodEnd = next;
   }
+  function endSubscription(sub: StoredSubscription, email: string) {
+    sub.status = "ended"; refreshLicense(sub, email);
+    if (sub.cloudId) cloudAction({ kind: "end", cloudId: sub.cloudId, at: now() + config.graceDays * day });
+  }
   function ledger(accountId: string, deltaCents: number, reason: "top_up" | "refund", ref: string) {
     if (deltaCents === 0) return;
     if (!state.credits.some(entry => entry.reason === reason && entry.ref === ref)) state.credits.push({ id: id("cr"), accountId, deltaCents, reason, ref, at: now() });
@@ -400,10 +408,8 @@ export function createBillingService(options: BillingServiceOptions) {
         cloudAction({ kind: "payment", cloudId: sub.cloudId, problem: true });
         cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: (sub.currentPeriodEnd ?? now()) + config.graceDays * day });
       }
-    } else if (event.type === "cancelled" || event.type === "expired") {
-      sub.status = "ended"; refreshLicense(sub, checkout.email);
-      if (sub.cloudId) cloudAction({ kind: "end", cloudId: sub.cloudId, at: now() + config.graceDays * day });
-    } else {
+    } else if (event.type === "cancelled" || event.type === "expired") endSubscription(sub, checkout.email);
+    else {
       if (event.cancelAtPeriodEnd && !sub.cancelAtPeriodEnd && sub.status === "active") notices.push(cancelledNotice({ ...sub, cancelAtPeriodEnd: true }));
       sub.cancelAtPeriodEnd = event.cancelAtPeriodEnd;
       const license = state.licenses.find(license => license.id === sub!.licenseId); if (license) license.validUntil = sub.currentPeriodEnd;
@@ -444,6 +450,7 @@ export function createBillingService(options: BillingServiceOptions) {
     settleRefunds(event.paymentId);
   }
   function receipt(invoice: (typeof state.invoices)[number], sub: StoredSubscription | null) {
+    if (invoice.amountCents === 0) return;
     const paidBefore = state.invoices.some(other => other !== invoice && other.status !== "failed" && other.checkoutId === invoice.checkoutId);
     notices.push({ kind: "receipt", accountId: invoice.accountId, invoiceId: invoice.id, amountCents: invoice.amountCents, currency: invoice.currency, description: invoice.description, paidAt: now(),
       periodStart: sub?.currentPeriodStart ?? null, periodEnd: sub?.currentPeriodEnd ?? null, renews: sub ? !sub.cancelAtPeriodEnd : false, first: !paidBefore, cloudId: sub?.cloudId ?? null,
@@ -499,15 +506,16 @@ export function createBillingService(options: BillingServiceOptions) {
       checkout.status = "expired"; if (checkout.cloudId) clouds.abandon(checkout.cloudId);
     }
   }
-  async function checkout(account: AccountRef, item: CheckoutItem, input: { source?: unknown; returnPath?: string } = {}): Promise<CheckoutAnswer> {
+  async function checkout(account: AccountRef, item: CheckoutItem, input: { source?: unknown; returnPath?: string; operator?: OperatorGrant } = {}): Promise<CheckoutAnswer> {
     if (closureFor(account.id)) fail(409, "billing_active");
     if (!item || typeof item !== "object" || (item.kind !== "cart" && item.kind !== "credits")) fail(400, "invalid_request");
     const url = returnUrl(input.returnPath);
-    const source = checkoutSource(input.source);
+    const source = input.operator?.source ?? checkoutSource(input.source);
     expireCheckouts(account.id);
     const cart = item.kind === "cart" ? parsed(item.cart) : null;
+    const amount = (priced: number) => input.operator?.amountCents ?? priced;
     const open = state.checkouts.find(checkout => checkout.accountId === account.id && checkout.kind === "cart" && checkout.status === "open" && checkout.openUntil > now());
-    if (cart && open?.cart && open.url && sameCart(open.cart, cart)) return { v: 1, checkoutId: open.id, checkoutUrl: open.url, cloudId: open.cloudId, revives: open.revive === true };
+    if (cart && open?.cart && open.url && sameCart(open.cart, cart) && open.amountCents === amount(quote(cart, config).totalCents)) return { v: 1, checkoutId: open.id, checkoutUrl: open.url, cloudId: open.cloudId, revives: open.revive === true };
     if (state.checkouts.filter(checkout => checkout.accountId === account.id && checkout.createdAt > now() - 3_600_000).length >= config.checkoutsPerHour) fail(429, "rate_limited");
     if (queues.has(account.id) || state.subscriptions.some(sub => sub.accountId === account.id && sub.pendingChange)) fail(409, "plan_change_unavailable");
     const pack = item.kind === "credits" ? config.creditPacks.find(pack => pack.id === item.pack) : null;
@@ -526,7 +534,7 @@ export function createBillingService(options: BillingServiceOptions) {
     const cloud = revive ?? (cart && cart.desktop.kind !== "none" && item.kind === "cart" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: item.kind, cart, packId: pack?.id ?? null,
       cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
-      subscriptionId: null, amountCents: cart ? quote(cart, config).totalCents : pack!.priceCents, creditCents: pack?.creditCents ?? null, lines: cart ? quote(cart, config).lines : [] };
+      subscriptionId: null, amountCents: cart ? amount(quote(cart, config).totalCents) : pack!.priceCents, creditCents: pack?.creditCents ?? null, lines: cart ? quote(cart, config).lines : [] };
     state.checkouts.push(entry); const owner = customer(account.id, account.email); store.commit();
     try {
       const session = await provider.createCheckout({ checkoutId: entry.id, accountId: account.id, email: entry.email, customerId: owner.providerCustomerId, cart: lines, returnUrl: url,
@@ -657,6 +665,44 @@ export function createBillingService(options: BillingServiceOptions) {
       flushCloudActions(); return view(sub);
     });
   }
+  /** the operator's change of a live plan: the owner's own preview and change, without the round trip through their page */
+  async function operatorChange(account: AccountRef, subscriptionId: string, input: unknown) {
+    const changed = await change(account, subscriptionId, previewChange(account, subscriptionId, input).confirmation);
+    const sub = owned(account.id, subscriptionId);
+    if (sub.source === "admin_comp" && sub.totalCents !== 0) { sub.totalCents = 0; sub.updatedAt = now(); sub.version++; store.commit(); return view(sub); }
+    return changed;
+  }
+  /** moves a live plan's period end either way; `OPEN_ENDED_AT` makes it open-ended */
+  function setPeriodEnd(account: AccountRef, subscriptionId: string, until: number) {
+    const sub = editable(account.id, subscriptionId);
+    if (!Number.isSafeInteger(until) || until <= now()) fail(400, "invalid_request");
+    const before = copy(state);
+    try {
+      sub.currentPeriodEnd = until;
+      if (sub.currentPeriodStart === null || sub.currentPeriodStart >= until) sub.currentPeriodStart = Math.min(sub.currentPeriodStart ?? now(), now());
+      sub.updatedAt = now(); sub.version++;
+      refreshLicense(sub, state.checkouts.find(checkout => checkout.id === sub.checkoutId)?.email ?? account.email);
+      if (sub.cloudId && sub.cancelAtPeriodEnd) cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: until + config.graceDays * day });
+      store.commit();
+    } catch (error) { Object.assign(state, before); throw error; }
+    flushCloudActions(); return view(sub);
+  }
+  /** ends a live plan today: the provider stops billing, and its cloud gets the usual grace from now */
+  async function endNow(account: AccountRef, subscriptionId: string) {
+    return serialized(account.id, async () => {
+      let sub = editable(account.id, subscriptionId);
+      await provider.cancelNow(sub.providerSubscriptionId!);
+      sub = owned(account.id, subscriptionId);
+      if (sub.status === "ended") return view(sub);
+      const before = copy(state);
+      try {
+        delete sub.pendingChange;
+        endSubscription(sub, state.checkouts.find(checkout => checkout.id === sub.checkoutId)?.email ?? account.email);
+        sub.updatedAt = now(); sub.version++; store.commit();
+      } catch (error) { Object.assign(state, before); throw error; }
+      flushCloudActions(); return view(sub);
+    });
+  }
   function invoices(accountId: string, cursor?: string | null, limit = 20): InvoicePage {
     if (!Number.isInteger(limit) || limit < 1) fail(400, "invalid_request"); limit = Math.min(limit, 50);
     let after: { at: number; id: string } | null = null;
@@ -718,6 +764,7 @@ export function createBillingService(options: BillingServiceOptions) {
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),
     cancel: guarded((account: AccountRef, subscriptionId: string, survey?: CancelSurvey) => setCancel(account, subscriptionId, true, survey)), keep: guarded((account: AccountRef, subscriptionId: string) => setCancel(account, subscriptionId, false)),
     feedback: guarded(feedback), previewChange: guarded(previewChange), change: guarded(change),
+    operatorChange: guarded(operatorChange), setPeriodEnd: guarded(setPeriodEnd), endNow: guarded(endNow),
     portal: guarded(async (account: AccountRef, path?: string) => { const url = returnUrl(path), owner = state.customers.find(customer => customer.accountId === account.id); if (!owner?.providerCustomerId) fail(409, "not_subscribed"); return provider.portal(owner.providerCustomerId, url); }),
     invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), credits: guarded(credits), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); confirmations.clear(); store.close(); }),
   };

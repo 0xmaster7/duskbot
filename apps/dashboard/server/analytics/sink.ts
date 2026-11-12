@@ -30,6 +30,8 @@ export interface AnalyticsSink {
   forget(accountId: string): Promise<void>;
   audit(entry: AuditEntry): Promise<void>;
   auditLog(limit: number, before?: number): Promise<AuditEntry[]>;
+  /** the newest entries whose target is one of these ids, without the skipped actions */
+  auditFor(targets: string[], limit: number, skipActions?: string[]): Promise<AuditEntry[]>;
   health(): Promise<{ ok: boolean; detail: string; latencyMs: number | null }>;
   /** raw events in [since, until), oldest first, optionally only some names */
   scan(since: number, until: number, names?: readonly string[]): Promise<StoredEvent[]>;
@@ -72,6 +74,7 @@ export function memorySink(now: () => number = Date.now): AnalyticsSink & { all:
     async forget(accountId) { all = all.filter(event => event.accountId !== accountId); this.all = all; },
     async audit(entry) { audits.push(entry); },
     async auditLog(limit, before) { return audits.filter(entry => before === undefined || entry.at < before).sort((a, b) => b.at - a.at).slice(0, limit); },
+    async auditFor(targets, limit, skipActions = []) { return audits.filter(entry => entry.target !== null && targets.includes(entry.target) && !skipActions.includes(entry.action)).sort((a, b) => b.at - a.at).slice(0, limit); },
     async health() { return { ok: true, detail: "memory (fixture)", latencyMs: null }; },
     async scan(since, until, names) {
       return all.filter(event => event.at >= since && event.at < until && (!names || names.includes(event.name))).sort((a, b) => a.at - b.at).slice(-SCAN_LIMIT);
@@ -100,7 +103,7 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
     events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true }]),
     daily.createIndexes([{ key: { day: 1, name: 1 } }]),
     marks.createIndexes([{ key: { expiresAt: 1 }, expireAfterSeconds: 0, partialFilterExpression: { expiresAt: { $type: "date" } } }]),
-    audits.createIndexes([{ key: { at: -1 } }]),
+    audits.createIndexes([{ key: { at: -1 } }, { key: { target: 1, at: -1 } }]),
     notes.createIndexes([{ key: { at: 1 } }]),
   ]);
   const toEvent = (doc: EventDoc): StoredEvent => ({ id: doc._id, name: doc.name, at: doc.at.getTime(), accountId: doc.accountId, props: doc.props ?? {}, ...(doc.ctx ? { ctx: doc.ctx } : {}) });
@@ -136,6 +139,9 @@ export async function mongoSink(db: Db): Promise<AnalyticsSink> {
     async auditLog(limit, before) {
       return (await audits.find(before === undefined ? {} : { at: { $lt: new Date(before) } }).sort({ at: -1 }).limit(limit).toArray())
         .map(({ _id, at, ...rest }) => ({ id: _id, at: at.getTime(), ...rest }));
+    },
+    async auditFor(targets, limit, skipActions = []) {
+      return (await audits.find({ target: { $in: targets }, ...(skipActions.length ? { action: { $nin: skipActions } } : {}) }).sort({ at: -1 }).limit(limit).toArray()).map(({ _id, at, ...rest }) => ({ id: _id, at: at.getTime(), ...rest }));
     },
     async scan(since, until, names) {
       const filter = { at: { $gte: new Date(since), $lt: new Date(until) }, ...(names ? { name: { $in: [...names] } } : {}) };

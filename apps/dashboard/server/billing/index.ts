@@ -17,7 +17,7 @@ import { entitlementSignerFromEnv } from "../entitlements.ts";
 import type { Catalog } from "../../../../shared/billing-api.ts";
 import { createBillingStore } from "./store.ts";
 import { BillingError, createBillingService } from "./service.ts";
-import type { BillingNotice } from "./service.ts";
+import type { BillingNotice, OperatorGrant } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
 import { createDodoProvider } from "./dodo-provider.ts";
@@ -126,8 +126,31 @@ export function createBilling(options: BillingOptions) {
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");
   if (billingProvider === "preview" && !opsToken) throw new Error("DUSK_BILLING_PROVIDER=preview needs DUSK_OPS_TOKEN for plan grants.");
+  // a grant is completed by the in-process fake provider, so only where that provider is the one billing runs on
+  const completer = billingProvider === "preview" || loopback ? fake : null;
+  function setEnd(owner: AccountRef, subscriptionId: string, until: number) {
+    const view = service.setPeriodEnd(owner, subscriptionId, until);
+    const providerId = store.state.subscriptions.find(sub => sub.id === subscriptionId)?.providerSubscriptionId;
+    const held = providerId ? completer?.subscriptions.get(providerId) : undefined;
+    if (held) held.nextBillingAt = until;
+    return view;
+  }
+  async function grant(owner: AccountRef, input: { bundle: string; interval: "month" | "year"; name?: string; source: OperatorGrant["source"]; amountCents?: number; until?: number }) {
+    if (!completer) throw new BillingError(503, "unavailable");
+    const bundle = config.bundles.find(item => item.id === input.bundle && item.id !== "free");
+    if (!bundle) throw new BillingError(400, "invalid_request");
+    const checkout = await service.checkout(owner, { kind: "cart", cart: service.quote({ ...bundle.cart, interval: input.interval }).cart, ...(input.name === undefined ? {} : { name: input.name }) },
+      { operator: { source: input.source, ...(input.amountCents === undefined ? {} : { amountCents: input.amountCents }) } });
+    const stored = store.state.checkouts.find(item => item.id === checkout.checkoutId);
+    if (!stored?.providerSessionId) throw new BillingError(500, "failed");
+    for (const delivery of completer.complete(stored.providerSessionId)) service.handleWebhook(delivery.headers, delivery.body);
+    const sub = store.state.subscriptions.find(item => item.checkoutId === stored.id) ?? null;
+    if (sub && input.until !== undefined) setEnd(owner, sub.id, input.until);
+    void clouds.reconcile().catch(() => {});
+    return { checkoutId: stored.id, subscriptionId: sub?.id ?? null };
+  }
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
-    checkoutOpen: billingProvider !== "preview", grants: billingProvider === "preview" ? fake : null, findAccount: options.findAccount ?? (() => null) };
+    checkoutOpen: billingProvider !== "preview", grants: billingProvider === "preview" ? fake : null, grant, findAccount: options.findAccount ?? (() => null) };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -147,6 +170,8 @@ export function createBilling(options: BillingOptions) {
         cloudDesktops: clouds.list(accountId, true).map(({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt }) => ({ id, name, kind, region, spec, status, createdAt, updatedAt, destroyAt })),
       };
     },
+    /** the owner's plan edits: grants only where the fake provider completes them */
+    operator: { provider: billingProvider as "preview" | "fake" | "dodo" | "off", grants: completer !== null, grant, setEnd },
     enabled: context.enabled, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };
@@ -161,5 +186,7 @@ export type BillingContext = {
   checkoutOpen: boolean;
   /** preview only: the provider that completes an operator's grant */
   grants: ReturnType<typeof createFakeBillingProvider> | null;
+  /** a plan given through the same checkout, webhook and provisioning code, completed by the fake provider */
+  grant(owner: AccountRef, input: { bundle: string; interval: "month" | "year"; name?: string; source: OperatorGrant["source"]; amountCents?: number; until?: number }): Promise<{ checkoutId: string; subscriptionId: string | null }>;
   findAccount(email: string): AccountRef | null;
 };

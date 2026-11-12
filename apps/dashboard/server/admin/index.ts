@@ -12,6 +12,7 @@ import type { StoredEvent } from "../analytics/sink.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
 import { healthTargets, newestBackup, probe, spoolCount, type ErrorCounter } from "./health.ts";
 import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.ts";
+import { PlanError, createPlanEditor } from "./plans.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -39,7 +40,7 @@ export interface AdminOptions {
 }
 
 const rethrow = (error: unknown): never => {
-  if (error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
+  if (error instanceof AnalyticsRouteError || error instanceof PlanError) throw new AdminError(error.status, error.code, error.message);
   throw error;
 };
 export const parseAdminEmails = (value: string | undefined) => [...new Set((value ?? "").split(",").map(item => item.trim().toLowerCase()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)))];
@@ -70,6 +71,7 @@ export function createAdmin(options: AdminOptions) {
     return analytics.sink.audit({ id: `aud_${randomBytes(12).toString("base64url")}`, at: now(), actor, action, target, detail }).catch(() => { analytics.stats.failed++; });
   }
 
+  const plans = createPlanEditor({ billing, now, audit });
   const directory = () => auth.directory();
   const store = () => billing.store.state;
   const allClouds = () => billing.clouds.all?.() ?? [];
@@ -168,7 +170,9 @@ export function createAdmin(options: AdminOptions) {
     const emails = emailMap(), billingState = store();
     const workspaces = options.workspaces().filter(ws => ws.ownerAccountId === id);
     const sinceDay = dayKey(now() - 29 * DAY);
-    const events = await analytics.sink.events({ accountId: id, limit: 200 });
+    const clouds = billing.clouds.list(id, true);
+    const [events, auditEntries] = await Promise.all([analytics.sink.events({ accountId: id, limit: 200 }),
+      analytics.sink.auditFor([id, ...clouds.map(c => c.id), ...billingState.subscriptions.filter(s => s.accountId === id).map(s => s.id)], 50, ["user.view", "person.view"])]);
     const derived: Array<Pick<StoredEvent, "name" | "at" | "props">> = [
       { name: "account_created", at: account.createdAt, props: {} },
       ...billingState.checkouts.filter(c => c.accountId === id).map(c => ({ name: "checkout_started", at: c.createdAt, props: { status: c.status, cloud: choseCloud(c), amountCents: c.amountCents, source: c.source ?? "unknown" } })),
@@ -181,14 +185,16 @@ export function createAdmin(options: AdminOptions) {
       account: { id: account.id, email: account.email, name: account.name, createdAt: account.createdAt, lastSeenAt: lastSeen(id, sessions), optOut: analytics.optedOut(id) },
       methods: ["email", ...identities.filter(item => item.accountId === id).map(item => item.provider)],
       plan: planOf(id),
-      subscriptions: subsOf(id).map(sub => ({ id: sub.id, plan: bundleLabel(sub.bundle), status: sub.status, totalCents: sub.totalCents, periodEnd: sub.currentPeriodEnd, cancelAtPeriodEnd: sub.cancelAtPeriodEnd, createdAt: sub.createdAt })),
+      subscriptions: plans.subscriptions(id),
+      billing: plans.info(),
       payments: billingState.invoices.filter(i => i.accountId === id).map(({ id: invoiceId, amountCents, currency, status, createdAt }) => ({ id: invoiceId, amountCents, currency, status, createdAt })),
       devices: sessions.filter(session => session.accountId === id).sort((a, b) => b.lastSeenAt - a.lastSeenAt)
         .map(({ id: sessionId, kind, name, platform, appVersion, createdAt, lastSeenAt }) => ({ id: sessionId, kind, name, platform, appVersion, createdAt, lastSeenAt })),
-      clouds: billing.clouds.list(id, true).map(c => cloudRow(c, emails)),
+      clouds: clouds.map(c => cloudRow(c, emails)),
       workspaces: workspaces.map(ws => ({ id: ws.id, name: ws.name, kind: ws.kind, version: ws.version, connectedAt: ws.connectedAt, lastReportAt: ws.lastReportAt,
         bots: ws.report?.bots?.length ?? 0, turns30d: workspaceTurns(ws, sinceDay), computers: ws.report?.computers?.computers.length ?? 0 })),
       timeline,
+      audit: auditEntries.map(entry => ({ ...entry, actorEmail: emails.get(entry.actor) ?? null })),
     };
   }
 
@@ -341,6 +347,13 @@ export function createAdmin(options: AdminOptions) {
       return send({ ok: true });
     }
     if (method === "POST") {
+      const planRoute = /^\/users\/([A-Za-z0-9_-]{1,80})\/plan$/.exec(route);
+      if (planRoute) {
+        const account = directory().accounts.find(item => item.id === planRoute[1]);
+        if (!account) throw new AdminError(404, "not_found", "Not found.");
+        await plans.edit(owner, { id: account.id, email: account.email }, options.bodyObject(await options.readBody(req))).catch(rethrow);
+        return send(await user(account.id));
+      }
       const action = /^\/clouds\/(c[0-9a-f]{24})\/(pause|resume|delete)$/.exec(route);
       if (action) return send(await cloudAction(owner, action[1]!, action[2]!, options.bodyObject(await options.readBody(req))));
     }

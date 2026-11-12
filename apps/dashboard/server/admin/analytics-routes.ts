@@ -8,6 +8,8 @@ import { DAY, DIMENSIONS, SURFACES, activeDays, breakdown, funnel, identityOf, k
 import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
 import { productReport } from "./product.ts";
 import { paymentsOf, revenueReport } from "../analytics/revenue.ts";
+import type { StoredSubscription } from "../billing/store.ts";
+import { UPSELL_EVENTS } from "../../../../shared/cloud-upsell.ts";
 
 export class AnalyticsRouteError extends Error {
   status: number; code: string;
@@ -39,6 +41,30 @@ const webFilters = (url: URL) => {
   const surface = surfaceOf(url), filters = filtersOf(url);
   return { surface, filters, scoped: surface === "site" || surface === "all" ? filters : { surface, ...filters } };
 };
+
+export interface UpsellRow { source: string; shown: number; clicked: number; dismissed: number; paid: number }
+const UPSELL_STEP: Record<string, "shown" | "clicked" | "dismissed"> = { [UPSELL_EVENTS.shown]: "shown", [UPSELL_EVENTS.click]: "clicked", [UPSELL_EVENTS.dismiss]: "dismissed" };
+/** each upsell surface (its checkout source) by people who saw it, opened it, put it away, and paid through it in the window.
+ * the account page reports page_action with the step as action and the source as label; the apps report the step as the event name with a source prop */
+export function upsellsOf(events: StoredEvent[], subscriptions: Array<Pick<StoredSubscription, "source" | "status" | "currentPeriodStart" | "createdAt">>, from: number, to: number): UpsellRow[] {
+  const seen = new Map<string, { shown: Set<string>; clicked: Set<string>; dismissed: Set<string>; paid: number }>();
+  for (const event of events) {
+    if (event.at < from || event.at >= to) continue;
+    const page = event.name === "page_action";
+    const step = UPSELL_STEP[String(page ? event.props.action : event.name)];
+    const source = page ? event.props.label : event.props.source;
+    if (!step || typeof source !== "string" || !source) continue;
+    const who = event.accountId ?? event.ctx?.visitor ?? event.id;
+    const row = seen.get(source) ?? seen.set(source, { shown: new Set(), clicked: new Set(), dismissed: new Set(), paid: 0 }).get(source)!;
+    row[step].add(who);
+  }
+  for (const sub of subscriptions) {
+    const row = sub.source ? seen.get(sub.source) : undefined;
+    if (row && wasPaid(sub) && sub.createdAt >= from && sub.createdAt < to) row.paid++;
+  }
+  return [...seen].map(([source, row]) => ({ source, shown: row.shown.size, clicked: row.clicked.size, dismissed: row.dismissed.size, paid: row.paid }))
+    .sort((a, b) => b.shown - a.shown || a.source.localeCompare(b.source));
+}
 
 type Auth = ReturnType<typeof createAuth>;
 type Billing = ReturnType<typeof createBilling>;
@@ -113,7 +139,8 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const { from, to } = windowOf(url, now());
     const mode = url.searchParams.get("mode") === "signups" ? "signups" : "visitors";
     const { events, identity, people: p, visits } = await load(from);
-    return { from, to, ...funnel({ from, to, now: now(), mode, visits, identity, events, people: p, cloudChosen: p.cloudChosen, paired: p.paired, replied: p.replied }) };
+    return { from, to, ...funnel({ from, to, now: now(), mode, visits, identity, events, people: p, cloudChosen: p.cloudChosen, paired: p.paired, replied: p.replied }),
+      upsells: upsellsOf(events, billing.store.state.subscriptions, from, to) };
   }
 
   function personOf(visits: Visit[]) {

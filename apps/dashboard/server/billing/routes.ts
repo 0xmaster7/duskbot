@@ -37,15 +37,9 @@ export function createBillingRoutes(ctx: BillingContext) {
         if (!ctx.opsToken || !ctx.grants || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
         const data = await body(req), owner = ctx.findAccount(text(data.email).trim().toLowerCase());
         if (!owner) throw new BillingError(404, "not_found");
-        const bundle = ctx.config.bundles.find(item => item.id === data.bundle && item.id !== "free");
-        if (!bundle) invalid();
-        const interval = data.interval === "year" ? "year" : "month";
-        const checkout = await service.checkout(owner, { kind: "cart", cart: service.quote({ ...bundle.cart, interval }).cart, ...(data.name === undefined ? {} : { name: cloudName(data.name) }) }, { source: "ops_grant" });
-        const stored = ctx.store.state.checkouts.find(item => item.id === checkout.checkoutId);
-        if (!stored?.providerSessionId) throw new BillingError(500, "failed");
-        for (const delivery of ctx.grants.complete(stored.providerSessionId)) service.handleWebhook(delivery.headers, delivery.body);
-        void clouds.reconcile().catch(() => {});
-        json(res, 200, { ok: true, checkoutId: stored.id, subscriptions: service.subscriptions(owner.id).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId })) }); return true;
+        if (typeof data.bundle !== "string") invalid();
+        const { checkoutId } = await ctx.grant(owner, { bundle: data.bundle, interval: data.interval === "year" ? "year" : "month", source: "ops_grant", ...(data.name === undefined ? {} : { name: cloudName(data.name) }) });
+        json(res, 200, { ok: true, checkoutId, subscriptions: service.subscriptions(owner.id).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId })) }); return true;
       }
       const purge = /^\/v1\/billing\/ops\/clouds\/(c[0-9a-f]{24})\/delete$/.exec(path);
       if (purge && method === "POST") {
