@@ -13,7 +13,7 @@ test("the splash is a pixel postcard: the scene, kit and pip, one status line an
   assert.match(html, /@media\(prefers-color-scheme:dark\)/);
   assert.match(html, /data-act="retry">try again</);
   assert.match(html, /data-act="quit">quit</);
-  assert.doesNotMatch(html, /dusk bot|>dusk bot<|border:\s*1px/);
+  assert.doesNotMatch(html, />dusk bot<|border:\s*1px/);
 });
 
 test("the boot shell hides itself once the app renders into #root", () => {

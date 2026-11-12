@@ -10,10 +10,10 @@ import en from "./en.json";
 import { locales } from "./index";
 
 const RETIRED: ReadonlyArray<readonly [string, RegExp, string]> = [
-  ["dusk bot Cloud", /dusk bot Cloud/i, "dusk cloud"],
-  ["Dusk Pro", /Dusk Pro\b/, "dusk cloud"],
+  ["Dusk Bot Cloud", /Dusk Bot Cloud/i, "Dusk Cloud"],
+  ["Dusk Pro", /Dusk Pro\b/, "Dusk Cloud"],
   // \b before "_" fails, so environment names such as DUSK_PUBLIC_IPV4 pass.
-  ["DUSK", /\bDUSK\b/, "dusk bot"],
+  ["OMB", /\bOMB\b/, "Dusk Bot"],
   ["Cloud box", /Cloud box/i, "cloud desktop"],
   ["Hosted desktop", /Hosted desktop/i, "cloud desktop"],
   ["Cloud VM", /Cloud VM/i, "cloud desktop"],
@@ -84,18 +84,18 @@ const allows = (entry: (typeof ALLOWED)[number], finding: { file: string; text: 
   !RETIRED_PROVIDER.test(finding.text) && entry.file === finding.file && (entry.snippet === undefined || finding.text.includes(entry.snippet));
 
 describe("one name per thing", () => {
-  it("English copy uses dusk cloud, the Cloud, Cloud desktop, This computer and Plan page", () => {
+  it("English copy uses Dusk Cloud, the Cloud, Cloud desktop, This computer and Plan page", () => {
     const offending = Object.entries(en as Record<string, string>)
       .flatMap(([key, value]) => [...(RETIRED_PROVIDER.test(key) ? retiredIn(key) : []), ...retiredIn(value)].map((what) => `${key}: ${what}`));
     expect(offending).toEqual([]);
   });
 
-  const productNames = RETIRED.filter(([, , use]) => use === "dusk cloud");
-  it("translations never show retired provider names, dusk bot, T3 or an old name for dusk cloud, and keep its name as it is", () => {
+  const productNames = RETIRED.filter(([, , use]) => use === "Dusk Cloud");
+  it("translations never show retired provider names, Dusk Bot, T3 or an old name for Dusk Cloud, and keep its name as it is", () => {
     const offending = Object.entries(locales).filter(([code]) => code !== "en").flatMap(([code, pack]) =>
       Object.entries(pack)
-        .filter(([key, value]) => /\bDUSK\b|\bT3\b/.test(value!) || productNames.some(([, pattern]) => pattern.test(value!))
-          || (/dusk cloud/.test((en as Record<string, string>)[key]!) && !/dusk cloud/.test(value!))
+        .filter(([key, value]) => /\bOMB\b|\bT3\b/.test(value!) || productNames.some(([, pattern]) => pattern.test(value!))
+          || (/Dusk Cloud/.test((en as Record<string, string>)[key]!) && !/Dusk Cloud/.test(value!))
           || RETIRED_PROVIDER.test(key) || RETIRED_PROVIDER.test(value!))
         .map(([key]) => `${code}: ${key}`));
     expect([...new Set(offending)]).toEqual([]);
@@ -112,8 +112,8 @@ describe("one name per thing", () => {
     expect(stale).toEqual([]);
   });
 
-  it("the public docs name dusk cloud and the Cloud as the app does", () => {
-    const names = new Set(["DUSK", "dusk bot Cloud", "Dusk Pro", "Connect to my Cloud", "your Cloud", "my Cloud"]);
+  it("the public docs name Dusk Cloud and the Cloud as the app does", () => {
+    const names = new Set(["OMB", "Dusk Bot Cloud", "Dusk Pro", "Connect to my Cloud", "your Cloud", "my Cloud"]);
     const cloudNames = RETIRED.filter(([word]) => names.has(word));
     const pages = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
@@ -147,8 +147,8 @@ describe("one name per thing", () => {
 
   it("the check catches every retired provider mention and lets live env names through", () => {
     for (const bad of [
-      "Sign in to DUSK Cloud", "Sign in to dusk bot Cloud", "Get Dusk Pro", "Dusk Pro plans",
-      "restart DUSK", "Cloud box", "Hosted desktop", "Run it in its cloud VM", `${PROVIDER_WORD} cloud runner`,
+      "Sign in to OMB Cloud", "Sign in to Dusk Bot Cloud", "Get Dusk Pro", "Dusk Pro plans",
+      "restart OMB", "Cloud box", "Hosted desktop", "Run it in its cloud VM", `${PROVIDER_WORD} cloud runner`,
       "Open your Cloud dashboard", "Connect to my Cloud", "Your Cloud is ready", "Let my Cloud use this Mac",
       "Local (this computer)", "Choose Cloud to wake", "Auto, Cloud or Browser", "including one from T3",
       `Auto uses this ${PROVIDER_WORD}`, `New ${PROVIDER_WORD} computer`, `${PROVIDER_WORD}s`, PROVIDER_WORD.toUpperCase(), `place.${PROVIDER_WORD.toLowerCase()}.title`,
@@ -156,7 +156,7 @@ describe("one name per thing", () => {
       `Bots here can get their own cloud desktops from ${PROVIDER_WORD}, a paid service`, `Cloud desktops by ${PROVIDER_WORD}`,
     ]) expect(retiredIn(bad), bad).not.toEqual([]);
     for (const good of [
-      "Sign in to dusk cloud", "Pro active · verified by dusk cloud", "Restart dusk bot", "locked by another dusk bot process",
+      "Sign in to Dusk Cloud", "Pro active · verified by Dusk Cloud", "Restart Dusk Bot", "locked by another Dusk Bot process",
       "set DUSK_PUBLIC_IPV4", "Open My Cloud", "Open the Cloud", "Choose Cloud desktop to wake", "Auto, Cloud desktop or Browser",
       "Included with your Cloud plan",
       "Local VM", "Open your Plan page",
