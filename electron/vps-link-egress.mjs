@@ -17,8 +17,8 @@ export const EGRESS_MAX_STREAMS = 128;
 export const EGRESS_DIALS_PER_MINUTE = 600;
 /** download bytes per second this computer relays for the vps, all streams together */
 export const EGRESS_BYTES_PER_SECOND = 8 * 1024 * 1024;
-/** the same while a stream rides the relay, under the link service's 2 MiB/s lane limit (apps/link-service/src/app.mjs) */
-export const EGRESS_RELAY_BYTES_PER_SECOND = Math.floor(1.75 * 1024 * 1024);
+/** the same while a stream rides the relay, under the link service's 6 MiB/s lane limit (apps/link-service/src/app.mjs) */
+export const EGRESS_RELAY_BYTES_PER_SECOND = Math.floor(5.5 * 1024 * 1024);
 /** a stream's reads pause while this much waits for the tunnel, so the desktop and the api keep their share */
 export const EGRESS_QUEUE_HIGH = 1024 * 1024;
 export const EGRESS_HELLO_MS = 15_000;

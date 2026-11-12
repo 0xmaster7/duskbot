@@ -87,7 +87,7 @@ describe("push relay", () => {
     expect((await post({ service: "sms", token: "fixture-token", message })).status).toBe(400);
     expect((await post({ service: "fcm", token: "bad token!", message })).status).toBe(400);
     expect((await post({ service: "fcm", token: "fixture-token", message: { ...message, botName: "" } })).status).toBe(400);
-    for (let i = 0; i < 20; i++) expect((await post({ service: "fcm", token: "fixture-token", message })).status).toBe(200);
+    for (let i = 0; i < 60; i++) expect((await post({ service: "fcm", token: "fixture-token", message })).status).toBe(200);
     expect((await post({ service: "fcm", token: "fixture-token", message })).status).toBe(429);
     expect((await post({ service: "fcm", token: "other-token", message })).status).toBe(200);
   });

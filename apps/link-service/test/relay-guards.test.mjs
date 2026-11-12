@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { FRAME_TTL_MS, TUNNELS_PER_ACCOUNT, TUNNEL_BYTES_PER_DAY, createLinkService, sha256hex } from "../src/app.mjs";
+import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_DAY, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
 import { TUNNEL_IDLE_MS } from "../src/store.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -52,29 +52,32 @@ const read = () => request(`/v1/tunnels/${id}/to-vps`, { token: vps }).then((res
 const newSession = (body = {}, ip) => request("/v1/sessions", { method: "POST", ip, body: { verifier: "f".repeat(64), appPub: "k".repeat(43), ...body } });
 
 describe("a tunnel's byte budget", () => {
-  it("takes a burst, refuses past it with a retry-after, and refills at 4 MB a second", async () => {
+  it("takes a burst, refuses past it with a retry-after, and refills at 12 MiB a second", async () => {
+    expect([TUNNEL_BYTES_PER_SECOND, TUNNEL_BURST_BYTES]).toEqual([12 * MB, 32 * MB]);
     await start();
-    // 2.25 MiB a post: seven fit the 16 MiB burst
-    for (let i = 0; i < 7; i += 1) { expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read(); }
-    const refused = await toVps(frames(3), { epoch, seq: 7 });
+    // 2.25 MiB a post: fourteen fit the 32 MiB burst
+    for (let i = 0; i < 14; i += 1) { expect((await toVps(frames(3), { epoch, seq: i })).status).toBe(200); await read(); }
+    const refused = await toVps(frames(3), { epoch, seq: 14 });
     expect(refused.status).toBe(429);
     expect(await refused.json()).toMatchObject({ code: "rate_limited" });
     expect(Number(refused.headers.get("retry-after"))).toBeGreaterThanOrEqual(1);
     time += 1000;
-    expect((await toVps(frames(3), { epoch, seq: 7 })).status).toBe(200);
+    expect((await toVps(frames(3), { epoch, seq: 14 })).status).toBe(200);
   });
 
-  it("holds the egress lane to 2 MiB a second while the main queue keeps its own room", async () => {
+  it("holds the egress lane to 6 MiB a second while the main queue keeps its own room", async () => {
+    expect([LANE_BYTES_PER_SECOND, LANE_BURST_BYTES]).toEqual([6 * MB, 8 * MB]);
     await start();
-    expect((await toVps(frames(3), { lane: true })).status).toBe(200);
-    await read();
+    // three 2.25 MiB posts fit the 8 MiB lane burst, the fourth waits
+    for (let i = 0; i < 3; i += 1) { expect((await toVps(frames(3), { lane: true })).status).toBe(200); await read(); }
     expect((await toVps(frames(3), { lane: true })).status).toBe(429);
     expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
     time += 1000;
     expect((await toVps(frames(3), { lane: true })).status).toBe(200);
   });
 
-  it("stops a tunnel at 30 GB a day and lets it go again the next UTC day", async () => {
+  it("stops a tunnel at 150 GB a day and lets it go again the next UTC day", async () => {
+    expect(TUNNEL_BYTES_PER_DAY).toBe(150 * 1024 ** 3);
     await start();
     const tunnel = service.store.tunnels.get(id);
     tunnel.day = Math.floor(time / 86_400_000);
@@ -137,8 +140,9 @@ describe("setup sessions need a dusk account", () => {
   });
 
   it(`allows ${TUNNELS_PER_ACCOUNT} tunnels per account`, async () => {
+    expect(TUNNELS_PER_ACCOUNT).toBe(20);
     await start({ grantKeys: keys });
-    for (let i = 0; i < TUNNELS_PER_ACCOUNT; i += 1) service.store.tunnels.set(`acctt${"abcde"[i]}aaaa`, { id: `acctt${"abcde"[i]}aaaa`, createdAt: time, acct, seenAt: null });
+    for (let i = 0; i < TUNNELS_PER_ACCOUNT; i += 1) { const tid = `acctt${i.toString(36).padStart(2, "0")}aaa`; service.store.tunnels.set(tid, { id: tid, createdAt: time, acct, seenAt: null }); }
     const refused = await newSession({ grant: grant() });
     expect(refused.status).toBe(409);
     expect(await refused.json()).toMatchObject({ code: "tunnel_limit" });

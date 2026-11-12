@@ -21,7 +21,7 @@ const ROUTE_TTL_S = 60;
  */
 export const MISSING_TTL_S = 60;
 /** unknown labels one client address may have looked up per minute, per isolate, before it gets 404s without a lookup */
-export const MISSES_PER_MINUTE = 30;
+export const MISSES_PER_MINUTE = 120;
 const MISS_WINDOW_MS = 60_000, MAX_MISS_KEYS = 10_000;
 const misses = new Map();
 function tooManyMisses(ip, now) {

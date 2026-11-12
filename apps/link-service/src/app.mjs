@@ -45,35 +45,35 @@ const LANE_BYTES = 4 * 1024 * 1024;
 const HELD_POSTS = 8;
 const GAP_MS = 5000;
 const EPOCH = /^[a-z2-7]{12}$/;
-const CREATE_PER_HOUR = 30;
+const CREATE_PER_HOUR = 120;
 const CHANNEL_GRANT_MS = 24 * 60 * 60_000;
 const PHONE_POSTS_PER_SECOND = 50;
 const PHONE_POST_BURST = 400;
-const PHONE_BYTES_PER_MINUTE = 64 * 1024 * 1024;
-const PHONE_READS_PER_MINUTE = 240;
+const PHONE_BYTES_PER_MINUTE = 256 * 1024 * 1024;
+const PHONE_READS_PER_MINUTE = 600;
 const LOOKUP_ID = /^[0-9a-f]{32}$/;
-const LOOKUP_CREATE_PER_HOUR = 30;
-const LOOKUP_MISSES_PER_HOUR = 60;
+const LOOKUP_CREATE_PER_HOUR = 120;
+const LOOKUP_MISSES_PER_HOUR = 240;
 const MAX_LOOKUPS = 5000;
 /** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
-const PACKAGE_DOWNLOADS = 10;
+const PACKAGE_DOWNLOADS = 20;
 /** a tunnel's sustained relay rate, the burst it may post at once, and its daily total (both directions together) */
-export const TUNNEL_BYTES_PER_SECOND = 4 * 1024 * 1024;
-const TUNNEL_BURST_BYTES = 16 * 1024 * 1024;
-export const TUNNEL_BYTES_PER_DAY = 30 * 1024 ** 3;
+export const TUNNEL_BYTES_PER_SECOND = 12 * 1024 * 1024;
+export const TUNNEL_BURST_BYTES = 32 * 1024 * 1024;
+export const TUNNEL_BYTES_PER_DAY = 150 * 1024 ** 3;
 /** the egress lane (a bot's web traffic routed through the person's computer) while it rides the relay */
-export const LANE_BYTES_PER_SECOND = 2 * 1024 * 1024;
-const LANE_BURST_BYTES = 4 * 1024 * 1024;
+export const LANE_BYTES_PER_SECOND = 6 * 1024 * 1024;
+export const LANE_BURST_BYTES = 8 * 1024 * 1024;
 /** a frame nobody read in this long is dropped: its reader is gone, and it must not hold memory */
 export const FRAME_TTL_MS = 60_000;
 /** every queued frame across every tunnel and channel; past it new frames are refused, never the process */
 export const MAX_QUEUED_BYTES = 1024 ** 3;
 /** linked servers one dusk account may have at once */
-export const TUNNELS_PER_ACCOUNT = 5;
+export const TUNNELS_PER_ACCOUNT = 20;
 /** per client address: requests in flight at once, and a request rate (a bucket that refills per second) */
-export const IP_CONCURRENT = 128;
-export const IP_REQUESTS_PER_SECOND = 100;
-const IP_REQUEST_BURST = 1000;
+export const IP_CONCURRENT = 512;
+export const IP_REQUESTS_PER_SECOND = 200;
+const IP_REQUEST_BURST = 2000;
 const nonnegativeInteger = (value) => Number.isSafeInteger(value) && value >= 0;
 
 function installerProgress(value) {
@@ -404,7 +404,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const size = Math.floor(frames.reduce((sum, frame) => sum + frame.length, 0) * 3 / 4), t = now(), day = Math.floor(t / 86_400_000);
     if (tunnel.day !== day) { tunnel.day = day; tunnel.dayBytes = 0; }
     if (tunnel.dayBytes + size > TUNNEL_BYTES_PER_DAY) {
-      fail(res, 429, "This link reached its daily limit of 30 GB through the relay. It resets at midnight UTC.", "daily_limit");
+      fail(res, 429, `This link reached its daily limit of ${Math.round(TUNNEL_BYTES_PER_DAY / 1024 ** 3)} GB through the relay. It resets at midnight UTC.`, "daily_limit");
       return null;
     }
     let rate = tunnelRates.get(tunnelId);

@@ -335,7 +335,8 @@ describe("the private server build", () => {
     const body = Buffer.from(await got.arrayBuffer());
     expect(sha256hex(body)).toBe(sha);
 
-    for (let i = 0; i < 8; i += 1) await (await get(route, vpsToken)).arrayBuffer();
+    // twenty downloads a session (the server build and the desktop kit, with retries), then 429
+    for (let i = 0; i < 18; i += 1) await (await get(route, vpsToken)).arrayBuffer();
     expect((await get(route, vpsToken)).status).toBe(429);
 
     await post(`/v1/sessions/${otherMade.id}/result`, vpsTokenOf(other.secret), { sealed: "abc", vpsPub: other.pub });

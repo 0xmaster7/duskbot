@@ -312,9 +312,9 @@ describe("mobile channel rate limits", () => {
     expect((await post()).status).toBe(429);
   });
 
-  it("limits phone reads to 240 per minute", async () => {
+  it("limits phone reads to 600 per minute", async () => {
     await put();
-    for (let i = 0; i < 240; i += 1) expect((await request(`/v1/channels/${cid}/to-app`, phone)).status).toBe(200);
+    for (let i = 0; i < 600; i += 1) expect((await request(`/v1/channels/${cid}/to-app`, phone)).status).toBe(200);
     const limited = await request(`/v1/channels/${cid}/to-app`, phone);
     expect(limited.status).toBe(429);
     expect(await limited.json()).toMatchObject({ code: "rate_limited" });
@@ -322,11 +322,11 @@ describe("mobile channel rate limits", () => {
     expect((await request(`/v1/channels/${cid}/to-app`, phone)).status).toBe(200);
   });
 
-  it("limits frame text to 64 MiB per rolling minute", async () => {
+  it("limits frame text to 256 MiB per rolling minute", async () => {
     await put();
     const frames = Array(3).fill("a".repeat(1024 * 1024));
-    // a second apart, so the tunnel's own byte rate (4 MB/s) is never what stops it
-    for (let i = 0; i < 21; i += 1) { expect((await post(frames)).status).toBe(200); await take(); time += 1000; }
+    // 200 ms apart, so the tunnel's own byte rate (12 MiB/s decoded) is never what stops it
+    for (let i = 0; i < 85; i += 1) { expect((await post(frames)).status).toBe(200); await take(); time += 200; }
     expect((await post([frames[0]])).status).toBe(200);
     await take();
     const limited = await post(["a"]);
@@ -360,10 +360,10 @@ describe("typed-code lookups", () => {
     expect((await createLookup({ sealed: "a".repeat(16_384), ttlS: 900 })).status).toBe(201);
   });
 
-  it("rate limits misses after 60 in an hour, with live lookups still readable", async () => {
+  it("rate limits misses after 240 in an hour, with live lookups still readable", async () => {
     await createLookup({ ttlS: 900 });
     const missing = `/v1/lookups/${"b".repeat(32)}`;
-    for (let i = 0; i < 60; i += 1) expect((await request(missing)).status).toBe(404);
+    for (let i = 0; i < 240; i += 1) expect((await request(missing)).status).toBe(404);
     const limited = await request(missing);
     expect(limited.status).toBe(429);
     expect(await limited.json()).toMatchObject({ code: "rate_limited" });
@@ -372,8 +372,8 @@ describe("typed-code lookups", () => {
     expect((await request(missing)).status).toBe(404);
   });
 
-  it("rate limits creations to 30 per IP per hour", async () => {
-    for (let i = 0; i < 30; i += 1) expect((await createLookup({ id: i.toString(16).padStart(32, "0") })).status).toBe(201);
+  it("rate limits creations to 120 per IP per hour", async () => {
+    for (let i = 0; i < 120; i += 1) expect((await createLookup({ id: i.toString(16).padStart(32, "0") })).status).toBe(201);
     const limited = await createLookup();
     expect(limited.status).toBe(429);
     expect(await limited.json()).toMatchObject({ code: "rate_limited" });

@@ -11,8 +11,8 @@ const SERVICES = new Set(["apns", "fcm"]);
 const TOKEN = /^[\w:.-]{8,4096}$/;
 const ID = /^[\w:.-]{1,128}$/;
 const KIND = /^[a-z][a-z0-9_-]{0,31}$/;
-const PER_TOKEN_PER_MINUTE = 20;
-const PER_IP_PER_MINUTE = 240;
+const PER_TOKEN_PER_MINUTE = 60;
+const PER_IP_PER_MINUTE = 600;
 
 function jwt(header, claims, key) {
   const input = [header, claims].map((part) => Buffer.from(JSON.stringify(part)).toString("base64url")).join(".");

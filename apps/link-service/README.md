@@ -275,12 +275,12 @@ changing a verifier ends old readers and clears queued frames. Channel verifiers
   `GET /v1/tunnels/:id/channels/to-vps?wait=25&stream=1`. The aggregated stream starts with `{frames:[]}`,
   then emits `{channel,frames}` batches round robin, with one reader per tunnel. Without `stream=1`, it returns
   `{batches:[{channel,frames}]}`. Deleting the tunnel also removes its channels.
-- Phone limits per channel: 50 posts/s with a burst of 400, 64 MiB of frame text per rolling minute,
-  and 240 reads per rolling minute. A limit returns `429 {error,code:"rate_limited"}`.
+- Phone limits per channel: 50 posts/s with a burst of 400, 256 MiB of frame text per rolling minute,
+  and 600 reads per rolling minute. A limit returns `429 {error,code:"rate_limited"}`.
 - Public typed-code storage: `POST /v1/lookups {id,sealed,ttlS,deleteVerifier?}` (32 lowercase hex id,
   base64url sealed text up to 16384 characters, TTL 30-900 seconds), `GET /v1/lookups/:id` returns
   `{sealed,expiresAt}`. Optional `DELETE /v1/lookups/:id` requires the token matching `deleteVerifier`.
-  Lookups stay in memory only, up to 5000 live entries; per IP, 30 creations and 60 misses per hour.
+  Lookups stay in memory only, up to 5000 live entries; per IP, 120 creations and 240 misses per hour.
 
 ## Step events
 
@@ -466,16 +466,16 @@ The relay is not a free pipe: every setup session needs a dusk account, and ever
 
 - **Account.** `POST /v1/sessions` takes `grant`, a five-minute token the signed-in app gets from the account service
   (`POST /v1/app/link-grant`, bearer app session; `src/grant.mjs` has the format). Without a valid one the answer is
-  401 `account_required`. One account has at most 5 live tunnels (409 `tunnel_limit`) and opens at most 30 sessions an
-  hour, besides the 30 an hour per address. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
+  401 `account_required`. One account has at most 20 live tunnels (409 `tunnel_limit`) and opens at most 120 sessions an
+  hour, besides the 120 an hour per address. The VPS side (install.sh, the agent, the phone's channels) needs nothing:
   the session the app opened already carries the account.
-- **Bytes.** Each tunnel, both directions and its phone channels together: 4 MB/s sustained with a 16 MB burst, and 30 GB
+- **Bytes.** Each tunnel, both directions and its phone channels together: 12 MiB/s sustained with a 32 MiB burst, and 150 GiB
   per UTC day (kept on the tunnel, so a restart does not reset it). Egress lane posts ("route traffic through this
-  computer" on the relay) also stay under 2 MiB/s; the app sends them at 1.75 MiB/s. Sizes are decoded bytes. Over the
+  computer" on the relay) also stay under 6 MiB/s (8 MiB burst); the app sends them at 5.5 MiB/s. Sizes are decoded bytes. Over the
   rate: 429 `rate_limited` with `retry-after`; over the day: 429 `daily_limit`.
 - **Memory.** A frame nobody read for 60 s is dropped. All queues together hold at most 1 GiB; past it posts get 503
   `busy` and the process keeps running.
-- **Per address.** 128 requests in flight and 100 requests a second (burst 1000); past either, 429 `rate_limited`.
+- **Per address.** 512 requests in flight and 200 requests a second (burst 2000); past either, 429 `rate_limited`.
   Generous because many people share one address behind carrier NAT; nginx's own `limit_conn`/`limit_req` sit in front.
 
 The app's base comes from `DUSK_LINK_BASE` (default `https://link.dusk.bot`).
