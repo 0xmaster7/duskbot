@@ -41,8 +41,8 @@ function freeWorkUntil(value: string | undefined) {
 }
 
 export const BILLING_CONFIG: BillingConfig = {
-  // yearly is one month free: 12 months for the price of 11
-  currency: "USD", yearlyDiscountPercent: 100 / 12, graceDays: 30, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
+  // yearly is two months free: 12 months for the price of 10
+  currency: "USD", yearlyDiscountPercent: 100 / 6, graceDays: 30, maxCloudsPerAccount: 5, checkoutOpenMinutes: 30, checkoutsPerHour: 10,
   freeWorkUntil: freeWorkUntil(process.env.DUSK_FREE_WORK_UNTIL),
   licenses: {
     solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
@@ -54,7 +54,7 @@ export const BILLING_CONFIG: BillingConfig = {
     dedicated: { kind: "dedicated", label: "Dedicated", placement: "dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null, priority: true },
   },
   // the sizes and the disk ceiling an InstaBox pro workspace can create (8/16, 200 GB a machine); the team bundle's
-  // 8/16/160 comes to $89: 7 + 8 x 4 + 16 x 2 + 6 x 3, so with the $30 team license it is $119 a month and $1309 a year
+  // 8/16/160 comes to $89: 7 + 8 x 4 + 16 x 2 + 6 x 3, so with the $30 team license it is $119 a month and $1190 a year
   dedicated: { baseCents: 700, perVcpuCents: 400, perGbRamCents: 200, per20GbDiskCents: 300, includedDiskGb: 40,
     vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 },
     sizes: [{ vcpu: 2, ramGb: 4 }, { vcpu: 4, ramGb: 8 }, { vcpu: 8, ramGb: 16 }] },

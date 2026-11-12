@@ -30,9 +30,9 @@ describe("billing pricing", () => {
     expect(config.bundles.map((_, index) => quote(preset(index, "year"), config).monthlyEquivalentCents)).toEqual(yearlyMonthly);
     expect(config.bundles.map((_, index) => quote(preset(index), config).bundle)).toEqual(["free", "starter", "pro", "team"]);
     expect(catalogView(0).bundles.map(bundle => bundle.monthlyCents)).toEqual(monthly);
-    // the prices people see: free $0, plus $20, pro $50, team $119; a year is one month free
+    // the prices people see: free $0, plus $20, pro $50, team $119; a year is two months free
     expect(monthly).toEqual([0, 2000, 5000, 11900]);
-    expect(config.bundles.map((_, index) => quote(preset(index, "year"), config).totalCents)).toEqual([0, 22000, 55000, 130900]);
+    expect(config.bundles.map((_, index) => quote(preset(index, "year"), config).totalCents)).toEqual([0, 20000, 50000, 119000]);
     expect(catalogView(Date.UTC(2030, 0, 1)).freeWorkUntil).toBeNull();
   });
   it("quotes the live team cart with separate annual line items and discount", () => {
@@ -45,7 +45,7 @@ describe("billing pricing", () => {
       { kind: "license", label: `${license.label}, ${license.includedMembers} members`, amountCents: license.monthlyCents * 12 },
       { kind: "members", label: `${extraMembers} extra members`, amountCents: extraMembers * license.extraMemberCents! * 12 },
       { kind: "desktop", label: `dusk cloud ${desktop.label.toLowerCase()}`, amountCents: desktop.monthlyCents! * 12 },
-      { kind: "discount", label: "Yearly, 1 month free", amountCents: -discount },
+      { kind: "discount", label: "Yearly, 2 months free", amountCents: -discount },
     ]);
     expect(result).toMatchObject({ totalCents: subtotal - discount, monthlyEquivalentCents: Math.round((subtotal - discount) / 12), members: 5, bundle: null, botComputers: 5, machine: { vcpu: 4, ramGb: 8, diskGb: 60 } });
   });
@@ -58,9 +58,9 @@ describe("billing pricing", () => {
     // only the sizes the provider makes: an odd shape would be billed as the next size up
     for (const spec of [{ vcpu: 2, ramGb: 16, diskGb: 40 }, { vcpu: 6, ramGb: 12, diskGb: 40 }, { vcpu: 8, ramGb: 8, diskGb: 40 }, { vcpu: 4, ramGb: 4, diskGb: 40 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
   });
-  it("adds the team bundle up to $119 a month and $1309 a year through the dodo add-on prices", () => {
+  it("adds the team bundle up to $119 a month and $1190 a year through the dodo add-on prices", () => {
     const unit = { license_team: config.licenses.team.monthlyCents, addon_dedicated: config.dedicated.baseCents, addon_vcpu: config.dedicated.perVcpuCents, addon_ram_gb: config.dedicated.perGbRamCents, addon_disk_20gb: config.dedicated.per20GbDiskCents } as Record<string, number>;
-    for (const [interval, months, total] of [["month", 1, 11900], ["year", 11, 130900]] as const) {
+    for (const [interval, months, total] of [["month", 1, 11900], ["year", 10, 119000]] as const) {
       const sum = dodoCartKeys(preset(3, interval)).reduce((sum, { key, quantity }) => sum + unit[key.split(":")[0]] * months * quantity, 0);
       expect(sum).toBe(total);
       expect(quote(preset(3, interval), config).totalCents).toBe(total);
