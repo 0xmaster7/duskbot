@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { requireUserPresence } from "@/lib/user-presence";
 
 import { t } from "@/lib/i18n";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
@@ -128,6 +129,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     setError(null);
     setCopied("idle");
     try {
+      if (!(await requireUserPresence())) return;
       const body: PairingOffer = await api("/api/auth/pairing", { method: "POST", body: JSON.stringify({ scopes: scope === "admin" || cloudHome ? ["admin", "client"] : ["client"] }) });
       setOffer(body);
       setNow(Date.now());

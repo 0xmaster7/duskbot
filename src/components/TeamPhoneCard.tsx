@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { requireUserPresence } from "@/lib/user-presence";
 
 import { t } from "@/lib/i18n";
 import { lastSeen, minutesLeft } from "@/lib/pairing-time";
@@ -59,6 +60,7 @@ export function TeamPhoneCard({ team, blocked }: { team: string; blocked?: strin
     setBusy(true);
     setError(null);
     try {
+      if (!(await requireUserPresence())) return;
       setOffer(await api(TEAM_PHONE_PAIRING, { method: "POST", body: "{}" }));
       setNow(Date.now());
     } catch (cause) {

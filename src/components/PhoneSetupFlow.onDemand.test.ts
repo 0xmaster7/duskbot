@@ -27,6 +27,7 @@ function desktop() {
     endpoints: [{ kind: "hosted" as const, url: HOSTED, priority: 0 }],
   });
   const bridge = {
+    requireUserPresence: vi.fn(async () => true),
     companion: {
       state: vi.fn(async () => companion),
       start: vi.fn(async () => {
@@ -144,6 +145,7 @@ describe("pairing on a computer that holds no HTTPS address yet", () => {
     await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();
+    expect(fake.bridge.requireUserPresence, "one check covers the whole flow").toHaveBeenCalledOnce();
   });
 
   it("asks again when the desktop stopped retrying while pairing still waits", async () => {
@@ -176,5 +178,25 @@ describe("pairing on a computer that already holds its HTTPS address", () => {
     await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
+  });
+});
+
+describe("the person at the computer confirms it is them first", () => {
+  it("shows no code and starts nothing when the check fails, and asks again on the next try", async () => {
+    const fake = desktop();
+    fake.alreadyHosted();
+    fake.bridge.requireUserPresence.mockResolvedValueOnce(false);
+    await startPairing(fake);
+
+    await vi.waitFor(() => expect(fake.bridge.requireUserPresence).toHaveBeenCalledOnce());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fake.bridge.companion.pairing).not.toHaveBeenCalled();
+    expect(host.querySelector('[aria-label="Device pairing QR code"]')).toBeNull();
+    expect(button("Pair")).not.toBeNull();
+
+    button("Pair")!.click();
+    await vi.waitFor(() => expect(host.querySelector('[aria-label="Device pairing QR code"]')).not.toBeNull());
+    expect(fake.bridge.requireUserPresence).toHaveBeenCalledTimes(2);
+    expect(fake.bridge.requireUserPresence).toHaveBeenCalledWith("show a code that links a phone");
   });
 });
