@@ -10,7 +10,7 @@ function subscribe(listener: () => void): () => void {
 }
 
 let lastEvent: "online" | "offline" | null = null;
-if (typeof window !== "undefined") {
+if (typeof globalThis.window?.addEventListener === "function") {
   window.addEventListener("online", () => { lastEvent = "online"; }, { capture: true });
   window.addEventListener("offline", () => { lastEvent = "offline"; }, { capture: true });
 }

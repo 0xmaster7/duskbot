@@ -28,7 +28,7 @@ export function noteCloudPageActivity(at = now()): void {
   lastActive = at;
 }
 
-if (typeof window !== "undefined" && typeof document !== "undefined") {
+if (typeof globalThis.window?.addEventListener === "function" && typeof globalThis.document?.addEventListener === "function") {
   for (const name of ["keydown", "pointerdown", "touchstart"]) window.addEventListener(name, () => noteCloudPageActivity(), { capture: true, passive: true });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") noteCloudPageActivity(); });
 }
