@@ -346,6 +346,7 @@ const serverSupervisor = createServerSupervisor({
     setLocalOrigin(confirmedRendererOrigin());
     serverStartConflictOnly = false;
     slog(`server ready pid=${proc.pid} port=${SERVER_PORT}`);
+    syncUsageSignals();
     syncManagedComposioCredentials(); includedX.serverStarted(); includedPages.serverStarted(); railChanged(); ambientSurfaces.refresh();
     reportOwnListeners(proc);
     orgLibrary?.runtimeReady();
@@ -2701,6 +2702,11 @@ installCloudPlanIpc({ ipcMain, pageSender: cloudPageSender, account: () => cloud
 const cloudLook = createCloudLook({ store: lookFile(() => path.join(app.getPath("userData"), cloudTarget(process.env).look), fs), accountId: () => cloudAccount?.state().account?.id ?? null,
   homeEntry: cloudHomeEntry, saveEntry: (origin, look) => persistEnvironments(withEnvironmentLook(environmentsState, origin, look)) });
 const cloudBuy = installCloudBuy({ ipcMain, guard: localWorkspaceOnly, client: ensureCloudAccount, offersReady: cloudOffersReady, clipboard, look: cloudLook });
+/** the harness's usage signals follow this desktop's usage-analytics switch; unset counts as on */
+function syncUsageSignals(enabled = desktopPrefs?.analytics() !== false) {
+  void localServerRequest("/api/dashboard/usage-signals", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled }), signal: AbortSignal.timeout(10_000) })
+    .then(response => response.body?.cancel(), () => {});
+}
 const localServerRequest = async (route, init = {}) => {
   if (localRuntimeStarting && !serverReady) await waitForLocalStartup(localRuntimeStarting);
   if (!(serverProc || !app.isPackaged) || !serverReady) throw new Error("This computer's background server is unavailable. Restart the app and try again.");
@@ -3061,7 +3067,7 @@ app.whenReady().then(async () => {
   }
   registerCuaIpc();
   desktopPrefs = createDesktopPrefs({ ...jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")), frameByDefault: FRAME_BY_DEFAULT });
-  registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => cloudAccountRestored().then(cloudOffersReady),
+  registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, analyticsChanged: syncUsageSignals, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => cloudAccountRestored().then(cloudOffersReady),
     frame: { made: () => windowFrameMade, restarts: process.platform === "win32", changed: () => void broadcastDesktopCapabilities() },
     languageChanged: (language, sender) => {
       for (const win of appWindows()) if (!win.isDestroyed() && win.webContents !== sender) win.webContents.send("desktop-language:changed", language);

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { APP_WATCH_MS, SIGNATURE_HEADERS, signedPayload } from "../shared/dashboard-protocol.ts";
 import type { CommandResult, DashboardCommand, EnrollAnswer, EnrollRequest, ReportAnswer, WorkspaceReport } from "../shared/dashboard-protocol.ts";
 import type { createDashboardCollector } from "./dashboard-report.ts";
+import type { UsageReport } from "../shared/usage-signals.ts";
 
 interface LinkState {
   v: 1;
@@ -17,6 +18,8 @@ interface LinkState {
 export interface DashboardReporterDeps {
   dataDir: string;
   collect: ReturnType<typeof createDashboardCollector>;
+  /** usage signals waiting for the next report (usage-signals.ts) */
+  usage?: { take(): UsageReport | null; requeue(report: UsageReport): void };
   execute(command: DashboardCommand): Promise<CommandResult>;
   fetch?: typeof fetch;
   now?: () => number;
@@ -143,7 +146,10 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
           if (apps) report.apps = apps;
         }
         if (!running || generation !== run) return;
-        const answer = await request("POST", "/v1/report", report);
+        const usage = deps.usage?.take() ?? null;
+        if (usage) report.usage = usage;
+        let answer: ReportAnswer;
+        try { answer = await request("POST", "/v1/report", report); } catch (error) { if (usage) deps.usage?.requeue(usage); throw error; }
         if (!running || generation !== run) return;
         for (const result of pending) results.delete(result.id);
         if (report.devices) devicesAt = at;

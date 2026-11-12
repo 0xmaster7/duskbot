@@ -130,7 +130,7 @@ export function createDesktopPrefs({ read, write, frameByDefault = true }) {
  * Dusk Cloud, asked once its Cloud sign-in is restored. `localConfig()`: This computer's own workspace's config.json.
  * `languageChanged(language, sender)`: tells this desktop's other pages the language picked on one of them.
  */
-export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, localConfig = () => null, languageChanged = () => {}, frame = null, systemName = accountFullName, loginName = () => os.userInfo().username }) {
+export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page, cloudOffered, localConfig = () => null, languageChanged = () => {}, analyticsChanged = () => {}, frame = null, systemName = accountFullName, loginName = () => os.userInfo().username }) {
   let prefs = given ?? null;
   const store = () => prefs ??= createDesktopPrefs({ read, write });
   const from = (channel, pages, handler) => (event, ...args) => {
@@ -160,7 +160,9 @@ export function registerDesktopPrefs({ prefs: given, ipcMain, read, write, page,
       event.returnValue = asking === "local" ? saved : asking && saved === false ? false : null;
     } catch { event.returnValue = null; }
   });
-  ipcMain.handle("desktop-analytics:set", from("desktop-analytics:set", ["local"], (_, enabled) => { store().setAnalytics(enabled === true); }));
+  ipcMain.handle("desktop-analytics:set", from("desktop-analytics:set", ["local"], (_, enabled) => { store().setAnalytics(enabled === true); try { analyticsChanged(enabled === true); } catch {} }));
+  ipcMain.handle("desktop-error-reports:read", from("desktop-error-reports:read", ["local"], () => store().errorReports()));
+  ipcMain.handle("desktop-error-reports:set", from("desktop-error-reports:set", ["local"], (_, enabled) => { store().setErrorReports(enabled === true); }));
   ipcMain.on("desktop-language:read", event => {
     try { event.returnValue = page(event) ? store().language() : null; } catch { event.returnValue = null; }
   });

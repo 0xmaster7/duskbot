@@ -1,0 +1,273 @@
+// Security: everything queued here passes the shared clean* functions first, so only words from fixed lists, counts and
+// times (and a scrubbed abstract summary) can leave the workspace. Message text is read only inside this process, to
+// spot a correction or a repeated request, and is never stored or sent.
+import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { writeFileAtomic } from "./atomic.ts";
+import {
+  MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
+  runTrigger, scrubSummary, toolSignals,
+  type FrustrationSignal, type UsageFrom, type UsageFrustration, type UsageOutcome, type UsagePlace, type UsageReport, type UsageRun, type UsageSnapshot, type UsageTurn, type UsageDigest,
+} from "../shared/usage-signals.ts";
+
+const OUTBOX_TURNS = 2000, OUTBOX_RUNS = 500;
+const newId = () => randomBytes(12).toString("base64url");
+
+export interface TurnFacts {
+  driverKind: string;
+  status: "ok" | "error" | "interrupted" | "ended" | undefined;
+  reason?: string;
+  startedAt?: number;
+  endedAt?: number;
+  toolNames: readonly string[];
+  trigger: { kind: string };
+  room: boolean;
+}
+
+/** a turn's facts as a usage record; the reason line and tool names are read here and only their words kept */
+export function turnRecord(facts: TurnFacts, place: UsagePlace, now: number): UsageTurn | null {
+  const { tools, apps } = toolSignals(facts.toolNames);
+  const outcome: UsageOutcome = facts.status === "interrupted" ? "cancelled" : facts.status === "error" ? "failed" : "ok";
+  const from: UsageFrom = facts.trigger.kind === "routine" ? "routine" : facts.trigger.kind === "bot" ? "bot" : facts.trigger.kind === "helper" ? "helper"
+    : facts.trigger.kind === "user" ? "remote" : "app";
+  const end = facts.endedAt ?? now, start = facts.startedAt ?? end;
+  return cleanUsageTurn({ id: newId(), at: end, engine: engineFamily(facts.driverKind), outcome, ...(outcome === "ok" ? {} : { reason: outcome === "cancelled" ? "unknown" : failureReason(facts.reason) }),
+    ms: Math.max(0, Math.min(7 * 86_400_000 - 1, Math.round(end - start))), tools, apps, category: categorize({ tools, apps }), from, place, room: facts.room }, now);
+}
+
+/** records waiting for the next dashboard report: memory only, oldest dropped past the cap */
+export function createUsageOutbox(options: { now?: () => number; snapshot?: () => UsageSnapshot | null; enabled?: () => boolean } = {}) {
+  const now = options.now ?? Date.now;
+  let turns: UsageTurn[] = [], runs: UsageRun[] = [], frustrations: UsageFrustration[] = [], digests: UsageDigest[] = [];
+  const seenRuns = new Set<string>();
+  const on = () => options.enabled?.() !== false;
+  const cap = <T>(list: T[], max: number) => list.length > max ? list.slice(-max) : list;
+  return {
+    turn(record: UsageTurn | null) { if (record && on()) turns = cap([...turns, record], OUTBOX_TURNS); },
+    /** a routine run once it ends; each run counts once */
+    run(run: { id: string; status: string; triggerSource?: string; eventSource?: string; manual?: boolean; finishedAt?: number; error?: string }) {
+      if (!on() || !["completed", "failed", "cancelled", "missed"].includes(run.status) || seenRuns.has(run.id)) return;
+      seenRuns.add(run.id);
+      if (seenRuns.size > 5000) seenRuns.delete(seenRuns.values().next().value!);
+      const outcome: UsageOutcome = run.status === "completed" ? "ok" : run.status === "cancelled" ? "cancelled" : "failed";
+      const record = cleanUsageRun({ id: newId(), at: run.finishedAt ?? now(), trigger: runTrigger(run), outcome, ...(outcome === "failed" ? { reason: run.status === "missed" ? "timeout" : failureReason(run.error) } : {}) }, now());
+      if (record) runs = cap([...runs, record], OUTBOX_RUNS);
+    },
+    frustration(record: UsageFrustration | null) { if (record && on()) frustrations = cap([...frustrations, record], MAX_REPORT_FRUSTRATIONS); },
+    digest(record: UsageDigest | null) { if (record && on()) digests = cap([...digests, record], 2); },
+    /** the next report's usage section, taken out of the outbox; `requeue` puts it back when the report fails */
+    take(): UsageReport | null {
+      if (!on()) { turns = []; runs = []; frustrations = []; digests = []; return null; }
+      const snapshot = (() => { try { return cleanUsageSnapshot(options.snapshot?.()); } catch { return null; } })();
+      const report: UsageReport = { turns: turns.slice(0, MAX_REPORT_TURNS), runs: runs.slice(0, MAX_REPORT_RUNS), ...(frustrations.length ? { frustrations } : {}), ...(digests.length ? { digests } : {}), ...(snapshot ? { snapshot } : {}) };
+      turns = turns.slice(MAX_REPORT_TURNS); runs = runs.slice(MAX_REPORT_RUNS); frustrations = []; digests = [];
+      return report.turns.length || report.runs.length || report.frustrations || report.digests || report.snapshot ? report : null;
+    },
+    requeue(report: UsageReport) {
+      turns = cap([...report.turns, ...turns], OUTBOX_TURNS); runs = cap([...report.runs, ...runs], OUTBOX_RUNS);
+      frustrations = cap([...(report.frustrations ?? []), ...frustrations], MAX_REPORT_FRUSTRATIONS);
+      digests = cap([...(report.digests ?? []), ...digests], 2);
+    },
+    size: () => ({ turns: turns.length, runs: runs.length, frustrations: frustrations.length, digests: digests.length }),
+    /** this week's turns so far by category and tool, for the digest's prompt */
+    mix(): { categories: string[]; tools: string[] } {
+      const top = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([key]) => key);
+      return { categories: top(turns.map(turn => turn.category)), tools: top(turns.flatMap(turn => turn.tools)) };
+    },
+  };
+}
+export type UsageOutbox = ReturnType<typeof createUsageOutbox>;
+
+/** short replies that tell the bot it got something wrong, in a few languages; matched on this computer only */
+const CORRECTIVE = [
+  "that'?s (?:wrong|not (?:it|right|what i (?:asked|wanted|said)))", "not what i (?:asked|wanted|meant|said)", "wrong", "no+(?: no+)*(?! (?:worries|problem|thanks|need|rush|idea|way|doubt))", "nope", "stop(?: it)?",
+  "you (?:didn'?t|did not|don'?t) (?:listen|understand|get it)", "try again", "again\\??", "doesn'?t work", "still (?:wrong|broken|not working)", "ugh+",
+  "falsch", "nein", "das ist falsch", "faux", "non", "c'?est faux", "pas (?:ça|ca)", "mal", "incorrecto", "eso no", "no es (?:eso|lo que pedí)", "errado", "não", "sbagliato",
+  "galat", "nahi", "ye galat hai", "ちがう", "違う", "不对", "错了", "아니야", "неправильно", "нет",
+].join("|");
+/** swearing and insults aimed at the bot, in a few languages */
+const SWEARING = [
+  "f+u+c+k\\w*", "wtf", "what the (?:hell|fuck)", "stupid", "dumb", "idiot\\w*", "useless", "moron", "garbage", "trash", "shit\\w*", "crap", "are you (?:dumb|stupid|serious)",
+  "scheiße|scheisse|blöd|dumm", "putain|merde|nul", "mierda|estúpido|inútil|joder", "porra|merda|burro", "cazzo|stupido|inutile", "bakwas|bewakoof|chutiya", "くそ|バカ", "傻|垃圾", "блять|тупой",
+].join("|");
+const startsWith = (pattern: string) => new RegExp(`^(?:${pattern})(?:[\\s,.!?]|$)`, "iu");
+const contains = (pattern: string) => new RegExp(`(?:^|[^\\p{L}])(?:${pattern})(?:$|[^\\p{L}])`, "iu");
+const CORRECTIVE_START = startsWith(CORRECTIVE), CORRECTIVE_ANY = contains(CORRECTIVE), SWEAR_ANY = contains(SWEARING);
+export function isCorrective(text: string): boolean {
+  const line = text.trim().toLowerCase().replace(/[.!?,…]+$/u, "");
+  if (!line || line.length > 80) return false;
+  return CORRECTIVE_START.test(line) || (line.length <= 40 && CORRECTIVE_ANY.test(line));
+}
+export const isSwearing = (text: string) => SWEAR_ANY.test(text.slice(0, 2000));
+/** a message mostly in capitals, long enough to be shouting rather than an acronym */
+export function isShouting(text: string): boolean {
+  const letters = text.replace(/[^\p{L}]/gu, "");
+  const upper = letters.replace(/[^\p{Lu}]/gu, "").length, lower = letters.replace(/[^\p{Ll}]/gu, "").length;
+  return upper >= 8 && upper / Math.max(1, upper + lower) >= 0.8;
+}
+
+const words = (text: string) => new Set(text.toLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}]+/u).filter(word => word.length > 2));
+/** the same request again, reworded or not: most of the longer words are shared */
+export function sameRequest(a: string, b: string): boolean {
+  const x = words(a), y = words(b);
+  if (x.size < 2 || y.size < 2) return a.trim().toLowerCase() === b.trim().toLowerCase() && a.trim().length > 3;
+  let shared = 0;
+  for (const word of x) if (y.has(word)) shared++;
+  return shared / Math.min(x.size, y.size) >= 0.6;
+}
+
+/** how much each signal says; one swear or one shout alone never reaches FRUSTRATION_SCORE */
+export const SIGNAL_WEIGHT: Readonly<Record<FrustrationSignal, number>> = { thumbs_down: 3, retried: 3, stopped: 2, failed: 2, corrective: 2, shouting: 1, swearing: 1 };
+export const FRUSTRATION_SCORE = 4;
+/** only after real use: this many turns on the workspace, and this many in the chat */
+export const MIN_WORKSPACE_TURNS = 20, MIN_CHAT_TURNS = 3;
+/** the same chat is not summarised again this soon */
+export const CHAT_COOLDOWN_MS = 6 * 3_600_000;
+/** reports a week grow with use: one per TURNS_PER_REPORT turns in the last 7 days, at least one, and never more than
+ * MAX_PER_DAY in a day, so a heavy user's own AI quota is not spent on this */
+export const TURNS_PER_REPORT = 40, MAX_PER_DAY = 4;
+export function weeklyAllowance(turns7d: number): number { return Math.max(1, Math.floor(turns7d / TURNS_PER_REPORT)); }
+const RETRY_WINDOW_MS = 5 * 60_000, FAIL_WINDOW_MS = 10 * 60_000, WEEK_MS = 7 * 86_400_000, DAY_MS = 86_400_000;
+/** a usage digest: for people with this many turns and active days in the last 7 days, at most once a week */
+export const DIGEST_MIN_TURNS = 30, DIGEST_MIN_DAYS = 3, DIGEST_EVERY_MS = WEEK_MS;
+export interface FrustrationTurn { engine: UsageTurn["engine"]; category: UsageTurn["category"]; tools: UsageTurn["tools"]; apps: string[]; outcome: UsageOutcome; reason?: UsageTurn["reason"] }
+interface ChatState { asks: Array<{ text: string; at: number }>; retries: number; turns: number; fails: number[]; signals: Map<FrustrationSignal, number>; last?: FrustrationTurn; botId?: string }
+interface Kept { turns: number; sent: number[]; days: Record<string, number>; digestAt: number }
+
+/** watches each chat for frustration and reports it once the signals add up. `summarize` asks the person's own engine
+ * for an abstract line; the counts that gate it are kept in <data>/frustration.json (0600). */
+export function createFrustrationWatch(deps: {
+  dataDir?: string;
+  now?: () => number;
+  report(record: UsageFrustration): void;
+  summarize?(input: { threadId: string; botId: string; signals: FrustrationSignal[]; turn: FrustrationTurn }): Promise<string | null | undefined>;
+}) {
+  const now = deps.now ?? Date.now;
+  const file = deps.dataDir ? join(deps.dataDir, "frustration.json") : null;
+  let kept: Kept = { turns: 0, sent: [], days: {}, digestAt: 0 };
+  try {
+    if (file) {
+      const saved = JSON.parse(readFileSync(file, "utf8")) as Partial<Kept>;
+      const days = saved.days && typeof saved.days === "object" ? Object.fromEntries(Object.entries(saved.days).filter(([key, value]) => /^\d{4}-\d{2}-\d{2}$/.test(key) && Number.isSafeInteger(value))) : {};
+      kept = { turns: Number.isSafeInteger(saved.turns) ? saved.turns! : 0, sent: Array.isArray(saved.sent) ? saved.sent.filter(Number.isSafeInteger) : [], days, digestAt: Number.isSafeInteger(saved.digestAt) ? saved.digestAt! : 0 };
+    }
+  } catch {}
+  let dirty = false;
+  const save = () => { if (!file || !dirty) return; dirty = false; try { writeFileAtomic(file, JSON.stringify(kept), { mode: 0o600, durable: false }); } catch {} };
+  const chats = new Map<string, ChatState>(), fired = new Map<string, number>();
+  const recent = () => {
+    const since = new Date(now() - 6 * DAY_MS).toISOString().slice(0, 10);
+    const days = Object.entries(kept.days).filter(([day]) => day >= since);
+    return { turns: days.reduce((sum, [, count]) => sum + count, 0), days: days.filter(([, count]) => count > 0).length };
+  };
+  const state = (threadId: string) => {
+    let chat = chats.get(threadId);
+    if (!chat) {
+      chat = { asks: [], retries: 0, turns: 0, fails: [], signals: new Map() };
+      chats.set(threadId, chat);
+      if (chats.size > 500) chats.delete(chats.keys().next().value!);
+    }
+    return chat;
+  };
+  const day = () => new Date(now()).toISOString().slice(0, 10);
+  const add = (chat: ChatState, signal: FrustrationSignal) => chat.signals.set(signal, (chat.signals.get(signal) ?? 0) + 1);
+  function score(chat: ChatState) {
+    const signals = new Map(chat.signals);
+    if (chat.retries >= 2) signals.set("retried", 1);
+    if (chat.fails.filter(at => at > now() - FAIL_WINDOW_MS).length >= 2) signals.set("failed", 1);
+    // a repeated swear or shout adds a little more, never past two of each
+    let total = 0;
+    for (const [signal, times] of signals) total += SIGNAL_WEIGHT[signal] * (signal === "shouting" || signal === "swearing" ? Math.min(2, times) : 1);
+    return { signals: [...signals.keys()], total };
+  }
+  function check(threadId: string, chat: ChatState) {
+    const { signals, total } = score(chat);
+    if (total < FRUSTRATION_SCORE || !chat.last || kept.turns < MIN_WORKSPACE_TURNS || chat.turns < MIN_CHAT_TURNS || (fired.get(threadId) ?? 0) > now() - CHAT_COOLDOWN_MS) return;
+    kept.sent = kept.sent.filter(at => at > now() - WEEK_MS);
+    if (kept.sent.length >= weeklyAllowance(recent().turns) || kept.sent.filter(at => at > now() - DAY_MS).length >= MAX_PER_DAY) return;
+    fired.set(threadId, now());
+    if (fired.size > 2000) fired.delete(fired.keys().next().value!);
+    kept.sent.push(now()); dirty = true; save();
+    const turn = chat.last, retries = chat.retries;
+    chat.signals.clear(); chat.retries = 0; chat.fails = []; chat.asks = [];
+    const send = (summary?: string | null) => {
+      const record = cleanUsageFrustration({ id: newId(), at: now(), engine: turn.engine, category: turn.category, tools: turn.tools, apps: turn.apps,
+        ...(turn.reason ? { reason: turn.reason } : {}), signals, retries, ...(summary ? { summary } : {}) }, now());
+      if (record) deps.report(record);
+    };
+    if (!deps.summarize || !chat.botId) return send();
+    void deps.summarize({ threadId, botId: chat.botId, signals, turn }).then(text => send(scrubSummary(text)), () => send());
+  }
+  return {
+    /** a person's message in a chat; the text is compared with their last few and then forgotten */
+    message(threadId: string, text: string) {
+      if (!text.trim()) return;
+      const chat = state(threadId), at = now();
+      chat.asks = chat.asks.filter(ask => ask.at > at - RETRY_WINDOW_MS);
+      if (isCorrective(text)) add(chat, "corrective");
+      else if (chat.asks.some(ask => sameRequest(ask.text, text))) chat.retries++;
+      if (isSwearing(text)) add(chat, "swearing");
+      if (isShouting(text)) add(chat, "shouting");
+      chat.asks = [...chat.asks.slice(-4), { text: text.slice(0, 2000), at }];
+      check(threadId, chat);
+    },
+    turn(threadId: string, botId: string, turn: FrustrationTurn) {
+      const chat = state(threadId);
+      chat.last = turn; chat.botId = botId; chat.turns++;
+      if (kept.turns < 1_000_000) kept.turns++;
+      const today = day();
+      kept.days[today] = (kept.days[today] ?? 0) + 1;
+      if (Object.keys(kept.days).length > 10) kept.days = Object.fromEntries(Object.entries(kept.days).sort(([a], [b]) => a.localeCompare(b)).slice(-8));
+      dirty = true;
+      if (kept.turns <= MIN_WORKSPACE_TURNS || kept.turns % 10 === 0) save();
+      if (turn.outcome === "cancelled") add(chat, "stopped");
+      if (turn.outcome === "failed") chat.fails = [...chat.fails.filter(at => at > now() - FAIL_WINDOW_MS), now()];
+      check(threadId, chat);
+    },
+    thumbsDown(threadId: string) { const chat = state(threadId); add(chat, "thumbs_down"); check(threadId, chat); },
+    forget(threadId: string) { chats.delete(threadId); },
+    flush: () => { dirty = true; save(); },
+    recent,
+    /** true once a week for someone who used it enough; the caller writes the digest and calls digestSent */
+    digestDue(): boolean {
+      const { turns, days } = recent();
+      return turns >= DIGEST_MIN_TURNS && days >= DIGEST_MIN_DAYS && now() - kept.digestAt >= DIGEST_EVERY_MS;
+    },
+    digestSent() { kept.digestAt = now(); dirty = true; save(); },
+  };
+}
+
+/** the instruction the person's own engine gets, on its quick model; it sees the last few lines of the chat on this computer */
+export function summaryPrompt(lines: ReadonlyArray<{ role: "user" | "bot"; text: string }>, signals: readonly FrustrationSignal[]): string {
+  const transcript = lines.slice(-8).map(line => `${line.role === "user" ? "person" : "bot"}: ${line.text.replace(/\s+/g, " ").slice(0, 300)}`).join("\n");
+  return [
+    "The person in this AI assistant chat got frustrated. In at most 50 words and 2 lowercase sentences, say what work they wanted done and what went wrong, concretely but anonymously.",
+    "Never include names of people, companies, products, places or files, emails, links, identifying numbers or dates, or any quote of their words.",
+    "Example: user asked the bot to reconcile last month's receipts into a spreadsheet; the bot couldn't open the sheet through the sheets app and kept asking for the file location, and the user got angry after the third try.",
+    `Noticed: ${signals.map(signal => signal.replace(/_/g, " ")).join(", ")}. Reply with the sentences only.`,
+    "",
+    transcript,
+  ].join("\n");
+}
+
+/** the weekly digest's instruction: a compact view of recent chats, written up by the person's own engine on its quick model */
+export function digestPrompt(chats: ReadonlyArray<{ lines: ReadonlyArray<{ role: "user" | "bot"; text: string }> }>, stats: { turns: number; days: number; categories: string[]; tools: string[] }): string {
+  let budget = 9000;
+  const blocks: string[] = [];
+  for (const [index, chat] of chats.slice(0, 12).entries()) {
+    const block = chat.lines.slice(-6).map(line => `${line.role === "user" ? "person" : "bot"}: ${line.text.replace(/\s+/g, " ").slice(0, 220)}`).join("\n");
+    if (block.length > budget) break;
+    budget -= block.length;
+    blocks.push(`chat ${index + 1}:\n${block}`);
+  }
+  return [
+    "Below is a compact digest of one person's recent chats with their AI assistant app. In at most 90 words of lowercase prose, describe what they use it for:",
+    "the kinds of work, which kinds of apps or tools, what goes well, what is painful, and what they seem to want next.",
+    "Never include names of people, companies, products, places or files, emails, links, identifying numbers or dates, or any quote of their words.",
+    `This week: ${stats.turns} turns over ${stats.days} days; mostly ${stats.categories.join(", ") || "chat"}; tools: ${stats.tools.join(", ") || "none"}. Reply with the prose only.`,
+    "",
+    blocks.join("\n\n"),
+  ].join("\n");
+}

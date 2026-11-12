@@ -14,6 +14,7 @@ import { centroid, countryName } from "./geo";
 import { Avatar, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, SalesChart, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
 import { CheerBubble, PaymentsCard, useCheer, type RevenueAnswer } from "./Revenue";
 import { PulseGrid } from "./Pulse";
+import { UsageSection } from "./Usage";
 import { Failed, Loading, n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
@@ -387,6 +388,8 @@ export function OverviewPage() {
           </section>
 
           <div className="mt-4"><FunnelSection range={range} /></div>
+
+          <div className="mt-4"><UsageSection range={range} /></div>
 
           <div className="mt-4 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 max-lg:grid-cols-1">
             {r ? <PaymentsCard revenue={r} /> : <div />}

@@ -7,6 +7,8 @@ import { BILLING_CONFIG } from "../billing/plans.ts";
 import type { StoredCloud } from "../clouds/types.ts";
 import type { StoredWorkspace } from "../store.ts";
 import type { Analytics } from "../analytics/index.ts";
+import type { Usage } from "../analytics/usage.ts";
+import { summarize as summarizeUsage, type AdoptionInput } from "../analytics/usage-summary.ts";
 import { EVENTS, EVENT_NAMES, isEventName } from "../analytics/events.ts";
 import type { StoredEvent } from "../analytics/sink.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
@@ -28,6 +30,7 @@ export interface AdminOptions {
   billing: Billing;
   workspaces: () => StoredWorkspace[];
   analytics: Analytics;
+  usage: Usage;
   waitlist: WaitlistSource | null;
   now: () => number;
   fetch?: typeof fetch;
@@ -100,6 +103,42 @@ export function createAdmin(options: AdminOptions) {
     };
   }
   const emailMap = () => new Map(directory().accounts.map(account => [account.id, account.email]));
+
+  /** what people use it for, over whole UTC days from `from` to `to` (at most 90), against the window before */
+  async function usageAnswer(url: URL) {
+    const to = int(url.searchParams.get("to"), now(), 0, Number.MAX_SAFE_INTEGER), from = int(url.searchParams.get("from"), to - 30 * DAY, 0, Number.MAX_SAFE_INTEGER);
+    const span = Math.min(90, Math.max(1, Math.ceil((to - from) / DAY)));
+    const days = dayRange(to, span), previousDays = dayRange(Date.parse(`${days[0]}T00:00:00Z`) - 1, span);
+    const start = Date.parse(`${days[0]}T00:00:00Z`), end = Date.parse(`${days.at(-1)}T00:00:00Z`) + DAY;
+    const store = options.usage.store;
+    const [daily, previousDaily, people, previousPeople, snapshots, frustrations, digests, recentPeople] = await Promise.all([
+      store.daily(days[0]!, days.at(-1)!), store.daily(previousDays[0]!, previousDays.at(-1)!), store.people(days[0]!, days.at(-1)!),
+      store.people(previousDays[0]!, previousDays.at(-1)!), store.snapshots(), store.records("frustration", start, end, 500), store.records("digest", start, end, 500),
+      store.people(dayKey(now() - 90 * DAY), dayKey(now())),
+    ]);
+    return summarizeUsage({ days, daily, previousDaily, people, previousPeople: new Set(previousPeople.filter(row => row.turns > 0).map(row => row.accountId)).size, snapshots, frustrations, digests, adoption: adoption(snapshots, recentPeople) });
+  }
+  function adoption(snapshots: Awaited<ReturnType<Usage["store"]["snapshots"]>>, recent: Awaited<ReturnType<Usage["store"]["people"]>>): AdoptionInput {
+    const { accounts, sessions } = directory();
+    const bot = new Set<string>(), routine = new Set<string>(), connector = new Set<string>(), phone = new Set<string>(), cloud = new Set<string>();
+    for (const row of snapshots) {
+      if (row.snapshot.bots > 0) bot.add(row.accountId);
+      if (row.snapshot.routines + row.snapshot.webhooks + row.snapshot.appEvents > 0) routine.add(row.accountId);
+    }
+    for (const ws of options.workspaces()) {
+      const id = ws.ownerAccountId;
+      if (!id) continue;
+      if (ws.report?.bots?.length) bot.add(id);
+      if (ws.report?.bots?.some(item => item.routines.length > 0)) routine.add(id);
+      if (ws.report?.apps?.services.some(service => service.connected)) connector.add(id);
+      if (ws.report?.devices?.phones.length) phone.add(id);
+    }
+    for (const session of sessions) if (session.kind === "mobile") phone.add(session.accountId);
+    for (const row of recent) if (row.appTurns > 0) connector.add(row.accountId);
+    for (const c of allClouds()) if (!c.ended) cloud.add(c.accountId);
+    const known = new Set(accounts.map(account => account.id)), count = (set: Set<string>) => [...set].filter(id => known.has(id)).length;
+    return { accounts: accounts.length, bot: count(bot), routine: count(routine), connector: count(connector), phone: count(phone), cloud: count(cloud) };
+  }
 
   async function overview(days: number) {
     const time = now(), range = dayRange(time, days), since = Date.parse(`${range[0]}T00:00:00Z`);
@@ -304,6 +343,7 @@ export function createAdmin(options: AdminOptions) {
         return true;
       }
       if (route === "/events") return send(await events(url));
+      if (route === "/usage") return send(await usageAnswer(url));
       try {
         if (route === "/web") return send(await deep.web(url));
         if (route.startsWith("/web/")) { const dim = route.slice(5); if (!deep.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await deep.webDetails(dim, url)); }

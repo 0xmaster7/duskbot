@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { createDashboardApp } from "../server/app.ts";
 import { memoryWaitlist, type WaitlistEntry } from "../server/admin/waitlist.ts";
 import { BILLING_CONFIG } from "../server/billing/plans.ts";
+import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
 const PEOPLE = ["mira.okafor", "tomas.lindqvist", "priya.raman", "jules.moreau", "kenji.watanabe", "ana.ferreira", "leo.brandt", "sofia.marin", "ravi.kulkarni", "noor.haddad",
@@ -56,6 +57,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
   if (paused) await billing.clouds.power(paused.accountId, paused.id, "off").catch(() => {});
 
   await seedWeb(app, accounts, now);
+  await seedUsage(app, accounts, now);
   for (const [i, account] of accounts.entries()) {
     await analytics.record("signup", { accountId: account.id, at: account.createdAt, props: { method: i % 3 === 0 ? "google" : "email" } });
     await analytics.record("sign_in", { accountId: account.id, at: account.createdAt + 1000, props: { kind: "web" } });
@@ -199,4 +201,68 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
   for (let c = 0; c < 140; c++) { const [bot, kind] = pick(BOTS); await analytics.sink.crawl({ at: now - Math.round(rand() * 29 * DAY), bot, kind, path: pick([...PATHS, "/robots.txt", "/llms.txt", "/docs/getting-started"]), host: "preview.dusk.bot" }); }
   await analytics.sink.saveNote({ id: "note_launchx1", at: now - 12 * DAY, text: "launch thread on x", by: accounts[0]!.id, createdAt: now });
   await analytics.sink.saveNote({ id: "note_pricing2", at: now - 4 * DAY, text: "new pricing page", by: accounts[0]!.id, createdAt: now });
+}
+
+const ENGINES = [["claude", 50], ["codex", 28], ["gemini", 9], ["grok", 6], ["opencode", 4], ["api", 3]] as const;
+const TASKS: Array<{ category: UsageCategory; tools: UsageTool[]; apps: string[]; weight: number; fail: number; reason?: UsageReason; ms: number }> = [
+  { category: "email", tools: ["app"], apps: ["gmail"], weight: 22, fail: 0.18, reason: "auth", ms: 25_000 },
+  { category: "research", tools: ["browser", "web"], apps: [], weight: 18, fail: 0.06, reason: "timeout", ms: 70_000 },
+  { category: "coding", tools: ["terminal", "files"], apps: ["github"], weight: 14, fail: 0.08, reason: "context", ms: 140_000 },
+  { category: "chat", tools: [], apps: [], weight: 16, fail: 0.02, reason: "rate_limit", ms: 6_000 },
+  { category: "calendar", tools: ["app"], apps: ["googlecalendar"], weight: 8, fail: 0.05, reason: "auth", ms: 18_000 },
+  { category: "docs", tools: ["app"], apps: ["notion"], weight: 7, fail: 0.04, reason: "tool", ms: 30_000 },
+  { category: "data", tools: ["app", "data"], apps: ["googlesheets"], weight: 6, fail: 0.12, reason: "tool", ms: 45_000 },
+  { category: "messaging", tools: ["app"], apps: ["slack"], weight: 5, fail: 0.03, reason: "network", ms: 15_000 },
+  { category: "computer", tools: ["computer"], apps: [], weight: 3, fail: 0.2, reason: "crashed", ms: 200_000 },
+  { category: "social", tools: ["app", "browser"], apps: ["twitter"], weight: 2, fail: 0.1, reason: "refused", ms: 40_000 },
+];
+const weighted = <T,>(list: ReadonlyArray<T>, weight: (item: T) => number) => {
+  let roll = rand() * list.reduce((sum, item) => sum + weight(item), 0);
+  for (const item of list) { roll -= weight(item); if (roll <= 0) return item; }
+  return list[0]!;
+};
+const FRUSTRATIONS = [
+  ["email", "claude", "user asked the bot to reply to a long thread in the email app; the sign-in kept expiring and the bot asked them to reconnect three times, so they gave up."],
+  ["email", "claude", "the bot was meant to sort the inbox into folders every morning but failed to open the mail app and the person stopped it twice."],
+  ["data", "codex", "user asked to reconcile last month's receipts into a spreadsheet; the bot couldn't open the sheet through the sheets app and kept asking for the file location."],
+  ["computer", "claude", "the bot tried to fill a form on the computer but kept clicking the wrong field; the person typed in capitals and stopped the turn."],
+  ["coding", "codex", "the bot kept breaking the build while fixing a failing test and lost track of the earlier change after the chat got long."],
+] as const;
+const DIGESTS = [
+  "they mostly use it for email triage and drafting replies in the email app, plus a daily news summary. replies are good, but reconnecting the email app is painful and slow. they want calendar scheduling next.",
+  "mostly coding help: fixing tests, reading logs and small refactors in the terminal. it works well for short tasks; long sessions forget earlier context. they want it to remember project decisions.",
+  "research and reading: comparing products and summarizing articles with the browser. good results, but turns are slow. they would like routines that send a weekly digest.",
+  "runs a small shop: updates a spreadsheet of orders, drafts customer emails and posts to social. the sheets app often fails to open, which is frustrating. wants more automation for posting.",
+  "uses it as a planner: calendar, reminders and travel planning, mostly from the phone. setup of routines was confusing at first; now a morning routine runs every day.",
+];
+
+/** a month of bot turns, routine runs, frustrations and weekly summaries through the real usage ingest */
+async function seedUsage(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
+  let serial = 0;
+  const uid = (prefix: string) => `${prefix}${String(++serial).padStart(10, "0")}`;
+  for (const [i, account] of accounts.entries()) {
+    if (i % 6 === 5) continue;
+    const power = i % 5 === 0 ? 6 : i % 3 === 0 ? 2.2 : 0.7, ws = `ws_fixture_${i}`, from: UsageFrom = i % 4 === 1 ? "remote" : "app";
+    const turns: UsageTurn[] = [], runs: UsageRun[] = [];
+    for (let t = Math.max(account.createdAt, now - 29 * DAY); t < now; t += DAY) {
+      if (rand() > (power > 2 ? 0.85 : 0.45)) continue;
+      const count = Math.round(power * (2 + rand() * 6));
+      for (let k = 0; k < count; k++) {
+        const task = weighted(TASKS, item => item.weight), failed = rand() < task.fail, cancelled = !failed && rand() < 0.04;
+        turns.push({ id: uid("turn"), at: Math.min(now - 60_000, t + Math.round(rand() * DAY)), engine: weighted(ENGINES, item => item[1])[0], outcome: failed ? "failed" : cancelled ? "cancelled" : "ok",
+          ...(failed ? { reason: rand() < 0.75 ? task.reason ?? "unknown" : "unknown" } : cancelled ? { reason: "unknown" as const } : {}), ms: Math.round(task.ms * (0.4 + rand() * 1.8)), tools: task.tools,
+          apps: task.apps, category: task.category, from: rand() < 0.15 ? "routine" : from, place: i % 3 === 0 ? "cloud" : "desktop", room: rand() < 0.08 });
+      }
+      if (i % 3 === 0 && rand() < 0.7) runs.push({ id: uid("run"), at: t + 8 * 3_600_000, trigger: weighted(["schedule", "schedule", "event", "webhook"] as const, () => 1), outcome: rand() < 0.14 ? "failed" : "ok" });
+    }
+    const frustrations: UsageFrustration[] = [];
+    if (power >= 2) for (const [category, engine, summary] of FRUSTRATIONS.filter((_, f) => (f + i) % 3 !== 0)) {
+      const task = TASKS.find(item => item.category === category)!;
+      frustrations.push({ id: uid("frust"), at: now - Math.round(rand() * 20 * DAY), engine, category, tools: task.tools, apps: task.apps, reason: task.reason, signals: pick([["retried", "stopped"], ["thumbs_down", "swearing"], ["failed", "corrective"]] as const).slice(),
+        retries: Math.floor(rand() * 4), summary });
+    }
+    const digests: UsageDigest[] = power >= 2 ? [{ id: uid("digest"), at: now - Math.round(rand() * 6 * DAY), turns: Math.round(power * 30), days: 5, summary: DIGESTS[i % DIGESTS.length]! }] : [];
+    for (let start = 0; start < turns.length; start += 500) await app.usage.ingest(account.id, ws, { turns: turns.slice(start, start + 500), runs: start ? [] : runs, ...(start ? {} : { frustrations, digests }),
+      snapshot: { bots: 1 + (i % 4), rooms: i % 3 === 0 ? 1 : 0, routines: i % 3 === 0 ? 2 : i % 4 === 2 ? 1 : 0, webhooks: i % 7 === 0 ? 1 : 0, appEvents: i % 5 === 0 ? 1 : 0, skills: i % 4 } });
+  }
 }

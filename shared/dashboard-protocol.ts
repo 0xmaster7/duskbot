@@ -2,6 +2,8 @@
 // commands it takes back. transport-agnostic (plain https today, any relay that forwards it later), owner-only,
 // never message contents or secrets. docs: apps/dashboard/README.md
 
+import { cleanUsageReport, type UsageReport } from "./usage-signals.ts";
+
 export const DASHBOARD_PROTOCOL = 1;
 
 // the default hosted instance, overridable by workspace configuration.
@@ -150,6 +152,8 @@ export interface WorkspaceReport {
   devices?: DevicesReport;
   plans?: PlansReport;
   apps?: AppsReport;
+  /** structured usage since the last report (usage-signals.ts); the service rolls it up and never keeps it on the workspace */
+  usage?: UsageReport;
   results?: CommandResult[];
 }
 
@@ -264,6 +268,7 @@ const dashboardSections: Record<string, DashboardParser> = {
     windows: dashboardArray(dashboardObject({ label: dashboardName, usedPercent: dashboardNumber, resetsAt: dashboardNullable(dashboardNumber) }), 20) }), 20) }),
   apps: dashboardObject({ available: dashboardBoolean, complete: dashboardBoolean,
     services: dashboardArray(dashboardObject({ slug: input => appSlug(input) ?? dashboardInvalid, connected: dashboardBoolean, pending: dashboardBoolean }), 500) }),
+  usage: input => cleanUsageReport(input) ?? dashboardInvalid,
   results: dashboardArray(input => {
     const result = dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber })(input);
     if (result === dashboardInvalid) return result;

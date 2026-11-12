@@ -37,7 +37,8 @@ export function helperSelection(cfg: HelperConfig, env: Record<string, string | 
 /** "representative": a person's assistant answering a teammate's question for them, which must never get tools. */
 /** "room-routing": Dusk deciding who answers a group message, on the engine's quick model. */
 /** "turn-beat": the short ack and progress lines sent while a turn works (turn-beats.ts), on the engine's quick model. */
-export type SideJob = "compaction" | "memory" | "skill-review" | "setup-suggestions" | "representative" | "status-reply" | "room-routing" | "turn-beat";
+/** "frustration-summary": an abstract line about a chat that went badly, for usage-signals.ts; scrubbed before it leaves. */
+export type SideJob = "compaction" | "memory" | "skill-review" | "setup-suggestions" | "representative" | "status-reply" | "room-routing" | "turn-beat" | "frustration-summary";
 
 export type SideJobInstance = Pick<ProviderInstance, "instanceId" | "driverKind" | "enabled" | "generateText" | "generateMemoryText" | "models" | "quickModelsUsable"> & {
   adapter: { capabilities: Pick<ProviderAdapter["capabilities"], "agentsMcp"> };
@@ -78,7 +79,7 @@ type TextCall = (prompt: string, options?: TextGenerationOptions) => Promise<str
 
 /** Jobs someone is waiting on, and the representative, which must never get tools, run only on a one-off text call:
  * generateMemoryText starts a whole agent process. */
-const ONE_OFF_ONLY: ReadonlySet<SideJob> = new Set(["compaction", "setup-suggestions", "representative", "status-reply", "room-routing"]);
+const ONE_OFF_ONLY: ReadonlySet<SideJob> = new Set(["compaction", "setup-suggestions", "representative", "status-reply", "room-routing", "frustration-summary"]);
 
 function ownCall(job: SideJob, instance: SideJobInstance): TextCall | undefined {
   const call = ONE_OFF_ONLY.has(job) ? instance.generateText : instance.generateText ?? instance.generateMemoryText;
@@ -190,7 +191,7 @@ export function createSideJobs(deps: SideJobsDeps): SideJobs {
       const call = ownCall(job, own);
       if (call) {
         if (job === "compaction") return { via: "engine", generateText: call };
-        if (job === "setup-suggestions" || job === "room-routing" || job === "turn-beat") {
+        if (job === "setup-suggestions" || job === "room-routing" || job === "turn-beat" || job === "frustration-summary") {
           const quick = quickModel(bot, own);
           const write = booked(job, bot, own, call, { kind: "bot", botId: bot.id }, () => ({ fallback: ownFallback(bot, own), ...quick }));
           return { via: "engine", generateText: quick.model ? rememberRefusal(write, own, quick.model) : write };
