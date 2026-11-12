@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { createDashboardApp } from "../server/app.ts";
 import { memoryWaitlist, type WaitlistEntry } from "../server/admin/waitlist.ts";
 import { BILLING_CONFIG } from "../server/billing/plans.ts";
+import { draft, ledgerId } from "../server/billing/ledger.ts";
 import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
@@ -16,6 +17,11 @@ const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)]!;
 
 export interface SeededAccount { id: string; email: string; name: string; createdAt: number }
+/** older customers with a year of subscription history, so every revenue chart has months to show */
+const HISTORIC = ["ada.nwosu", "bruno.costa", "chloe.martin", "dev.patel", "emma.larsen", "felix.wagner", "grace.liu", "hugo.blanc", "isla.murphy", "jonas.berg",
+  "kira.sato", "liam.walsh", "maya.cohen", "nils.eriksson", "olivia.reyes", "pablo.ruiz", "quinn.foster", "rosa.ibanez", "sven.dahl", "tara.singh",
+  "uma.rao", "victor.hugo", "wren.taylor", "yara.haddad", "zoe.becker", "arjun.mehta", "bea.santos", "caleb.wright"];
+let historic: SeededAccount[] = [];
 
 /** writes auth.json before the service starts, so the seeded accounts have real sign-up dates */
 export function seedAdminAuth(dataDir: string, now: number): SeededAccount[] {
@@ -29,7 +35,11 @@ export function seedAdminAuth(dataDir: string, now: number): SeededAccount[] {
     return list.map(device => ({ id: id("ses_"), accountId: account.id, tokenHash: createHash("sha256").update(id("t")).digest("hex"), ...device,
       createdAt: account.createdAt + 3_600_000, lastSeenAt: now - Math.round(rand() * 5 * DAY), expiresAt: now + 60 * DAY }));
   });
-  writeFileSync(join(dataDir, "auth.json"), JSON.stringify({ accounts: accounts.map(a => ({ ...a, name: a.name })), identities, sessions }), { mode: 0o600 });
+  historic = HISTORIC.map((handle, k) => ({ id: id("acct_"), email: `${handle}@example.test`, name: handle.split(".").map(part => part[0]!.toUpperCase() + part.slice(1)).join(" "),
+    createdAt: now - Math.round((340 - k * 11 - rand() * 6) * DAY) }));
+  const older = historic.map(account => ({ id: id("ses_"), accountId: account.id, tokenHash: createHash("sha256").update(id("t")).digest("hex"), kind: "web", name: "Browser", platform: null, appVersion: null,
+    createdAt: account.createdAt + 3_600_000, lastSeenAt: now - Math.round(rand() * 20 * DAY), expiresAt: now + 60 * DAY }));
+  writeFileSync(join(dataDir, "auth.json"), JSON.stringify({ accounts: [...accounts, ...historic].map(a => ({ ...a, name: a.name })), identities, sessions: [...sessions, ...older] }), { mode: 0o600 });
   return accounts;
 }
 
@@ -58,6 +68,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
 
   await seedWeb(app, accounts, now);
   await seedUsage(app, accounts, now);
+  await seedHistoricEvents(app, now);
   for (const [i, account] of accounts.entries()) {
     await analytics.record("signup", { accountId: account.id, at: account.createdAt, props: { method: i % 3 === 0 ? "google" : "email" } });
     await analytics.record("sign_in", { accountId: account.id, at: account.createdAt + 1000, props: { kind: "web" } });
@@ -106,7 +117,149 @@ function seedPaymentHistory(app: ReturnType<typeof createDashboardApp>, accounts
     state.webhookEvents.push({ id: "wh_fixture_refund", at: Math.min(now - 3_600_000, refunded.createdAt + 2 * DAY), type: "refund.succeeded" });
     refunded.status = "refunded";
   }
+  for (const row of state.ledger ?? []) {
+    const invoice = state.invoices.find(item => item.providerPaymentId === row.providerPaymentId), sub = state.subscriptions.find(item => item.id === row.subscriptionId);
+    if (invoice) row.at = invoice.createdAt;
+    else if (sub && row.type === "subscription.active") row.at = sub.createdAt;
+    else if (row.type === "checkout.started") { const checkout = state.checkouts.find(item => item.id === row.providerRef); if (checkout) row.at = checkout.createdAt; }
+  }
+  for (const invoice of state.invoices) if (invoice.description === "renewal") {
+    const sub = state.subscriptions.find(item => item.id === invoice.subscriptionId)!;
+    ledgerRow(state, { type: "payment.succeeded", at: invoice.createdAt, sub, payment: invoice.providerPaymentId, amount: invoice.amountCents });
+    ledgerRow(state, { type: "subscription.renewed", at: invoice.createdAt, sub });
+  }
+  seedHistoric(app, now);
   app.billing.store.commit();
+}
+
+type BillingState = ReturnType<typeof createDashboardApp>["billing"]["store"]["state"];
+type Sub = BillingState["subscriptions"][number];
+const monthly = (sub: Sub) => sub.source === "admin_comp" ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+function ledgerRow(state: BillingState, input: { type: string; at: number; sub: Sub; payment?: string; amount?: number; previous?: number; reason?: string; ref?: string }) {
+  const key = `${input.type}:${input.ref ?? input.payment ?? input.sub.providerSubscriptionId}:${input.at}`;
+  const plan = BILLING_CONFIG.bundles.find(bundle => bundle.cart.desktop.kind === input.sub.cart.desktop.kind && bundle.cart.license.kind === input.sub.cart.license.kind)?.id ?? "custom";
+  (state.ledger ??= []).push({ ...draft({ key, at: input.at, type: input.type, via: "fixture", accountId: input.sub.accountId, subscriptionId: input.sub.id, providerSubscriptionId: input.sub.providerSubscriptionId,
+    providerPaymentId: input.payment ?? null, providerRef: input.ref ?? null, amountCents: input.amount ?? null, currency: input.amount === undefined ? null : "USD",
+    netCents: input.amount && input.type === "payment.succeeded" ? Math.round(input.amount * 0.84) : null, taxCents: input.amount && input.type === "payment.succeeded" ? Math.round(input.amount * 0.16) : null,
+    plan, interval: input.sub.cart.interval, mrrCents: monthly(input.sub), previousMrrCents: input.previous ?? null, reason: input.reason ?? null,
+    country: input.type === "payment.succeeded" ? pick(["US", "US", "US", "IN", "DE", "GB", "CA", "FR", "BR", "NL", "AU", "JP"]) : null, status: null }), id: ledgerId(key), recordedAt: input.at });
+}
+
+/** a year of made-up subscription lives: renewals, upgrades and downgrades, failed payments that recover or do not,
+ * cancellations, a comeback, a yearly plan, a comp, a refund and a dispute */
+function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
+  const state = app.billing.store.state, quote = (bundle: string, interval: "month" | "year") => app.billing.service.quote({ ...BILLING_CONFIG.bundles.find(item => item.id === bundle)!.cart, interval });
+  const add = (n: number, months: number) => { const d = new Date(n); d.setUTCMonth(d.getUTCMonth() + months); return d.getTime(); };
+  let paymentN = 0;
+  function subscribe(account: SeededAccount, start: number, bundle: string, interval: "month" | "year", source: string) {
+    const priced = quote(bundle, interval), checkoutId = `chk_hist_${account.id.slice(5, 15)}_${start}`;
+    state.checkouts.push({ id: checkoutId, accountId: account.id, email: account.email, kind: "cart", cart: priced.cart, packId: null, cloudId: null, providerSessionId: `fake_hist_${start}`, url: null,
+      status: "completed", source, createdAt: start - 6 * 60_000, openUntil: start + 30 * 60_000, subscriptionId: null, amountCents: priced.totalCents, creditCents: null, lines: priced.lines });
+    const sub: Sub = { id: `sub_hist_${account.id.slice(5, 15)}_${start}`, accountId: account.id, providerSubscriptionId: `dsub_hist_${account.id.slice(5, 15)}_${start}`, checkoutId, cart: priced.cart,
+      totalCents: source === "admin_comp" ? 0 : priced.totalCents, lines: priced.lines, status: "active", source, licenseId: null, cloudId: null, currentPeriodStart: start, currentPeriodEnd: add(start, interval === "year" ? 12 : 1),
+      cancelAtPeriodEnd: false, createdAt: start, updatedAt: start, version: 1, lastEventAt: start };
+    state.checkouts.at(-1)!.subscriptionId = sub.id;
+    state.subscriptions.push(sub);
+    ledgerRow(state, { type: "checkout.started", at: start - 6 * 60_000, sub, ref: checkoutId, amount: sub.totalCents });
+    return sub;
+  }
+  function pay(sub: Sub, at: number, status: "paid" | "failed" = "paid") {
+    const payment = `pay_hist_${paymentN++}`;
+    state.invoices.push({ id: `inv_${payment}`, accountId: sub.accountId, providerPaymentId: payment, subscriptionId: sub.id, checkoutId: sub.checkoutId, amountCents: sub.totalCents, currency: "USD", status,
+      description: "renewal", createdAt: at });
+    if (sub.totalCents > 0) ledgerRow(state, { type: status === "paid" ? "payment.succeeded" : "payment.failed", at, sub, payment, amount: sub.totalCents, reason: status === "failed" ? pick(["insufficient_funds", "card_declined", "expired_card"]) : undefined });
+    return payment;
+  }
+  /** runs a subscription month by month until `endAt` (or now); `events` changes it on the way */
+  function live(sub: Sub, opts: { endAt?: number; cancelScheduled?: boolean; failAt?: number[]; failForever?: number; upgradeAt?: [number, string]; downgradeAt?: [number, string] }) {
+    const step = sub.cart.interval === "year" ? 12 : 1;
+    pay(sub, sub.createdAt);
+    ledgerRow(state, { type: "subscription.active", at: sub.createdAt, sub });
+    let period = 0;
+    for (let at = add(sub.createdAt, step); at < now && (opts.endAt === undefined || at < opts.endAt); at = add(at, step)) {
+      period++;
+      if (opts.upgradeAt?.[0] === period || opts.downgradeAt?.[0] === period) {
+        const [, bundle] = (opts.upgradeAt?.[0] === period ? opts.upgradeAt : opts.downgradeAt)!;
+        const before = monthly(sub), priced = quote(bundle, sub.cart.interval);
+        Object.assign(sub, { cart: priced.cart, totalCents: priced.totalCents, lines: priced.lines });
+        ledgerRow(state, { type: monthly(sub) > before ? "subscription.upgraded" : "subscription.downgraded", at: at - 3 * DAY, sub, previous: before });
+      }
+      if (opts.failForever === period) {
+        pay(sub, at, "failed"); ledgerRow(state, { type: "subscription.on_hold", at: at + 3_600_000, sub, reason: "card_declined" });
+        sub.status = "payment_problem"; sub.currentPeriodStart = add(at, -step); sub.currentPeriodEnd = at;
+        if (opts.endAt !== undefined && opts.endAt < now) {
+          Object.assign(sub, { status: "ended", updatedAt: opts.endAt });
+          ledgerRow(state, { type: "subscription.expired", at: opts.endAt, sub, reason: "payment_failed" });
+        }
+        return;
+      }
+      if (opts.failAt?.includes(period)) {
+        pay(sub, at, "failed"); ledgerRow(state, { type: "subscription.on_hold", at: at + 3_600_000, sub });
+        pay(sub, at + 3 * DAY); ledgerRow(state, { type: "subscription.recovered", at: at + 3 * DAY, sub });
+      } else { pay(sub, at); ledgerRow(state, { type: "subscription.renewed", at, sub }); }
+      sub.currentPeriodStart = at; sub.currentPeriodEnd = add(at, step);
+    }
+    if (opts.endAt !== undefined && opts.endAt < now) {
+      ledgerRow(state, { type: "subscription.cancel_scheduled", at: opts.endAt - 9 * DAY, sub, reason: pick(["price", "later", "feature", "setup"]) });
+      Object.assign(sub, { status: "ended", cancelAtPeriodEnd: true, currentPeriodEnd: opts.endAt, updatedAt: opts.endAt });
+      ledgerRow(state, { type: "subscription.cancelled", at: opts.endAt, sub });
+    } else if (opts.cancelScheduled) {
+      sub.cancelAtPeriodEnd = true; ledgerRow(state, { type: "subscription.cancel_scheduled", at: now - 4 * DAY, sub, reason: "price" });
+    }
+  }
+  const sources = ["dash_onboarding", "app_card", "dash_home", "dash_billing", "app_always_on", "dash_cloud"];
+  for (const [k, account] of historic.entries()) {
+    const start = account.createdAt + Math.round((k % 4 === 0 ? 0.2 : k % 4 === 1 ? 1.5 : k % 4 === 2 ? 6 : 19) * DAY), source = sources[k % sources.length]!;
+    if (k === 26 || k === 27) continue;
+    if (k === 9) { live(subscribe(account, start, "starter", "month", "admin_comp"), {}); continue; }
+    const bundle = k % 5 === 2 ? "pro" : k === 13 ? "team" : "starter", interval = k % 7 === 3 ? "year" : "month";
+    const sub = subscribe(account, start, bundle, interval, source);
+    if (k === 1 || k === 6 || k === 11 || k === 17 || k === 21) live(sub, { endAt: add(start, 2 + (k % 4)) + 2 * DAY });
+    else if (k === 4) {
+      live(sub, { endAt: add(start, 2) + DAY });
+      live(subscribe(account, add(start, 5), "pro", "month", "dash_billing"), {});
+    } else if (k === 8) live(sub, { failForever: 5, endAt: add(start, 6) });
+    else if (k === 14) live(sub, { failForever: Math.max(1, Math.floor((now - start) / (30 * DAY))) });
+    else if (k === 0 || k === 5 || k === 15 || k === 19) live(sub, { upgradeAt: [k === 0 ? 4 : 2, "pro"], failAt: k === 5 ? [3] : [] });
+    else if (k === 12 || k === 16) live(sub, { downgradeAt: [3, "starter"] });
+    else if (k === 18) live(sub, { cancelScheduled: true });
+    else live(sub, { failAt: k === 7 || k === 22 ? [2] : [] });
+  }
+  const refunded = state.invoices.find(invoice => invoice.providerPaymentId.startsWith("pay_hist_") && invoice.status === "paid" && invoice.accountId === historic[11]!.id);
+  if (refunded) {
+    (state.refunds ??= []).push({ id: "ref_hist_1", paymentId: refunded.providerPaymentId, amountCents: refunded.amountCents, currency: "USD" });
+    refunded.status = "refunded";
+    const sub = state.subscriptions.find(item => item.id === refunded.subscriptionId)!;
+    ledgerRow(state, { type: "refund.succeeded", at: refunded.createdAt + 2 * DAY, sub, payment: refunded.providerPaymentId, ref: "ref_hist_1", amount: refunded.amountCents, reason: "asked within a week" });
+  }
+  const disputed = state.invoices.filter(invoice => invoice.accountId === historic[2]!.id && invoice.status === "paid").at(-2);
+  if (disputed) {
+    const sub = state.subscriptions.find(item => item.id === disputed.subscriptionId)!;
+    ledgerRow(state, { type: "dispute.opened", at: disputed.createdAt + 9 * DAY, sub, payment: disputed.providerPaymentId, ref: "dsp_hist_1", amount: disputed.amountCents, reason: "unrecognized" });
+    if (disputed.createdAt + 30 * DAY < now) ledgerRow(state, { type: "dispute.won", at: disputed.createdAt + 30 * DAY, sub, payment: disputed.providerPaymentId, ref: "dsp_hist_1", amount: disputed.amountCents });
+  }
+  for (const account of historic) state.customers.push({ accountId: account.id, email: account.email, providerCustomerId: `cus_hist_${account.id.slice(5, 15)}` });
+  for (let i = 0; i < 9; i++) {
+    const account = historic[(i * 5) % historic.length]!, at = now - Math.round((5 + i * 9) * DAY);
+    state.checkouts.push({ id: `chk_left_${i}`, accountId: account.id, email: account.email, kind: "cart", cart: quote("pro", "month").cart, packId: null, cloudId: null, providerSessionId: `fake_left_${i}`, url: null,
+      status: "expired", source: sources[i % sources.length]!, createdAt: at, openUntil: at + 30 * 60_000, subscriptionId: null, amountCents: quote("pro", "month").totalCents, creditCents: null, lines: quote("pro", "month").lines });
+  }
+}
+
+/** the historic customers' visits, sign-ups and recent activity, so channels and usage health have something to read */
+async function seedHistoricEvents(app: ReturnType<typeof createDashboardApp>, now: number) {
+  const { analytics } = app, state = app.billing.store.state;
+  for (const [k, account] of historic.entries()) {
+    const touch = TOUCHES[(k * 3) % TOUCHES.length]!, place = CITIES[(k * 5) % CITIES.length]!, visitor = vid(), at = account.createdAt - Math.round((1 + k % 5) * 3_600_000);
+    const ctx = { visitor, session: vid(), pv: vid(), page: "/", host: "dusk.bot", source: touch.source, channel: touch.channel, ...(touch.referrer ? { referrer: touch.referrer } : {}),
+      ...(touch.campaign ? { utm: { campaign: touch.campaign } } : {}), country: place[0], region: place[1], city: place[2], device: "desktop" as const, os: "mac" as const, browser: "chrome" as const };
+    await analytics.record("site_view", { at, visitor, props: { path: "/" }, ctx });
+    await analytics.record("identify", { accountId: account.id, at: account.createdAt, props: { via: "page" }, ctx: { visitor } });
+    await analytics.record("signup", { accountId: account.id, at: account.createdAt, props: { method: k % 3 ? "email" : "google" } });
+    const live = state.subscriptions.some(sub => sub.accountId === account.id && sub.status !== "ended");
+    const busy = k % 6 === 2 ? 0 : live ? 8 : 0;
+    for (let d = 0; d < busy; d++) await analytics.record("app_active", { accountId: account.id, at: now - (d * 1.6 + 0.3) * DAY, props: { platform: "darwin", appVersion: "0.2.15" } });
+  }
 }
 
 const CITIES: Array<[string, string, string, number, number]> = [
