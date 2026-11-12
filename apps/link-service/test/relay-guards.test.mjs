@@ -91,6 +91,32 @@ describe("a tunnel's byte budget", () => {
   });
 });
 
+describe("relay stats", () => {
+  it("counts bytes and refusals per tunnel and day, and shows them only with the stats token", async () => {
+    const statsToken = "s".repeat(32);
+    await start({ statsToken });
+    service.store.tunnels.get(id).acct = acct;
+    expect((await toVps(frames(3), { epoch, seq: 0 })).status).toBe(200);
+    const tunnel = service.store.tunnels.get(id);
+    tunnel.day = Math.floor(time / 86_400_000);
+    tunnel.dayBytes = TUNNEL_BYTES_PER_DAY;
+    expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 })).status).toBe(429);
+    expect((await request("/v1/stats/relay")).status).toBe(401);
+    expect((await request("/v1/stats/relay", { token: app })).status).toBe(401);
+    const res = await request("/v1/stats/relay", { token: statsToken });
+    expect(res.status).toBe(200);
+    const day = new Date(time).toISOString().slice(0, 10);
+    expect(await res.json()).toEqual({ limitBytes: TUNNEL_BYTES_PER_DAY, tunnels: [{ id, acct, days: { [day]: { bytes: Math.floor(3 * MB * 3 / 4), limited: 1 } } }] });
+    for (let i = 1; i <= 4; i += 1) { time += 86_400_000; tunnel.dayBytes = 0; expect((await toVps(["a".repeat(4000)], { epoch, seq: 1 + i })).status).toBe(200); await read(); }
+    expect(Object.keys(service.store.tunnels.get(id).relayDays)).toHaveLength(3);
+  });
+
+  it("hides the route when no stats token is set", async () => {
+    await start();
+    expect((await request("/v1/stats/relay", { token: "s".repeat(32) })).status).toBe(404);
+  });
+});
+
 describe("queued frames", () => {
   it("drops frames nobody read within a minute, and gives their room back", async () => {
     await start({ maxQueuedBytes: 3 * MB });

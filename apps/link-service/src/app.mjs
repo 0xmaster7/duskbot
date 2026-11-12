@@ -64,6 +64,7 @@ export const SERVER_DOWNLOADS_PER_DAY = 12;
 export const TUNNEL_BYTES_PER_SECOND = 12 * 1024 * 1024;
 export const TUNNEL_BURST_BYTES = 32 * 1024 * 1024;
 export const TUNNEL_BYTES_PER_DAY = 150 * 1024 ** 3;
+export const RELAY_HISTORY_DAYS = 3;
 /** the egress lane (a bot's web traffic routed through the person's computer) while it rides the relay */
 export const LANE_BYTES_PER_SECOND = 6 * 1024 * 1024;
 export const LANE_BURST_BYTES = 8 * 1024 * 1024;
@@ -275,7 +276,7 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now) {
  * `grantKeys`: the account service's public keys a new session's link grant must verify against; null opens sessions to
  * anyone (local development and tests only, server.mjs refuses it unless DUSK_LINK_OPEN=1).
  */
-export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES,
+export function createLinkService({ base, dataDir = null, scriptPath, uninstallPath = join(dirname(scriptPath), "uninstall.sh"), agentPath, gatePath = join(dirname(agentPath), "docker-gate.mjs"), packagesDir, trustProxy = true, now = Date.now, fetch: fetchImpl = fetch, log = () => {}, push = createPushRelay({ log }), grantKeys = null, maxQueuedBytes = MAX_QUEUED_BYTES, statsToken = null,
   ipLimits = { concurrent: IP_CONCURRENT, perSecond: IP_REQUESTS_PER_SECOND, burst: IP_REQUEST_BURST } }) {
   const store = createStore({ dir: dataDir, now, onChannelDelete: clearChannel, onTunnelDelete: (tunnel) => dropTunnelState(tunnel.id) });
   const memory = { bytes: 0 };
@@ -411,6 +412,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     const size = Math.floor(frames.reduce((sum, frame) => sum + frame.length, 0) * 3 / 4), t = now(), day = Math.floor(t / 86_400_000);
     if (tunnel.day !== day) { tunnel.day = day; tunnel.dayBytes = 0; }
     if (tunnel.dayBytes + size > TUNNEL_BYTES_PER_DAY) {
+      count(tunnel, t, 0, 1);
       fail(res, 429, `This link reached its daily limit of ${Math.round(TUNNEL_BYTES_PER_DAY / 1024 ** 3)} GB through the relay. It resets at midnight UTC.`, "daily_limit");
       return null;
     }
@@ -421,6 +423,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     rate.at = t;
     const short = Math.max(size - rate.tokens, lane ? size - rate.lane : 0);
     if (short > 0) {
+      count(tunnel, t, 0, 1);
       const wait = Math.ceil(Math.max(short / TUNNEL_BYTES_PER_SECOND, lane ? short / LANE_BYTES_PER_SECOND : 0));
       send(res, 429, { error: "This link is sending faster than the relay allows. Try again in a moment.", code: "rate_limited" }, { "retry-after": String(Math.max(1, wait)) });
       return null;
@@ -429,7 +432,16 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
       rate.tokens -= size;
       if (lane) rate.lane -= size;
       tunnel.dayBytes += size;
+      count(tunnel, t, size, 0);
     };
+  }
+  /** relay bytes and refusals per utc day on the tunnel, the last RELAY_HISTORY_DAYS of them, for the owner's ops page */
+  function count(tunnel, t, bytes, limited) {
+    const day = new Date(t).toISOString().slice(0, 10), days = tunnel.relayDays ??= {};
+    const entry = days[day] ??= { bytes: 0, limited: 0 };
+    entry.bytes += bytes; entry.limited += limited;
+    const keys = Object.keys(days).sort();
+    for (const old of keys.slice(0, Math.max(0, keys.length - RELAY_HISTORY_DAYS))) delete days[old];
   }
   /** every queue together stays under maxQueuedBytes: past it a post is refused, the process keeps its memory */
   function roomFor(res, frames) {
@@ -640,6 +652,15 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     }
     if (method === "GET" && (path === "/healthz" || path === "/health")) return send(res, 200, { ok: true });
     if (method === "GET" && path === "/v1/ip") return send(res, 200, { ip: clientIp(req) });
+    // the account service's ops page; LINK_STATS_TOKEN unset hides it
+    if (method === "GET" && path === "/v1/stats/relay") {
+      if (!statsToken) return fail(res, 404, "not found");
+      const presented = bearer(req);
+      if (!presented || !timingSafeEqual(createHash("sha256").update(presented).digest(), createHash("sha256").update(statsToken).digest())) return fail(res, 401, "unauthorized");
+      const tunnels = [...store.tunnels.values()].filter((tunnel) => tunnel.relayDays && Object.keys(tunnel.relayDays).length)
+        .map((tunnel) => ({ id: tunnel.id, acct: tunnel.acct ?? null, days: tunnel.relayDays }));
+      return send(res, 200, { limitBytes: TUNNEL_BYTES_PER_DAY, tunnels });
+    }
     if (method === "GET" && path === "/slack/callback") return slackCallback(res, url.searchParams);
     if (path === "/v1/push") return push.route(req, res, { method, readJson, send, fail, ip: clientIp(req) });
     if (method === "GET" && (path === "/i" || path === "/install.sh" || (parts = /^\/i\/([a-z2-7-]{37})$/.exec(path)))) {
