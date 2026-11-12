@@ -343,7 +343,7 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
   const others = rows.filter((instance) => !featured.includes(instance));
   const shown = at?.startsWith("engine:") ? rows.find((instance) => `engine:${instance.instanceId}` === at) : undefined;
   if (shown) return <div data-simple-engine={shown.instanceId} className="flex flex-col gap-5">{renderEngine(shown, true)}</div>;
-  if (at === CUSTOM_PROVIDER_PAGE) return <Card footnote={t("settings.simple.ai.customHint")}><div className="px-2 py-1.5"><OtherOpenAiCompatServers /></div></Card>;
+  if (at === CUSTOM_PROVIDER_PAGE) return <Card><div className="px-2 py-1.5"><OtherOpenAiCompatServers /></div></Card>;
   // the panel's row: the provider's mark and name, its status on the right, a chevron to its page
   const row = (instance: InstanceInfo) => (
     <NavRow

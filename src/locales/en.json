@@ -5870,7 +5870,6 @@
   "settings.simple.ai.connected": "connected",
   "settings.simple.ai.connect": "connect",
   "settings.simple.ai.custom": "add a custom provider",
-  "settings.simple.ai.customHint": "any service that speaks the OpenAI API: its base URL, your API key and the models to use.",
   "settings.simple.ai.manage": "manage",
   "settings.simple.ai.setUp": "set up",
   "settings.simple.billing.summary": "{percent}% of this month's included use",
