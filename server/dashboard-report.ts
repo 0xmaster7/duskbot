@@ -48,7 +48,7 @@ export interface DashboardCollectorDeps {
   computerKind?(botId: string): BotReport["computer"] | undefined;
   busy(botId: string): boolean;
   engine(instanceId: string): { displayName?: string; driverKind: string } | undefined;
-  routines(): Array<Pick<Routine, "id" | "botId" | "name" | "schedule" | "enabled" | "nextRunAt"> & { scheduleLabel?: string; lastRunAt: number | null }>;
+  routines(): Array<Pick<Routine, "id" | "botId" | "name" | "schedule" | "enabled" | "nextRunAt"> & { scheduleLabel?: string; lastRunAt: number | null; running?: boolean }>;
   planUsage(): Promise<PlanUsageReport>;
   apps?(): Promise<AppsReport | null>;
   workspaceKind?: WorkspaceReport["workspace"]["kind"];
@@ -215,7 +215,7 @@ export function createDashboardCollector(deps: DashboardCollectorDeps) {
         busy: deps.busy(bot.id), lastActiveAt: deps.lastUsedAt(bot.id),
         routines: routines.filter((routine) => routine.botId === bot.id).map((routine) => ({ id: routine.id, name: routine.name,
           schedule: routine.scheduleLabel || (routine.schedule.type === "cron" ? cronScheduleLabel(routine.schedule) : JSON.stringify(routine.schedule)),
-          paused: !routine.enabled, nextRunAt: routine.nextRunAt, lastRunAt: routine.lastRunAt })),
+          paused: !routine.enabled, nextRunAt: routine.nextRunAt, lastRunAt: routine.lastRunAt, running: routine.running === true })),
       };
     });
   }

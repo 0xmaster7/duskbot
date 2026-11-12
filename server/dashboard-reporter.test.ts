@@ -58,7 +58,7 @@ async function fixture(prefix = "") {
   servers.push(server); await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
   const execute = vi.fn(async (command: DashboardCommand) => ({ id: command.id, ok: true, message: "Paused Morning brief.", at: Date.now() }));
-  const make = (collect = collector()) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute }); reporters.push(reporter); return reporter; };
+  const make = (collect = collector(), pulse?: { since(after: number): Array<{ t: number; cpu: number; mem: number }> }) => { const reporter = createDashboardReporter({ dataDir: dir, collect, execute, pulse }); reporters.push(reporter); return reporter; };
   return { dir, base, reports, signatures, enrollKeys, enrollTokens, enrollSignatures, execute, make, queue: (command: DashboardCommand) => { nextCommand = command; }, remove: () => { removed = true; }, watch: () => { watching = true; }, waits: () => waits };
 }
 const command: DashboardCommand = { id: "command", kind: "routine.pause", target: "routine", issuedAt: Date.now(), expiresAt: Date.now() + 60_000 };
@@ -117,6 +117,15 @@ describe("dashboard reporter", () => {
     const seq = f.reports.at(-1)!.seq, second = f.make(); second.start();
     await vi.waitFor(() => expect(f.reports.at(-1)!.seq).toBeGreaterThan(seq));
     expect(second.status().connected).toBe(true);
+  });
+  it("sends pulse samples only while watched, each one once", async () => {
+    const samples = [{ t: 1, cpu: 10, mem: 20 }, { t: 2, cpu: 11, mem: 21 }];
+    const f = await fixture(), reporter = f.make(collector(), { since: (after) => samples.filter((s) => s.t > after) });
+    await reporter.link(f.base);
+    await vi.waitFor(() => expect(f.reports).toHaveLength(1));
+    expect(f.reports[0]!.pulse).toBeUndefined();
+    f.watch(); await vi.waitFor(() => expect(f.reports.length).toBeGreaterThan(1));
+    expect(f.reports[1]!.pulse).toEqual(samples);
   });
   it("stops both loops on a removed workspace while keeping the link and human error", async () => {
     const f = await fixture(), reporter = f.make(); await reporter.link(f.base);
