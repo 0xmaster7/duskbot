@@ -64,13 +64,13 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
         <p className="m-0 mt-1 text-[12px] leading-4 tracking-[0.01em] text-ink">{version}</p>
         {connected && <p className="m-0 mt-0.5 text-[12px] leading-4 tracking-[0.01em] text-ink/68">{connected}</p>}
         <p className={cn(rowHintCls, "m-0 mt-2 text-[11px] leading-4 text-pretty")}>
-          source-available. free for personal use.
+          {t("about.license")}
         </p>
         <div className="mt-1.5 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[12px] leading-4">
-          <AboutLink href={DOCS_URL} label="docs" />
-          <AboutLink href={RELEASES_URL} label="releases" />
-          <AboutLink href={LICENSE_URL} label="license" />
-          <a href={THIRD_PARTY_NOTICES_URL} target="_blank" rel="license noopener noreferrer" className={aboutLinkCls}>third-party notices</a>
+          <AboutLink href={DOCS_URL} label={t("about.docs")} />
+          <AboutLink href={RELEASES_URL} label={t("about.releases")} />
+          <AboutLink href={LICENSE_URL} label={t("about.licenseLink")} />
+          <a href={THIRD_PARTY_NOTICES_URL} target="_blank" rel="license noopener noreferrer" className={aboutLinkCls}>{t("about.notices")}</a>
         </div>
         <button type="button" data-autofocus onClick={copy} className={cn(mdSecondaryCls, "mt-4")}>
           {copied ? t("about.copied") : t("about.copyVersion")}
