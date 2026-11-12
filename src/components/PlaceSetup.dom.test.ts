@@ -13,7 +13,7 @@ vi.mock("@/state/store", async (original) => ({
 vi.mock("./CreateBotDialog", () => ({ openCreateBot: vi.fn() }));
 import { EMPTY_VIEW, closeAddVps, VPS_STEP_IDS, type VpsLinkBridge, type VpsLinkView } from "@/lib/vps-link";
 import { PlaceSetup } from "./PlaceSetup";
-import { MacEmptyMain } from "./MacEmptyMain";
+import { MacEmptyMain, useMacEmptyPrompt } from "./MacEmptyMain";
 import { openCreateBot } from "./CreateBotDialog";
 
 const SERVER = { id: "vps-1", name: "my-vps", origin: "https://vps.example.com" };
@@ -129,23 +129,49 @@ it("choosing dusk cloud opens the buying sheet, never Settings", async () => {
   expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings" }));
 });
 
-it("this computer with no bots says so and offers a new bot or the bots back from the server", async () => {
+it("this computer with no bots says so in a dialog and offers a new bot or the bots back from the server", async () => {
   const link = fakeLink();
   vi.stubGlobal("duskDesktop", { vpsLink: link.bridge, platform: "darwin", confirm: vi.fn(async () => true) });
-  await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "vps-1", name: "my-vps", why: "moved" } })); });
+  const onClose = vi.fn();
+  await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "vps-1", name: "my-vps", why: "moved" }, onClose })); });
   await settle();
-  expect(q("h1")?.textContent).toBe("no bots on this Mac yet");
-  await click(q("[data-mac-empty-create]"));
-  expect(openCreateBot).toHaveBeenCalled();
+  expect(q("[role=dialog] h2")?.textContent).toBe("no bots on this Mac yet");
   await click(q("[data-mac-empty-back]"));
   expect(link.bridge.moveBack).toHaveBeenCalledTimes(1);
   expect(q("[role=status]")?.textContent).toContain("Bringing your bots back");
+  expect(onClose).not.toHaveBeenCalled();
+  await click(q("[data-mac-empty-create]"));
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(openCreateBot).toHaveBeenCalled();
+});
+
+function PromptHost({ id }: { id: string }) {
+  const [shown, dismiss] = useMacEmptyPrompt({ id, name: id, why: "moved" });
+  return shown ? createElement(MacEmptyMain, { from: { id, name: id, why: "moved" }, onClose: dismiss }) : null;
+}
+
+it("the no-bots dialog shows once per place and closes on not now, Escape or a click outside", async () => {
+  const store = new Map<string, string>();
+  vi.stubGlobal("localStorage", { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => store.set(key, value) });
+  vi.stubGlobal("duskDesktop", {});
+  await act(async () => { root.render(createElement(PromptHost, { id: "a" })); });
+  await click(q("[data-mac-empty-later]"));
+  expect(q("[data-mac-empty]")).toBeNull();
+  await act(async () => { root.render(createElement(PromptHost, { id: "b" })); });
+  expect(q("[data-mac-empty=b]")).toBeTruthy();
+  await act(async () => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); });
+  expect(q("[data-mac-empty]")).toBeNull();
+  await act(async () => { root.render(createElement(PromptHost, { id: "c" })); });
+  await act(async () => { q("[data-modal-scrim]")!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); });
+  expect(q("[data-mac-empty]")).toBeNull();
+  await act(async () => { root.render(createElement(PromptHost, { id: "a" })); });
+  expect(q("[data-mac-empty]")).toBeNull();
 });
 
 it("bots on a place they can't come back from are opened there instead", async () => {
   const open = vi.fn(async () => true);
   vi.stubGlobal("duskDesktop", { elsewhere: { open } });
-  await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "team", name: "Studio", why: "team" } })); });
+  await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "team", name: "Studio", why: "team" }, onClose: vi.fn() })); });
   await settle();
   expect(q("[data-mac-empty-back]")).toBeNull();
   await click(q("[data-mac-empty-open]"));

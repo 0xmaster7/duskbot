@@ -8365,6 +8365,7 @@
   "macEmpty.bringBackConfirm": "Bring everything from {name} back to this {device}? A backup is saved first, and routines arrive paused.",
   "macEmpty.bringing": "Bringing your bots back. This app restarts when it's done.",
   "macEmpty.open": "open {name}",
+  "macEmpty.notNow": "not now",
   "macEmpty.failed": "Couldn't reach {name}. Check it's online and try again.",
   "placeSetup.title": "add a place",
   "placeSetup.cloudSub": "Your bots keep working when this computer is off. Nothing to set up.",

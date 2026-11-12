@@ -13,7 +13,7 @@ import { LiveCallHost } from "@/components/LiveCallHost";
 import { AmbientPublisher } from "@/ambient/AmbientPublisher";
 import { useAmbientAway } from "@/ambient/away";
 import { BotsElsewhere, DevFreshInstallButton } from "@/components/BotsElsewhere";
-import { MacEmptyMain, useMacEmptyShown } from "@/components/MacEmptyMain";
+import { MacEmptyMain, useMacEmptyPrompt } from "@/components/MacEmptyMain";
 import { PlaceSetupHost } from "@/components/PlaceSetup";
 import { useMacEmpty } from "@/lib/bots-elsewhere";
 import { openPlaceSetup } from "@/lib/place-setup";
@@ -161,7 +161,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const group = state.groups.find((g) => g.id === state.selectedId);
   const bot = group ? undefined : (state.bots.find((b) => b.id === state.selectedId) ?? state.bots[0]);
   const macFrom = useMacEmpty();
-  const macEmpty = useMacEmptyShown(macFrom, state.selectedId);
+  const [macPrompt, dismissMacPrompt] = useMacEmptyPrompt(macFrom);
   useProductScreen(state.appSettingsOpen ? "/settings" : state.pluginsOpen ? "/apps" : group ? "/rooms/:id" : bot ? (state.activeView === "files" ? "/bots/:id/files" : "/bots/:id") : "/", group?.id ?? bot?.id);
   useComputerPanelActivity({ bot, active: state.activeView === "chat", settingsOpen: state.settingsOpen, targetKey: `${bot?.vpsAlias}:${bot?.section}:${state.config?.vps?.sshAlias}:${state.config?.vps?.mode}:${state.config?.vps?.independentScreens}`, dispatch });
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !remoteClient });
@@ -331,8 +331,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         <CloudEngineSignIn />
       ) : noEngines ? (
         <NoEngines />
-      ) : macEmpty && macFrom ? (
-        <MacEmptyMain from={macFrom} />
       ) : group ? (
         <GroupView key={group.id} group={group} />
       ) : bot ? (
@@ -340,6 +338,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       ) : (
         <AppEmptyMain loading={loading} notice={state.notice} />
       )}
+      {macPrompt && macFrom && !firstRun && !noEngines && <MacEmptyMain from={macFrom} onClose={dismissMacPrompt} />}
       {/* Sibling panels need distinct keys: two keyed `bot.id` collide in React's keyed reconciliation. */}
       {state.settingsOpen && bot && remoteClient && <RemoteAgentSettingsPanel bot={bot} />}
       {state.settingsOpen && bot && !remoteClient && settingsOverlay && <BotSettingsDialog key={`settings:${bot.id}`} bot={bot} overlay />}
