@@ -197,7 +197,7 @@ export function scrubSummary(raw: unknown, max = SUMMARY_MAX): string | null {
   if (original.length < 12) return null;
   let text = original.replace(EMAIL, " ").replace(URL_LIKE, " ").replace(HANDLE, " ").replace(QUOTED, " ").replace(FILE, " ").replace(DIGITS, " ");
   // a capitalised word that does not start a sentence is taken as a name
-  text = text.replace(/(^|[.!?]\s+)?(\b\p{Lu}[\p{L}'-]*)/gu, (match, start: string | undefined, word: string) => start !== undefined || /^(?:I|AI|OK)$/.test(word) ? match : " ");
+  text = text.replace(/\b\p{Lu}[\p{L}'-]*/gu, (word: string, offset: number, whole: string) => offset === 0 || /[.!?;:]\s+$/.test(whole.slice(Math.max(0, offset - 3), offset)) || /^(?:I|AI|OK)$/.test(word) ? word : " ");
   text = text.replace(/[^\p{L}\s,.;:!?'()-]/gu, " ").replace(/\s+([,.;:!?])/g, "$1").replace(/\s+/g, " ").trim().toLowerCase();
   if (text.length < 12 || text.length < original.length * 0.7) return null;
   return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}.` : text;

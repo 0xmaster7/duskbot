@@ -82,7 +82,7 @@ export type UsageOutbox = ReturnType<typeof createUsageOutbox>;
 
 /** short replies that tell the bot it got something wrong, in a few languages; matched on this computer only */
 const CORRECTIVE = [
-  "that'?s (?:wrong|not (?:it|right|what i (?:asked|wanted|said)))", "not what i (?:asked|wanted|meant|said)", "wrong", "no+(?: no+)*", "nope", "stop(?: it)?",
+  "that'?s (?:wrong|not (?:it|right|what i (?:asked|wanted|said)))", "not what i (?:asked|wanted|meant|said)", "wrong", "no+(?: no+)*(?! (?:worries|problem|thanks|need|rush|idea|way|doubt))", "nope", "stop(?: it)?",
   "you (?:didn'?t|did not|don'?t) (?:listen|understand|get it)", "try again", "again\\??", "doesn'?t work", "still (?:wrong|broken|not working)", "ugh+",
   "falsch", "nein", "das ist falsch", "faux", "non", "c'?est faux", "pas (?:ça|ca)", "mal", "incorrecto", "eso no", "no es (?:eso|lo que pedí)", "errado", "não", "sbagliato",
   "galat", "nahi", "ye galat hai", "ちがう", "違う", "不对", "错了", "아니야", "неправильно", "нет",
