@@ -1,0 +1,177 @@
+// @vitest-environment happy-dom
+import { createElement } from "react";
+import { flushSync } from "react-dom";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { VpsCloudMoveView } from "@/lib/vps-cloud-move";
+
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), bots: 3 }));
+vi.mock("@/state/store", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/state/store")>();
+  return {
+    ...original,
+    useStore: () => ({
+      state: { ...original.initialState, config: null, bots: Array.from({ length: fixture.bots }, (_, at) => ({ id: `b${at}`, name: `Bot ${at}` })) },
+      dispatch: fixture.dispatch,
+    }),
+  };
+});
+
+const { CloudMoveSheet } = await import("./CloudMoveSheet");
+
+const PLACE = "hetzner-box";
+const OFFER = { plans: [{ tier: "pro", amount: 4900, label: "Pro" }, { tier: "starter", amount: 1900, label: "Starter" }], recommended: "pro" };
+let root: Root, host: HTMLElement;
+const onClose = vi.fn();
+const settle = async () => { for (let at = 0; at < 5; at++) await new Promise((resolve) => setTimeout(resolve, 0)); };
+const button = (label: string) => [...document.body.querySelectorAll("button")].find((candidate) => candidate.textContent === label);
+const stage = () => document.body.querySelector("[data-cloud-move-stage]")?.getAttribute("data-cloud-move-stage");
+const text = () => document.body.textContent ?? "";
+
+function desktop(view: VpsCloudMoveView | null) {
+  let listener: ((next: VpsCloudMoveView) => void) | null = null;
+  const vpsCloudMove = view ? {
+    view: vi.fn(async () => view),
+    start: vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "moving", place: PLACE, route: "direct", phase: "copy" })),
+    buy: vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "buying", place: PLACE, route: "direct" })),
+    retry: vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "moving", place: PLACE, route: "direct", phase: "copy" })),
+    cancel: vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "none", cloud: "none" })),
+    onChange: vi.fn((callback: (next: VpsCloudMoveView) => void) => { listener = callback; return () => { listener = null; }; }),
+  } : undefined;
+  const bridges = {
+    platform: "darwin",
+    app: { ownPage: false },
+    workspaces: { state: vi.fn(async () => ({ local: false, name: PLACE })), menu: vi.fn(async () => {}) },
+    cloudAdd: { state: vi.fn(async () => ({ signedIn: true, hasCloud: false, supported: true, canAdd: true, offer: OFFER, count: 0 })) },
+    ...(vpsCloudMove ? { vpsCloudMove } : {}),
+  };
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = bridges;
+  return { bridges, vps: vpsCloudMove!, tell: (next: VpsCloudMoveView) => flushSync(() => listener?.(next)) };
+}
+
+async function render() {
+  flushSync(() => root.render(createElement(CloudMoveSheet, { target: "cloud", onClose })));
+  await settle();
+}
+
+beforeEach(() => {
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  fixture.dispatch.mockReset();
+  fixture.bots = 3;
+  onClose.mockReset();
+  vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+});
+afterEach(() => {
+  flushSync(() => root.unmount());
+  host.remove();
+  document.body.innerHTML = "";
+  delete (window as unknown as { duskDesktop?: unknown }).duskDesktop;
+  vi.unstubAllGlobals();
+});
+
+describe("move a VPS's bots to dusk cloud", () => {
+  it("an older app without the bridge: still says to switch to this computer", async () => {
+    desktop(null);
+    await render();
+    expect(stage()).toBe("elsewhere");
+    expect(text()).toContain("moves start from your Mac");
+    expect(button("switch to this Mac")).toBeDefined();
+  });
+
+  it("no cloud: perks, price, and checkout from the click", async () => {
+    const { vps } = desktop({ stage: "none", cloud: "none" });
+    await render();
+    expect(stage()).toBe("vps-buy");
+    expect(text()).toContain(`all 3 bots move straight from ${PLACE}`);
+    expect(text()).toContain("from $19/month + tax.");
+    expect(text()).toContain(`after you pay, your bots move from ${PLACE} by themselves.`);
+    button("get dusk cloud")!.click();
+    await settle();
+    expect(vps.buy).toHaveBeenCalledWith("pro");
+    expect(stage()).toBe("vps-buying");
+  });
+
+  it("signed out: buy's refusal opens the sign-in, from this source", async () => {
+    const { bridges, vps } = desktop({ stage: "none", cloud: "signed-out" });
+    Object.assign(bridges, { cloudAccount: { state: vi.fn(async () => ({ status: "signed-out" })), onState: vi.fn(() => () => {}) } });
+    vps.buy.mockRejectedValueOnce(new Error("Error invoking remote method 'vps-cloud-move:buy': Error: Sign in to dusk cloud first."));
+    await render();
+    button("get dusk cloud")!.click();
+    await settle();
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_computer_move", signIn: true });
+    expect(onClose).toHaveBeenCalled();
+    expect(document.body.querySelector("[role='alert']")).toBeNull();
+  });
+
+  it("signed out where the sign-in sheet can't open: says where to sign in", async () => {
+    const { vps } = desktop({ stage: "none", cloud: "signed-out" });
+    vps.buy.mockRejectedValueOnce(new Error("Sign in to dusk cloud first."));
+    await render();
+    button("get dusk cloud")!.click();
+    await settle();
+    expect(fixture.dispatch).not.toHaveBeenCalled();
+    expect(document.body.querySelector("[role='alert']")?.textContent).toBe("sign in to dusk cloud on this Mac's own page first, then come back here.");
+  });
+
+  it("with a cloud ready: one tap starts the move", async () => {
+    const { vps } = desktop({ stage: "none", cloud: "ready" });
+    await render();
+    expect(stage()).toBe("vps-ready");
+    expect(text()).toContain("nothing changes on this Mac.");
+    button("move 3 bots")!.click();
+    await settle();
+    expect(vps.start).toHaveBeenCalledTimes(1);
+    expect(stage()).toBe("vps-moving");
+  });
+
+  it("buying: checkout again, and the move can be cancelled", async () => {
+    const { vps } = desktop({ stage: "buying", place: PLACE, route: "direct" });
+    await render();
+    expect(text()).toContain("finish checkout in your browser");
+    button("open checkout again")!.click();
+    await settle();
+    expect(vps.buy).toHaveBeenCalledTimes(1);
+    button("cancel move")!.click();
+    await settle();
+    expect(vps.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("moving: chats as they go, then a quiet moment, and retrying by itself", async () => {
+    const { tell } = desktop({ stage: "moving", place: PLACE, route: "direct", phase: "copy", chats: { done: 40, total: 142 } });
+    await render();
+    expect(document.body.querySelector("[role='status']")?.textContent).toBe("moving chats, 40 of 142");
+    tell({ stage: "moving", place: PLACE, route: "direct", phase: "wait", retrying: true, error: "the server didn't answer." });
+    expect(document.body.querySelector("[role='status']")?.textContent).toBe("waiting for a quiet moment");
+    expect(text()).toContain("trying again by itself");
+    expect(button("get dusk cloud")).toBeUndefined();
+  });
+
+  it("fallback: goes via this computer, which restarts once", async () => {
+    desktop({ stage: "fallback", place: PLACE, route: "via-mac", why: "vps_failing" });
+    await render();
+    expect(stage()).toBe("vps-fallback");
+    expect(text()).toContain("going via this Mac");
+    expect(text()).toContain("come back to this Mac first, then move on to dusk cloud by themselves");
+    expect(text()).toContain("the app restarts once on the way.");
+  });
+
+  it("failed: says why, and try again retries", async () => {
+    const { vps } = desktop({ stage: "failed", place: PLACE, route: "direct", error: "dusk cloud didn't answer." });
+    await render();
+    expect(document.body.querySelector("[role='alert']")?.textContent).toBe("dusk cloud didn't answer.");
+    button("try again")!.click();
+    await settle();
+    expect(vps.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("done: what moved, and what stays on the server", async () => {
+    const stays = `Saved logins, 1Password and app keys stay on ${PLACE}. Connect them again on My Cloud.`;
+    desktop({ stage: "done", place: PLACE, route: "direct", counts: { bots: 3, chats: 142, routines: 4 }, stays });
+    await render();
+    expect(text()).toContain("your bots are on dusk cloud");
+    expect(text()).toContain(`moved from ${PLACE}: 3 bots, 142 chats, and 4 routines.`);
+    expect(document.body.querySelector("[data-vps-move-stays]")?.textContent).toBe(stays);
+  });
+});

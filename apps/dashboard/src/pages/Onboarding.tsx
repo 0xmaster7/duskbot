@@ -135,7 +135,7 @@ export function Onboarding() {
   const choose = async (where: Home = home) => {
     if (where === "free" || !catalog) { go("app"); return; }
     track({ name: "plan_chosen", props: { plan, period: interval } });
-    if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
+    if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); setBusy(false); return; }
     setBusy(true); setError(null);
     sessionStorage.setItem(SAVED, "app");
     const ok = await checkout({ source: "dash_onboarding", kind: "plan", selection: planSelection(catalog, plan, { interval, work: false }), bundle: null });

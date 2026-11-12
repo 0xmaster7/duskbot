@@ -10,6 +10,7 @@ import { navigate } from "../lib/router";
 import { Choice, Field, Select, Sheet, Toggle } from "../ui/controls";
 import { track } from "../lib/analytics";
 import { Button, Skeleton } from "../ui/kit";
+import { CHECKOUT_SOON } from "./cloud-offer";
 
 export const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
 
@@ -104,7 +105,9 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
       if (owned) { if (await apply(sel)) { toast(`you are on ${b?.name}`); onClose(); } }
       else {
         track({ name: "plan_chosen", props: { plan, period: interval } });
+        if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
         if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
+        else setError("checkout didn't open. try again.");
       }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };

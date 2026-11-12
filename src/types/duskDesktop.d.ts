@@ -140,6 +140,8 @@ const __APP_VERSION__: string;
       sealTrust?: { check(identity: string): Promise<{ ok: boolean; pinned: boolean }> };
       /** A linked server's page only: the direct ssh path for that link (null where it does not apply). */
       linkDirect?: { state(): Promise<LinkDirectState | null>; set(on: boolean): Promise<LinkDirectState | null> };
+      /** A VPS's own page: its bots straight to dusk cloud. Absent on an older app. */
+      vpsCloudMove?: import("../lib/vps-cloud-move").VpsCloudMoveBridge;
       /** This computer's page only: Add your VPS, its install, sign-in, move, and the Transfer pane (electron/vps-link.mjs). */
       vpsLink?: import("../lib/vps-link").VpsLinkBridge;
       /** Settings on the person's own Cloud: the plan, read only. */

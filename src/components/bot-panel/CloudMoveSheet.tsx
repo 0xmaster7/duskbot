@@ -2,7 +2,7 @@
 // (recorded as app_computer_move), and after payment the bots move by themselves; kept here before: one tap moves them.
 // While they move the sheet says how far it got, and Stop or Move back is the way back. Opened from any bot's Computer tab.
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2 } from "../../icons";
+import { Loader2 } from "../../icons";
 
 import { cloudPlanView, moneyBackLine, offerTrialDays, usd } from "@/lib/cloud-plan";
 import { MOVE_IN_PROGRESS, cloudMoveStage, moveFollowUp, moveIntended, readMoveIntent, writeMoveIntent, type CloudMoveStage, type CloudMoveTarget } from "@/lib/cloud-move";
@@ -10,10 +10,13 @@ import { ipcErrorText, moveLine } from "@/lib/cloud-send";
 import { t } from "@/lib/i18n";
 import { desktopShowsOtherServer, useOtherServerName } from "@/lib/other-server";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
+import { vpsCloudMoveBridge } from "@/lib/vps-cloud-move";
 import { useStore } from "@/state/store";
 import { GrokDialog, mdPrimaryCls, mdSecondaryCls } from "../ui/GrokDialog";
 import { deviceWord } from "../vps-link/parts";
 import { useCloudDesktop } from "./CloudDesktop";
+import { Perk, Progress } from "./cloud-move-parts";
+import { VpsCloudMoveSheet } from "./VpsCloudMoveSheet";
 
 /** The sheet's state and its one next step, shared by the sheet and the watcher that finishes a move after checkout. */
 function useCloudMove(onBuy?: () => void) {
@@ -48,7 +51,7 @@ function useCloudMove(onBuy?: () => void) {
   });
 
   const bots = state.bots.filter((bot) => !bot.hidden && !bot.movedTo).length;
-  return { stage, cloudDesktop, busy, failed, buy, move, keepHere, run, bots };
+  return { stage, cloudDesktop, busy, failed, buy, move, keepHere, run, bots, cloudHome: state.config?.cloudHome === true };
 }
 
 /** Finishes a move asked for here once its checkout is paid, while no sheet is open. */
@@ -57,26 +60,8 @@ export function CloudMoveWatcher() {
   return null;
 }
 
-function Perk({ children }: { children: string }) {
-  return (
-    <li className="flex items-start gap-2.5">
-      <Check size={15} className="mt-[1px] shrink-0 text-ink/[0.68]" aria-hidden="true" />
-      <span>{children}</span>
-    </li>
-  );
-}
-
-function Progress({ line }: { line: string }) {
-  return (
-    <p role="status" className="my-2 flex items-start gap-2.5 text-[13px] leading-[18px] text-ink">
-      <Loader2 size={15} className="mt-[1px] shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      <span>{line}</span>
-    </p>
-  );
-}
-
 export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; onClose: () => void }) {
-  const { stage, cloudDesktop, busy, failed, buy, move, keepHere, run, bots } = useCloudMove(onClose);
+  const { stage, cloudDesktop, busy, failed, buy, move, keepHere, run, bots, cloudHome } = useCloudMove(onClose);
   const otherServer = useOtherServerName();
   const device = deviceWord();
   const [confirmBack, setConfirmBack] = useState(false);
@@ -88,6 +73,7 @@ export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; o
   const moneyBack = moneyBackLine(offer);
 
   if (!stage) return null;
+  if (stage === "elsewhere" && target === "cloud" && !cloudHome && vpsCloudMoveBridge()) return <VpsCloudMoveSheet onClose={onClose} />;
   const back = stage === "moved" && (target === "home" || confirmBack);
   const title = back ? t("place.cloudDesktop.backTitle")
     : stage === "preparing" ? t("cloudMove.preparingTitle")
