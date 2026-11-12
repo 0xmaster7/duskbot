@@ -33,6 +33,9 @@ import { createErrorCounter } from "./admin/health.ts";
 import { createAlerts, parseAlerts } from "./admin/alerts.ts";
 import type { WaitlistSource } from "./admin/waitlist.ts";
 import { workspaceTurns } from "./admin/metrics.ts";
+import { createIncidents, type Incidents } from "./incidents/index.ts";
+import { memoryIncidentStore } from "./incidents/store.ts";
+import { createIncidentRoutes, IncidentRouteError } from "./incidents/routes.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -60,6 +63,8 @@ export interface DashboardAppOptions {
   analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[] };
   /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
   admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
+  /** the owner's alert emails (main.ts); without it incidents are kept in memory and nothing is mailed */
+  incidents?: Incidents;
 }
 class RequestError extends Error {
   status: number;
@@ -98,7 +103,7 @@ function pageBaseOf(value: string | undefined) {
 }
 
 /** forwards a request to the site beside the page; the client's address goes on as the proxy's own entry */
-function siteProxy(upstream: string) {
+function siteProxy(upstream: string, onError: (error: Error, res: ServerResponse) => void = () => {}) {
   const target = new URL(upstream);
   if (target.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(target.hostname)) throw new Error("The site upstream must be a loopback http address.");
   return (req: IncomingMessage, res: ServerResponse) => new Promise<void>(resolve => {
@@ -111,7 +116,8 @@ function siteProxy(upstream: string) {
       answer.on("error", () => { res.destroy(); resolve(); });
     });
     out.on("timeout", () => out.destroy(new Error("timeout")));
-    out.on("error", () => {
+    out.on("error", error => {
+      onError(error, res);
       if (!res.headersSent) { res.writeHead(502, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end("Bad gateway"); } else res.destroy();
       resolve();
     });
@@ -123,7 +129,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
   const now = options.now ?? Date.now;
   const publicUrl = new URL(options.publicUrl).origin;
   const pageBase = pageBaseOf(options.pageBase), pagesUrl = `${publicUrl}${pageBase}`;
-  const site = options.siteUpstream ? siteProxy(options.siteUpstream) : null;
+  const reported = new WeakSet<ServerResponse>();
+  const site = options.siteUpstream ? siteProxy(options.siteUpstream, (error, res) => reported.add(res) && incidents.report({ source: "upstream", name: "SiteUpstreamDown", key: "site-upstream",
+    message: `the site behind ${publicUrl} did not answer (${error.message.slice(0, 60)})`, status: 502 })) : null;
   const store = createStore(options.dataDir);
   const state = store.state;
   const startedAt = now();
@@ -154,6 +162,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
     void options.mailer.send({ to, subject, text, html }).catch(() => console.warn("clouds: a notice email failed"));
   };
   const emailCfg = emailConfig(process.env, { publicUrl, pageBase });
+  const ownIncidents = options.incidents ? null : createIncidents({ env: options.admin?.environment ?? "development", store: memoryIncidentStore(), to: () => [], mailers: [],
+    email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/health`, mail: false, timers: false, now });
+  const incidents = options.incidents ?? ownIncidents!;
   const send = (to: string | null | undefined, message: Rendered) => {
     if (to) void options.mailer.send({ to, ...message }).catch(() => console.warn("account: an email failed"));
   };
@@ -189,7 +200,10 @@ export function createDashboardApp(options: DashboardAppOptions) {
     notify: notice => billingNotice(notice),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
     cloudEvent: (kind, cloud) => send(emailOf(cloud.accountId), kind === "ready" ? cloudReadyEmail(emailCfg, cloudFacts(cloud)) : cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
-    alert: entry => mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
+    // every other cloud alert also prints a "managed: ALERT" line, which the console tap already makes an incident
+    alert: entry => options.incidents
+      ? entry.action === "starts_alert" && incidents.report({ source: "log", name: "managed alert", message: `${entry.action} ${entry.cloudId}: ${entry.reason}` })
+      : mail(process.env.DUSK_OPS_ALERT_EMAIL, `Cloud ${entry.action}: cloud ${entry.cloudId}`, `${entry.action} by ${entry.actor} (${entry.reason}) at ${new Date(entry.at).toISOString()}`), dataDir: options.dataDir, publicUrl, dashboard: store, now, fetch: options.fetch, wakeStats: () => slackEdge?.edge.wakeStats() ?? {}, accounts: {
     fromCookie: req => { try { return account(req); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; } },
     fromBearer: req => auth.appSession(req)?.account ?? null } });
   const pagesRoutes = pagesRoutesFromEnv({ dataDir: options.dataDir, publicUrl, clouds: billing.clouds, now, fetch: options.fetch });
@@ -225,6 +239,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
     if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();
     if (name === "checkout_paid" && input.accountId) alerts.paid(input.accountId, auth.account(input.accountId)?.email ?? null, Number(input.props?.amountCents) || 0);
   });
+  const incidentRoutes = createIncidentRoutes({ incidents, json, readBody, bodyObject, rate, onClientError: (error, page) => { errorsSeen.note("page"); options.errors?.page.capture(error, { tags: { page } }); },
+    admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); } });
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
   const lastWatching = new Map<string, boolean>();
@@ -426,6 +442,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       isOwner: isAdminRequest, account: (request, strict) => {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
+    if (await incidentRoutes.handle(req, res, url)) return;
     if (await admin.handle(req, res, url)) return;
     if (method === "GET" && path === DASHBOARD_DISCOVERY_PATH) return json(res, 200, { v: 1, url: publicUrl });
     if (await edgeHost.handle(req, res, url, { readBody, bodyObject, json, signed: (request, body) => signed(request, body),
@@ -549,19 +566,6 @@ export function createDashboardApp(options: DashboardAppOptions) {
       res.end(JSON.stringify(data, null, 2));
       return;
     }
-    if (method === "POST" && path === "/v1/client-error") {
-      rate(req, "client-error", 60);
-      const input = bodyObject(await readBody(req));
-      const text = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : "";
-      const error = new Error(text(input.message, 500));
-      error.name = /^[A-Za-z_$][\w$]{0,60}$/.test(text(input.type, 61)) ? text(input.type, 61) : "Error";
-      error.stack = `${error.name}: ${error.message}\n${text(input.stack, 8000)}`;
-      errorsSeen.note("page");
-      options.errors?.page.capture(error, { tags: { page: text(input.page, 64).replace(/[^\w/-]/g, "") || "unknown" } });
-      res.writeHead(204, { "cache-control": "no-store" });
-      res.end();
-      return;
-    }
     if (method === "GET" && path === "/v1/workspaces") {
       const owner = account(req);
       watch(owner);
@@ -647,11 +651,20 @@ export function createDashboardApp(options: DashboardAppOptions) {
     slackEdge: edgeHost,
     analytics,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+      const requestId = random(9);
+      res.setHeader("x-request-id", requestId);
+      res.once("finish", () => {
+        if (res.statusCode >= 500 && !reported.has(res) && !(res.statusCode === 503 && closed))
+          incidents.report({ source: "server", name: `Http${res.statusCode}`, message: `${req.method ?? "GET"} answered ${res.statusCode}`, key: `http-${res.statusCode}`, route: req.url, status: res.statusCode, requestId });
+      });
       return route(req, res).catch(error => {
-        if (error instanceof RequestError || error instanceof AuthError || error instanceof AdminError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
+        if (error instanceof RequestError || error instanceof AuthError || error instanceof AdminError || error instanceof IncidentRouteError) json(res, error.status, req.url?.startsWith("/api/cloud/") ? { error: error.code } : { error: error.message, code: error.code });
         else {
+          reported.add(res);
           errorsSeen.note("service");
           options.errors?.service.capture(error, { tags: { route: (req.url ?? "/").split("?")[0]!.split("/").slice(0, 3).join("/") } });
+          const err = error instanceof Error ? error : new Error(String(error));
+          incidents.report({ source: "server", name: err.name, message: err.message, stack: (err.stack ?? "").split("\n").slice(1).join("\n"), route: req.url, status: 500, requestId });
           json(res, 500, req.url?.startsWith("/api/cloud/") ? { error: "failed" } : { error: "Request failed.", code: "failed" });
         }
       });
@@ -664,6 +677,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       auth.close();
       analytics.close();
       alerts.close();
+      void ownIncidents?.close();
       store.close();
     },
   };

@@ -6,12 +6,17 @@ import { createErrorReporter, reportProcessErrors } from "../../../electron/erro
 import { fileSpool } from "../../../electron/error-report-spool.mjs";
 import { createDashboardApp } from "./app.ts";
 import { providersFromEnv } from "./auth/providers.ts";
-import { mailerFromEnv } from "./auth/mail.ts";
+import { mailerFromEnv, resendMailer } from "./auth/mail.ts";
 import { persisted, useStateBackend } from "./persistence/backend.ts";
 import { openMongoBackend } from "./persistence/mongo.ts";
 import { mongoSink } from "./analytics/sink.ts";
 import { mongoWaitlist } from "./admin/waitlist.ts";
 import { parseAdminEmails } from "./admin/index.ts";
+import { emailConfig } from "./email/templates.ts";
+import { createIncidents } from "./incidents/index.ts";
+import { memoryIncidentStore, mongoIncidentStore } from "./incidents/store.ts";
+import { tapConsole, watchDatabase, watchProcess } from "./incidents/process.ts";
+import { stateBackend } from "./persistence/backend.ts";
 
 const port = Number(process.env.DUSK_DASHBOARD_PORT ?? 7480);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid dashboard port.");
@@ -41,7 +46,22 @@ const analytics = { ...(database ? { sink: await mongoSink(database.db), waitlis
 const adminEmails = parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
 console.log(`admin: ${adminEmails.length} allowed account${adminEmails.length === 1 ? "" : "s"}`);
 
-const app = createDashboardApp({ errors: { service, page }, version, dataDir, publicUrl, mailer: mailerFromEnv(process.env, { dev }), oauth: providersFromEnv(process.env), dev,
+const mailer = mailerFromEnv(process.env, { dev });
+const alertEmails = process.env.DUSK_ALERT_EMAILS ? parseAdminEmails(process.env.DUSK_ALERT_EMAILS) : adminEmails;
+const alertsOn = process.env.DUSK_ALERTS !== "off" && alertEmails.length > 0 && (!dev || !!process.env.DUSK_ALERT_EMAILS);
+const fallbackMailer = process.env.DUSK_MAIL_PROVIDER !== "resend" && process.env.DUSK_RESEND_API_KEY && process.env.DUSK_MAIL_FROM
+  ? resendMailer({ apiKey: process.env.DUSK_RESEND_API_KEY, from: process.env.DUSK_MAIL_FROM }) : null;
+const incidentStore = database ? await mongoIncidentStore(database.db).catch(() => { console.warn("incidents: the incidents collection is unavailable; kept in memory"); return memoryIncidentStore(); }) : memoryIncidentStore();
+const pagePublic = new URL(publicUrl).origin;
+const incidents = createIncidents({ env: environment, store: incidentStore, to: () => alertEmails, mailers: fallbackMailer ? [mailer, fallbackMailer] : [mailer],
+  email: emailConfig(process.env, { publicUrl: pagePublic, pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "" }), panelUrl: `${pagePublic}/admin/health`, mail: alertsOn });
+await incidents.load().catch(() => console.warn("incidents: recent incidents could not be loaded"));
+tapConsole(incidents);
+watchProcess(incidents, { spoolPath: `${dataDir}/incident-spool` });
+watchDatabase(incidents, () => stateBackend()?.health() ?? null);
+console.log(`alerts: ${alertsOn ? `emailing ${alertEmails.length} address${alertEmails.length === 1 ? "" : "es"}` : "off"}`);
+
+const app = createDashboardApp({ errors: { service, page }, incidents, version, dataDir, publicUrl, mailer, oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
   pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null,
   analytics, admin: { emails: adminEmails, environment, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });
@@ -65,6 +85,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => 
   if (stopping) return;
   stopping = true;
   app.close();
+  void incidents.close();
   server.close();
   server.closeIdleConnections();
   void (database?.close() ?? Promise.resolve()).finally(() => process.exit(0));
