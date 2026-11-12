@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, InstanceInfo, Message } from "@/state/store";
 import { failedTurnCause, failedTurnTool } from "../../shared/failed-turn";
 import { placeRowText, type PlaceRow } from "../../shared/place-view";
+import en from "@/locales/en.json";
 
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
@@ -47,11 +48,12 @@ beforeEach(() => {
 });
 
 describe("J11: a failed place's row", () => {
-  it("says no hours are left in one line, with one button: see your plan", () => {
+  // cloud desktop hours were retired with the paid desktops: a row stored with that cause asks for your own machine
+  it("reads a retired no-hours row as the ask for your own machine, with one button", () => {
     const { html, buttons } = show(stored(hours), vi.fn());
-    expect(html).toContain("this month&#x27;s 50 cloud desktop hours are used up. they come back on 1 November.");
+    expect(html).toContain(en["place.view.ccNeedsKey.line"]);
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]).toContain("see your plan");
+    expect(buttons[0]).toContain(en["place.action.addVps"]);
     expect(html).not.toContain("retry");
     expect(html).not.toContain("<details");
   });
@@ -71,17 +73,15 @@ describe("J11: a failed place's row", () => {
   it("gives a User no button that changes a setting, and says who can", () => {
     fixture.ownerOrAdmin = false;
     const { html, buttons } = show(stored(hours), vi.fn());
-    expect(html).toContain("They come back on 1 November. Ask an Admin to change it.");
+    expect(html).toContain(en["place.askAdmin"]);
     expect(buttons).toHaveLength(0);
   });
 
-  it("reads the retired desktop provider sign-up as My Cloud's on a desktop with a paid plan", () => {
+  it("asks for your own machine wherever the bot is", () => {
     const needsKey: PlaceRow = { state: "cc-needs-key", params: { bot: "Scout" }, source: "works-on" };
-    expect(show(stored(needsKey)).html).toContain("Bots here can get their own cloud desktops, a paid service.");
+    expect(show(stored(needsKey)).html).toContain(en["place.view.ccNeedsKey.line"]);
     const seat = { server: "mac", plan: true, role: "admin", mode: "simple" } as const;
-    expect(placeRowViewFor(needsKey, seat)).toMatchObject({
-      state: "cc-on-my-cloud", line: "cloud desktops from your plan work for Cloud bots for now.", action: { id: "open-my-cloud" },
-    });
+    expect(placeRowViewFor(needsKey, seat)).toMatchObject({ state: "cc-needs-key", action: { id: "add-vps" } });
     expect(placeRowViewFor(needsKey, { ...seat, server: "my-cloud" }).state).toBe("cc-needs-key");
   });
 });
@@ -93,13 +93,13 @@ describe("the phone row", () => {
 
   it("carries the line and its action in words, whole, for every source", () => {
     const rows: Array<[PlaceRow, string]> = [
-      [hours, "this month's 50 cloud desktop hours are used up. They come back on 1 November. See your plan on the Plan page."],
+      [hours, "Connect your VPS in Settings to give bots their own private desktops. Add your VPS in Settings → Computer."],
       [{ state: "cc-unavailable", params: { bot: "Scout" }, source: "auto-pin" },
-        "cloud desktops can't start right now. It isn't anything you did. This conversation is back on Auto. Send your message again."],
+        "Cloud desktops can't start right now. It isn't anything you did. This conversation is back on Auto. Send your message again."],
       [{ state: "cc-unavailable", params: { bot: "Scout" }, source: "routine" },
-        "cloud desktops can't start right now. It isn't anything you did. Change where this routine runs."],
+        "Cloud desktops can't start right now. It isn't anything you did. Change where this routine runs."],
       [{ state: "cc-at-once", params: { bot: "Bo", plan: "Personal", max: 1, holders: ["Ada"] }, source: "works-on" },
-        "Your Personal plan includes 1 cloud desktop, and Ada has it. Manage your cloud desktops in Settings → Bot desktops."],
+        "Connect your VPS in Settings to give bots their own private desktops. Add your VPS in Settings → Computer."],
     ];
     for (const [place, words] of rows) {
       const tool = stored(place);
