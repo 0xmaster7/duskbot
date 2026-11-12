@@ -184,7 +184,7 @@ export function Choice({ name, value, checked, onChange, title, detail, aside }:
       <span aria-hidden className={cx("grid size-4 shrink-0 place-items-center rounded-full", checked ? "bg-ink" : "bg-track")}>{checked && <span className="size-1.5 rounded-full bg-bg" />}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-14 text-ink">{title}</span>
-        {detail && <span className="block truncate text-13 text-ink-3">{detail}</span>}
+        {detail && <span className="block text-13 text-ink-3">{detail}</span>}
       </span>
       {aside && <span className="num shrink-0 text-end text-14 text-ink-2">{aside}</span>}
     </label>

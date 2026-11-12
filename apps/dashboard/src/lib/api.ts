@@ -24,6 +24,9 @@ function fixtureMode(): Scenario | null {
 
 export const FIXTURE: Scenario | null = fixtureMode();
 
+/** the service writes sentence case; the dashboard reads lowercase, so its messages lose the leading capital */
+export const lowercase = (message: string | undefined) => message ? message.charAt(0).toLowerCase() + message.slice(1) : message;
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string | null;
@@ -77,7 +80,7 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown; s
     throw new ApiError("can't reach dusk bot. check your connection.", 0, "offline");
   }
   const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string; blockers?: DeletionBlocker[] }) | null;
-  if (!res.ok) throw new ApiError(data?.error ?? "something went wrong on our side. try again.", res.status, data?.code ?? null, data?.blockers);
+  if (!res.ok) throw new ApiError(lowercase(data?.error) ?? "something went wrong on our side. try again.", res.status, data?.code ?? null, data?.blockers);
   return data as T;
 }
 
@@ -139,7 +142,7 @@ export const api = {
     } catch { throw new ApiError("can't reach dusk bot. check your connection.", 0, "offline"); }
     const data = (await res.json().catch(() => null)) as (HandoffAnswer & { error?: string; code?: string; email?: string }) | null;
     if (res.status === 409 && (data?.code === "confirm" || data?.code === "other_account") && typeof data.email === "string") return { ask: data.code, email: data.email };
-    if (!res.ok || !data) throw new ApiError(data?.error ?? "something went wrong on our side. try again.", res.status, data?.code ?? null);
+    if (!res.ok || !data) throw new ApiError(lowercase(data?.error) ?? "something went wrong on our side. try again.", res.status, data?.code ?? null);
     return { account: rememberAccount(data.account, data.csrfToken), next: data.next };
   },
   signOut: async () => { const answer = await send("/v1/auth/signout", "POST"); clearSession(); return answer; },

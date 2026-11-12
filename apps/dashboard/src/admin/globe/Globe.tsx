@@ -318,7 +318,7 @@ export default function Globe(props: GlobeProps) {
       ))}
       {mode === "3d" && (
         <div className="absolute right-3 bottom-3 flex gap-2">
-          {([{ label: "zoom in", text: "+", delta: 0.2 }, { label: "zoom out", text: "-", delta: -0.2 }]).map(button => (
+          {([{ label: "zoom in", text: "+", delta: 0.2 }, { label: "zoom out", text: "−", delta: -0.2 }]).map(button => (
             <button
               key={button.label}
               type="button"

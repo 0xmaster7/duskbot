@@ -37,7 +37,7 @@ export interface CloudData {
 
 const Ctx = createContext<CloudData | null>(null);
 const visible = () => typeof document === "undefined" || document.visibilityState === "visible";
-const apiError = (error: unknown) => error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : "Something went wrong.", 0, null);
+const apiError = (error: unknown) => error instanceof ApiError ? error : new ApiError(error instanceof Error ? error.message : "something went wrong. try again.", 0, null);
 
 export function CloudDataProvider({ children, signedIn }: { children: ReactNode; signedIn: boolean }) {
   const [catalog, setCatalog] = useState<PlanCatalog | null>(null);
@@ -124,7 +124,7 @@ export function CloudDataProvider({ children, signedIn }: { children: ReactNode;
   const mutate = useCallback(async (action: () => Promise<unknown>) => {
     const version = generation.current;
     try {
-      if (!active.current) throw new ApiError("Sign in to continue.", 401, "unauthorized");
+      if (!active.current) throw new ApiError("sign in to continue.", 401, "unauthorized");
       await action();
       if (active.current && version === generation.current) { setError(null); refresh(); }
     } catch (e) {

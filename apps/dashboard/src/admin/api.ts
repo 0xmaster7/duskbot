@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CSRF_HEADER, readCsrfCookie } from "../../../../shared/account-api";
+import { lowercase } from "../lib/api";
 
 export class AdminApiError extends Error {
   readonly status: number; readonly code: string | null;
@@ -29,7 +30,7 @@ export async function adminCall<T>(path: string, init: { method?: string; body?:
     throw new AdminApiError("can't reach the account service. check your connection.", 0, "offline");
   }
   const data = await res.json().catch(() => null) as (T & { error?: string; code?: string }) | null;
-  if (!res.ok) throw new AdminApiError(data?.error ?? "the request failed.", res.status, data?.code ?? null);
+  if (!res.ok) throw new AdminApiError(lowercase(data?.error) ?? "the request failed.", res.status, data?.code ?? null);
   return data as T;
 }
 

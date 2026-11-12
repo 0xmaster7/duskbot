@@ -148,7 +148,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
         </div>
       </fieldset>
       {plan === "starter" && !ownsLicense && work1 && (
-        <label className="hover-row mt-3 flex min-h-14 cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5">
+        <label className="hover-row mt-3 flex min-h-14 cursor-pointer items-center gap-3 rounded-[16px] px-3.5 py-2.5">
           <input type="checkbox" checked={withLicense} onChange={(e) => setWithLicense(e.target.checked)} className="size-4 shrink-0 accent-[var(--ink)]" />
           <span className="min-w-0 flex-1">
             <span className="block text-14 text-ink">add a work license</span>
