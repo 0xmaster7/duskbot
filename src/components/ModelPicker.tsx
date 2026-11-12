@@ -13,7 +13,7 @@ import { pickerPlacement, type PickerPlacement } from "@/lib/picker-placement";
 import type { Typeahead } from "@/lib/menu-keys";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { InstanceProviderMark } from "./ProviderIcons";
-import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
+import { ELEVATED_FLOAT } from "./elevated";
 import { ApiKeyHint, EngineSetup, EngineUpdateNotice, InstanceAccountNotes, needsCli, needsSignIn, openKeysFor } from "./EngineSetup";
 import { offersLocalModels, probeLocalModels } from "./local-model-probe";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -610,7 +610,7 @@ export function ModelPicker({
         "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary inset-ring inset-ring-ink/[0.07] disabled:cursor-not-allowed disabled:text-ink-tertiary",
         contained
           ? "min-w-0 max-w-[58%]"
-          : cn("shrink-0", ELEVATED_FLOAT, ELEVATED_HOVER, "hover:text-ink aria-expanded:text-ink disabled:hover:bg-composer"),
+          : cn("shrink-0", ELEVATED_FLOAT, "aria-expanded:bg-[color-mix(in_srgb,var(--color-composer),var(--color-ink)_7%)] aria-expanded:text-ink"),
         size === "sm" ? "h-8 pl-2.5 pr-2" : "h-8 pl-2.5 pr-2",
       )}
     >
@@ -623,7 +623,7 @@ export function ModelPicker({
       <span className="min-w-0 max-w-[160px] truncate">{modelName(active, selection.model)}</span>
       {selection.variant !== undefined && <span className="shrink-0 whitespace-pre">{variantSuffix(active, selection.model, selection.variant)}</span>}
       <UsageBars engine={selection.instanceId} className="ml-1.5" />
-      <ChevronDown size={12} strokeWidth={2} aria-hidden="true" className="ml-1 shrink-0 text-ink-tertiary group-hover:text-ink-secondary" />
+      <ChevronDown size={12} strokeWidth={2} aria-hidden="true" className="ml-1 shrink-0 text-ink-tertiary" />
     </button>
   );
 
