@@ -1,9 +1,13 @@
 // Kept apart from config.json so a pasted or exported config never carries a token; a token never follows its entry to another URL.
+// Security: sealed under a key of its own (`<file>.key`, 0600 beside it), like the token and email stores; a plain file
+// from before is read once and sealed on the next write.
+import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { z } from "zod";
 
 import { writeFileAtomic } from "./atomic.ts";
+import { decryptBrowserState, encryptBrowserState } from "./browser-sites.ts";
 
 const tokensSchema = z.object({
   access: z.string().min(1),
@@ -64,10 +68,25 @@ export class McpOAuthStore {
     this.write(data);
   }
 
+  private key(create: boolean): string | null {
+    try {
+      const existing = readFileSync(`${this.file}.key`, "utf8").trim();
+      if (/^[0-9a-f]{64}$/u.test(existing)) return existing;
+    } catch {}
+    if (!create) return null;
+    const key = randomBytes(32).toString("hex");
+    mkdirSync(dirname(this.file), { recursive: true });
+    writeFileAtomic(`${this.file}.key`, `${key}\n`, { mode: 0o600 });
+    return key;
+  }
+
   // Read through on every call: another process may have changed the file.
   private read(): StoreFile {
     try {
-      const parsed = fileSchema.safeParse(JSON.parse(readFileSync(this.file, "utf8")));
+      const raw = readFileSync(this.file);
+      const key = this.key(false);
+      const text = raw[0] === 0x7b ? raw.toString("utf8") : key ? decryptBrowserState(raw, key) : "";
+      const parsed = fileSchema.safeParse(JSON.parse(text));
       if (parsed.success) return parsed.data;
     } catch {
     }
@@ -76,6 +95,13 @@ export class McpOAuthStore {
 
   private write(data: StoreFile): void {
     mkdirSync(dirname(this.file), { recursive: true });
-    writeFileAtomic(this.file, JSON.stringify(data, null, 2), { mode: 0o600 });
+    writeFileAtomic(this.file, encryptBrowserState(JSON.stringify(data), this.key(true)!), { mode: 0o600 });
   }
+}
+
+/** The whole file as JSON, opened with its key: for tests and moves that look at it from outside the store. */
+export function openMcpOAuthFile(file: string): { servers: Record<string, any> } {
+  const raw = readFileSync(file);
+  if (raw[0] === 0x7b) return JSON.parse(raw.toString("utf8"));
+  return JSON.parse(decryptBrowserState(raw, readFileSync(`${file}.key`, "utf8").trim()));
 }

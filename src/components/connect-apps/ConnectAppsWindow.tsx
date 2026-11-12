@@ -28,7 +28,7 @@ import { TOKEN_APPS, tokenApp, type TokenAppId } from "../../../shared/app-token
 import type { OnePasswordStatus } from "../../../shared/logins";
 import { CategoryMenu } from "./CategoryMenu";
 import {
-  CATEGORY_LABEL, INLINE_CHIPS, SECTION_SIZE, fromCatalog, grokCategories, inCategory, matchRank, presentCategories, recommended, searchApps,
+  CATEGORY_LABEL, INLINE_CHIPS, SECTION_SIZE, fromCatalog, grokCategories, inCategory, matchRank, popularity, presentCategories, recommended, searchApps,
   type AppEntry, type Category, type Connection,
 } from "./catalog";
 import { MCP_SERVERS_ID as MCP_PAGE, type ConnectAppsPage } from "./open";
@@ -45,9 +45,7 @@ import "./connect-apps.css";
 type NativeId = "x" | "email";
 const NATIVE_IDS: readonly NativeId[] = ["email", "x"];
 const RECOMMENDED = "recommended";
-const ONE_CLICK = "one-click";
-const PASTE = "paste";
-const COMPOSIO_APPS = "composio";
+const ALL_APPS = "apps";
 const CONNECTED = "connected";
 /** Any MCP server by its URL, kept with the MCP servers Settings has. */
 const CUSTOM_MCP = "custom-mcp";
@@ -251,9 +249,13 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       .filter((server) => !server.bot && !remote.ownsServer(server.name) && !HOSTED_MCP_APPS.some((app) => server.name === app.id || server.name.startsWith(`${app.id}-`)))
       .map((server): AppEntry => ({ id: `mcp:${server.name}`, kind: "custom", label: server.name, description: t("connectApps.mcpServer"), categories: [], icon: { glyph: "server" }, keywords: "mcp custom" }));
     // one row per app: our card, composio's listings and the vendor's own server fold together
-    const merged = [...mergeEntries([...own, ...catalog, ...vendors]), ...custom];
+    // a token is only the way in for an app nothing else connects: one Composio covers stays a normal Composio row,
+    // unless this build signs in to it natively
+    const first = mergeEntries([...own, ...catalog, ...vendors]);
+    const covered = new Set(first.filter((entry) => entry.kind === "token" && (entry.composio !== undefined || entry.aliases?.length) && tokens.status?.native[entry.id] !== true).map((entry) => entry.id));
+    const merged = [...(covered.size ? mergeEntries([...own.filter((entry) => !covered.has(entry.id)), ...catalog, ...vendors]) : first), ...custom];
     return ready ? stableOrder(merged) : merged;
-  }, [connectors.cards, connectors.mode, connectors.status, remote, mcpServers, ready]);
+  }, [connectors.cards, connectors.mode, connectors.status, remote, mcpServers, ready, tokens.status]);
   const serverOn = useMemo(() => new Map((mcpServers ?? []).map((server) => [`mcp:${server.name}`, server.enabled])), [mcpServers]);
   const remoteApps = useMemo(() => new Map(remote.apps.map((app) => [app.id, app])), [remote.apps]);
   // a merged row answers to every id it folds in, its own winning
@@ -391,24 +393,28 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     }
   };
   // grok's rows always say what the app does, under its name
+  /** Who a connected row is signed in as: its accounts' names, else what the app does. */
+  const subtitleOf = (entry: AppEntry): string => {
+    if (connection(entry.id) !== "connected") return entry.description;
+    const slug = composioSlug(entry);
+    const names = [
+      ...(entry.kind === "token" ? tokens.accounts(entry.id).map((account) => account.label) : []),
+      ...(slug ? (connectors.status[slug]?.accounts ?? []).filter((account) => /^active$/i.test(account.status)).map((account) => account.alias).filter((name): name is string => Boolean(name)) : []),
+    ];
+    return names.length ? names.join(", ") : entry.description;
+  };
   const row = (entry: AppEntry) => (
-    <AppRow key={entry.id} entry={entry} subtitle={entry.description} action={rowAction(entry)}
+    <AppRow key={entry.id} entry={entry} subtitle={subtitleOf(entry)} action={rowAction(entry)}
       onOpen={() => go({ kind: "detail", id: entry.kind === "custom" ? CUSTOM_MCP : entry.id })} />
   );
 
   const label = (category: Category) => t(CATEGORY_LABEL[category]);
-  /** The free ways in, as the home page groups them: a one-click sign-in (the vendor's own server, or a device code to
-   * our own GitHub App or Google client), a pasted token or app password, and the long tail on the person's Composio. */
-  const freeGroups = (list: readonly AppEntry[]) => {
-    const deviceReady = (entry: AppEntry) => entry.kind === "token" && tokens.status?.native[entry.id] === true;
-    const oneClick = list.filter((entry) => entry.kind === "remote" || (entry.remote !== undefined && remoteApps.has(entry.remote)) || deviceReady(entry));
-    const inOneClick = new Set(oneClick.map((entry) => entry.id));
-    const paste = list.filter((entry) => !inOneClick.has(entry.id) && (entry.kind === "token" || entry.id === GMAIL || entry.id === "email") && !(entry.kind === "token" && !tokenApp(entry.id)?.fields.length));
-    const own = new Set([...inOneClick, ...paste.map((entry) => entry.id)]);
-    const composio = recommended(list.filter((entry) => entry.kind === "composio" && !own.has(entry.id)), () => "disconnected", Infinity);
-    const longTail = list.filter((entry) => entry.kind === "composio" && !own.has(entry.id) && !composio.includes(entry));
-    return { oneClick, paste, composio: [...composio, ...longTail] };
-  };
+  /** Every app in one list: the popular ones first, then the rest in the order they came. */
+  const allApps = (list: readonly AppEntry[]) => list
+    .filter((entry) => entry.kind !== "custom")
+    .map((entry, index) => ({ entry, index, rank: popularity(entry) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({ entry }) => entry);
   const arrange = (): Omit<Layout, "view"> => {
     const categories = presentCategories(entries);
     const sections: Section[] = [];
@@ -417,12 +423,8 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const rest = (list: AppEntry[]) => list.filter((entry) => !isConnected.has(entry.id));
     const picks = recommended(entries.filter(fromCatalog), connection, Infinity);
     if (page.kind === "category") {
-      const groups = freeGroups(entries);
       const special: Record<string, { list: AppEntry[]; title: string; note?: string }> = {
         [RECOMMENDED]: { list: picks, title: t("connectApps.recommended") },
-        [ONE_CLICK]: { list: groups.oneClick, title: t("connectApps.section.oneClick") },
-        [PASTE]: { list: groups.paste, title: t("connectApps.section.token") },
-        [COMPOSIO_APPS]: { list: groups.composio, title: t("connectApps.section.composio"), note: t("connectApps.composio.note") },
       };
       const chosen = special[page.category];
       const members = chosen ? chosen.list : inCategory(entries, page.category);
@@ -431,20 +433,9 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
       sections.push({ key: page.category, title: chosen ? chosen.title : label(page.category as Category), ...(chosen?.note ? { note: chosen.note } : {}), ids: ids(rest(members)) });
     } else if (page.kind === "home") {
       if (connected.length) sections.push({ key: CONNECTED, title: t("apps.connected"), ids: ids(connected.slice(0, SECTION_SIZE)), viewAll: connected.length > SECTION_SIZE ? { kind: "yours" } : undefined });
-      // free first: what signs in with one click, then what takes a pasted token, then the person's own Composio
-      const groups = freeGroups(entries);
-      const section = (key: string, title: string, list: AppEntry[], note?: string) => {
-        const shown = rest(list);
-        if (shown.length) sections.push({ key, title, ...(note ? { note } : {}), ids: ids(shown.slice(0, SECTION_SIZE)), viewAll: shown.length > SECTION_SIZE ? { kind: "category", category: key } : undefined });
-      };
-      section(ONE_CLICK, t("connectApps.section.oneClick"), groups.oneClick);
-      section(PASTE, t("connectApps.section.token"), groups.paste);
-      section(COMPOSIO_APPS, t("connectApps.section.composio"), groups.composio, t("connectApps.composio.note"));
-      for (const category of categories) {
-        const members = rest(inCategory(entries, category));
-        if (!members.length) continue;
-        sections.push({ key: category, title: label(category), ids: ids(members.slice(0, SECTION_SIZE)), viewAll: members.length > SECTION_SIZE ? { kind: "category", category } : undefined });
-      }
+      // one list: every app, whichever way it connects, each row with its own connect
+      const apps = rest(allApps(entries));
+      if (apps.length) sections.push({ key: ALL_APPS, title: t("connectApps.section.apps"), ids: ids(apps) });
     }
     return { categories, sections };
   };

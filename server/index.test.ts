@@ -1,3 +1,4 @@
+import { openMcpOAuthFile } from "./mcp-oauth-store.ts";
 import { DOCKER_NAMES } from "../electron/legacy-names.mjs";
 // The config pins one deliberately unknown driver, so the suite is deterministic with or without agent CLIs installed.
 import { EMAIL_TOOLS } from "./email/tools.ts";
@@ -7602,7 +7603,7 @@ describe("harness HTTP API", () => {
       const file = join(home, ".duskbot", "mcp-oauth.json");
       // Windows has no POSIX permission bits; stat reports 0o666 there.
       if (process.platform !== "win32") expect(statSync(file).mode & 0o777).toBe(0o600);
-      const stored = JSON.parse(readFileSync(file, "utf8")).servers.hf.tokens.access as string;
+      const stored = openMcpOAuthFile(file).servers.hf!.tokens.access as string;
       expect(oauth.isValid(`Bearer ${stored}`)).toBe(true);
       for (const response of [started, listed, tested]) expect(JSON.stringify(response.body)).not.toContain(stored);
       const disk = JSON.parse(readFileSync(join(home, ".duskbot", "config.json"), "utf8"));
@@ -7681,9 +7682,9 @@ describe("harness HTTP API", () => {
     const flaky = await startFakeHttpMcp({ guard: "tools/call", acceptBearer: oauth.isValid, wwwAuthenticate: oauth.challenge, wellKnown: protectedResourceOf(oauth), tools: [{ name: "buy" }] });
     const refusing = await startFakeHttpMcp({ guard: "every-request", acceptBearer: () => false, wwwAuthenticate: oauth.challenge });
     const oauthFile = join(home, ".duskbot", "mcp-oauth.json");
-    const tokensOf = (name: string) => JSON.parse(readFileSync(oauthFile, "utf8")).servers[name]?.tokens;
+    const tokensOf = (name: string) => openMcpOAuthFile(oauthFile).servers[name]?.tokens;
     const expire = (name: string) => {
-      const saved = JSON.parse(readFileSync(oauthFile, "utf8"));
+      const saved = openMcpOAuthFile(oauthFile);
       saved.servers[name].tokens.expiresAt = Date.now() - 1_000;
       writeFileSync(oauthFile, JSON.stringify(saved));
     };

@@ -2,8 +2,9 @@
 // home (scripts/testing/cloud-send-fixture.ts), main's own functions between them (electron/cloud-connections.mjs) over
 // the private port and the owner session, dusk bot's connected-apps service with a fake Composio behind it, a fake
 // sign-in server for an MCP server's own account. Disposable homes; no network.
+import { openMcpOAuthFile } from "./mcp-oauth-store.ts";
 import { createHash, randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
@@ -138,7 +139,7 @@ it("moves the MCP servers with their secrets and sign-ins, the keys and the conn
   expect(refreshes).toEqual([{ refresh: REFRESH, client: "dusk-fixture-client", secret: CLIENT_SECRET }]);
   expect((await onCloud("GET", "/api/mcp/servers")).body.servers.find((server: { name: string }) => server.name === "linear")).toMatchObject({ auth: "signed-in" });
   // ...and this computer let go of its own copy, without signing it out, so it never spends that refresh token too.
-  expect(JSON.parse(readFileSync(desktopSignIns, "utf8")).servers.linear).toBeUndefined();
+  expect(openMcpOAuthFile(desktopSignIns).servers.linear).toBeUndefined();
   expect((await local("GET", "/api/mcp/servers")).body.servers.find((server: { name: string }) => server.name === "linear").auth).toBeUndefined();
 
   // The key arrived, and so did its engine, before anything that follows it.

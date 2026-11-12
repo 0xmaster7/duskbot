@@ -11,7 +11,9 @@ import type { AppEntry, Connection } from "./catalog";
 import type { ConnectorPhase, Connectors } from "./use-connectors";
 import { COMPOSIO_AUTH_CONFIGS_URL } from "../../../shared/connector-availability";
 import { composioPage, loadToolkitActions, type SnapshotToolkit, type ToolkitActions } from "./composio-snapshot";
-import { ComposioKeyStep } from "./ComposioKeyStep";
+import { ComposioKeyStep, viaLine } from "./ComposioKeyStep";
+import { DuskMark } from "../mascot-view";
+import { MASCOT_INK } from "@/lib/mascot";
 import { GmailCard, gmailCard } from "./GmailCard";
 import { PrimaryButton, type Primary } from "./PrimaryButton";
 import type { ConnectorAccount } from "@/lib/connector-status";
@@ -77,6 +79,9 @@ export function AppPage({ model }: { model: AppPageModel }) {
   // through Composio Connect: two steps, Authorize Composio then Connect the app, and the main button is the one you are on
   const viaSteps = askingKey || (composio && !model.remoteClient && viaSignedIn && connectors.viaRoute(slug)
     && (flow !== undefined || (!ways && model.connection !== "connected")));
+  // Composio is connected once per person: its guided step shows only until then; after that an app is just its sign-in
+  const firstTime = viaSteps && !viaSignedIn;
+  const viaStatus = viaSteps && viaSignedIn ? viaLine(flow, entry.label) : null;
   const askingAlias = composio && connectors.aliasFor === slug;
   const aliasError = askingAlias && connectors.error ? (typeof connectors.error === "string" ? connectors.error : t(connectors.error.key)) : null;
 
@@ -91,7 +96,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
     if (!composio || !phase) return null;
     const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug), onCancel: () => connectors.cancel(slug) };
     if (viaSteps) {
-      const authorize: Primary = { label: t("connectApps.via.authorize"), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug), onCancel: () => connectors.cancel(slug) };
+      const authorize: Primary = { label: t("connectApps.connectApp", { name: entry.label }), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug), onCancel: () => connectors.cancel(slug) };
       if (flow?.step === "authorizing") return { ...authorize, busy: true, busyLabel: t("connectApps.signIn.waiting") };
       if (flow?.step === "failed" && flow.why === "signedOut") return { ...authorize, label: t("connectApps.via.authorizeAgain") };
       if (!viaSignedIn) return flow?.step === "failed" ? { ...authorize, label: t("connectors.action.retry") } : authorize;
@@ -170,7 +175,15 @@ export function AppPage({ model }: { model: AppPageModel }) {
           </div>
         )}
         {model.remote && !ways && <p className="ca-notice">{t(model.remote.open ? "connectApps.remote.open" : "connectApps.remote.note", { name: entry.label })}</p>}
-        {viaSteps && !gmail && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
+        {firstTime && !gmail && <ComposioKeyStep slug={slug} name={entry.label} connectors={connectors} />}
+        {viaStatus && !gmail && (
+          <p role={viaStatus.tone === "alert" ? "alert" : "status"} className="ca-notice ca-key-line" data-tone={viaStatus.tone} data-via-line="">
+            {viaStatus.tone === "done"
+              ? <DuskMark body="kit" colour={MASCOT_INK.green} state="celebrate" size={28} label={null} />
+              : <Icon name={viaStatus.tone === "alert" ? "exclamation-circle" : "clock"} size={13} />}
+            <span>{viaStatus.text}</span>
+          </p>
+        )}
         {composio && (accounts.length > 0 || askingAlias) && (
           <div data-accounts="">
             <h3 className="ca-group-label">{t("connectApps.accounts")}</h3>

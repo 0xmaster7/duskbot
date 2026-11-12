@@ -494,8 +494,10 @@ export function useConnectors(): Connectors {
     }
     // cancelled: the row is back to Authorize already
     if (controller.signal.aborted && !gaveUp) return;
-    // step two waits for its own click: its page needs one, and the person sees the step they are on
-    if (ok) flowOf(slug, null); else failVia(slug, "authorize");
+    if (!ok) { failVia(slug, "authorize"); return; }
+    flowOf(slug, null);
+    // the desktop app opens pages itself, so the app's own sign-in follows straight on; a browser tab needs its own click
+    if (window.duskDesktop?.openExternal) await connectVia(slug, reserveConnectionPage());
   };
 
   const reopenVia = (slug: string) => {

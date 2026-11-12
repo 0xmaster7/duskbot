@@ -29,7 +29,9 @@ export function restoredWorkspaceConfig(portable: unknown, destination: unknown)
 export function excludedWorkspaceAuthPath(path: string): boolean {
   if (inSecretFolder(path)) return true;
   if (/^command-allowlist\.json(?:$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
-  if (/^mcp-oauth\.json(?:$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
+  if (/^mcp-oauth\.json(?:\.key)?(?:$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
+  // Pasted app tokens and native sign-ins, and their key, stay with the installation that connected them.
+  if (/^(?:app-tokens\.json\.enc|app-tokens-key)(?:$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
   // Saved website logins and their key never leave the computer they were saved on, nor does the key sealing webhook secrets.
   if (/^(?:logins\.json\.enc|logins-key|webhook-key)(?:$|\.\d+\.[0-9a-f-]+\.tmp$)/.test(path)) return true;
   // Secrets saved to the Vault from a bot's card stay sealed on the computer they were saved on (their key is not in this folder either).

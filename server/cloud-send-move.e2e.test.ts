@@ -2,6 +2,7 @@
 // (scripts/testing/cloud-send-fixture.ts) with main's own wiring between them, the move run and checked as main runs and
 // checks it, the connected-apps service with a fake Composio behind it and a fake sign-in server for an MCP server's own
 // account. Disposable homes; no network.
+import { openMcpOAuthFile } from "./mcp-oauth-store.ts";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -213,7 +214,7 @@ it("a move carries everything, apps and keys first, and its check finds every ro
   expect(fx.sessions.at(-1)).toEqual({ label: "Move to My Cloud", background: false });
   const linearThere = async () => (await onCloud("GET", "/api/mcp/servers")).body.servers.find((server: { name: string }) => server.name === "linear");
   expect((await linearThere()).auth).not.toBe("signed-in");
-  expect(JSON.parse(readFileSync(desktopSignIns, "utf8")).servers.linear).toBeDefined();
+  expect(openMcpOAuthFile(desktopSignIns).servers.linear).toBeDefined();
 
   // Cleo goes on on both sides before the final pass.
   await turn(local, cleo, "And the appendix.");
@@ -221,7 +222,7 @@ it("a move carries everything, apps and keys first, and its check finds every ro
   const final = await fx.move({ final: true });
   expect(final.result.failed).toEqual([]);
   expect((await linearThere()).auth).toBe("signed-in");
-  expect(JSON.parse(readFileSync(desktopSignIns, "utf8")).servers.linear, "this computer let go of its own copy").toBeUndefined();
+  expect(openMcpOAuthFile(desktopSignIns).servers.linear, "this computer let go of its own copy").toBeUndefined();
   expect(broker.actingUser(broker.installationIds().find((id) => id !== fx.desktopInstallation!.id && broker.actingUser(id) === fx.desktopInstallation!.userId)!))
     .toBe(fx.desktopInstallation!.userId);
   expect((await onCloud("GET", "/api/connectors/connected")).body.services.gmail).toMatchObject({ connected: true, accounts: [expect.objectContaining({ id: gmail })] });

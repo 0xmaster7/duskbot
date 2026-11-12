@@ -10,6 +10,7 @@ import { startFakeHttpMcp, type FakeHttpMcp } from "./testing/fake-http-mcp-serv
 import { startFakeOAuth, type FakeOAuth, type FakeOAuthOptions } from "./testing/fake-oauth-server.ts";
 import { engineMcpSignIn, MCP_OAUTH_PROXY_PATH, mcpOAuthProxyRoutes } from "./mcp-oauth-proxy.ts";
 import { PASS } from "./routes/table.ts";
+import { decryptBrowserState } from "./browser-sites.ts";
 import { withFreeSignInPort } from "./testing/ports.ts";
 
 let dir: string;
@@ -386,7 +387,10 @@ describe("a sign-in app registered in advance", () => {
     expect(oauth.clientAuths).toEqual([{ method: "post", clientId: "corp" }]);
     const stored = readFileSync(join(dir, "mcp-oauth.json"), "utf8");
     expect(stored).not.toContain(secret);
-    expect(JSON.parse(stored).servers.docs).toMatchObject({ clientId: "corp", tokenAuth: "client_secret_post" });
+    const file = join(dir, "mcp-oauth.json");
+    const opened = decryptBrowserState(readFileSync(file), readFileSync(`${file}.key`, "utf8").trim());
+    expect(opened).not.toContain(secret);
+    expect(JSON.parse(opened).servers.docs).toMatchObject({ clientId: "corp", tokenAuth: "client_secret_post" });
   });
 
   it("reports a refused secret as a failed sign-in", async () => {

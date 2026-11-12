@@ -46,3 +46,18 @@ describe("McpOAuthStore", () => {
     expect(store.get("docs", URL_A)?.state).toBe("needs-sign-in");
   });
 });
+
+describe("sealed on disk", () => {
+  it("keeps tokens encrypted, reads a plain file from before and seals it on the next write", async () => {
+    const { mkdtempSync, readFileSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const file = join(mkdtempSync(join(tmpdir(), "mcp-oauth-sealed-")), "mcp-oauth.json");
+    writeFileSync(file, JSON.stringify({ servers: { composio: { url: "https://connect.composio.dev/mcp", state: "signed-in", tokens: { access: "plain-secret" } } } }));
+    const store = new McpOAuthStore(file);
+    expect(store.get("composio", "https://connect.composio.dev/mcp")?.tokens?.access).toBe("plain-secret");
+    store.put("composio", { url: "https://connect.composio.dev/mcp", state: "signed-in", tokens: { access: "new-secret" } });
+    expect(readFileSync(file).includes(Buffer.from("new-secret"))).toBe(false);
+    expect(new McpOAuthStore(file).get("composio", "https://connect.composio.dev/mcp")?.tokens?.access).toBe("new-secret");
+  });
+});
