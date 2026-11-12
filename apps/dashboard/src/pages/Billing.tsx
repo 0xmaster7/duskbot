@@ -69,7 +69,7 @@ function PlanCard({ id, catalog, interval, current, onChoose, action, disabled, 
 }
 
 const FAQ = [
-  { q: "do i need it if i have a mac?", a: "no. free runs everything on your mac; your bots just pause while it sleeps. add dusk cloud when you want them working around the clock." },
+  { q: "do i need it if i have a mac?", a: "no. free runs everything on your mac; your bots just pause while it sleeps. add dusk cloud when you want them working while your mac sleeps." },
   { q: "what counts as work use?", a: "anything you do for a company, for a client or to earn money. personal projects, learning and hobbies are personal use, which is free forever." },
 ];
 
