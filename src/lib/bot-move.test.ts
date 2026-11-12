@@ -87,9 +87,9 @@ describe("moving", () => {
     expect(result.moved).toBe(2);
     expect(result.failed).toEqual(["Scout"]);
     expect(result.line).toBe("moved 2 bots, 1 skill, 1 routine and their memory.");
-    expect(result.leftOut).toContain("chat history, logins and their Telegram connections stay in OpenClaw and Hermes Agent.");
-    expect(result.leftOut).toContain("routines arrive paused.");
-    expect(result.leftOut).toContain("couldn't move Scout.");
-    expect(result.leftOut).toContain("a few files couldn't be read");
+    expect(result.leftOut).toContain("Chat history, logins and their Telegram connections stay in OpenClaw and Hermes Agent.");
+    expect(result.leftOut).toContain("Routines arrive paused.");
+    expect(result.leftOut).toContain("Couldn't move Scout.");
+    expect(result.leftOut).toContain("A few files couldn't be read");
   });
 });

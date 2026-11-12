@@ -312,7 +312,7 @@ describe("bots from another app on this computer", () => {
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
     expect(host.querySelector("h1")?.textContent).toBe("your bots are here");
     expect(text()).toContain("moved 1 bot, 1 skill, 1 routine and their memory.");
-    expect(host.querySelector("[data-bot-move-left-out]")?.textContent).toContain("chat history, logins and their Telegram connections stay in OpenClaw.");
+    expect(host.querySelector("[data-bot-move-left-out]")?.textContent).toContain("Chat history, logins and their Telegram connections stay in OpenClaw.");
     await press("continue");
     expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
     expect(f.onDone).not.toHaveBeenCalled();
