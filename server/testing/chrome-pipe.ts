@@ -51,7 +51,7 @@ export function chromeLaunchEnv(env: NodeJS.ProcessEnv = process.env, platform: 
 }
 
 export async function launchPipeChrome(binary: string, args: string[]): Promise<PipeChrome> {
-  const profile = mkdtempSync(join(tmpdir(), "omb-test-chrome-"));
+  const profile = mkdtempSync(join(tmpdir(), "dusk-test-chrome-"));
   const child = spawn(binary, chromeLaunchArgs(profile, args), {
     env: chromeLaunchEnv(), stdio: ["ignore", "ignore", "pipe", "pipe", "pipe"], windowsHide: true,
   });

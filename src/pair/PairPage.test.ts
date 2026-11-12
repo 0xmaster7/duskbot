@@ -27,7 +27,7 @@ it("in the desktop app, a code the link carried connects at once; a browser stil
 });
 
 it("opening My Cloud from the app needs no click and no code to type", async () => {
-  vi.stubGlobal("window", { ogb: { workspaces: {} } });
+  vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
   f.pair.mockResolvedValue({ ok: true });
   const html = render(code);
   expect(html).toContain("Connecting to this Dusk…");
@@ -38,7 +38,7 @@ it("opening My Cloud from the app needs no click and no code to type", async () 
 });
 
 it("a code that no longer works falls back to the form, with the reason", async () => {
-  vi.stubGlobal("window", { ogb: { workspaces: {} } });
+  vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
   f.pair.mockResolvedValue({ ok: false, error: "That pairing code has expired." });
   render(code); f.effects[0](); await flush();
   expect(replaced).toEqual([]);

@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import { APP_EXTENSION_KEY } from "../shared/app.ts";
 import { CSP_META_PREFIX } from "../shared/app-frame/document.ts";
 import { APP_ONLY_REFUSAL } from "./mcp-app-observer.ts";
@@ -17,7 +17,7 @@ const FAKE_APP = fileURLToPath(new URL("./testing/fake-stdio-app-server.ts", imp
 const BOARD_URI = "ui://fake-app/board.html";
 
 it("learns a server's apps, observes its tool call into an app row, and runs its frame's calls under the bot's rules", async () => {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-chat-apps-mcp-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-chat-apps-mcp-"));
   const gate = join(scratch, "finish");
   const frames = join(scratch, "frames.jsonl");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate, FAKE_CLAUDE_VERSION: "2.1.270" });

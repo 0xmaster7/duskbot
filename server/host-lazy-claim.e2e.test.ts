@@ -117,7 +117,7 @@ describe("lazy host claim and pin on use (issue #1650)", () => {
   const ASKS = "ask";
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-host-lazy-claim-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-host-lazy-claim-"));
     data = join(home, "data");
     ui = join(home, "static");
     stateFile = join(home, "vm.json");

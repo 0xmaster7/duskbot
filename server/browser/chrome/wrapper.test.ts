@@ -32,7 +32,7 @@ describe("the launcher agent-browser runs instead of Chrome", () => {
   });
 
   it.skipIf(!posix)("passes every argument through a POSIX shell byte for byte, commas, quotes and dollars included", () => {
-    const folder = mkdtempSync(join(tmpdir(), "omb-launcher-"));
+    const folder = mkdtempSync(join(tmpdir(), "dusk-launcher-"));
     folders.push(folder);
     const chromeFolder = join(folder, "Chrome's \"odd\" $place");
     mkdirSync(chromeFolder);
@@ -79,7 +79,7 @@ describe("the launcher of a Team Cloud's boxed browsers", () => {
   const settings: LauncherSettings = { chrome: "/opt/chrome/chrome", userAgent: UA, screen: { width: 1920, height: 1080 } };
 
   it.skipIf(!posix)("starts Chrome through bubblewrap with only the profile it was given, the seccomp filter on descriptor 9 and HOME private", () => {
-    const folder = mkdtempSync(join(tmpdir(), "omb-boxed-launcher-"));
+    const folder = mkdtempSync(join(tmpdir(), "dusk-boxed-launcher-"));
     folders.push(folder);
     const bwrap = join(folder, "bwrap");
     // A stand-in for bubblewrap: what it was asked, and whether descriptor 9 holds the filter.

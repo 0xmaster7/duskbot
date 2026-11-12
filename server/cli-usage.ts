@@ -53,7 +53,7 @@ status  what the server says about itself
 vps     read-only Linux VPS status, host resources, managed computers and
         bounded redacted logs, including when the server is stopped.
         Run on the VPS; no sudo, service changes or credential reads.
-login   signs this machine in to a Dusk Bot account (an emailed code)
+login   signs this machine in to a dusk bot account (an emailed code)
         and reserves its public address for --tunnel
 logout  releases that address and signs out
 access  who may sign in with an emailed code at /pair: an address or

@@ -118,7 +118,7 @@ jobs:
     # manual runs, the release lane) all three. A pull request that
     # cannot affect a platform's results leaves it out, and one that changes
     # only translations runs the locale tests alone. Linux runs every file;
-    # Windows and macOS run every file but the e2e files that test only Dusk Bot's
+    # Windows and macOS run every file but the e2e files that test only dusk bot's
     # own logic (DUSK_VITEST_E2E=host, scripts/testing/host-e2e.ts). The split
     # is deterministic, so a failure names the same shard on every run, and
     # the same --shard and DUSK_VITEST_E2E reproduce it locally.
@@ -343,7 +343,7 @@ jobs:
           node-version: 24
       - name: Install and reuse the pinned connector in an isolated fixture
         env:
-          DUSK_ARM64_FIXTURE: ${{ runner.temp }}/omb-cloudflared-arm64
+          DUSK_ARM64_FIXTURE: ${{ runner.temp }}/dusk-cloudflared-arm64
         run: |
           node --input-type=module -e 'import assert from "node:assert/strict"; assert.equal(process.platform, "linux"); assert.equal(process.arch, "arm64");'
           node scripts/prepare-cloudflared.mjs --current --root "$DUSK_ARM64_FIXTURE"
@@ -427,7 +427,7 @@ jobs:
     # docs/verification/chat-ui.md run by a machine. It downloads the pinned
     # agent-browser release (digest verified) and its Chrome, drives the real
     # <App/> against the isolated fake-engine fixture, and keeps the screenshot.
-    name: renderer smoke (control-omb ui, Ubuntu 24.04)
+    name: renderer smoke (control-dusk ui, Ubuntu 24.04)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -446,21 +446,21 @@ jobs:
         # This is Chrome's own documented fix for 23.10+; a developer machine
         # needs nothing, and the sandbox itself stays on.
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Drive the real renderer through control-omb ui
+      - name: Drive the real renderer through control-dusk ui
         env:
           DUSK_UI_E2E: "1"
-          DUSK_UI_EVIDENCE_DIR: .omb-scratch/verify-evidence
-        run: pnpm exec vitest run scripts/testing/control-omb-ui.e2e.test.ts scripts/testing/bot-tools-ui.e2e.test.ts scripts/testing/thinking-timer-ui.e2e.test.ts scripts/testing/team-share-ui.e2e.test.ts scripts/testing/org-library-ui.e2e.test.ts scripts/testing/presets-ui.e2e.test.ts scripts/testing/browser-evidence.e2e.test.ts scripts/testing/browser-fill.e2e.test.ts scripts/testing/rich-table-composer-ui.e2e.test.ts scripts/testing/computer-panel-focus-ui.e2e.test.ts scripts/testing/mobile-code-blocks-ui.e2e.test.ts
+          DUSK_UI_EVIDENCE_DIR: .dusk-scratch/verify-evidence
+        run: pnpm exec vitest run scripts/testing/control-dusk-ui.e2e.test.ts scripts/testing/bot-tools-ui.e2e.test.ts scripts/testing/thinking-timer-ui.e2e.test.ts scripts/testing/team-share-ui.e2e.test.ts scripts/testing/org-library-ui.e2e.test.ts scripts/testing/presets-ui.e2e.test.ts scripts/testing/browser-evidence.e2e.test.ts scripts/testing/browser-fill.e2e.test.ts scripts/testing/rich-table-composer-ui.e2e.test.ts scripts/testing/computer-panel-focus-ui.e2e.test.ts scripts/testing/mobile-code-blocks-ui.e2e.test.ts
       - name: Upload the renderer screenshot
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: control-omb-ui-chat-screenshot
+          name: control-dusk-ui-chat-screenshot
           path: |
-            .omb-scratch/verify-evidence/chat-ui.png
-            .omb-scratch/verify-evidence/thinking-timer-anchored.png
-            .omb-scratch/verify-evidence/share-team-dialog.png
-            .omb-scratch/verify-evidence/mobile-code-blocks/
+            .dusk-scratch/verify-evidence/chat-ui.png
+            .dusk-scratch/verify-evidence/thinking-timer-anchored.png
+            .dusk-scratch/verify-evidence/share-team-dialog.png
+            .dusk-scratch/verify-evidence/mobile-code-blocks/
           if-no-files-found: warn
           retention-days: 7
 
@@ -468,7 +468,7 @@ jobs:
     needs: static
     if: contains(needs.static.outputs.jobs, '"browser-identity"')
     # Advisory, outside the required gate: the pinned agent-browser drives a
-    # real Chrome for Testing through Dusk Bot's launcher and identity connection
+    # real Chrome for Testing through dusk bot's launcher and identity connection
     # (scripts/testing/browser-identity.e2e.test.ts): a 1280x720 page whose
     # user agent and client hints are the browser's own in the page, a
     # worker, a service worker and a cross-site frame. On Windows this is
@@ -566,8 +566,8 @@ jobs:
         with:
           name: duskbot-ubuntu-smoke-diagnostics
           path: |
-            /tmp/omb-linux-smoke-*
-            /tmp/omb-linux-smoke-runtime-*
+            /tmp/dusk-linux-smoke-*
+            /tmp/dusk-linux-smoke-runtime-*
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 7
@@ -576,7 +576,7 @@ jobs:
     needs: static
     if: contains(needs.static.outputs.jobs, '"browser-driver"')
     # Advisory, outside the CI gate until it has run green for a while: the
-    # omb-cdp S4 conformance suites and the new browser's checklist and viewer
+    # dusk-cdp S4 conformance suites and the new browser's checklist and viewer
     # suites on the runner's own Google Chrome (PRs run Linux, and Windows
     # where the vitest shards do; the full lane all three; pushes to main and
     # merge groups leave it out), then on Linux inside the server image's
@@ -637,9 +637,9 @@ jobs:
         # even when the host leg failed: they test different Chromes.
         if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: |
-          docker build --target runtime -t omb-runtime:s4 .
+          docker build --target runtime -t dusk-runtime:s4 .
           mkdir -p node_modules/.vite && chmod a+w . node_modules/.vite
           docker run --rm --init --shm-size=512m --user maus -e CI=true \
             -e DUSK_CDP_CHROME=/opt/duskbot-browser/chrome -e DUSK_CDP_HOST=container -e DUSK_BROWSER_SANDBOX=0 \
-            -v "$PWD:/src" -w /src omb-runtime:s4 \
+            -v "$PWD:/src" -w /src dusk-runtime:s4 \
             node node_modules/vitest/vitest.mjs run server/browser/cdp/s4- server/browser/checklist.e2e server/browser/passkey-wall.e2e server/browser/viewers/viewers.e2e server/browser/viewers/stream-v2.e2e --reporter=verbose --silent=false

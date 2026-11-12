@@ -76,7 +76,7 @@ export function __resetImageCacheForTests(): void {
   rendered = null;
 }
 
-const RENDERED_KEY = "omb.rendered-sizes";
+const RENDERED_KEY = "dusk.rendered-sizes";
 const RENDERED_MAX = 200;
 let rendered: Map<string, MediaSize> | null = null;
 

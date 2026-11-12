@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 function fixture(source = "src/page.ts") {
-  const directory = mkdtempSync(join(tmpdir(), "omb-ci-scope-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-ci-scope-"));
   temporaryDirectories.push(directory);
   const git = (...args: string[]) => execFileSync("git", args, { cwd: directory, encoding: "utf8" }).trim();
   git("init", "--quiet");
@@ -100,7 +100,7 @@ describe("CI path scope", () => {
   });
 
   it("runs a test under scripts/ wherever the suite runs, without the build", () => {
-    expect(selectCiScope(["scripts/generate-locale.test.mjs", "scripts/testing/control-omb-ui.e2e.test.ts"]))
+    expect(selectCiScope(["scripts/generate-locale.test.mjs", "scripts/testing/control-dusk-ui.e2e.test.ts"]))
       .toEqual({ areas: ["script-tests"], checks: ["browser-identity", "host-tests", "linux-tests", "ui-smoke"] });
   });
 
@@ -311,7 +311,7 @@ describe("Windows on a pull request", () => {
 
   it.each([
     "server/index.ts", "src/components/WindowFrame.tsx", "server/darwin.ts", "server/twin.ts", "scripts/verify-sidebar.ts",
-    "scripts/testing/rail-preview.tsx", "scripts/control-omb.ts", ".github/workflows/self-hosted.yml", "tsconfig.json", "server/delta-context.e2e.test.ts",
+    "scripts/testing/rail-preview.tsx", "scripts/control-dusk.ts", ".github/workflows/self-hosted.yml", "tsconfig.json", "server/delta-context.e2e.test.ts",
   ])("waits for main for %s alone", (file) => {
     expect(reason([file])).toBeNull();
   });

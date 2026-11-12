@@ -1,10 +1,10 @@
-# Dusk Bot account dashboard
+# dusk bot account dashboard
 
-One hosted web app for everyone's Dusk Bot workspaces. A person signs in with their Dusk Bot account and sees
+One hosted web app for everyone's dusk bot workspaces. A person signs in with their dusk bot account and sees
 each of their workspaces (their Mac, each VPS) side by side: bots, usage, the machine and its bot computers, devices.
 
 ```
- workspace (a Dusk Bot server)            dashboard service (apps/dashboard/server)          browser (apps/dashboard/src)
+ workspace (a dusk bot server)            dashboard service (apps/dashboard/server)          browser (apps/dashboard/src)
  ---------------------------------            ------------------------------------          -----------------------
  POST /api/dashboard/link  (app menu)  ---->  POST /v1/enroll {ed25519 public key}
    opens the claim link in the browser        <---- {workspaceId, claimUrl}
@@ -26,7 +26,7 @@ each of their workspaces (their Mac, each VPS) side by side: bots, usage, the ma
   uses, in order, the URL it is given, `DUSK_DASHBOARD_URL`, its relay's discovery answer, then `DEFAULT_DASHBOARD_URL`.
 - **Accounts.** The service owns email-code sign-in, accounts and browser/app sessions (`shared/account-api.ts`).
   Accounts and token hashes live in `auth.json`; codes and one-time grants stay in memory. Browser mutations echo
-  the `omb_csrf` cookie in `x-omb-csrf`. Apps use the existing Admin contract v1 bearer routes. Social providers are
+  the `dusk_csrf` cookie in `x-dusk-csrf`. Apps use the existing Admin contract v1 bearer routes. Social providers are
   unavailable for now, with coming-soon buttons only in development.
 - **Workspaces.** The server makes its key on first link (`dashboard-link.json` in its data folder, mode 0600). The
   claim link is one-time and lasts 30 minutes; an unclaimed workspace is dropped after a day. Removing a workspace in

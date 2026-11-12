@@ -1,4 +1,4 @@
-// Seeds the test bots into a running Dusk Bot with only the requests the app itself makes: a team backup import
+// Seeds the test bots into a running dusk bot with only the requests the app itself makes: a team backup import
 // (bots, looks, instructions, memory, room, conversation text), then section moves, approval level, skills, routines,
 // webhooks, reactions and unread marks. Idempotent: anything already there by name in the "Test bots" section is kept
 // as it is and skipped. Never reads, changes or deletes anything outside what it creates.
@@ -20,7 +20,7 @@ const day = (now, daysAgo) => new Date(now - daysAgo * D).toISOString().slice(0,
 const inSection = (record) => (record.section ?? "").trim() === SECTION;
 const lower = (value) => value.trim().toLowerCase();
 
-/** An openmaus.backup with the given bots and rooms; every room member must be among the bots. */
+/** A dusk.backup with the given bots and rooms; every room member must be among the bots. */
 export function teamBackup(now, bots = BOTS, rooms = ROOMS) {
   const conversations = threads();
   const backupBots = bots.map((bot) => {
@@ -55,7 +55,7 @@ export function teamBackup(now, bots = BOTS, rooms = ROOMS) {
       tasks: [{ key: "main", title: room.name, createdAt: now - room.ago, activeLeafId: messages.at(-1).id, messages }],
     };
   });
-  return { format: "openmaus.backup", version: 1, name: "Dusk Bot test bots", exportedAt: now, warnings: [], bots: backupBots, groups, routines: [] };
+  return { format: "dusk.backup", version: 1, name: "dusk bot test bots", exportedAt: now, warnings: [], bots: backupBots, groups, routines: [] };
 }
 
 /**

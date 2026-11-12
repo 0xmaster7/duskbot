@@ -33,7 +33,7 @@ test("the Cloud protocol is a fixed action without URL routing or credentials", 
 });
 
 test("consuming a launch action prevents it replaying on a later restart without changing other arguments", () => {
-  const original = ["/Applications/Dusk Bot", "--profile=fixture", "duskbot://cloud?ignored", "duskbot://organization", "duskbot://install/example"];
+  const original = ["/Applications/dusk bot", "--profile=fixture", "duskbot://cloud?ignored", "duskbot://organization", "duskbot://install/example"];
   const argv = [...original, "duskbot://cloud", "duskbot://cloud"];
   assert.equal(takeCloudDeepLink(argv), true);
   assert.deepEqual(argv, original);
@@ -43,9 +43,9 @@ test("consuming a launch action prevents it replaying on a later restart without
 
 test("a cold-start link waits until main can navigate, then opens exactly once", async () => {
   const h = fixture();
-  const argv = ["/Applications/Dusk Bot", "--fixture", "duskbot://cloud"];
+  const argv = ["/Applications/dusk bot", "--fixture", "duskbot://cloud"];
   assert.equal(h.entry.fromLaunch(argv), true);
-  assert.deepEqual(argv, ["/Applications/Dusk Bot", "--fixture"]);
+  assert.deepEqual(argv, ["/Applications/dusk bot", "--fixture"]);
   await settle();
   assert.deepEqual(h.calls, [], "no window exists to reveal or navigate yet");
   assert.equal(await h.entry.ready(), true);
@@ -56,7 +56,7 @@ test("a cold-start link waits until main can navigate, then opens exactly once",
 
 test("a launch without the link leaves nothing pending", async () => {
   const h = fixture();
-  assert.equal(h.entry.fromLaunch(["/Applications/Dusk Bot", "duskbot://cloud/"]), false);
+  assert.equal(h.entry.fromLaunch(["/Applications/dusk bot", "duskbot://cloud/"]), false);
   assert.equal(await h.entry.ready(), false);
   assert.deepEqual(h.calls, []);
 });
@@ -109,7 +109,7 @@ test("a failed open is contained and a later link still opens", async () => {
 });
 
 test("a consumed launch link is not replayed by the companion relaunch", () => {
-  const argv = ["/fixture/Dusk Bot", "--fixture", "duskbot://cloud", "duskbot://cloud?ignored"];
+  const argv = ["/fixture/dusk bot", "--fixture", "duskbot://cloud", "duskbot://cloud?ignored"];
   takeCloudDeepLink(argv);
   const calls = [];
   runInNewContext(`${between("function relaunchAfterDesktopRemoteChange()", 'ipcMain.handle("desktop-remote:state"')}\nrelaunchAfterDesktopRemoteChange();`, {

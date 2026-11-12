@@ -105,7 +105,7 @@ export function welcomeOnScreen(): boolean {
   return welcomeShown > 0;
 }
 
-const WELCOME_FINISHED_KEY = "omb.onboarding.welcomeFinished";
+const WELCOME_FINISHED_KEY = "dusk.onboarding.welcomeFinished";
 /** The first-run welcome ended in this app session (never a replay): the full-screen Cloud Pro popup waits for a later
  * launch rather than following it. Kept for the window's session, so a reload counts as the same launch. */
 // Where browser storage is blocked, this page's memory stands in for it.
@@ -128,10 +128,10 @@ export function welcomeFinishedThisLaunch(): boolean {
 export const DEFAULT_ADMIN_ORIGIN = "https://dusk.bot";
 
 export function organisationSignIn<Bridge>(
-  ogb: { organization?: Bridge; remoteClient?: { active?: boolean } } | undefined,
+  duskDesktop: { organization?: Bridge; remoteClient?: { active?: boolean } } | undefined,
 ): Bridge | undefined {
-  if (!ogb || ogb.remoteClient?.active === true) return undefined;
-  return ogb.organization;
+  if (!duskDesktop || duskDesktop.remoteClient?.active === true) return undefined;
+  return duskDesktop.organization;
 }
 
 export function companyModelCount(state: { providers?: Array<{ configured: boolean; models: string[] }> } | null): number {

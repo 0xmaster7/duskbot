@@ -5,14 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 
 const CALLED = /The user ran/;
 
 it("calls a skill mid-message from what a person typed, never from a webhook, another bot, an app or a bot's own shell", async () => {
-  const gates = mkdtempSync(join(tmpdir(), "omb-skill-commands-"));
+  const gates = mkdtempSync(join(tmpdir(), "dusk-skill-commands-"));
   const gate = join(gates, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate });
   const base = fixture.info.url;

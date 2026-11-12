@@ -13,7 +13,7 @@ import { freePortBlock } from "./testing/ports.ts";
 import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0a1b2c3d4e5f.fly.dev";
+const HOST = "dusk-t-0a1b2c3d4e5f.fly.dev";
 const MACHINE = "4b8d2c1e-9a7f-4e6d-8c5b-1a2b3c4d5e6f";
 const secret = randomBytes(32).toString("base64url");
 let home = "", base = "", log = "", token = "";
@@ -34,11 +34,11 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function ownerToken(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   return (await api("POST", "/api/auth/pair", { code: granted.code })).body.token;
@@ -48,7 +48,7 @@ beforeAll(async () => {
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   broker = await startBrokerFake();
-  home = mkdtempSync(join(tmpdir(), "omb-app-events-cloud-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-app-events-cloud-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({

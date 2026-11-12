@@ -2,7 +2,7 @@
 // Offline stand-in for Moonshot's `kimi` CLI sign-in (`--version`, `login` printing kimi-code 2.4.1's device
 // instructions to stderr): no network, no real credential; needs explicit opt-in and a disposable HOME.
 //   FAKE_KIMI_MODE  success | global (kimi.ai, saved under its own token name) | approve (once
-//     HOME/.omb-fake-kimi-approved exists) | waiting | renew (a new code, as once the first expires) | extra (a page with
+//     HOME/.dusk-fake-kimi-approved exists) | waiting | renew (a new code, as once the first expires) | extra (a page with
 //     another query value) | evil (a page on another host) | expired | denied | crash | no-credential | ignore-term
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
@@ -46,7 +46,7 @@ if (args.join(" ") === "--version") {
   prompt("QKXP-7M4D");
   const later = (then: () => void) => setTimeout(then, 80);
   if (mode === "success" || mode === "extra" || mode === "global") later(signIn);
-  else if (mode === "approve") setInterval(() => { if (existsSync(join(home, ".omb-fake-kimi-approved"))) signIn(); }, 100);
+  else if (mode === "approve") setInterval(() => { if (existsSync(join(home, ".dusk-fake-kimi-approved"))) signIn(); }, 100);
   else if (mode === "no-credential") later(() => process.exit(0));
   else if (mode === "renew") { later(() => prompt("RW7N-2KQ9")); setInterval(() => {}, 1000); }
   else if (mode === "expired") later(() => { process.stderr.write("Login failed: Device authorization timed out after 900s secret-token\n"); process.exit(1); });

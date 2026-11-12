@@ -188,7 +188,7 @@ describe("error endpoints", () => {
   let alerts: ReturnType<typeof setup>, mailer: ReturnType<typeof memoryMailer>;
   const csrf = new Map<string, string>();
   beforeEach(async () => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-incidents-test-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-incidents-test-"));
     mailer = memoryMailer();
     alerts = setup();
     app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, incidents: alerts.incidents, admin: { emails: [OWNER], env: {} } });

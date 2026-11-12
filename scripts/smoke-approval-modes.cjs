@@ -13,7 +13,7 @@ const { setTimeout: delay } = require("node:timers/promises");
 const { createTrustedApprovalModeCoordinator } = require("../electron/approval-trusted-mode.cjs");
 
 const root = resolve(__dirname, "..");
-const home = mkdtempSync(join(tmpdir(), "omb-approval-smoke-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-approval-smoke-"));
 app.setPath("userData", join(home, "electron"));
 let child;
 let logs = "";

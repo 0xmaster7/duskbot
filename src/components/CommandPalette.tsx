@@ -26,7 +26,7 @@ type PaletteEntry =
   | { kind: "message"; hit: SearchHit }
   | { kind: "command"; command: Command };
 
-const OPEN_EVENT = "omb:open-command-palette";
+const OPEN_EVENT = "dusk:open-command-palette";
 
 const IDLE_COMMANDS = new Set(["new-bot", "new-group", "shortcuts", "settings-general", "settings-texting", "settings-computer", "settings-permissions"]);
 

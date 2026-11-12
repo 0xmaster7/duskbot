@@ -5,7 +5,7 @@ import { askReportStatus, bugReportEndpoint, bugReportsHomeSignature, bugReportS
 
 const PAYLOAD: DevsReportPayload = {
   installId: "4b7c1f2e-0a9d-4c2b-9f1e-6d5a4b3c2d1e", source: "bot", description: "it broke", appVersion: "0.1.128", platform: "darwin arm64, desktop app",
-  diagnostics: "Dusk Bot @devs report", contactEmail: "ada@example.com", contact: "ada@example.com",
+  diagnostics: "dusk bot @devs report", contactEmail: "ada@example.com", contact: "ada@example.com",
 };
 
 function endpoint(...answers: Array<Response | Error>) {
@@ -80,18 +80,18 @@ describe("asking what became of the reports this app sent", () => {
     expect(desktop.sent[0]!.url).toBe("https://cloud.example/api/bug-reports/status");
     expect(desktop.sent[0]!.init).toMatchObject({ method: "POST", redirect: "error" });
     expect(desktop.sent[0]!.body).toEqual(QUESTION);
-    expect(Object.keys(desktop.sent[0]!.init.headers as Record<string, string>).filter((name) => name.startsWith("x-omb-cloud"))).toEqual([]);
+    expect(Object.keys(desktop.sent[0]!.init.headers as Record<string, string>).filter((name) => name.startsWith("x-dusk-cloud"))).toEqual([]);
 
     const home = { machineId: "cm-test-home", bootstrapSecret: "s".repeat(43) }, cloud = endpoint(answer(200, ANSWER));
     expect(await askReportStatus("https://cloud.example/api/bug-reports/status", QUESTION, home, cloud.fetcher, () => 1_792_670_400_000)).toEqual(ANSWER);
     const headers = cloud.sent[0]!.init.headers as Record<string, string>, raw = String(cloud.sent[0]!.init.body);
-    expect(headers).toMatchObject({ "x-omb-cloud-machine": "cm-test-home", "x-omb-cloud-timestamp": "1792670400" });
-    expect(headers["x-omb-cloud-signature"]).toBe(`v1=${bugReportsHomeSignature(home.bootstrapSecret, home.machineId, "1792670400", headers["x-omb-cloud-nonce"]!, raw)}`);
+    expect(headers).toMatchObject({ "x-dusk-cloud-machine": "cm-test-home", "x-dusk-cloud-timestamp": "1792670400" });
+    expect(headers["x-dusk-cloud-signature"]).toBe(`v1=${bugReportsHomeSignature(home.bootstrapSecret, home.machineId, "1792670400", headers["x-dusk-cloud-nonce"]!, raw)}`);
     expect(JSON.stringify(cloud.sent)).not.toContain(home.bootstrapSecret);
   });
 
   it("signs exactly as the Admin checks it", () => {
-    // The same vector is pinned in openmaus-cloud tests/bug-report-fixes.test.ts.
+    // The same vector is pinned in dusk-cloud tests/bug-report-fixes.test.ts.
     expect(bugReportsHomeSignature("s".repeat(43), "cm-test-home", "1792670400", "nonce-nonce-nonce-1", '{"installId":"install_0001","ids":[]}')).toBe("yk4dl82CpryMBfCaT18e_sJ6uihfo3dPHVP4prToXL8");
   });
 

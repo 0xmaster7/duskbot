@@ -108,12 +108,12 @@ describe("account pages HTTP fixture", () => {
   it("rejects wrong signatures, replayed nonces, stale signatures and desktop bearer tokens", async () => {
     const body = JSON.stringify({ action: "create" }), headers = { "content-type": "application/json", ...pagesAuthHeaders(access(), body, time) };
     const send = (extra = {}) => fetch(`${base}/api/cloud/pages/token`, { method: "POST", body, headers: { ...headers, ...extra } });
-    expect((await send({ "x-omb-cloud-signature": "v1=wrong" })).status).toBe(401);
+    expect((await send({ "x-dusk-cloud-signature": "v1=wrong" })).status).toBe(401);
     expect((await send()).status).toBe(200);
     const replay = await send(); expect(replay.status).toBe(401); expect(await replay.json()).toMatchObject({ error: "invalid_token" });
     expect((await send(pagesAuthHeaders(access(), body, time - 301_000))).status).toBe(401);
-    expect((await send({ authorization: `Bearer omb_pd_${"a".repeat(43)}` })).status).toBe(401);
-    expect((await send({ ...pagesAuthHeaders(access(), body, time), "x-omb-cloud-machine": "missing" })).status).toBe(401);
+    expect((await send({ authorization: `Bearer dusk_pd_${"a".repeat(43)}` })).status).toBe(401);
+    expect((await send({ ...pagesAuthHeaders(access(), body, time), "x-dusk-cloud-machine": "missing" })).status).toBe(401);
   });
 
   it.each(["destroyed", "suspended", "ended"])("rejects a %s cloud", async state => {
@@ -265,11 +265,11 @@ it("rejects invalid credentials, replays, token reuse and unsafe files without a
     return service.upload(grant.pageId, `Bearer ${grant.token}`, Buffer.from(await request.arrayBuffer()), request.headers.get("content-type")!);
   };
   try {
-    expect(service.mint({ ...headers, "x-omb-cloud-signature": "v1=bad" }, Buffer.from(body)).status).toBe(401);
+    expect(service.mint({ ...headers, "x-dusk-cloud-signature": "v1=bad" }, Buffer.from(body)).status).toBe(401);
     expect(service.mint(headers, Buffer.from(body)).status).toBe(200);
     expect(service.mint(headers, Buffer.from(body)).status).toBe(401);
     expect(service.mint(pagesAuthHeaders(access, body, time - 301_000), Buffer.from(body)).status).toBe(401);
-    expect(service.mint({ authorization: "Bearer omb_pd_unsupported" }, Buffer.from(body)).status).toBe(401);
+    expect(service.mint({ authorization: "Bearer dusk_pd_unsupported" }, Buffer.from(body)).status).toBe(401);
     const grant = (await mint().json() as Grant);
     expect((await upload(grant, "index.html")).status).toBe(200);
     expect((await upload(grant, "index.html")).status).toBe(401);

@@ -4,7 +4,7 @@ export type RegistryFile = "bots.json" | "groups.json";
 
 export function registrySaveFailure(action: string, file: RegistryFile, code: unknown): string {
   const reason = typeof code === "string" && HELD_OR_READ_ONLY.has(code)
-    ? `another program is holding Dusk Bot's ${file}, or its folder is read-only`
-    : `Dusk Bot couldn't write ${file}`;
+    ? `another program is holding dusk bot's ${file}, or its folder is read-only`
+    : `dusk bot couldn't write ${file}`;
   return `Couldn't save ${action}: ${reason}.`;
 }

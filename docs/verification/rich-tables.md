@@ -26,7 +26,7 @@ The script creates a fresh browser context, checks sorting, rich Markdown links,
 RTL, expansion/Escape/focus return, lazy file loading, scrolling to the final CSV
 row, sticky headers, bounded DOM, whole-result copy/download, TSV newlines,
 malformed-file errors, network retry, dismissal during loading, and narrow/light
-layout. Screenshots go to `DUSK_TABLE_EVIDENCE` or `/tmp/omb-rich-tables-evidence`.
+layout. Screenshots go to `DUSK_TABLE_EVIDENCE` or `/tmp/dusk-rich-tables-evidence`.
 The supplied address must be loopback and name this fixture page.
 
 ## Focused regression checks

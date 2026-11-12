@@ -1,4 +1,4 @@
-// A real Cloud home and its agents tools: a bot asks for two secrets Dusk Bot does not keep, the person types each
+// A real Cloud home and its agents tools: a bot asks for two secrets dusk bot does not keep, the person types each
 // into its card, and the bot uses them. Each recognisable value is then searched for in everything the server wrote (the
 // data folder, its events, transcripts, usage spans and logs), every answer it gave, every tool result and its own log.
 // The file secret is found only in its private file; the ref secret only in the MCP server settings it was saved into.
@@ -18,7 +18,7 @@ import { hostTimeout } from "./testing/host-timeout.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-5ec2e7f1a0b9.fly.dev";
+const HOST = "dusk-t-5ec2e7f1a0b9.fly.dev";
 const FILE_CANARY = `sk_test_FILECANARY${randomBytes(12).toString("hex")}`;
 const REF_CANARY = `ntn_REFCANARY${randomBytes(12).toString("hex")}`;
 const VAULT_CANARY = `or_VAULTCANARY${randomBytes(12).toString("hex")}`;
@@ -49,11 +49,11 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function pairOwner(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(bootstrap, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(bootstrap, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   const paired = await api("POST", "/api/auth/pair", { code: granted.code });
@@ -89,7 +89,7 @@ async function proxyFor(start: () => Promise<void>) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-secret-requests-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-secret-requests-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -186,12 +186,12 @@ it("keeps a file secret and a ref secret out of every record, and the bot uses e
   // A one-use secretRef for mcp_server.
   await tools.call("request_credential", { label: "Notion key", reason: "For Notion's MCP server.", delivery: "ref" });
   const refCard = (await cards()).at(-1);
-  expect(refCard.secret.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for Dusk Bot's own tools and never sees it.");
+  expect(refCard.secret.description).toBe("For Notion's MCP server. Ledger gets a one-use reference for dusk bot's own tools and never sees it.");
   expect(await save(refCard.id, REF_CANARY)).toMatchObject({ status: 200, body: { provided: true } });
   const refText = (await tools.call("request_credential", { label: "Notion key", reason: "For Notion's MCP server.", delivery: "ref" })).text;
   const ref = /secret-ref:[0-9a-f]{32}/u.exec(refText)?.[0];
   expect(ref, refText).toBeDefined();
-  // The person agreed to Dusk Bot's tools only: a file needs a new card.
+  // The person agreed to dusk bot's tools only: a file needs a new card.
   const asFile = await tools.call("request_credential", { label: "Notion key", reason: "For a script.", delivery: "file" });
   expect(asFile.text).toContain("not as a file for your commands (not a file request), so this card asks for it again");
   expect((await cards()).at(-1).secret).toMatchObject({ label: "Notion key", delivery: "file" });

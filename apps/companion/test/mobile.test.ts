@@ -12,14 +12,14 @@ import { createProxyHandler, type ProxyOptions } from "../src/proxy.ts";
 import { denyReason } from "../src/routes.ts";
 import { gzipTunnelReplies } from "../src/tunnel-gzip.ts";
 
-const TOKEN = `omb_sess_${"a".repeat(43)}`;
+const TOKEN = `dusk_sess_${"a".repeat(43)}`;
 const auth = { authorization: `Bearer ${TOKEN}` };
 const servers: Server[] = [];
 const sockets = new Set<Duplex>();
 const dirs: string[] = [];
 
 const stateFile = (): string => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-mobile-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-mobile-test-"));
   dirs.push(dir);
   return join(dir, "mobile-sessions.json");
 };
@@ -113,7 +113,7 @@ describe("mobile session registry", () => {
 
   it("rejects malformed tokens, keeps duplicates stable and caps the oldest entries", () => {
     const mobile = createMobileSessions({ file: null });
-    for (const token of ["omb_token", "omb_sess_short", `omb_sess_${"x".repeat(201)}`, `omb_sess_${"!".repeat(20)}`]) {
+    for (const token of ["dusk_token", "dusk_sess_short", `dusk_sess_${"x".repeat(201)}`, `dusk_sess_${"!".repeat(20)}`]) {
       mobile.remember(token, "invalid");
       expect(mobile.has(token)).toBe(false);
     }
@@ -122,7 +122,7 @@ describe("mobile session registry", () => {
     mobile.remember(TOKEN, "duplicate");
     expect(mobile.list()).toHaveLength(1);
     expect(mobile.list()[0].deviceId).toBe("first");
-    for (let i = 0; i < 64; i++) mobile.remember(`omb_sess_${String(i).padStart(20, "0")}`, `phone-${i}`);
+    for (let i = 0; i < 64; i++) mobile.remember(`dusk_sess_${String(i).padStart(20, "0")}`, `phone-${i}`);
     expect(mobile.list()).toHaveLength(64);
     expect(mobile.has(TOKEN)).toBe(false);
     expect(mobile.list()[0].deviceId).toBe("phone-0");

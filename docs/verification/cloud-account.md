@@ -1,4 +1,4 @@
-# Optional personal Dusk Cloud account
+# Optional personal dusk cloud account
 
 Personal Cloud is independent of Settings → Organization, the hosted Companion
 account, local profile fields, providers, bots and chat history. Fresh startup

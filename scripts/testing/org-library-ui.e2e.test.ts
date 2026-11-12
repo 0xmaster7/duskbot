@@ -7,9 +7,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import { resolveAgentBrowserBinary } from "../../server/browser-engine.ts";
 import { waitForExit } from "../../server/testing/cleanup.ts";
 import { canonicalJson, parsePackageDocument } from "../../shared/package-format.ts";
-import { runControlOmb } from "../control-omb.ts";
+import { runControlDusk } from "../control-dusk.ts";
 import { request } from "../mcp-server.ts";
-import { UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { UI_TOOLS_DIR } from "./control-dusk-ui.ts";
 import { clickByName } from "./grok-nav.ts";
 import { openTemplatesWhenFree } from "./grok-templates.ts";
 
@@ -57,7 +57,7 @@ describe("the organization library in the real renderer", () => {
     let stdout = "";
     let stderr = "";
     let info: { ui: string; url: string; botId: string; dataDir: string; logPath: string };
-    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "scripts/control-omb.ts"), "ui", "launch"], {
+    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "scripts/control-dusk.ts"), "ui", "launch"], {
       cwd: ROOT, env: { ...process.env, DUSK_TEST_ORG_LIBRARY_KEY: key }, stdio: ["ignore", "pipe", "pipe"],
     });
     child.stdout!.on("data", (chunk: Buffer) => { stdout += String(chunk); });
@@ -67,12 +67,12 @@ describe("the organization library in the real renderer", () => {
       if (child!.exitCode !== null || child!.signalCode !== null) throw new Error(`UI launcher exited: ${stderr}`);
       try { info = JSON.parse(stdout); return Boolean(info.ui); } catch { return false; }
     }, { timeout: launchTimeout, interval: 250 }).toBe(true);
-    const ui = (verb: string, ...args: string[]) => runControlOmb(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
+    const ui = (verb: string, ...args: string[]) => runControlDusk(["ui", verb, "--ui", info.ui, ...args]) as Promise<Record<string, any>>;
     const click = (name: string) => ui("click", "--name", name);
     const press = (keys: string) => ui("press", "--keys", keys);
     const snapshot = async () => (await ui("snapshot")).snapshot as string;
     const api = (path: string, method = "GET", body?: unknown) => request(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }, info.url);
-    const evidence = (name: string) => ui("screenshot", "--out", join(ROOT, ".omb-scratch", "verify-evidence", name));
+    const evidence = (name: string) => ui("screenshot", "--out", join(ROOT, ".dusk-scratch", "verify-evidence", name));
 
     await openTemplatesWhenFree(ui);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Community templates");
@@ -85,7 +85,7 @@ describe("the organization library in the real renderer", () => {
     const blobs = join(info!.dataDir, "org-library", "blobs");
     mkdirSync(blobs, { recursive: true });
     for (const rel of [team, skills]) writeFileSync(join(blobs, `${rel.sha256}.json`), rel.bytes, { mode: 0o600 });
-    const catalog = JSON.stringify({ format: "openmaus.org-library", version: 1, libraryVersion: 1, organization: { id: ORG, name: "Customer Co" },
+    const catalog = JSON.stringify({ format: "dusk.org-library", version: 1, libraryVersion: 1, organization: { id: ORG, name: "Customer Co" },
       packages: [team.entry(TEAM_ID), skills.entry(LIBRARY_ID)] });
     const relayed = await fetch(`${info!.url}/api/testing/org-library`, {
       method: "POST", headers: { "content-type": "application/json", "x-dusk-test-org-library": key },

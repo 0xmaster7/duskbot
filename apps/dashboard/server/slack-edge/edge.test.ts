@@ -25,7 +25,7 @@ async function fixture() {
   const api = createSlackApi({ env: { DUSK_SLACK_API_URL: fake.url }, minGapMs: 0 });
   const appId = (await api.call<{ app_id: string }>("apps.manifest.create", fake.config.access, { manifest: { settings: { socket_mode_enabled: true } } })).app_id;
   const appToken = fake.mintAppToken(appId);
-  const dir = mkdtempSync(join(tmpdir(), "omb-slack-edge-")), desktopDir = mkdtempSync(join(tmpdir(), "omb-slack-desktop-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-slack-edge-")), desktopDir = mkdtempSync(join(tmpdir(), "dusk-slack-desktop-"));
   cleanup.push(() => { rmSync(dir, { recursive: true, force: true }); rmSync(desktopDir, { recursive: true, force: true }); });
   const server = createServer();
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));

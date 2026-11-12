@@ -28,11 +28,11 @@ const ORIGIN_TARGET =
         socketPath:
           "\\\\.\\pipe\\duskbot-companion-origin-31337-12345678-1234-1234-1234-123456789abc",
       }
-    : { pid: 31337, socketPath: "/tmp/omb-companion-origin-test/origin.sock" };
+    : { pid: 31337, socketPath: "/tmp/dusk-companion-origin-test/origin.sock" };
 const temporaryDirectories = [];
 
 function temporaryDirectory() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omb-managed-tunnel-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dusk-managed-tunnel-"));
   temporaryDirectories.push(directory);
   return directory;
 }
@@ -168,7 +168,7 @@ describe("cloudflared binary resolution", () => {
     const resourcesPath = path.join(
       path.parse(process.cwd()).root,
       "Applications",
-      "Dusk Bot",
+      "dusk bot",
       "Contents",
       "Resources",
     );

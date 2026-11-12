@@ -1,10 +1,10 @@
 // Ported from T3 Code's apps/server/src/preview/PreviewBrowserHost.ts,
 // Copyright 2026 T3 Tools Inc., used under the MIT License
 // (third_party/t3-code/LICENSE). Modified: plain TypeScript instead of Effect,
-// Dusk Bot's command and environment names, and an AppArmor profile pinned to one
+// dusk bot's command and environment names, and an AppArmor profile pinned to one
 // exact executable instead of a wildcard path.
 //
-// Dusk Bot never turns Chrome's sandbox off by itself on a host. A host that cannot
+// dusk bot never turns Chrome's sandbox off by itself on a host. A host that cannot
 // give it one gets the setup command instead, and only an operator's explicit
 // DUSK_BROWSER_SANDBOX=0 launches without it. The computer container image (also
 // run on a VPS) is the exception: it drops capabilities, so its Chrome runs
@@ -37,7 +37,7 @@ export function appArmorProfile(executable: string): string {
   if (!isAbsolute(executable) || /[\s\p{Cc}*?[\]{}"'\\^]/u.test(executable.replaceAll(" ", "")) || !executable.startsWith("/opt/")) {
     throw new Error(`The browser's AppArmor exemption is only for a root-owned path under /opt, not ${executable}.`);
   }
-  return `# Written by \`duskbot browser setup\`: lets Dusk Bot's Chrome use its sandbox.
+  return `# Written by \`duskbot browser setup\`: lets dusk bot's Chrome use its sandbox.
 abi <abi/4.0>,
 include <tunables/global>
 

@@ -19,7 +19,7 @@ let child: ChildProcess;
 let stderr = "";
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-legacy-test-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-legacy-test-"));
   const legacy = join(home, ".opengrokbot");
   mkdirSync(legacy, { recursive: true });
   // A non-product shadow: an empty map would select the full default fleet, whose CLI probes are not part of this test.

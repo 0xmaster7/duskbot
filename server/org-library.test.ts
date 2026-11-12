@@ -50,7 +50,7 @@ function entry(packageId: string, rel: { document: any; bytes: string; sha256: s
 }
 
 function catalog(packages: unknown[], extra: Record<string, unknown> = {}) {
-  return { format: "openmaus.org-library", version: 1, libraryVersion: 3, organization: { id: ORG, name: "Customer Co" }, packages, ...extra };
+  return { format: "dusk.org-library", version: 1, libraryVersion: 3, organization: { id: ORG, name: "Customer Co" }, packages, ...extra };
 }
 
 function relay(body: unknown, overrides: Record<string, unknown> = {}) {
@@ -59,7 +59,7 @@ function relay(body: unknown, overrides: Record<string, unknown> = {}) {
 }
 
 function snapshot(): string {
-  const copy = mkdtempSync(join(tmpdir(), "omb-org-library-crash-"));
+  const copy = mkdtempSync(join(tmpdir(), "dusk-org-library-crash-"));
   homes.push(copy);
   cpSync(home, copy, { recursive: true });
   return copy;
@@ -70,7 +70,7 @@ async function installation(from?: string) {
     (await import("./message-db.ts")).closeMessageDb();
     home = from;
   } else {
-    home = mkdtempSync(join(tmpdir(), "omb-org-library-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-org-library-"));
     homes.push(home);
   }
   vi.resetModules();
@@ -176,7 +176,7 @@ describe("the catalog", () => {
     await library.settled();
     const readBlob = vi.spyOn(library, "readBlob");
     expect(library.list().packages[0]).toMatchObject({ blob: "unsupported", installed: null });
-    expect(library.add(TEAM_ID, app.importDeps)).toMatchObject({ ok: false, status: 409, code: "newer_app_required", error: "Update Dusk Bot to add this package." });
+    expect(library.add(TEAM_ID, app.importDeps)).toMatchObject({ ok: false, status: 409, code: "newer_app_required", error: "Update dusk bot to add this package." });
     expect(readBlob).not.toHaveBeenCalled();
     expect(app.store.bots).toHaveLength(0);
   });

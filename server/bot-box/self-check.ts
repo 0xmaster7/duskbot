@@ -48,7 +48,7 @@ export interface SelfCheckResult extends BoxChecks {
   error?: string;
 }
 
-const MARKER_PREFIX = "DUSK-BOX-CANARY-";
+const MARKER_PREFIX = "BOX-CANARY-";
 
 /** The host's own path out through the gate socket: whether the public internet answers at all. */
 function hostConnect(socketPath: string, target: string): Promise<string> {
@@ -80,13 +80,13 @@ export async function runBoxSelfCheck(options: SelfCheckOptions): Promise<SelfCh
   writeFileSync(join(otherTask, "notes.md"), `other turn ${marker}`);
   writeFileSync(join(botFolder, "MEMORY.md"), "own bot");
   // An engine laid out as `npm install -g --prefix` leaves one: its bin entry a relative link into the package.
-  const engineBin = join(npmEnginesPrefix(data), "bin"), engineName = "omb-probe-engine", engineSays = "omb-probe-engine ran";
+  const engineBin = join(npmEnginesPrefix(data), "bin"), engineName = "dusk-probe-engine", engineSays = "dusk-probe-engine ran";
   const enginePackage = join(npmEnginesPrefix(data), "lib", "node_modules", engineName, "bin");
   for (const dir of [engineBin, enginePackage]) mkdirSync(dir, { recursive: true, mode: 0o700 });
   writeFileSync(join(enginePackage, engineName), `#!/bin/sh\necho '${engineSays}'\n`, { mode: 0o755 });
   symlinkSync(join("..", "lib", "node_modules", engineName, "bin", engineName), join(engineBin, engineName));
   // The box's private /tmp is what is checked, so the host file goes to /tmp itself where there is one.
-  const hostTmpFile = join(existsSync("/tmp") ? "/tmp" : tmpdir(), `omb-box-check-${randomBytes(6).toString("hex")}`);
+  const hostTmpFile = join(existsSync("/tmp") ? "/tmp" : tmpdir(), `dusk-box-check-${randomBytes(6).toString("hex")}`);
   writeFileSync(hostTmpFile, "host tmp");
 
   // The key the broker takes over: its own value, so a box that is never brokered (the host's network) is not counted

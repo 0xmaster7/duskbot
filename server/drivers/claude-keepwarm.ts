@@ -58,9 +58,9 @@ export function keepWarmArgs(
 
 export function keepWarmMcpServers(mcpServers: Record<string, unknown>, deadSocket: string): Record<string, unknown> {
   const out: Record<string, unknown> = { ...mcpServers };
-  const ogb = out.ogb as { args?: unknown } | undefined;
-  if (ogb && Array.isArray(ogb.args) && ogb.args.length >= 2) {
-    out.ogb = { ...ogb, args: [...ogb.args.slice(0, -1), deadSocket] };
+  const dusk = out.dusk as { args?: unknown } | undefined;
+  if (dusk && Array.isArray(dusk.args) && dusk.args.length >= 2) {
+    out.dusk = { ...dusk, args: [...dusk.args.slice(0, -1), deadSocket] };
   }
   return out;
 }
@@ -74,7 +74,7 @@ export function keepWarmSettings(settings: Record<string, unknown> | null, denyC
   };
 }
 
-export const KEEP_WARM_DENY_HOOK = `process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Dusk Bot keep-warm ping: no tools" } }));\n`;
+export const KEEP_WARM_DENY_HOOK = `process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "dusk bot keep-warm ping: no tools" } }));\n`;
 
 const count = (value: unknown): number => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 
@@ -140,7 +140,7 @@ export function runForkedPrompt<T>(opts: {
   const { contract, what } = opts;
   let dir: string;
   try {
-    dir = mkdtempSync(join(tmpdir(), "omb-keepwarm-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-keepwarm-"));
   } catch (error) {
     return Promise.resolve(opts.failed(`the ${what} could not start: ${(error as Error).message}`));
   }

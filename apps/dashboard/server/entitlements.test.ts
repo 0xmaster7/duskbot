@@ -8,7 +8,7 @@ import { entitlementSignerFromEnv } from "./entitlements.ts";
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
-const dir = () => { const d = mkdtempSync(join(tmpdir(), "omb-ent-")); dirs.push(d); return d; };
+const dir = () => { const d = mkdtempSync(join(tmpdir(), "dusk-ent-")); dirs.push(d); return d; };
 const cloud = { id: `c${"5".repeat(24)}`, accountId: "acct_secret@example.test", kind: "shared_s", backend: "managed" } as StoredCloud;
 const NOW = 1_800_000_000_000;
 

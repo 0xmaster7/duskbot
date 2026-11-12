@@ -21,7 +21,7 @@ const cleanup: Array<() => unknown> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 async function fixture() {
-  const dir = mkdtempSync(join(tmpdir(), "omb-app-security-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-app-security-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   let time = Date.UTC(2026, 10, 9, 12);
   const now = () => time, mailer = memoryMailer();
   const api = await startFakeInstaboxApi({ now }); cleanup.push(() => api.close());

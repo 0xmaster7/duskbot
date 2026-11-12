@@ -19,7 +19,7 @@ type Config = ReturnType<typeof useStore>["state"]["config"];
 /** A genuine first run on this computer's own page names the person after its account, where their profile has none
  * (never on a Cloud, a Team Cloud or a remote page). The name stays theirs to change in Settings. */
 async function nameFromComputer(config: Config, done: (config: NonNullable<Config>) => void): Promise<void> {
-  const bridge = window.ogb;
+  const bridge = window.duskDesktop;
   if (!config || config.onboarding?.completedAt || config.profile?.name?.trim() || config.cloudHome || config.team) return;
   if (!localDesktopPage() || bridge?.remoteClient?.active) return;
   const name = await bridge?.desktopProfile?.systemName().catch(() => null);
@@ -144,7 +144,7 @@ export function WelcomeFlow({
   };
 
   const island = useIslandAvailable() === true;
-  const cloud = !embedded && !replay && localDesktopPage() && !window.ogb?.remoteClient?.active && Boolean(window.ogb?.cloudAccount)
+  const cloud = !embedded && !replay && localDesktopPage() && !window.duskDesktop?.remoteClient?.active && Boolean(window.duskDesktop?.cloudAccount)
     && !state.config?.cloudHome;
   const extras = [
     ...(cloud ? [{ id: "cloud", label: t("onboarding.start.cloud"), onClick: () => dispatch({ type: "openCloudAdd", source: "app_onboarding" }) }] : []),

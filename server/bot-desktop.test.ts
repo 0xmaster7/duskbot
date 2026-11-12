@@ -275,7 +275,7 @@ describe("bot desktop provisioning", () => {
   });
 
   it("refuses with a clear reason, creating nothing, when the image can be neither pulled nor built", async () => {
-    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "dusk-no-such-kit"));
     try {
       const fake = host({ pull: false, network: true });
       await expect(provisionBotDesktop(fake.run, input)).rejects.toMatchObject({ status: 409, code: "bot_desktop_unavailable",
@@ -289,7 +289,7 @@ describe("bot desktop provisioning", () => {
   });
 
   describe("on a managed cloud home, whose own machine builds the image", () => {
-    const status = () => join(mkdtempSync(join(tmpdir(), "omb-host-build-")), "desktop-image");
+    const status = () => join(mkdtempSync(join(tmpdir(), "dusk-host-build-")), "desktop-image");
     /** the registry refuses; `image inspect` answers once the machine's build has finished `afterChecks` checks later */
     function building(afterChecks: number) {
       let checks = 0;
@@ -338,7 +338,7 @@ describe("bot desktop provisioning", () => {
   });
 
   it("only offers a kit that builds exactly this app's desktop version, outside any asar archive", () => {
-    const directory = mkdtempSync(join(tmpdir(), "omb-kit-"));
+    const directory = mkdtempSync(join(tmpdir(), "dusk-kit-"));
     try {
       const kit = join(directory, "bot-desktop");
       mkdirSync(kit);
@@ -380,7 +380,7 @@ describe("bot desktop provisioning", () => {
   });
 
   it("keeps preparation separate across hosts and lets a failed pull retry", async () => {
-    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "dusk-no-such-kit"));
     const unavailable = host({ pull: false });
     const available = host({ runsc: true, network: true, fenced: true });
     expect(await Promise.all([
@@ -444,7 +444,7 @@ describe("bot desktop on the VPS path", () => {
       }
       if (command === "exec") {
         if (docker.at(-1) === "--version") return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
-        if (docker.includes("omb-desktop-probe") || docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
+        if (docker.includes("dusk-desktop-probe") || docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
         return { stdout: "{}\n", stderr: "" };
       }
       throw new Error(`unexpected docker ${command}`);
@@ -497,7 +497,7 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.calls.some(args => args.some(arg => arg.includes("cua-local-vm")))).toBe(false);
 
     const refused = daemon();
-    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "omb-no-such-kit"));
+    vi.stubEnv("DUSK_BOT_DESKTOP_KIT", join(tmpdir(), "dusk-no-such-kit"));
     const offline: VpsCommandRunner = async (args, options) => {
       if (args[2] === "pull") throw new Error("manifest unknown");
       return refused.runner(args, options);

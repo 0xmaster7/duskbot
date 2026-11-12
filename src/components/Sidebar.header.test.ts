@@ -71,7 +71,7 @@ describe("sidebar top row", () => {
   const desktop = () => vi.stubGlobal("window", {
     innerWidth: 1280,
     location: { protocol: "http:", search: "" },
-    ogb: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } },
+    duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } },
   });
   const topRow = (html: string) => {
     const start = html.indexOf("data-sidebar-top-row");
@@ -162,7 +162,7 @@ describe("sidebar top row", () => {
 
 describe("the button that hides and shows the window's rail of places", () => {
   beforeEach(() => {
-    vi.stubGlobal("window", { innerWidth: 1280, location: { protocol: "http:", search: "" }, ogb: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
+    vi.stubGlobal("window", { innerWidth: 1280, location: { protocol: "http:", search: "" }, duskDesktop: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
     fixture.windowChrome = "mac-inset";
     fixture.rail = { available: true, hidden: false };
   });

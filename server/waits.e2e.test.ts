@@ -3,12 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { WAIT_MESSAGES } from "./routes/waits.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
 async function scout(name: string) {
-  const folder = mkdtempSync(join(tmpdir(), `omb-waits-${name}-`));
+  const folder = mkdtempSync(join(tmpdir(), `dusk-waits-${name}-`));
   const gate = join(folder, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate });
   const evidence: unknown[] = [];
@@ -46,7 +46,7 @@ async function scout(name: string) {
   const busy = async () => (await api("GET", "/api/bots?messages=0")).bots.find((candidate: any) => candidate.id === bot.id).busy;
   const settledTurn = () => expect.poll(busy, { timeout: 15_000 }).toBe(false);
   const transcript = async (): Promise<any[]> => (await api("GET", `/api/threads/${bot.threadId}/messages?limit=100`)).messages;
-  const send = (text: string) => runControlOmb(["send", "--bot", bot.id, "--task", bot.threadId, "--text", text, "--url", fixture.info.url]);
+  const send = (text: string) => runControlDusk(["send", "--bot", bot.id, "--task", bot.threadId, "--text", text, "--url", fixture.info.url]);
   return { folder, gate, api, bot, busy, settledTurn, transcript, send, turnPrompt, turnToken, close };
 }
 

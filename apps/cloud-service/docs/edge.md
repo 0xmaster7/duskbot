@@ -7,7 +7,7 @@ It asks the account service (`GET /v1/managed/edge/route`, `POST /v1/managed/edg
 ## Who wakes a sleeping home
 
 - A webhook: any request under `/hooks/*`.
-- A signed-in client acting: a non-GET with `authorization` or a cookie, unless it carries `x-omb-background: 1` (the
+- A signed-in client acting: a non-GET with `authorization` or a cookie, unless it carries `x-dusk-background: 1` (the
   app's focus pings and other hints).
 - Nothing else. Reads and anonymous traffic get a 503 with `retry-after: 5`.
 

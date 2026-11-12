@@ -17,7 +17,7 @@ pnpm test:packaged-server
 ```
 
 The API fixture launches the shared isolated server and fake engine. It uses
-`control-omb` for create, send, wait, edit and Stop. Its new manual operation is
+`control-dusk` for create, send, wait, edit and Stop. Its new manual operation is
 `POST /api/bots/:id/compact` with `{ "threadId": "owned-thread-id" }`; this uses
 normal turn admission, returns 202, and completes through that thread's ordinary
 busy/idle state. The route accepts no agent-written summary or file path.
@@ -39,7 +39,7 @@ the next turn starts small.
   conversation at 80% or more of where Claude Code summarizes by itself
   (`DUSK_CLAUDE_AUTOCOMPACT`, 200,000 by default) gets one about 10 seconds
   later, because its next turn would summarize anyway. For other engines,
-  Dusk Bot's own fold runs while idle once the conversation is at 85% of
+  dusk bot's own fold runs while idle once the conversation is at 85% of
   the threshold its next turn would fold at.
 - **Claude Code:** `/compact` with instructions to keep the person's latest
   requests and every open question (open question cards are named), on a
@@ -54,7 +54,7 @@ the next turn starts small.
   existing "not seen yet" path, which is saved with the conversation.
 - **Shown in the chat:** the line "summarized this conversation while it was
   idle; the latest messages carry on word for word", in the language of the
-  conversation's person (`server.warmSummary.summarized`). Dusk Bot's fold
+  conversation's person (`server.warmSummary.summarized`). dusk bot's fold
   shows its usual summary note instead.
 - **A turn that starts meanwhile wins:** the summary is abandoned and nothing
   changes. The exception is a turn that would summarize at its start anyway,
@@ -314,7 +314,7 @@ pnpm exec vitest run server/context-rebuild.test.ts server/replay-settings.test.
 ```
 
 The fixture's engine runs a command and reads a file each turn. The test rewinds
-with `control-omb edit` and reads the prompt the engine received: no such line
+with `control-dusk edit` and reads the prompt the engine received: no such line
 while the setting is off, both lines in order once it is on (the command, and
 the file read), and the plain message for every turn that resumes its session.
 It then switches the bot to the fixture's Codex and reads what that engine was

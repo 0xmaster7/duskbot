@@ -1,5 +1,5 @@
 [Unit]
-Description=Dusk Bot account service backup (encrypted, off-box)
+Description=dusk bot account service backup (encrypted, off-box)
 After=network-online.target
 Wants=network-online.target
 

@@ -10,7 +10,7 @@ const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Dat
 const clock = (at: number, day: number) => sameDay(at, day)
   ? new Date(at).toLocaleTimeString(activeLocale(), { hour: "numeric", minute: "2-digit" }) : routineDateTime(at);
 
-/** A routine on this computer ran late, or not at all, while the computer slept: the one moment Dusk Cloud answers on
+/** A routine on this computer ran late, or not at all, while the computer slept: the one moment dusk cloud answers on
  * its own. Shown once, in the corner, never over a chat. */
 export function LateRoutineCard({ late, now, onStart, onNotNow }: { late: LateRoutineRun; now: number; onStart: () => void; onNotNow: () => void }) {
   const device = deviceWord();

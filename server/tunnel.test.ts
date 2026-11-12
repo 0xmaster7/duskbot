@@ -41,7 +41,7 @@ function fakeIo(answers: string[]) {
 describe("tunnel credentials: a private file, and unreadable is not empty", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-tunnel-cred-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-tunnel-cred-"));
   });
   afterEach(() => removeTempDir(dir));
 
@@ -73,7 +73,7 @@ describe("login and logout against the control plane", () => {
   let dir: string;
   let stub: ControlPlaneStub;
   beforeEach(async () => {
-    dir = mkdtempSync(join(tmpdir(), "omb-tunnel-login-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-tunnel-login-"));
     stub = await startControlPlaneStub();
     vi.stubEnv("DUSK_CONTROL_PLANE_URL", stub.url);
   });
@@ -184,7 +184,7 @@ describe("where the pieces are", () => {
     expect(platformName("darwin")).toBe("darwin");
     expect(platformName("win32")).toBe("windows");
     expect(platformName("linux")).toBe("linux");
-    const bundled = mkdtempSync(join(tmpdir(), "omb-tunnel-bundled-"));
+    const bundled = mkdtempSync(join(tmpdir(), "dusk-tunnel-bundled-"));
     try {
       expect(guardianEntry(bundled)).toBeNull();
       writeFileSync(join(bundled, "tunnel-guardian.js"), "");
@@ -210,7 +210,7 @@ describe("where the pieces are", () => {
 
 describe.skipIf(!posix)("startTunnel: guardian, gateway and connector, verified through the gateway", () => {
   it("forwards the public address to the harness socket (no peer address = remote) and tears everything down on stop", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-tunnel-run-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-tunnel-run-"));
     const origin = createTunnelOrigin();
     const pidFile = join(dir, "connector.pid");
     const fake = join(dir, "cloudflared");

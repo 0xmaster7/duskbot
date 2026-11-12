@@ -17,7 +17,7 @@ export const SCREEN_BUCKETS = ["xs", "s", "m", "l", "xl"] as const;
 
 /** where a signal may come from: the apps (as an app_action) or the workspace (in its usage report) */
 export const SIGNALS = {
-  /** once per app start: the setup a person runs Dusk Bot in, and the local hour; at most 8 keys, the app action limit */
+  /** once per app start: the setup a person runs dusk bot in, and the local hour; at most 8 keys, the app action limit */
   env: { source: "app", props: { os: oneOf("darwin", "win32", "linux", "ios", "android", "other"), arch: oneOf("x64", "arm64", "other"), locale: oneOf(...LOCALES),
     screen: oneOf(...SCREEN_BUCKETS), theme: oneOf("light", "dark"), skin: codeName, notifications: oneOf("granted", "denied", "default", "unsupported"), hour: between(0, 23) } },
   /** an AI sign-in started, finished or failed, by engine family */

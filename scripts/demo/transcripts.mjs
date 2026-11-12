@@ -1,5 +1,5 @@
 // Turns content.mjs's conversation scripts into stored messages (the shape server/message-db.ts keeps) and into the
-// text-only projection an openmaus.backup carries. Both are built from the same `now`, so their timestamps agree.
+// text-only projection a dusk.backup carries. Both are built from the same `now`, so their timestamps agree.
 import { join } from "node:path";
 
 const EXT = { "text/markdown": ".md", "text/csv": ".csv", "text/plain": ".txt" };
@@ -84,7 +84,7 @@ export function buildThread(botKey, thread, { now, attachmentsDir, botId = "", t
   };
 }
 
-/** What an openmaus.backup keeps of a conversation: readable text only, chained in order. */
+/** What a dusk.backup keeps of a conversation: readable text only, chained in order. */
 export function backupProjection(built) {
   const kept = built.messages.filter((message) => (message.kind === "text" && message.text) || message.kind === "options");
   return kept.map((message, i) => ({

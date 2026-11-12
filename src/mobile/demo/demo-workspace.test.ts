@@ -118,7 +118,7 @@ describe("demo mode", () => {
     expect(await demoOn(platform)).toBe(false);
     await enterDemo(platform, reload);
     expect(await demoOn(platform)).toBe(true);
-    values.set("omb.mobile.outbox.demo", "[]");
+    values.set("dusk.mobile.outbox.demo", "[]");
     await leaveDemo(platform, reload);
     expect(await demoOn(platform)).toBe(false);
     expect(values.size).toBe(0);

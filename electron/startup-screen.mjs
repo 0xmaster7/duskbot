@@ -39,7 +39,7 @@ const sprite = (cls, { body, eyes }, bodyFill, eyeFill) => `<svg class="${cls}" 
   + `<path fill="${bodyFill}" d="${body}"/><path class="eyes" fill="${eyeFill}" d="${eyes}"/></svg>`;
 
 export function startupScreenHtml() {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>Dusk Bot</title><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>dusk bot</title><style>
   :root{--ease-out:cubic-bezier(.23,1,.32,1);--text:#fafcff;--soft:#fafcffc7;--glass:#0d3a706b;--shade:#06224a66;--go-ink:#1a5aa8;--day:url("${art("startup-day.png")}");--dusk:url("${art("startup-dusk.png")}")}
   @media(prefers-color-scheme:dark){:root{--glass:#33236e66;--shade:#1c124a73;--go-ink:#4b3f9e}}
   *{box-sizing:border-box}
@@ -131,7 +131,7 @@ export function createStartupScreen({
     width: W, height: H, resizable: false, maximizable: false,
     fullscreenable: false, frame: false, transparent: true,
     backgroundColor: "#00000000", show: false, icon: iconPath,
-    title: "Dusk Bot", autoHideMenuBar: true,
+    title: "dusk bot", autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true, sandbox: true, nodeIntegration: false,
       preload: fileURLToPath(new URL("./startup-screen-preload.cjs", import.meta.url)),

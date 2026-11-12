@@ -37,7 +37,7 @@ async function stubHarness(): Promise<{ url: string; requests: () => number; clo
 
 async function main() {
   const harness = await stubHarness();
-  const folder = await mkdtemp(join(tmpdir(), "omb-bench-tools-"));
+  const folder = await mkdtemp(join(tmpdir(), "dusk-bench-tools-"));
   const toolsFile = join(folder, "tools.json");
   await writeFile(toolsFile, JSON.stringify([
     { name: "lookup", description: "Read one record", inputSchema: { type: "object", properties: { id: { type: "string" } } }, annotations: { readOnlyHint: true } },

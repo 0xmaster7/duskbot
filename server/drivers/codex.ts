@@ -130,12 +130,12 @@ export function managedCodexArgs(config: NonNullable<CodexConfig["managed"]>): s
   // Credential stays in the instance environment, never argv or config.toml.
   // https://learn.chatgpt.com/docs/config-file/config-reference
   return [
-    "-c", 'model_provider="openmaus_company"',
-    "-c", 'model_providers.openmaus_company.name="Company"',
-    "-c", `model_providers.openmaus_company.base_url=${JSON.stringify(config.url)}`,
-    "-c", 'model_providers.openmaus_company.env_key="DUSK_COMPANY_API_KEY"',
-    "-c", 'model_providers.openmaus_company.wire_api="responses"',
-    "-c", "model_providers.openmaus_company.requires_openai_auth=false",
+    "-c", 'model_provider="dusk_company"',
+    "-c", 'model_providers.dusk_company.name="Company"',
+    "-c", `model_providers.dusk_company.base_url=${JSON.stringify(config.url)}`,
+    "-c", 'model_providers.dusk_company.env_key="DUSK_COMPANY_API_KEY"',
+    "-c", 'model_providers.dusk_company.wire_api="responses"',
+    "-c", "model_providers.dusk_company.requires_openai_auth=false",
     "-c", 'cli_auth_credentials_store="ephemeral"',
     "-c", "shell_environment_policy.ignore_default_excludes=false",
   ];
@@ -146,7 +146,7 @@ const PROXY_LITERAL_ENV = ["NODE_USE_ENV_PROXY", "NO_PROXY", "no_proxy"];
 const SHELL_ESSENTIALS = new Set(["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TERM", "LANG", "TZ"]);
 
 const DENY_TIMEOUT_NOTE =
-  "Dusk Bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
+  "dusk bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
 
 const renamedMcpServers = new Set<string>();
 function noteRenamedMcpServer(name: string, mountName: string): void {
@@ -561,7 +561,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const literalEnvs = new Map<string, Record<string, string>>();
         const scopedServer = (name: string, mountName: string, server: McpServerSpec): StdioMcpSpec | null => {
           if (!canUseMcpServer(turn.toolScope, name)) return null;
-          // Every URL server goes through Dusk Bot's remote proxy: Codex's own client adds fields
+          // Every URL server goes through dusk bot's remote proxy: Codex's own client adds fields
           // strict servers refuse (codex-cli 0.160.1 sends elicitation.form/url; rmcp 3.2 can add
           // schemaValidation), and Codex does not speak SSE. A plan turn has no tool_search, so its URL
           // servers use the proxy's tool directory.
@@ -596,7 +596,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (turn.integrations?.composio) mountSelected("composio", "duskbot_connectors", turn.integrations.composio);
         if (turn.integrations?.composioOwn) mountSelected(OWN_APPS_SERVER, `duskbot_${OWN_APPS_SERVER}`, turn.integrations.composioOwn);
         if (turn.integrations?.agents) {
-          // Dusk Bot's own coordination tools never ask: "auto" quiets only read-only tools.
+          // dusk bot's own coordination tools never ask: "auto" quiets only read-only tools.
           mountSelected("agents", "agents", turn.integrations.agents, "approve"); if (selectedMcp.has("agents")) appServerArgs.push("-c", `mcp_servers.agents.tool_timeout_sec=${AGENTS_TOOL_TIMEOUT_SECONDS}`);
         }
         if (turn.integrations?.localComputer) {
@@ -788,7 +788,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
       const settle = async (ok: boolean, stopReason: string | null, keep = false) => {
         if (state.settled) return;
         state.settled = true;
-        for (const finish of Array.from(asks.values())) finish("deny", "Dusk Bot: the turn ended", "system");
+        for (const finish of Array.from(asks.values())) finish("deny", "dusk bot: the turn ended", "system");
         for (const p of rpcPending.values()) p.reject(new Error("turn settled"));
         rpcPending.clear();
         const complete = () => {
@@ -889,7 +889,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (!isQuestion && !isPermission) {
           if (isMcpElicitation) {
             send({ jsonrpc: "2.0", id: msg.id, result: { action: "decline" } });
-            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An MCP server"} asked for input Dusk Bot can't show yet, so the request was declined.` });
+            emit({ ...base(threadId, turnId), type: "runtime.notice", message: `${boundedLabel(params.serverName) ?? "An MCP server"} asked for input dusk bot can't show yet, so the request was declined.` });
           } else {
             send({
               jsonrpc: "2.0",
@@ -1344,7 +1344,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         let initialized = server.initialized as { userAgent?: unknown } | undefined;
         if (initialized === undefined) {
           initialized = await request("initialize", {
-            clientInfo: { name: "duskbot", title: "Dusk Bot", version: serverVersion() },
+            clientInfo: { name: "duskbot", title: "dusk bot", version: serverVersion() },
             // Named permission profiles are an experimental app-server field in Codex 0.151.
             capabilities: { experimentalApi: true },
           });
@@ -1428,7 +1428,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         // only Full may synthesize approvals.
         autoAcceptPermissions = approvalMode === "full";
         const selection = config.managed
-          ? { model: turn.model, modelProvider: "openmaus_company" }
+          ? { model: turn.model, modelProvider: "dusk_company" }
           : config.authMode === "chatgpt-plan"
             ? { model: turn.model, modelProvider: "openai_chatgpt_plan" }
             : decodeCodexSelection(turn.model);

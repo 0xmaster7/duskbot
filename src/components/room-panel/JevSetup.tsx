@@ -185,9 +185,9 @@ function JevForm({ onDone }: { onDone?: () => void }) {
       const slot = KEY_SLOT[provider];
       const put = (decision: Record<string, unknown>) => api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ decider: decision }) });
       let status: ConfigStatus;
-      if (draft && window.ogb?.setCredential) {
+      if (draft && window.duskDesktop?.setCredential) {
         await put({ provider, ...choice });
-        status = await window.ogb.setCredential(slot.credential, draft);
+        status = await window.duskDesktop.setCredential(slot.credential, draft);
       } else {
         status = await put({ provider, ...choice, ...(draft ? { [slot.field]: draft } : { enabled: true, jobs: { roomRouting: true } }) });
       }

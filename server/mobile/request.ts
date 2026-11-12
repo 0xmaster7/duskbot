@@ -1,9 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { RequestAuth } from "../request-auth.ts";
+import { hasTokenPrefix } from "../../electron/legacy-names.mjs";
 
 const APP_ORIGINS = new Set(["capacitor://localhost", "https://localhost", "http://localhost"]);
 const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]);
-const HEADERS = ["Authorization", "Content-Type", "Last-Event-ID", "X-Omb-Background", "X-Omb-Sha256"];
+const HEADERS = ["Authorization", "Content-Type", "Last-Event-ID", "X-Dusk-Background", "X-Dusk-Sha256"];
 const VIEWER_SOCKET = /^\/api\/desktop-viewer\/(?:local\/(?:shared|bot-[a-f0-9]{64}|pool-\d+)|vps\/[\w-]+)\/websockify$/;
 
 export function isMobileOrigin(origin: string | string[] | undefined): origin is string {
@@ -45,7 +46,7 @@ export function mobileBearer(req: IncomingMessage, auth: RequestAuth): boolean {
 export function applyMobileCors(req: IncomingMessage, res: ServerResponse, auth: RequestAuth): void {
   if (!mobileBearer(req, auth)) return;
   allowOrigin(res, req.headers.origin!);
-  res.setHeader("access-control-expose-headers", "Content-Disposition, X-duskbot-Folder, X-Omb-Cloud-Power");
+  res.setHeader("access-control-expose-headers", "Content-Disposition, X-duskbot-Folder, X-Dusk-Cloud-Power");
 }
 
 export function takeViewerAccessToken(req: IncomingMessage, url: URL): string | null | undefined {
@@ -54,6 +55,6 @@ export function takeViewerAccessToken(req: IncomingMessage, url: URL): string | 
   url.searchParams.delete("access_token");
   req.url = `${url.pathname}${url.search}`;
   if (req.method !== "GET" || req.headers.upgrade?.toLowerCase() !== "websocket" || !VIEWER_SOCKET.test(url.pathname) ||
-      (req.headers.origin !== undefined && !isMobileOrigin(req.headers.origin)) || tokens.length !== 1 || !tokens[0].startsWith("omb_sess_")) return null;
+      (req.headers.origin !== undefined && !isMobileOrigin(req.headers.origin)) || tokens.length !== 1 || !hasTokenPrefix(tokens[0], "sess")) return null;
   return tokens[0];
 }

@@ -4,7 +4,7 @@ import type { PulseAnswer } from "../../../../shared/machine-pulse";
 import type { AccountDevice, AccountProfile, AuthProviders, BillingOverview, CheckoutAnswer, CheckoutRequest, CloudDesktop, DesktopId, EmailCodeStart, Identity, IdentityProvider, MachineSpec, NotificationPrefs, PlanCatalog, Selection, SlackWake } from "../data/contracts";
 import { track } from "./analytics";
 import { accountFromWire, billingFromWire, cartFromQuote, cartFromSelection, catalogFromWire, cloudFromWire, providersFromWire } from "../data/live";
-import { CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
+import { CSRF_HEADER, EMAIL_CODE_DIGITS, readCsrfCookie, type AccountAnswer, type AccountView, type BillingOverview as WireBillingOverview, type CancelAnswer, type Catalog, type ChangePreview, type CheckoutAnswer as WireCheckoutAnswer, type CloudDesktopView, type DeviceLookupAnswer, type EmailStartAnswer, type MeAnswer, type ProvidersAnswer, type Quote, type WebSignInAnswer } from "../data/wire";
 
 export type Scenario = "signedout" | "new" | "mac" | "cloud" | "provisioning" | "managed";
 export interface Account { id: string; email: string; name?: string | null }
@@ -15,9 +15,9 @@ function fixtureMode(): Scenario | null {
   const valid = (value: string | null): value is Scenario => value !== null && ["signedout", "new", "mac", "cloud", "provisioning", "managed"].includes(value);
   const value = new URLSearchParams(location.search).get("fixture");
   try {
-    if (value === "off") { sessionStorage.removeItem("omb-dash-fixture"); return null; }
-    if (valid(value)) { sessionStorage.setItem("omb-dash-fixture", value); return value; }
-    const saved = sessionStorage.getItem("omb-dash-fixture");
+    if (value === "off") { sessionStorage.removeItem("dusk-dash-fixture"); return null; }
+    if (valid(value)) { sessionStorage.setItem("dusk-dash-fixture", value); return value; }
+    const saved = sessionStorage.getItem("dusk-dash-fixture");
     return valid(saved) ? saved : null;
   } catch { return valid(value) ? value : null; }
 }
@@ -37,9 +37,9 @@ let subscriptionId: string | null = null;
 let catalogRequest: Promise<PlanCatalog> | null = null;
 
 function csrfHeader(): string {
-  const cookie = typeof document === "undefined" ? undefined : document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${CSRF_COOKIE}=`));
+  const cookie = typeof document === "undefined" ? undefined : readCsrfCookie(document.cookie);
   if (cookie) {
-    try { return decodeURIComponent(cookie.slice(CSRF_COOKIE.length + 1)) || csrfToken || ""; } catch {}
+    try { return decodeURIComponent(cookie) || csrfToken || ""; } catch {}
   }
   return csrfToken ?? "";
 }
@@ -126,7 +126,7 @@ export const api = {
     if (FIXTURE) return send("/v1/auth/verify", "POST", { attempt, code });
     const answer = await send<WebSignInAnswer>("/v1/auth/verify", "POST", { attempt, code });
     const account = rememberAccount(answer.account, answer.csrfToken);
-    if (answer.created) localStorage.removeItem(`omb-dash-onboarded:${account.id}`);
+    if (answer.created) localStorage.removeItem(`dusk-dash-onboarded:${account.id}`);
     return { account, created: answer.created, ...(answer.redirect ? { redirect: answer.redirect } : {}) };
   },
   oauthUrl: (provider: IdentityProvider, intent: "signin" | "signup", opts?: { link?: boolean; next?: string }) => FIXTURE ? `/v1/auth/oauth/${provider}/start?intent=${intent}` : `/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(opts?.next ?? (opts?.link ? "/account" : "/"))}${opts?.link ? "&link=1" : ""}`,
@@ -144,12 +144,12 @@ export const api = {
   finishOnboarding: async () => {
     if (FIXTURE) return send("/v1/account/onboarded", "POST");
     if (!accountId) await api.me();
-    localStorage.setItem(`omb-dash-onboarded:${accountId}`, "1");
+    localStorage.setItem(`dusk-dash-onboarded:${accountId}`, "1");
     track({ name: "onboarding_done" });
   },
   setNotifications: async (prefs: NotificationPrefs) => {
     if (FIXTURE) return send("/v1/account/notifications", "PUT", prefs);
-    localStorage.setItem("omb-dash-notify", JSON.stringify(prefs));
+    localStorage.setItem("dusk-dash-notify", JSON.stringify(prefs));
     return prefs;
   },
   unlinkIdentity: async (provider: IdentityProvider) => {

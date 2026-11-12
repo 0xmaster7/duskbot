@@ -16,7 +16,7 @@ const keystore = SecureStorage as unknown as {
   internalSetItem(options: { prefixedKey: string; data: string; sync: boolean }): Promise<void>;
   internalRemoveItem(options: { prefixedKey: string; sync: boolean }): Promise<{ success: boolean }>;
 };
-const SECRET_PREFIX = "omb.";
+const SECRET_PREFIX = "dusk.";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState } from "@capacitor-mlkit/barcode-scanning";
 import type { CameraPermission, CameraScanner, MobilePlatform } from "@/mobile/platform";
 import { appLinkFromUniversal, type MobileOpenTarget } from "../../../shared/mobile-link";

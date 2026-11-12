@@ -30,6 +30,7 @@ import { fetchGithubTeam, fetchLibraryTeam, fetchTeamCatalog } from "../team-lib
 import { createTeamManifest, parseTeamManifest } from "../team-manifest.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
+import { withCurrentFormat } from "../../electron/legacy-names.mjs";
 
 export interface TeamRouteDeps {
   store: Store;
@@ -96,7 +97,7 @@ export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
           ? body.name.trim()
           : profileName
             ? `${profileName}'s Team`
-            : "My OpenMaus Team";
+            : "My dusk bot Team";
       const memberIds = store.bots.filter((bot) => !bot.hidden).map((bot) => bot.id);
       if ((body.format === "backup" ? store.bots.length : memberIds.length) === 0) return json(res, 400, { error: "Create a bot before exporting your team" });
       try {
@@ -266,7 +267,7 @@ export function createTeamRoutes(deps: TeamRouteDeps): RouteHandler {
         importVisibility = parsed.visibility;
       }
       const body = await readBody(req, MAX_TEAM_BACKUP_BYTES);
-      if (body?.format === "openmaus.backup") {
+      if (withCurrentFormat(body)?.format === "dusk.backup") {
         if (importMode !== "add") return json(res, 400, { error: "Import backups alongside your existing bots; project mode is only for templates" });
         try {
           const imported = importTeamBackup(store, routines!, body, await defaultSelection(), { visibility: importVisibility });

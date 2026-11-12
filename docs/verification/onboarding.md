@@ -30,7 +30,7 @@ For a manual renderer pass, launch the isolated full-app fixture following
 [Chat UI](chat-ui.md):
 
 ```sh
-node --experimental-strip-types scripts/control-omb.ts ui launch
+node --experimental-strip-types scripts/control-dusk.ts ui launch
 ```
 
 Use only its printed handle and preview URL. Add `?onboarding=1` to the
@@ -73,7 +73,7 @@ What each first-run surface depends on, and how it was checked:
 |---|---|---|
 | Desktop app, own server (full bridge, `remoteClient` present) | The current first run, decided without a new request | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts` |
 | Hosted workspace opened inside the desktop app (reduced bridge, no `remoteClient`) | Treated like a browser: the server is asked | `src/components/onboarding/WelcomeGate.test.ts` |
-| Packaged desktop with the organization bridge | An optional "Using Dusk Bot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
+| Packaged desktop with the organization bridge | An optional "Using dusk bot at work?" row under Other ways in Connect an AI; a signed-in Company engine counts as ready | `src/components/onboarding/beats/OrganisationRow.test.ts`, `src/components/onboarding/ConnectAi.test.ts` (fake bridge) |
 | Browser, admin of a hosted workspace | The first screen only, with the shared-workspace line, then the chat | `src/components/onboarding/WelcomeGate.test.ts`, `src/components/onboarding/WelcomeFlow.test.ts`, `src/lib/onboarding.test.ts` |
 | Browser, hosted member (no admin scope) | No welcome flow; one dismissible note kept in browser storage; no first-conversation spotlights | `src/components/onboarding/WelcomeGate.test.ts` |
 | Browser, client-scope session on a server that is not hosted | Nothing new: the flow does not open itself (it could not be saved); Settings replay and spotlights as before | `src/components/onboarding/WelcomeGate.test.ts`, `src/lib/onboarding.test.ts` |
@@ -88,9 +88,9 @@ That run also showed the member note, which review then limited to hosted
 workspaces (the fixture is not hosted). The hosted-only rule is covered by the
 tests above, not by a rerun. In that run, "Got it" made no `/api/config`
 write, and the note stayed away after a reload. Connect an AI was mounted from the Vite preview with a fake
-`window.ogb.organization` injected before mount; it showed the row signed out,
+`window.duskDesktop.organization` injected before mount; it showed the row signed out,
 then connecting with the code, then connected. `begin` ran once, with the
-default Admin. Screenshots are in `.omb-scratch/verify-evidence/onboarding/`.
+default Admin. Screenshots are in `.dusk-scratch/verify-evidence/onboarding/`.
 
 Not covered here: the real Electron preload bridge and a real Admin enrolment
 (see [organization connection](organization-settings.md), not rerun for this
@@ -173,7 +173,7 @@ On the desktop app on a Mac (the island bridge reports `available`), the first r
 a demo display where the island cycles every mood, the dock bots can be pointed at, tapped or dragged into the
 notch, and the real island is on while it shows. "Keep the notch on" saves `{ island: true }`, "Just the side dock"
 saves `{ island: false, dock: true }`, and leaving with neither puts the island back as it was. Settings →
-Appearance → "Island and dock tour" plays it again; dev builds also expose `window.ombIslandIntro()`.
+Appearance → "Island and dock tour" plays it again; dev builds also expose `window.duskIslandIntro()`.
 
 ```sh
 pnpm exec vitest run src/components/onboarding/IslandIntro.test.ts src/components/onboarding/WelcomeFlow.test.ts

@@ -20,7 +20,7 @@ import {
   withoutDesktopCompanionAccess,
 } from "./desktop-companion-client.mjs";
 
-const token = `omb_${"a".repeat(43)}`;
+const token = `dusk_${"a".repeat(43)}`;
 // The one opaque label the control plane puts in front of a managed domain.
 const LABEL = "c-0123456789abcdef0123456789abcdef";
 const deviceId = "123e4567-e89b-12d3-a456-426614174000";
@@ -44,10 +44,10 @@ afterEach(async () => {
 describe("desktop companion endpoint", () => {
   it("preserves the local-origin boundary while marking companion client mode", () => {
     expect(desktopCompanionRendererArguments("http://127.0.0.1:8799", null)).toEqual([
-      "--omb-local-origin=http://127.0.0.1:8799",
+      "--dusk-local-origin=http://127.0.0.1:8799",
     ]);
     expect(desktopCompanionRendererArguments("http://127.0.0.1:8798", access)).toEqual([
-      "--omb-local-origin=http://127.0.0.1:8798",
+      "--dusk-local-origin=http://127.0.0.1:8798",
       "--duskbot-remote-client",
     ]);
   });
@@ -199,7 +199,7 @@ describe("desktop companion pairing", () => {
         requestId: "request-https-03",
         fetchImpl,
       }),
-    ).rejects.toThrow("Dusk Bot HTTPS companion address");
+    ).rejects.toThrow("dusk bot HTTPS companion address");
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
@@ -229,7 +229,7 @@ describe("desktop companion loopback relay", () => {
   });
 
   it("serves the UI only on loopback and never includes the bearer in the page", async () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omb-desktop-client-"));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dusk-desktop-client-"));
     tempDirs.push(directory);
     fs.writeFileSync(path.join(directory, "index.html"), "<h1>Remote client</h1>");
     const relay = await startDesktopCompanionRelay({ access, staticDir: directory, ports: [0] });
@@ -350,7 +350,7 @@ describe("desktop companion loopback relay", () => {
   });
 
   it("answers a request target that is not a URL with 400 and keeps serving", async () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "omb-desktop-client-"));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dusk-desktop-client-"));
     tempDirs.push(directory);
     fs.writeFileSync(path.join(directory, "index.html"), "<h1>Remote client</h1>");
     const relay = await startDesktopCompanionRelay({ access, staticDir: directory, ports: [0] });

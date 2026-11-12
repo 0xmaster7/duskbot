@@ -2,7 +2,7 @@
 // Runs a fixed set of everyday bot requests against a live server's test bots, one after another, and records how
 // each turn went from the engine's native log: time to first activity and first text, tool calls, how many ran at
 // once, wall time, and the reply. Run it on the server, as the user it runs as:
-//   node scripts/live-scenarios.mjs --label before --out /tmp/omb-scenarios [--only s1,s2] [--bot Cinder]
+//   node scripts/live-scenarios.mjs --label before --out /tmp/dusk-scenarios [--only s1,s2] [--bot Cinder]
 // Read-only on the person's Mac except for writes into ~/Downloads/<bot>/.
 // Two probes time one thing each over the server's loopback api and its event stream, `--runs` times:
 //   --probe msg --bot Nova     a one-word reply in the bot's main chat: send accepted, the message on the stream, the
@@ -16,7 +16,7 @@ import { join } from "node:path";
 const args = process.argv.slice(2);
 const opt = (name, fallback) => { const at = args.indexOf(`--${name}`); return at >= 0 ? args[at + 1] : fallback; };
 const label = opt("label", "run");
-const outDir = opt("out", "/tmp/omb-scenarios");
+const outDir = opt("out", "/tmp/dusk-scenarios");
 const only = opt("only", "")?.split(",").filter(Boolean) ?? [];
 const botOverride = opt("bot", "");
 const dataDir = opt("data", join(homedir(), ".duskbot"));

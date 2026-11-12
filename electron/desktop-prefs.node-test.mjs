@@ -14,7 +14,7 @@ const localOrigin = require("./local-origin.cjs");
 
 const POPUP = "whats-new-2026-11", GROK = "grok-move-2026-11";
 const NOON = new Date(2026, 9, 16, 12).getTime();
-const LOCAL = "http://127.0.0.1:18799", CLOUD = "https://omb-u-1.fly.dev", VPS = "https://bots.example.test";
+const LOCAL = "http://127.0.0.1:18799", CLOUD = "https://dusk-u-1.fly.dev", VPS = "https://bots.example.test";
 
 test("discarded campaign ids never reappear in desktop notice state", () => {
   let saved = { seen: [POPUP, GROK, "retired-credit-2026-11"] };
@@ -203,7 +203,7 @@ function preload(origin, { activation = false, saved = null, language = null } =
   let bridge;
   const invoked = [], synced = [], heard = new Map();
   vm.runInNewContext(PRELOAD, {
-    process: { platform: "darwin", argv: [`--omb-local-origin=${LOCAL}`, "--omb-company-desktop=1"] },
+    process: { platform: "darwin", argv: [`--dusk-local-origin=${LOCAL}`, "--dusk-company-desktop=1"] },
     location: { origin }, navigator: { userActivation: { isActive: activation } }, TextEncoder, localStorage: { getItem: () => null },
     require: () => ({ webUtils: {}, contextBridge: { exposeInMainWorld: (_name, value) => { bridge = value; } },
       ipcRenderer: { on(channel, handler) { heard.set(channel, handler); }, removeListener() {}, send() {},

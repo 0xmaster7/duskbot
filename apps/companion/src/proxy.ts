@@ -22,6 +22,7 @@ import {
 import { sendTunnelJson } from "./tunnel-gzip.ts";
 import { CompanionViewerRelay, requestTarget } from "./viewer-relay.ts";
 import { createSseScrubber, isJson, scrub } from "./wire.ts";
+import { hasTokenPrefix } from "../../../electron/legacy-names.mjs";
 
 export interface ProxyOptions {
   harnessPort: number;
@@ -319,7 +320,7 @@ function forwardMobile(req: IncomingMessage, res: ServerResponse, options: Proxy
     clearTimeout(deadline);
     if (res.destroyed || res.writableEnded) return;
     sendJson(res, timedOut ? 504 : 502, {
-      error: timedOut ? "Dusk Bot did not respond" : "Dusk Bot is not running on this computer",
+      error: timedOut ? "dusk bot did not respond" : "dusk bot is not running on this computer",
     });
   });
   res.on("close", () => {
@@ -474,7 +475,7 @@ export function createProxyHandler(options: ProxyOptions) {
       forwardMobile(req, res, options);
       return;
     }
-    if (token?.startsWith("omb_sess_") && options.mobile?.has(token)) {
+    if (hasTokenPrefix(token, "sess") && options.mobile?.has(token)) {
       forwardMobile(req, res, options, token);
       return;
     }
@@ -506,7 +507,7 @@ export function createProxyHandler(options: ProxyOptions) {
     // session; the owner enables this per device, off by default.
     if (isCloudDesktopAccess(method, path) && !device?.cloudDesktopAccess) {
       return sendJson(res, 403, {
-        error: "computer access is off for this device — enable it in Dusk Bot → Settings → Remote access",
+        error: "computer access is off for this device — enable it in dusk bot → Settings → Remote access",
       });
     }
 
@@ -590,7 +591,7 @@ export function createProxyHandler(options: ProxyOptions) {
           const fail = () => {
             if (finished) return;
             finished = true;
-            sendJson(res, 502, { error: "Dusk Bot is not ready on this computer" });
+            sendJson(res, 502, { error: "dusk bot is not ready on this computer" });
           };
           harness.on("data", (chunk: Buffer) => {
             size += chunk.length;
@@ -744,7 +745,7 @@ export function createProxyHandler(options: ProxyOptions) {
           if (size > MAX_JSON_BODY_BYTES) {
             harness.destroy();
             if (res.headersSent) res.destroy();
-            else sendJson(res, 502, { error: "the response from Dusk Bot was too large" });
+            else sendJson(res, 502, { error: "the response from dusk bot was too large" });
             return;
           }
           chunks.push(chunk);
@@ -828,8 +829,8 @@ export function createProxyHandler(options: ProxyOptions) {
         res,
         timedOut ? 504 : 502,
         timedOut
-          ? { error: "Dusk Bot did not respond" }
-          : { error: "Dusk Bot is not running on this computer" },
+          ? { error: "dusk bot did not respond" }
+          : { error: "dusk bot is not running on this computer" },
       );
     });
     req.pipe(upstream);
@@ -841,7 +842,7 @@ export function createProxyHandler(options: ProxyOptions) {
       return;
     }
     const token = bearerToken(req.headers.authorization);
-    if (token?.startsWith("omb_sess_") && options.mobile?.has(token)) {
+    if (hasTokenPrefix(token, "sess") && options.mobile?.has(token)) {
       if (!requestTarget(req.url)) {
         socket.destroy();
         return;

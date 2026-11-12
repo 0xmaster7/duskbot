@@ -48,7 +48,7 @@ posixOnly("bulk delete tasks e2e", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-bulk-delete-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-bulk-delete-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     finishGate = join(home, "finish-turn.gate");
     writeFileSync(

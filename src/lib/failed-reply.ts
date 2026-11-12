@@ -51,7 +51,7 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
 }
 
 // the runtime's own words for a turn a restart cut (server/runtime/tree.ts CUT_TWICE, INTERRUPTED_OUTWARD)
-const RESTART_CUT = /^Interrupted by (?:another |an? )?Dusk Bot restart\b/;
+const RESTART_CUT = /^Interrupted by (?:another |an? )?dusk bot restart\b/i;
 const RESTART_DID = /\bafter it already (.+?); not resumed\b/;
 
 /** What a turn a restart cut had already done outside, in the server's words: "sent an email (gmail_send)". */
@@ -122,7 +122,7 @@ export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onS
   return t(DETAIL[kind]);
 }
 
-/** Why Dusk Bot stopped a browser run itself, in one line. */
+/** Why dusk bot stopped a browser run itself, in one line. */
 export function blockerDetail(blocker: BrowserBlocker): string {
   const site = blocker.site ?? "";
   if (blocker.kind === "loop") return site ? t("chat.blocker.loopOn", { site }) : t("chat.blocker.loop");

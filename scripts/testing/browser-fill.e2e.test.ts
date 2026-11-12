@@ -19,7 +19,7 @@ import { openGate, type EgressGate } from "../../server/browser/egress/gate.ts";
 import { refusalFor } from "../../server/browser/egress/policy.ts";
 import { SseRecorder } from "../../server/browser/viewers/testing/v1-session.ts";
 import { removeTempDir } from "../../server/testing/cleanup.ts";
-import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-omb-ui.ts";
+import { ensureUiBrowser, UI_TOOLS_DIR } from "./control-dusk-ui.ts";
 
 const forced = process.env.DUSK_UI_E2E === "1";
 const enabled = forced || Boolean(resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env }));
@@ -66,7 +66,7 @@ describe("an agent-browser page a person watches in a narrow panel", () => {
   let live: BrowserLive;
   let gate: EgressGate | undefined;
   const applied: Array<{ size: PageSize; at: number }> = [];
-  const session = `omb-fill-${randomBytes(3).toString("hex")}`;
+  const session = `dusk-fill-${randomBytes(3).toString("hex")}`;
 
   beforeAll(async () => {
     if (!enabled) return;
@@ -77,9 +77,9 @@ describe("an agent-browser page a person watches in a narrow panel", () => {
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-    home = mkdtempSync(join(tmpdir(), "omb-fill-e2e-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-fill-e2e-"));
     // Unix socket paths must stay short (macOS temp paths are long).
-    sockets = mkdtempSync(join(posix ? "/tmp" : tmpdir(), "omb-fill-"));
+    sockets = mkdtempSync(join(posix ? "/tmp" : tmpdir(), "dusk-fill-"));
     mkdirSync(join(home, "tmp"), { recursive: true });
     gate = await openGate({ decide: (destination, addresses) => refusalFor(destination, addresses, {
       host: "desktop", ownPort: () => false, botPort: async () => false, localNetwork: true, allowed: () => false,

@@ -804,7 +804,7 @@ describe.sequential("Composio Sessions", () => {
       expect((await prepareProjectSession("ak_test", { userId: "duskbot_mine" }, undefined, true)).userId).toBe("duskbot_mine");
     });
 
-    it("never takes over another Dusk Bot user, and finds the dashboard's default user", async () => {
+    it("never takes over another dusk bot user, and finds the dashboard's default user", async () => {
       connectedAccountsOverride = [{ id: "ca_github_mate", user_id: "duskbot_teammate", status: "ACTIVE", toolkit: { slug: "github" } }];
       expect((await prepareProjectSession("ak_test", { userId: "duskbot_mine" }, undefined, true)).userId).toBe("duskbot_mine");
       // Composio may leave user_id out of the list (the field is deprecated): "default" is then asked for by name
@@ -1269,7 +1269,7 @@ describe.sequential("Composio Sessions", () => {
         const since = calls.slice(before);
         const links = since.filter((call) => call.method === "POST" && call.path.endsWith("/link"));
         expect(links).toHaveLength(2);
-        for (const link of links) expect(link.body).toEqual({ toolkit: "slack", alias: expect.stringMatching(/^omb-retry-[0-9a-f-]{36}$/) });
+        for (const link of links) expect(link.body).toEqual({ toolkit: "slack", alias: expect.stringMatching(/^dusk-retry-[0-9a-f-]{36}$/) });
         expect(links[0].body.alias).not.toBe(links[1].body.alias);
         expect(since.filter((call) => call.path.endsWith("/connected_accounts")).every((call) =>
           new URLSearchParams(call.query).get("user_ids") === "duskbot_existing"

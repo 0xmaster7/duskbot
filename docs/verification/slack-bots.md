@@ -15,7 +15,7 @@ pnpm exec vitest run server/slack-bots.e2e.test.ts
 ```
 
 It starts the fake, sets `DUSK_SLACK_API_URL` to it (a fixture only ever reaches a loopback Slack: anything else
-becomes a closed port, see `scripts/control-omb.ts`) and `DUSK_SAVED_SECRETS_KEY_FILE` to a key file outside the
+becomes a closed port, see `scripts/control-dusk.ts`) and `DUSK_SAVED_SECRETS_KEY_FILE` to a key file outside the
 fixture's data folder (the default key sits inside a fixture's folder, so the encrypted store would stay unavailable),
 then launches the usual fake-engine fixture and drives it over HTTP:
 

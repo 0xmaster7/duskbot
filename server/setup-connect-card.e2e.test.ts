@@ -53,7 +53,7 @@ describe("/setup connects an app through a Connect card, against the real server
   };
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-setup-connect-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-setup-connect-"));
     data = join(home, "data");
     dump = join(home, "fake-claude-dump.json");
     mkdirSync(data);

@@ -26,7 +26,7 @@ const dirs: string[] = [];
 afterEach(async () => { for (const dir of dirs.splice(0)) await removeTempDir(dir); });
 
 function world(overrides: Partial<PhonesDeps> = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-phones-host-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-phones-host-"));
   dirs.push(dir);
   // The owner's iPhone, paired as a session, allowing Calendar.
   writeFileSync(join(dir, "phones.json"), JSON.stringify({ version: 1, phones: [{

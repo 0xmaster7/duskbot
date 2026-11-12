@@ -404,7 +404,7 @@ for (const expected of [
   if (!fields.includes(expected)) fail(`DEB metadata is missing ${JSON.stringify(expected)}`);
 }
 
-const extracted = mkdtempSync(path.join(tmpdir(), "omb-deb-verify-"));
+const extracted = mkdtempSync(path.join(tmpdir(), "dusk-deb-verify-"));
 try {
   execFileSync("dpkg-deb", ["--extract", deb, extracted]);
   const debAppRoot = path.join(extracted, "opt", "Dusk Bot");
@@ -453,7 +453,7 @@ try {
   rmSync(extracted, { recursive: true, force: true });
 }
 
-const appImageExtracted = mkdtempSync(path.join(tmpdir(), "omb-appimage-verify-"));
+const appImageExtracted = mkdtempSync(path.join(tmpdir(), "dusk-appimage-verify-"));
 try {
   const offset = execFileSync(appImage, ["--appimage-offset"], {
     encoding: "utf8",

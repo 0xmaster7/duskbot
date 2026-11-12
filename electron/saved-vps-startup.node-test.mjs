@@ -169,7 +169,7 @@ test("an early window trusts only the confirmed local port on each new navigatio
   function bridge(origin, unavailable = false) {
     let result;
     runInNewContext(preload, { process: { platform: "fixture", argv: [
-      `--omb-local-origin=${oldOrigin}`, "--omb-current-local-origin=1", "--omb-company-desktop=1",
+      `--dusk-local-origin=${oldOrigin}`, "--dusk-current-local-origin=1", "--dusk-company-desktop=1",
     ] }, location: { origin }, navigator: {}, TextEncoder,
     require: () => ({ webUtils: {}, contextBridge: { exposeInMainWorld: (_key, value) => { result = value; } },
       ipcRenderer: { on() {}, removeListener() {}, invoke: async () => {}, sendSync: channel => {

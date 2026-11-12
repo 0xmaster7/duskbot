@@ -34,7 +34,7 @@ function bridge(snapshot: Record<string, unknown>) {
   };
 }
 async function open(plan?: ReturnType<typeof bridge>) {
-  (window as unknown as { ogb?: unknown }).ogb = plan ? { cloudPlan: plan } : undefined;
+  (window as unknown as { duskDesktop?: unknown }).duskDesktop = plan ? { cloudPlan: plan } : undefined;
   await act(async () => { root.render(createElement(BotLimitPopup)); });
   await act(async () => { showBotLimit(); });
   await act(async () => {});
@@ -50,7 +50,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => { closeBotLimit(); root.unmount(); });
   host.remove();
-  delete (window as unknown as { ogb?: unknown }).ogb;
+  delete (window as unknown as { duskDesktop?: unknown }).duskDesktop;
 });
 
 describe("the bot limit popup", () => {

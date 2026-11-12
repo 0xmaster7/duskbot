@@ -41,7 +41,7 @@ it("creates one labelled machine per cloud and attempt with no account credentia
   expect(machine.files.get(INSTABOX_BOOT_FILE)?.toString()).toBe("{\"v\":2}");
   expect(machine.files.has(INSTABOX_SETUP_FILE)).toBe(true);
   expect(machine.metadata["omb.setup"]).toBe("running");
-  expect(machine.leases.has("omb-lifecycle")).toBe(true);
+  expect(machine.leases.has("dusk-lifecycle")).toBe(true);
   expect((await provider.machine(first.id))?.setup).toBe("done");
   expect(machine.metadata["omb.setup"]).toBe("done");
   const recovery = await provider.create({ ...input, attempt: 1 });

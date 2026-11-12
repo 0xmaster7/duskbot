@@ -94,7 +94,7 @@ DNS and proxy, once:
 4. Set `DUSK_MANAGED_PUBLIC_DOMAIN=desktops.example.com` on the account service. It refuses to start without it (and
    without the edge token) unless it runs on loopback.
 
-Machines are named `omb-<cloud id>-<attempt>-<scope>` at the provider (no email), labelled with the cloud id and this deployment's scope.
+Machines are named `dusk-<cloud id>-<attempt>-<scope>` at the provider (no email), labelled with the cloud id and this deployment's scope.
 
 ### What cannot be prevented
 

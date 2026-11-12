@@ -14,7 +14,7 @@ import { PASS } from "../routes/table.ts";
 const SITE = { "index.html": "<!doctype html><h1>Bake sale</h1>", "style.css": "h1{color:red}" };
 let dir: string;
 
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), "omb-pages-")); });
+beforeEach(() => { dir = mkdtempSync(join(tmpdir(), "dusk-pages-")); });
 afterEach(() => {
   applyIncludedPagesMessage({ type: "duskbot:included-pages", access: null });
   rmSync(dir, { recursive: true, force: true });
@@ -135,8 +135,8 @@ describe("publishing a page", () => {
     await f.publish({ path: "one" });
     const refused = await f.publish({ path: "two", title: "Second" });
     expect(refused.status).toBe(402);
-    expect(refused.text).toBe("You’ve used your 1 free pages. Dusk Cloud gives you more, and pages without the badge. Tell the person this in your reply.");
-    expect(f.cards.at(-1)).toMatchObject({ text: "You’ve used your 1 free pages. Dusk Cloud gives you more, and pages without the badge.",
+    expect(refused.text).toBe("You’ve used your 1 free pages. dusk cloud gives you more, and pages without the badge. Tell the person this in your reply.");
+    expect(f.cards.at(-1)).toMatchObject({ text: "You’ve used your 1 free pages. dusk cloud gives you more, and pages without the badge.",
       card: { state: "limit", title: "Second", upgrade: true, plan: "free", usage: { pages: 1, limit: 1 } } });
   });
 
@@ -394,12 +394,12 @@ describe("pages access", () => {
   it("takes only a well-formed pages token for the Admin over https from the desktop", () => {
     expect(applyIncludedPagesMessage({ type: "duskbot:included-x", access: null })).toBe(false);
     expect(() => applyIncludedPagesMessage({ type: "duskbot:included-pages", access: { url: "http://cloud.example.test/x", token: FAKE_DESKTOP_TOKEN } })).toThrow();
-    expect(() => applyIncludedPagesMessage({ type: "duskbot:included-pages", access: { url: FAKE_TOKEN_URL, token: "omb_xd_short" } })).toThrow();
+    expect(() => applyIncludedPagesMessage({ type: "duskbot:included-pages", access: { url: FAKE_TOKEN_URL, token: "dusk_xd_short" } })).toThrow();
     expect(applyIncludedPagesMessage({ type: "duskbot:included-pages", access: { url: FAKE_TOKEN_URL, token: FAKE_DESKTOP_TOKEN } })).toBe(true);
   });
 
   it("signs a home's request exactly as the Admin checks it", () => {
-    // The same vector is pinned in openmaus-cloud tests/cloud-pages.test.ts.
+    // The same vector is pinned in dusk-cloud tests/cloud-pages.test.ts.
     expect(pagesHomeSignature("s".repeat(43), "cm-test-home", "1792670400", "nonce-nonce-nonce-1", '{"action":"create"}')).toBe("smys7kDYS99REKsdwsd9OaXv6pH_hP1Wajaq3KrTiVo");
   });
 });

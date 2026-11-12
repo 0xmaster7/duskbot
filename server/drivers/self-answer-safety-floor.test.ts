@@ -50,7 +50,7 @@ beforeEach(() => {
   ensureDirs();
   chmodSync(FAKE_CODEX, 0o755);
   chmodSync(FAKE_ACP, 0o755);
-  scratch = mkdtempSync(join(tmpdir(), "omb-floor-drivers-"));
+  scratch = mkdtempSync(join(tmpdir(), "dusk-floor-drivers-"));
 });
 
 afterEach(async () => {

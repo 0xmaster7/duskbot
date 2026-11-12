@@ -15,7 +15,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const ADDRESS = "e2e@omb-test.example";
+const ADDRESS = "e2e@dusk-test.example";
 const PASSWORD = "fake pässword-with spaces 7";
 const SERVER = { imapHost: "localhost", imapPort: 11993, smtpHost: "localhost", smtpPort: 11587 };
 const PDF = Buffer.concat([Buffer.from("%PDF-1.4\n"), randomBytes(512), Buffer.from("\n%%EOF\n")]);
@@ -63,7 +63,7 @@ describe.skipIf(!process.env.DUSK_EMAIL_REAL_TEST)("Email end to end", () => {
       if ((seed.mailbox as { exists: number }).exists) await seed.messageDelete("1:*");
       for (const raw of MAIL) await seed.append("INBOX", Buffer.from(raw), []);
     } finally { lock.release(); await seed.logout(); }
-    home = mkdtempSync(join(tmpdir(), "omb-email-e2e-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-email-e2e-"));
     const dataDir = join(home, ".duskbot");
     mkdirSync(dataDir, { recursive: true });
     const cli = join(home, "fixture-claude.mjs");

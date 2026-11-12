@@ -25,7 +25,7 @@ export class AccountError extends Error {
   }
 }
 
-const PENDING = "omb.mobile.accountPending";
+const PENDING = "dusk.mobile.accountPending";
 const TOKEN = "account.token";
 
 /** The hosted account service, or null while accounts are off: the onboarding then skips straight to linking. */

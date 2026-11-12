@@ -20,7 +20,7 @@ const nodeEnv = process.versions.electron ? { ...process.env, ELECTRON_RUN_AS_NO
 
 // a fresh checkout starts with test bots to work with, once per workspace; DUSK_NO_TEST_BOTS=1 skips it
 if (process.env.DUSK_NO_TEST_BOTS !== "1") {
-  const url = `http://127.0.0.1:${Number(process.env.DUSK_PORT || process.env.OGB_PORT || 8799)}`;
+  const url = `http://127.0.0.1:${Number(process.env.DUSK_PORT || process.env.DUSK_PORT || 8799)}`;
   const script = fileURLToPath(new URL("../scripts/demo/test-bots.mjs", import.meta.url));
   const seedOnce = async () => {
     for (let attempt = 0; attempt < 60; attempt += 1) {

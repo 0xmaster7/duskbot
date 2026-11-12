@@ -4,9 +4,9 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
-import { childEnv } from "./testing/omb-env.ts";
+import { childEnv } from "./testing/dusk-env.ts";
 
 type McpServer = { command: string; args: string[]; env: Record<string, string> };
 type Answer = { id: number; result?: { content?: Array<{ text: string }>; isError?: boolean }; error?: { code: number; message: string } };
@@ -37,7 +37,7 @@ it("makes Dusk a new install's first bot, never deleted, hidden by its switch, w
       ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(10_000) });
     return { status: response.status, body: await response.json() as any };
   };
-  const control = (args: string[]) => runControlOmb([...args, "--url", fixture.info.url]) as Promise<any>;
+  const control = (args: string[]) => runControlDusk([...args, "--url", fixture.info.url]) as Promise<any>;
   const bots = async () => (await api("GET", "/api/bots")).body.bots as any[];
   try {
     const [maus] = await bots();
@@ -83,7 +83,7 @@ it("makes Dusk a new install's first bot, never deleted, hidden by its switch, w
 it("lets Dusk read the unread notifications and mark finished work read, not once sign-in members share the workspace, and gives no other bot the tools", async () => {
   const fixture = await launchVerificationServer({ ...process.env, FAKE_CLAUDE_MODE: "hang" });
   const api = async (path: string) => (await (await fetch(`${fixture.info.url}${path}`, { signal: AbortSignal.timeout(10_000) })).json()) as any;
-  const control = (args: string[]) => runControlOmb([...args, "--url", fixture.info.url]) as Promise<any>;
+  const control = (args: string[]) => runControlDusk([...args, "--url", fixture.info.url]) as Promise<any>;
   const launch = async (botId: string) => {
     await control(["send", "--bot", botId, "--text", "Stay active."]);
     await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 30_000 }).toBe(true);

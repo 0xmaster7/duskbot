@@ -20,7 +20,7 @@ import { removeTempDir } from "./testing/cleanup.ts";
 import { startFakeHttpMcp, type FakeHttpMcp, type FakeHttpMcpTool } from "./testing/fake-http-mcp-server.ts";
 
 const FAKE_APP = fileURLToPath(new URL("./testing/fake-stdio-app-server.ts", import.meta.url));
-const TOKEN = "omb-comms-token-fixture";
+const TOKEN = "dusk-comms-token-fixture";
 const BOARD_URI = "ui://fake-app/board.html";
 
 const HTTP_TOOLS: FakeHttpMcpTool[] = [
@@ -144,7 +144,7 @@ describe("the observer in a process", () => {
 
   it("gate: advertises the extension in the CLI's own handshake, hides app-only tools, and reports a UI call before trimming it", async () => {
     harness = await fakeHarness();
-    scratch = mkdtempSync(join(tmpdir(), "omb-app-observer-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-app-observer-"));
     const log = join(scratch, "frames.jsonl");
     const gated = gateServer({ name: "board", server: appServer({ FAKE_APP_LOG: log }), threadId: "t-observer", budget: 2_000, apps: mountFor("board") })!;
     expect(gated.env.DUSK_GATE_APPS).toBeDefined();
@@ -186,7 +186,7 @@ describe("the observer in a process", () => {
 
   it("gate: a server that refuses the extension gets the CLI's own handshake, and the CLI that answer", async () => {
     harness = await fakeHarness();
-    scratch = mkdtempSync(join(tmpdir(), "omb-app-observer-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-app-observer-"));
     const log = join(scratch, "frames.jsonl");
     const { ask } = start(gateServer({ name: "board", server: appServer({ FAKE_APP_LOG: log, FAKE_APP_STRICT: "1" }), threadId: "t-strict", budget: 0, apps: mountFor("board") })!);
     const cli = { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "codex-mcp-client", version: "0.153.4" } };
@@ -196,7 +196,7 @@ describe("the observer in a process", () => {
   }, 30_000);
 
   it("gate without apps: still hides app-only tools, observes nothing, rewrites nothing", async () => {
-    scratch = mkdtempSync(join(tmpdir(), "omb-app-observer-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-app-observer-"));
     const log = join(scratch, "frames.jsonl");
     const gated = gateServer({ name: "board", server: appServer({ FAKE_APP_LOG: log }), threadId: "t-plain", budget: 1_000 })!;
     expect(gated.env).not.toHaveProperty("DUSK_GATE_APPS");
@@ -216,7 +216,7 @@ describe("the observer in a process", () => {
     expect(JSON.parse(proxy.env!.DUSK_REMOTE_MCP_APPS!)).toEqual(mountFor("draw"));
     const { ask } = start(proxy);
     await ask(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "gemini", version: "1" } });
-    expect(fake.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } }, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } }]);
+    expect(fake.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } }, clientInfo: { name: "dusk bot tool proxy", version: "1" } }]);
     expect((await ask(2, "tools/list")).result.tools.map((tool: { name: string }) => tool.name)).toEqual(["create_view", "list_notes"]);
     expect((await ask(3, "tools/call", { name: "save_checkpoint", arguments: {} })).error).toEqual({ code: -32602, message: APP_ONLY_REFUSAL });
     expect((await ask(4, "tools/call", { name: "create_view", arguments: { elements: "[]" } })).result.structuredContent).toEqual({ elements: 2 });
@@ -236,7 +236,7 @@ describe("the observer in a process", () => {
     const { ask } = start(mcpStdioServer({ type: "http", url: fake.url, headers: {} }, { apps: mountFor("strict") })!);
     expect((await ask(1, "initialize", {})).result.serverInfo.name).toBe("fake-http-mcp");
     expect((await ask(2, "tools/list")).result.tools).toHaveLength(2);
-    const plain = { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } };
+    const plain = { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot tool proxy", version: "1" } };
     expect(fake.initializes).toEqual([{ ...plain, capabilities: { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } } }, plain]);
   }, 30_000);
 
@@ -244,7 +244,7 @@ describe("the observer in a process", () => {
     fake = await startFakeHttpMcp({ tools: HTTP_TOOLS });
     const plain = start(mcpStdioServer({ type: "http", url: fake.url, headers: {} })!);
     await plain.ask(1, "initialize", {});
-    expect(fake.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } }]);
+    expect(fake.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot tool proxy", version: "1" } }]);
     expect((await plain.ask(2, "tools/list")).result.tools.map((tool: { name: string }) => tool.name)).toEqual(["create_view", "list_notes"]);
     const closed = once(child!, "close"); child!.kill(); await closed;
     const searched = start(mcpStdioServer({ type: "http", url: fake.url, headers: {} }, { directory: { name: "draw" } })!);
@@ -311,17 +311,17 @@ describe("the observer object", () => {
   });
 });
 
-describe("Dusk Bot's own client and the UI extension", () => {
+describe("dusk bot's own client and the UI extension", () => {
   it("advertises it, and against a strict server falls back to the plain handshake once and says refused", async () => {
     for (const strictInitialize of ["http-400", "jsonrpc-error"] as const) {
       const fake = await startFakeHttpMcp({ strictInitialize, tools: HTTP_TOOLS });
       try {
         const client = new RemoteMcpClient({ type: "http", url: fake.url, headers: {} });
-        await client.initialize("Dusk Bot", AbortSignal.timeout(5_000), { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } });
+        await client.initialize("dusk bot", AbortSignal.timeout(5_000), { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } });
         expect(client.extensions).toBe("refused");
         expect((await client.request("tools/list", {}, AbortSignal.timeout(5_000)) as { tools: unknown[] }).tools).toHaveLength(3);
         expect(fake.initializes).toHaveLength(2);
-        expect(fake.initializes[1]).toEqual({ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot", version: "1" } });
+        expect(fake.initializes[1]).toEqual({ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot", version: "1" } });
         await client.close();
       } finally {
         await fake.close();
@@ -330,7 +330,7 @@ describe("Dusk Bot's own client and the UI extension", () => {
     const lenient = await startFakeHttpMcp({ tools: HTTP_TOOLS });
     try {
       const client = new RemoteMcpClient({ type: "http", url: lenient.url, headers: {} });
-      await client.initialize("Dusk Bot", AbortSignal.timeout(5_000), { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } });
+      await client.initialize("dusk bot", AbortSignal.timeout(5_000), { extensions: { [APP_EXTENSION_KEY]: { mimeTypes: [APP_MIME] } } });
       expect(client.extensions).toBe("ok");
       expect(lenient.initializes).toHaveLength(1);
       await client.close();
@@ -342,7 +342,7 @@ describe("Dusk Bot's own client and the UI extension", () => {
 
 // Keep the scratch helpers honest: a write the gate's fake logs is readable.
 it("the fake app server logs every frame it is sent", async () => {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-app-observer-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-app-observer-"));
   try {
     const log = join(scratch, "frames.jsonl");
     writeFileSync(log, "");

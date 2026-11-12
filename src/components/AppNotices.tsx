@@ -31,17 +31,17 @@ const trialKey = (trial: { state: string; endsAt: number }) => `${trial.state}:$
 
 export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { quiet?: boolean; viewer?: WelcomeViewer | null; now?: () => number }) {
   const { state, dispatch } = useStore();
-  const remote = window.ogb?.remoteClient?.active === true;
+  const remote = window.duskDesktop?.remoteClient?.active === true;
   const local = localDesktopPage();
-  const bridge = !remote && local ? window.ogb?.cloudAccount : undefined;
-  const desktop = remote ? undefined : window.ogb?.desktopNotices;
+  const bridge = !remote && local ? window.duskDesktop?.cloudAccount : undefined;
+  const desktop = remote ? undefined : window.duskDesktop?.desktopNotices;
   const desktopState = useDesktopNotices(desktop);
   // Asked once main has restored the Cloud sign-in, which it waits for before answering desktopState.
-  const planBridge = !remote && (bridge || (viewer?.cloudHome && (desktopState || !desktop))) ? window.ogb?.cloudPlan : undefined;
+  const planBridge = !remote && (bridge || (viewer?.cloudHome && (desktopState || !desktop))) ? window.duskDesktop?.cloudPlan : undefined;
   const [account, setAccount] = useState<CloudAccountState | null>(null);
   const plan = useCloudPlanSnapshot(planBridge);
   const [offer, setOffer] = useState<CloudOffer | null | undefined>(undefined);
-  const [organization, setOrganization] = useState<boolean | null>(window.ogb?.organization ? null : false);
+  const [organization, setOrganization] = useState<boolean | null>(window.duskDesktop?.organization ? null : false);
   const [closed, setClosed] = useState(false);
   const [introOpen, setIntroOpen] = useState(false);
   const [trialOpen, setTrialOpen] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     return () => { active = false; unsubscribe(); };
   }, [bridge]);
   useEffect(() => {
-    const org = window.ogb?.organization;
+    const org = window.duskDesktop?.organization;
     if (!org) return;
     let active = true;
     const read = (next: { status: string; organization?: unknown }) => { if (active) setOrganization(next.status !== "signed-out" && Boolean(next.organization)); };
@@ -105,7 +105,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (offerTrialDays(offer) === null) return false;
     return introOpen || stage === "due" ? true : null;
   };
-  // a routine here that ran late or not at all while this computer slept: the plainest case for Dusk Cloud, said once
+  // a routine here that ran late or not at all while this computer slept: the plainest case for dusk cloud, said once
   const late = bridge && !noticeSeen(record, LATE_ROUTINE_NOTICE) ? lateRoutineRun(state.routines ?? [], state.routineRuns ?? [], now()) : null;
   const lateDue = (): boolean | null => {
     if (!late || !view) return false;

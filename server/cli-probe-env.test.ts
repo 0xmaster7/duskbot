@@ -51,7 +51,7 @@ function expectNoCredentials(file: string) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cli-probe-env-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cli-probe-env-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   // Answers like a signed-in Claude Code; `probe` (the CLI test) and

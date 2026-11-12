@@ -15,7 +15,7 @@ const { once } = require("node:events");
 const { setTimeout: delay } = require("node:timers/promises");
 
 const root = resolve(__dirname, "..");
-const home = mkdtempSync(join(tmpdir(), "omb-login-handoff-smoke-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-login-handoff-smoke-"));
 app.setPath("userData", join(home, "electron"));
 const owner = randomBytes(32).toString("base64url");
 const password = `fake-handoff-${randomBytes(6).toString("hex")}`;
@@ -80,7 +80,7 @@ app.whenReady().then(async () => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
-  const evidence = join(tmpdir(), `omb-login-handoff-${Date.now()}.log`);
+  const evidence = join(tmpdir(), `dusk-login-handoff-${Date.now()}.log`);
   writeFileSync(evidence, logs.replaceAll(owner, "[redacted]").replaceAll(password, "[redacted]"));
   console.log(`Fixture log: ${evidence}`);
   if (harness?.pid) {

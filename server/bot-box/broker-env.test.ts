@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { BROKERED_PROVIDERS, brokerRewrite, usableUpstream } from "./broker-env.ts";
 
-const token = `omb_t0_${"a".repeat(48)}`;
+const token = `dusk_t0_${"a".repeat(48)}`;
 
 describe("the broker's rewrite of a spawn's environment", () => {
   it("replaces each provider key with the token and points its base URL at the broker, keeping the real key in the grant", () => {
@@ -28,7 +28,7 @@ describe("the broker's rewrite of a spawn's environment", () => {
   it("changes nothing without a key, and leaves a token or a broker address alone", () => {
     expect(brokerRewrite({ PATH: "/usr/bin", ANTHROPIC_BASE_URL: "https://proxy.example" }, token, 1)).toEqual({ env: { PATH: "/usr/bin", ANTHROPIC_BASE_URL: "https://proxy.example" }, grants: {}, unbrokered: [] });
     const already = { ANTHROPIC_API_KEY: token, ANTHROPIC_BASE_URL: `http://127.0.0.1:18080/b/${token}/anthropic` };
-    expect(brokerRewrite(already, `omb_t0_${"b".repeat(48)}`, 18080)).toEqual({ env: already, grants: {}, unbrokered: [] });
+    expect(brokerRewrite(already, `dusk_t0_${"b".repeat(48)}`, 18080)).toEqual({ env: already, grants: {}, unbrokered: [] });
     const looped = { ANTHROPIC_API_KEY: "sk-real", ANTHROPIC_BASE_URL: `http://127.0.0.1:18080/b/${token}/anthropic` };
     expect(brokerRewrite(looped, token, 18080).grants).toEqual({});
   });

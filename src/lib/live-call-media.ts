@@ -82,7 +82,7 @@ const defaults: LiveMediaDeps = {
   capabilities: desktopCapabilitiesNow,
   pageMicrophone: async () => {
     try {
-      return (await globalThis.window?.ogb?.permStatus?.())?.pageMic;
+      return (await globalThis.window?.duskDesktop?.permStatus?.())?.pageMic;
     } catch {
       return undefined;
     }

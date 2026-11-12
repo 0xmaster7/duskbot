@@ -13,7 +13,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const PC_ORIGIN = `https://${HOST}`;
 const secret = randomBytes(32).toString("base64url");
 let home: string;
@@ -44,17 +44,17 @@ async function api(method: string, path: string, options: { body?: unknown; remo
 }
 
 async function ownerPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const granted = await api("POST", "/api/cloud/pairing", { remote: true, headers: {
-    "content-type": "application/json", "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-    "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "content-type": "application/json", "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+    "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body: JSON.parse(body) });
   return (await api("POST", "/api/auth/pair", { remote: true, body: { code: granted.body.code } })).body.token as string;
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-sync-e2e-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-sync-e2e-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -72,7 +72,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     },
   }));
   mkdirSync(join(home, "web"));
-  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
+  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>dusk bot</title>");
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('globalThis.fetch = async () => new Response("offline fixture", { status: 503 });')}`;
@@ -120,7 +120,7 @@ function desktop(pcHome: string) {
 }
 
 it("shares a PC folder as a read-only copy: changes go to My Cloud, a bot's edit there is replaced, a delete goes to the trash", async () => {
-  const pcHome = realpathSync(mkdtempSync(join(tmpdir(), "omb-files-pc-")));
+  const pcHome = realpathSync(mkdtempSync(join(tmpdir(), "dusk-files-pc-")));
   const project = join(pcHome, "Clients");
   mkdirSync(project, { recursive: true });
   writeFileSync(join(project, "brief.md"), "the brief");
@@ -164,7 +164,7 @@ it("shares a PC folder as a read-only copy: changes go to My Cloud, a bot's edit
 }, 60_000);
 
 it("a bot's turn wakes the desktop, and its new work comes down to Documents/Dusk Bot/<bot>/<conversation>", async () => {
-  const pcHome = realpathSync(mkdtempSync(join(tmpdir(), "omb-files-pc-")));
+  const pcHome = realpathSync(mkdtempSync(join(tmpdir(), "dusk-files-pc-")));
   const created = await api("POST", "/api/bots", { body: { name: "Report Owl", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } } });
   const bot = created.body.bot as { id: string; threadId: string };
   const service = desktop(pcHome);

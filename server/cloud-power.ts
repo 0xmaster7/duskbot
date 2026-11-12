@@ -9,6 +9,7 @@ import { readFileSync, rmSync } from "node:fs";
 import type { IncomingHttpHeaders, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { writeFileAtomic } from "./atomic.ts";
+import { withLegacyHeaders } from "../electron/legacy-names.mjs";
 
 /** Why a home is not idle, as fixed codes (the Admin keeps the latest one for its operator page). */
 export type CloudPowerBusy = "turn" | "run" | "live-call" | "computer" | "maintenance" | "recent-activity" | "recent-work" | "just-woke" | "due-soon" | "team" | "focus";
@@ -79,15 +80,15 @@ export const wakeCode = (path: string) => WAKE_CODES.find(([pattern]) => pattern
 const BACKGROUND = [/^\/api\/events$/, /^\/api\/health$/, /^\/api\/sync(\/|$)/, /^\/api\/shared-computers(\/|$)/, /^\/api\/cloud\/power(\/|$)/, /^\/api\/cloud\/focus$/];
 export const CLOUD_POWER_PATH = "/api/cloud/power";
 export const CLOUD_POWER_SLEEP_PATH = "/api/cloud/power/sleep";
-export const CLOUD_BACKGROUND_HEADER = "x-omb-background";
-export const CLOUD_POWER_HEADER = "x-omb-cloud-power";
+export const CLOUD_BACKGROUND_HEADER = "x-dusk-background";
+export const CLOUD_POWER_HEADER = "x-dusk-cloud-power";
 const MARKER = "cloud-sleep.json";
 /** Long-polls and streams that stay open by design: never "in flight" work. */
 const HELD = [/^\/api\/events$/, /^\/api\/sync\/changes$/];
 
 /** The answer a held poll (Files sync) gets once the home agreed to sleep: the desktop pauses until it wakes. */
 export function answerAsleep(res: ServerResponse, json: (res: ServerResponse, status: number, body: unknown) => void) {
-  res.setHeader(CLOUD_POWER_HEADER, "asleep");
+  for (const [name, value] of Object.entries(withLegacyHeaders({ [CLOUD_POWER_HEADER]: "asleep" }))) res.setHeader(name, value);
   json(res, 503, { error: "asleep" });
 }
 

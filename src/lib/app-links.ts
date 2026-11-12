@@ -1,4 +1,4 @@
-export const APP_NAME = "Dusk Bot";
+export const APP_NAME = "dusk bot";
 export const APP_REPOSITORY = "https://github.com/goatedgrokbotalternative/duskbot";
 export const DOCS_URL = `${APP_REPOSITORY}/tree/custom/docs`;
 export const HELP_CENTER_URL = DOCS_URL;
@@ -24,8 +24,8 @@ export function platformLabel(platform?: string): string | null {
 }
 
 export async function openExternalLink(url: string): Promise<void> {
-  if (window.ogb?.openExternal) {
-    await window.ogb.openExternal(url);
+  if (window.duskDesktop?.openExternal) {
+    await window.duskDesktop.openExternal(url);
     return;
   }
   window.open(url, "_blank", "noopener,noreferrer");

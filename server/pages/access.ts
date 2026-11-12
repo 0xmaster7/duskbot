@@ -4,6 +4,7 @@
 //   a desktop's main process fetches its sign-in's own pages token and hands it over on the private parent port.
 // Neither is ever written to config, sent to a client, or given to an engine. No Cloudflare credential is held here.
 import { createHash, createHmac, randomBytes } from "node:crypto";
+import { withLegacyHeaders } from "../../electron/legacy-names.mjs";
 
 export const PAGES_TOKEN_PATH = "/api/cloud/pages/token";
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
@@ -12,7 +13,7 @@ export type PagesAccess =
   | { kind: "desktop"; url: string; token: string }
   | { kind: "home"; url: string; machineId: string; secret: string };
 
-/** Must match openmaus-cloud server/cloud-pages.ts `pagesHomeSignature`. */
+/** Must match dusk-cloud server/cloud-pages.ts `pagesHomeSignature`. */
 export function pagesHomeSignature(secret: string, machineId: string, timestamp: string, nonce: string, body: string): string {
   const bodyHash = createHash("sha256").update(body).digest("base64url");
   return createHmac("sha256", secret).update(`omb-pages-v1\n${machineId}\n${timestamp}\n${nonce}\n${bodyHash}`).digest("base64url");
@@ -22,12 +23,12 @@ export function pagesHomeSignature(secret: string, machineId: string, timestamp:
 export function pagesAuthHeaders(access: PagesAccess, body: string, now = Date.now()): Record<string, string> {
   if (access.kind === "desktop") return { authorization: `Bearer ${access.token}` };
   const timestamp = String(Math.floor(now / 1000)), nonce = randomBytes(18).toString("base64url");
-  return {
-    "x-omb-cloud-machine": access.machineId,
-    "x-omb-cloud-timestamp": timestamp,
-    "x-omb-cloud-nonce": nonce,
-    "x-omb-cloud-signature": `v1=${pagesHomeSignature(access.secret, access.machineId, timestamp, nonce, body)}`,
-  };
+  return withLegacyHeaders({
+    "x-dusk-cloud-machine": access.machineId,
+    "x-dusk-cloud-timestamp": timestamp,
+    "x-dusk-cloud-nonce": nonce,
+    "x-dusk-cloud-signature": `v1=${pagesHomeSignature(access.secret, access.machineId, timestamp, nonce, body)}`,
+  });
 }
 
 let desktopPages: { url: string; token: string } | null = null;
@@ -57,7 +58,7 @@ export function applyIncludedPagesMessage(message: unknown): boolean {
   }
   const { url, token } = (access && typeof access === "object" ? access : {}) as { url?: unknown; token?: unknown };
   const target = adminUrl(url);
-  if (typeof token !== "string" || !/^omb_pd_[A-Za-z0-9_-]{43}$/.test(token) || !target) throw new Error("invalid pages access");
+  if (typeof token !== "string" || !/^(?:dusk|omb)_pd_[A-Za-z0-9_-]{43}$/.test(token) || !target) throw new Error("invalid pages access");
   desktopPages = { url: target, token };
   desktopPagesNotOffered = false;
   return true;

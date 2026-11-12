@@ -92,7 +92,7 @@ beforeEach(() => {
   dispatch.mockReset();
   flushBotPatches.mockClear();
   vi.stubGlobal("fetch", fetchMock);
-  vi.stubGlobal("ogb", { openExternal: vi.fn(async () => true) });
+  vi.stubGlobal("duskDesktop", { openExternal: vi.fn(async () => true) });
   // happy-dom's observer never reports: without one, a row counts as in view
   vi.stubGlobal("IntersectionObserver", undefined);
   pool = createAppPool({ limit: 3 });
@@ -205,7 +205,7 @@ describe("a bot's page", () => {
     await handshake();
     await engage();
     await fromView({ jsonrpc: "2.0", id: "l1", method: "ui/open-link", params: { url: "https://example.com/a" } });
-    expect((window as unknown as { ogb: { openExternal: ReturnType<typeof vi.fn> } }).ogb.openExternal).toHaveBeenCalledWith("https://example.com/a");
+    expect((window as unknown as { duskDesktop: { openExternal: ReturnType<typeof vi.fn> } }).duskDesktop.openExternal).toHaveBeenCalledWith("https://example.com/a");
   });
 
   it("update_html mounts the new page at the same height, after the old one is asked to go", async () => {

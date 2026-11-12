@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: |
           res=release/win-unpacked/resources
-          HOME="$RUNNER_TEMP/omb-smoke" USERPROFILE="$RUNNER_TEMP/omb-smoke" \
+          HOME="$RUNNER_TEMP/dusk-smoke" USERPROFILE="$RUNNER_TEMP/dusk-smoke" \
             DUSK_PORT=21987 node "$res/server/index.js" > "$RUNNER_TEMP/server.log" 2>&1 &
           pid=$!
           for _ in $(seq 1 90); do

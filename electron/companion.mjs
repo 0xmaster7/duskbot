@@ -344,7 +344,7 @@ export async function companionPairing(open, expectedToken) {
   if (!proc) return companionState();
   const conditionalClose = !open && expectedToken !== undefined;
   const candidate = String(expectedToken ?? "");
-  const token = /^omb_pair_[A-Za-z0-9_-]{43}$/.test(candidate)
+  const token = /^(?:dusk|omb)_pair_[A-Za-z0-9_-]{43}$/.test(candidate)
     ? candidate
     : "invalid-pairing-token";
   const path = conditionalClose

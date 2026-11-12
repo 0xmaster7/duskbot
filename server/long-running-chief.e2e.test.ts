@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, verificationServerArgs, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk, verificationServerArgs, verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { CONTROL_WAITED } from "./control-client.ts";
 import { CONSENT_RULE } from "./peer-provenance.ts";
 import { waitForExit } from "./testing/cleanup.ts";
@@ -84,7 +84,7 @@ async function chiefJob(test: (f: any) => Promise<void>) {
       try { parsed = JSON.parse(raw); } catch {}
       return { status: response.status, body: parsed };
     };
-    const cli = (...args: string[]) => runControlOmb([...args, "--url", url]) as Promise<any>;
+    const cli = (...args: string[]) => runControlDusk([...args, "--url", url]) as Promise<any>;
     // The team works at Ask, as Claude Code does there, so its approvals are cards.
     const bot = async (name: string, section: string) => {
       const made = (await cli("new-bot", "--name", name, "--section", section)).bot;
@@ -298,7 +298,7 @@ it("tells the Chief what happened to each approval: allowed, denied, or never an
   expect(settled).toEqual(["@Mira got your approval", "@Mira's request was denied", "Nobody answered @Mira's approval in time — that step did not run"]);
   expect(f.child(job, f.mira.id, "CHECK-HISTORY").result).toBe("HISTORY-RESULT: checked the history.");
   expect(f.child(job, f.mira.id, "PUSH-BRANCH").result).toBe("PUSH-RESULT: not pushed; the push was denied.");
-  const unanswered = "[Dusk Bot: nobody answered the approval for “Bash: pnpm test” in time, so it did not run. Do not report it as done; it needs the person's approval.]";
+  const unanswered = "[dusk bot: nobody answered the approval for “Bash: pnpm test” in time, so it did not run. Do not report it as done; it needs the person's approval.]";
   expect(f.child(job, f.mira.id, "RUN-TESTS")).toMatchObject({ status: "completed", result: `${unanswered}\n\nTESTS-RESULT: I could not run the tests.` });
   expect(f.prompt(f.turn("B3"))).toContain(JSON.stringify(unanswered.replace(/^\[/, "(")).slice(1, -1));
   expect(f.prompt(f.turn("B3"))).toContain("[From @Mira (bot) · report on assignment ");

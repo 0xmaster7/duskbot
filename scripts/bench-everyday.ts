@@ -38,7 +38,7 @@ const FIXTURE_TOOLS: Record<string, Array<{ name: string; read: boolean; ms: num
   data: [{ name: "query", read: true, ms: 50 }],
 };
 
-const dir = mkdtempSync(join(tmpdir(), "omb-everyday-"));
+const dir = mkdtempSync(join(tmpdir(), "dusk-everyday-"));
 const log = join(dir, "effects.jsonl");
 const server = join(dir, "fixture-mcp.mjs");
 writeFileSync(server, `import { appendFileSync } from "node:fs";

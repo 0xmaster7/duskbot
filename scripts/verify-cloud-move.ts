@@ -2,7 +2,7 @@
 // (scripts/testing/cloud-move-preview.tsx). POST /__fixture/cloud?home=1 answers the config as a Cloud home's, for the
 // done sheet on My Cloud's page. Run: node --experimental-strip-types scripts/verify-cloud-move.ts
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { launchVerificationServer } from "./control-omb.ts";
+import { launchVerificationServer } from "./control-dusk.ts";
 import { mountPreview, parkUntilSignal, type MountedPreview } from "./testing/preview-fixture.ts";
 
 let home = false;

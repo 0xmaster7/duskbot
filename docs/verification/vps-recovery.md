@@ -132,7 +132,7 @@ time or the health of a real server.
 ## Sleeping and waking an idle VPS computer
 
 ```sh
-pnpm exec vitest run server/vps-idle.test.ts server/vps-idle.e2e.test.ts scripts/control-omb.test.ts
+pnpm exec vitest run server/vps-idle.test.ts server/vps-idle.e2e.test.ts scripts/control-dusk.test.ts
 ```
 
 The default idle window is ten minutes. Settings may select five, ten or thirty

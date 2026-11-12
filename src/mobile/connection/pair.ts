@@ -37,7 +37,7 @@ const pendingAttempts = new WeakMap<MobilePlatform, Map<string, Promise<string>>
 async function attemptId(payload: TypedPairing, platform: MobilePlatform, origin: string): Promise<string> {
   const digest = await subtle().digest("SHA-256", new TextEncoder().encode(payload.credential || `${origin}\0${payload.code}`));
   const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12);
-  const key = payload.via ? `omb.mobile.attempt.${payload.grantId}` : `omb.mobile.pairAttempt.${hash}`;
+  const key = payload.via ? `dusk.mobile.attempt.${payload.grantId}` : `dusk.mobile.pairAttempt.${hash}`;
   let attempts = pendingAttempts.get(platform);
   if (!attempts) { attempts = new Map(); pendingAttempts.set(platform, attempts); }
   const existing = attempts.get(key);
@@ -84,7 +84,7 @@ async function redeemLegacyPairing(payload: MobilePairingPayload, platform: Mobi
     origin = new URL(payload.origin ?? "");
     if (!(["https:", ...(payload.transport === "companion" ? ["http:"] : [])].includes(origin.protocol)) || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash) throw new PairError("invalid");
   } catch { throw new PairError("invalid"); }
-  if (payload.credential ? !/^omb_pair_[A-Za-z0-9_-]{43}$/.test(payload.credential) : !(payload.transport === "companion" ? /^\d{6}$/ : /^[A-Za-z0-9]{12}$/).test(payload.code ?? "")) throw new PairError("invalid");
+  if (payload.credential ? !/^(?:dusk|omb)_pair_[A-Za-z0-9_-]{43}$/.test(payload.credential) : !(payload.transport === "companion" ? /^\d{6}$/ : /^[A-Za-z0-9]{12}$/).test(payload.code ?? "")) throw new PairError("invalid");
   if (payload.expiresAt && payload.expiresAt <= Date.now()) throw new PairError("expired");
   try {
     const pairRequestId = await attemptId(payload, platform, origin.origin);

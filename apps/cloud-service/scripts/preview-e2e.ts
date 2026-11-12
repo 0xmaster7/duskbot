@@ -1,6 +1,6 @@
 // @ts-nocheck: this live harness runs page.evaluate callbacks in the browser, and the server tsconfig has no DOM types
-// A person's whole Dusk Cloud journey on the deployed service, with both of their apps on screen: sign-up on the site,
-// onboarding, a Dusk Cloud plan, the cloud machine on InstaBox, the desktop app signing in and opening its cloud (the
+// A person's whole dusk cloud journey on the deployed service, with both of their apps on screen: sign-up on the site,
+// onboarding, a dusk cloud plan, the cloud machine on InstaBox, the desktop app signing in and opening its cloud (the
 // page its window loads, in headless Chromium), two bots, messages, a bot using its own computer's browser, a routine on
 // schedule, the phone app (src/mobile web build) linked from the desktop and in sync with it, pause and resume, and
 // everything deleted at the end. Every step is timed and written to --out.
@@ -124,9 +124,9 @@ const browser = await chromium.launch({ headless: true, args: ["--use-mock-keych
 const web = await browser.newContext({ viewport: { width: 1280, height: 860 }, ...(state.web ? { storageState: state.web } : {}) });
 const page = await web.newPage();
 const shot = (p: any, name: string) => p.screenshot({ path: join(shots, `${name}.png`) }).catch(() => {});
-const csrf = async () => ((await web.cookies(origin)) as Cookie[]).find(c => c.name === "omb_csrf")?.value ?? "";
+const csrf = async () => ((await web.cookies(origin)) as Cookie[]).find(c => c.name === "dusk_csrf")?.value ?? "";
 async function account(method: string, path: string, body?: unknown) {
-  const r = await web.request.fetch(`${origin}${path}`, { timeout: 120_000, method, headers: { origin, "x-omb-csrf": await csrf(), ...(body === undefined ? {} : { "content-type": "application/json" }) }, ...(body === undefined ? {} : { data: JSON.stringify(body) }) });
+  const r = await web.request.fetch(`${origin}${path}`, { timeout: 120_000, method, headers: { origin, "x-dusk-csrf": await csrf(), ...(body === undefined ? {} : { "content-type": "application/json" }) }, ...(body === undefined ? {} : { data: JSON.stringify(body) }) });
   const text = await r.text(); let data: any = text; try { data = JSON.parse(text); } catch {}
   if (!r.ok()) throw new Error(`${method} ${path} ${r.status()} ${text.slice(0, 200)}`);
   return data;
@@ -195,7 +195,7 @@ async function setup() {
 
 async function waitForCloud() {
   const timeline: Array<{ s: number; status: string; step: string | null }> = [];
-  await step("cloud: the dashboard shows Dusk Cloud provisioning, then running", async () => {
+  await step("cloud: the dashboard shows dusk cloud provisioning, then running", async () => {
     const started = Date.now();
     await page.goto(`${origin}/app/`);
     let shotTaken = false;
@@ -279,7 +279,7 @@ async function run() {
   }, true);
 
   // what a real person would see for engines before any test tooling: is any AI signed in on the cloud?
-  const engineCheck = await onMachine(`command -v claude codex opencode gemini qwen 2>/dev/null; ls ${CLOUD_HOME.data} 2>/dev/null | head -40; test -e /opt/omb-test/fake-claude.mjs && echo fake-installed || echo no-fake`);
+  const engineCheck = await onMachine(`command -v claude codex opencode gemini qwen 2>/dev/null; ls ${CLOUD_HOME.data} 2>/dev/null | head -40; test -e /opt/dusk-test/fake-claude.mjs && echo fake-installed || echo no-fake`);
   results.enginesOnCloud = engineCheck.stdout.trim().split("\n");
 
   let owner: any = null;
@@ -300,24 +300,24 @@ async function run() {
 
   // test tooling: the synthetic engine, with a tool-calls file the test rewrites per turn (missing: no tool calls)
   await step("engine: synthetic engine on the home (test tooling)", async () => {
-    if (!process.argv.includes("--reinstall-engine") && (await onMachine("test -x /usr/local/bin/claude && test -e /opt/omb-test/fake-claude.mjs && echo yes")).stdout.includes("yes")) return;
-    const dir = mkdtempSync(join(tmpdir(), "omb-engine-")), file = join(dir, "fake-claude.mjs");
+    if (!process.argv.includes("--reinstall-engine") && (await onMachine("test -x /usr/local/bin/claude && test -e /opt/dusk-test/fake-claude.mjs && echo yes")).stdout.includes("yes")) return;
+    const dir = mkdtempSync(join(tmpdir(), "dusk-engine-")), file = join(dir, "fake-claude.mjs");
     execFileSync(resolve("node_modules/.bin/esbuild"), ["server/testing/fake-claude-cli.ts", "--bundle", "--platform=node", "--format=esm", `--outfile=${file}`, "--log-level=error",
       "--banner:js=import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);"], { stdio: "inherit" });
-    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexport FAKE_CLAUDE_TOOL_CALLS_FILE=/opt/omb-test/tools.json\nexport FAKE_CLAUDE_USES_CLOUD_COMPUTER=1\nexec ${CLOUD_HOME.root}/node/bin/node /opt/omb-test/fake-claude.mjs "$@"\n`;
+    const wrapper = `#!/bin/sh\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"email":"person@example.test"}'; exit 0; fi\nexport FAKE_CLAUDE_VERSION=2.1.284\nexport FAKE_CLAUDE_TOOL_CALLS_FILE=/opt/dusk-test/tools.json\nexport FAKE_CLAUDE_USES_CLOUD_COMPUTER=1\nexec ${CLOUD_HOME.root}/node/bin/node /opt/dusk-test/fake-claude.mjs "$@"\n`;
     const id = await machine();
     await ibx.upload(id, "/data/home/fake-claude.mjs", readFileSync(file));
     await ibx.upload(id, "/data/home/claude-wrapper.sh", Buffer.from(wrapper));
     rmSync(dir, { recursive: true, force: true });
-    const done = await onMachine("sudo install -d -m 0777 /opt/omb-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/omb-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo rm -f /opt/omb-test/tools.json && sudo systemctl restart omb-home && for i in $(seq 1 60); do curl -fsS -m 2 http://127.0.0.1:8799/api/health >/dev/null && break; sleep 1; done && echo ok", 180);
+    const done = await onMachine("sudo install -d -m 0777 /opt/dusk-test && sudo install -m 0755 /data/home/fake-claude.mjs /opt/dusk-test/fake-claude.mjs && sudo install -m 0755 /data/home/claude-wrapper.sh /usr/local/bin/claude && sudo rm -f /opt/dusk-test/tools.json && sudo systemctl restart omb-home && for i in $(seq 1 60); do curl -fsS -m 2 http://127.0.0.1:8799/api/health >/dev/null && break; sleep 1; done && echo ok", 180);
     if (!done.stdout.includes("ok")) throw new Error(`engine install: ${done.stdout.slice(-200)}`);
     const again = await ownerSession(); owner = again.session;
   });
   const setTools = async (calls: unknown[] | null) => {
     const id = await machine();
-    if (!calls) { await onMachine("sudo rm -f /opt/omb-test/tools.json"); return; }
+    if (!calls) { await onMachine("sudo rm -f /opt/dusk-test/tools.json"); return; }
     await ibx.upload(id, "/data/home/tools.json", Buffer.from(JSON.stringify(calls)));
-    await onMachine("sudo install -m 0644 /data/home/tools.json /opt/omb-test/tools.json");
+    await onMachine("sudo install -m 0644 /data/home/tools.json /opt/dusk-test/tools.json");
   };
   await setTools(null);
 
@@ -410,7 +410,7 @@ async function run() {
     if (!(woke.status < 300 && woke.body?.ready === true)) throw new Error(`computer ${woke.status} ${JSON.stringify(woke.body).slice(0, 200)}`);
   });
   await step("browser: Borealis opens a web page in his computer's browser during a turn", async () => {
-    const marker = `omb-${randomUUID().slice(0, 6)}`;
+    const marker = `dusk-${randomUUID().slice(0, 6)}`;
     const command = `curl -s -m 10 -X PUT "http://127.0.0.1:\${DUSK_CDP_PORT:-9222}/json/new?https://example.com/?${marker}" >/dev/null || (chromium "https://example.com/?${marker}" >/dev/null 2>&1 &); for i in $(seq 1 20); do sleep 1; curl -s -m 5 http://127.0.0.1:\${DUSK_CDP_PORT:-9222}/json/list | grep -q '"title": "Example Domain"' && break; done; curl -s -m 5 http://127.0.0.1:\${DUSK_CDP_PORT:-9222}/json/list | grep -E '"(title|url)"' | head -6`;
     await setTools([{ server: "computer", name: "vm_exec", input: { command, timeout_seconds: 60 } }]);
     const before = (await botReplies(bo)).length, sent = Date.now();

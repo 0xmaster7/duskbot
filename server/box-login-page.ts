@@ -13,7 +13,7 @@ export interface BoxLoginPage {
   close(): void;
 }
 
-const WORLD = "omb-login";
+const WORLD = "dusk-login";
 const VERSION_ATTEMPTS = 4;
 const VERSION_RETRY_MS = 1_500;
 

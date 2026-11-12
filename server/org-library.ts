@@ -32,8 +32,9 @@ import {
   parsePackageDocument,
   type PackageDocument,
 } from "../shared/package-format.ts";
+import { withCurrentFormat } from "../electron/legacy-names.mjs";
 
-export const ORG_LIBRARY_FORMAT = "openmaus.org-library";
+export const ORG_LIBRARY_FORMAT = "dusk.org-library";
 export const ORG_LIBRARY_CATALOG_MAX_BYTES = 256 * 1024;
 export const ORG_LIBRARY_MAX_ENTRIES = 100;
 export const ORG_LIBRARY_REPORT_MAX_ENTRIES = 100;
@@ -97,7 +98,7 @@ export interface OrgLibraryCatalog {
 }
 
 export function parseOrgLibraryCatalog(value: unknown): OrgLibraryCatalog | null {
-  const envelope = envelopeSchema.safeParse(value);
+  const envelope = envelopeSchema.safeParse(withCurrentFormat(value));
   if (!envelope.success) return null;
   const seen = new Set<string>();
   const packages = envelope.data.packages.flatMap((raw) => {
@@ -296,7 +297,7 @@ const refusal = (status: number, code: string, error: string) => ({ ok: false as
 
 const NOT_LISTED = "This package is not in your organization's library.";
 const NOT_READY = "This package hasn't finished downloading yet. Try again in a minute.";
-const NEWER_APP = "Update Dusk Bot to add this package.";
+const NEWER_APP = "Update dusk bot to add this package.";
 const ADD_FAILED = "This package could not be added, so nothing was changed. Try again, or ask your organization's admin.";
 
 export class OrgLibrary {
@@ -593,7 +594,7 @@ export class OrgLibrary {
     for (const group of groups) store.deleteGroup(group.id);
     for (const id of botIds) store.deleteBot(id);
     if (section && store.sections.includes(section)) store.changeEmptySection(section, null);
-    console.warn(`[org-library] removed a team that was only partly added when Dusk Bot stopped; it can be added again from the shelf`);
+    console.warn(`[org-library] removed a team that was only partly added when dusk bot stopped; it can be added again from the shelf`);
   }
 
   private onStoreChange(change: StoreChange): void {

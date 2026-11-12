@@ -16,7 +16,7 @@ state files for operator data; add a collection instead.
 - Values: the operator's `.env` (repo root, git-ignored) and
   `~/.config/duskbot/`. Never commit them.
 
-The ops runbook (users, restore, rotation) is `omb-ref/DUSK-MONGO.md` on the
+The ops runbook (users, restore, rotation) is `dusk-ref/DUSK-MONGO.md` on the
 operator's Mac.
 
 ## The account service
@@ -44,7 +44,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `sessions` | web and app sessions (token hashes only) | `id` | `tokenHash` unique, `accountId`, `expiresAt` |
 | `workspaces`, `workspace_accounts` | linked workspaces and their latest report | `id` | `ownerAccountId`, `publicKey` |
 | `billing_*` | customers, checkouts, subscriptions, licenses, invoices, credits, webhook events, feedback, closures, refunds, provider cancels | `id` (customers: `accountId`) | `accountId`; `providerPaymentId` unique; `(reason, ref)` unique; `providerSubscriptionId` unique when set |
-| `clouds` | Dusk Cloud records with the managed lifecycle | `id` | `accountId`, `status` |
+| `clouds` | dusk cloud records with the managed lifecycle | `id` | `accountId`, `status` |
 | `pages`, `slack_edge_regs`, `slack_edge_events` | published pages, Slack wake edge | `id` / `cloudId` | |
 | `stores` | each module's small fields (queues, counters, provider start ledger, sweep) | module name | |
 | `managed_audit` | append-only lifecycle audit, ids and codes only | | `(cloudId, at)`, `at` |

@@ -1,10 +1,10 @@
 # Chat UI, driven headlessly
 
-The `ui` group of `control-omb` drives the real React renderer — the same
+The `ui` group of `control-dusk` drives the real React renderer — the same
 `<App/>` the desktop shell loads, mounted by `scripts/testing/threads-preview.tsx`
 — in a headless Chrome through the agent-browser binary the harness pins
 (`server/browser-engine-release.ts`, implementation in
-`scripts/testing/control-omb-ui.ts`). Everything it touches is disposable: the
+`scripts/testing/control-dusk-ui.ts`). Everything it touches is disposable: the
 fake-engine fixture from `launch`, a Vite preview of the app, and one browser
 session whose `HOME` is the fixture's data directory. The user's app on port
 8799 and `~/.duskbot` are never involved.
@@ -12,18 +12,18 @@ session whose `HOME` is the fixture's data directory. The user's app on port
 ## Launch
 
 ```sh
-node --experimental-strip-types scripts/control-omb.ts ui launch \
+node --experimental-strip-types scripts/control-dusk.ts ui launch \
   --tool-calls '[{"name":"Bash","input":{"command":"echo hi"},"ok":true}]'
 ```
 
 Run it in the foreground so Ctrl-C reaches it. On first use it downloads the
 pinned agent-browser release (size and SHA-256 verified) and its Chrome for
-Testing into `.omb-scratch/verify-tools` (gitignored); later launches reuse
+Testing into `.dusk-scratch/verify-tools` (gitignored); later launches reuse
 them. `DUSK_AGENT_BROWSER_PATH` and `AGENT_BROWSER_EXECUTABLE_PATH` take
 precedence when set. The launcher then starts the fixture, pins its language
 to English (`PATCH /api/config`), creates Pepper through the same `new-bot`
 path as [Chat turns](chat-turns.md), mounts the preview, opens it in a headless
-session named `omb-ui-<port>`, and prints a handle:
+session named `dusk-ui-<port>`, and prints a handle:
 
 ```json
 {
@@ -49,15 +49,15 @@ a browser it did not launch.
 
 ```sh
 H=/tmp/duskbot-verify-data-XXXXXX/ui.json
-pnpm control:omb ui flag --ui $H --set features.showToolCalls=true --dry-run
-pnpm control:omb ui flag --ui $H --set features.showToolCalls=true
-pnpm control:omb ui snapshot --ui $H --interactive
-pnpm control:omb ui type --ui $H --name "Message Pepper" --text hello
-pnpm control:omb ui press --ui $H --keys Enter
-pnpm control:omb ui wait-settle --ui $H --timeout 60
-pnpm control:omb ui snapshot --ui $H
-pnpm control:omb ui click --ui $H --name "Save as skill"
-pnpm control:omb ui eval --ui $H --js "document.querySelector('textarea[aria-label=\"Message Pepper\"]').value"
+pnpm control:dusk ui flag --ui $H --set features.showToolCalls=true --dry-run
+pnpm control:dusk ui flag --ui $H --set features.showToolCalls=true
+pnpm control:dusk ui snapshot --ui $H --interactive
+pnpm control:dusk ui type --ui $H --name "Message Pepper" --text hello
+pnpm control:dusk ui press --ui $H --keys Enter
+pnpm control:dusk ui wait-settle --ui $H --timeout 60
+pnpm control:dusk ui snapshot --ui $H
+pnpm control:dusk ui click --ui $H --name "Save as skill"
+pnpm control:dusk ui eval --ui $H --js "document.querySelector('textarea[aria-label=\"Message Pepper\"]').value"
 ```
 
 `snapshot` returns the accessibility tree with `@eN` refs and a `refs` table
@@ -80,15 +80,15 @@ too, so read the transcript landmark, not the whole tree.
 ## Evidence
 
 ```sh
-pnpm control:omb ui screenshot --ui $H --out .omb-scratch/verify-evidence/chat-ui.png
-pnpm control:omb ui console --ui $H
-pnpm control:omb ui eval --ui $H --js "document.title"
+pnpm control:dusk ui screenshot --ui $H --out .dusk-scratch/verify-evidence/chat-ui.png
+pnpm control:dusk ui console --ui $H
+pnpm control:dusk ui eval --ui $H --js "document.title"
 ```
 
 Keep the `wait-settle` JSON, both snapshots, the screenshot and the printed
 server log path. The console output must contain no `error` entries.
 
-The permanent form of this recipe is `scripts/testing/control-omb-ui.e2e.test.ts`:
+The permanent form of this recipe is `scripts/testing/control-dusk-ui.e2e.test.ts`:
 
 The fixture also hit-tests the rendered empty band beside **This run**. It
 must target the conversation rather than the transparent dock, while points
@@ -96,7 +96,7 @@ inside the card and composer still target those controls. This checks browser
 pointer targeting, not native OS wheel delivery.
 
 ```sh
-DUSK_UI_E2E=1 pnpm exec vitest run scripts/testing/control-omb-ui.e2e.test.ts
+DUSK_UI_E2E=1 pnpm exec vitest run scripts/testing/control-dusk-ui.e2e.test.ts
 ```
 
 The asserted recipe now also covers the floating **This run** card with a
@@ -240,7 +240,7 @@ seconds:
 
 ```sh
 DUSK_ACP_QUIET_NOTICE_MS=10000 DUSK_ACP_QUIET_TICK_MS=2000 FAKE_CLAUDE_RELEASE=/tmp/release \
-node --experimental-strip-types scripts/control-omb.ts ui launch --tool-calls \
+node --experimental-strip-types scripts/control-dusk.ts ui launch --tool-calls \
   '[{"name":"WebSearch","input":{"query":"Acme construction leads"},"ok":true},
     {"name":"Bash","input":{"command":"cd ~/acme && python3 scrape.py --pages 40"},"hold":"busy"}]'
 ```
@@ -256,7 +256,7 @@ script its command. A bot moved to the `codex` instance then shows `last
 output just now` and the command's last two lines in the card.
 
 The before-and-after screenshots were removed because they showed real example
-data; run the `scripts/control-omb.ts ui launch` command above to see the
+data; run the `scripts/control-dusk.ts ui launch` command above to see the
 working line and the Now card.
 
 The checks are `server/step-summary.test.ts` (the words and their redaction),

@@ -19,7 +19,7 @@ import { hostTimeout } from "./testing/host-timeout.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 // Obvious fakes only.
 const TOKEN = `ops_fake-cloud-service-account-${randomBytes(12).toString("hex")}`;
 const VAULT_PASSWORD = `fake-vault-Passw0rd-${randomBytes(6).toString("hex")}`;
@@ -51,11 +51,11 @@ async function api(method: string, path: string, body?: unknown) {
 }
 
 async function pairOwner(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   const paired = await api("POST", "/api/auth/pair", { code: granted.code });
@@ -76,7 +76,7 @@ exports.createClient = async ({ auth }) => {
   if (auth.length < 24) throw new Error("invalid user input: encountered the following errors: service account token had invalid format");
   if (auth !== TOKEN) throw new Error("error authenticating: invalid service account token");
   return {
-    vaults: { list: async () => [{ id: "v1", title: "Shared with Dusk Bot" }] },
+    vaults: { list: async () => [{ id: "v1", title: "Shared with dusk bot" }] },
     items: {
       list: async () => [{ id: "i1", title: "CRM", category: "Login", websites: [{ url: "https://crm.example.test/login" }] }],
       getAll: async (vaultId, ids) => ({ individualResponses: ids.map((id) => ({ content: { id, fields } })) }),
@@ -133,7 +133,7 @@ async function startCloudHome(at: string, tree: string, port: number, onLog: (ch
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-1password-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-1password-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -160,7 +160,7 @@ afterAll(async () => {
 });
 
 it("when an image lacks the SDK, says so plainly and never blames the token", async () => {
-  const other = mkdtempSync(join(tmpdir(), "omb-cloud-1password-missing-"));
+  const other = mkdtempSync(join(tmpdir(), "dusk-cloud-1password-missing-"));
   const port = await freePortBlock([0, 1]);
   let missingLog = "";
   const started = await startCloudHome(other, join(other, "empty-tree"), port, (chunk) => { missingLog += chunk; });
@@ -186,7 +186,7 @@ it("connects a 1Password service account on a Cloud home, and says plainly what 
   expect((await api("POST", "/api/logins/1password", { token: `ops_wrong-${"x".repeat(30)}` })).body.error).toBe(ONE_PASSWORD_REFUSED);
   expect((await api("POST", "/api/logins/1password", { token: "ops_short" })).body.error).toMatch(/^That is not a whole 1Password service account token/u);
   const connected = await api("POST", "/api/logins/1password", { token: TOKEN });
-  expect(connected, log).toMatchObject({ status: 200, body: { onePassword: { connected: true, vaults: [{ id: "v1", title: "Shared with Dusk Bot", items: 1 }], items: 1 } } });
+  expect(connected, log).toMatchObject({ status: 200, body: { onePassword: { connected: true, vaults: [{ id: "v1", title: "Shared with dusk bot", items: 1 }], items: 1 } } });
   expect((await api("GET", "/api/logins")).body.logins).toEqual([expect.objectContaining({ site: "example.test", username: "person@example.test", source: "1password" })]);
   expect(log).not.toContain("SDK did not load");
   expect(log).not.toContain("not available in this build");

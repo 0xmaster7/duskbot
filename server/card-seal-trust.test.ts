@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createCardSealer } from "./card-seal.ts";
 import { sealCardSecret, sealValues, SealTrustError, trustSealKey } from "../src/lib/card-seal.ts";
 
-const holder = globalThis as { ogb?: unknown };
-afterEach(() => { delete holder.ogb; });
+const holder = globalThis as { duskDesktop?: unknown };
+afterEach(() => { delete holder.duskDesktop; });
 
 /** the desktop app's pin for this page's server, as main answers it */
 function pinned(identity: string) {
   const asked: string[] = [];
-  holder.ogb = { sealTrust: { check: async (offered: string) => { asked.push(offered); return { ok: offered === identity, pinned: true }; } } };
+  holder.duskDesktop = { sealTrust: { check: async (offered: string) => { asked.push(offered); return { ok: offered === identity, pinned: true }; } } };
   return asked;
 }
 

@@ -33,7 +33,7 @@ creates only fixture-specific desktop targets and removes them afterward.
 Do not substitute a live application URL or data directory. The JSON receipt
 records the exact MCP target for each speaker, the computer-off case, and
 revocation of each settled speaker's computer capability. It is written to
-`.omb-scratch/verification-logs/group-vm-routing.json` only after cleanup succeeds.
+`.dusk-scratch/verification-logs/group-vm-routing.json` only after cleanup succeeds.
 The script removes the previous dump before every send and requires every Goal,
 including computer-off, to settle. Cleanup errors fail the run.
 
@@ -81,7 +81,7 @@ user's own VPS; there is no paid desktop agent runner.
 Run the regression coverage without a container engine:
 
 ```sh
-node node_modules/vitest/vitest.mjs run server/group-local-vm.e2e.test.ts server/vps-routing.test.ts server/local-vm-lease.test.ts server/group-goal-run.test.ts server/group-goal-run.e2e.test.ts server/group-goal-wait-cap.e2e.test.ts server/control-omb.test.ts
+node node_modules/vitest/vitest.mjs run server/group-local-vm.e2e.test.ts server/vps-routing.test.ts server/local-vm-lease.test.ts server/group-goal-run.test.ts server/group-goal-run.e2e.test.ts server/group-goal-wait-cap.e2e.test.ts server/control-dusk.test.ts
 ```
 
 The test-only Node loader in `server/testing/group-local-vm-hooks.mjs` replaces

@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { launchVerificationServer, runControlOmb } from "./control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "./control-dusk.ts";
 import { fixtureApi, mountPreview, parkUntilSignal, type MountedPreview } from "./testing/preview-fixture.ts";
 import { waitForExit } from "../server/testing/cleanup.ts";
 
@@ -24,7 +24,7 @@ async function until(check: () => boolean | Promise<boolean>) {
   }
 }
 try {
-  const control = (args: string[]) => runControlOmb([...args, "--url", fixture.info.url]);
+  const control = (args: string[]) => runControlDusk([...args, "--url", fixture.info.url]);
   await control(["doctor"]);
   await control(["new-bot", "--name", "Pepper"]);
   await control(["new-bot", "--name", "Miso"]);
@@ -75,7 +75,7 @@ try {
   } finally { await waitForExit(proxy, { signal: "SIGTERM" }); }
   writeFileSync(gate, "finish the isolated setup turn");
   await control(["wait", "--bot", pepper.id, "--timeout", "15"]);
-  const { project: resultsFolder } = await api("POST", `/api/bots/${pepper.id}/projects`, { name: "Dusk Bot management", emoji: "🛠️" });
+  const { project: resultsFolder } = await api("POST", `/api/bots/${pepper.id}/projects`, { name: "dusk bot management", emoji: "🛠️" });
   const { task: resultsTask } = await api("POST", `/api/bots/${pepper.id}/tasks`, { title: "Fleet health reports", projectId: resultsFolder.id });
   await api("POST", `/api/bots/${pepper.id}/tasks/${pepper.threadId}`, {});
   const manual = await api("POST", "/api/routines", {
@@ -97,7 +97,7 @@ try {
     enabled: true, schedule: { type: "once", at: Date.now() + 12_000 },
   });
   ui = await mountPreview(fixture, {
-    entry: "/scripts/testing/threads-preview.tsx", route: "/__routines.html", title: "Isolated OpenMaus Routines",
+    entry: "/scripts/testing/threads-preview.tsx", route: "/__routines.html", title: "Isolated dusk bot Routines",
   });
   console.log(JSON.stringify({ ...fixture.info, previewUrl: ui.previewUrl, pepperId: pepper.id, misoId: miso.id, scheduledRoutineId: scheduled.routine.id, manualRoutineId: manual.routine.id, resultsThreadId: resultsTask.threadId, resultsFolderId: resultsFolder.id }));
   await parkUntilSignal();

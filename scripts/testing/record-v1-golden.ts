@@ -18,10 +18,10 @@ import { normalizeV1, runV1Session, startV1Pages } from "../../server/browser/vi
 const binary = process.env.DUSK_AGENT_BROWSER_PATH ?? resolveAgentBrowserBinary({ env: process.env });
 const chrome = process.env.DUSK_CHROME_PATH;
 if (!binary || !chrome) throw new Error("Set DUSK_AGENT_BROWSER_PATH (or install agent-browser) and DUSK_CHROME_PATH.");
-const sockets = mkdtempSync(join(tmpdir(), "omb-v1-golden-"));
+const sockets = mkdtempSync(join(tmpdir(), "dusk-v1-golden-"));
 const pages = await startV1Pages();
 const gate = await openGate({ decide: async () => null });
-const session = `omb-v1-golden-${randomBytes(4).toString("hex")}`;
+const session = `dusk-v1-golden-${randomBytes(4).toString("hex")}`;
 const spec = agentBrowserIntegration({
   binaryPath: binary, session, encryptionKey: randomBytes(32).toString("hex"), persistent: false, egressPort: gate.port,
   env: { ...process.env, AGENT_BROWSER_EXECUTABLE_PATH: chrome, AGENT_BROWSER_SOCKET_DIR: sockets },

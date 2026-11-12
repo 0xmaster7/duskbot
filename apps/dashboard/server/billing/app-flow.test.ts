@@ -24,7 +24,7 @@ const cleanup: Array<() => void | Promise<void>> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 async function fixture() {
   for (const key of ["DUSK_BILLING_PROVIDER", "DUSK_CLOUD_PROVIDER", "DUSK_POOL_DRIVER", "DUSK_CLOUD_SEAL_KEY", "DUSK_DODO_PRODUCTS"]) vi.stubEnv(key, undefined);
-  const dir = mkdtempSync(join(tmpdir(), "omb-billing-app-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-billing-app-")); cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
   let time = Date.now();
   const now = () => time, mailer = memoryMailer();
   const server = createServer();
@@ -139,7 +139,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(link.workspaceId).toBe(cloud.workspaceId); expect(bootstrap.files[0].mode).toBe(0o600);
   const raw = JSON.stringify({ v: 1, seq: 1, at: f.now(), workspace: { name: "Paid fixture", kind: "vps", version: "1.0.0", platform: "linux" } });
   const signature = sign(null, Buffer.from(signedPayload("POST", "/v1/report", f.now(), createHash("sha256").update(raw).digest("hex"))), createPrivateKey({ key: Buffer.from(link.privateKey, "base64"), format: "der", type: "pkcs8" })).toString("base64");
-  const report = await fetch(`${f.origin}/v1/report`, { method: "POST", headers: { "content-type": "application/json", "x-omb-workspace": link.workspaceId, "x-omb-time": String(f.now()), "x-omb-signature": signature }, body: raw });
+  const report = await fetch(`${f.origin}/v1/report`, { method: "POST", headers: { "content-type": "application/json", "x-dusk-workspace": link.workspaceId, "x-dusk-time": String(f.now()), "x-dusk-signature": signature }, body: raw });
   expect(report.status).toBe(200); expect(await report.json()).toMatchObject({ v: 1, commands: [] });
   expect(f.dashboard.state.workspaces[0].lastReportAt).toBe(f.now());
   expect(f.billing.clouds.view(cloud).lastReportAt).toBe(f.now());

@@ -56,7 +56,7 @@ export const MOVE_IN_PROGRESS: ReadonlySet<CloudMoveStage> = new Set(["preparing
 
 /** A move the person asked for here and has not seen through: after checkout the sheet finishes it with no second tap.
  * Kept a day, so a checkout left open and paid tomorrow still moves. */
-export const MOVE_INTENT_KEY = "omb-cloud-move-intent";
+export const MOVE_INTENT_KEY = "dusk-cloud-move-intent";
 const INTENT_MS = 24 * 3600_000;
 
 export function moveIntended(stored: string | null, now: number): boolean {

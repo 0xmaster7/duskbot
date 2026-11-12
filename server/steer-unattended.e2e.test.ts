@@ -39,7 +39,7 @@ function brokerCandidates(threadId: string, botId: string): string[] {
   const prefix = threadId.replace(/[^\w-]/g, "").slice(0, 4);
   const digest = createHash("sha256").update(`${botId}\0${threadId}`).digest("hex").slice(0, 4);
   const scope = createHash("sha256").update(`${dataDir}\0${child.pid}\0${botId}\0${threadId}`).digest("hex").slice(0, 16);
-  return [join(dataDir, `perm-${prefix}${digest}.sock`), join(tmpdir(), `omb-perm-${scope}.sock`)];
+  return [join(dataDir, `perm-${prefix}${digest}.sock`), join(tmpdir(), `dusk-perm-${scope}.sock`)];
 }
 
 async function connectBroker(threadId: string, botId: string): Promise<Socket> {
@@ -75,7 +75,7 @@ function ask(conn: Socket, id: string, command: string): { answered: () => boole
 posixOnly("a steered message does not lift the unattended mark on its own", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-steer-unattended-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-steer-unattended-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     finishGate = join(home, "finish.gate");

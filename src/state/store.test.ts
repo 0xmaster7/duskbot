@@ -105,16 +105,16 @@ describe("composer thread approval persistence", () => {
       const now = desktopCapabilitiesNow();
       cacheDesktopCapabilities({ ...now, host: { ...now.host, packaged: value } });
     };
-    window.ogb = { approvals } as unknown as NonNullable<Window["ogb"]>;
+    window.duskDesktop = { approvals } as unknown as NonNullable<Window["duskDesktop"]>;
     try {
       packaged(false);
       expect(desktopApprovalBridge()).toBeUndefined();
       packaged(true);
       expect(desktopApprovalBridge()).toBe(approvals);
-      delete window.ogb;
+      delete window.duskDesktop;
       expect(desktopApprovalBridge()).toBeUndefined();
     } finally {
-      delete window.ogb;
+      delete window.duskDesktop;
       packaged(false);
     }
   });
@@ -2526,7 +2526,7 @@ describe("live config frames", () => {
     expect(configStatusFromFrame(baseFrame)).not.toHaveProperty("team");
   });
 
-  it("keeps a Dusk Bot Cloud home's flag through live config refreshes, and adds none elsewhere", () => {
+  it("keeps a dusk bot Cloud home's flag through live config refreshes, and adds none elsewhere", () => {
     expect(configStatusFromFrame({ ...baseFrame, cloudHome: true }).cloudHome).toBe(true);
     expect(configStatusFromFrame(baseFrame)).not.toHaveProperty("cloudHome");
   });

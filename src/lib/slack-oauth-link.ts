@@ -34,7 +34,7 @@ export async function completeSlackOAuth(
 }
 
 export function useSlackOAuthLinks(): void {
-  useEffect(() => window.ogb?.onSlackOAuth?.((link) => void completeSlackOAuth(link)), []);
+  useEffect(() => window.duskDesktop?.onSlackOAuth?.((link) => void completeSlackOAuth(link)), []);
 }
 
 export function useSlackOAuthResult(onResult: (result: SlackOAuthResult) => void): void {

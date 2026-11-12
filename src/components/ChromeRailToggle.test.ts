@@ -23,7 +23,7 @@ function bridge(answer: ChromeRailState | Error, { refuse = false } = {}) {
 /** A fresh page with the sidebar's button and Settings' switch, as this window's bridge answers them. */
 async function page(rail: ChromeRailBridge | undefined) {
   vi.resetModules();
-  Object.assign(window, { ogb: rail ? { rail } : undefined });
+  Object.assign(window, { duskDesktop: rail ? { rail } : undefined });
   const { setLocale } = await import("@/lib/i18n");
   setLocale("en");
   const { ChromeRailToggle } = await import("./ChromeRailToggle");

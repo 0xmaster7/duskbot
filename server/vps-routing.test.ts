@@ -132,7 +132,7 @@ case "$*" in
       exit 1
     fi
     cat "$FAKE_DOCKER_DIR/image.json" ;;
-  *" exec "*"omb-desktop-probe"*) echo '{"schema_version":"1","overall":"ok","checks":[]}' ;;
+  *" exec "*"dusk-desktop-probe"*) echo '{"schema_version":"1","overall":"ok","checks":[]}' ;;
   *" exec "*"--version"*) echo "cua-driver ${CUA_DRIVER_VERSION}" ;;
   *" exec "*"--screenshot-out-file"*)
     : > "$FAKE_DOCKER_DIR/capture-started"
@@ -191,7 +191,7 @@ posixOnly("VPS turn routing e2e (fake ACP fleet + fake docker over SSH)", () => 
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-vps-routing-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-vps-routing-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     const fakeBin = join(home, "fakebin");
     mkdirSync(fakeBin, { recursive: true });
@@ -960,7 +960,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       const thread = await replies();
       expect(thread.filter((message) => String(message.tool?.name ?? "").startsWith("error:"))).toEqual([]);
       const echo = thread.find((message) => message.text?.startsWith("echo: ")).text as string;
-      expect(echo).toContain("This bot's VPS computer is unavailable this turn (The Dusk Bot VPS container is stopped)");
+      expect(echo).toContain("This bot's VPS computer is unavailable this turn (The dusk bot VPS container is stopped)");
       expect(echo).toContain("Open Computer and enable Start VPS automatically");
     } finally {
       writeFileSync(template, original);

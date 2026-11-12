@@ -97,7 +97,7 @@ describe("duskbot command line", () => {
       const out = block({ phone: "android" });
       expect(out).toContain(qrToString(invite));
       expect(out).not.toContain(qrToString(url));
-      expect(out).toContain("Scan that in the Dusk Bot app");
+      expect(out).toContain("Scan that in the dusk bot app");
       expect(out).toContain(`web browser:   ${url}`);
       expect(out).not.toContain("open or scan:");
     });
@@ -115,7 +115,7 @@ describe("duskbot command line", () => {
       expect(out).toContain(qrToString(url));
       expect(out).toContain("The Android app needs the phone-app link");
       expect(out).toContain("DUSK_PUBLIC_URL");
-      expect(out).not.toContain("Scan that in the Dusk Bot app");
+      expect(out).not.toContain("Scan that in the dusk bot app");
     });
   });
 
@@ -140,7 +140,7 @@ describe("duskbot command line", () => {
   });
 
   it("serve: starts the server, prints the pairing link, and stops on SIGTERM", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-serve-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cli-serve-"));
     const port = workerPort(21000, 9000);
     const child = spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "duskbot.ts"), "serve", "--port", String(port), "--data-dir", join(home, "data"), "--label", "cli test", "--public-url", "https://mini.example"], {
       cwd: join(SERVER_DIR, ".."),
@@ -153,7 +153,7 @@ describe("duskbot command line", () => {
     try {
       const deadline = Date.now() + 60_000;
       while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`Dusk Bot is running on http://127.0.0.1:${port}, reachable at https://mini.example`);
+      expect(out).toContain(`dusk bot is running on http://127.0.0.1:${port}, reachable at https://mini.example`);
       expect(out).toMatch(/pairing code:  [A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/);
       expect(out).toContain("open or scan:  https://mini.example/pair#code=");
       expect(out).toMatch(/[▀▄█]/);
@@ -391,7 +391,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     });
 
   it("refuses without an account and says what to do; no local-only fallback", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-tunnel-none-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cli-tunnel-none-"));
     const port = workerPort(21000, 9000);
     const child = cli(["serve", "--tunnel", "--port", String(port), "--data-dir", join(home, "data")], { HOME: home, USERPROFILE: home });
     let err = "";
@@ -413,7 +413,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
 
 
   it("serves at the account's public address through the gateway, where every request is remote", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-tunnel-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cli-tunnel-"));
     const dataDir = join(home, "data");
     mkdirSync(dataDir, { recursive: true });
     const stub = await startControlPlaneStub();
@@ -442,7 +442,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     try {
       const deadline = Date.now() + 60_000;
       while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`Dusk Bot is running on http://127.0.0.1:${port}, reachable at ${stub.endpointUrl}`);
+      expect(out).toContain(`dusk bot is running on http://127.0.0.1:${port}, reachable at ${stub.endpointUrl}`);
       expect(out).toContain(`open or scan:  ${stub.endpointUrl}/pair#code=`);
       expect(stub.calls).toContain("POST /v1/installations/self/endpoint");
 
@@ -495,7 +495,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
 
 describe("duskbot access", () => {
   it("edits the sign-in allow-list in config.json without a running server", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-access-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cli-access-"));
     const dataDir = join(home, "data");
     const out: string[] = [];
     const err: string[] = [];
@@ -532,13 +532,13 @@ describe("duskbot access", () => {
 
 describe.skipIf(process.platform === "win32")("serve --domain", () => {
   it("runs a managed Caddy for the domain and serves the pairing link there", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-domain-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-cli-domain-"));
     const dataDir = join(home, "data");
     mkdirSync(dataDir, { recursive: true });
     const fake = join(home, "fake-caddy");
     writeFileSync(fake, `#!/bin/sh\necho "$@" > "${join(home, "caddy-args.txt")}"\necho $$ > "${join(home, "caddy.pid")}"\nexec sleep 300\n`, { mode: 0o755 });
     const port = workerPort(21000, 9000);
-    const child = spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "duskbot.ts"), "serve", "--domain", "omb.example.test", "--port", String(port), "--data-dir", dataDir], {
+    const child = spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "duskbot.ts"), "serve", "--domain", "dusk.example.test", "--port", String(port), "--data-dir", dataDir], {
       cwd: join(SERVER_DIR, ".."),
       env: { PATH: process.env.PATH ?? "", HOME: home, USERPROFILE: home, DUSK_WEBHOOK_PORT: String(port + 1), DUSK_BROWSER_CONNECTION: join(home, "browser-connection.json"), DUSK_CADDY_PATH: fake },
       stdio: ["ignore", "pipe", "pipe"],
@@ -549,13 +549,13 @@ describe.skipIf(process.platform === "win32")("serve --domain", () => {
     try {
       const deadline = Date.now() + 60_000;
       while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`Dusk Bot is running on http://127.0.0.1:${port}, reachable at https://omb.example.test`);
-      expect(out).toContain("https: Caddy serves https://omb.example.test");
-      expect(out).toContain("open or scan:  https://omb.example.test/pair#code=");
+      expect(out).toContain(`dusk bot is running on http://127.0.0.1:${port}, reachable at https://dusk.example.test`);
+      expect(out).toContain("https: Caddy serves https://dusk.example.test");
+      expect(out).toContain("open or scan:  https://dusk.example.test/pair#code=");
       const args = readFileSync(join(home, "caddy-args.txt"), "utf8").trim();
       expect(args).toMatch(/^run --config .*Caddyfile --adapter caddyfile$/);
       const caddyfile = readFileSync(join(dataDir, "caddy", "Caddyfile"), "utf8");
-      expect(caddyfile).toContain("omb.example.test {");
+      expect(caddyfile).toContain("dusk.example.test {");
       expect(caddyfile).toContain(`reverse_proxy 127.0.0.1:${port}`);
       expect(caddyfile).toContain(`reverse_proxy 127.0.0.1:${port + 1}`);
     } finally {

@@ -11,7 +11,7 @@ import { installCloudSend, openOwnerSession } from "./cloud-send-main.mjs";
 import { installTeamMove } from "./team-move-main.mjs";
 
 const LOCAL = "http://127.0.0.1:4100";
-const CLOUD = "https://omb-u-1.fly.dev";
+const CLOUD = "https://dusk-u-1.fly.dev";
 const summary = (items) => ({ v: 1, appVersion: "0.1.117", items });
 const bot = (id, parts, extra = {}) => ({ key: itemKey.bot(id), kind: "bot", label: id, id, parts, ...extra });
 
@@ -147,13 +147,13 @@ test("My Cloud's page is told names of bots and counts, with an opaque signature
 
 test("an owner session is made only at the person's own Cloud, and nothing is sent to an origin a grant names instead", async () => {
   const fetched = [];
-  const fetchImpl = async (url, init) => { fetched.push([url, init?.headers?.authorization ?? null]); return new Response(JSON.stringify({ token: "omb_sess_fake" }), { status: 200 }); };
+  const fetchImpl = async (url, init) => { fetched.push([url, init?.headers?.authorization ?? null]); return new Response(JSON.stringify({ token: "dusk_sess_fake" }), { status: 200 }); };
   await assert.rejects(openOwnerSession({ origin: CLOUD, grant: async () => ({ origin: "https://attacker.example", code: "C" }) }, fetchImpl), /not ready/);
   assert.deepEqual(fetched, []);
   const session = await openOwnerSession({ origin: CLOUD, grant: async () => ({ origin: CLOUD, code: "C" }) }, fetchImpl);
   await session.call("GET", "/api/cloud-send");
   await session.close();
-  assert.deepEqual(fetched.map(([url, auth]) => [url.replace(CLOUD, ""), auth]), [["/api/auth/pair", null], ["/api/cloud-send", "Bearer omb_sess_fake"], ["/api/auth/logout", "Bearer omb_sess_fake"]]);
+  assert.deepEqual(fetched.map(([url, auth]) => [url.replace(CLOUD, ""), auth]), [["/api/auth/pair", null], ["/api/cloud-send", "Bearer dusk_sess_fake"], ["/api/auth/logout", "Bearer dusk_sess_fake"]]);
 });
 
 test("either page asks only for the move's line, its Try again and closing it; nothing else of a send is left", async () => {
@@ -191,7 +191,7 @@ test("cloud-send:teams returns empty teams outside My Cloud without throwing", a
 function preload({ remote = false, activation = false } = {}) {
   let bridge; const invoked = [];
   vm.runInNewContext(readFileSync(new URL("./preload.cjs", import.meta.url), "utf8"), {
-    process: { platform: "darwin", argv: [`--omb-local-origin=${LOCAL}`, "--omb-company-desktop=1"] },
+    process: { platform: "darwin", argv: [`--dusk-local-origin=${LOCAL}`, "--dusk-company-desktop=1"] },
     location: { origin: remote ? CLOUD : LOCAL }, navigator: { userActivation: { isActive: activation } },
     TextEncoder, localStorage: { getItem: () => null },
     require: () => ({ webUtils: {}, contextBridge: { exposeInMainWorld: (_name, value) => { bridge = value; } },
@@ -304,7 +304,7 @@ test("My Cloud's notice says what did not go, by kind, with each reason: logins 
   const login = (id, site) => ({ key: itemKey.login(site, "amit"), kind: "login", label: site, detail: "amit", id, parts: { saved: id } });
   const sides = fakeSides({ localItems: [bot("ember", { soul: "s" }), login("l1", "bank.example"), login("l2", "crm.example"), { key: itemKey.onePassword(), kind: "1password", label: "1Password", parts: { token: "t" } }] });
   sides.deps.handoff = async (what) => {
-    if (what.kind === "login") throw new Error("Dusk Bot on this computer did not answer. Try again.");
+    if (what.kind === "login") throw new Error("dusk bot on this computer did not answer. Try again.");
     throw new Error("1Password did not accept this computer's token, so it was not sent to My Cloud.");
   };
   const send = createCloudSend(sides.deps);
@@ -314,7 +314,7 @@ test("My Cloud's notice says what did not go, by kind, with each reason: logins 
   const notice = sendNotice(send.snapshot());
   const none = { bots: [], skills: 0, logins: 0, onePassword: false, settings: 0, connections: 0, chats: false };
   assert.deepEqual(notice.last.reasons, [
-    { what: { ...none, logins: 2 }, error: "Dusk Bot on this computer did not answer. Try again." },
+    { what: { ...none, logins: 2 }, error: "dusk bot on this computer did not answer. Try again." },
     { what: { ...none, onePassword: true }, error: "1Password did not accept this computer's token, so it was not sent to My Cloud." },
   ]);
   assert.equal(notice.last.error, undefined, "the send itself did not stop");
@@ -578,7 +578,7 @@ test("an owner session that could not open says whether nothing answered or My C
 
 
 test("closing the move's done line closes the move's own send result with it, so My Cloud's page says it once", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-move-line-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-move-line-"));
   const file = join(dir, "cloud-send.json");
   const result = { bots: ["Ember"], updatedBots: [], skills: 0, logins: 0, onePassword: false, settings: [], chats: null, failed: [], notes: [] };
   writeFileSync(file, JSON.stringify({ v: 1, clouds: { [CLOUD]: { sent: {}, off: {}, dismissed: "", last: { at: 7, reason: "move", result }, whole: null, chats: {}, created: {}, release: [], files: {}, on: {} } } }));

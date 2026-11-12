@@ -99,7 +99,7 @@ describe.skipIf(process.platform === "win32")("Kimi Code sign-in with a device c
 
   beforeEach(() => {
     chmodSync(FAKE_KIMI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-kimi-device-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-kimi-device-"));
     instances = [];
   });
   afterEach(async () => {
@@ -222,7 +222,7 @@ describe.skipIf(process.platform === "win32")("Kimi Code sign-in with a device c
     const instance = await kimi("approve");
     const start = await instance.startAuthentication!();
     expect((await instance.getAuthentication!(start.flowId!)).phase).toBe("waiting");
-    writeFileSync(join(home, ".omb-fake-kimi-approved"), "approve fixture only\n");
+    writeFileSync(join(home, ".dusk-fake-kimi-approved"), "approve fixture only\n");
     await expect.poll(async () => (await instance.getAuthentication!(start.flowId!)).phase, { timeout: 5_000 }).toBe("succeeded");
   });
 });

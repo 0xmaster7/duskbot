@@ -58,7 +58,7 @@ test("every gate channel is guarded, accepts plain strings only, and strips iden
 function preload({ enabled = true, remote = false } = {}) {
   let bridge; const calls = [], listeners = new Map();
   vm.runInNewContext(readFileSync(new URL("./preload.cjs", import.meta.url), "utf8"), {
-    process: { platform: "fixture", argv: ["--omb-local-origin=http://127.0.0.1:1234", ...(enabled ? ["--omb-account-gate=1"] : [])] },
+    process: { platform: "fixture", argv: ["--dusk-local-origin=http://127.0.0.1:1234", ...(enabled ? ["--dusk-account-gate=1"] : [])] },
     location: { origin: remote ? "https://remote.test" : "http://127.0.0.1:1234" }, TextEncoder, localStorage: { getItem: () => null },
     require: () => ({ webUtils: {}, contextBridge: { exposeInMainWorld: (_name, value) => { bridge = value; } }, ipcRenderer: {
       invoke: (...args) => { calls.push(args); return Promise.resolve(null); }, on: (channel, handler) => listeners.set(channel, handler),

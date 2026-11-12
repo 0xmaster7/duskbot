@@ -69,9 +69,9 @@ export function CloudWelcome() {
   const visible = state.bots.filter((bot) => !bot.hidden);
   const bot = visible.find((candidate) => candidate.chiefOfStaff) ?? visible[0] ?? null;
   const cloudHasWork = visible.length > 1 || state.groups.length > 0;
-  const sendBridge = window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudSendPage;
+  const sendBridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.cloudSendPage;
   // An older app still offers Copy this computer by hand: it moves bots here by itself only once updated.
-  const older = Boolean(sendBridge && window.ogb && "cloudMove" in window.ogb);
+  const older = Boolean(sendBridge && window.duskDesktop && "cloudMove" in window.duskDesktop);
   const [notice] = useCloudSendNotice(sendBridge);
   const sent = sentHere(notice);
   // Main answers at once; until it does, no choice is shown that it may take back a moment later.

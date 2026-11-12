@@ -3,7 +3,7 @@ import type { EgressStatus } from "../../shared/computer-egress";
 import { useStore } from "@/state/store";
 import { t } from "@/lib/i18n";
 
-const SEEN_KEY = "omb-egress-fallback-seen";
+const SEEN_KEY = "dusk-egress-fallback-seen";
 const POLL_MS = 60_000;
 
 /** Once ever: a quiet note when "Route traffic through this computer" is on and the server's own network is in use. */

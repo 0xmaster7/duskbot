@@ -19,13 +19,13 @@ const RELAY_PATH = "/relay/api/cloud/services/decider";
 const ROOM_INSTRUCTIONS = "Which bot in this room should answer `new_message`? Choose __everyone__ only when the message needs several members to answer.";
 const ROOM_STATE_KEYS = ["room", "humans_in_room", "bots_in_room", "recent_messages", "new_message"];
 const KEY_CHECK = {
-  state: { purpose: "Dusk Bot is checking that a decision-model key works." },
+  state: { purpose: "dusk bot is checking that a decision-model key works." },
   questions: { answer: { type: "noul", instructions: "Is this a connection check?" } },
 };
 const EXTRACT_KEY_CHECK = {
   seam: "keyCheck",
   fields: { ok: { type: "boolean", description: "Is this a connection check?" } },
-  input: { text: "Dusk Bot is checking that an extraction-model key works." },
+  input: { text: "dusk bot is checking that an extraction-model key works." },
 };
 
 /** The relay's own check of an extraction body: the key check is the only extraction this test makes. */
@@ -43,7 +43,7 @@ function relayTakes(raw: string, body: any): boolean {
   return ids.length === 1 && question?.type === "choice" && question.instructions === ROOM_INSTRUCTIONS &&
     Boolean(state) && typeof state === "object" && Object.keys(state).every((key) => ROOM_STATE_KEYS.includes(key));
 }
-const INCLUDED = `omb_decide_${randomBytes(32).toString("base64url")}`;
+const INCLUDED = `dusk_decide_${randomBytes(32).toString("base64url")}`;
 const OWN = "tsk_own_person_key_5e1c";
 let stub: Server;
 let relayUrl = "";
@@ -99,7 +99,7 @@ beforeAll(async () => {
   const stubBase = `http://127.0.0.1:${(stub.address() as AddressInfo).port}`;
   relayUrl = `${stubBase}${RELAY_PATH}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-decider-included-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-decider-included-"));
   data = join(home, ".duskbot");
   mkdirSync(data, { recursive: true });
   engineDump = join(home, "engine-dump.json");

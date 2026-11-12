@@ -37,7 +37,7 @@ has no alternate endpoint or test switch. It checks:
   while the other changes.
 - Narrow layout has no page overflow; no business tools execute during setup.
 
-Screenshots default to `/tmp/omb-whop-evidence`; override with
+Screenshots default to `/tmp/dusk-whop-evidence`; override with
 `DUSK_UI_EVIDENCE_DIR`. All fixture processes and data are cleaned up, with the
 server log retained. This proves the integration mechanics, **not a live Whop
 account or a real payment operation**. The live endpoint's published OAuth
@@ -67,6 +67,6 @@ Whop's hosted service currently requests admin access across the user's managed
 businesses. Choosing a business in a prompt is not an account-level restriction.
 Consequential operations retain Whop's prepare/confirm protocol and idempotency
 requirements. This change adds no blanket auto-confirm policy, new payment
-tools, or independent credential store. Normal Dusk Bot approval modes are unchanged.
+tools, or independent credential store. Normal dusk bot approval modes are unchanged.
 
 Upstream: [official Whop MCP](https://github.com/whopio/whop-mcp-server).

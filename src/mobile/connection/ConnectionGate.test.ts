@@ -21,7 +21,7 @@ let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
 beforeEach(() => {
   setLocale("en");
   host = document.createElement("div"); document.body.append(host);
-  prefs = new Map([["omb.mobile.connections.v1", JSON.stringify([record("mac", "Studio Mac"), record("vps", "Box")])], ["omb.mobile.active.v1", "mac"]]);
+  prefs = new Map([["dusk.mobile.connections.v1", JSON.stringify([record("mac", "Studio Mac"), record("vps", "Box")])], ["dusk.mobile.active.v1", "mac"]]);
   const secrets = new Map([["token.mac", "mac-token"], ["token.vps", "vps-token"]]);
   platform = { ...webPlatform(),
     prefs: { get: async (key) => prefs.get(key) ?? null, set: async (key, value) => { prefs.set(key, value); }, remove: async (key) => { prefs.delete(key); } },
@@ -46,7 +46,7 @@ it("an offline server at launch keeps the link, retries, and offers the other sa
   expect(host.querySelector("h1")?.textContent).toBe("Can't reach Studio Mac");
   expect(host.textContent).not.toContain("Link to your");
   expect(host.textContent).toContain("Box");
-  expect(prefs.get("omb.mobile.active.v1")).toBe("mac");
+  expect(prefs.get("dusk.mobile.active.v1")).toBe("mac");
 
   fetcher.mockResolvedValue(new Response("{}"));
   await click("Try again"); await settle();
@@ -57,7 +57,7 @@ it("switches to another saved installation from the unreachable screen", async (
   fetcher.mockImplementation(async (input) => String(input).startsWith("https://vps.") ? new Response("{}") : Promise.reject(new TypeError("offline")));
   await mount(); await settle();
   await click("Box"); await settle();
-  expect(prefs.get("omb.mobile.active.v1")).toBe("vps");
+  expect(prefs.get("dusk.mobile.active.v1")).toBe("vps");
   expect(host.textContent).toBe("home");
 });
 
@@ -65,7 +65,7 @@ it("a refused token still goes to pairing", async () => {
   fetcher.mockResolvedValue(new Response("{}", { status: 401 }));
   await mount(); await settle();
   expect(host.querySelector("h1")?.textContent).not.toContain("Can't reach");
-  expect(prefs.get("omb.mobile.active.v1")).toBeUndefined();
+  expect(prefs.get("dusk.mobile.active.v1")).toBeUndefined();
 });
 
 it("a phone removed on the computer while the app is open leaves for pairing at once, with the reason", async () => {
@@ -78,8 +78,8 @@ it("a phone removed on the computer while the app is open leaves for pairing at 
   await settle();
   expect(host.textContent).not.toBe("home");
   expect(host.textContent).toContain("This phone was unlinked");
-  expect(prefs.get("omb.mobile.active.v1")).toBeUndefined();
-  expect(prefs.get("omb.mobile.connections.v1")).not.toContain("Studio Mac");
+  expect(prefs.get("dusk.mobile.active.v1")).toBeUndefined();
+  expect(prefs.get("dusk.mobile.connections.v1")).not.toContain("Studio Mac");
   expect(sessionEnded()).toBe(false);
 });
 
@@ -90,11 +90,11 @@ it("a refused request on a session that still answers changes nothing", async ()
   await act(async () => { await api("/api/bots").catch(() => {}); await sessionCheck(); });
   await settle();
   expect(host.textContent).toBe("home");
-  expect(prefs.get("omb.mobile.active.v1")).toBe("mac");
+  expect(prefs.get("dusk.mobile.active.v1")).toBe("mac");
 });
 
 it("the demo workspace opens with no server at all, and linking a real one ends it", async () => {
-  prefs.set("omb.mobile.demo", "1");
+  prefs.set("dusk.mobile.demo", "1");
   await mount(); await settle();
   expect(host.textContent).toBe("home");
   expect(fetcher).not.toHaveBeenCalled();

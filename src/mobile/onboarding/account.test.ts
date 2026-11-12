@@ -35,13 +35,13 @@ describe("account sign-in", () => {
 
   it("refuses a code whose state this phone did not start", async () => {
     const platform = fakePlatform();
-    await platform.prefs.set("omb.mobile.accountPending", JSON.stringify({ verifier: "v", state: "mine" }));
+    await platform.prefs.set("dusk.mobile.accountPending", JSON.stringify({ verifier: "v", state: "mine" }));
     await expect(finishAccountSignIn(platform, "https://accounts.test", { code: "c", state: "theirs" })).rejects.toMatchObject({ code: "state" });
   });
 
   it("trades the code with the verifier and keeps the token in secure storage", async () => {
     const platform = fakePlatform();
-    await platform.prefs.set("omb.mobile.accountPending", JSON.stringify({ verifier: "verifier-1", state: "s" }));
+    await platform.prefs.set("dusk.mobile.accountPending", JSON.stringify({ verifier: "verifier-1", state: "s" }));
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ accessToken: "omc_x", expiresAt: 1, device: { id: "d" }, account: { id: "a", email: "e@x.y" } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const grant = await finishAccountSignIn(platform, "https://accounts.test", { code: "c", state: "s" });

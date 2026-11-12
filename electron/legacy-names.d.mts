@@ -7,6 +7,7 @@ export declare const LEGACY: Readonly<{
   appId: string;
   envPrefixes: readonly string[];
   headerPrefix: string;
+  headerPrefixes: readonly string[];
   wellKnown: string;
   storagePrefixes: readonly string[];
   short: string;
@@ -28,6 +29,7 @@ export declare const MDNS_HOST_PREFIX: string;
 export declare const CLOUD_HOME: Readonly<{ root: string; etc: string; run: string; gate: string; data: string; dataName: string }>;
 export declare function aliasLegacyEnv<T extends Record<string, string | undefined>>(env: T): T;
 export declare function aliasLegacyHeaders<T extends Record<string, unknown>>(headers: T): T;
+export declare function readHeader(headers: { get?: (name: string) => string | null } | Record<string, unknown> | null | undefined, name: string): string | null;
 export declare function isOwnHeader(name: string): boolean;
 export declare function withLegacyHeaders<T extends Record<string, string>>(headers: T): Record<string, string>;
 export declare function fromLegacyPath(pathname: string): string;
@@ -48,3 +50,6 @@ export declare function carryLegacySafeStorageKey(options: {
   packaged?: boolean;
   run?: (args: string[], input?: string) => { status: number | null; stdout?: string };
 }): "present" | "none" | "copied" | "failed";
+export declare function withCurrentFormat<T>(value: T): T;
+export declare function hasTokenPrefix(value: unknown, kind: string): value is string;
+export declare function aliasLegacyCookies<T extends { cookie?: string }>(headers: T): T;

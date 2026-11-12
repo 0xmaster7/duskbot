@@ -64,8 +64,8 @@ async function moveOutbox(platform: MobilePlatform, from: string, to: string): P
   await platform.prefs.set(outboxKey(to), held);
 }
 
-const CONNECTIONS_KEY = "omb.mobile.connections.v1";
-const ACTIVE_KEY = "omb.mobile.active.v1";
+const CONNECTIONS_KEY = "dusk.mobile.connections.v1";
+const ACTIVE_KEY = "dusk.mobile.active.v1";
 type ActiveConnection = { record: MobileConnectionRecord; token: string };
 type ConnectionStore = {
   list(): Promise<MobileConnectionRecord[]>;
@@ -117,7 +117,7 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         for (const old of replaced) if (old.sessionRef !== saved.sessionRef) {
           await platform.secrets.remove(old.sessionRef);
           await platform.secrets.remove(`relay.${old.id}`);
-          await platform.prefs.remove(`omb.mobile.push.${old.id}`);
+          await platform.prefs.remove(`dusk.mobile.push.${old.id}`);
           await moveOutbox(platform, old.id, saved.id);
           await forgetTranscriptShelf(old.id);
         }
@@ -138,7 +138,7 @@ export function createConnectionStore(platform: MobilePlatform): ConnectionStore
         if (await platform.prefs.get(ACTIVE_KEY) === id) await platform.prefs.remove(ACTIVE_KEY);
         await platform.secrets.remove(`token.${id}`);
         await platform.secrets.remove(`relay.${id}`);
-        await platform.prefs.remove(`omb.mobile.push.${id}`);
+        await platform.prefs.remove(`dusk.mobile.push.${id}`);
         await platform.prefs.remove(outboxKey(id));
         await forgetTranscriptShelf(id);
         await write(records.filter((entry) => entry.id !== id));

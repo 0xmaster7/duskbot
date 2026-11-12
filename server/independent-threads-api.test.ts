@@ -7,14 +7,14 @@ import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "../scripts/control-dusk.ts";
 import { handleToolCall, request } from "../scripts/mcp-server.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
 import { memoryDate } from "./workspace.ts";
 
 describe("independent bot tasks through the isolated control surface", () => {
   let session: VerificationServer;
-  const cuaRecordDir = mkdtempSync(join(tmpdir(), "omb-independent-cua-"));
+  const cuaRecordDir = mkdtempSync(join(tmpdir(), "dusk-independent-cua-"));
   const cuaRecord = join(cuaRecordDir, "cua-connection.json");
   afterAll(() => rmSync(cuaRecordDir, { recursive: true, force: true }));
   let models: string[];
@@ -35,7 +35,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     return result;
   };
   const control = async (args: string[]) => {
-    const result = await runControlOmb([...args, "--url", session.info.url]);
+    const result = await runControlDusk([...args, "--url", session.info.url]);
     evidence.push({ command: args, result });
     return result as any;
   };
@@ -57,7 +57,7 @@ describe("independent bot tasks through the isolated control surface", () => {
   };
   const permission = async (model: string, id: string, input: Record<string, unknown> = { command: "ls -la ./dist" }) => {
     const launched = await dump(model);
-    const socketPath = launched.mcpConfig.mcpServers.ogb.args.at(-1);
+    const socketPath = launched.mcpConfig.mcpServers.dusk.args.at(-1);
     const socket = connect(socketPath);
     sockets.push(socket);
     await new Promise<void>((resolve, reject) => {
@@ -244,7 +244,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     writeFileSync(modelFile(models[1], "gate"), "finish");
     await expect.poll(() => handoff()?.status, { timeout: 20_000 }).toBe("completed");
     const result: string = handoff()!.result;
-    expect(result.startsWith("[Dusk Bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run. Do not report it as done;")).toBe(true);
+    expect(result.startsWith("[dusk bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run. Do not report it as done;")).toBe(true);
     expect(result).toContain("reply to:");
     expect(result).not.toContain("git push");
     expect(result).not.toContain("npm run lint");
@@ -291,7 +291,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     // whole, so the engine never reads the gate half-written
     writeFileSync(`${modelFile(models[1], "gate")}.tmp`, ending);
     renameSync(`${modelFile(models[1], "gate")}.tmp`, modelFile(models[1], "gate"));
-    const note = "[Dusk Bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run.";
+    const note = "[dusk bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run.";
     const runMessages = async () => (await api("GET", `/api/threads/${await runThread()}/messages?limit=100`)).body.messages as any[];
     const reported = async () => (await runMessages()).find((message: any) => message.roomRequest?.id === requestId && message.roomRequest.phase === "result")?.tool;
     if (ending === "finish") {
@@ -338,7 +338,7 @@ describe("independent bot tasks through the isolated control surface", () => {
     rmSync(expiry, { force: true });
     writeFileSync(modelFile(models[1], "gate"), "finish");
     await expect.poll(() => handoff()?.status, { timeout: 20_000 }).toBe("completed");
-    expect(handoff()!.result.startsWith("[Dusk Bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run.")).toBe(true);
+    expect(handoff()!.result.startsWith("[dusk bot: nobody answered the approval for “Bash: npm run release-check” in time, so it did not run.")).toBe(true);
   }, 60_000);
 
   it("ends a one-way notice whose recipient thread was deleted before it started, without restarting the sender", async () => {

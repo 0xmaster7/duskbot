@@ -45,7 +45,7 @@ export function RouteTrafficRow() {
     }
   };
 
-  const inApp = typeof window !== "undefined" && window.ogb?.remoteClient?.active === true;
+  const inApp = typeof window !== "undefined" && window.duskDesktop?.remoteClient?.active === true;
   const fallback = status.enabled && status.route !== "computer";
   const hint = !status.enabled ? t("routeTraffic.hint") : fallback ? t("routeTraffic.offline") : t("routeTraffic.through");
   return (

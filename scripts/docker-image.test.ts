@@ -152,7 +152,7 @@ describe("container images", () => {
     }
     expect(image.DUSK_DUCKDB_DIR).toBe("/app/duckdb");
     const contract = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
-      DUSK_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_BOOTSTRAP_SECRET: "S".repeat(43) };
+      DUSK_PUBLIC_URL: "https://dusk-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_BOOTSTRAP_SECRET: "S".repeat(43) };
     const { server } = cloudHomeChildEnvironments(cloudHomeConfiguration(contract)!, { ...image, ...contract }, "/data");
     // The launcher sets HOME, the ports and the data folder itself; everything else must come through unchanged.
     for (const name of Object.keys(image)) expect(server, name).toHaveProperty(name);
@@ -176,7 +176,7 @@ describe("container images", () => {
     expect(end).toBeGreaterThan(start);
     const prune = args.slice(start, end);
     const run = (target: string, elf = true) => {
-      const root = mkdtempSync(join(tmpdir(), "omb-agent-browser-"));
+      const root = mkdtempSync(join(tmpdir(), "dusk-agent-browser-"));
       temporaryDirectories.push(root);
       const bin = join(root, "lib/node_modules/agent-browser/bin");
       mkdirSync(bin, { recursive: true });
@@ -207,7 +207,7 @@ describe("container images", () => {
     expect(build.steps.indexOf(stage)).toBeGreaterThan(declared);
     if (process.platform !== "win32") {
       for (const [targetArch, arch] of [["amd64", "x64"], ["arm64", "arm64"], ["", "x64"]]) {
-        const root = mkdtempSync(join(tmpdir(), "omb-duckdb-arch-"));
+        const root = mkdtempSync(join(tmpdir(), "dusk-duckdb-arch-"));
         temporaryDirectories.push(root);
         mkdirSync(join(root, "scripts"));
         // A stand-in for the staging script: it stages the CPU it is told to, and records which.
@@ -241,10 +241,10 @@ describe("container images", () => {
   });
 
   // An init collects browser processes whose parents exit, and Chrome gets the
-  // shared memory Dusk Bot's desktop containers give it.
+  // shared memory dusk bot's desktop containers give it.
   it("runs the compose service of the server image with an init and Chrome's shared memory", () => {
     for (const file of ["../deploy/docker-compose.yml"]) {
-      const service = parse(readFileSync(new URL(file, import.meta.url), "utf8")).services.omb;
+      const service = parse(readFileSync(new URL(file, import.meta.url), "utf8")).services.dusk;
       expect(service.init, file).toBe(true);
       expect(service.shm_size, file).toBe("512m");
     }

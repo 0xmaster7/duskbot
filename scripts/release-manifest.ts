@@ -19,7 +19,7 @@ export function sha256sums(dir: string): string {
 export function releaseManifest(sums: string, version: string, signingKey: string, now = Date.now()) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`not a release version: ${version}`);
   const sha256 = createHash("sha256").update(sums).digest("hex");
-  const signature = signRelease({ kind: "desktop", name: "Dusk Bot", version, sha256, signedAt: now }, signingKey);
+  const signature = signRelease({ kind: "desktop", name: "dusk bot", version, sha256, signedAt: now }, signingKey);
   // a key the apps do not pin would announce a release nobody hears about: refuse it here
   verifyRelease(signature, { kind: "desktop", sha256 }, [...PINNED_RELEASE_KEYS, ...parseReleaseKeys(process.env.DUSK_RELEASE_PUBLIC_KEYS)]);
   return { v: 1, version, sha256sums: sha256, signature };

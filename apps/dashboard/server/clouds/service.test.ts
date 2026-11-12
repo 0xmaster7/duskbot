@@ -14,7 +14,7 @@ afterEach(() => { for (const fn of cleanup.splice(0).reverse()) fn(); });
 const dedicatedPlan: DesktopPlan = { kind: "dedicated", placement: "dedicated", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null };
 const poolPlan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 20 }, botComputers: 1 };
 function fixture(options: { poolRam?: number; maxAttempts?: number } = {}) {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-cloud-service-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-cloud-service-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = 1_790_000_000_000;
   const dedicated = createFakeCloudProvider(), driver = createFakePoolDriver({ hosts: [{ id: "pool1", region: "eu", domain: "pool.example.test", draining: false, capacity: { vcpu: 16, ramGb: options.poolRam ?? 32, diskGb: 200, slots: 10 } }] }), pool = createPoolProvider({ driver });
   const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => at - 1000), remove: vi.fn() };
@@ -139,7 +139,7 @@ it("enforces owner and state checks, pairs only running desktops and validates c
   const grantWithCredential = { code: "ABCD-EFGH-JKLM", expiresAt: f.now() + 300_000, credential: "synthetic-private-credential" };
   f.home.pair.mockResolvedValueOnce(grantWithCredential);
   expect(await f.service.pair("a", c.id)).toEqual({ origin: c.origin, code: "ABCD-EFGH-JKLM", expiresAt: f.now() + 300_000 });
-  expect(f.home.pair).toHaveBeenCalledWith(c.origin, expect.any(String), { label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  expect(f.home.pair).toHaveBeenCalledWith(c.origin, expect.any(String), { label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   expect(() => f.service.hide("a", c.id)).toThrow(expect.objectContaining({ status: 409, code: "not_removable" }));
   for (const name of ["", "a".repeat(41), "<tag>", "a\nb"]) expect(() => f.service.rename("a", c.id, { name })).toThrow();
   f.service.rename("a", c.id, { name: "New name", color: null }); expect(c.name).toBe("New name"); expect(c.color).toBeNull();

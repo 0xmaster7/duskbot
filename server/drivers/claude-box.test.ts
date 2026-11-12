@@ -58,7 +58,7 @@ describe("a Claude turn in the bot box", () => {
   it.skipIf(process.platform === "win32")("puts the turn's permission socket in the box, so the bot's question reaches the person", async () => {
     ensureDirs();
     chmodSync(FAKE_CLI, 0o755);
-    const scratch = mkdtempSync(join(tmpdir(), "omb-claude-box-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-claude-box-"));
     dirs.push(scratch);
     // A stand-in for bubblewrap: no namespaces, it runs what follows `--`; the plan it was given is what the test reads.
     const fakeBwrap = join(scratch, "fake-bwrap.sh");
@@ -74,7 +74,7 @@ describe("a Claude turn in the bot box", () => {
     delete process.env.TMPDIR;
     const dump = join(scratch, "dump.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
-    process.env.FAKE_CLAUDE_TOOL_CALLS = JSON.stringify([{ name: "ask_user", server: "ogb", input: { question: "Which account?" } }]);
+    process.env.FAKE_CLAUDE_TOOL_CALLS = JSON.stringify([{ name: "ask_user", server: "dusk", input: { question: "Which account?" } }]);
     instance = await ClaudeDriver.create({ instanceId: "claude-box", displayName: "Claude", environment: {}, enabled: true, config: { cli: FAKE_CLI, permissionMode: "acceptEdits" } });
     const recorder = recordEvents(instance.adapter);
     const cwd = join(DATA_DIR, "task-workspaces", "bot-a", "t-boxed-ask");
@@ -88,7 +88,7 @@ describe("a Claude turn in the bot box", () => {
 
     const boxed = wrap.mock.results.map((result) => result.value as WrappedSpawn | null).find((spawned) => spawned?.plan.botId === "bot-a");
     expect(boxed, "the engine ran in the box").toBeTruthy();
-    const socket = JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.ogb.args[1] as string;
+    const socket = JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.dusk.args[1] as string;
     expect(visibleInBox(boxed!.plan, join(DATA_DIR, "messages.db")), "the data folder is empty in the box, as on a Cloud").toBe("none");
     expect(visibleInBox(boxed!.plan, socket), "the question tool's socket is in the box").toBe("rw");
   }, 60_000);
@@ -96,7 +96,7 @@ describe("a Claude turn in the bot box", () => {
   it.skipIf(process.platform === "win32")("puts only the conversation's hook token in the box, read-only, so its hooks fire from inside", async () => {
     ensureDirs();
     chmodSync(FAKE_CLI, 0o755);
-    const scratch = mkdtempSync(join(tmpdir(), "omb-claude-box-hooks-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-claude-box-hooks-"));
     dirs.push(scratch);
     const fakeBwrap = join(scratch, "fake-bwrap.sh");
     writeFileSync(fakeBwrap, HIDING_BWRAP);

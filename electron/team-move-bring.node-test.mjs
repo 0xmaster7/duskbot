@@ -22,7 +22,7 @@ const BOTS = [
 ];
 
 function fixture({ agrees = false, home = true, bots = BOTS } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-team-bring-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-team-bring-"));
   const handlers = new Map(), asked = [], pairs = [];
   const journal = { value: null, read() { return this.value; }, write(next) { this.value = next; } };
   const move = installTeamMove({
@@ -34,7 +34,7 @@ function fixture({ agrees = false, home = true, bots = BOTS } = {}) {
     account: () => ({ state: () => state, pairTeam: async () => { throw new Error("no team pairing in this test"); } }),
     file: () => join(dir, "send.json"), journalFile: () => join(dir, "moves.json"), journal,
     fetch: async (url, init) => {
-      if (String(url).endsWith("/api/auth/pair")) return new Response(JSON.stringify({ token: "omb_sess_fixture" }), { status: 200 });
+      if (String(url).endsWith("/api/auth/pair")) return new Response(JSON.stringify({ token: "dusk_sess_fixture" }), { status: 200 });
       if (String(url).endsWith("/api/bots?messages=0")) return new Response(JSON.stringify({ bots }), { status: 200 });
       if (String(url).endsWith("/api/auth/logout")) return new Response("{}", { status: 200 });
       return new Response(JSON.stringify({ url, method: init?.method }), { status: 503 });

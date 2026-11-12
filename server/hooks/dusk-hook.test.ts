@@ -8,8 +8,8 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { removeTempDir } from "../testing/cleanup.ts";
 
-const HELPER = join(dirname(fileURLToPath(import.meta.url)), "omb-hook.ts");
-const dir = mkdtempSync(join(tmpdir(), "omb-hook-"));
+const HELPER = join(dirname(fileURLToPath(import.meta.url)), "dusk-hook.ts");
+const dir = mkdtempSync(join(tmpdir(), "dusk-hook-"));
 const tokenFile = join(dir, "token");
 writeFileSync(tokenFile, "secret-token-123\n", { mode: 0o600 });
 const servers: Server[] = [];
@@ -46,7 +46,7 @@ function listen(handler: Parameters<typeof createServer>[1]): Promise<string> {
   });
 }
 
-describe("omb-hook helper", () => {
+describe("dusk-hook helper", () => {
   it.each(["context", "hookSpecificOutput"])("flushes large %s replies before exiting", async (field) => {
     const context = "A long restored note 🐭\n".repeat(20_000);
     const body = field === "context" ? { context } : { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context } };
@@ -119,7 +119,7 @@ describe("omb-hook helper", () => {
   }, 15_000);
 });
 
-describe("omb-hook helper: SessionStart context", () => {
+describe("dusk-hook helper: SessionStart context", () => {
   it("prints the harness's plain-text context on SessionStart, because Claude Code reads stdout as context there", async () => {
     const url = await listen((_req, res) => {
       res.setHeader("content-type", "application/json");

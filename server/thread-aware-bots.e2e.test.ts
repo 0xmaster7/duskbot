@@ -141,7 +141,7 @@ const cleanup = async (botIds: string[]) => {
 beforeAll(async () => {
   chmodSync(FAKE_CLAUDE, 0o755);
   chmodSync(FAKE_ACP, 0o755);
-  home = mkdtempSync(join(tmpdir(), "omb-thread-aware-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-thread-aware-"));
   gates = join(home, "gates");
   const data = join(home, ".duskbot");
   mkdirSync(data, { recursive: true });

@@ -1,6 +1,6 @@
 # Terminal setup
 
-Install [Node.js](https://nodejs.org/) 24 or newer, then choose either way to run Dusk Bot:
+Install [Node.js](https://nodejs.org/) 24 or newer, then choose either way to run dusk bot:
 
 ```sh
 # Install once, then use the short command:
@@ -14,7 +14,7 @@ Or, without a global install:
 npx duskbot
 ```
 
-Use the same command next time. The first launch guides you through setup; later launches reuse your saved AI connection and phone-access choice. `duskbot start` is the same as the bare command. If that workspace is already running, Dusk Bot opens it instead of starting a second server.
+Use the same command next time. The first launch guides you through setup; later launches reuse your saved AI connection and phone-access choice. `duskbot start` is the same as the bare command. If that workspace is already running, dusk bot opens it instead of starting a second server.
 
 ## First launch
 
@@ -37,14 +37,14 @@ A phone cannot connect to this computer's `localhost` address. The harness also 
 
 Choose one connection method:
 
-- **Managed HTTPS address:** setup asks explicit permission for a public endpoint through Cloudflare and a possible connector download. Device pairing protects chat and settings; the pairing page and basic server identity remain publicly reachable. Sign in to a **Dusk Bot account** using an emailed code, or reuse this machine's saved account. This account is separate from ChatGPT, Claude, or an API-provider account. The connection stays active while Dusk Bot runs.
+- **Managed HTTPS address:** setup asks explicit permission for a public endpoint through Cloudflare and a possible connector download. Device pairing protects chat and settings; the pairing page and basic server identity remain publicly reachable. Sign in to a **dusk bot account** using an emailed code, or reuse this machine's saved account. This account is separate from ChatGPT, Claude, or an API-provider account. The connection stays active while dusk bot runs.
 - **Existing Tailscale:** both computer and phone must already be signed in to the same tailnet, with HTTPS certificates enabled. Setup asks before enabling HTTPS serving to that tailnet; it does not install or sign in to Tailscale for you.
 - **Existing HTTPS address (advanced):** supply the origin of a reverse proxy you already configured, such as `https://maus.example.com`. Do not paste a password, path, query, or pairing code. Entering an address does not create the proxy or open a LAN listener.
 
 After the connection is ready:
 
-- **iPhone/iPad:** scan the QR with Camera to open Safari. If you already have the Dusk Bot iOS app, use its pairing scanner or paste the full link there.
-- **Android:** the QR is an app link, so scan it inside the Dusk Bot app. To use a browser instead, open the web address printed above it and type the code.
+- **iPhone/iPad:** scan the QR with Camera to open Safari. If you already have the dusk bot iOS app, use its pairing scanner or paste the full link there.
+- **Android:** the QR is an app link, so scan it inside the dusk bot app. To use a browser instead, open the web address printed above it and type the code.
 
 Choose **Connect** on the phone. Scanning alone is not a successful pairing. The code is private, single-use, and expires after five minutes. Guided phone pairing grants client access for chat and approvals, not settings or pairing administration.
 
@@ -64,13 +64,13 @@ The examples below assume a global install; prefix them with `npx` otherwise.
 | `duskbot pair` | Create another phone invitation while the configured workspace and HTTPS connection are running. |
 | `duskbot sessions` | List paired devices; `duskbot sessions revoke ID` signs one out. |
 | `duskbot serve` | Start without onboarding prompts or automatic browser opening; specify remote-access flags explicitly for a service. |
-| `duskbot login` | Sign in to a Dusk Bot account for `--tunnel`; this does not sign in to an AI provider or start the tunnel. |
+| `duskbot login` | Sign in to a dusk bot account for `--tunnel`; this does not sign in to an AI provider or start the tunnel. |
 
 `start` accepts the same server options as `serve`, including `--port`, `--data-dir`, `--tailscale`, `--tunnel`, and `--public-url`. Keep using your custom data directory and port when starting or pairing:
 
 ```sh
-duskbot setup --data-dir /path/to/omb-data --port 8799
-duskbot --data-dir /path/to/omb-data --port 8799
+duskbot setup --data-dir /path/to/dusk-data --port 8799
+duskbot --data-dir /path/to/dusk-data --port 8799
 ```
 
 Setup needs an interactive terminal. Later starts can run without one once setup is complete. Stop a running server before changing its setup or access mode: `--local` does not turn off a remote connection belonging to a server that is already running. You do not need to delete configuration, bots, or conversations to reconfigure it.
@@ -79,6 +79,6 @@ Setup needs an interactive terminal. Later starts can run without one once setup
 
 API keys are hidden while typed or pasted. New API connections save their key in the data directory's `config.json` as **plaintext, not encrypted**, with owner-only permissions (`0600`) on Unix. Managed-access account credentials in `tunnel-account.json` are also plaintext with `0600` permissions on Unix. Keep these files and backups private. Native provider sign-in credentials are managed by the provider's own CLI.
 
-Ctrl-C during AI setup leaves unsaved Dusk Bot changes unapplied. Installations and provider sign-ins already completed remain available. Ctrl-C during the later phone step keeps the AI setup you already saved, exits without starting a server, and does not undo an account sign-in already completed. Run `duskbot setup` to continue; no destructive reset is needed.
+Ctrl-C during AI setup leaves unsaved dusk bot changes unapplied. Installations and provider sign-ins already completed remain available. Ctrl-C during the later phone step keeps the AI setup you already saved, exits without starting a server, and does not undo an account sign-in already completed. Run `duskbot setup` to continue; no destructive reset is needed.
 
 For remote access and background deployment options, see [self-hosting](self-hosting.md) and [the VPS guide](deploy-vps.md).

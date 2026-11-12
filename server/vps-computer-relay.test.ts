@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { removeTempDir } from "./testing/cleanup.ts";
 import { ComputerToolLists, createComputerRelay, relayedComputerSpec, vpsToolsKey, type RelayBridge } from "./vps-computer-relay.ts";
 
-const home = mkdtempSync(join(tmpdir(), "omb-computer-relay-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-computer-relay-"));
 const driver = join(home, "driver.mjs");
 // a stdio mcp server standing in for the cua driver inside the desktop
 writeFileSync(driver, `

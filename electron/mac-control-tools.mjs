@@ -170,7 +170,7 @@ export function createMacExecutor(options = {}) {
     },
     async mac_screenshot() {
       if (options.screenshot) return { text: "screenshot of the main screen", image: await options.screenshot() };
-      const file = path.join(tmpdir(), `omb-mac-${randomBytes(6).toString("hex")}.jpg`);
+      const file = path.join(tmpdir(), `dusk-mac-${randomBytes(6).toString("hex")}.jpg`);
       try {
         try { await run("/usr/sbin/screencapture", ["-x", "-t", "jpg", file]); }
         catch { throw new Error("macOS did not allow a screenshot: allow Dusk under System Settings > Privacy & Security > Screen Recording"); }

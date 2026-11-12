@@ -104,7 +104,7 @@ async function send(page: HeadlessPage, text: string, scope = "document"): Promi
 }
 
 async function main() {
-  const fixture = start(["--experimental-strip-types", "scripts/control-omb.ts", "launch"], { FAKE_CLAUDE_REPLIES: JSON.stringify(["hello from the fixture bot"]) });
+  const fixture = start(["--experimental-strip-types", "scripts/control-dusk.ts", "launch"], { FAKE_CLAUDE_REPLIES: JSON.stringify(["hello from the fixture bot"]) });
   const harness = (await printed(fixture, /"url":\s*"(http:\/\/127\.0\.0\.1:(\d+))"/, "the fixture"))[1]!;
   const harnessPort = new URL(harness).port;
   console.log(`fixture ${harness}`);

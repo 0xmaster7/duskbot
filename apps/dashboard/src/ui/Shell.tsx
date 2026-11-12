@@ -136,7 +136,7 @@ function CloudBadge() {
   return <span className={cx("live-dot ms-auto", tone)} data-live={c.status === "running"} aria-label={c.status === "running" ? "running" : c.status} role="img" />;
 }
 
-const HIDE_KEY = "omb-dash-upsell-hidden-until";
+const HIDE_KEY = "dusk-dash-upsell-hidden-until";
 const WEEK = 7 * 86_400_000;
 // the invested copy holds the card for the rest of the visit it first showed in
 let visitInvested: InvestedFacts | null = null;

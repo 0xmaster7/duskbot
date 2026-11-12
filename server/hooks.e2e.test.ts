@@ -48,7 +48,7 @@ function harness(label: string, serverEnv: Record<string, string>, instanceEnv: 
   };
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
-    home = mkdtempSync(join(tmpdir(), `omb-hooks-${label}-`));
+    home = mkdtempSync(join(tmpdir(), `dusk-hooks-${label}-`));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     writeFileSync(join(home, ".duskbot", "config.json"), JSON.stringify({
       instances: {
@@ -166,7 +166,7 @@ posixOnly("engine hooks e2e: compaction", () => {
 });
 
 posixOnly("engine hooks e2e: a shell call that hit its time limit", () => {
-  const dumpDir = mkdtempSync(join(tmpdir(), "omb-hooks-timeout-dump-"));
+  const dumpDir = mkdtempSync(join(tmpdir(), "dusk-hooks-timeout-dump-"));
   const dump = join(dumpDir, "turn.json");
   afterAll(() => removeTempDir(dumpDir));
   const h = harness("timeout", {}, {

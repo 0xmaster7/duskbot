@@ -158,7 +158,7 @@ describe("LimitResetClock", () => {
     await instance.ensureFresh();
     expect(load).toHaveBeenCalledTimes(2);
 
-    const dir = mkdtempSync(join(tmpdir(), "omb-limit-fixture-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-limit-fixture-"));
     dirs.push(dir);
     process.env.DUSK_TEST_PLAN_USAGE_FILE = join(dir, "usage.json");
     writeFileSync(process.env.DUSK_TEST_PLAN_USAGE_FILE, JSON.stringify(report(claude([91, NOW + 5 * HOUR], [1, NOW + 90 * HOUR]))));
@@ -292,7 +292,7 @@ describe("LimitResetClock and the turns that follow a refusal", () => {
   });
 
   it("keeps a refusal's hold through a restart, so a new conversation does not go to the limited engine first", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-limit-holds-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-limit-holds-"));
     try {
       const file = join(dir, "limit-holds.json");
       let now = NOW;
@@ -318,7 +318,7 @@ describe("LimitResetClock and the turns that follow a refusal", () => {
   });
 
   it("keeps the last usage it read through a restart and through reads the provider refuses, until its windows reset", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-limit-usage-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-limit-usage-"));
     try {
       const usageFile = join(dir, "limit-usage.json");
       let now = NOW;
@@ -356,7 +356,7 @@ describe("LimitResetClock and the turns that follow a refusal", () => {
 
   it("ends a Codex hold once fresh usage shows room and no window resetting at the hold's time, as after a plan upgrade", () => {
     const codexAccounts = [{ id: "codex", name: "Codex", driver: "codex" as const, environment: {} }];
-    const dir = mkdtempSync(join(tmpdir(), "omb-limit-holds-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-limit-holds-"));
     try {
       const file = join(dir, "limit-holds.json");
       const boot = () => new LimitResetClock({ accounts: () => codexAccounts, now: () => NOW, file });

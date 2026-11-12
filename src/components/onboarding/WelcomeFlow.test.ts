@@ -244,7 +244,7 @@ describe("with no AI of the person's own", () => {
 
 describe("optional moments", () => {
   it("offers the notch tour where the app has the island, and plays it without leaving the screen", async () => {
-    vi.stubGlobal("ogb", { ambient: { prefs: async () => ({ available: true, island: false, dock: true }), set: vi.fn() } });
+    vi.stubGlobal("duskDesktop", { ambient: { prefs: async () => ({ available: true, island: false, dock: true }), set: vi.fn() } });
     await show();
     await act(async () => {});
     await press("See where your bots live");
@@ -259,7 +259,7 @@ describe("optional moments", () => {
   });
 
   it("opens the cloud desktop sheet over the screen from the desktop app", async () => {
-    vi.stubGlobal("ogb", { remoteClient: { active: false }, cloudAccount: {} });
+    vi.stubGlobal("duskDesktop", { remoteClient: { active: false }, cloudAccount: {} });
     await show();
     await press("Keep it running in the cloud");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_onboarding" });

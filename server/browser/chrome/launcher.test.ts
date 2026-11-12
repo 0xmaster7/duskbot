@@ -23,7 +23,7 @@ const identity = (major: string, brand = "Google Chrome"): ChromeIdentity => ({
 
 /** A Mac whose LaunchServices knows a Google Chrome in a temporary folder, or none. */
 function mac(options: { chrome?: boolean; env?: NodeJS.ProcessEnv } = {}) {
-  const root = mkdtempSync(join(tmpdir(), "omb-launcher-"));
+  const root = mkdtempSync(join(tmpdir(), "dusk-launcher-"));
   folders.push(root);
   const app = join(root, "Google Chrome.app");
   const chrome = posix.join(app, "Contents/MacOS/Google Chrome");
@@ -133,7 +133,7 @@ describe("the Chrome launcher", () => {
   });
 
   it("keeps the engine's own browser, and says why, when Chrome cannot be prepared at all", async () => {
-    const named = mkdtempSync(join(tmpdir(), "omb-named-"));
+    const named = mkdtempSync(join(tmpdir(), "dusk-named-"));
     folders.push(named);
     writeFileSync(join(named, "chrome"), "#!/bin/sh\n", { mode: 0o755 });
     const chrome = launcher(mac({ env: { DUSK_CHROME_PATH: join(named, "chrome") } }), {
@@ -191,7 +191,7 @@ describe("the Chrome launcher", () => {
   });
 
   it.skipIf(process.platform === "win32")("counts a launcher check that only ran out of time as running, and still refuses one that fails", async () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-launcher-check-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-launcher-check-"));
     folders.push(root);
     const slow = join(root, "slow.sh"), failing = join(root, "failing.sh");
     // A Cloud machine just after a restart: the launcher starts but answers late.

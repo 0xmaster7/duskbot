@@ -150,7 +150,7 @@ export function claudeInheritWarning(env: NodeJS.ProcessEnv): ProviderSnapshot["
   return {
     title: "Bots inherit this machine's Claude Code setup",
     message:
-      "DUSK_CLAUDE_INHERIT_USER_CONFIG=1 is set on the Dusk Bot process, so every Claude bot also loads this " +
+      "DUSK_CLAUDE_INHERIT_USER_CONFIG=1 is set on the dusk bot process, so every Claude bot also loads this " +
       "computer's own MCP servers, connectors, skills, hooks and personal CLAUDE.md on every turn — often thousands " +
       "of extra tokens per model call, and tools nobody gave the bot. Unless a bot genuinely needs a server from " +
       "your user-scope Claude config, remove the variable and restart; add the server under Settings → MCP servers " +
@@ -224,7 +224,7 @@ export function claudeCliUpdate(version: string | null, cli: string): ProviderSn
   const missing = (Object.keys(CLAUDE_FLAG_FLOORS) as (keyof typeof CLAUDE_FLAG_FLOORS)[])
     .filter((flag) => !claudeCliSupports(parsed, flag));
   const effects = [
-    ...(missing.includes("--autocompact") ? ["no compaction window picked by Dusk Bot"] : []),
+    ...(missing.includes("--autocompact") ? ["no compaction window picked by dusk bot"] : []),
     ...(missing.includes("--setting-sources") ? ["bots still see this machine's own Claude Code setup"] : []),
     ...(missing.includes("--system-prompt-snapshot") ? ["resumed turns cannot refresh stale system prompts"] : []),
   ];
@@ -328,13 +328,13 @@ type AskBehavior = "allow" | "deny" | "answer";
 type AskResolutionSource = "user" | "timeout" | "system";
 
 const DENY_TIMEOUT_NOTE =
-  "Dusk Bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
-const DUPLICATE_ASK_ID_NOTE = "Dusk Bot: duplicate ask id — skipping this request.";
+  "dusk bot: nobody answered this permission request in time. Skip this action and finish what you can without it.";
+const DUPLICATE_ASK_ID_NOTE = "dusk bot: duplicate ask id — skipping this request.";
 
 function systemEndedReply(kind: Ask["kind"]): { behavior: AskBehavior; message: string } {
   return kind === "question"
-    ? { behavior: "answer", message: "Dusk Bot: the turn is ending — wrap up." }
-    : { behavior: "deny", message: "Dusk Bot: the turn ended" };
+    ? { behavior: "answer", message: "dusk bot: the turn is ending — wrap up." }
+    : { behavior: "deny", message: "dusk bot: the turn ended" };
 }
 
 function askQuestions(ask: Ask): AskQuestion[] | null {
@@ -428,7 +428,7 @@ export function brokerSocketCandidates(threadId: string, botId?: string): string
       .update(`${DATA_DIR}\0${process.pid}\0${botId ?? ""}\0${threadId}`)
       .digest("hex")
       .slice(0, 16);
-    return [base, join(tmpdir(), `omb-perm-${scope}.sock`)];
+    return [base, join(tmpdir(), `dusk-perm-${scope}.sock`)];
   }
   return [
     base,
@@ -1116,17 +1116,17 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       let broker: Awaited<ReturnType<typeof createPermissionBroker>> | undefined;
       const socketPath = permissionSocketPath(threadId, botId);
       if (permissionMode !== "bypassPermissions") {
-        args.push("--permission-prompt-tool", "mcp__ogb__approve");
+        args.push("--permission-prompt-tool", "mcp__dusk__approve");
       }
       const permissionEnv = { ...NODE_ENV_FLAG, ...(turn.toolScope !== undefined ? { DUSK_PERMISSION_TOOL_SCOPE: JSON.stringify(turn.toolScope) } : {}) };
-      mcpServers.ogb = { command: process.execPath, args: [PERM_PROXY_PATH, socketPath], env: permissionEnv, alwaysLoad: true };
-      allowed.push("mcp__ogb", ...gateQueryTools(mcpServers));
+      mcpServers.dusk = { command: process.execPath, args: [PERM_PROXY_PATH, socketPath], env: permissionEnv, alwaysLoad: true };
+      allowed.push("mcp__dusk", ...gateQueryTools(mcpServers));
       // A guest pre-allows only harness tools; anything else (the browser can open file:) asks.
-      if (turn.guestConfined) allowed.splice(0, allowed.length, ...allowed.filter((name) => name === "mcp__ogb" || name === "mcp__agents"));
+      if (turn.guestConfined) allowed.splice(0, allowed.length, ...allowed.filter((name) => name === "mcp__dusk" || name === "mcp__agents"));
       // The MCP config carries credentials and argv is readable via `ps`: a 0600 file, removed at settle.
       let mcpConfigPath: string | null = null;
       if (Object.keys(mcpServers).length) {
-        mcpConfigPath = join(mkdtempSync(join(tmpdir(), "omb-mcp-")), "mcp.json");
+        mcpConfigPath = join(mkdtempSync(join(tmpdir(), "dusk-mcp-")), "mcp.json");
         args.push("--mcp-config", mcpConfigPath);
         args.push("--allowedTools", allowed.join(","));
       }
@@ -1242,7 +1242,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
 
       try {
         if (launchSystem) {
-          systemPromptPath = join(mkdtempSync(join(tmpdir(), "omb-system-")), "prompt.txt");
+          systemPromptPath = join(mkdtempSync(join(tmpdir(), "dusk-system-")), "prompt.txt");
           writeFileSync(systemPromptPath, launchSystem, { mode: 0o600 });
           args.push("--append-system-prompt-file", systemPromptPath);
         }
@@ -1295,7 +1295,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
             },
           });
           if (broker.socketPath !== socketPath && mcpConfigPath) {
-            mcpServers.ogb = { command: process.execPath, args: [PERM_PROXY_PATH, broker.socketPath], env: permissionEnv, alwaysLoad: true };
+            mcpServers.dusk = { command: process.execPath, args: [PERM_PROXY_PATH, broker.socketPath], env: permissionEnv, alwaysLoad: true };
           }
         }
 
@@ -2050,7 +2050,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
             return cliVersionChecked && cliVersion !== null && claudeCliSupports(cliVersion, "--system-prompt-snapshot");
           },
           localComputerMcp: true,
-          hooks: true, askTool: { kind: "mcp", server: "ogb", name: "ask_user" },
+          hooks: true, askTool: { kind: "mcp", server: "dusk", name: "ask_user" },
         },
         sendTurn: (turn) => authRecovery.send(turn, sendTurn),
         steer,

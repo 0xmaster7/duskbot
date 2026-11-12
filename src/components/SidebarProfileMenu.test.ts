@@ -169,7 +169,7 @@ describe("the phone entries", () => {
 
   it("never offers the iOS-only entry it replaced", () => {
     for (const target of ["computer", "server"] as const) {
-      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get Dusk Bot for iOS");
+      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get dusk bot for iOS");
     }
   });
 
@@ -206,7 +206,7 @@ describe("choosing where the phone connects", () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("when the Cloud cannot be opened, lands on Settings → Dusk Cloud, which says what to do", async () => {
+  it("when the Cloud cannot be opened, lands on Settings → dusk cloud, which says what to do", async () => {
     const bridge = { connectHomeForPhone: vi.fn().mockRejectedValue(new Error("offline")) };
     const dispatch = vi.fn();
     selectPhoneDestination(destinations(readyCloud)[0]!, { bridge, dispatch });
@@ -263,7 +263,7 @@ describe("profileMenuItems", () => {
     phone: [{ key: "phone-app", label: "Get the phone app", onSelect: noop }],
     usage: true,
     update: null,
-    account: "Dusk Bot Cloud",
+    account: "dusk bot Cloud",
     onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
     ...patch,
   });
@@ -273,7 +273,7 @@ describe("profileMenuItems", () => {
     expect(items.map((item) => item.key)).toEqual(["usage", "phone-app", "support", "settings", "account"]);
     expect(items.filter((item) => item.separatorBefore).map((item) => item.key)).toEqual(["account"]);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about"]);
-    expect(items.find((item) => item.key === "account")!.label).toBe("Dusk Bot Cloud");
+    expect(items.find((item) => item.key === "account")!.label).toBe("dusk bot Cloud");
   });
 
   it("only offers what this window has: no usage on a remote server, no account without one", () => {
@@ -313,7 +313,7 @@ describe("Simple mode's account menu", () => {
     phone: simplePhoneItems({ connected: false, onGetApp: noop }),
     usage: true,
     update: { key: "update", label: "Check for updates", onSelect: noop },
-    account: "Dusk Cloud",
+    account: "dusk cloud",
     simple: { tools, places: placeMenuItems(place(), { owner: null, onCloudSettings: noop }) },
     onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
     ...patch,
@@ -405,7 +405,7 @@ describe("Simple mode's account menu", () => {
 
   it("puts the move's row first, in its own group, above a raised update", () => {
     const move = [{ key: "cloud-move", label: "Try My Cloud move again", title: "My Cloud did not answer.", onSelect: noop }];
-    const update = { key: "update", label: "Dusk Bot 0.2.0 ready, restart", onSelect: noop };
+    const update = { key: "update", label: "dusk bot 0.2.0 ready, restart", onSelect: noop };
     expect(groups(build({ move }))).toEqual([
       ["cloud-move"],
       ["usage", "phone-app", "support", "settings"],

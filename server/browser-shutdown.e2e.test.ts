@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
@@ -23,7 +23,7 @@ afterEach(async () => {
 /** A home with the stub engine. A running daemon is a file in `running/`
  * plus the pid file agent-browser writes; `close` removes both. */
 function engineHome(config: Record<string, unknown> = {}) {
-  const home = mkdtempSync(join(tmpdir(), "omb-browser-shutdown-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-browser-shutdown-"));
   homes.push(home);
   mkdirSync(join(home, "tmp"), { recursive: true });
   mkdirSync(join(home, "running"), { recursive: true });
@@ -89,7 +89,7 @@ async function browserTurnThenQuit(config: Record<string, unknown> = {}, browser
   await expect.poll(async () => (await api("GET", "/api/bots?messages=0")).body.bots
     .find((item: { id: string }) => item.id === bot.id)?.busy, { timeout: 20_000 }).toBe(false);
   const session = browserProfile ?? `bot-${bot.id}`;
-  // The person's Chrome has no saved state of Dusk Bot's to prepare, so a turn on
+  // The person's Chrome has no saved state of dusk bot's to prepare, so a turn on
   // My Chrome runs no engine command of its own; every other browser does.
   const turnCommands = fixture.commands();
   // The bot's browser is open when the person quits.

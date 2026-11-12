@@ -60,7 +60,7 @@ beforeEach(() => {
   fixture.ownerOrAdmin = null;
   fixture.sounds = true;
   fixture.advancedMode = false;
-  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { environments: {}, organization: {}, cloudAccount: {} } });
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { environments: {}, organization: {}, cloudAccount: {} } });
   vi.stubGlobal("document", { addEventListener: vi.fn(), removeEventListener: vi.fn(), documentElement: { dataset: {} } });
   setLocale("en");
 });
@@ -191,7 +191,7 @@ describe("Settings, drawn as Grok Bot's", () => {
   });
 
   it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { remoteClient: { active: true }, environments: {} } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true }, environments: {} } });
     expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
     expect(groups(open("general"))).toEqual(["Appearance", "Notifications"]);
     expect(current(open("looks"))).toBe("general");

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "../control-omb.ts";
+import { launchVerificationServer, runControlDusk, type VerificationServer } from "../control-dusk.ts";
 
 const binaryPath = process.env.DUSK_VERIFY_BROWSER_BINARY;
 const executablePath = process.env.DUSK_VERIFY_BROWSER_CHROME;
@@ -51,7 +51,7 @@ it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("uses
       { server: "browser", tool: "agent_browser_get_text", arguments: { selector: "#result" } },
     ];
     writeFileSync(planPath, JSON.stringify({ [bot.id]: { turns: [{ timeoutMs: 90_000, steps, reply: "LOCAL_BROWSER_VERIFIED" }] } }));
-    await runControlOmb(["send", "--bot", bot.id, "--text", "Open the local form, enter Native Mac, submit and read the greeting.", "--url", fixture.info.url]);
+    await runControlDusk(["send", "--bot", bot.id, "--text", "Open the local form, enter Native Mac, submit and read the greeting.", "--url", fixture.info.url]);
     let turn: any;
     await expect.poll(() => {
       try { turn = JSON.parse(readFileSync(`${planPath}.evidence.jsonl`, "utf8").trim().split("\n")[0]!); return Boolean(turn); }
@@ -126,7 +126,7 @@ it.skipIf(process.platform !== "darwin" || !binaryPath || !executablePath)("runs
       { server: "browser", tool: "agent_browser_open", arguments: { url: `${origin}/gate` } },
     ];
     writeFileSync(planPath, JSON.stringify({ [bot.id]: { turns: [{ timeoutMs: 90_000, steps, reply: "BATCH_VERIFIED" }] } }));
-    await runControlOmb(["send", "--bot", bot.id, "--text", "Sign up with ada@example.com, then open the store.", "--url", fixture.info.url]);
+    await runControlDusk(["send", "--bot", bot.id, "--text", "Sign up with ada@example.com, then open the store.", "--url", fixture.info.url]);
     let turn: any;
     await expect.poll(() => {
       try { turn = JSON.parse(readFileSync(`${planPath}.evidence.jsonl`, "utf8").trim().split("\n")[0]!); return Boolean(turn); }

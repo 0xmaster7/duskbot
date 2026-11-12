@@ -17,7 +17,7 @@ const MODULE_URL = new URL("./data-dir-lease.mjs", import.meta.url).href;
 const roots = [];
 
 function temporaryDirectory(name = "data") {
-  const root = mkdtempSync(path.join(tmpdir(), "omb-electron-lease-"));
+  const root = mkdtempSync(path.join(tmpdir(), "dusk-electron-lease-"));
   roots.push(root);
   const dataDir = path.join(root, name);
   mkdirSync(dataDir, { recursive: true });
@@ -121,7 +121,7 @@ test("an invalid child capability fails closed without acquisition or secret log
     assert.equal(result.code, 0);
     assert.equal(result.stderr, "");
     assert.deepEqual(JSON.parse(result.stdout), {
-      error: "The Dusk Bot desktop lease delegation is invalid; refusing to start to protect its state.",
+      error: "The dusk bot desktop lease delegation is invalid; refusing to start to protect its state.",
       consumed: true,
     });
     assert.equal(result.stdout.includes(invalidCapability), false);
@@ -362,7 +362,7 @@ test("a foreign-host reaper fails closed and identifies its preserved recovery r
 });
 
 test("legacy data is moved before lease creation", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "omb-electron-legacy-"));
+  const root = mkdtempSync(path.join(tmpdir(), "dusk-electron-legacy-"));
   roots.push(root);
   const legacyDataDir = path.join(root, ".opengrokbot");
   const dataDir = path.join(root, ".duskbot");

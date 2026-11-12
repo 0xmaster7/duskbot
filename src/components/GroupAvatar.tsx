@@ -114,7 +114,7 @@ export function useGroupYou(): GroupYou | null {
   const profile = profileForSession(state.config?.profile, session);
   const nameless = !profile?.name?.trim() && !profile?.email?.trim();
   useEffect(() => {
-    const bridge = window.ogb?.desktopProfile;
+    const bridge = window.duskDesktop?.desktopProfile;
     if (!nameless || knownComputer !== undefined || !bridge) return;
     let active = true;
     void (async () => {

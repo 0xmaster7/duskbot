@@ -16,7 +16,7 @@ export function createUpdateNotice({ request, notify, open, memory, log = () => 
       try { told = memory.read()?.told ?? null; } catch {}
       if (told === answer.latest) return null;
       memory.write({ told: answer.latest });
-      notify({ title: `Dusk Bot ${answer.latest} is available`, body: "Click to download it from dusk.bot.", click: () => open(answer.releaseUrl) });
+      notify({ title: `dusk bot ${answer.latest} is available`, body: "Click to download it from dusk.bot.", click: () => open(answer.releaseUrl) });
       return answer.latest;
     } catch (error) {
       log(`update notice: check failed (${error instanceof Error ? error.message : String(error)})`);

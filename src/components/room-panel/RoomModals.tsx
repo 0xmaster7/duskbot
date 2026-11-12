@@ -63,7 +63,7 @@ export function RoomInstructionsModal({ group }: { group: Group; onClose: () => 
 export function RoomFolderModal({ group }: { group: Group; onClose: () => void }) {
   const { capabilities } = useDesktopCapabilities();
   const home = capabilities.host?.homeDir;
-  const canPick = typeof window !== "undefined" && Boolean(window.ogb?.pickFolder);
+  const canPick = typeof window !== "undefined" && Boolean(window.duskDesktop?.pickFolder);
   const locked = group.pinnedCwd !== undefined;
   const cwd = locked ? group.pinnedCwd ?? undefined : group.cwd;
   const [typing, setTyping] = useState(false);
@@ -82,7 +82,7 @@ export function RoomFolderModal({ group }: { group: Group; onClose: () => void }
     }
   };
   const pick = async () => {
-    const path = await window.ogb?.pickFolder?.(group.cwd);
+    const path = await window.duskDesktop?.pickFolder?.(group.cwd);
     if (path) void save(path);
   };
 

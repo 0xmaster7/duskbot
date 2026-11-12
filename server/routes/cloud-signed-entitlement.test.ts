@@ -21,7 +21,7 @@ afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: tru
 function routes() {
   let counter = 0;
   const now = () => NOW;
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-signed-entitlement-")); dirs.push(dataDir);
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-signed-entitlement-")); dirs.push(dataDir);
   const sessions = new SessionRegistry({ file: join(DATA_DIR, "sessions.json"), now });
   const health = createCloudHealth({
     store: { onChange: () => () => {}, botByThread: () => null, bots: [] }, bus: { subscribe: () => () => {} },
@@ -33,8 +33,8 @@ function routes() {
   const handle = createCloudSignedRoutes({ secret, sessions, health, now, entitlement });
   const send = async (path: string, value: unknown, key = secret) => {
     const body = JSON.stringify(value), timestamp = String(Math.floor(NOW / 1000)), nonce = `nonce-${String(++counter).padStart(12, "0")}`;
-    const headers = { "content-type": "application/json", "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-      "x-omb-cloud-signature": `v1=${cloudRequestSignature(key, timestamp, nonce, "POST", path, body)}` };
+    const headers = { "content-type": "application/json", "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+      "x-dusk-cloud-signature": `v1=${cloudRequestSignature(key, timestamp, nonce, "POST", path, body)}` };
     const req = Object.assign(new PassThrough(), { method: "POST", url: path, headers, socket: { remoteAddress: "127.0.0.1" } }) as unknown as IncomingMessage;
     let status = 0, text = "";
     const res = { setHeader() {}, writeHead(code: number) { status = code; }, end(data: string) { text = data; } } as unknown as ServerResponse;

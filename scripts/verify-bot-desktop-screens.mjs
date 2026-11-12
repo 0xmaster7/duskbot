@@ -9,7 +9,7 @@ import { closeFixtureBrowser, connectMcp, driver, eventually, httpFixture, socke
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
-const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "omb-ms-"));
+const evidence = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "dusk-ms-"));
 const image = process.env.DUSK_VERIFY_DESKTOP_IMAGE;
 assert.ok(image, "select a fixture image containing omb-screen with DUSK_VERIFY_DESKTOP_IMAGE");
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
@@ -38,7 +38,7 @@ let container;
 let broker;
 try {
   container = (await run("docker", [
-    "run", "--rm", "-d", "--name", `omb-screens-${process.pid}`, "--label", "bot.dusk.verification=screens",
+    "run", "--rm", "-d", "--name", `dusk-screens-${process.pid}`, "--label", "bot.dusk.verification=screens",
     "--network", "none", "--user", "1000:1000", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
     "--read-only", "--memory", "4g", "--cpus", "2", "--pids-limit", "4096", "--shm-size", "512m",
     "--tmpfs", "/home/cua:rw,nosuid,nodev,size=512m,uid=1000,gid=1000,mode=0700",
@@ -70,7 +70,7 @@ try {
   assert.notEqual(leases[0].target.display, leases[1].target.display);
   assert.notEqual(leases[0].target.chromiumProfile, leases[1].target.chromiumProfile);
   const app = async (target, flow) => {
-    const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".omb-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
+    const binary = process.env.DUSK_AGENT_BROWSER_PATH || join(root, ".dusk-scratch", "verify-tools", "tools", "agent-browser", "0.37.0", "agent-browser");
     const home = join(evidence, `home-${flow.tag}`);
     const relay = await boxChromeRelay(() => spawn("docker", boxChromeExecArgs(container, target), { stdio: ["pipe", "pipe", "ignore"] }));
     try {

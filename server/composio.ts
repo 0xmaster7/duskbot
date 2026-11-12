@@ -629,7 +629,7 @@ async function collectConnectorTools(cfg: AppConfig): Promise<Record<string, Con
   const candidates = connected ? Object.keys(connected) : [];
   const initialize = await relayMcp(cfg, {
     jsonrpc: "2.0",
-    id: "omb-grants-initialize",
+    id: "dusk-grants-initialize",
     method: "initialize",
     params: {
       protocolVersion: "2025-03-26",
@@ -651,14 +651,14 @@ async function collectConnectorTools(cfg: AppConfig): Promise<Record<string, Con
   for (let page = 0; page < TOOLS_LIST_PAGES_MAX; page += 1) {
     const list = await relayMcp(cfg, {
       jsonrpc: "2.0",
-      id: "omb-grants-tools",
+      id: "dusk-grants-tools",
       method: "tools/list",
       params: cursor ? { cursor } : {},
     }, transportSessionId);
     if (list.status !== 200) {
       throw new Error(await responseErrorFromBytes(list.status, list.bytes));
     }
-    const frame = parseMcpResponse(new TextDecoder().decode(list.bytes), "omb-grants-tools");
+    const frame = parseMcpResponse(new TextDecoder().decode(list.bytes), "dusk-grants-tools");
     const error = frame && typeof frame.error === "object" && frame.error !== null
       ? (frame.error as { message?: unknown }).message
       : undefined;
@@ -857,7 +857,7 @@ export async function authorizeService(cfg: AppConfig, slug: string, requestedAl
   const serviceAccounts = accounts.filter((account) =>
     account.toolkit?.slug !== undefined && canonicalToolkitSlug(account.toolkit.slug) === toolkit
   );
-  const plan = planAccountLink(toolkit, serviceAccounts, alias, MULTI_ACCOUNT_CONFIG.max_accounts_per_toolkit, () => `omb-retry-${randomUUID()}`);
+  const plan = planAccountLink(toolkit, serviceAccounts, alias, MULTI_ACCOUNT_CONFIG.max_accounts_per_toolkit, () => `dusk-retry-${randomUUID()}`);
   if (!plan.ok) throw inputError(plan.error, plan.status);
   for (const id of plan.replace) await deleteConnectedAccount(apiKey, id);
   const linkRequest: AccountLinkRequest = { toolkit };

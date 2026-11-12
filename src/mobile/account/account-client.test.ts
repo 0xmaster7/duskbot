@@ -24,7 +24,7 @@ beforeEach(() => {
 
 describe("restore", () => {
   it("validates a saved session with an isolated bearer request", async () => {
-    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({}));
+    secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({}));
     expect(await client.restore()).toEqual(grant().account);
     const [url, init] = fetcher.mock.calls[0];
     expect(url).toBe(`${origin}/api/cloud/desktop/session`);
@@ -32,24 +32,24 @@ describe("restore", () => {
     expect(init?.signal).toBeInstanceOf(AbortSignal);
   });
   it("removes invalid tokens", async () => {
-    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "invalid_token" }, 401));
-    expect(await client.restore()).toBeNull(); expect(secrets.has("omb.account")).toBe(false);
+    secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "invalid_token" }, 401));
+    expect(await client.restore()).toBeNull(); expect(secrets.has("dusk.account")).toBe(false);
   });
   it("ignores a grant for another origin", async () => {
-    secrets.set("omb.account", JSON.stringify(stored({ origin: "https://other.example" })));
-    expect(await client.restore()).toBeNull(); expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("omb.account")).toBe(true);
+    secrets.set("dusk.account", JSON.stringify(stored({ origin: "https://other.example" })));
+    expect(await client.restore()).toBeNull(); expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("dusk.account")).toBe(true);
   });
   it.each([true, false])("offline grace requires a future expiry: %s", async future => {
-    secrets.set("omb.account", JSON.stringify(stored({ expiresAt: Date.now() + (future ? 60_000 : -60_000) })));
+    secrets.set("dusk.account", JSON.stringify(stored({ expiresAt: Date.now() + (future ? 60_000 : -60_000) })));
     fetcher.mockRejectedValue(new TypeError("offline"));
     expect(await client.restore()).toEqual(future ? grant().account : null);
   });
   it("does not grant offline grace to a server refusal", async () => {
-    secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "failed" }, 503));
+    secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValue(response({ error: "failed" }, 503));
     expect(await client.restore()).toBeNull();
   });
   it("rejects malformed stored tokens", async () => {
-    secrets.set("omb.account", JSON.stringify(stored({ token: "bad" })));
+    secrets.set("dusk.account", JSON.stringify(stored({ token: "bad" })));
     expect(await client.restore()).toBeNull(); expect(fetcher).not.toHaveBeenCalled();
   });
 });
@@ -61,7 +61,7 @@ describe("email sign-in", () => {
     fetcher.mockResolvedValueOnce(response(grant()));
     expect(await client.emailVerify("1234 5678")).toEqual({ outcome: "signed-in" });
     expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body))).toEqual({ attempt: "a".repeat(43), code: "12345678" });
-    expect(JSON.parse(secrets.get("omb.account")!)).toMatchObject({ origin, token, deviceId: "phone", account: grant().account });
+    expect(JSON.parse(secrets.get("dusk.account")!)).toMatchObject({ origin, token, deviceId: "phone", account: grant().account });
   });
   it("uses linux for a browser and preserves a valid app version", async () => {
     platform.kind = "web"; platform.appVersion = "1.2.3-beta+1"; await start();
@@ -87,7 +87,7 @@ describe("email sign-in", () => {
   });
   it.each([{ cloudContractVersion: 2 }, { accessToken: "bad" }, { expiresAt: 1 }, { device: {} }, { account: { id: "", email: "bad" } }])("refuses malformed grants %j", async extra => {
     await start(); fetcher.mockResolvedValueOnce(response({ ...grant(), ...extra }));
-    expect(await client.emailVerify("12345678")).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account")).toBe(false);
+    expect(await client.emailVerify("12345678")).toEqual({ outcome: "failed" }); expect(secrets.has("dusk.account")).toBe(false);
   });
   it("caps streamed and declared responses at 64 KB", async () => {
     fetcher.mockResolvedValueOnce(new Response(" ".repeat(65_537)));
@@ -104,7 +104,7 @@ describe("email sign-in", () => {
 describe("browser sign-in", () => {
   it("opens a PKCE S256 URL whose challenge matches the secret verifier", async () => {
     await client.oauthStart("google");
-    const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    const pending = JSON.parse(secrets.get("dusk.account.pending")!);
     const url = new URL(vi.mocked(platform.openExternal).mock.calls[0][0]);
     expect(url.origin + url.pathname).toBe(`${origin}/v1/auth/app/start`);
     expect(Object.fromEntries(url.searchParams)).toMatchObject({ provider: "google", code_challenge_method: "S256", redirect_uri: "duskbot://auth", state: pending.state,
@@ -118,36 +118,36 @@ describe("browser sign-in", () => {
   it("refuses a state mismatch and clears the pending attempt", async () => {
     await client.oauthStart("apple");
     expect(await client.handleAuthUrl("duskbot://auth?code=abc&state=wrong")).toEqual({ outcome: "invalid-state" });
-    expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("omb.account.pending")).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("dusk.account.pending")).toBe(false);
   });
   it("refuses an old attempt", async () => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); pending.at -= 15 * 60_000;
-    secrets.set("omb.account.pending", JSON.stringify(pending));
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); pending.at -= 15 * 60_000;
+    secrets.set("dusk.account.pending", JSON.stringify(pending));
     expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "invalid-state" }); expect(fetcher).not.toHaveBeenCalled();
   });
   it("exchanges a matching code and persists the grant", async () => {
-    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("dusk.account.pending")!);
     fetcher.mockResolvedValueOnce(response(grant()));
     expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "signed-in" });
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ code: "abc", codeVerifier: pending.verifier, platform: "ios" });
-    expect(client.account()).toEqual(grant().account); expect(secrets.has("omb.account.pending")).toBe(false); expect(secrets.has("omb.account")).toBe(true);
+    expect(client.account()).toEqual(grant().account); expect(secrets.has("dusk.account.pending")).toBe(false); expect(secrets.has("dusk.account")).toBe(true);
   });
   it.each(["oauth_denied", "oauth_failed", "oauth_expired", "provider_unavailable", "signup_closed", "identity_taken"])("surfaces provider error %s", async error => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!);
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!);
     expect(await client.handleAuthUrl(`duskbot://auth?error=${error}&state=${pending.state}`)).toEqual({ outcome: error });
-    expect(secrets.has("omb.account.pending")).toBe(false); expect(fetcher).not.toHaveBeenCalled();
+    expect(secrets.has("dusk.account.pending")).toBe(false); expect(fetcher).not.toHaveBeenCalled();
   });
   it("clears a pending attempt when code exchange fails", async () => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("omb.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
-    expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("omb.account.pending")).toBe(false);
+    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
+    expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("dusk.account.pending")).toBe(false);
   });
 });
 
 describe("signed-in actions", () => {
-  const restore = async () => { secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); };
+  const restore = async () => { secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); };
   it("clears local secrets even when sign-out cannot reach the service", async () => {
     await restore(); fetcher.mockRejectedValueOnce(new Error("offline"));
-    await client.signOut(); expect(client.account()).toBeNull(); expect(secrets.has("omb.account")).toBe(false);
+    await client.signOut(); expect(client.account()).toBeNull(); expect(secrets.has("dusk.account")).toBe(false);
     expect(fetcher.mock.calls[1]).toMatchObject([`${origin}/api/cloud/desktop/session`, { method: "DELETE", body: "{}", headers: { authorization: `Bearer ${token}` } }]);
   });
   it.each([`${origin}/dashboard`, "https://other.example/dashboard", `${origin}/dashboard?ok=1`])("validates enrollment destination %s", async dashboardUrl => {
@@ -161,7 +161,7 @@ describe("signed-in actions", () => {
 });
 
 describe("own clouds", () => {
-  const signIn = async () => { secrets.set("omb.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); fetcher.mockClear(); };
+  const signIn = async () => { secrets.set("dusk.account", JSON.stringify(stored())); fetcher.mockResolvedValueOnce(response({})); await client.restore(); fetcher.mockClear(); };
   const listed = (extra = {}) => ({ id: "c0123456789abcdef01234567", name: "Studio", role: "owner", teamId: null, managed: true, status: "ready", origin: "https://d0123456789abcdef0123.dusk.bot", primary: true, ...extra });
   it("lists the account's own clouds from the session, primary first, team and signed-in servers left out", async () => {
     await signIn();

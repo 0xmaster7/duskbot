@@ -34,22 +34,22 @@ afterEach(() => {
 const render = () => renderToStaticMarkup(createElement(SettingsModal));
 
 describe("Settings → Remote access: server pairing card visibility", () => {
-  it("is offered on a hosted server reached from a browser (no window.ogb)", () => {
+  it("is offered on a hosted server reached from a browser (no window.duskDesktop)", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(),});
     expect(render()).toContain("SERVER_PAIRING_CARD_MARKER");
   });
 
   it("is offered inside the desktop app when it owns the server being paired against", () => {
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: {} });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: {} });
     expect(render()).toContain("SERVER_PAIRING_CARD_MARKER");
   });
 
   it("is offered when this desktop is a remote client of a hosted workspace, whose phones pair only here", () => {
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { remoteClient: { active: true } } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true } } });
     expect(render()).toContain('data-panel-page="pairing"');
   });
 
-  it("on a Dusk Bot Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
+  it("on a dusk bot Cloud home, which is personal, tells the card so and offers no People section to invite anyone", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(),});
     fixture.section = "people";
     expect(render()).toContain('data-panel-page="people"');
@@ -63,7 +63,7 @@ describe("Settings → Remote access: server pairing card visibility", () => {
 describe("Settings → Remote access opened by Connect your phone", () => {
   it("on this computer, reveals the phone flow, not the server's pairing code", () => {
     fixture.phonePairing = 3;
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { companion: {} } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { companion: {} } });
     const html = render();
     expect(html).toContain("COMPANION_SECTION focus=3");
     expect(html).toContain("SERVER_PAIRING_CARD_MARKER focus=0");
@@ -72,7 +72,7 @@ describe("Settings → Remote access opened by Connect your phone", () => {
   it("on the person's own Cloud in this window, reveals the Cloud's own pairing code", () => {
     fixture.phonePairing = 2;
     fixture.config = { cloudHome: true };
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { cloudPlan: {} } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { cloudPlan: {} } });
     const html = render();
     expect(html).toContain("SERVER_PAIRING_CARD_MARKER cloud focus=2");
     expect(html).toContain("COMPANION_SECTION focus=0");
@@ -82,14 +82,14 @@ describe("Settings → Remote access opened by Connect your phone", () => {
     fixture.phonePairing = 1;
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(),});
     expect(render()).toContain("SERVER_PAIRING_CARD_MARKER focus=1");
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { companion: {}, remoteClient: { active: true } } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { companion: {}, remoteClient: { active: true } } });
     const html = render();
     expect(html).toContain("SERVER_PAIRING_CARD_MARKER focus=1");
     expect(html).not.toContain("COMPANION_SECTION");
   });
 
   it("a plain visit reveals nothing", () => {
-    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), ogb: { companion: {} } });
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { companion: {} } });
     const html = render();
     expect(html).toContain("COMPANION_SECTION focus=0");
     expect(html).toContain("SERVER_PAIRING_CARD_MARKER focus=0");

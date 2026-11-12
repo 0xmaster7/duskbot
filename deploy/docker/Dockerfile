@@ -1,5 +1,5 @@
-# Dusk Bot harness server — hosted/self-hosted tenant image, and the
-# Dusk Cloud Pro home machine (docs/cloud-pro.md).
+# dusk bot harness server — hosted/self-hosted tenant image, and the
+# dusk cloud Pro home machine (docs/cloud-pro.md).
 #
 # Build the renderer + the self-contained server bundle, then ship only those
 # artifacts on a slim Node runtime. The runtime stage holds what changes
@@ -19,7 +19,7 @@
 #   docker buildx build -f deploy/docker/Dockerfile --platform linux/arm64 -t duskbot .   # Raspberry Pi 4/5, ARM servers
 #
 # HOME is the /data volume, so engine CLI logins (~/.claude, ~/.codex, ~/.grok,
-# ...) and Dusk Bot's own state (~/.duskbot) persist across container
+# ...) and dusk bot's own state (~/.duskbot) persist across container
 # restarts.
 #
 # A plain `docker run` of either image wants `--init --shm-size=512m`, as the
@@ -133,13 +133,13 @@ ARG TARGETARCH
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 poppler-utils unzip bubblewrap socat \
   && rm -rf /var/lib/apt/lists/* \
-  && HOME=/tmp/omb-build-home npm install -g pnpm@10.33.0 \
+  && HOME=/tmp/dusk-build-home npm install -g pnpm@10.33.0 \
   && uv_arch=x86_64 && if [ "$TARGETARCH" = arm64 ]; then uv_arch=aarch64; fi \
   && mkdir -p /tmp/uv-install \
   && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${uv_arch}-unknown-linux-gnu.tar.gz" | tar -xz -C /tmp/uv-install --strip-components=1 \
   && install -m 0755 /tmp/uv-install/uv /tmp/uv-install/uvx /usr/local/bin/ \
-  && bwrap --version && socat -V | head -1 && HOME=/tmp/omb-build-home pnpm --version && uv --version | grep -qF "uv ${UV_VERSION}" \
-  && rm -rf /tmp/omb-build-home /tmp/uv-install /tmp/node-compile-cache
+  && bwrap --version && socat -V | head -1 && HOME=/tmp/dusk-build-home pnpm --version && uv --version | grep -qF "uv ${UV_VERSION}" \
+  && rm -rf /tmp/dusk-build-home /tmp/uv-install /tmp/node-compile-cache
 # Caddy and Grok are pinned, so they sit beneath the engines, which change
 # more often.
 COPY --from=edge /caddy /usr/local/bin/caddy
@@ -168,8 +168,8 @@ RUN if [ -n "$GROK_VERSION" ]; then \
 ARG CLOUD_HOME_ENGINES="@anthropic-ai/claude-code @openai/codex"
 ARG ENGINES_CACHE_TAG=""
 RUN echo "engines: ${CLOUD_HOME_ENGINES:-none} ${ENGINES_CACHE_TAG}" \
-  && if [ -n "$CLOUD_HOME_ENGINES" ]; then HOME=/tmp/omb-build-home npm install -g $CLOUD_HOME_ENGINES; fi \
-  && rm -rf /tmp/omb-build-home /tmp/node-compile-cache
+  && if [ -n "$CLOUD_HOME_ENGINES" ]; then HOME=/tmp/dusk-build-home npm install -g $CLOUD_HOME_ENGINES; fi \
+  && rm -rf /tmp/dusk-build-home /tmp/node-compile-cache
 COPY deploy/fly/Caddyfile /app/cloud/Caddyfile
 # The root supervisor runs /app's code and hands the server its secrets, so
 # no file there may be one `maus` can change: unlike the server image's, these
@@ -181,14 +181,14 @@ COPY --from=build /src/dist-server ./dist-server
 COPY --from=build /src/dist ./dist
 # The bundled skills (server/skill-library.ts reads ./skills from /app).
 COPY --from=build /src/skills ./skills
-RUN export HOME=/tmp/omb-build-home \
+RUN export HOME=/tmp/dusk-build-home \
  && chmod go-w /app/cloud /app/cloud/Caddyfile \
  && caddy version \
  && DUSK_CLOUD_PUBLIC_HOST=validate.fly.dev caddy validate --config /app/cloud/Caddyfile --adapter caddyfile \
  && test -f /app/dist-server/cloud-home-start.js \
  && untrusted="$(find /app /usr/local/bin/caddy \( ! -user root -o ! -type l -perm /022 \) -print)" \
  && if [ -n "$untrusted" ]; then echo "not root's, or writable by others:" >&2; echo "$untrusted" >&2; exit 1; fi \
- && rm -rf /tmp/omb-build-home
+ && rm -rf /tmp/dusk-build-home
 ENV HOME=/data
 VOLUME ["/data"]
 EXPOSE 8080
@@ -206,7 +206,7 @@ CMD ["node", "/app/dist-server/cloud-home-start.js"]
 FROM runtime AS server
 # Optional engine CLIs baked into the image (space-separated npm packages).
 ARG ENGINES=""
-RUN if [ -n "$ENGINES" ]; then HOME=/tmp/omb-build-home npm install -g $ENGINES && rm -rf /tmp/omb-build-home /tmp/node-compile-cache; fi
+RUN if [ -n "$ENGINES" ]; then HOME=/tmp/dusk-build-home npm install -g $ENGINES && rm -rf /tmp/dusk-build-home /tmp/node-compile-cache; fi
 COPY --from=build --chown=maus:maus /src/dist-native/duckdb/target ./duckdb
 COPY --from=build --chown=maus:maus /src/dist-server ./dist-server
 COPY --from=build --chown=maus:maus /src/dist ./dist

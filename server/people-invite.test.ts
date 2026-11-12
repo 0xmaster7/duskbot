@@ -91,7 +91,7 @@ const as = (cookie: string) => (path: string, init: CallInit = {}) => remote(pat
 beforeAll(async () => {
   port = await freePortBlock([0, 1]);
   stub = await startControlPlaneStub();
-  home = mkdtempSync(join(tmpdir(), "omb-people-invite-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-people-invite-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".duskbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });

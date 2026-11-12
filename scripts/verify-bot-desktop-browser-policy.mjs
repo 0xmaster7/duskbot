@@ -14,7 +14,7 @@ const installedDefaults = process.argv.includes("--installed-defaults");
 assert.ok(image, "set DUSK_VERIFY_DESKTOP_IMAGE to an isolated fixture image");
 const imageId = (await run("docker", ["image", "inspect", image, "--format", "{{.Id}}"])).stdout.trim();
 assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
-const evidence = await mkdtemp("/tmp/omb-browser-policy-");
+const evidence = await mkdtemp("/tmp/dusk-browser-policy-");
 process.env.DUSK_DATA_DIR = join(evidence, "server-data");
 const { boxChromeRelay } = await import("../server/vps-local.ts");
 const policies = { HighEfficiencyModeEnabled: true, MemorySaverModeSavings: 1, NetworkPredictionOptions: 2 };
@@ -105,7 +105,7 @@ async function extensionState(cdp, session) {
 }
 
 async function measure(trial) {
-  const mode = installedDefaults ? "installed" : trial ? "trial" : "baseline", name = `omb-browser-policy-${process.pid}-${mode}`, volume = `${name}-home`;
+  const mode = installedDefaults ? "installed" : trial ? "trial" : "baseline", name = `dusk-browser-policy-${process.pid}-${mode}`, volume = `${name}-home`;
   const recommended = join(evidence, mode);
   await mkdir(recommended);
   if (trial) await writeFile(join(recommended, "trial.json"), JSON.stringify(policies));

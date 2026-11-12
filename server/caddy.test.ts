@@ -13,7 +13,7 @@ const posix = process.platform !== "win32";
 describe("the managed Caddy", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-caddy-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-caddy-"));
   });
   afterEach(() => removeTempDir(dir));
 

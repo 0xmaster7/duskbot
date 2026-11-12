@@ -188,7 +188,7 @@ function RoomContextMenu({
   const motion = useHeldMenuMotion(menu);
   const shown = motion.value;
   const { state, dispatch } = useStore();
-  const remoteClient = window.ogb?.remoteClient?.active === true;
+  const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   const group = shown ? state.groups.find((g) => g.id === shown.groupId) : undefined;
   const [renaming, setRenaming] = useState(false);
   const [describing, setDescribing] = useState(false);
@@ -499,7 +499,7 @@ export const ROW_PRESS = "[--row-ease:cubic-bezier(.22,1,.36,1)] [transition:tra
 export const BotListItem = memo(function BotListItem(props: BotRowProps) {
   const { bot, selected, deleting, mascotMotion, pendingQueued, instances, liveCall, density, dispatch, onMenu, renameRequest, botDrag: drag, botDrop: drop, botDragging: dragging, main = false, tabStop } = props;
   const liveMedia = useLiveMedia();
-  const remoteClient = typeof window !== "undefined" && window.ogb?.remoteClient?.active === true;
+  const remoteClient = typeof window !== "undefined" && window.duskDesktop?.remoteClient?.active === true;
   const [renaming, setRenaming] = useState(false);
   // grok's row name is plain text: the field mounts only for a rename, from the menu or a double-click
   const [nameField, setNameField] = useState(false);
@@ -731,7 +731,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
   const { state, dispatch } = useStore();
   const cloudOwner = useCloudOwner(state.config?.cloudHome === true);
   const endHowTo = useCallback(() => endCloudHowTo(dispatch), [dispatch]);
-  const remoteClient = window.ogb?.remoteClient?.active === true;
+  const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   const { capabilities } = useDesktopCapabilities();
   const phone = useMediaQuery(PHONE_LAYOUT, false);
   const importReturnRef = useRef<HTMLButtonElement>(null);
@@ -823,7 +823,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
 
   useEffect(() => {
     if (remoteClient) return;
-    return window.ogb?.onPackageInstall?.((url) => {
+    return window.duskDesktop?.onPackageInstall?.((url) => {
       setTeamInstallUrl(url);
       setTeamLibraryOpen(true);
     });

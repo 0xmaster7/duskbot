@@ -97,7 +97,7 @@ export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; o
     : stage === "elsewhere" && target === "home" ? t("runsOn.moveHome", { device })
     : t("runsOn.moveCloud");
   const line = cloudDesktop?.move ? moveLine(cloudDesktop.move, cloudDesktop.cloudPage ? "cloud" : "local") : null;
-  const switchPlace = () => { onClose(); void window.ogb?.workspaces?.menu().catch(() => {}); };
+  const switchPlace = () => { onClose(); void window.duskDesktop?.workspaces?.menu().catch(() => {}); };
 
   const primary = (() => {
     switch (stage) {
@@ -108,7 +108,7 @@ export function CloudMoveSheet({ target, onClose }: { target: CloudMoveTarget; o
         : cloudDesktop?.openHome ? { label: t("runsOn.openCloud"), act: () => run(async () => { await cloudDesktop.openHome!(); onClose(); }) } : null;
       case "open": return cloudDesktop?.openHome ? { label: t("runsOn.openCloud"), act: () => run(async () => { await cloudDesktop.openHome!(); onClose(); }) } : null;
       case "manage": return cloudDesktop?.openPlan ? { label: t("cloudMove.openPlan"), act: () => run(() => cloudDesktop.openPlan!()) } : null;
-      case "elsewhere": return window.ogb?.workspaces?.menu ? { label: t("cloudMove.switch", { device }), act: switchPlace } : null;
+      case "elsewhere": return window.duskDesktop?.workspaces?.menu ? { label: t("cloudMove.switch", { device }), act: switchPlace } : null;
       default: return null;
     }
   })();
