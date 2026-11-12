@@ -9,7 +9,8 @@ export const CLOUD_NOTICE = "cloud-notice";
 export const TWO_PLACES_NOTICE = "two-places";
 /** A routine on this computer ran late or not at all while it slept: Dusk Cloud offered once, at that moment. */
 export const LATE_ROUTINE_NOTICE = "late-routine-v1";
-/** Someone clearly invested (shared/cloud-upsell.ts INVESTED): Dusk Cloud pitched once, kindly. */
+/** Someone clearly invested (shared/cloud-upsell.ts INVESTED): the sidebar Dusk Cloud card says it once, in their numbers.
+ * Not a corner notice: the id only records that it was said. */
 export const INVESTED_NOTICE = "cloud-invested-v1";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
 export const GROK_MOVE_NOTICE = "grok-move-2026-11";
@@ -22,7 +23,6 @@ export const NOTICES = [
   WHATS_NEW_NOTICE,
   TWO_PLACES_NOTICE,
   LATE_ROUTINE_NOTICE,
-  INVESTED_NOTICE,
   CLOUD_INTRO,
   CLOUD_TRIAL_NOTICE,
   CLOUD_NOTICE,

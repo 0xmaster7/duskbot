@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Bot, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
@@ -17,7 +17,9 @@ import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 import { CheerBot } from "./CheerBot";
 import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pill, Pop, ToastStack, usePill } from "./motion";
-import { useInvestedNoteShown } from "../lib/upsell-stage";
+import { useAccountUsage } from "../data/usage";
+import { investedLine, investedNoteDue, markInvestedNote } from "../lib/fun";
+import type { InvestedFacts } from "../../../../shared/cloud-upsell";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
@@ -136,33 +138,67 @@ function CloudBadge() {
 
 const HIDE_KEY = "omb-dash-upsell-hidden-until";
 const WEEK = 7 * 86_400_000;
+// the invested copy holds the card for the rest of the visit it first showed in
+let visitInvested: InvestedFacts | null = null;
 
-/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed, and for the visit when the home page's invested note already made the pitch */
+/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed */
 function SideUpsell() {
   const { clouds } = useCloud();
-  const invested = useInvestedNoteShown();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
-  const [open, setOpen] = useState(false);
-  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now() && !invested);
-  const shown = useRef(false);
-  useEffect(() => { if (visible && !shown.current) { shown.current = true; trackUpsell("shown", "dash_sidebar"); } }, [visible]);
-  const hide = () => { trackUpsell("dismiss", "dash_sidebar"); const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
+  const [open, setOpen] = useState<"dash_sidebar" | "dash_invested" | null>(null);
+  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now());
+  const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <>
       <AnimatePresence initial={false}>
-        {visible && (
-          <m.div key="upsell" className="pop relative rounded-[20px] bg-pop p-4" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
-            <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
-            <div className="flex items-center gap-3 pe-6">
-              <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
-              <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
-            </div>
-            <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", "dash_sidebar"); setOpen(true); }}>keep them on 24/7</Button>
-          </m.div>
-        )}
+        {visible && <SideUpsellCard key="upsell" onHide={hide} onOpen={setOpen} />}
       </AnimatePresence>
-      <AnimatePresence>{open && <PlanSheet key="plan" source="dash_sidebar" start="starter" onClose={() => setOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>{open && <PlanSheet key="plan" source={open} start="starter" onClose={() => setOpen(null)} />}</AnimatePresence>
     </>
+  );
+}
+
+/** the card itself, once the bots are counted: someone clearly invested gets it in their own numbers, once per account */
+function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (source: "dash_sidebar" | "dash_invested") => void }) {
+  const { account, detail } = useSession();
+  const { bots, loading } = useAccountUsage();
+  const turns = detail?.report?.activity?.totals.turns ?? 0;
+  const facts = useMemo(() => ({ bots: bots.length, messages: turns, routines: bots.reduce((sum, r) => sum + (r.bot.routines?.length ?? 0), 0) }), [bots, turns]);
+  const [held, setHeld] = useState<InvestedFacts | null>(visitInvested);
+  const shown = useRef(false);
+  const ready = !loading || held !== null;
+  const due = !shown.current && !held && ready && account ? investedNoteDue(account.id, facts, false) : false;
+  const invested = held ?? (due ? facts : null);
+  const source = invested ? "dash_invested" : "dash_sidebar";
+  useEffect(() => {
+    if (!ready || shown.current) return;
+    shown.current = true;
+    trackUpsell("shown", source);
+    if (!due || !account) return;
+    markInvestedNote(account.id);
+    visitInvested = facts;
+    setHeld(facts);
+  }, [ready]);
+  if (!ready) return null;
+  return (
+    <m.div className="pop relative rounded-[20px] bg-pop p-4" data-invested={invested ? "" : undefined} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
+      <button type="button" onClick={() => { trackUpsell("dismiss", source); onHide(); }} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
+      {invested ? (
+        <div className="flex items-center gap-3 pe-6">
+          <span className="shrink-0" aria-hidden><Mascot body="kit" color="blue" size={34} state="celebrate" tappable /></span>
+          <div className="min-w-0">
+            <h2 className="text-14 font-semibold leading-[1.3] text-ink">{investedLine(invested)}</h2>
+            <p className="mt-0.5 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps them working 24/7, even when your mac is off.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 pe-6">
+          <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
+          <p className="min-w-0 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps your bots working 24/7, even when your mac is off.</p>
+        </div>
+      )}
+      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", source); onOpen(source); }}>{invested ? "get dusk cloud" : "keep them on 24/7"}</Button>
+    </m.div>
   );
 }
 
