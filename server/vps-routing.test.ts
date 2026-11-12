@@ -224,6 +224,8 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     writeFileSync(
       join(home, ".duskbot", "config.json"),
       JSON.stringify({
+        // the echo engine repeats its prompt, and the warm style's "You're right" example would make every turn carry on
+        talkingStyle: "casual",
         instances: {
           vps: {
             driver: "grokAgent",
