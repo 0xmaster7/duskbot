@@ -18,7 +18,7 @@ dusk bot is free for personal use, with every feature, on your own computer. you
 | **[dusk cloud](/docs/dusk-cloud) computer** | no | 2 vcpu, 4 gb, 40 gb | 4 vcpu, 8 gb, 80 gb |
 | **work license** | add one, $12 a month | add one, $12 a month | yes, for one person |
 
-yearly is two months free. **team** plans start at $100 a month, with a dedicated machine and shared bots: write to hello@dusk.bot. current prices are on [the pricing page](/pricing).
+yearly is two months free. a **team** license is $30 a month for 2 people and $18 for each extra person, up to 50; add it yourself on the billing page. a team plan with a dedicated dusk cloud (8 vcpu, 16 gb, 160 gb) is $90 a month: write to hello@dusk.bot to set that one up. current prices are on [the pricing page](/pricing).
 
 **ai usage is never on your dusk bill.** your ai provider bills you on your plan with them.
 
