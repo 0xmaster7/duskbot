@@ -19,6 +19,7 @@ export const FADE_OUT = { duration: 0.1, ease: EASE_OUT } as const;
 export const EXIT = { duration: 0.14, ease: EASE_OUT } as const;
 /** Surfaces fold away gently: a long, soft ease-out, after their words have begun to fade. */
 export const SOFT_EASE = [0.25, 0.8, 0.25, 1] as const;
+export const SOFT_EXIT = { duration: 0.34, ease: SOFT_EASE, delay: 0.06 } as const;
 /** The island folds back in a balanced beat: smooth, never a snap, never dragging. */
 export const ISLAND_EXIT = { duration: 0.42, ease: SOFT_EASE, delay: 0.04 } as const;
 
