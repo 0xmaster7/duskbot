@@ -46,13 +46,13 @@ const webFilters = (url: URL) => {
 export interface UpsellRow { source: string; shown: number; clicked: number; dismissed: number; paid: number }
 const UPSELL_STEP: Record<string, "shown" | "clicked" | "dismissed"> = { [UPSELL_EVENTS.shown]: "shown", [UPSELL_EVENTS.click]: "clicked", [UPSELL_EVENTS.dismiss]: "dismissed" };
 /** each upsell surface (its checkout source) by people who saw it, opened it, put it away, and paid through it in the window.
- * the account page reports page_action with the step as action and the source as label; the apps report the step as the event name with a source prop */
+ * the account page reports page_action with the step as action and the source as label; the apps report app_action with the step as name and a source prop */
 export function upsellsOf(events: StoredEvent[], subscriptions: Array<Pick<StoredSubscription, "source" | "status" | "currentPeriodStart" | "createdAt">>, from: number, to: number): UpsellRow[] {
   const seen = new Map<string, { shown: Set<string>; clicked: Set<string>; dismissed: Set<string>; paid: number }>();
   for (const event of events) {
     if (event.at < from || event.at >= to) continue;
     const page = event.name === "page_action";
-    const step = UPSELL_STEP[String(page ? event.props.action : event.name)];
+    const step = UPSELL_STEP[String(page ? event.props.action : event.name === "app_action" ? event.props.name : event.name)];
     const source = page ? event.props.label : event.props.source;
     if (!step || typeof source !== "string" || !source) continue;
     const who = event.accountId ?? event.ctx?.visitor ?? event.id;
@@ -97,7 +97,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       if (!event.accountId) continue;
       if (event.name === "app_paired" && (!p.paired.has(event.accountId) || p.paired.get(event.accountId)! > event.at)) p.paired.set(event.accountId, event.at);
       if (event.name === "first_bot_reply" && (!p.replied.has(event.accountId) || p.replied.get(event.accountId)! > event.at)) p.replied.set(event.accountId, event.at);
-      if (event.name === "plan_chosen" && (!p.cloudChosen.has(event.accountId) || p.cloudChosen.get(event.accountId)! > event.at)) p.cloudChosen.set(event.accountId, event.at);
+      if (event.name === "plan_chosen" && event.props.plan !== "free" && (!p.cloudChosen.has(event.accountId) || p.cloudChosen.get(event.accountId)! > event.at)) p.cloudChosen.set(event.accountId, event.at);
     }
     return { events: merged, identity, people: p, visits: visitsOf(events) };
   }
@@ -221,7 +221,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const identity = identityOf(idents);
     const p = people();
     const accounts = new Map(auth.directory().accounts.map(account => [account.id, account]));
-    const NOTABLE = new Set(["site_view", "site_goal", "signup", "app_paired", "first_bot_reply", "checkout_paid", "app_open"]);
+    const NOTABLE = new Set(["site_view", "site_goal", "page_view", "signup", "app_paired", "first_bot_reply", "checkout_paid", "app_open"]);
     const geo = new Map<string, { country?: string; city?: string; lat?: number; lon?: number }>();
     for (const event of events) if (event.ctx?.visitor && (event.ctx.country || event.ctx.lat !== undefined)) geo.set(event.ctx.visitor, { country: event.ctx.country, city: event.ctx.city, lat: event.ctx.lat, lon: event.ctx.lon });
     const seedOf = (event: StoredEvent) => event.ctx?.visitor ?? (event.accountId ? [...(identity.visitorsOf.get(event.accountId) ?? [])][0] ?? event.accountId : event.ctx?.install ?? event.id);
@@ -233,7 +233,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
         source: event.ctx?.source ?? null, country: where?.country ?? event.ctx?.country ?? null, city: where?.city ?? event.ctx?.city ?? null, lat: where?.lat ?? event.ctx?.lat ?? null, lon: where?.lon ?? event.ctx?.lon ?? null };
     });
     const latest = new Map<string, (typeof feed)[number]>();
-    for (const item of feed) if (item.at >= time - 5 * 60_000 && (item.name === "site_view" || item.name === "site_goal") && !latest.has(item.seed)) latest.set(item.seed, item);
+    for (const item of feed) if (item.at >= time - 5 * 60_000 && (item.name === "site_view" || item.name === "site_goal" || item.name === "page_view") && !latest.has(item.seed)) latest.set(item.seed, item);
     return { now: time, minutes, online: online(events, time), here: [...latest.values()], feed };
   }
 

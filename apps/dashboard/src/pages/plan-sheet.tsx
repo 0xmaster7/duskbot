@@ -8,6 +8,7 @@ import { useSession } from "../data/session";
 import { longDate } from "../lib/format";
 import { navigate } from "../lib/router";
 import { Choice, Field, Select, Sheet, Toggle } from "../ui/controls";
+import { track } from "../lib/analytics";
 import { Button, Skeleton } from "../ui/kit";
 
 export const money = (n: number) => dollars(n, !Number.isInteger(Math.round(n * 100) / 100));
@@ -101,7 +102,10 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
     setBusy(true); setError(null);
     try {
       if (owned) { if (await apply(sel)) { toast(`you are on ${b?.name}`); onClose(); } }
-      else if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
+      else {
+        track({ name: "plan_chosen", props: { plan, period: interval } });
+        if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
+      }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const line = (id: PaidPlan): ReactNode => {

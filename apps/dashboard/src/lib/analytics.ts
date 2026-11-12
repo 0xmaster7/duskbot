@@ -36,6 +36,8 @@ function flush() {
 /** product analytics: what was used, never what was typed; skipped when the browser asks not to be tracked */
 export function track(event: PageEvent) {
   if (!live() || declined()) return;
+  // a redirect sends a second page view straight after the first; keep only where the person landed
+  if (event.name === "page_view" && queue.at(-1)?.name === "page_view") queue.pop();
   queue.push(event);
   timer ??= setTimeout(flush, 800);
 }

@@ -245,7 +245,7 @@ describe("admin analytics routes", () => {
       { key: "/pricing", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 0, visitMs: 1000, pageviews: 2 },
     ]);
     expect((await read<Details>(`/v1/admin/web/page?${query}&surface=account`, admin)).rows).toEqual([
-      { key: "/billing", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 1, visitMs: 0, pageviews: 1 },
+      { key: "/dashboard/billing", visitors: 1, signups: 1, paid: 1, conversion: 1, bounce: 1, visitMs: 0, pageviews: 1 },
     ]);
     expect((await read<Details>(`/v1/admin/web/source?${query}&f.source=absent`, admin)).rows).toEqual([]);
     for (const dim of DIMENSIONS) expect((await call(`/v1/admin/web/${dim}?${query}`, { cookie: admin })).status).toBe(200);
@@ -289,6 +289,15 @@ describe("admin analytics routes", () => {
     const signups = await read<Funnel>(`/v1/admin/funnel?mode=signups&${range(start, time)}`, admin);
     expect(signups.mode).toBe("signups");
     expect(signups.steps.map(step => step.count)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]);
+    // a free plan picked on onboarding is not a cloud chosen
+    time += 1000; await login("free@example.test");
+    const free = app.auth.accountByEmail("free@example.test")!.id;
+    await identify(free, ANON);
+    for (const step of ["name", "plan", "app"]) { time += 1000; await record("onboarding_step", { accountId: free, props: { step } }); }
+    time += 1000; await record("onboarding_done", { accountId: free });
+    time += 1000; await record("plan_chosen", { accountId: free, props: { plan: "free", period: "month" } });
+    const after = await read<Funnel>(`/v1/admin/funnel?${range(start, time + 1)}`, admin);
+    expect(after.steps.slice(0, 7).map(step => [step.id, step.count])).toEqual([["visit", 2], ["signup", 2], ["onboarding_name", 2], ["onboarding_plan", 2], ["onboarding_app", 2], ["onboarded", 2], ["cloud", 1]]);
   });
 
   it("lists identified and anonymous journeys, filters customers and searches account email", async () => {
@@ -340,12 +349,14 @@ describe("admin analytics routes", () => {
     await view(VID, "recent", time - 2 * 60_000, "/pricing");
     await record("site_goal", { at: time - 60_000, visitor: VID, props: { goal: "cta_click" }, ctx: { visitor: VID, session: "recent", pv: "recent:pv", page: "/pricing" } });
     await record("app_open", { accountId: id, at: time - 30_000, ctx: { install: INSTALL } });
+    await record("page_view", { at: time - 20_000, visitor: "signin_only_visitor", props: { path: "/signin" }, ctx: { session: "tab", page: "/signin", country: "IN", lat: 26.9, lon: 75.8 } });
     await beacon();
     const data = await read<Realtime>("/v1/admin/realtime?minutes=60", admin);
-    expect(data.minutes).toBe(60); expect(data.online).toEqual({ site: 2, app: 1 });
+    expect(data.minutes).toBe(60); expect(data.online).toEqual({ site: 3, app: 1 });
+    expect(data.here.find(item => item.seed === "signin_only_visitor")).toMatchObject({ name: "page_view", page: "/signin", country: "IN", lat: 26.9, lon: 75.8 });
     expect(data.feed.map(item => item.at)).toEqual(data.feed.map(item => item.at).sort((a, b) => b - a));
     expect(data.feed.some(item => item.seed === "expired")).toBe(true);
-    expect(data.here.map(item => item.seed)).toEqual([ANON, VID]);
+    expect(data.here.map(item => item.seed)).toEqual([ANON, "signin_only_visitor", VID]);
     expect(data.here.find(item => item.seed === VID)).toMatchObject({ name: "site_goal", email: OTHER, goal: "cta_click", country: "DE" });
     expect(data.here.some(item => item.seed === "expired")).toBe(false);
   });
@@ -424,7 +435,8 @@ describe("upsells by source", () => {
       ev("page_action", "a1", { action: "upsell_shown", label: "dash_sidebar" }), ev("page_action", "a1", { action: "upsell_shown", label: "dash_sidebar" }),
       ev("page_action", "a2", { action: "upsell_shown", label: "dash_sidebar" }), ev("page_action", "a2", { action: "upsell_click", label: "dash_sidebar" }),
       ev("page_action", null, { action: "upsell_dismiss", label: "dash_invested" }, "v1"), ev("page_action", "a3", { action: "cta_click", label: "dash_sidebar" }),
-      ev("upsell_shown", "a4", { source: "desktop_sleep" }), ev("upsell_click", "a4", { source: "desktop_sleep" }),
+      ev("app_action", "a4", { name: "upsell_shown", source: "desktop_sleep" }), ev("app_action", "a4", { name: "upsell_click", source: "desktop_sleep" }),
+      ev("app_action", null, { name: "upsell_dismiss", source: "app_mobile" }), ev("app_action", "a4", { name: "bot_tour", source: "desktop_sleep" }),
       { ...ev("page_action", "a5", { action: "upsell_shown", label: "dash_sidebar" }), at: 5_000 },
     ], [
       { source: "dash_sidebar", status: "active", currentPeriodStart: at, createdAt: at },
@@ -434,6 +446,7 @@ describe("upsells by source", () => {
     expect(rows).toEqual([
       { source: "dash_sidebar", shown: 2, clicked: 1, dismissed: 0, paid: 1 },
       { source: "desktop_sleep", shown: 1, clicked: 1, dismissed: 0, paid: 0 },
+      { source: "app_mobile", shown: 0, clicked: 0, dismissed: 1, paid: 0 },
       { source: "dash_invested", shown: 0, clicked: 0, dismissed: 1, paid: 0 },
     ]);
   });

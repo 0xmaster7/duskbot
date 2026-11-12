@@ -53,7 +53,9 @@ export function visitsOf(events: readonly StoredEvent[], surfaces: readonly Surf
       if (event.name === "app_close" && typeof event.props.ms === "number") closed.set(visit, Math.max(closed.get(visit) ?? 0, event.props.ms));
     } else if (event.name === "site_view" || account) {
       const first = visit.pages.length === 0;
-      visit.pages.push({ path: String(event.props.path ?? ctx.page ?? "/"), at: event.at, pv: ctx.pv ?? null });
+      const path = String(event.props.path ?? ctx.page ?? "/");
+      // the account page lives under /dashboard on the site's origin; its own paths start at its root
+      visit.pages.push({ path: account ? `/dashboard${path === "/" ? "" : path}` : path, at: event.at, pv: ctx.pv ?? null });
       if (first) attribute(visit, ctx);
       else fill(visit, ctx);
     } else if (event.name === "site_goal") visit.goals.push({ goal: String(event.props.goal), at: event.at, to: typeof event.props.to === "string" ? event.props.to : null });
@@ -193,12 +195,13 @@ export function breakdown(visits: readonly Visit[], identity: Identity, people: 
     .sort((a, b) => b.visitors - a.visitors || b.signups - a.signups || a.key.localeCompare(b.key)).slice(0, limit);
 }
 
-/** how many people were on the site in the last five minutes, and in an app */
+/** how many people were on the site (the account pages included) in the last five minutes, and in an app */
 export function online(events: readonly StoredEvent[], now: number) {
   const site = new Set<string>(), app = new Set<string>();
   for (const event of events) {
     if (event.at < now - ONLINE_MS || event.at > now + 60_000) continue;
     if (SITE.has(event.name) && event.ctx?.visitor) site.add(event.ctx.visitor);
+    if (event.name === "page_view" && (event.ctx?.visitor || event.accountId)) site.add(event.ctx?.visitor ?? event.accountId!);
     if (event.name.startsWith("app_") && (event.ctx?.install || event.accountId)) app.add(event.ctx?.install ?? event.accountId!);
   }
   return { site: site.size, app: app.size };

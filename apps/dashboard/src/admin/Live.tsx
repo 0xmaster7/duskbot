@@ -19,7 +19,7 @@ export interface LiveAnswer { now: number; minutes: number; online: { site: numb
 
 export const SAYS: Record<string, (item: LiveItem) => string> = {
   site_view: (i) => `visited ${i.page ?? "/"}`, site_goal: (i) => i.goal === "waitlist_join" ? "joined the waitlist" : i.goal === "cta_click" ? "clicked sign up" : i.goal === "download_click" ? "clicked download" : (i.goal ?? "goal").replace(/_/g, " "),
-  signup: () => "signed up", app_paired: () => "paired an app", first_bot_reply: () => "got a first bot reply", checkout_paid: () => "paid", app_open: () => "opened the app",
+  page_view: (i) => `on the dashboard ${i.page ?? "/"}`, signup: () => "signed up", app_paired: () => "paired an app", first_bot_reply: () => "got a first bot reply", checkout_paid: () => "paid", app_open: () => "opened the app",
 };
 const BIG = new Set(["signup", "app_paired", "first_bot_reply", "checkout_paid"]);
 const place = (item: LiveItem) => item.country ? `${item.city ? `${item.city}, ` : ""}${countryName(item.country)}` : null;

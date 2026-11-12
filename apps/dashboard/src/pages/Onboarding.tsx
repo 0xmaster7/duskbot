@@ -15,6 +15,7 @@ import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
 import type { SceneHandle, SceneMood } from "../ui/Scene";
 import { CHECKOUT_SOON, Points } from "./cloud-offer";
+import { track } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
 
 const STEPS = ["name", "plan", "app"] as const;
@@ -133,6 +134,7 @@ export function Onboarding() {
   };
   const choose = async (where: Home = home) => {
     if (where === "free" || !catalog) { go("app"); return; }
+    track({ name: "plan_chosen", props: { plan, period: interval } });
     if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
     setBusy(true); setError(null);
     sessionStorage.setItem(SAVED, "app");

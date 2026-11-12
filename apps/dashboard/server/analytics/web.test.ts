@@ -25,8 +25,10 @@ describe("visitsOf", () => {
     const visits = visitsOf(events, SURFACES);
     expect(visits).toHaveLength(3);
     expect(visits[0]).toMatchObject({ surface: "site", keyword: "ai-assistant" });
-    expect(visits[1]).toMatchObject({ surface: "account", visitor: "v", entry: "/billing", exit: "/usage", engagedMs: 10, bounced: false, source: "Google", channel: "search", country: "IN", device: "desktop", os: "mac", browser: "chrome", host: "preview.dusk.bot", keyword: "dusk_bot" });
+    expect(visits[1]).toMatchObject({ surface: "account", visitor: "v", entry: "/dashboard/billing", exit: "/dashboard/usage", engagedMs: 10, bounced: false, source: "Google", channel: "search", country: "IN", device: "desktop", os: "mac", browser: "chrome", host: "preview.dusk.bot", keyword: "dusk_bot" });
     expect(visits[2]).toMatchObject({ surface: "desktop", visitor: "acct_a", entry: "/bots", engagedMs: 5 });
+    const home = visitsOf([event("page_view", FROM, { path: "/" }, { session: "s9", visitor: "w" })], SURFACES);
+    expect(home[0]).toMatchObject({ surface: "account", entry: "/dashboard" });
     expect(visits[2]!.pages).toHaveLength(1);
     for (const dim of ["surface", "host", "keyword"] as const) expect(valuesOf(visits[0]!, dim)).toEqual([visits[0]![dim]]);
     expect(matches(visits[1]!, { surface: "account", host: "preview.dusk.bot", keyword: "dusk_bot" })).toBe(true);
@@ -192,6 +194,13 @@ describe("online", () => {
       event("app_open", FROM - 300_001, {}, { install: "old" }), event("app_open", FROM),
       event("signup", FROM, {}, undefined, "c"), site("future", "s4", FROM + 60_001),
     ], FROM)).toEqual({ site: 2, app: 3 });
+  });
+  it("counts people on the account pages as on the site, once with their site visits", () => {
+    expect(online([
+      site("v", "s", FROM), event("page_view", FROM, { path: "/" }, { visitor: "v", session: "tab" }),
+      event("page_view", FROM, { path: "/signin" }, { visitor: "anon", session: "tab2" }), event("page_view", FROM, { path: "/" }, { session: "tab3" }, "acct_a"),
+      event("page_view", FROM - 300_001, { path: "/" }, { visitor: "old" }), event("page_view", FROM),
+    ], FROM)).toEqual({ site: 3, app: 0 });
   });
 });
 
