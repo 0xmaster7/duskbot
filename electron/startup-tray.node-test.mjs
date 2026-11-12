@@ -206,8 +206,10 @@ test("the workspace fades in over the splash", async () => {
   const win = new Fading();
   splash.attach(win);
   win.webContents.emit("did-finish-load");
-  while (!splash.window.destroyed) await new Promise(resolve => setTimeout(resolve, 20));
+  await new Promise(resolve => setTimeout(resolve, 100));
   assert.ok(ran.includes("window.card?.ready()"));
+  assert.equal(win.visible, false, "the crew cheers before the app fades in");
+  while (!splash.window.destroyed) await new Promise(resolve => setTimeout(resolve, 20));
   assert.equal(win.visible, true); assert.equal(win.opacity, 1); assert.equal(splash.window.opacity, 0);
   assert.deepEqual(calls, ["finished"]);
 });
