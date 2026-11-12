@@ -97,3 +97,27 @@ export interface AllowanceReport {
 export interface AutoTopUp { on: boolean; stepUsd: number; monthlyCeilingUsd: number }
 
 export const NEAR_SHARE = 0.8;
+
+/** One bot's use per day on the usage graph, or every bot past the busiest few as one ("other", botId null). */
+export interface DailyUsageSeries {
+  key: string;
+  botId: string | null;
+  name: string;
+  /** One amount per day, oldest first, in the report's basis. */
+  values: number[];
+  total: number;
+  /** How many bots "other" stands for. */
+  bots?: number;
+}
+
+/** Use per day, oldest first, on the viewer's own calendar days. */
+export interface DailyUsageReport {
+  /** YYYY-MM-DD, oldest first, ending today. */
+  days: string[];
+  /** "usd" when anything in the range has a price, else "tokens". */
+  basis: "usd" | "tokens";
+  total: number;
+  /** Each day's total across every series. */
+  totals: number[];
+  series: DailyUsageSeries[];
+}
