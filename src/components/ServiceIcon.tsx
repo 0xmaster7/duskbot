@@ -52,6 +52,9 @@ export interface TileArt { label: string; logo?: string | null; domain?: string 
 
 /** Grok's app tile: a hairline square whose corners grow with it (11px at 40, 16px at 56). An app icon fills it; a bare
  * mark sits at 68% of it, on its own paint when it has one; with no art, the app's initial on a faint fill. */
+const INITIAL_TINTS = ["#c2ecfc", "#d0cefb", "#ffc4dd", "#fff3a0", "#c9f63f"];
+const initialTint = (label: string) => INITIAL_TINTS[[...label].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % INITIAL_TINTS.length];
+
 export function ServiceTile({ card, size = 40, className }: { card: TileArt; size?: number; className?: string }) {
   const sources = [card.image, card.logo, siteIconUrl(card.domain)]
     .filter((source): source is string => Boolean(source));
@@ -60,7 +63,7 @@ export function ServiceTile({ card, size = 40, className }: { card: TileArt; siz
   const frame = { width: size, height: size, borderRadius: Math.round(size * 0.28), background: card.background };
   if (!source) {
     return (
-      <span aria-hidden="true" className={cn(TILE, "bg-ink/[0.06] font-medium text-ink-secondary", className)} style={{ ...frame, fontSize: Math.round(size * 0.38) }}>
+      <span aria-hidden="true" className={cn(TILE, "font-semibold text-[#1b1b1f]", className)} style={{ ...frame, background: card.background ?? initialTint(card.label), fontSize: Math.round(size * 0.42) }}>
         {card.label.slice(0, 1).toUpperCase()}
       </span>
     );

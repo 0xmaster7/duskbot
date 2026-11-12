@@ -23,14 +23,14 @@ describe("the Connect apps faces", () => {
     expect(appFaces(["a", "b", "c", "d"], many)).toHaveLength(APP_FACES);
   });
 
-  it("draws grok's 36px hairline pill with a 14px medium label and three 16px tiles on white, 6px over each other", () => {
+  it("draws grok's 36px hairline pill with a 14px medium label and three 20px tiles on white, 6px over each other", () => {
     const html = renderToStaticMarkup(createElement(SidebarConnectApps));
     // 16px in, 12px out beside the logos, which sit 6px after the label
     expect(html).toMatch(/class="group\/apps flex h-9 min-w-0 flex-1 items-center justify-center rounded-full border border-ink\/\[0\.08\] bg-composer ps-4 text-\[14px\] font-medium leading-5 [^"]*\bpe-3\b/);
     expect(html).toContain('class="ms-1.5 flex shrink-0 items-center"');
     const faces = [...html.matchAll(/data-app-face="[^"]+" class="([^"]*)"/g)].map(([, classes]) => classes!);
     expect(faces).toHaveLength(3);
-    for (const face of faces) expect(face).toContain("size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-composer p-px");
+    for (const face of faces) expect(face).toContain("size-[22px] shrink-0 items-center justify-center rounded-[7px] bg-composer p-px");
     expect(faces[0]).not.toContain("-ms-");
     expect(faces[1]).toContain("-ms-[6px]");
     // at rest they sit straight; only the hovered pill fans them, as grok's does
