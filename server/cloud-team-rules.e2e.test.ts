@@ -226,17 +226,18 @@ it("a connected app the rules don't allow: its tools and its sign-in are refused
   expect(await call("SLACK_SEND_MESSAGE")).not.toContain("Acme does not allow");
 }, hostTimeout(60_000));
 
-it("a blocked cloud desktop is refused for a chat turn and a routine, and lifts", async () => {
+it("a blocked cloud computer is refused for a chat turn and a routine, and lifts", async () => {
   const setComputer = await team.as(owner, "PATCH", `/api/bots/${botId}`, { computer: "cloud" });
   expect(setComputer.status, JSON.stringify(setComputer.body)).toBe(200);
-  await rules({ allowedComputers: ["vps"] });
-  const { sent, messages } = await dumped(owner, "blocked computer", (text) => /Acme does not allow bots to use cloud computers/.test(text));
-  expect(`${JSON.stringify(sent.body)} ${messages}`).toMatch(/Acme does not allow bots to use cloud computers\. Ask a team admin\./);
+  await rules({ allowedComputers: ["memberComputer"] });
+  const { sent, messages } = await dumped(owner, "blocked computer", (text) => /Acme does not allow bots to use VPS computers/.test(text));
+  expect(`${JSON.stringify(sent.body)} ${messages}`).toMatch(/Acme does not allow bots to use VPS computers\. Ask a team admin\./);
   const routine = await routineRun("Blocked computer");
-  expect(routine.words).toMatch(/Acme does not allow bots to use cloud computers/);
+  expect(routine.words).toMatch(/Acme does not allow bots to use VPS computers/);
 
   await rules(null);
-  const after = await dumped(owner, "computer allowed again", () => engineRan());
+  // with the rule lifted the turn goes on to the VPS, which this Cloud has not connected
+  const after = await dumped(owner, "computer allowed again", (text) => /The VPS computer is unavailable/.test(text));
   expect(after.messages).not.toMatch(/Acme does not allow/);
   expect((await team.as(owner, "PATCH", `/api/bots/${botId}`, { computer: null })).status).toBe(200);
 }, hostTimeout(180_000));
