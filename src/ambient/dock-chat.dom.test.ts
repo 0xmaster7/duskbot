@@ -4,7 +4,7 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CHAT_SHARE, DWELL_MS, Dock, keepHistory } from "./Dock";
+import { CHAT_MAX_H, CHAT_SHARE, DWELL_MS, Dock, keepHistory } from "./Dock";
 import { sentSince } from "./MiniChat";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, AmbientSnapshot, DockLayout } from "./types";
 
@@ -120,8 +120,8 @@ describe("chatting from the dock", () => {
     expect(bubbles()).toHaveLength(30);
     expect(bubbles().at(-1)).toBe("bot:ada 29");
     expect(list.scrollTop).toBe(120);
-    // the chat as tall as most of the screen at most, scrolling inside
-    expect(card().querySelector<HTMLElement>(".amb-chat")!.style.maxHeight).toBe(`${Math.round(LAYOUT.height * CHAT_SHARE)}px`);
+    // the chat capped at a share of the screen or CHAT_MAX_H, whichever is smaller, scrolling inside
+    expect(card().querySelector<HTMLElement>(".amb-chat")!.style.maxHeight).toBe(`${Math.round(Math.min(CHAT_MAX_H, LAYOUT.height * CHAT_SHARE))}px`);
     expect(host.querySelectorAll(".amb-card")).toHaveLength(1);
     await unmount();
   });
