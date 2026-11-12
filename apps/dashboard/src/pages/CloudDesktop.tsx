@@ -20,6 +20,8 @@ import { canDeleteData, deletion } from "../data/delete-data";
 import { MachineView } from "./Machine";
 import { money, useChangeCharge } from "./plan-sheet";
 import { useNow } from "../lib/now";
+import { useAccountUsage } from "../data/usage";
+import { MoveGuide } from "./cloud-card";
 
 /** no dusk cloud yet: the one pitch, then the sizes it comes in */
 function Empty() {
@@ -188,9 +190,11 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   const sub = billing?.subscription;
   const deleting = cloud.provider === "managed" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
+  const { bots } = useAccountUsage();
   return (
     <div className="flex flex-col gap-4">
       <DeletionBanner cloud={cloud} />
+      <MoveGuide cloud={cloud} rows={bots} cloudBots={detail?.report?.bots ?? null} />
       {cloud.revivedAt && now - cloud.revivedAt < 3 * 86_400_000 && (
         <Card className="!py-4" aria-live="polite">
           <p className="text-15 font-medium text-ink">welcome back</p>
@@ -249,7 +253,7 @@ export function CloudDesktopPage() {
     <div>
       <PageHeader
         title={cloud.name}
-        sub={<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"><CloudStatus cloud={cloud} /><span className="text-13 text-ink-4">{tierName(catalog, cloud)} · {regionName(catalog, cloud.region)}</span></span>}
+        sub={<span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"><CloudStatus cloud={cloud} /><span className="text-13 font-medium text-ink-3">{regionName(catalog, cloud.region)}</span></span>}
         action={cloud.status === "provisioning" ? undefined : <div className="flex gap-2"><PowerButton cloud={cloud} size="md" /><Button variant={running ? "primary" : "outline"} onClick={() => openApp(appLink.cloud)}><AppWindow size={16} strokeWidth={1.5} aria-hidden />open in the app</Button></div>}
       />
       {cloud.status === "provisioning" ? <SettingUp cloud={cloud} /> : <Live cloud={cloud} />}
