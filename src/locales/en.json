@@ -8091,5 +8091,22 @@
   "settings.docs.phone.signInSteps": "open dusk on your phone and sign in as {email}. your bots show up there.",
   "settings.docs.phone.codeSteps": "open dusk on your phone, choose enter code, and type this in.",
   "settings.docs.phone.codeInstead": "type a code instead",
-  "settings.docs.phone.qrInstead": "show the qr instead"
+  "settings.docs.phone.qrInstead": "show the qr instead",
+  "routineRun.status.queued": "queued",
+  "routineRun.status.running": "running",
+  "routineRun.status.waiting": "waiting",
+  "routineRun.status.completed": "completed",
+  "routineRun.status.failed": "failed",
+  "routineRun.status.cancelled": "cancelled",
+  "routineRun.status.missed": "missed",
+  "routineRun.status.needsInput": "needs your input",
+  "routineRun.status.blocked": "blocked",
+  "routineRun.status.limitReached": "turn limit reached",
+  "routineRun.status.paused": "paused",
+  "routineRun.status.stopped": "stopped",
+  "routineRun.status.deferred": "deferred: target busy",
+  "routineRun.aria": "{name} routine run: {status}",
+  "routineRun.openRun": "open run",
+  "routineRun.review": "review",
+  "routineRun.openRunFor": "{action} for {name}"
 }

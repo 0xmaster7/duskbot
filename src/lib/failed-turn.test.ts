@@ -65,7 +65,7 @@ describe("failed turn text", () => {
 
   it("previews a tool step in plain words and a status row without its marker", () => {
     expect(activityPreview({ name: "mcp__dusk__computer_batch", ok: true }, engine())).toBe("use the screen");
-    expect(activityPreview({ name: "GITHUB_GET_A_COMMIT", ok: true }, engine())).toBe("Get a commit");
+    expect(activityPreview({ name: "GITHUB_GET_A_COMMIT", ok: true }, engine())).toBe("get a commit");
     expect(activityPreview({ name: "notice: this thread now uses Sonnet.", ok: true }, engine())).toBe("this thread now uses Sonnet.");
     expect(activityPreview({ name: "recovery: automatic recovery: trying Codex once.", ok: true }, engine())).toBe("automatic recovery: trying Codex once.");
     expect(activityPreview({ name: "Messaged @Ada" }, engine())).toBe("Messaged @Ada");

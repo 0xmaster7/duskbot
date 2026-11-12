@@ -51,7 +51,7 @@ describe("LibrarySkillMeta", () => {
     const html = renderToStaticMarkup(createElement(LibrarySkillMeta, {
       skill: skill({ tags: ["orders"], version: "2.1.0" }),
     }));
-    expect(html).toContain("Source: local-import");
+    expect(html).toContain("source: local-import");
     expect(html).toContain("version 2.1.0");
     expect(html).toContain("orders");
   });

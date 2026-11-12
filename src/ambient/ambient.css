@@ -87,7 +87,7 @@
 }
 .amb-strip-mark { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; }
 .amb-strip-name, .amb-strip-state { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.amb-strip-name { margin-top: 1px; font-size: 10.5px; line-height: 13px; font-weight: 500; }
+.amb-strip-name { margin-top: 1px; font-size: 11px; line-height: 13px; font-weight: 500; }
 .amb-strip-state { min-height: 12px; font-size: 10px; line-height: 12px; color: var(--amb-ink-3); font-variant-numeric: tabular-nums; }
 .amb-strip-bot:focus-visible { outline-offset: -2px; }
 .amb-strip-mark .amb-bubble { top: -3px; left: -3px; box-shadow: 0 0 0 2px var(--amb-notch); }
@@ -104,7 +104,7 @@
 }
 /* an ask waiting on the person, under the mascots: whose, what, and its answers */
 .amb-ask { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; border-top: 0.5px solid transparent; }
-.amb-ask-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
+.amb-ask-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; font-size: 13px; line-height: 17px; color: var(--amb-ink); }
 .amb-ask-name { flex-shrink: 0; font-weight: 550; }
 .amb-ask-sent { display: inline-flex; align-items: center; gap: 4px; color: var(--amb-ink-2); }
 .amb-ask-sent > svg { color: var(--amb-ok); }
@@ -286,14 +286,14 @@
   scrollbar-color: rgb(245 245 245 / 0.16) transparent; user-select: text;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 10px, #000 100%);
 }
-.amb-bubble-msg { flex-shrink: 0; margin: 0; max-width: 86%; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; }
+.amb-bubble-msg { flex-shrink: 0; margin: 0; max-width: 86%; font-size: 13px; line-height: 17px; color: var(--amb-ink); overflow-wrap: anywhere; white-space: pre-wrap; }
 .amb-bubble-msg[data-from="you"] { align-self: flex-end; padding: 6px 10px; border-radius: 14px 14px 4px 14px; background: var(--amb-raised-hover); }
 .amb-bubble-msg[data-from="bot"] { align-self: flex-start; color: rgb(245 245 245 / 0.86); }
 .amb-chat-note { flex-shrink: 0; display: flex; align-items: flex-start; gap: 5px; margin: 0; font-size: 12px; line-height: 16px; color: var(--amb-ink-3); }
 .amb-chat-note > svg { flex-shrink: 0; margin-top: 2px; }
 .amb-chat-note[data-kind="error"] { color: var(--amb-bad-ink); }
 .amb-chat-ask { padding: 2px 12px 8px; }
-.amb-chat-ask-line { margin: 0 0 2px; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
+.amb-chat-ask-line { margin: 0 0 2px; font-size: 13px; line-height: 17px; color: var(--amb-ink); }
 .amb-chat-compose { flex-shrink: 0; padding: 4px 8px 8px; }
 .amb-chat-head, .amb-tray-wrap { flex-shrink: 0; }
 .amb-bubble-msg[data-pending] { opacity: 0.7; }

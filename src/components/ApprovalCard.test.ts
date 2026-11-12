@@ -133,7 +133,7 @@ describe("ApprovalCard routine proposals", () => {
 
     const markup = renderToStaticMarkup(createElement(ApprovalCard, { message }));
     expect(markup).toContain("routine run queued");
-    expect(markup).not.toContain("Routine started");
+    expect(markup).not.toContain("routine started");
   });
 });
 
@@ -313,7 +313,7 @@ describe("ApprovalCard learned skills", () => {
     expect(markup).toContain("enable a learned skill");
     expect(markup).toContain("Files an expense in the company portal.");
     expect(markup).toContain("review the complete SKILL.md before enabling");
-    expect(markup).toContain("Source: learn:conversation");
+    expect(markup).toContain("source: learn:conversation");
     expect(markup).toContain("name: file-expense");
     expect(markup).toContain("sha256 abcdef01");
 
@@ -322,7 +322,7 @@ describe("ApprovalCard learned skills", () => {
       "Mochi",
     );
     expect(spoken).toContain('enable skill "file-expense"?');
-    expect(spoken).toContain("Should I enable it?");
+    expect(spoken).toContain("should i enable it?");
   });
 
   it("labels a reviewed skill replacement as an update", () => {
@@ -855,7 +855,7 @@ describe("ApprovalCard MCP server changes", () => {
     expect(actions).toContain(">turn on</button>");
     expect(actions).toContain(">cancel</button>");
     expect(actions).not.toContain("always allow");
-    expect(spokenApprovalPrompt(pending!, "Kiwi")).toBe("Kiwi: turn on linear? Review the details and choose turn on or cancel.");
+    expect(spokenApprovalPrompt(pending!, "Kiwi")).toBe("Kiwi: turn on linear? review the details and choose turn on or cancel.");
   });
 
   it("keeps the question as the transcript card's heading and says Cancelled after Cancel", () => {

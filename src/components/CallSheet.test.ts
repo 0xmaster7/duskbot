@@ -16,7 +16,7 @@ const record = msg("row", {
 });
 const transcript: Message[] = [
   msg("t0", { role: "user", text: "typed before the call" }),
-  msg("tb", { text: "Typed answer.", requestMessageId: "t0" }),
+  msg("tb", { text: "typed answer.", requestMessageId: "t0" }),
   msg("m1", { role: "user", text: "Hey Kiwi, what are the two issues I should pick up", via: "call", callId: "c1" }),
   msg("a1", { kind: "activity", requestMessageId: "m1", tool: { name: "Bash", spoken: "running a command", ok: true, itemId: "item-a1", input: "node kiwi-fetch.mjs" } }),
   msg("b1", { text: "**MOCA-295** and **MOCA-341**.", requestMessageId: "m1" }),
@@ -59,7 +59,7 @@ describe("CallSheet", () => {
     expect(text).toContain("call with Kiwi");
     expect(text).toContain("0:45");
     const asked = text.indexOf("Hey Kiwi, what are the two issues I should pick up");
-    const did = text.indexOf("Running a command");
+    const did = text.indexOf("running a command");
     const answered = text.indexOf("MOCA-295 and MOCA-341.");
     expect(asked).toBeGreaterThanOrEqual(0);
     expect(did).toBeGreaterThan(asked);
@@ -70,7 +70,7 @@ describe("CallSheet", () => {
     expect(text).not.toContain("kiwi-fetch");
     // what was typed is not the call's
     expect(text).not.toContain("typed before the call");
-    expect(text).not.toContain("Typed answer.");
+    expect(text).not.toContain("typed answer.");
     expect(text).toContain("nothing else said on the call is kept.");
   });
 

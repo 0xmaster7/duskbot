@@ -29,7 +29,7 @@ describe("live activity label", () => {
   it("leaves the server's own narration alone", () => {
     setLocale("pt-br");
     expect(liveActivityLabel(activity("Edit", { spoken: "editando um arquivo" }))).toBe(
-      "Editando um arquivo",
+      "editando um arquivo",
     );
   });
 });

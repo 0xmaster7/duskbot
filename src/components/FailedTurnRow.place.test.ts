@@ -49,7 +49,7 @@ beforeEach(() => {
 describe("J11: a failed place's row", () => {
   it("says no hours are left in one line, with one button: see your plan", () => {
     const { html, buttons } = show(stored(hours), vi.fn());
-    expect(html).toContain("this month&#x27;s 50 cloud desktop hours are used up. They come back on 1 November.");
+    expect(html).toContain("this month&#x27;s 50 cloud desktop hours are used up. they come back on 1 November.");
     expect(buttons).toHaveLength(1);
     expect(buttons[0]).toContain("see your plan");
     expect(html).not.toContain("retry");

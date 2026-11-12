@@ -359,7 +359,7 @@ describe("repaired tables", () => {
         text, message: { threadId: "thread-1", messageId: "message-1" },
       }));
       expect(html).not.toContain("<table");
-      expect(html).toContain("Loading ");
+      expect(html).toContain("loading ");
       expect(preview.mock.calls[0][0].sourceOffset).toBe(text.indexOf("!["));
     } finally {
       preview.mockRestore();
@@ -954,7 +954,7 @@ describe("ChatMarkdown attachments", () => {
       text: "![Generated preview](/workspace/output.png)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain("Loading Generated preview");
+    expect(html).toContain("loading Generated preview");
     expect(html).not.toContain("src=\"/workspace/output.png\"");
   });
 });

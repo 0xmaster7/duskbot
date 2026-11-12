@@ -26,7 +26,7 @@ function LinkChoice({ art, title, hint, onClick, disabled, expanded, ...rest }: 
       data-art-hover="">
       <Art name={art} size="sm" className="mb-2" />
       <span className="text-[14px] font-semibold leading-5 tracking-[-0.01em] text-ink">{title}</span>
-      <span className="text-[12.5px] font-medium leading-[17px] text-ink-secondary">{hint}</span>
+      <span className="text-[13px] font-medium leading-[17px] text-ink-secondary">{hint}</span>
     </button>
   );
 }

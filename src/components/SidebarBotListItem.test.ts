@@ -226,7 +226,7 @@ describe("archive / delete confirmation", () => {
     expect(copy.tone).toBe("danger");
   });
 
-  it("renders as an alert dialog with Cancel and the action button", () => {
+  it("renders as an alert dialog with cancel and the action button", () => {
     const markup = renderToStaticMarkup(createElement(ConfirmDialogCard, {
       open: true,
       ...botConfirmCopy("delete", "Willow"),
@@ -237,7 +237,7 @@ describe("archive / delete confirmation", () => {
     expect(markup).toContain('role="alertdialog"');
     expect(markup).toContain("delete Willow?");
     expect(markup).toContain(">cancel</button>");
-    expect(markup).toContain(">Delete</button>");
+    expect(markup).toContain(">delete</button>");
     expect(markup).toContain("bg-danger");
   });
 });

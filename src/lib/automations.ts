@@ -117,7 +117,6 @@ export function nextWhen(at: number, now = Date.now()): string {
   return new Date(at).toLocaleDateString(locale(), { month: "short", day: "numeric" });
 }
 
-export const capital = (text: string) => text.charAt(0).toLocaleUpperCase(locale()) + text.slice(1);
 
 // ---- The sentence ----
 
@@ -318,7 +317,7 @@ export function statusLine(automation: Automation, now = Date.now()): string {
 export function runLine(run: RoutineRun, now = Date.now()): { when: string; mark: "✓" | "✗" | "…" | "!" | "–"; text: string } {
   const firstLine = (text: string | undefined) => (text ?? "").split("\n").map((line) => line.trim()).find(Boolean) ?? "";
   const short = (text: string) => (text.length > 110 ? `${text.slice(0, 109).trimEnd()}…` : text);
-  const when = capital(lastWhen(runTime(run), now));
+  const when = lastWhen(runTime(run), now);
   if (run.status === "completed") return { when, mark: "✓", text: run.report?.state === "quiet" ? t("automations.run.nothingNew") : short(firstLine(run.output)) || t("automations.run.done") };
   if (run.status === "waiting") return { when, mark: "!", text: t("automations.reason.answer") };
   if (isLimitSkip(run)) return { when, mark: "–", text: t("routines.strip.skipped") };

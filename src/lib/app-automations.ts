@@ -44,8 +44,7 @@ export function appStatusParts(trigger: AppTrigger, hasRun: boolean): string[] {
 
 /** The chat card's line before the first run: "Checks every 15 minutes · waiting for the first email". */
 export function appWaitingLine(trigger: AppTrigger): string {
-  const line = appStatusParts(trigger, false).join(" · ");
-  return line.charAt(0).toLocaleUpperCase() + line.slice(1);
+  return appStatusParts(trigger, false).join(" · ");
 }
 
 /** "12 skipped today: daily limit", naming the reason most of them had. */

@@ -31,12 +31,12 @@ function ensurePrivateDirectory(directory, fileSystem = fs, currentUid = process
   fileSystem.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const stat = fileSystem.lstatSync(directory);
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
-    throw Object.assign(new Error(`Private CUA path is not a directory: ${directory}`), {
+    throw Object.assign(new Error(`private CUA path is not a directory: ${directory}`), {
       code: "unsafe-runtime-directory",
     });
   }
   if (stat.uid !== currentUid && stat.uid !== 0) {
-    throw Object.assign(new Error(`Private CUA directory has an unexpected owner: ${directory}`), {
+    throw Object.assign(new Error(`private CUA directory has an unexpected owner: ${directory}`), {
       code: "unsafe-runtime-directory",
     });
   }
@@ -523,7 +523,7 @@ function createLinuxCuaRuntime({
     enabled: false,
     status: "disabled",
     reasonCode: "opt-in-required",
-    message: "Local control is off until you enable the beta.",
+    message: "local control is off until you enable the beta.",
     ownerPid: processId,
   };
 
@@ -612,7 +612,7 @@ function createLinuxCuaRuntime({
     unavailable(
       "error",
       error?.code ?? "wayland-health-lost",
-      error?.message ?? "The GNOME Wayland control backend is no longer available.",
+      error?.message ?? "the GNOME Wayland control backend is no longer available.",
       { generation: owned.generation },
     );
     void stopOwnedChild(owned.child).finally(() => cleanupRuntimeFiles(owned));
@@ -836,7 +836,7 @@ function createLinuxCuaRuntime({
     unavailable(
       disable ? "disabled" : "stopped",
       disable ? "opt-in-required" : quit ? "app-stopped" : "runtime-stopped",
-      disable ? "Local control is disabled." : "Local control is not running.",
+      disable ? "local control is disabled." : "local control is not running.",
       active ? { generation: active.generation } : {},
     );
     const owned = active;

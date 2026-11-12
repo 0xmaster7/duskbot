@@ -13,12 +13,12 @@ describe("toolStepLabel", () => {
     [{ name: "mcp__agents__trigger" }, "manage automations"],
     [{ name: "mcp__agents__trigger_info" }, "check automations"],
     // A chip from an earlier conversation keeps the name its call had.
-    [{ name: "mcp__agents__create_trigger" }, "Create trigger"],
+    [{ name: "mcp__agents__create_trigger" }, "create trigger"],
     [{ name: "agent_browser_click" }, "use the browser"],
-    [{ name: "GITHUB_GET_A_COMMIT" }, "Get a commit"],
-    [{ name: "mcp__composio__LINEAR_CREATE_LINEAR_COMMENT" }, "Create linear comment"],
-    [{ name: "mcp__notes__query_database" }, "Query database"],
-    [{ name: "NotebookRead" }, "Notebook read"],
+    [{ name: "GITHUB_GET_A_COMMIT" }, "get a commit"],
+    [{ name: "mcp__composio__LINEAR_CREATE_LINEAR_COMMENT" }, "create linear comment"],
+    [{ name: "mcp__notes__query_database" }, "query database"],
+    [{ name: "NotebookRead" }, "notebook read"],
     [{ name: "tool" }, "use a tool"],
     [{ name: "mcp__agents__mcp_server", label: "removed MCP server linear" }, "removed MCP server linear"],
   ])("names %o as %s", (tool, label) => {
@@ -32,7 +32,7 @@ describe("toolStepLabel", () => {
   it("says whose own account a step used, after what it did", () => {
     const whose = { person: "Ada", app: "Notion" };
     expect(toolStepLabel({ name: "mcp__own_apps__NOTION_SEARCH_NOTION_PAGE", whose })).toBe(`${toolStepLabel({ name: "mcp__own_apps__NOTION_SEARCH_NOTION_PAGE" })} · using Ada's Notion`);
-    expect(toolStepLabel({ name: "mcp__mail__read_inbox", whose: { person: "Ada", app: "mail" } })).toBe("Read inbox · using Ada's mail");
+    expect(toolStepLabel({ name: "mcp__mail__read_inbox", whose: { person: "Ada", app: "mail" } })).toBe("read inbox · using Ada's mail");
     expect(toolStepLabel({ name: "Bash", summary: "ls", whose })).toBe("run a command · using Ada's Notion");
   });
 

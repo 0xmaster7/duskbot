@@ -474,7 +474,7 @@
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a) { transition-property: scale; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button, [role="radio"], [role="combobox"]) { transition: none; }
 :root .settings-dialog .settings-pane :is([data-row-title], [data-setting-row] [data-setting-title]) {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 19px;
   letter-spacing: -0.01em;
@@ -482,7 +482,7 @@
 }
 :root .settings-dialog .settings-pane :is([data-row-hint], [data-setting-row] [data-setting-hint]) {
   margin-top: 1px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 17px;
   white-space: normal;

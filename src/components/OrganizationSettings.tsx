@@ -100,7 +100,7 @@ export function OrganizationSettings() {
         {connection.enrollment && <NavRow data-settings-open="organization-security" title={t("organization.securityDetails")} hint={t("settings.s2.org.securityHint")} onClick={() => setDialog("security")} />}
       </>}
       {enrolled && <>
-        <ItemRow title={<span className="flex min-w-0 items-center gap-2">{connection.branding?.logo && <img src={connection.branding.logo} alt="Organization logo" className="size-5 shrink-0 rounded object-contain" />}<span className="break-words">{connection.organization?.name}</span></span>}
+        <ItemRow title={<span className="flex min-w-0 items-center gap-2">{connection.branding?.logo && <img src={connection.branding.logo} alt="organization logo" className="size-5 shrink-0 rounded object-contain" />}<span className="break-words">{connection.organization?.name}</span></span>}
           hint={<span className="break-all">{connection.email}</span>}>
           {!confirmDisconnect && connection.status !== "reauth-required" && <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.refresh())}>{t("organization.refresh")}</button>}
           {!confirmDisconnect && <button type="button" disabled={busy} className="ui-button" onClick={() => setConfirmDisconnect(true)}>{t("organization.disconnect")}</button>}

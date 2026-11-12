@@ -56,7 +56,7 @@ export function Segmented<V extends string>({ value, options, onChange, disabled
             disabled={disabled || option.disabled}
             onClick={() => !checked && onChange(option.value)}
             className={cn(
-              "h-6 min-w-0 cursor-pointer whitespace-nowrap rounded-full px-2.5 text-[12.5px] font-medium leading-6 text-ink-secondary",
+              "h-6 min-w-0 cursor-pointer whitespace-nowrap rounded-full px-2.5 text-[13px] font-medium leading-6 text-ink-secondary",
               "transition-[background-color,color,box-shadow,scale] duration-[120ms] ease-[ease] enabled:hover:text-ink",
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus",
               "disabled:cursor-default enabled:active:scale-[0.97] motion-reduce:enabled:active:scale-100",

@@ -67,7 +67,7 @@ describe("SecretRequestCard superseded requests", () => {
   });
   it("still offers entry while the newest request is pending", () => {
     const html = view({});
-    expect(html).toContain("Save securely");
+    expect(html).toContain("save securely");
     expect(html).toContain("never added to chat.");
   });
 

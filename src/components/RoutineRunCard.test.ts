@@ -42,10 +42,10 @@ describe("RoutineRunCard", () => {
     }));
 
     expect(markup).toContain("Morning brief");
-    expect(markup).toContain("Completed");
+    expect(markup).toContain("completed");
     expect(markup).toContain("The brief is ready with three follow-ups.");
     expect(markup).toContain("open run");
-    expect(markup).toContain('aria-label="Morning brief routine run: Completed"');
+    expect(markup).toContain('aria-label="Morning brief routine run: completed"');
   });
 
   it("keeps a long dated report available behind a collapsed disclosure", () => {
@@ -68,8 +68,8 @@ describe("RoutineRunCard", () => {
       onOpen: vi.fn(),
     }));
 
-    expect(markup).toContain("Blocked");
-    expect(markup).not.toContain(">Completed<");
+    expect(markup).toContain("blocked");
+    expect(markup).not.toContain(">completed<");
     expect(markup).toContain("The team needs a missing credential.");
   });
 
@@ -78,16 +78,16 @@ describe("RoutineRunCard", () => {
       message: message("queued", { deferredAt: Date.UTC(2026, 8, 14, 12) }),
     }));
 
-    expect(markup).toContain("Deferred: target busy");
-    expect(markup).not.toContain("Queued");
-    expect(markup).toContain('aria-label="Morning brief routine run: Deferred: target busy"');
+    expect(markup).toContain("deferred: target busy");
+    expect(markup).not.toContain("queued");
+    expect(markup).toContain('aria-label="Morning brief routine run: deferred: target busy"');
   });
 
   it("keeps the plain queued label when no deferral was recorded", () => {
     const markup = renderToStaticMarkup(createElement(RoutineRunCard, { message: message("queued") }));
 
-    expect(markup).toContain("Queued");
-    expect(markup).not.toContain("Deferred: target busy");
+    expect(markup).toContain("queued");
+    expect(markup).not.toContain("deferred: target busy");
   });
 
   it("does not describe delegated work as a question or approval", () => {
@@ -99,7 +99,7 @@ describe("RoutineRunCard", () => {
     expect(markup).toContain("waiting for work it handed on to finish.");
     expect(markup).toContain("open run");
     expect(markup).not.toContain("needs your input");
-    expect(markup).not.toContain("Review");
+    expect(markup).not.toContain("review");
   });
 
   it("keeps an explicit team-goal input request actionable", () => {
@@ -118,7 +118,7 @@ describe("RoutineRunCard", () => {
       onOpen: vi.fn(),
     }));
 
-    expect(markup).toContain("Failed");
+    expect(markup).toContain("failed");
     expect(markup).toContain("Provider failed");
     expect(markup).toContain("…");
     expect(markup).not.toContain(verbose);
@@ -143,7 +143,7 @@ describe("RoutineRunCard", () => {
       onOpen: vi.fn(),
     }));
 
-    expect(markup).toContain("Missed");
+    expect(markup).toContain("missed");
     expect(markup).not.toContain("open run");
   });
 

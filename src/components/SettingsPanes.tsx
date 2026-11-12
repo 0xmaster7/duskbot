@@ -238,8 +238,8 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
         className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-start outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
         <Art name="map" size="sm" />
         <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-semibold leading-[19px] tracking-[-0.01em] text-ink">{t("settings.docs.advanced")}</span>
-          <span className="block text-[12.5px] font-medium leading-[17px] text-ink-secondary">{t("settings.docs.advancedHint")}</span>
+          <span className="block text-[14px] font-semibold leading-[19px] tracking-[-0.01em] text-ink">{t("settings.docs.advanced")}</span>
+          <span className="block text-[13px] font-medium leading-[17px] text-ink-secondary">{t("settings.docs.advancedHint")}</span>
         </span>
         <ChevronRight size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-90 motion-reduce:transition-none rtl:-scale-x-100" />
       </button>

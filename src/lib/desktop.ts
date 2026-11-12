@@ -1,7 +1,7 @@
 const browserCapabilities: DesktopCapabilities = {
   host: {
     platform: "other",
-    label: "Browser",
+    label: "browser",
     session: "unknown",
     packaged: false,
   },

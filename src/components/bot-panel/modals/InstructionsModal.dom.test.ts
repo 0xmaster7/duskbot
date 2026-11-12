@@ -69,7 +69,7 @@ describe("the Instructions dialog", () => {
     type("x".repeat(20_000));
     expect(sheet().querySelector("[data-instructions-count]")).toBeNull();
     type("x".repeat(24_001));
-    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("Too long to save. 24,001 / 24,000");
+    expect(sheet().querySelector("[data-instructions-count]")!.textContent).toBe("too long to save. 24,001 / 24,000");
     expect(save().disabled).toBe(true);
   });
 

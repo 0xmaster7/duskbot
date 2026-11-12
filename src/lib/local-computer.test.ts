@@ -171,7 +171,7 @@ describe("what the person reads about using this computer", () => {
   it("says what to do in plain words, never the parts underneath", () => {
     expect(reasons.every((reason) => typeof reason === "string" && reason.length > 0)).toBe(true);
     for (const reason of reasons) expect(reason, reason!).not.toMatch(JARGON);
-    expect(reasons[3]).toBe("only the Dusk app on this computer can let a bot use it. Open the app here to use it.");
+    expect(reasons[3]).toBe("only the Dusk app on this computer can let a bot use it. open the app here to use it.");
   });
 
   it("keeps the same plain words in the questions and the place lines the app shows", () => {

@@ -89,7 +89,7 @@ describe("a bot's cards answer in grok's ink", () => {
       id: "secret-1", role: "bot", kind: "secret", at: 1, text: "",
       secret: { target: "openaiImageApiKey", label: "OpenAI API key", description: "", placeholder: "sk-…", requestKey: "key-1" } as Message["secret"],
     };
-    expectInk(button(renderToStaticMarkup(createElement(SecretRequestCard, { botId: "scout", color: "blue", threadId: "t", message: secret })), "Save securely"));
+    expectInk(button(renderToStaticMarkup(createElement(SecretRequestCard, { botId: "scout", color: "blue", threadId: "t", message: secret })), "save securely"));
 
     const signIn: Message = {
       id: "signin-1", role: "bot", kind: "signin", at: 1, text: "",

@@ -461,7 +461,7 @@ describe("phone setup flow", () => {
   it("turns a disabled start result into a stable actionable error", () => {
     expect(companionStartFailure({ enabled: true })).toBeNull();
     // never a pointer to a Settings section that does not exist
-    expect(companionStartFailure({ enabled: false })).toBe("Remote access could not start. Try turning Remote access on again.");
+    expect(companionStartFailure({ enabled: false })).toBe("remote access could not start. try turning remote access on again.");
     expect(companionStartFailure({ enabled: false, error: "Port 8811 is already in use" })).toBe(
       "Port 8811 is already in use",
     );
@@ -479,7 +479,7 @@ describe("phone setup flow", () => {
       pairing: fresh,
     }, null, 1_000)).toBeNull();
     expect(companionPairingOpenFailure({ enabled: true, pairing: null }, null, 1_000)).toContain(
-      "Device pairing did not open",
+      "device pairing did not open",
     );
     expect(companionPairingOpenFailure({
       enabled: true,
@@ -489,11 +489,11 @@ describe("phone setup flow", () => {
     expect(companionPairingOpenFailure({
       enabled: true,
       pairing: fresh,
-    }, token, 1_000)).toContain("Device pairing did not open");
+    }, token, 1_000)).toContain("device pairing did not open");
     expect(companionPairingOpenFailure({
       enabled: true,
       pairing: { ...fresh, expiresAt: 999 },
-    }, null, 1_000)).toContain("Device pairing did not open");
+    }, null, 1_000)).toContain("device pairing did not open");
   });
 
   it("unwraps Electron IPC account errors without exposing channel machinery", () => {

@@ -86,7 +86,7 @@ describe("shared with the cloud", () => {
     await click("stop sharing", row("missing"));
     expect(dialog()?.textContent).toContain("stop sharing “Folder missing”?");
     expect(dialog()?.textContent).toContain("the cloud's copy goes to its trash for 30 days.");
-    await click("Cancel", dialog()!);
+    await click("cancel", dialog()!);
     expect(dialog()).toBeNull();
     expect(bridge.stopSharing).not.toHaveBeenCalled();
     await click("stop sharing", row("missing"));
@@ -137,7 +137,7 @@ describe("add a folder", () => {
     await click("add a folder");
     expect(dialog()?.textContent).toContain("share “Plans” with the cloud?");
     expect(dialog()?.textContent).toContain("120 files · 3 MB. the cloud keeps a synced copy its bots can read.");
-    await click("Cancel", dialog()!);
+    await click("cancel", dialog()!);
     expect(bridge.share).not.toHaveBeenCalled();
     bridge.pickFolder.mockResolvedValue(check("Plans", { files: 50_000, partial: true }));
     await click("add a folder");

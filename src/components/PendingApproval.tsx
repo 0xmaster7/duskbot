@@ -64,7 +64,7 @@ export function spokenApprovalPrompt(pending: Pending, requester: string): strin
   const ask = yourComputerAsk(pending.message.card, requester);
   if (ask) return `${requester}: ${ask.line}`;
   const card = pending.message.card;
-  if (card && titledCard(card)) return `${requester}: ${card.title} Review the details and choose ${card.options[0]} or ${card.options[1] ?? "Cancel"}.`;
+  if (card && titledCard(card)) return `${requester}: ${card.title} review the details and choose ${card.options[0]} or ${card.options[1] ?? "cancel"}.`;
   const isSkillRequest = isSkillApproval(pending);
   const isProfileRequest = isProfileApproval(pending);
   if (isSkillRequest) {

@@ -300,7 +300,7 @@ interface PhonePairingWindowSnapshot {
 }
 
 const PAIRING_OPEN_FAILURE_MESSAGE =
-  "Device pairing did not open. Check that Remote access is on, then try again.";
+  "device pairing did not open. check that remote access is on, then try again.";
 
 export function companionPairingOpenFailure(
   companion: PhonePairingWindowSnapshot & { enabled: boolean; error?: string },
@@ -390,7 +390,7 @@ export function startNonOverlappingPhoneSetupPoll<T>(
 }
 
 const START_FAILURE_MESSAGE =
-  "Remote access could not start. Try turning Remote access on again.";
+  "remote access could not start. try turning remote access on again.";
 
 export function companionStartFailure(
   companion: Pick<PhoneSetupCompanionSnapshot, "enabled"> & { error?: string },

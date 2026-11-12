@@ -32,7 +32,7 @@ describe("about", () => {
     const html = about({ location: { host: "bots.example.test" } });
     expect(html).toContain("source-available. free for personal use.");
     expect(html).not.toMatch(/open.?source|apache|github/i);
-    for (const label of ["Docs", "Releases", "License", "Third-party notices"]) expect(html).toContain(`>${label}</`);
+    for (const label of ["docs", "releases", "license", "third-party notices"]) expect(html).toContain(`>${label}</`);
     expect(html).toContain('href="/third-party-notices.txt"');
   });
 

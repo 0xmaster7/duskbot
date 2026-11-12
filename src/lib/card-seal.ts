@@ -10,7 +10,7 @@ import {
 
 /** The server's key was not signed by the identity this app trusts for it; nothing was sealed. */
 export class SealTrustError extends Error {
-  constructor(message = "This server could not prove it is the one this app linked, so nothing was sent.") {
+  constructor(message = "this server could not prove it is the one this app linked, so nothing was sent.") {
     super(message);
     this.name = "SealTrustError";
   }

@@ -54,7 +54,7 @@ describe("trace helpers", () => {
     const opened = traceRows([chief], new Set(["w-g1", "writer"]), T0 + 51_000);
     expect(opened.map((row) => row.node.id)).toEqual(["chief", "c-s1", "writer"]);
     expect(traceRows([chief], new Set(["w-g1"]), T0).map((row) => row.node.id)).toContain("w-b3");
-    expect(toolLabel({ name: "mcp__browser__agent_browser_type", icon: "browser" })).toBe("Type");
+    expect(toolLabel({ name: "mcp__browser__agent_browser_type", icon: "browser" })).toBe("type");
     expect(groupLabel({ icon: "browser", count: 14, name: "x" })).toBe("used the browser · 14 steps");
     expect(groupLabel({ icon: "computer", count: 23, name: "x" })).toBe("used the computer · 23 actions");
   });

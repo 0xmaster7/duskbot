@@ -150,7 +150,7 @@ async function highlightFence(code: string, lang: string): Promise<string> {
   const requested = lang.trim().toLowerCase();
   const plain = PLAIN_LANGS.has(requested);
   const file = plain ? undefined : grammarFile(requested);
-  if (!plain && !file) throw new Error(`No bundled grammar for ${requested}`);
+  if (!plain && !file) throw new Error(`no bundled grammar for ${requested}`);
   if (file) await loadGrammar(highlighter, file);
   return highlighter.codeToHtml(code, {
     lang: file ?? "text",

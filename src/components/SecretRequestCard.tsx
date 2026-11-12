@@ -71,15 +71,15 @@ export function SecretRequestCard({
   const superseded = secret.superseded === true;
   const stopped = secret.stopped === true;
   const description = superseded
-    ? "This request was replaced by a newer one for the same key. Use the newest card to provide it."
+    ? "this request was replaced by a newer one for the same key. use the newest card to provide it."
     : provided
     ? stopped
-      ? "Saved securely."
+      ? "saved securely."
       : secret.resumed
-      ? "Saved securely. Your bot is continuing the task."
-      : "Saved securely. Your bot will continue when its current turn settles."
+      ? "saved securely. your bot is continuing the task."
+      : "saved securely. your bot will continue when its current turn settles."
     : declined
-      ? `You chose not to provide this credential. ${productName()} could not resume the bot yet.`
+      ? `you chose not to provide this credential. ${productName()} could not resume the bot yet.`
       : custom && secret.reason ? secret.reason : secret.description;
   if (!custom && !isCredentialTargetId(secret.target)) return <SecretSettledRow label={secret.label} tone="off" status="This credential request is no longer supported." />;
 
@@ -214,7 +214,7 @@ export function SecretRequestCard({
   }
 
   const submit = cardPrimary();
-  const note = !custom ? `Stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
+  const note = !custom ? `stored securely by ${productName()} and never added to chat.` : email ? t("secretCard.email") : login ? t("secretCard.login") : secret.delivery === "file" ? t("secretCard.file") : t("secretCard.ref");
   return (
     <AskCard
       ariaLabel={secret.label}
@@ -227,7 +227,7 @@ export function SecretRequestCard({
     >
       {onlyOnHost ? (
         <div className="text-[13px] leading-relaxed text-ink-secondary">
-          This key must be saved on the host computer. Open this conversation on the host to continue securely.
+          this key must be saved on the host computer. open this conversation on the host to continue securely.
         </div>
       ) : (
         <form onSubmit={(event) => void save(event)}>
@@ -267,7 +267,7 @@ export function SecretRequestCard({
               )}
               {secret.helpUrl && (
                 <a href={secret.helpUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-text hover:underline">
-                  Where to get this key <ExternalLink size={11} />
+                  where to get this key <ExternalLink size={11} />
                 </a>
               )}
             </div>
@@ -280,7 +280,7 @@ export function SecretRequestCard({
             </span>
             <button type="submit" disabled={saving || (!value.trim() && !savedLocally) || (email && !address.trim())} className={submit.className} style={submit.style}>
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {savedLocally ? "Continue task" : custom ? t("secretCard.submit") : "Save securely"}
+              {savedLocally ? "continue task" : custom ? t("secretCard.submit") : "save securely"}
             </button>
           </div>
         </form>

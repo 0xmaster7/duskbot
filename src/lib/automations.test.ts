@@ -189,7 +189,7 @@ describe("order and the grey line", () => {
   });
 
   it("writes recent runs as a time, a mark and one line", () => {
-    expect(runLine(run("completed", at(0, 9, 2), { output: "3 emails overnight.\nMore detail." }), NOW)).toEqual({ when: "Today 9:02 AM", mark: "✓", text: "3 emails overnight." });
+    expect(runLine(run("completed", at(0, 9, 2), { output: "3 emails overnight.\nMore detail." }), NOW)).toEqual({ when: "today 9:02 AM", mark: "✓", text: "3 emails overnight." });
     expect(runLine(run("failed", at(-1, 9), { error: "token expired, sign in again" }), NOW)).toMatchObject({ mark: "✗", text: "it's signed out. sign in again so it can run." });
   });
 
@@ -200,13 +200,13 @@ describe("order and the grey line", () => {
 
   it("marks a run whose reply came back but a step failed as partly done, not as a red failure", () => {
     const partly = run("failed", at(0, 9, 2), { error: "Stopped because the tool call failed.\nmore", output: "Here is the summary.", partial: true });
-    expect(runLine(partly, NOW)).toEqual({ when: "Today 9:02 AM", mark: "!", text: "partly done: Stopped because the tool call failed." });
+    expect(runLine(partly, NOW)).toEqual({ when: "today 9:02 AM", mark: "!", text: "partly done: Stopped because the tool call failed." });
     expect(statusLine(automation([partly]), NOW)).toBe("on · last ran today 9:02 AM ! · next: Monday 9:00 AM");
     expect(runLine(run("failed", at(0, 9, 2), { error: "Stopped because the tool call failed." }), NOW)).toMatchObject({ mark: "✗" });
     expect(statusLine(automation([run("failed", at(0, 9, 2))]), NOW)).toBe("on · last ran today 9:02 AM ✗ · next: Monday 9:00 AM");
   });
 
   it("says a run that found nothing to tell found nothing new, whatever its last words were", () => {
-    expect(runLine(run("completed", at(0, 9, 2), { output: "Checked 14 emails.\nNOTHING NEW", report: { state: "quiet" } }), NOW)).toEqual({ when: "Today 9:02 AM", mark: "✓", text: "nothing new" });
+    expect(runLine(run("completed", at(0, 9, 2), { output: "Checked 14 emails.\nNOTHING NEW", report: { state: "quiet" } }), NOW)).toEqual({ when: "today 9:02 AM", mark: "✓", text: "nothing new" });
   });
 });

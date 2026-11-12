@@ -26,15 +26,15 @@ export function pairsAutomatically(initialCode: string | null, desktop = typeof 
 }
 
 export function pairIntro({ mode, sent, email, cloudHome }: { mode: "email" | "code" | null; sent: boolean; email: string; cloudHome: boolean }): string {
-  if (mode === "email") return sent ? `We emailed an 8-digit code to ${email}. It works once and expires in ten minutes.` : "Enter your email and we will send you a one-time code.";
-  if (cloudHome) return `To open the Cloud, choose Open the Cloud in the ${productName()} app on your computer (Settings → dusk cloud), or Use in your browser on your Plan page. Have a pairing code? Enter it below.`;
-  return "Enter the pairing code shown on the server. Codes work once and expire after five minutes.";
+  if (mode === "email") return sent ? `we emailed an 8-digit code to ${email}. it works once and expires in ten minutes.` : "enter your email and we will send you a one-time code.";
+  if (cloudHome) return `to open the cloud, choose open the cloud in the ${productName()} app on your computer (settings → dusk cloud), or use in your browser on your plan page. have a pairing code? enter it below.`;
+  return "enter the pairing code shown on the server. codes work once and expire after five minutes.";
 }
 
 export function pairTitle(environment: EnvironmentDescriptor | null, mode: "email" | "code" | null): string {
   if (environment?.capabilities.cloudTeam) return environment.label;
-  if (environment?.capabilities.cloudHome) return "My Cloud";
-  return `${mode === "email" ? "Sign in to" : "Connect to"} ${environment?.label ?? `this ${productName()}`}`;
+  if (environment?.capabilities.cloudHome) return "my cloud";
+  return `${mode === "email" ? "sign in to" : "connect to"} ${environment?.label ?? `this ${productName()}`}`;
 }
 
 export function PairPage({ initialCode, initialEmail = null, reason }: { initialCode: string | null; initialEmail?: string | null; reason?: string }) {
@@ -122,27 +122,27 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
       <div className="absolute left-3 top-12 max-w-[280px]"><DesktopWorkspaceSwitcher /></div>
       <div className="w-full max-w-[420px]">
         {opening ? (
-          <p role="status" className="text-[20px] font-semibold">{cloudHome ? "Opening the Cloud…" : `Connecting to ${environment?.label ?? `this ${productName()}`}…`}</p>
+          <p role="status" className="text-[20px] font-semibold">{cloudHome ? "opening the cloud…" : `connecting to ${environment?.label ?? `this ${productName()}`}…`}</p>
         ) : <>
         <h1 className="text-[20px] font-semibold">{pairTitle(environment, mode)}</h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink-secondary">
-          {environment && !cloudHome ? `Version ${environment.version} on ${environment.platform}. ` : ""}
+          {environment && !cloudHome ? `version ${environment.version} on ${environment.platform}. ` : ""}
           {pairIntro({ mode, sent, email, cloudHome })}
         </p>
         {reasonWorthShowing(reason) && !connected ? <p className="mt-3 text-[13px] text-ink-secondary">{reasonWorthShowing(reason)}</p> : null}
-        {error && cloudHome && initialCode ? <p className="mt-3 text-[13px] text-ink-secondary">This link has expired or was already used. In the {productName()} app on your computer, open Settings → dusk cloud and choose Open the Cloud.</p> : null}
+        {error && cloudHome && initialCode ? <p className="mt-3 text-[13px] text-ink-secondary">this link has expired or was already used. in the {productName()} app on your computer, open settings → dusk cloud and choose open the cloud.</p> : null}
         </>}
         {opening ? null : connected ? (
           <p className="mt-4 text-[14px]">
-            This browser is already connected.{" "}
+            this browser is already connected.{" "}
             <a href="/" className="text-accent underline">
-              Open the app
+              open the app
             </a>
           </p>
         ) : mode === "email" ? (
           <form onSubmit={submitEmail}>
             <label className={fieldLabel} htmlFor="signin-email">
-              Email
+              email
             </label>
             <input
               id="signin-email"
@@ -161,7 +161,7 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
             {sent ? (
               <>
                 <label className={fieldLabel} htmlFor="signin-code">
-                  Code from the email
+                  code from the email
                 </label>
                 <input
                   id="signin-code"
@@ -174,28 +174,28 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
                   className={`${input} font-mono text-[15px] tracking-[0.12em]`}
                 />
                 <label className={fieldLabel} htmlFor="signin-label">
-                  This device
+                  this device
                 </label>
                 <input id="signin-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className={input} />
               </>
             ) : null}
             {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
             <button type="submit" disabled={busy || !email.includes("@") || (sent && otp.replace(/\D/g, "").length < 8)} className={button}>
-              {busy ? (sent ? "Signing in…" : "Sending…") : sent ? "Sign in" : "Send code"}
+              {busy ? (sent ? "signing in…" : "sending…") : sent ? "sign in" : "send code"}
             </button>
             {sent ? (
               <button type="button" onClick={() => setSent(false)} className="mt-3 w-full text-[13px] text-ink-secondary underline">
-                Send a new code
+                send a new code
               </button>
             ) : null}
             <button type="button" onClick={() => switchMode("code")} className="mt-3 w-full text-[13px] text-ink-secondary underline">
-              Have a pairing code instead?
+              have a pairing code instead?
             </button>
           </form>
         ) : (
           <form onSubmit={submitCode}>
             <label className={fieldLabel} htmlFor="pair-code">
-              Pairing code
+              pairing code
             </label>
             <input
               id="pair-code"
@@ -211,16 +211,16 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
               className={`${input} font-mono text-[15px] tracking-[0.12em]`}
             />
             <label className={fieldLabel} htmlFor="pair-label">
-              This device
+              this device
             </label>
             <input id="pair-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className={input} />
             {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
             <button type="submit" disabled={busy || code.replace(/[^a-z0-9]/gi, "").length < 12} className={button}>
-              {busy ? "Connecting…" : "Connect"}
+              {busy ? "connecting…" : "connect"}
             </button>
             {emailOffered ? (
               <button type="button" onClick={() => switchMode("email")} className="mt-3 w-full text-[13px] text-ink-secondary underline">
-                Sign in with your email instead
+                sign in with your email instead
               </button>
             ) : null}
           </form>

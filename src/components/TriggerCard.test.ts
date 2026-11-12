@@ -134,7 +134,7 @@ describe("the chat card a bot-made automation leaves", () => {
   it("says when another app sends something, offers Copy address, and shows no address or secret on the card", () => {
     const html = render(webhookCard);
     expect(html).toContain("set up: when another app sends something, Scout drafts a follow-up for the lead");
-    expect(html).toContain(">Hasn&#x27;t run yet<");
+    expect(html).toContain(">hasn&#x27;t run yet<");
     expect(html).toContain("copy address</button>");
     expect(html).not.toMatch(/whsec_|wh_abc|webhook/i);
   });

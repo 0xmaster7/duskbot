@@ -29,7 +29,7 @@ describe("ToolActivity", () => {
   });
 
   it("names a Composio slug by its action", () => {
-    expect(render({ name: "GITHUB_GET_A_COMMIT", ok: true })).toContain("Get a commit · completed");
+    expect(render({ name: "GITHUB_GET_A_COMMIT", ok: true })).toContain("get a commit · completed");
   });
 });
 

@@ -28,10 +28,10 @@ describe("schedule labels", () => {
     }
   });
   it("names intervals", () => {
-    expect(intervalLabel(5)).toBe("Every 5 min");
-    expect(intervalLabel(60)).toBe("Every hour");
-    expect(intervalLabel(120)).toBe("Every 2 hr");
-    expect(intervalLabel(90)).toBe("Every 1 hr 30 min");
+    expect(intervalLabel(5)).toBe("every 5 min");
+    expect(intervalLabel(60)).toBe("every hour");
+    expect(intervalLabel(120)).toBe("every 2 hr");
+    expect(intervalLabel(90)).toBe("every 1 hr 30 min");
   });
 
   it("writes schedules as prose", () => {
@@ -41,7 +41,7 @@ describe("schedule labels", () => {
     expect(scheduleSentence({ type: "interval", everyMinutes: 90, anchorAt: 0 })).toBe("every 1 hour 30 minutes");
     expect(scheduleSentence({ type: "daily", time: "09:00", weekdays: [1, 2, 3, 4, 5] })).toMatch(/^every weekday at /);
     expect(scheduleSentence({ type: "daily", time: "09:00", weekdays: [0, 1, 2, 3, 4, 5, 6] })).toMatch(/^every day at /);
-    expect(scheduleSentence({ type: "daily", time: "09:00", weekdays: [3] })).toMatch(/^weekly on Wed at /);
+    expect(scheduleSentence({ type: "daily", time: "09:00", weekdays: [3] })).toMatch(/^weekly on wed at /);
     expect(scheduleSentence({ type: "once", at: Date.UTC(2026, 8, 5, 12) })).toMatch(/^once on /);
   });
 

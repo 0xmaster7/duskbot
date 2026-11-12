@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { readSessionState } from "./session";
 
-export const SESSION_ENDED_REASON = "Your session ended. Pair this device again to keep using it.";
+export const SESSION_ENDED_REASON = "your session ended. pair this device again to keep using it.";
 const ENDED_KEY = "dusk.session-ended";
 
 let ended = false;
