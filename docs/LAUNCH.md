@@ -78,7 +78,9 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 - `deploy/account/production.env.example`: every setting the service reads, what it does, no values (a test keeps it
   complete).
 - `deploy/account/backup.sh` + `dusk-account-backup.{service,timer}`: daily copy of the data folder, encrypted to an
-  age public key, sent to any rclone destination, pruned after 30 days.
+  age public key, sent to any rclone destination, pruned after 30 days. Set `DUSK_BACKUP_MONGO_DIR=/root/backups/mongo-dusk`
+  in `/etc/dusk-account/backup.env` so the newest finished `mongodump` rides in the same archive (the on-box dumps alone
+  do not survive losing the VPS).
 - `deploy/account/logrotate.conf` for the dusk apps' logs.
 
 ### Owner: deploy the account service

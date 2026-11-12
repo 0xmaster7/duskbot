@@ -2,7 +2,7 @@
 Description=Daily dusk bot account service backup
 
 [Timer]
-OnCalendar=*-*-* 03:17:00 UTC
+OnCalendar=*-*-* 04:17:00 UTC
 RandomizedDelaySec=15m
 Persistent=true
 
