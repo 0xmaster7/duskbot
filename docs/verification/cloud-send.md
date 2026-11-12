@@ -118,8 +118,8 @@ pairing route. Print each failed item's error, never a value.
 ## The move to My Cloud, by itself
 
 ```sh
-pnpm exec vitest run server/one-home.e2e.test.ts server/one-home-retry.e2e.test.ts server/one-home-trial-key.e2e.test.ts
-pnpm exec vitest run server/move-freeze.test.ts server/cloud-send-arrived.test.ts server/cloud-held-keys.test.ts
+pnpm exec vitest run server/one-home.e2e.test.ts server/one-home-retry.e2e.test.ts
+pnpm exec vitest run server/move-freeze.test.ts server/cloud-send-arrived.test.ts
 node --test electron/one-home.node-test.mjs
 ```
 
@@ -139,9 +139,7 @@ and can fail any request main sends My Cloud (`fx.intercept`). The e2e checks:
   in an hour; after a day the line offers Try again, which finishes the move;
 - when My Cloud ends, this computer is home again at once, then restores the
   held Cloud's backup (started export-only), its later chats included, and
-  switches on what was on there;
-- on a trial, a moved key is saved and checked but unused while the credit
-  lasts (a stub plays the Admin's credit relay), and used once it runs out.
+  switches on what was on there.
 
 ## Why a move hasn't finished: the report to the Admin
 

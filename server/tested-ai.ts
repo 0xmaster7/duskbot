@@ -235,7 +235,7 @@ export function createTestedAi(deps: TestedAiDeps) {
     return run;
   };
 
-  /** The person's own AIs, in the default's order, one at a time; an organization's models and the trial credit are theirs
+  /** The person's own AIs, in the default's order, one at a time; an organization's models are its own
    * to look after. One miss waits for its retry; two hand over to the next AI. */
   const sweep = () => {
     if (!background || fixed()) return;

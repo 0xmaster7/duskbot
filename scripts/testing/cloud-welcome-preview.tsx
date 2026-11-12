@@ -19,7 +19,7 @@ function installCloudPage(move: string | null) {
     running: move === "copy", ...(move === "copy" ? { runningReason: "move", progress: { done: 34, total: 142 }, phase: "chats" as const } : {}),
     last: move === "done" ? { at: Date.now(), reason: "move", failed: 0, seen: false, sent } : null, whole: null,
     ...(move === "copy" ? { move: { phase: "copy" as const, chats: { done: 34, total: 142 } } } : {}),
-    ...(move === "done" ? { move: { phase: "done" as const, counts: { bots: 6, skills: 2, logins: 2, onePassword: true, chats: 142, routines: 4 }, phone: true, held: [] } } : {}),
+    ...(move === "done" ? { move: { phase: "done" as const, counts: { bots: 6, skills: 2, logins: 2, onePassword: true, chats: 142, routines: 4 }, phone: true } } : {}),
   };
   window.duskDesktop = {
     platform: "darwin",

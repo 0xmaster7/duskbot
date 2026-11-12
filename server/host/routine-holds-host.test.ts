@@ -12,6 +12,7 @@ afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: tru
 const START = Date.parse("2026-10-30T06:00:00Z");
 const HOUR = 60 * 60_000;
 type Line = { threadId: string; name: string };
+const IN = { ready: true, signedIn: true }, OUT = { ready: false, signedIn: false };
 
 /** A Cloud home's routines and bots: the owner's Chief, a teammate's later one, and a bot that is no Chief. */
 function world(dataDir?: string) {
@@ -46,14 +47,17 @@ describe("a Cloud home's routines wait while the owner has left", () => {
   it("pauses when none of the owner's AI is signed in any more, with one quiet line in the owner's Chief's chat, and comes back on sign-in", () => {
     const w = world();
     w.make();
-    w.host.engines(true);
+    w.host.engines(OUT);
+    expect(w.state().enabled).toBe(true);
+    w.host.engines(IN);
+    w.host.engines(OUT);
     expect(w.state()).toMatchObject({ enabled: false, heldFor: "no_engine" });
     expect(w.lines).toEqual([{ threadId: "chief-main", name: `notice: ${ROUTINE_HOLD_LINES.no_engine}` }]);
     // Read again and again while signed out: nothing more is said.
-    w.host.engines(true);
-    w.host.engines(true);
+    w.host.engines(OUT);
+    w.host.engines(OUT);
     expect(w.lines).toHaveLength(1);
-    w.host.engines(false);
+    w.host.engines(IN);
     expect(w.state()).toMatchObject({ enabled: true });
     expect(w.state().heldFor).toBeUndefined();
     expect(w.lines).toHaveLength(1);
@@ -62,11 +66,11 @@ describe("a Cloud home's routines wait while the owner has left", () => {
   it("pauses while the plan is cancelled and keeps that across a restart, before the engines are read again", () => {
     const w = world();
     w.make();
-    w.host.engines(false);
+    w.host.engines(IN);
     w.host.plan(true);
     expect(w.state()).toMatchObject({ enabled: false, heldFor: "plan_cancelled" });
     expect(w.lines.map((line) => line.name)).toEqual([`notice: ${ROUTINE_HOLD_LINES.plan_cancelled}`]);
-    expect(JSON.parse(readFileSync(join(w.dir, "routine-holds.json"), "utf8"))).toEqual({ planCancelled: true });
+    expect(JSON.parse(readFileSync(join(w.dir, "routine-holds.json"), "utf8"))).toEqual({ hadOwn: true, planCancelled: true });
 
     const again = world(w.dir);
     again.make();
@@ -79,7 +83,8 @@ describe("a Cloud home's routines wait while the owner has left", () => {
 
   it("remembers what it read before the routines exist and applies it once they do", () => {
     const w = world();
-    w.host.engines(true);
+    w.host.engines(IN);
+    w.host.engines(OUT);
     expect(w.state().enabled).toBe(true);
     w.make();
     w.host.review();

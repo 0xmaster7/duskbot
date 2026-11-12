@@ -903,8 +903,8 @@ miss alone doesn't move the default: that engine is tried again two minutes
 later. Two misses in a row move the default to the best engine that
 answered; the engine is tried again ten minutes later, then once an hour.
 An engine that already answered (for example one the welcome checked) can
-take the default after a single miss. An organization's models and the
-trial credit are never tested this way. Results are kept for a day per
+take the default after a single miss. An organization's models are never
+tested this way. Results are kept for a day per
 engine and sign-in in `<data dir>/providers/ai-checks.json`, so a restart
 doesn't send them again. On a later start, where the engines are read one at
 a time, nothing is tested or moved until that read ends: never on the status

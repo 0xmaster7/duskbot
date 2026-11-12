@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { CHECKOUT_SOURCES } from "../../electron/cloud-account.mjs";
-import type { CloudCredit, CloudOffer, CloudOfferPlan, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
-import { buyOfferAllowed, cardRows, CLOUD_SOURCES, cloudAddView, cloudCreditLine, cloudIntroView, cloudNoticeKind, cloudPlanLine, cloudPlanView, cloudTrialNotice, cloudTrialView,
+import type { CloudOffer, CloudOfferPlan, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
+import { buyOfferAllowed, cardRows, CLOUD_SOURCES, cloudAddView, cloudIntroView, cloudNoticeKind, cloudPlanLine, cloudPlanView, cloudTrialNotice, cloudTrialView,
   dueToday, moneyBackLine, moneyBackShort, offerPlan, offerTrialDays, planCardRows, planCards, sameTerms, sharedTrialDays, trialTimeline, usd,
   type CloudSignInPhase } from "./cloud-plan";
 import { setLocale } from "./i18n";
@@ -11,30 +11,26 @@ const DAY = 86_400_000;
 const ENDS = new Date(2026, 9, 15, 12).getTime();
 const trial = (state: CloudTrial["state"], extra: Partial<CloudTrial> = {}): CloudTrial =>
   ({ state, tier: "pro", endsAt: ENDS, amount: 4900, chargeAt: null, holdUntil: null, deleteAt: null, keep: "none", ...extra });
-const credit: CloudCredit = { grantedUsd: 5, remainingUsd: 3.2, state: "active" };
 
 beforeEach(() => setLocale("en"));
 afterEach(() => setLocale("en"));
 
 describe("a free trial, in one message and at most one next step per state", () => {
   it("active: when it ends, what is charged and when, how to cancel, and nothing to do", () => {
-    const view = cloudTrialView(trial("active", { chargeAt: ENDS }), credit);
+    const view = cloudTrialView(trial("active", { chargeAt: ENDS }));
     expect(view.title).toBe("your free trial ends on Oct 15");
     expect(view.body).toBe("Then Pro is $49/month plus tax, charged on Oct 15. The cloud keeps running, so there's nothing to do. To cancel, choose manage subscription before then.");
-    expect(view.credit).toBe("Includes $5 of Claude credit: $3.20 left.");
     expect(view.action).toEqual({ kind: "manage", label: "manage subscription" });
     expect(view.body).toContain(view.action!.label);
     const unpriced = cloudTrialView(trial("active", { amount: null, tier: "max" }));
     expect(unpriced.body).toBe("Then Max is charged monthly, plus tax, from Oct 15. The cloud keeps running, so there's nothing to do. To cancel, choose manage subscription before then.");
-    expect(unpriced.credit).toBeUndefined();
-    expect(cloudTrialView(trial("active"), { ...credit, remainingUsd: 0, state: "used_up" }).credit).toBeUndefined();
     expect(cloudTrialView(trial("active", { tier: "team-2027" })).body).toContain("Then Cloud is $49/month");
     expect(cloudTrialView(trial("active", { tier: undefined })).body).toContain("Then your plan is $49/month");
     expect(cloudTrialView(trial("active", { amount: 5831 })).body).toContain("$58.31/month");
   });
 
   it("ending with renewal off: when it stops, when its files go, and Subscribe to keep it", () => {
-    const view = cloudTrialView(trial("ending", { deleteAt: ENDS + 3 * DAY, keep: "portal" }), credit);
+    const view = cloudTrialView(trial("ending", { deleteAt: ENDS + 3 * DAY, keep: "portal" }));
     expect(view).toEqual({ state: "ending", title: "your free trial ends on Oct 15",
       body: "Renewal is off, so the cloud stops then and its files are deleted on Oct 18.", action: { kind: "subscribe", label: "subscribe to keep it" } });
     expect(cloudTrialView(trial("ending", { keep: "portal" })).body).toBe("Renewal is off, so the cloud stops then, and its files are deleted a few days later.");
@@ -73,7 +69,7 @@ describe("a free trial, in one message and at most one next step per state", () 
   });
 });
 
-describe("the plan line and the credit", () => {
+describe("the plan line", () => {
   const connected = (extra: Partial<CloudAccountState>): CloudAccountState => ({ status: "connected", account: { id: "a", email: "person@example.test" },
     entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: ENDS + 3 * DAY, version: 1 }, ...extra });
   it("a running trial is a free trial, not an active paid plan; once paid, or ended, it is not", () => {
@@ -84,10 +80,7 @@ describe("the plan line and the credit", () => {
     expect(cloudPlanView(connected({ entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 2 }, machine: { status: "stopped" }, trial: trial("ended") })).kind).toBe("attention");
   });
 
-  it("says what is left, or that it is used up and what to do", () => {
-    expect(cloudCreditLine(credit)).toBe("Trial Claude credit: $3.20 of $5 left. Cloud bots use it until you sign in there with your own Claude or ChatGPT account, or add an API key.");
-    expect(cloudCreditLine({ grantedUsd: 5, remainingUsd: 0, state: "used_up" }))
-      .toBe("Your $5 trial Claude credit is used up. To keep your bots working, sign in with your own Claude or ChatGPT account in the cloud, or add an API key there.");
+  it("formats dollars", () => {
     expect([usd(5), usd(3.2), usd(0.004), usd(49), usd(58.31)]).toEqual(["$5", "$3.20", "$0", "$49", "$58.31"]);
   });
 
@@ -123,8 +116,8 @@ const PLANS: CloudOfferPlan[] = [
   { tier: "pro", label: "Pro", amount: 4900, allowances: allowances(4, 40, 50), trialDays: 7 },
   { tier: "max", label: "Max", amount: 9900, allowances: allowances(8, 80, 100), trialDays: 7 },
 ];
-const OFFER: CloudOffer = { plans: PLANS, recommended: "pro", creditUsd: 5, reminderDays: 2, refundDays: 14 };
-const noTrial = (offer: CloudOffer): CloudOffer => ({ ...offer, creditUsd: undefined, reminderDays: undefined, plans: offer.plans.map(({ trialDays: _days, ...plan }) => plan) });
+const OFFER: CloudOffer = { plans: PLANS, recommended: "pro", reminderDays: 2, refundDays: 14 };
+const noTrial = (offer: CloudOffer): CloudOffer => ({ ...offer, reminderDays: undefined, plans: offer.plans.map(({ trialDays: _days, ...plan }) => plan) });
 const NOW = new Date(2026, 9, 8, 12).getTime();
 /** A plan the Admin says sleeps when idle, with no swap and a fixed disk. */
 const SLEEPS: CloudOfferPlan = { tier: "lite", label: "Lite", amount: 900, allowances: { cpus: 2, cpuKind: "shared", memoryMb: 2048, diskGb: 10, maxDiskGb: 10, computers: 15,
@@ -279,14 +272,14 @@ describe("what is for sale, as the Admin says", () => {
       OFFER, { now: NOW, terms: true })).toMatchObject({ kind: "offer", notice: "terms" });
   });
 
-  it("the timeline, when every plan has the same trial: today (and the credit), the reminder only while the Admin sends one, and the first payment", () => {
+  it("the timeline, when every plan has the same trial: today, the reminder only while the Admin sends one, and the first payment", () => {
     expect(sharedTrialDays(OFFER)).toBe(7);
     expect(trialTimeline(OFFER, NOW)).toEqual([
-      { when: "today", text: "trial starts, with $5 of Claude credit" },
+      { when: "today", text: "trial starts" },
       { when: "Oct 13", text: "reminder email" },
       { when: "Oct 15", text: "first payment" },
     ]);
-    expect(trialTimeline({ ...OFFER, reminderDays: undefined, creditUsd: undefined }, NOW)).toEqual([
+    expect(trialTimeline({ ...OFFER, reminderDays: undefined }, NOW)).toEqual([
       { when: "today", text: "trial starts" },
       { when: "Oct 15", text: "first payment" },
     ]);
@@ -297,9 +290,9 @@ describe("what is for sale, as the Admin says", () => {
 
   it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
     expect(cloudIntroView(OFFER)).toEqual({ badge: "free for 7 days",
-      points: ["routines run on time, day and night", "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start"],
+      points: ["routines run on time, day and night", "reach your bots from your phone, even with this computer off"],
       price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
-    const bare = cloudIntroView({ ...OFFER, creditUsd: undefined, refundDays: undefined })!;
+    const bare = cloudIntroView({ ...OFFER, refundDays: undefined })!;
     expect(bare.points).toEqual(["routines run on time, day and night", "reach your bots from your phone, even with this computer off"]); expect(bare.moneyBack).toBeNull();
     expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
     expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
@@ -343,16 +336,15 @@ describe("the buying sheet, one view per state", () => {
     expect(cloudAddView({ status: "signed-out", checkout: { plan: "pro", startedAt: NOW } }, OFFER, at).kind).toBe("offer");
   });
 
-  it("then: the payment received, the Cloud set up (the plan, trial and credit for its badge), and ready after this app's checkout or sign-in", () => {
+  it("then: the payment received, the Cloud set up (the plan and trial for its badge), and ready after this app's checkout or sign-in", () => {
     expect(cloudAddView(connected({ purchase: { state: "confirming", tier: "pro", paidAt: NOW } }), OFFER, at))
-      .toEqual({ kind: "starting", tier: "pro", trial: null, credit: null, step: null, slow: false, received: true });
+      .toEqual({ kind: "starting", tier: "pro", trial: null, step: null, slow: false, received: true });
     const running = trial("active", { endsAt: NOW + 7 * DAY, chargeAt: NOW + 7 * DAY });
-    expect(cloudAddView(paid({ trial: running, credit }), undefined, at)).toEqual({ kind: "starting", tier: "pro", trial: running, credit, step: null, slow: false, received: false });
-    expect(cloudAddView(paid({ credit: { ...credit, remainingUsd: 0, state: "used_up" } }), undefined, at)).toMatchObject({ kind: "starting", credit: null });
+    expect(cloudAddView(paid({ trial: running }), undefined, at)).toEqual({ kind: "starting", tier: "pro", trial: running, step: null, slow: false, received: false });
     expect(cloudAddView(paid({ machine: { status: "provisioning", setup: { step: "storage", slow: true } } }), undefined, at))
-      .toEqual({ kind: "starting", tier: "pro", trial: null, credit: null, step: "storage", slow: true, received: false });
+      .toEqual({ kind: "starting", tier: "pro", trial: null, step: "storage", slow: true, received: false });
     const ready = { status: "ready" as const, origin: "https://dusk-u-1.fly.dev" };
-    expect(cloudAddView(paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 3600_000 } }), undefined, at)).toEqual({ kind: "ready", tier: "pro", trial: null, credit: null });
+    expect(cloudAddView(paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 3600_000 } }), undefined, at)).toEqual({ kind: "ready", tier: "pro", trial: null });
     expect(cloudAddView(paid({ machine: ready }), undefined, at), "Add a Cloud… with a Cloud: one Cloud for now").toEqual({ kind: "has-cloud" });
     expect(cloudAddView(paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 3600_000, done: true } }), undefined, at),
       "a purchase that is over (opened, announced or shown ready): one Cloud for now").toEqual({ kind: "has-cloud" });

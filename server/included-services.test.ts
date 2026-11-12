@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { jevEndpoint } from "./decider/jev.ts";
-import { applyIncludedXMessage, deciderCredential, researchCredential, trialCreditCredential, voiceCredential, xCredential, xResearchStatus } from "./included-services.ts";
+import { applyIncludedXMessage, deciderCredential, researchCredential, voiceCredential, xCredential, xResearchStatus } from "./included-services.ts";
 
 const RELAY_VOICE = "https://cloud.example.test/api/cloud/services/voice/v1";
 // A Jev base URL: the relay's one route is <this>/v1/systemone.
@@ -80,21 +80,6 @@ describe("Jev credential", () => {
   });
 });
 
-describe("the trial's AI credit", () => {
-  const AI = "https://cloud.example.test/api/cloud/services/ai", TOKEN = `dusk_ai_${"a".repeat(43)}`;
-  it("is the relay and this machine's token, only when both are set, HTTPS (loopback for tests) and the Admin's own token shape", () => {
-    expect(trialCreditCredential({ DUSK_CLOUD_AI_URL: AI, DUSK_CLOUD_AI_TOKEN: TOKEN })).toEqual({ token: TOKEN, api: AI, included: true });
-    expect(trialCreditCredential({ DUSK_CLOUD_AI_URL: `${AI}/`, DUSK_CLOUD_AI_TOKEN: ` ${TOKEN} ` })).toEqual({ token: TOKEN, api: AI, included: true });
-    expect(trialCreditCredential({ DUSK_CLOUD_AI_URL: "http://127.0.0.1:9/ai", DUSK_CLOUD_AI_TOKEN: TOKEN })?.api).toBe("http://127.0.0.1:9/ai");
-    for (const env of [{}, { DUSK_CLOUD_AI_URL: AI }, { DUSK_CLOUD_AI_TOKEN: TOKEN }, { DUSK_CLOUD_AI_URL: "http://cloud.example.test/ai", DUSK_CLOUD_AI_TOKEN: TOKEN },
-      { DUSK_CLOUD_AI_URL: "https://user:pw@cloud.example.test/ai", DUSK_CLOUD_AI_TOKEN: TOKEN }, { DUSK_CLOUD_AI_URL: `${AI}?key=1`, DUSK_CLOUD_AI_TOKEN: TOKEN },
-      { DUSK_CLOUD_AI_URL: "not a url", DUSK_CLOUD_AI_TOKEN: TOKEN }, { DUSK_CLOUD_AI_URL: AI, DUSK_CLOUD_AI_TOKEN: "sk-ant-own-key" },
-      { DUSK_CLOUD_AI_URL: AI, DUSK_CLOUD_AI_TOKEN: `dusk_ai_${"a".repeat(42)}` }, { ...cloud }]) {
-      expect(trialCreditCredential(env), JSON.stringify(env)).toBeNull();
-    }
-  });
-});
-
 describe("holdIncludedServices", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -106,11 +91,7 @@ describe("holdIncludedServices", () => {
     // A fresh module: the hold is process-wide state.
     vi.resetModules();
     const services = await import("./included-services.ts");
-    vi.stubEnv("DUSK_CLOUD_AI_URL", "https://cloud.example.test/api/cloud/services/ai");
-    vi.stubEnv("DUSK_CLOUD_AI_TOKEN", `dusk_ai_${"a".repeat(43)}`);
     services.holdIncludedServices();
-    expect(process.env.DUSK_CLOUD_AI_TOKEN).toBeUndefined();
-    expect(services.trialCreditCredential()).toEqual({ token: `dusk_ai_${"a".repeat(43)}`, api: "https://cloud.example.test/api/cloud/services/ai", included: true });
     expect(process.env.DUSK_CLOUD_VOICE_TOKEN).toBeUndefined();
     expect(process.env.DUSK_CLOUD_DECIDER_TOKEN).toBeUndefined();
     expect(process.env.DUSK_CLOUD_DECIDER_URL).toBe(RELAY_DECIDER);

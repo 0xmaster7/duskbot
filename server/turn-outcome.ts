@@ -16,7 +16,7 @@ export interface TurnStop {
   cause?: string;
   error?: string;
   /** The engine's own flags on that error (a setup or credit refusal, a stall, a usage limit and its reset). */
-  flags?: Pick<RuntimeError, "setup" | "stalled" | "trialCredit" | "limitResetsAt" | "limit">;
+  flags?: Pick<RuntimeError, "setup" | "stalled" | "limitResetsAt" | "limit">;
   handoffPath?: string;
   /** The turn wrote words of its reply, ran a tool or asked something. */
   acted?: boolean;
@@ -38,8 +38,8 @@ export class TurnStops {
     if (event.type === "cap.exhausted") stop.handoffPath = event.handoffPath;
     else stop.error = error;
     if (event.type === "runtime.error") {
-      const { setup, stalled, trialCredit, limitResetsAt, limit } = event;
-      if (setup || stalled || trialCredit || limitResetsAt || limit) stop.flags = { setup, stalled, trialCredit, limitResetsAt, limit };
+      const { setup, stalled, limitResetsAt, limit } = event;
+      if (setup || stalled || limitResetsAt || limit) stop.flags = { setup, stalled, limitResetsAt, limit };
     }
   }
 

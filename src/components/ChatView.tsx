@@ -39,12 +39,9 @@ import { claudeUpdateTarget, failedTurnCause, signedOutEngine } from "@/lib/fail
 import { plainErrorLine } from "@/lib/plain-error";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import type { PlaceRow } from "../../shared/place-view";
-import { trialCreditKind, type TrialCreditRefusal } from "../../shared/trial-credit";
-import { TrialCreditNotice } from "./TrialCreditNotice";
 import { PartlyDoneRow } from "./PartlyDoneRow";
 import { isPureLeakedSystemHarnessMessage, stripLeakedSystemHarnessMessages } from "../../shared/system-message-guard.ts";
 import { ConversationalReply, QuickModelNote, isConversational, useReplySegments, useThreadOpenedAt } from "./ConversationalReply";
-import type { LocaleKey } from "@/locales";
 import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_URL } from "../../shared/provider-safety";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isThisComputerNotGranted, isThisComputerNotReady } from "../../shared/your-computer";
@@ -264,14 +261,6 @@ function PlaceFailedRow({ place, botId, threadId, onRetry }: {
   return <ErrorRow message={view.line} action={label && onClick ? { label, onClick } : null} />;
 }
 
-const TRIAL_CREDIT_LINE: Record<"paused" | "too_low", LocaleKey> = { paused: "engines.trialCreditPaused", too_low: "engines.trialCreditTooLow" };
-function TrialCreditFailedRow({ kind, onRetry }: { kind: TrialCreditRefusal; onRetry?: () => void }) {
-  const { dispatch } = useStore();
-  if (kind === "used_up" || kind === "ended") return <TrialCreditNotice kind={kind} />;
-  if (kind === "paused") return <ErrorRow message={t(TRIAL_CREDIT_LINE[kind])} onRetry={onRetry} />;
-  return <ErrorRow message={t(TRIAL_CREDIT_LINE[kind])} action={{ label: t("chat.error.connectOwnAi"), onClick: () => dispatch({ type: "toggleAppSettings", open: true, section: "engines" }) }} />;
-}
-
 export function FailedTurnRow({ tool, engine, onRetry, botId, threadId }: {
   tool: NonNullable<Message["tool"]>;
   engine: InstanceInfo | undefined;
@@ -281,8 +270,6 @@ export function FailedTurnRow({ tool, engine, onRetry, botId, threadId }: {
 }) {
   const resume = useLimitResetContinue(botId, threadId, tool.limitResetsAt);
   if (tool.place && botId) return <PlaceFailedRow place={tool.place} botId={botId} threadId={threadId} onRetry={onRetry} />;
-  const credit = trialCreditKind(failedTurnCause(tool.name) ?? "");
-  if (credit) return <TrialCreditFailedRow kind={credit} onRetry={onRetry} />;
   const cause = failedTurnCause(tool.name) ?? tool.name;
   if (tool.partial) return <PartlyDoneRow cause={cause} onRetry={onRetry} />;
   const signedOut = signedOutEngine(tool, engine);

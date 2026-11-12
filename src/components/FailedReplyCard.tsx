@@ -6,7 +6,6 @@ import { statusActivity } from "@/lib/activity-runs";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
 import { failedTurnCause } from "../../shared/failed-turn";
-import { trialCreditKind } from "../../shared/trial-credit";
 import { CARD_ACTION, ChatErrorCard } from "./ChatErrorBanner";
 import { ClaudeUpdatePrompt } from "./ClaudeUpdatePrompt";
 import { aiRunsOnServer } from "./ComposerSignInNotice";
@@ -35,7 +34,6 @@ export function foldedNoticeIds(rows: TrailingRows | null): ReadonlySet<string> 
 const noticeText = (m: Message) => (m.bugReport && bugReportFixedText(m.bugReport)) ?? statusActivity(m)?.text ?? "";
 const openEngines = { type: "toggleAppSettings", open: true, section: "engines" } as const;
 
-const TRIAL_LINE = { used_up: "engines.trialCreditUsedUp", ended: "engines.trialCreditEnded", paused: "engines.trialCreditPaused", too_low: "engines.trialCreditTooLow" } as const;
 
 /** grok's failed-reply card: one card just above the composer for every reply the newest turn lost, gone once anything
  * newer lands or it is closed. In a group it names who couldn't reply and says the reason a person can fix. */
@@ -107,11 +105,6 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     if (botId && tool.blocker.kind === "loop") actions.push({ label: t("chat.blocker.takeOver"), onClick: () => { openPlaceAction("turn-on-browser", { botId, threadId }, dispatch); } });
     if (botId) actions.push({ label: t("chat.blocker.skip"), onClick: () => { close(); dispatch({ type: "send", botId, threadId, text: t("chat.blocker.skipText") }); } });
     actions.push({ label: t("chat.blocker.stop"), onClick: close });
-  } else if (lead.kind === "trial_credit") {
-    const credit = trialCreditKind(failedTurnCause(tool.name) ?? "") ?? "used_up";
-    detail = t(TRIAL_LINE[credit]);
-    if (credit === "paused") { if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry }); }
-    else actions.push({ label: t("chat.error.connectOwnAi"), onClick: () => dispatch(openEngines) });
   } else if (lead.kind === "claude_update") {
     const target = claudeUpdateTarget(lead.engine);
     if (target) { detail = null; update = <ClaudeUpdatePrompt instance={target} onRetry={retry} />; }

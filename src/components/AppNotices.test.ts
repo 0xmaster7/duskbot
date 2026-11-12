@@ -41,7 +41,7 @@ const plans = [
   { tier: "pro", label: "Pro", amount: 4900, trialDays: 7 },
   { tier: "max", label: "Max", amount: 9900, trialDays: 7 },
 ];
-const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
+const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
 const INTRO = "keep your bots working when this computer is off";
 const STAR = "Enjoying dusk bot?";
@@ -159,7 +159,7 @@ describe("the card after the update", () => {
     returning();
     const html = await launch();
     const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always on.", "routines run on time, day and night",
-      "reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $15/month + tax. Cancel any time.",
+      "reach your bots from your phone, even with this computer off", "Then from $15/month + tax. Cancel any time.",
       "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
@@ -184,7 +184,7 @@ describe("the card after the update", () => {
     expect(html).not.toContain(INTRO); expect(html).not.toContain(STAR);
     expect(storage.get(`${CLOUD_INTRO}:days`)).toBeUndefined();
     offer = null; expect(await relaunch()).not.toContain(INTRO);
-    offer = { ...TRIAL_OFFER, refundDays: undefined, creditUsd: undefined };
+    offer = { ...TRIAL_OFFER, refundDays: undefined };
     html = await relaunch();
     expect(html).toContain(INTRO); expect(html).toContain("dusk cloud runs your bots for you in the cloud, always on.");
     expect(html).not.toContain("money-back"); expect(html).not.toContain("Claude credit");
@@ -289,10 +289,10 @@ describe("the card after the update", () => {
 describe("the free trial's notice, here and on My Cloud", () => {
   it("shows the notice main says is due, tells main once, and stays up until it is closed", async () => {
     const running = trial("active", { switchTo: { tier: "starter", amount: 1500 } });
-    account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active", credit: { grantedUsd: 5, remainingUsd: 3.2, state: "active" } };
+    account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
     offer = { ...PLAIN_OFFER };
     const html = await launch();
-    expect(html).toContain("your free trial ends on"); expect(html).toContain("Includes $5 of Claude credit: $3.20 left.");
+    expect(html).toContain("your free trial ends on"); expect(html).not.toContain("Claude credit");
     expect(html).toContain("Prefer Starter at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();

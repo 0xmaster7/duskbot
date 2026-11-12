@@ -21,7 +21,7 @@ const { setLocale } = await import("@/lib/i18n");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const BASE: CloudSendNotice = { ready: false, bots: [], updatedBots: [], skills: 0, logins: 0, onePassword: false, settings: 0, signature: "", dismissed: false, running: false, last: null };
-const DONE: CloudSendNotice = { ...BASE, move: { phase: "done", phone: false, held: [], counts: { bots: 12, skills: 4, logins: 0, onePassword: false, chats: 48, routines: 2 } } };
+const DONE: CloudSendNotice = { ...BASE, move: { phase: "done", phone: false, counts: { bots: 12, skills: 4, logins: 0, onePassword: false, chats: 48, routines: 2 } } };
 const JARGON = /\b(pause|passes|pass|verify|verified|automations?|freeze|check)\b/iu;
 let host: HTMLDivElement, root: Root;
 let current: CloudSendNotice;
@@ -206,5 +206,5 @@ it("progress only moves forward in the scene's terms: the last bot hops once eve
   expect(botsAcross(moveProgress({ phase: "copy" }), 3)).toBe(0);
   expect(botsAcross(moveProgress({ phase: "copy", chats: { done: 120, total: 120 } }), 3)).toBe(2);
   expect(botsAcross(moveProgress({ phase: "finishing" }), 3)).toBe(2);
-  expect(botsAcross(moveProgress({ phase: "done", phone: false, held: [] }), 3)).toBe(3);
+  expect(botsAcross(moveProgress({ phase: "done", phone: false }), 3)).toBe(3);
 });

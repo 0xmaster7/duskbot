@@ -2,7 +2,7 @@ import { Children, createElement, isValidElement, type EffectCallback, type Reac
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CloudAccountState, CloudCheckoutResult } from "../../electron/cloud-account.mjs";
-import type { CloudCredit, CloudOffer, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
+import type { CloudOffer, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
 import { parseCloudOffer } from "../../electron/cloud-home.mjs";
 import { setLocale } from "@/lib/i18n";
 
@@ -32,13 +32,12 @@ const PLANS = [
   { tier: "pro", label: "Pro", amount: 4900, allowances: allowances(4, 100, 15, 300, 60_000), trialDays: 7 },
   { tier: "max", label: "Max", amount: 9900, allowances: allowances(8, 100, 15, 800, 180_000), trialDays: 7 },
 ];
-const TRIAL: CloudOffer = { plans: PLANS, recommended: "pro", creditUsd: 5, reminderDays: 2, refundDays: 14 };
+const TRIAL: CloudOffer = { plans: PLANS, recommended: "pro", reminderDays: 2, refundDays: 14 };
 const PLAIN: CloudOffer = { plans: PLANS.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
 const EMAIL = "person@example.test";
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: EMAIL }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
 const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
 const trial = (extra: Partial<CloudTrial> = {}): CloudTrial => ({ state: "active", tier: "pro", endsAt: NOW + 7 * DAY, amount: 4900, chargeAt: NOW + 7 * DAY, holdUntil: null, deleteAt: null, keep: "none", ...extra });
-const credit: CloudCredit = { grantedUsd: 5, remainingUsd: 5, state: "active" };
 const ready = { status: "ready" as const, origin: "https://dusk-u-1.fly.dev" };
 const acme = (machine: CloudTeam["machine"] = { status: "ready", origin: "https://dusk-t-2.fly.dev" }): CloudTeam => ({ id: "team-acme", name: "Acme", role: "owner", machine });
 const onTeam = (machine?: CloudTeam["machine"]): CloudAccountState => paid({ entitlement: { plan: "pro", tier: "team", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, teams: [acme(machine)] });
@@ -88,7 +87,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       "free for 7 days, then $49/month + tax",
       "Max", "$99", "/month", "The biggest cloud machine, for bots that use computers all day.", ...card(800, 100, "about 3 hours of speech a month", 8, 4),
       "free for 7 days, then $99/month + tax",
-      "today", "trial starts, with $5 of Claude credit", "Oct 13", "reminder email", "Oct 15", "first payment",
+      "today", "trial starts", "Oct 13", "reminder email", "Oct 15", "first payment",
       "Card needed, nothing charged until your trial ends. Cancel in the app any time.", "14-day money-back",
       "every plan includes", "works while you're away", "Routines, long jobs and replies keep going around the clock.", "private to you", "reach it from anywhere",
       "a real browser and desktop", "bring everything over", "Your bots, chats and memory move across in about a minute.",
@@ -140,7 +139,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     const wire = ({ tier, label, amount, allowances }: (typeof PLANS)[number]) => ({ tier, label, price: { currency: "USD", amount, interval: "month" }, allowances });
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     for (const recommended of ["pro", "personal"]) {
-      const older = parseCloudOffer({ plans: [wire(PLANS[0]!), wire(personal), wire(PLANS[1]!), wire(PLANS[2]!)], recommended, trialDays: 7, creditUsd: 5, refundDays: 14 })!;
+      const older = parseCloudOffer({ plans: [wire(PLANS[0]!), wire(personal), wire(PLANS[1]!), wire(PLANS[2]!)], recommended, trialDays: 7, refundDays: 14 })!;
       const { html } = panel({ kind: "offer", offer: older, signedOut: true, notice: null }, { offerShown: older });
       const why = `recommended ${recommended}`;
       for (const gone of ["Personal", "$29", 'data-plan="personal"']) expect(html, why).not.toContain(gone);
@@ -262,10 +261,10 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(text(panel({ ...waiting, browser: "signin", link: false }).html)).toContain("Your browser shows the next step.");
   });
 
-  it("setting up: the badge (trial, credit, or paid), the Admin's steps, a name, a colour and the switcher preview; Open waits for ready", () => {
-    const starting: CloudAddView = { kind: "starting", tier: "pro", trial: trial(), credit, step: "storage", slow: false, received: false };
+  it("setting up: the badge (trial or paid), the Admin's steps, a name, a colour and the switcher preview; Open waits for ready", () => {
+    const starting: CloudAddView = { kind: "starting", tier: "pro", trial: trial(), step: "storage", slow: false, received: false };
     const { html, tree, handlers } = panel(starting);
-    inOrder(text(html), ["Pro trial started · $5 Claude credit added", "setting up your new cloud", "About 2 minutes. Keep working if you like, it opens when it's ready.",
+    inOrder(text(html), ["Pro trial started", "setting up your new cloud", "About 2 minutes. Keep working if you like, it opens when it's ready.",
       "reserving your machine", "preparing storage", "starting Studio", "checking it's ready", "name it", "pick a colour", "in your switcher", "Studio", "Pro · always on", "open Studio"]);
     expect(html).toContain('aria-valuenow="25"');
     expect(button(tree, "open Studio")!.props.disabled).toBe(true);
@@ -277,15 +276,14 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       ["blue", "blue", false], ["teal", "teal", true], ["purple", "purple", false], ["orange", "orange", false], ["red", "red", false], ["yellow", "yellow", false]]);
     swatches[4]!.props.onClick(); expect(handlers.color).toHaveBeenCalledWith("red");
     expect(swatches[0]!.props.style.background).toBe("var(--identity-blue)");
-    expect(text(panel({ ...starting, trial: null, credit: null }).html)).toContain("Pro started");
-    expect(text(panel({ ...starting, credit: null }).html)).toMatch(/Pro trial started (?!·)/);
-    const received = text(panel({ ...starting, trial: null, credit: null, received: true, step: null }).html);
+    expect(text(panel({ ...starting, trial: null }).html)).toContain("Pro started");
+    const received = text(panel({ ...starting, trial: null, received: true, step: null }).html);
     inOrder(received, ["payment received", "setting up your new cloud", "We're linking your payment to this account"]);
     expect(text(panel({ ...starting, slow: true }).html)).toContain("This is taking longer than usual.");
   });
 
   it("ready: it opens by itself in 3 seconds unless Not now; otherwise Open {name}", () => {
-    const view: CloudAddView = { kind: "ready", tier: "pro", trial: trial(), credit };
+    const view: CloudAddView = { kind: "ready", tier: "pro", trial: trial() };
     const { html, tree, handlers } = panel(view, { counting: 3 });
     inOrder(text(html), ["Studio is ready", "It keeps your bots running 24/7, even when this computer is off.", "opening in 3…", "Not now", "open Studio"]);
     expect(html).toContain('aria-valuenow="100"');
@@ -513,7 +511,7 @@ describe("the sheet", () => {
 
   it("ready while open in the focused window: opening in 3…, then the Cloud opens; Not now stops it; unfocused, Open {name}", async () => {
     vi.useFakeTimers();
-    account = paid({ trial: trial(), credit, machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
+    account = paid({ trial: trial(), machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
     expect(await settle()).toContain("opening in 3…");
     expect(bridge.look).toHaveBeenCalled();
     expect(await settle()).toContain("open My Cloud");
@@ -548,7 +546,7 @@ describe("the sheet", () => {
     const hide = showWelcome();
     try {
       f.state = { cloudAdd: { source: "app_onboarding" }, config: {} };
-      account = paid({ trial: trial(), credit, machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
+      account = paid({ trial: trial(), machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
       const html = await settle();
       expect(html).toContain("My Cloud is ready"); expect(html).toContain("open My Cloud"); expect(html).not.toContain("opening in");
       vi.advanceTimersByTime(10_000); await settle();

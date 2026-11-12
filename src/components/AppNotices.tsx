@@ -186,7 +186,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
       onNotNow={() => done("not_now")} />;
   }
   if (notice === CLOUD_TRIAL_NOTICE && trial) {
-    const shown = cloudTrialView(trial, plan?.credit);
+    const shown = cloudTrialView(trial);
     const act = () => { setFailed(false); void planBridge?.manage().then(() => { noticeClosed(true); close(); }, () => setFailed(true)); };
     return <CloudTrialNoticeCard view={shown} failed={failed} onAction={act} onClose={close} />;
   }

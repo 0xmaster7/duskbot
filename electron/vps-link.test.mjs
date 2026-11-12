@@ -235,7 +235,7 @@ describe("Add your VPS", () => {
     expect(local.calls).not.toContain("POST /api/move/forget");
     phase = { phase: "finishing" };
     await until(() => link.view().move?.step === "verify");
-    phase = { phase: "done", phone: false, held: [] };
+    phase = { phase: "done", phone: false };
     const moved = await until(() => link.view().stage === "moved" && link.view());
     expect(moved.move).toMatchObject({ step: "done", status: "done" });
     expect(local.calls.filter((call) => call === "POST /api/move/forget")).toHaveLength(1);

@@ -467,7 +467,6 @@ export interface InstanceInfo {
   displayName: string;
   icon?: import("../../shared/provider-icon").ProviderIcon;
   readOnly?: boolean;
-  trialCredit?: "active" | "used_up" | "ended";
   managed?: { organizationId: string; organizationName: string };
   policy?: { organizationName: string; reason: string; team?: boolean };
   snapshot: {

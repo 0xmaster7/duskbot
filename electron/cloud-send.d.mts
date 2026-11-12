@@ -24,9 +24,8 @@ export interface CloudSendResult {
   memory?: number;
   files?: { sent: number; kept: number };
   conversationSettings?: number;
-  /** model: kept My Cloud's engine; settings: a setting My Cloud refused; narrowed: a login kept to bots My Cloud lacks; memory: notes not copied;
-   * held: a key a trial's Cloud keeps unused while its Claude credit lasts. */
-  notes: Array<{ kind: "model" | "settings" | "narrowed" | "memory" | "held"; bot?: string; login?: string; connection?: string }>;
+  /** model: kept My Cloud's engine; settings: a setting My Cloud refused; narrowed: a login kept to bots My Cloud lacks; memory: notes not copied. */
+  notes: Array<{ kind: "model" | "settings" | "narrowed" | "memory"; bot?: string; login?: string; connection?: string }>;
 }
 /** `error`: the send failed as a whole (nothing after that point went), in words for the person. */
 export interface CloudSendOutcome { at: number; reason: string; result: CloudSendResult; error?: string }

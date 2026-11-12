@@ -18,7 +18,7 @@ import { textFieldCls } from "./ui/GrokDialog";
 export type AccountGroup = "claude" | "chatgpt";
 
 export function accountGroupOf(instance: InstanceInfo): AccountGroup | null {
-  if (instance.readOnly || instance.trialCredit || instance.access === "custom" || instance.access === "api") return null;
+  if (instance.readOnly || instance.access === "custom" || instance.access === "api") return null;
   if (instance.driverKind === "claudeAgent") return "claude";
   const method = instance.authentication?.method;
   return instance.snapshot.chatgptPlan === true || ((method === "device-code" || method === "browser-pkce") && deviceSignInProvider(instance.driverKind) === "codex")

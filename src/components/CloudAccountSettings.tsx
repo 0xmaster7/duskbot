@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { CloudAccountState, CloudPlanBridge, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
-import type { CloudCredit, CloudMachine, CloudTrial } from "../../electron/cloud-home.mjs";
+import type { CloudMachine, CloudTrial } from "../../electron/cloud-home.mjs";
 import { planTeam, teamPlan } from "../../electron/cloud-team-plan.mjs";
 import { moveLine } from "@/lib/cloud-send";
 import { activeLocale, t } from "@/lib/i18n";
-import { buyOfferAllowed, cloudCreditLine, cloudPlanLabel, cloudPlanLine, cloudPlanView, cloudTrialView, moneyBackLine, offerTrialDays, trialRunning, type CloudPlanView } from "@/lib/cloud-plan";
+import { buyOfferAllowed, cloudPlanLabel, cloudPlanLine, cloudPlanView, cloudTrialView, moneyBackLine, offerTrialDays, trialRunning, type CloudPlanView } from "@/lib/cloud-plan";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
 import type { LocaleKey } from "@/locales";
 import { AccountsSheet } from "./AccountMenu";
@@ -29,13 +29,12 @@ const MACHINE_TEXT = {
 const time = (value: number) => new Intl.DateTimeFormat(activeLocale(), { timeStyle: "short" }).format(new Date(value));
 const day = (value: number) => new Intl.DateTimeFormat(activeLocale(), { dateStyle: "medium" }).format(new Date(value));
 
-function trialLines(trial: CloudTrial | undefined, credit: CloudCredit | undefined) {
-  if (!trial && !credit) return null;
-  const view = trial ? cloudTrialView(trial) : null;
-  return <div data-cloud-trial={trial?.state ?? "none"} className="flex flex-col gap-1">
-    {view && <p className="text-[13px] font-medium text-ink">{view.title}</p>}
-    {view && <p className="text-[13px] leading-relaxed text-ink-secondary">{view.body}</p>}
-    {credit && <p data-cloud-credit={credit.state} className="text-[13px] leading-relaxed text-ink-secondary">{cloudCreditLine(credit)}</p>}
+function trialLines(trial: CloudTrial | undefined) {
+  if (!trial) return null;
+  const view = cloudTrialView(trial);
+  return <div data-cloud-trial={trial.state} className="flex flex-col gap-1">
+    <p className="text-[13px] font-medium text-ink">{view.title}</p>
+    <p className="text-[13px] leading-relaxed text-ink-secondary">{view.body}</p>
   </div>;
 }
 
@@ -152,7 +151,7 @@ export function CloudPlanOnCloud({ bridge, onConnectPhone }: { bridge: CloudPlan
     <div data-cloud-plan={plan?.status ?? "loading"} className="flex flex-col items-start gap-3">
       {line ? <p role="status" className="text-[15px] font-medium text-ink">{line}</p> : !plan && <p role="status" className="text-[13px] text-ink-secondary">{t("cloudAccount.loading")}</p>}
       {plan?.status === "signin" && <p className="text-[13px] text-ink-secondary">{t("cloudAccount.onCloudSignIn")}</p>}
-      {trialLines(plan?.trial, plan?.credit)}
+      {trialLines(plan?.trial)}
       <div className="flex flex-wrap gap-2">
         {plan?.status === "signin" && bridge.signIn && <button type="button" className="ui-button ui-button-primary" onClick={() => act(() => bridge.signIn!())}>{t("cloudAccount.signInAgain")}</button>}
         <button type="button" className="ui-button" onClick={() => act(() => bridge.manage())}>{(plan?.trial && !plan.renewal?.cancelled && cloudTrialView(plan.trial).action?.label) || t("cloudAccount.manageInBrowser")}</button>
@@ -290,7 +289,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
         {account.account && <p className="break-all text-[14px] text-ink">{account.account.email}</p>}
         {line && <p role="status" data-cloud-plan={view.kind} className="text-[15px] font-medium text-ink">{line}
           {view.kind === "paid" && view.checking && <span className="ms-2 text-[12px] font-normal text-ink-secondary">{t("cloudAccount.checking")}</span>}</p>}
-        {account.status === "connected" && trialLines(account.trial, account.credit)}
+        {account.status === "connected" && trialLines(account.trial)}
         {view.kind === "free" && addCloudButton}
         <div className="flex flex-wrap gap-2">
           {view.kind === "reauth"

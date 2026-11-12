@@ -2,7 +2,7 @@
 // headers, so no network request is ever the loopback owner. The Admin never holds a session: it signs a request with the
 // bootstrap secret (HMAC-SHA256 over method, path and query, timestamp, nonce and body hash). A valid pairing request opens
 // one ordinary pairing window; a valid health request reads the content-free health report (server/cloud-health.ts).
-// Nothing on a Cloud home is routed to a platform model gateway, except a free trial's Claude credit.
+// Nothing on a Cloud home is routed to a platform model gateway.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import type { IncomingMessage } from "node:http";

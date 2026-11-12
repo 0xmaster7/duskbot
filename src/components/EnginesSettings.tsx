@@ -281,10 +281,6 @@ function AntigravityAccountAction({ instance, action }: { instance: InstanceInfo
 
 function EngineRow({ instance, bare = false }: { instance: InstanceInfo; bare?: boolean }) {
   const policy = instance.policy && <NoteRow><span className="text-ink">{t("policy.managedBy", { organization: instance.policy.organizationName })}</span> · {instance.policy.reason}</NoteRow>;
-  if (instance.trialCredit) return <EngineCard instance={instance} bare={bare}>
-    <RowsCard><NoteRow><span data-trial-credit={instance.trialCredit}>{t(instance.trialCredit === "used_up" ? "engines.trialCreditUsedUp"
-      : instance.trialCredit === "ended" ? "engines.trialCreditEnded" : engineReady(instance) ? "engines.trialCredit" : "engines.trialCreditOwn")}</span></NoteRow></RowsCard>
-  </EngineCard>;
   if (instance.readOnly) return <EngineCard instance={instance} bare={bare}>
     <RowsCard>
       {policy}

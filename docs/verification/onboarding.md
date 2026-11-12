@@ -107,15 +107,14 @@ node --experimental-strip-types scripts/verify-cloud-welcome.ts
 
 It launches the isolated fake-engine fixture and mounts the whole app
 (`scripts/testing/cloud-welcome-preview.tsx`) in a Vite preview whose
-session and config answer as a Cloud home's owner, with Claude signed out and
-the trial's Claude credit in the engine list. Open the printed `previewUrl`:
+session and config answer as a Cloud home's owner, with Claude signed out. Open the printed `previewUrl`:
 
 - `?desktop=1` adds the reduced bridge a Cloud's page gets in the desktop app;
   `?move=copy` or `?move=done` shows the one-time move on its way or landed
   (6 bots, 142 chats, 4 routines).
 - `?step=engine`, `?step=files` or `?step=done` opens the welcome on that step;
   `?skin=daylight` (or any skin) picks the skin.
-- `POST /__fixture/engines?mode=signed-in` (or `signed-out`, `credit`) changes
+- `POST /__fixture/engines?mode=signed-in` (or `signed-out`) changes
   the engine list for the next load.
 
 What was checked this way (Oct 16 2026): every step and the done state in

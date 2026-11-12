@@ -14,7 +14,7 @@ const BASE: CloudSendNotice = { ready: false, bots: [], updatedBots: [], skills:
 const MOVES: Record<string, OneHomeView> = {
   copy: { phase: "copy", chats: { done: 70, total: 142 } },
   failing: { phase: "copy", failing: { error: "My Cloud did not answer." } },
-  done: { phase: "done", counts: { bots: 12, skills: 5, logins: 2, onePassword: false, chats: 142, routines: 4 }, phone: false, held: [] },
+  done: { phase: "done", counts: { bots: 12, skills: 5, logins: 2, onePassword: false, chats: 142, routines: 4 }, phone: false },
 };
 const offer = params.get("offer");
 let notice: CloudSendNotice = {

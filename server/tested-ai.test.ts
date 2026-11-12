@@ -388,7 +388,7 @@ describe("testing an AI with one tiny message before a new bot's default trusts 
     }
   });
 
-  it("tests the person's own AIs in the order the default picks them, and never an organization's or the trial credit", async () => {
+  it("tests the person's own AIs in the order the default picks them, and never an organization's", async () => {
     company = (instanceId) => instanceId === "company.claude";
     instances = [ready("company.claude", "claudeAgent"), ready("grok", "grokAgent")];
     await boot();

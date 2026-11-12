@@ -21,7 +21,7 @@ function providerError(json: ProviderBody): string | null {
 
 const MACHINE_CODE = /^[a-z][a-z0-9_]*$/;
 
-/** A failed response's own error message, then its machine code (trial-credit.ts parses it), else the raw body. */
+/** A failed response's own error message, then its machine code, else the raw body. */
 export function httpErrorDetail(body: string, limit = 500): string {
   let json: ProviderBody | undefined;
   try { json = object(JSON.parse(body)); } catch { json = undefined; }

@@ -8,10 +8,9 @@ import { isReceipt } from "@/lib/receipts";
 import type { LocaleKey } from "@/locales";
 import type { InstanceInfo, Message } from "@/state/store";
 import { failedTurnCause, type BrowserBlocker, type FailedReplyReason } from "../../shared/failed-turn";
-import { trialCreditKind } from "../../shared/trial-credit";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 
-export type FailedReplyKind = FailedReplyReason | "claude_update" | "trial_credit" | "place" | "restart_interrupted" | "no_answer" | "blocker" | "other";
+export type FailedReplyKind = FailedReplyReason | "claude_update" | "place" | "restart_interrupted" | "no_answer" | "blocker" | "other";
 
 /** A failed turn's row: a reply that never came, not one that came back with a step that failed. */
 export function isFailedReply(message: Message): boolean {
@@ -69,7 +68,6 @@ export function failedReplyKind(tool: NonNullable<Message["tool"]>, engine: Inst
   if (tool.blocker) return "blocker";
   const cause = failedTurnCause(tool.name) ?? tool.name;
   if (tool.place) return "place";
-  if (trialCreditKind(cause)) return "trial_credit";
   if (tool.claudeUpdate) return "claude_update";
   if (RESTART_CUT.test(cause)) return "restart_interrupted";
   let kind: FailedReplyKind = tool.reason ?? (
@@ -95,13 +93,13 @@ export function plainFailureWords(cause: string): string | null {
 }
 
 /** Most actionable first: when bots fail for different reasons, the card says the one a person can fix. */
-const PRIORITY: FailedReplyKind[] = ["blocker", "signed_out", "claude_update", "credits", "trial_credit", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
+const PRIORITY: FailedReplyKind[] = ["blocker", "signed_out", "claude_update", "credits", "usage_limit", "place", "restart_interrupted", "rate_limit", "overloaded", "timeout", "no_answer", "other"];
 
 export function mostActionable<T extends { kind: FailedReplyKind }>(items: readonly T[]): T | undefined {
   return [...items].sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind))[0];
 }
 
-const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude_update" | "trial_credit" | "place" | "blocker">, LocaleKey> = {
+const DETAIL: Record<Exclude<FailedReplyKind, "signed_out" | "credits" | "claude_update" | "place" | "blocker">, LocaleKey> = {
   usage_limit: "failedReply.usageLimit",
   rate_limit: "failedReply.rateLimited",
   overloaded: "failedReply.overloaded",
@@ -117,7 +115,7 @@ export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onS
   if (kind === "signed_out") return t(onServer ? "failedReply.signedOutServer" : "failedReply.signedOutHere", { engine: engineName });
   if (kind === "credits") return t("failedReply.credits", { engine: engineName });
   if (kind === "claude_update") return t("chat.claudeUpdate.offer");
-  if (kind === "trial_credit" || kind === "place" || kind === "blocker") return t("error.plain.generic");
+  if (kind === "place" || kind === "blocker") return t("error.plain.generic");
   if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? cause.trim();
   return t(DETAIL[kind]);
 }

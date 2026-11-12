@@ -1,5 +1,5 @@
-// Why every routine waits now (routine-holds.ts), on a Cloud home, read from three places: whether any AI of the owner's
-// own can still run here (cloud-credit-moves.ts `away`, read with the engines), whether the owner removed every connected
+// Why every routine waits now (routine-holds.ts), on a Cloud home, read from three places: whether the owner had an AI of
+// their own signed in here and none can run now (read with the engines), whether the owner removed every connected
 // app and MCP server (marked when the last one goes, cleared when one comes back), and whether the plan was cancelled (the
 // Admin's signed request, routes/cloud-signed.ts). What was last read is kept in routine-holds.json, so a restart neither
 // frees nor pauses anything before the engines are read again. A cause that begins and pauses routines writes one quiet
@@ -22,7 +22,7 @@ export const ROUTINE_HOLD_LINES: Record<RoutineHoldCause, string> = {
   no_connections: "Your routines are paused: every connected app and MCP server was removed. They turn back on when you connect one, or turn one back on in Routines.",
 };
 
-interface Saved { away?: true; planCancelled?: true; connectionsGone?: true }
+interface Saved { hadOwn?: true; away?: true; planCancelled?: true; connectionsGone?: true }
 
 export interface RoutineHoldsHostDeps {
   dataDir: string;
@@ -41,7 +41,7 @@ export function createRoutineHoldsHost(deps: RoutineHoldsHostDeps) {
   let saved: Saved = {};
   try {
     const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
-    saved = { ...(raw.away === true ? { away: true } : {}), ...(raw.planCancelled === true ? { planCancelled: true } : {}), ...(raw.connectionsGone === true ? { connectionsGone: true } : {}) };
+    saved = { ...(raw.hadOwn === true ? { hadOwn: true } : {}), ...(raw.away === true ? { away: true } : {}), ...(raw.planCancelled === true ? { planCancelled: true } : {}), ...(raw.connectionsGone === true ? { connectionsGone: true } : {}) };
   } catch { /* none kept yet */ }
   let rechecked = 0;
   let rechecking = false;
@@ -104,9 +104,11 @@ export function createRoutineHoldsHost(deps: RoutineHoldsHostDeps) {
       review();
     },
     review,
-    /** The engines were read: whether no AI of the owner's own can run here, for sure. */
-    engines(away: boolean): void {
-      save({ ...saved, away: away ? true : undefined });
+    /** The engines were read: whether any AI of the owner's own can run here, and whether one is signed in for sure. Routines
+     * wait only once one was signed in here and none can run now, never on a Cloud that never had one. */
+    engines({ ready, signedIn }: { ready: boolean; signedIn: boolean }): void {
+      const hadOwn = saved.hadOwn || signedIn ? true : undefined;
+      save({ ...saved, hadOwn, away: hadOwn && !ready ? true : undefined });
       review();
     },
     /** The Admin's word on the plan: cancelled (routines pause), or renewing again (they turn back on). */

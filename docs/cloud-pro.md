@@ -14,9 +14,7 @@ the app itself is still dusk bot.
 dusk cloud includes no AI usage. The person signs in on their machine with their
 own Claude or ChatGPT subscription, or an API key, through the same sign-in
 flows as any dusk bot server. Nothing on a Cloud home is routed to a
-platform model gateway. The one exception is a free trial's Claude credit, a
-small one-time amount the Admin meters on its own relay, used only until the
-person connects their own AI ([Trial Claude credit](#trial-claude-credit)).
+platform model gateway.
 
 This page is the dusk bot half of a contract with three parties:
 
@@ -61,10 +59,9 @@ Contract version: `1` (`cloudContractVersion` on the wire).
       say), it says **Your bots are already here**, and **Continue** moves on.
       A backup file is imported from Settings → Backups, as on any server.
    2. **Connect your AI**: the engine sign-in's own tiles and sign-in panel
-      (below), with **Connected** on one that can run. While the trial's Claude
-      credit lasts and nothing of the person's own can run, a line says so
-      (with the amount where the desktop app knows it), and **Use my credit for
-      now** moves on.
+      (below), with **Connected** on one that can run: Claude recommended
+      first, ChatGPT, Gemini or an API key under **Other ways**. dusk bot
+      provides no AI usage; with nothing connected, **Skip for now** moves on.
    3. **Files and apps**, optional: **Share folders** opens Settings → Dusk
       Cloud in this computer's window, one click from Files (a browser is told
       to use the desktop app), and **Connect apps** opens Connected apps on the
@@ -328,7 +325,7 @@ the welcome fills the window the card does not show. When the person steps
 away from the welcome, the card lists **Create your Cloud** (done from the
 start), **Bring your stuff** (done once this computer's things came over or
 after a team from the library, skipped after Start fresh or Skip for now), **Connect your AI** (done once the welcome's step was
-passed with an engine that can run, the trial's credit included; skipped when
+passed with an engine that can run; skipped when
 passed without one) and **Files and apps**, and the step that leads offers
 **Continue setup**, which opens the welcome on that step. After the welcome
 ends, the card stays only while no engine can run, or while a job given at
@@ -800,7 +797,7 @@ never echoes a secret.
 
 ### No model gateway
 
-dusk cloud includes no AI, so the contract has no model gateway. Apart from a free trial's Claude credit, the person's own engines are the only way to a model.
+dusk cloud includes no AI, so the contract has no model gateway. The person's own engines are the only way to a model.
 
 ### Included voice and decisions
 
@@ -908,79 +905,14 @@ Cloud's app-event limit (2,000 a day instead of a desktop's 500). Without it a
 Cloud gets the desktop limit. The grant's format is in
 [the broker's README](../apps/cloudflare/composio-broker/README.md#paid-clouds).
 
-### Trial Claude credit
+### Checked once connected
 
-A free trial may come with a one-time Claude credit (the Admin's
-`DUSK_CLOUD_TRIAL_CREDIT_USD`). While it lasts, and only while the person has
-no AI of their own on My Cloud, bots run on Claude through the Admin's relay,
-which holds the provider key and meters the credit. For an account with a
-credit, the Admin also sets:
-
-| Variable | Fly | Value |
-| --- | --- | --- |
-| `DUSK_CLOUD_AI_URL` | env | `https://dusk.bot/api/cloud/services/ai/v1`, an OpenAI-compatible base URL with its `/v1` (as the Admin sends it): `POST {url}/chat/completions` and `GET {url}/models` only. Nothing Anthropic-shaped (no `/v1/messages`) answers a credit token. |
-| `DUSK_CLOUD_AI_TOKEN` | secret | This machine's credit token (`dusk_ai_…`), sent as `Authorization: Bearer`. It works only through the relay, only for this account's credit, and not at all once it is spent or the Cloud is deleted. |
-
-- **dusk bot's own chat engine, nothing else.** `server/cloud-credit-provider.ts`
-  adds one read-only **Trial credit · Claude** engine: the OpenAI-compatible
-  driver (`openai-compat`, the same chat engine and tools as any API key) with
-  the relay as its address and the token as its own key, on the models the
-  relay lists, the default first (the Admin lists Sonnet first, Haiku after;
-  OpenRouter's `provider/model` ids too). Never Claude Code and never Codex: the
-  platform's key is never used to run another product's agent for anyone, and
-  no `ANTHROPIC_*` variable or Claude config folder ever holds the token. It
-  is never saved to `config.json` and has no sign-in. The token is held like
-  the included tokens (pipe, memory, the credential lists) and reaches only
-  the relay; it is never shown, saved or logged. The address must be HTTPS and
-  the token the Admin's shape, or there is no credit.
-- **Out of the box.** A new Cloud's first bot runs on it when nothing of the
-  person's own can run there (the first start waits up to 15 seconds for the
-  relay's model list), so My Cloud opens on the chat, not the engine sign-in.
-  A bot runs on the credit's default model unless the person picks another;
-  when the relay's default changes (Haiku to Sonnet), bots still on the old
-  default follow it.
-- **Every bot runs.** While nothing of the person's own has ever been signed in
-  here, a bot on an engine My Cloud can't run (a desktop copy's own Claude or Codex, signed
-  out here, or an engine only that desktop has) moves onto the credit when the
-  engines are read: at start, when the credit's list arrives, when the app
-  reads the engines, and before a message to that bot is sent. Where it came
-  from is kept in `providers/trial-credit/moved.json` (it never travels in a
-  backup or a move). An engine whose sign-in can't be read yet is left alone
-  (`server/cloud-credit-moves.ts`).
-- **Their own always wins.** A new bot gets the person's own engine whenever
-  one can run. From the moment one is signed in for sure (a sign-in, a key),
-  each bot and conversation still on the credit moves to it, with one line in
-  each, and the credit is not offered to bots any more. A bot that came from
-  another engine goes back to that engine and model when it is the one signed
-  in; otherwise it takes the new-bot default among the person's own. From then
-  on the credit takes no bot by itself: signing out of the last engine (or a
-  sign-in that lapsed) leaves every bot where it is, so a message to one says
-  to sign in again and routines wait
-  ([Routines wait while the owner has left](#routines-wait-while-the-owner-has-left)).
-  A bot can still be put on the credit by hand. That an engine of the person's
-  own was signed in is kept in `providers/trial-credit/own.json`.
-- **Checked once connected.** Right after an engine is connected in the
-  welcome's **Connect your AI** step or the engine sign-in, the app sends it
-  one tiny real message (`POST /api/instances/:id/check`) and says
-  **Claude is working** or what to fix (sign in again, the provider's own
-  refusal in plain words), with **Test again**. No step is added; an engine
-  already connected is not checked again.
-- **Used up or gone.** The relay's refusal reads as one plain sentence that
-  names the next step, never the API's JSON (`server/trial-credit.ts`), told
-  apart by the relay's own error `code`, which it puts first in its error
-  object (the chat engine keeps only the start of an error body): `402`
-  `trial_credit_used_up` is used up, `402` `trial_credit_ended` or `401`
-  `invalid_api_key` (a token it no longer knows) is no longer on this Cloud.
-  The engine then stops offering itself until another token arrives (kept
-  across restarts), and with no AI of their own My Cloud opens on its engine
-  sign-in, saying why. In a chat, used up or gone is a quiet note with
-  **Connect your own AI**, never an error. A `401`, `402` or `403` without the relay's code (a
-  proxy's page) is an ordinary failed turn. `429` (paused for now: the day's
-  ceiling, a Cloud being stopped, or the Admin's own account with Anthropic)
-  and `400` `trial_credit_too_low` (too little left for this chat; a new chat
-  still runs) are only failed turns. A background call (a title, a summary)
-  the relay refuses for good ends the credit the same way. Chat words each
-  refusal again in the reader's language (`shared/trial-credit.ts`).
+Right after an engine is connected in the
+welcome's **Connect your AI** step or the engine sign-in, the app sends it
+one tiny real message (`POST /api/instances/:id/check`) and says
+**Claude is working** or what to fix (sign in again, the provider's own
+refusal in plain words), with **Test again**. No step is added; an engine
+already connected is not checked again.
 
 ## Pairing: the Admin's signed request
 
@@ -1095,8 +1027,7 @@ thread ids, and a sequence number the cursor follows; at most 200 buckets,
 the one quiet longest dropped first. The code is the first that applies: the
 place's state (`shared/place-view.ts`); a cause the server words itself
 (`stalled`, `restart`, `could_not_start`, `incident_undelivered`,
-`approval_undelivered`, `event_log`); the trial credit's refusal
-(`trial_used_up`, …); the turn's stop reason when it says more than "failed"
+`approval_undelivered`, `event_log`); the turn's stop reason when it says more than "failed"
 (`auth_required`, `shutdown_timeout`, `provider_safety`, `update_required`,
 `spawn_error`, `quota`, `tool_error`: a tool call that failed or wasn't allowed); the cause's class (`server/drivers/retry.ts`:
 `auth`, `quota`, `rate_limited`, …); the generic stop reason (`rpc_error`);
@@ -1300,8 +1231,6 @@ without them works as before; a malformed one is dropped, never the machine):
   neither, the trial says nothing about switching. An unknown state is no
   trial; a malformed date or amount is left out. It is display only: the
   entitlement still decides everything.
-- `cloud.credit: {grantedUsd, remainingUsd, state}`: the trial's Claude
-  credit (`active` or `used_up`), shown in Settings here and on the Cloud.
 - `clouds[]` (top level): every Cloud the person can open. The app reads the
   plan's renewal from it (`electron/cloud-home.mjs`
   `parseCloudRenewal`): the account's own primary Cloud's `renewal: {trial,
@@ -1436,7 +1365,7 @@ for a later launch.
    has used the app before this launch, only while the Admin offers a trial
    (it waits for one), and never on a desktop whose first-run welcome
    showed its dusk cloud step. Its numbers are the Admin's: the trial's
-   days, the lowest monthly price, the Claude credit and money-back. At most
+   days, the lowest monthly price and money-back. At most
    once a calendar day, on at most three days (one for someone who closed the
    earlier Pro card), kept in browser storage and the workspace's hint record;
    any button, its X or Escape end it for good. **Start free trial** opens the
@@ -1627,8 +1556,8 @@ screen's note.
   from the verified entitlement's tier); a plan no longer on sale, such as a
   Personal subscriber's, shows only for that subscriber when the screen is
   given it (`own`). Under the cards, when every plan has the same trial, the
-  trial's timeline with the reminder line only while the Admin sends one,
-  and the Claude credit; money-back; what every plan includes, once; prices
+  trial's timeline with the reminder line only while the Admin sends one;
+  money-back; what every plan includes, once; prices
   plus tax. No launch or struck-through
   price: the Admin's `regularAmount` is not read), the sign-in (its last step
   names the checkout only when the sign-in is on the way to one), the next
@@ -1659,7 +1588,7 @@ screen's note.
 ### What the app reads (contract v1, additive)
 
 - **Desktop session** `GET /api/cloud/desktop/session`, beside `cloud`:
-  `offer: {plans, recommended?, trialDays?, creditUsd?, reminderDays?, refundDays?, checkout?}`,
+  `offer: {plans, recommended?, trialDays?, reminderDays?, refundDays?, checkout?}`,
   only while this account can buy. `plans[]` are the catalog entries on sale
   (`{tier, label, price: {currency: "USD", amount, interval: "month"}, allowances?, trialDays?}`;
   a `personal` entry, which an older Admin may still list, is left out here, so it is never listed, marked Most popular or
@@ -1667,15 +1596,15 @@ screen's note.
   watched; Personal subscribers keep their plan and see it named Personal;
   `allowances` may carry `cpuKind`, `swapMb` and `snapshotDays`, each said only when present and valid):
   a plan's own `trialDays` is its trial; with none on any plan, a top-level
-  `trialDays` is every plan's. `creditUsd` and `reminderDays` (days before the
-  end that the reminder email goes out, sent only while it does) count only
+  `trialDays` is every plan's. `reminderDays` (days before the
+  end that the reminder email goes out, sent only while it does) counts only
   with a trial; `refundDays` only while this person can still have a
   money-back refund; `checkout: {plan, openUntil}` a checkout of theirs still
   open. A malformed offer is no offer; an Admin without `offer` gets the
   public plans with no trial (this account's own trial isn't known).
 - **Public config** `GET /api/public/config` (signed out, no sign-in or
   cookie, at most every 10 minutes): `plans` as above, `trial: {days, holdDays,
-  creditUsd?, reminderDays?}` and `refundDays`.
+  reminderDays?}` and `refundDays`.
 - **Device checkout** `POST /api/cloud/desktop/checkout`
   `{plan, source}` → `{cloudContractVersion: 1, url}`; `409` reads the session
   again, `429` says to use the open checkout or wait, anything else says

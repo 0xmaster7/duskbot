@@ -276,10 +276,8 @@ import { noteSyncBotTurn } from "./routes/cloud-sync.ts"; import { mcpReconnectL
 import { CLOUD_PERSONAL_REFUSAL, type CloudOwnership } from "./cloud-owner.ts"; import { memberLoginRefusal, personalMoveRefusal } from "./cloud-team.ts"; import { createCloudTeamHost, type MemberProfile } from "./host/cloud-team-host.ts"; import { engineHomes } from "./engine-homes/engine-homes.ts"; import { audienceMember, layerId, memberAudience } from "./audience.ts"; import { createPersonRooms, createRoomReads, type OwnGroupFrames } from "./host/room-reads.ts"; import { createMeRoutes } from "./routes/me.ts"; import { createTeamPhoneRoutes } from "./routes/team-phone.ts"; import { settleCloudHome } from "./cloud-home-settle.ts"; import { CLOUD_NOBODY_KEY, CLOUD_OUTSIDE_KEY } from "./cloud-sharing.ts";
 import { createCloudMoveRoutes } from "./cloud-move-http.ts";
 import { RESTART_EXIT_CODE } from "./restart.ts";
-import { applyIncludedXMessage, holdIncludedServices, researchCredential, trialCreditCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
-import { CloudCreditProvider } from "./cloud-credit-provider.ts";
-import { createCreditMoves } from "./cloud-credit-moves.ts"; import { createRoutineHoldsHost } from "./host/routine-holds-host.ts";
-import { TRIAL_CREDIT_OWN_AI, TRIAL_KEY_HELD } from "./trial-credit.ts"; import { createHeldKeys } from "./cloud-held-keys.ts";
+import { applyIncludedXMessage, holdIncludedServices, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
+import { createRoutineHoldsHost } from "./host/routine-holds-host.ts";
 import type { ProviderInstance } from "./contracts.ts";
 import { readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts"; import { configIdentity, createTestedAi } from "./tested-ai.ts"; import { instanceIcon } from "./provider-icon.ts";
 import { threadModelFallback, type ThreadEngine } from "./thread-model.ts";
@@ -1472,18 +1470,6 @@ const managedDesktop = new ManagedDesktopProviders({
     resyncOpenCodeProviderKeys();
   },
 });
-const cloudCredit = CLOUD_HOME ? new CloudCreditProvider({
-  registry, dataDirectory: DATA_DIR, credential: trialCreditCredential(),
-  onChange: ids => {
-    registry.forgetSnapshots(); bus.attach(ids.flatMap(id => { const instance = registry.get(id); return instance ? [instance] : []; }));
-    void companyRuntimeStarted.then(() => { broadcast({ kind: "config", ...configStatus() }); return refreshUnsetModelSelections(); }).catch(() => {});
-  },
-  onDefault: (from, to) => void companyRuntimeStarted.then(() => creditMoves?.followDefault(from, to)),
-  log: line => console.warn(line),
-}) : null; const heldKeys = cloudCredit && createHeldKeys({ dataDir: DATA_DIR, lasts: () => cloudCredit.lasts() });
-const cloudCreditStarted = (cloudCredit?.start() ?? Promise.resolve()).catch((error) => {
-  console.warn(`[trial credit] could not start: ${error instanceof Error ? error.message : String(error)}`);
-});
 openCodeOrganisationManaged = () => managedPolicy.current() !== null || managedDesktop.enrolled();
 utilityParentPort?.on("message", event => {
   const message = event.data as { type?: unknown; requestId?: unknown; identity?: unknown } | undefined;
@@ -2452,15 +2438,16 @@ async function defaultSelection(saved: ModelSelection | null = cfg.defaultModelS
   return selectDefaultModelSelection(selectableInstances(instances ?? await registry.describe()), saved ?? undefined, selectionContext);
 }
 const selectionContext = {
-  company: (instanceId: string) => managedDesktop.owns(instanceId) || cloudCredit?.owns(instanceId) === true,
-  refusal: (instance: SelectableInstance) => policyModelRefusal(instance) ?? heldKeys?.refusal(instance.instanceId),
+  company: (instanceId: string) => managedDesktop.owns(instanceId),
+  refusal: (instance: SelectableInstance) => policyModelRefusal(instance),
   answered: (instance: SelectableInstance) => testedAi.answered(instance), // what its test message showed (server/tested-ai.ts)
 };
 
 async function refreshUnsetModelSelections(instances?: readonly SelectableInstance[], read = testedAi.read()): Promise<void> {
   if (registry.provisional(instances)) return;
   const selectable = selectableInstances(instances ?? await registry.describe());
-  creditMoves?.settle(selectable); routineHolds?.engines(Boolean(creditMoves?.away(selectable)));
+  const own = selectable.filter(instance => !selectionContext.company(instance.instanceId) && readyToRun(instance, selectionContext));
+  routineHolds?.engines({ ready: own.length > 0, signedIn: own.some(instance => instance.snapshot.authenticated === true) });
   bootSelection = testedAi.settle(await defaultSelection(undefined, selectable.filter(instance => readyToRun(instance, selectionContext))), selectable, read);
   if (!bootSelection.instanceId || !bootSelection.model) return;
   const selection = withNewBotEffort(bootSelection, cfg.newBots?.effort,
@@ -2754,13 +2741,10 @@ const { stopThreadForPerson, stopOnTypedCommand, restartForPerson } = createPers
 const noAiNotice = createNoAiNotice({ team: CLOUD_TEAM, dataDir: DATA_DIR, people: () => teamOwners.people?.list() ?? [], personName: teamHost.personName, inbox: () => teamMessages.inbox, language: personLanguages.forLine, threadLanguage: conversationLanguage });
 const botNameClash = createBotNameClash({ store, people: () => teamMessages.people(), profileName: () => cfg.profile?.name });
 const refusedHandoffs = createRefusedHandoffs({ bots: () => store.bots, runOf: (threadId) => (routines?.isActiveThread(threadId) ? routines.runForThread(threadId) ?? undefined : undefined), writerOf: (routineId) => cloudRoutineAuthors?.writer(routineId), askedPerson: teamOwners.routing.askedPerson, theirOwn: (threadId, person) => audienceMember(teamHost.audienceOf(threadId)) === person, inbox: () => teamMessages.inbox, language: conversationLanguage }); const devsReports = createDevsReports({ dataDir: DATA_DIR, store, installId: ENVIRONMENT_ID, appVersion: serverVersion(), runsOn: CLOUD_TEAM ? "Team Cloud" : CLOUD_HOME ? "My Cloud" : DESKTOP_MANAGED ? "desktop app" : "self-hosted server", recentLog: captureRecentLog(), send: devsReportSender(bugReportEndpoint(process.env, CLOUD_HOME?.adminOrigin)), askStatus: devsStatusAsker(bugReportEndpoint(process.env, CLOUD_HOME?.adminOrigin), CLOUD_HOME), statusEveryMs: Number(process.env.DUSK_DEVS_STATUS_MS) || undefined, tell: (threadId, text, person) => { const group = store.groupByThread(threadId), bot = group ? store.bot(group.memberIds[0] ?? "") : store.botByThread(threadId); if (bot) notify({ ...buildNoticeNotification(bot, threadId, text), ...(group ? { groupId: group.id } : {}), ...(CLOUD_TEAM && person ? { forPerson: person } : {}) }); }, working: (threadId) => { const group = store.groupByThread(threadId), bot = group ? null : store.botByThread(threadId); return group ? Boolean(group.busyBotId) || groupThreadIsWorking(group.id, threadId) : Boolean(bot && threadBusy(bot.id, threadId)); }, automated: (threadId) => Boolean(routines?.isActiveThread(threadId)), engine: (instanceId) => (registry.get(instanceId) ? { name: engineName(instanceId), snapshot: registry.lastSnapshot(instanceId) } : null), appsReady: () => composio.configured(cfg), sessions: () => sessions.list(), ownerKey: CLOUD_OWNER_KEY, team: Boolean(CLOUD_TEAM), profileEmail: () => cfg.profile?.email, language: appLanguage, lineLanguage: personLanguages.forLine });
-const creditMoves = cloudCredit && createCreditMoves({ credit: cloudCredit, store, context: selectionContext, threadBusy, saveDefault: saveNewBotModel,
-  defaults: () => [cfg.defaultModelSelection, cfg.newBotDefaults?.profile.modelSelection], engineName: id => registry.get(id)?.displayName ?? id,
-  log: line => console.warn(line) });
 const routineHolds = CLOUD_HOME ? createRoutineHoldsHost({ dataDir: DATA_DIR, store, mcpServers: () => Object.keys(cfg.mcpServers ?? {}).length, log: (line) => console.warn(line),
   appsConnected: async () => composio.configured(cfg) ? Object.values(await composio.connectedServices(cfg)).some((service) => service.connected) : false }) : null;
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => instanceConfigs(cfg)[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
-const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, heldKeys, dataDir: DATA_DIR, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
+const { listBotSkills, readBotSkillFile } = skillsHost; const cloudConnections = createCloudConnectionsHost({ cloudHome: CLOUD_HOME, ownHome: ownHome.owner, config: () => cfg, environmentId: ENVIRONMENT_ID, mcpOAuth, dataDir: DATA_DIR, email: { accounts: () => emailService.store.list(), adopt: (accounts) => emailService.adopt(accounts) }, stayedNotices: { bots: () => store.bots, language: (threadId) => threadLanguage(threadId), say: (threadId, text, kind) => { store.appendMessage(threadId, kind === "line" ? { role: "bot", kind: "text", text } : { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); }, notify: (text, bot, threadId) => notify(buildNoticeNotification(bot, threadId, text)) }, engines: async () => selectableInstances(await registry.describe()).filter((instance) => readyToRun(instance, selectionContext)).map((instance) => instance.instanceId) });
 const emailHost = createEmailHost({ service: emailService, dataDir: DATA_DIR, bot: (id) => store.bot(id), inRoom: (threadId) => Boolean(store.groupByThread(threadId)), appendMessage: (threadId, message) => { store.appendMessage(threadId, message as Parameters<typeof store.appendMessage>[1]); }, appAllowed: () => managedPolicy.appAllowed("email"), onChange: (listener) => store.onChange(listener as never), markOutside: (threadId) => outsideLineage.mark(threadId) }); const slackHost = createSlackHost({ dataDir: DATA_DIR, key: savedSecretsKey ?? fileSavedSecretsKey(DATA_DIR), bot: (id) => { const bot = store.bot(id); return bot ? { id: bot.id, name: bot.name, description: bot.description, color: bot.color, ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) } : null; }, onStoreChange: (listener) => store.onChange(listener), messages: (threadId) => store.messagesFor(threadId), createThread: (botId, title) => store.createTask(botId, title, false, undefined, undefined, "ask")?.threadId ?? null, threadExists: (botId, threadId) => Boolean(store.taskByThread(botId, threadId)), send: async ({ botId, threadId, text, sendId, person, context }) => { outsideLineage.mark(threadId); const receipt = await acceptDirectSend({ botId, threadId, text, sendId, sender: { name: person.name }, trigger: { kind: "user", ...(person.email ? { email: person.email } : {}), label: person.name }, personPresent: false, relayed: true, ...(context ? { app: { context } } : {}) }); return { queued: "queued" in receipt, steered: "steered" in receipt && receipt.steered === true }; }, react: (threadId, messageId, person, emoji) => void store.setReaction(threadId, messageId, relayedPersonKey(person), { emoji, name: person.name, at: Date.now() }), markOutside: (threadId) => outsideLineage.mark(threadId) }); addHeldSecretScrubber((text) => slackHost.scrub(text));
 const phoneHost = createPhones({
   dataDir: DATA_DIR, shared: Boolean(CLOUD_TEAM), cloudHome: Boolean(CLOUD_HOME), cloudOwnerKey: CLOUD_OWNER_KEY,
@@ -2787,7 +2771,6 @@ let followupsReady = false;
 const sendSequencer = new SendSequencer();
 // Before the new-bot default is read: a saved default may name the engine.
 await retryComputerEngineMove(); mcpServersHost.boot();
-if (store.needsSeed()) await Promise.race([cloudCreditStarted, new Promise(resolve => setTimeout(resolve, 15_000).unref())]);
 if (store.needsSeed()) { firstEngineRead(); await refreshUnsetModelSelections(); }
 else enginesRead = registry.readAtStart(enginesByUse([cfg.defaultModelSelection, ...store.bots.map((bot) => bot.modelSelection)]), firstEngineRead,
   () => { if (engineProgressReady) broadcast({ kind: "config", ...configStatus() }); }).then(async ({ engines, changed }) => {
@@ -7577,8 +7560,7 @@ async function acceptDirectSend(
       const ownModel = store.taskByThread(botId, threadId)?.modelSelection, ownModelRead = ownModel && registry.engineRead(ownModel.instanceId, store.bot(botId)?.modelSelection.instanceId);
       if (ownModelRead) await ownModelRead;
       const profile = store.bot(botId);
-      if (profile && ((!profile.modelSelection.instanceId && !profile.modelSelection.model) ||
-        creditMoves?.due(profile, threadId, registry.instances().flatMap(instance => threadEngine(instance.instanceId) ?? [])))) {
+      if (profile && !profile.modelSelection.instanceId && !profile.modelSelection.model) {
         if (enginesRead) await enginesRead;
         registry.forgetSnapshots(); await refreshUnsetModelSelections();
       }
@@ -12122,17 +12104,12 @@ async function describeInstances() {
   void retryComputerEngineMove();
   const read = testedAi.read(), engines = selectableInstances(await registry.describe({ known: true, reuse: { ms: ENGINE_LIST_REUSE_MS, changed: () => broadcast({ kind: "config", ...configStatus() }) } }));
   await refreshUnsetModelSelections(engines, read);
-  const ownReady = cloudCredit !== null && engines.some(instance => !selectionContext.company(instance.instanceId) && readyToRun(instance, selectionContext));
   return engines.map((instance) => {
     const entry = configs[instance.instanceId];
     const described = {
       ...instance, ...testedAi.info(instance),
       ...instanceIcon(entry),
-      ...(entry?.access ? { access: entry.access } : {}), ...(entry?.driver === "openai-compat" && typeof (entry.config as { replyWaitMinutes?: unknown } | undefined)?.replyWaitMinutes === "number" ? { replyWaitMinutes: (entry.config as { replyWaitMinutes: number }).replyWaitMinutes } : {}), ...(heldKeys?.refusal(instance.instanceId) ? { snapshot: { state: "unavailable" as const, reason: TRIAL_KEY_HELD } } : {}),
-    };
-    if (cloudCredit?.owns(instance.instanceId)) return { ...described, readOnly: true, trialCredit: cloudCredit.status(),
-      install: undefined, authentication: undefined, cli: undefined, cliCandidates: [],
-      ...(ownReady && described.snapshot.state === "available" ? { snapshot: { state: "unavailable" as const, reason: TRIAL_CREDIT_OWN_AI } } : {}),
+      ...(entry?.access ? { access: entry.access } : {}), ...(entry?.driver === "openai-compat" && typeof (entry.config as { replyWaitMinutes?: unknown } | undefined)?.replyWaitMinutes === "number" ? { replyWaitMinutes: (entry.config as { replyWaitMinutes: number }).replyWaitMinutes } : {}),
     };
     const policyReason = policyModelRefusal(instance);
     const policy = policyReason ? { policy: { organizationName: managedPolicy.current()!.organizationName, reason: policyReason, ...(managedPolicy.current()!.team ? { team: true } : {}) } } : {};

@@ -34,7 +34,6 @@ export const CREDENTIAL_ENV_NAMES = [
   "DUSK_COMPOSIO_BROKER_TOKEN",
   "DUSK_CLOUD_VOICE_TOKEN",
   "DUSK_CLOUD_DECIDER_TOKEN",
-  "DUSK_CLOUD_AI_TOKEN",
   "DUSK_CLOUD_X_TOKEN",
   "DUSK_CLOUD_CONNECTED_APPS_GRANT",
   // Private even though they are not traditional API credentials.

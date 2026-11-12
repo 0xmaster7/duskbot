@@ -1,5 +1,5 @@
 import { createManagedDesktopStore, retryDelay, unreadableRecord } from "./managed-desktop.mjs";
-import { CLOUD_MACHINE_CONNECTABLE, cloudUnreachableText, parseCloudCredit, parseCloudOffer, parseCloudPurchase, parseCloudSummary, parseCloudTeams, parseCloudRoom, parseCloudTrial, parseCloudUsage, parsePairingGrant, parsePublicOffer, withoutTrial } from "./cloud-home.mjs";
+import { CLOUD_MACHINE_CONNECTABLE, cloudUnreachableText, parseCloudOffer, parseCloudPurchase, parseCloudSummary, parseCloudTeams, parseCloudRoom, parseCloudTrial, parseCloudUsage, parsePairingGrant, parsePublicOffer, withoutTrial } from "./cloud-home.mjs";
 import { CLOUD_ID, CLOUD_SWATCHES, cleanCloudListName, ORGANIZATION_BLOCKS, otherOwnClouds, ownCloud, parseCloudList, parseCloudRenewal, parseOrganizations, releaseVersion } from "./cloud-list.mjs";
 import { planTeam, teamPlan } from "./cloud-team-plan.mjs";
 import { linkSignIn } from "./cloud-signin-link.mjs";
@@ -292,7 +292,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const access = entitlement(result.entitlement);
       const machine = parseCloudSummary(result.cloud), teams = parseCloudTeams(result.teams);
       const purchase = parseCloudPurchase(result.cloud?.purchase);
-      const trial = parseCloudTrial(result.cloud?.trial), credit = parseCloudCredit(result.cloud?.credit), offer = parseCloudOffer(result.offer);
+      const trial = parseCloudTrial(result.cloud?.trial), offer = parseCloudOffer(result.offer);
       const usage = access.status === "active" ? parseCloudUsage(result.cloud?.usage) : null, room = usage ? parseCloudRoom(result.cloud?.room) : null;
       const clouds = parseCloudList(result.clouds), more = clouds ? addOffer(result) : null, latest = clouds ? releaseVersion(result.latestVersion) : null;
       const organizations = clouds ? parseOrganizations(result.organizations) : null;
@@ -324,7 +324,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       verifiedUntil = Math.min(grant.expiresAt, serverNow() + STEADY_MS,
         access.status === "active" && access.expiresAt !== null ? access.expiresAt : Infinity);
       publish({ ...view("connected"), entitlement: access, ...(machine ? { machine } : {}), ...(teams.length ? { teams } : {}), ...(purchase ? { purchase } : {}),
-        ...(trial ? { trial } : {}), ...(credit ? { credit } : {}), ...(offer ? { offer } : {}), ...(usage ? { usage } : {}), ...(room ? { room } : {}), ...(renewingCloud ? { renewal } : {}),
+        ...(trial ? { trial } : {}), ...(offer ? { offer } : {}), ...(usage ? { usage } : {}), ...(room ? { room } : {}), ...(renewingCloud ? { renewal } : {}),
         ...(clouds ? { clouds, addCloud: more } : {}), ...(organizations ? { organizations } : {}), ...(latest ? { latestVersion: latest } : {}), verifiedAt: now(), verifiedUntil });
       const planCloud = teamPlan(value) ? planTeam(value)?.machine ?? null : machine;
       const settingUp = planCloud?.status === "provisioning" || (access.status === "active" && !planCloud) || Boolean(purchase) || otherOwnClouds(clouds).some(cloud => cloud.status === "setting_up");
@@ -1049,7 +1049,7 @@ export function cloudPlanSnapshot(state, { notice = null } = {}) {
   const tier = state?.status === "connected" ? state.entitlement?.tier : state?.lastPlan?.tier;
   const named = typeof tier === "string" ? { tier } : {};
   const trial = state?.status === "connected"
-    ? { ...(state.trial ? { trial: state.trial } : {}), ...(state.credit ? { credit: state.credit } : {}), ...(notice && state.trial ? { notice } : {}),
+    ? { ...(state.trial ? { trial: state.trial } : {}), ...(notice && state.trial ? { notice } : {}),
       ...(state.machine?.power?.sleeps ? { sleeps: true } : {}), ...(state.usage ? { usage: state.usage } : {}), ...(state.room ? { room: state.room } : {}),
       ...(state.renewal ? { renewal: state.renewal } : {}), ...homeProvider(state.clouds) } : {};
   if (state?.status === "connected" && state.entitlement?.plan === "pro") return { status: state.entitlement.status === "active" ? "paid" : "attention", ...named, ...trial };

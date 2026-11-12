@@ -77,7 +77,7 @@ export function moveLine(move: OneHomeView, page: "local" | "cloud", words: Move
     if (page !== "cloud") return null;
     const list = move.counts ? arrivedList(move.counts) : [];
     const text = move.left?.length || move.stayed?.length ? say("doneLeft") : list.length ? t("cloudSend.move.done", { list: listOf(list) }) : t("cloudSend.move.doneAll");
-    return { kind: "done", text, extra: [...notCarried(move.left), ...stayedHere(move.stayed), ...move.held.map((key) => t("cloudSend.result.held", { key }))], ...(move.phone ? { phone: true as const } : {}) };
+    return { kind: "done", text, extra: [...notCarried(move.left), ...stayedHere(move.stayed)], ...(move.phone ? { phone: true as const } : {}) };
   }
   if (move.phase === "keeping") return { kind: "sending", text: move.updating ? t("cloudSend.move.keepingUpdating") : say("keeping"), extra: [] };
   if (move.phase === "home-again" || move.phase === "back") {

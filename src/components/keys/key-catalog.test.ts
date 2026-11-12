@@ -12,7 +12,6 @@ const NOT_A_PERSONS_KEY: Record<string, string> = {
   DUSK_COMPOSIO_BROKER_TOKEN: "dusk cloud's connected-apps broker",
   DUSK_CLOUD_VOICE_TOKEN: "dusk cloud's included voice",
   DUSK_CLOUD_DECIDER_TOKEN: "dusk cloud's included decisions",
-  DUSK_CLOUD_AI_TOKEN: "dusk cloud's included AI",
   DUSK_CLOUD_X_TOKEN: "dusk cloud's included X research",
   DUSK_CLOUD_CONNECTED_APPS_GRANT: "dusk cloud's connected apps",
   DUSK_BROWSER_CONNECTION: "the app's own browser, not a credential",

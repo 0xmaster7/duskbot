@@ -34,8 +34,8 @@ describe("the box's environment allow-list", () => {
 
   it("keeps the keys one spawn vouches for, under any name, past the allow-list and the deny, never past the never-list or DUSK_", () => {
     const deny = new Set(["OPENCODE_API_KEY", "DUSK_COMPOSIO_BROKER_TOKEN"]);
-    const allow = new Set(["NANO_GPT_API_KEY", "OPENCODE_API_KEY", "DUSK_LICENSE_KEY", "DUSK_CLOUD_AI_TOKEN", "DUSK_COMPOSIO_BROKER_TOKEN"]);
-    const env = { NANO_GPT_API_KEY: "n", OPENCODE_API_KEY: "o", DUSK_LICENSE_KEY: "l", DUSK_CLOUD_AI_TOKEN: "c", DUSK_COMPOSIO_BROKER_TOKEN: "b", DEEPSEEK_API_KEY: "d" };
+    const allow = new Set(["NANO_GPT_API_KEY", "OPENCODE_API_KEY", "DUSK_LICENSE_KEY", "DUSK_CLOUD_X_TOKEN", "DUSK_COMPOSIO_BROKER_TOKEN"]);
+    const env = { NANO_GPT_API_KEY: "n", OPENCODE_API_KEY: "o", DUSK_LICENSE_KEY: "l", DUSK_CLOUD_X_TOKEN: "c", DUSK_COMPOSIO_BROKER_TOKEN: "b", DEEPSEEK_API_KEY: "d" };
     expect(boxEnvironment(env, deny, allow)).toEqual({ NANO_GPT_API_KEY: "n", OPENCODE_API_KEY: "o" });
     expect(boxEnvironment(env, deny)).toEqual({});
   });

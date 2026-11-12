@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState, type Ref } from "react";
-import { Check, ChevronDown, CircleAlert } from "../../icons";
+import { ChevronDown } from "../../icons";
 import { cloudEngine, cloudEngineChoices, useCloudEngineChoices } from "@/components/CloudEngineSignIn";
-import { useCloudPlanSnapshot } from "@/components/CloudTrialNotice";
 import { engineReady } from "@/components/EngineLibrary";
 import { EngineCheckLine } from "@/components/EngineLiveCheck";
 import { EngineSetup } from "@/components/EngineSetup";
-import { usd } from "@/lib/cloud-plan";
-import { welcomeCredit } from "@/lib/cloud-welcome";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { plainSignIn } from "@/lib/onboarding";
 import { Footer, PRIMARY, QUIET, StepHeading } from "./parts";
 
-/** Connecting an AI: an AI that already works when the step opens (one signed in here, or the plan's credit) is used as
+/** Connecting an AI of the person's own: one that already works when the step opens (signed in here) is used as
  * it is and the step finishes itself; otherwise one recommended sign-in, every other way folded under it. */
 export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; headingRef: Ref<HTMLHeadingElement>; onFinish: () => void }) {
   const engines = useCloudEngineChoices();
-  const plan = useCloudPlanSnapshot(window.duskDesktop?.cloudPlan);
-  const own = engines.instances.some((instance) => !instance.trialCredit && engineReady(instance));
-  const credit = own ? null : welcomeCredit(engines.instances, plan);
-  const readyOnOpen = useRef(own || credit?.state === "active");
+  const own = engines.instances.some((instance) => engineReady(instance));
+  const readyOnOpen = useRef(own);
   const [more, setMore] = useState(false);
   useEffect(() => {
     if (readyOnOpen.current) onFinish();
@@ -31,14 +26,6 @@ export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; he
   const others = { ...engines, choices: engines.choices.filter((choice) => choice.id !== "claude") };
   return <section aria-labelledby="cloud-welcome-step" data-welcome-step="engine" className="flex flex-col">
     <StepHeading headingRef={headingRef} title={t("cloudSetup.engine.title")} sub={t("cloudWelcome.engine.sub", { name })} />
-    {credit?.state === "active" && <p role="status" data-welcome-credit className="mt-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-ink">
-      <Check size={16} strokeWidth={2.5} aria-hidden="true" className="mt-px shrink-0 text-success" />
-      <span>{credit.left !== null ? t("cloudWelcome.engine.credit", { amount: usd(credit.left) }) : t("cloudWelcome.engine.creditPlain")}</span>
-    </p>}
-    {credit && credit.state !== "active" && <p role="status" data-welcome-credit={credit.state} className="mt-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-ink">
-      <CircleAlert size={16} aria-hidden="true" className="mt-px shrink-0 text-warning" />
-      <span>{t(credit.state === "used_up" ? "cloudSignIn.creditUsedUp" : "cloudSignIn.creditEnded")}</span>
-    </p>}
     {claude && <div data-welcome-recommended={claude.instanceId} className="mt-6 rounded-2xl border border-transparent bg-card px-4 py-4">
       {engineReady(claude)
         ? claudeCheck && <EngineCheckLine name={claude.displayName} check={claudeCheck} onRetry={() => void engines.live.run(claude.instanceId)} />
@@ -53,9 +40,7 @@ export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; he
     <Footer className="mt-7">
       {own
         ? <button type="button" className={PRIMARY} onClick={onFinish}>{t("onboarding.continue")}</button>
-        : credit?.state === "active"
-          ? <button type="button" className={PRIMARY} onClick={onFinish}>{t("cloudWelcome.engine.useCredit")}</button>
-          : <button type="button" className={QUIET} onClick={onFinish}>{t("cloudIntent.skip")}</button>}
+        : <button type="button" className={QUIET} onClick={onFinish}>{t("cloudIntent.skip")}</button>}
     </Footer>
   </section>;
 }

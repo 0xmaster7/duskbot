@@ -22,7 +22,7 @@ const EVERYDAY_PREFIXES: Record<string, readonly string[]> = {
   ],
   "dusk cloud: buying it, setting it up, moving to it and sharing with it": [
     "cloudBuy.", "cloudIntro.", "cloudTrial.", "cloudCancel.", "cloudSetup.", "cloudIntent.", "cloudNotice.", "cloudHowTo.",
-    "cloudCredit.", "cloudPower.", "cloudSignIn.", "cloudAdd.", "cloudHome.", "cloudPhone.", "cloudAccount.", "pro.",
+    "cloudPower.", "cloudSignIn.", "cloudAdd.", "cloudHome.", "cloudPhone.", "cloudAccount.", "pro.",
     "files.", "usageMeter.", "roomCard.", "botLimit.",
   ],
   "routines and automations": ["routines.", "automations."],
@@ -50,7 +50,7 @@ const EVERYDAY_KEYS: Record<string, readonly string[]> = {
     "engineSetup.device.connectedAccount", "engineSetup.device.failed", "engineSetup.device.enableHint", "engineSetup.grok.description",
     "engineSetup.grok.security", "engineSetup.grok.connectedAccount", "engineSetup.grok.failed", "engineSetup.grok.notInstalled",
     "engineSetup.serverInstall", "engineSetup.serverUpdate", "engineSetup.serverInstalling", "engineSetup.sendRedirect",
-    "engineSetup.sameMachine", "engineSetup.invalidStatus", "engines.account.signInHint", "engines.trialCredit", "engines.trialCreditEnded",
+    "engineSetup.sameMachine", "engineSetup.invalidStatus", "engines.account.signInHint",
     "keys.cerebras.desc", "keys.groq.desc", "keys.meta.desc",
   ],
   "the Settings pages Simple mode shows": [

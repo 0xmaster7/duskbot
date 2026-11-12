@@ -585,7 +585,7 @@ test("closing the move's done line closes the move's own send result with it, so
   writeFileSync(file, JSON.stringify({ v: 1, clouds: { [CLOUD]: { sent: {}, off: {}, dismissed: "", last: { at: 7, reason: "move", result }, whole: null, chats: {}, created: {}, release: [], files: {}, on: {} } } }));
   const handlers = new Map();
   let seen = 0;
-  let line = { phase: "done", phone: false, held: [] };
+  let line = { phase: "done", phone: false };
   installCloudSend({
     ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
     cloudPage: () => "cloud",
