@@ -557,6 +557,37 @@ function sameDigest(a: string, b: string) {
   return difference === 0;
 }
 
+/** GET /v1/stats/usage?days=<1-7>, Bearer STATS_TOKEN: tool calls per installation and day (with the paid Cloud it
+ * belongs to), registrations per address and the queue's depth, for the account service's ops page. Counts only. */
+export async function usageStats(request: Request, url: URL, env: Env) {
+  if (!env.STATS_TOKEN) return json({ error: "not found" }, 404);
+  const presented = request.headers.get("authorization")?.match(/^Bearer (\S{1,512})$/)?.[1] ?? "";
+  if (!sameDigest(await sha256(presented), await sha256(env.STATS_TOKEN))) return json({ error: "unauthorized" }, 401);
+  const days = intParam(url, "days", 7, 7);
+  if (!days) return json({ error: "days must be 1-7" }, 400);
+  const since = utcDay(Date.now() - (days - 1) * DAY_MS);
+  const [perDay, perInstallation, registrations, queue] = await env.DB.batch([
+    env.DB.prepare("SELECT day, SUM(count) AS calls FROM usage_counters WHERE scope = 'tool_calls_installation' AND day >= ?1 GROUP BY day ORDER BY day").bind(since),
+    env.DB.prepare(`SELECT u.key AS id, u.day AS day, u.count AS count, i.cloud_machine_id AS machine FROM usage_counters u LEFT JOIN installations i ON i.id = u.key
+       WHERE u.scope = 'tool_calls_installation' AND u.day >= ?1 ORDER BY u.count DESC LIMIT 5000`).bind(since),
+    env.DB.prepare("SELECT key AS ip, day, count FROM usage_counters WHERE scope = 'registrations_ip' AND day >= ?1 ORDER BY count DESC LIMIT 200").bind(utcDay(Date.now() - DAY_MS)),
+    env.DB.prepare("SELECT COUNT(*) AS events, COALESCE(SUM(bytes), 0) AS bytes FROM events WHERE acked_at IS NULL"),
+  ]);
+  const installations = new Map<string, { id: string; machine: string | null; days: Record<string, number> }>();
+  for (const row of (perInstallation?.results ?? []) as Array<{ id: string; day: string; count: number; machine: string | null }>) {
+    const item = installations.get(row.id) ?? { id: row.id, machine: row.machine ?? null, days: {} };
+    item.days[row.day] = row.count;
+    installations.set(row.id, item);
+  }
+  const depth = (queue?.results?.[0] ?? {}) as { events?: number; bytes?: number };
+  return json({
+    days: ((perDay?.results ?? []) as Array<{ day: string; calls: number }>).map((row) => ({ day: row.day, calls: row.calls })),
+    installations: [...installations.values()],
+    registrations: ((registrations?.results ?? []) as Array<{ ip: string; day: string; count: number }>).map((row) => ({ ip: row.ip, day: row.day, count: row.count })),
+    queue: { events: depth.events ?? 0, bytes: depth.bytes ?? 0 },
+  });
+}
+
 /** GET /v1/stats/app-events?days=<1-90>, Bearer STATS_TOKEN: fleet totals for Admin, counts only. */
 export async function appEventStats(request: Request, url: URL, env: Env) {
   if (!env.STATS_TOKEN) return json({ error: "not found" }, 404);

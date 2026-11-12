@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ACCOUNT_DAILY_TOOL_CALLS, INSTALLATION_DAILY_TOOL_CALLS, REGISTRATIONS_PER_IP_DAY, registrationKey, toolCallCount } from "./budgets";
 import { runHourly } from "./app-events";
-import { brokerHarness, type Installation } from "./test-harness";
+import { brokerHarness, STATS_TOKEN, type Installation } from "./test-harness";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -125,5 +125,25 @@ describe("before migration 0006", () => {
     expect(owner.id).toBeTruthy();
     expect((await h.call(owner, "/v1/mcp", { method: "POST", body: JSON.stringify(toolCall(1)) })).status).toBe(200);
     await expect(runHourly(h.env as never)).resolves.toBeUndefined();
+  });
+});
+
+describe("usage stats", () => {
+  it("gives the ops page tool calls per installation and day, registrations per address and the queue, behind the stats token", async () => {
+    const { h, mcp, setCount } = harness();
+    const owner = await h.install();
+    expect((await mcp(owner, [toolCall(1), toolCall(2)])).status).toBe(200);
+    setCount("registrations_ip", "203.0.113.9", 7);
+    expect((await h.fetch("/v1/stats/usage")).status).toBe(401);
+    expect((await h.fetch("/v1/stats/usage", { headers: { authorization: `Bearer ${owner.token}` } })).status).toBe(401);
+    const res = await h.fetch("/v1/stats/usage?days=7", { headers: { authorization: `Bearer ${STATS_TOKEN}` } });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { days: unknown[]; installations: unknown[]; registrations: unknown[]; queue: unknown };
+    expect(body.days).toEqual([{ day: day(), calls: 2 }]);
+    expect(body.installations).toEqual([{ id: owner.id, machine: null, days: { [day()]: 2 } }]);
+    expect(body.registrations).toEqual(expect.arrayContaining([{ ip: "203.0.113.9", day: day(), count: 7 }]));
+    expect(body.queue).toEqual({ events: 0, bytes: 0 });
+    expect((await h.fetch("/v1/stats/usage?days=30", { headers: { authorization: `Bearer ${STATS_TOKEN}` } })).status).toBe(200);
+    expect(JSON.stringify(body)).not.toContain(owner.token);
   });
 });

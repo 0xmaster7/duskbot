@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { planAccountLink } from "../../../../shared/connector-account-link";
-import { appEventStats, composioWebhook, pollEvents, presentCloudGrant, queueTestEvent, runHourly } from "./app-events";
+import { appEventStats, usageStats, composioWebhook, pollEvents, presentCloudGrant, queueTestEvent, runHourly } from "./app-events";
 import {
   ACCOUNT_ID,
   MAX_CONNECTED_ACCOUNT_PAGES,
@@ -720,6 +720,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext) {
   if (request.method === "POST" && url.pathname === "/v1/installations") return register(request, env);
   if (request.method === "POST" && url.pathname === "/v1/composio/webhook") return composioWebhook(request, env, ctx);
   if (request.method === "GET" && url.pathname === "/v1/stats/app-events") return appEventStats(request, url, env);
+  if (request.method === "GET" && url.pathname === "/v1/stats/usage") return usageStats(request, url, env);
   if (!url.pathname.startsWith("/v1/")) return json({ error: "not found" }, 404);
   const installation = await authenticate(request, env);
   if (!installation) return json({ error: "unauthorized" }, 401);
