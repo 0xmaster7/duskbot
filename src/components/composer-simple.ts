@@ -9,10 +9,10 @@ import { GROK_BOT_FILLS } from "./chat-bubble";
 
 // inset-ring, not ring-inset: the --color-inset token turns ring-inset into a ring colour that beats ring-ink
 /** Simple mode's composer pill on a wider screen: the field, the mic and the round button in one shell. */
-export const SIMPLE_COMPOSER = "composer-pill flex flex-col justify-end bg-composer px-[9px] pt-[7px] pb-[9px] inset-ring-[0.5px] inset-ring-transparent hover:inset-ring-transparent focus-within:inset-ring-transparent data-[drag-over]:inset-ring-accent shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]";
+export const SIMPLE_COMPOSER = "composer-pill flex flex-col justify-end bg-composer px-[9px] pt-[7px] pb-[9px] inset-ring-[0.5px] inset-ring-ink/[0.12] hover:inset-ring-ink/[0.24] focus-within:inset-ring-ink/[0.24] data-[drag-over]:inset-ring-accent shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03),0_0_0_1px_rgb(228_228_228/0.04)]";
 
 /** Simple mode's small round controls in the composer: the +, the mic and Stop beside the round button. */
-export const SIMPLE_CONTROL = "composer-press size-7 rounded-full bg-ink/[0.06] inset-ring-[0.5px] inset-ring-transparent text-ink/[0.56] hover:bg-ink/10 hover:text-ink";
+export const SIMPLE_CONTROL = "composer-press size-7 rounded-full bg-ink/[0.06] inset-ring-[0.5px] inset-ring-ink/[0.08] text-ink/[0.56] hover:bg-ink/10 hover:text-ink";
 
 const ROOM_FILL = { fill: "var(--color-accent)", ink: "var(--color-accent-ink)" };
 

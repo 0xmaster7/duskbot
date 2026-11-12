@@ -11,7 +11,7 @@ export const GROK_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-v
 /** Keyboard focus on a Simple row or tile: the focus ring drawn inside its edge. */
 export const SIMPLE_ROW_FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2! focus-visible:outline-focus";
 
-const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full border border-transparent bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-out";
+const SIMPLE_TOP = "flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/[0.08] bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-out";
 /** grok lays its hover over the fill as a 6% ink image, at once, with no fade */
 export const GROK_HOVER_TINT = "hover:bg-[linear-gradient(rgba(28,28,28,0.035),rgba(28,28,28,0.035))]";
 const SIMPLE_TOP_TINT = GROK_HOVER_TINT;
@@ -25,7 +25,7 @@ export const SIMPLE_TOP_TOGGLE = `${SIMPLE_TOP} ${SIMPLE_TOP_TINT} ${SIMPLE_TOP_
 export const SIMPLE_CORNER_BUTTON = `flex size-[26px] shrink-0 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink aria-expanded:bg-ink/[0.06] aria-expanded:text-ink ${SIMPLE_TOP_FOCUS}`;
 
 /** The round control at either end of the phone bot list's top row. */
-export const PHONE_TOP_BUTTON = "flex size-10 shrink-0 items-center justify-center rounded-full border border-transparent bg-card text-ink hover:bg-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+export const PHONE_TOP_BUTTON = "flex size-10 shrink-0 items-center justify-center rounded-full border border-hairline bg-card text-ink hover:bg-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export const SIMPLE_RAIL_BUTTON = "flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-secondary hover:bg-raised/60 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
@@ -49,7 +49,7 @@ export function SidebarSearchToggle({ open, onToggle, corner = false, ref }: { o
 export function SidebarSearchPill({ query, onQuery, onClose }: { query: string; onQuery: (query: string) => void; onClose: () => void }) {
   return (
     <div data-sidebar-search-pill className="px-3 pb-2 pt-0.5">
-      <div className="flex h-[34px] items-center gap-2 rounded-full border border-transparent bg-transparent pl-3 pr-1.5 text-ink-secondary ">
+      <div className="flex h-[34px] items-center gap-2 rounded-full border border-ink/10 bg-transparent pl-3 pr-1.5 text-ink-secondary ">
         <Search size={15} aria-hidden="true" className="shrink-0" />
         <input
           autoFocus
