@@ -90,7 +90,7 @@ describe("engines set up with a key in Settings", () => {
   it("opens Settings → API keys instead of offering a terminal command", () => {
     vi.stubGlobal("window", { duskDesktop: { platform: "darwin" } });
     const engine: InstanceInfo = {
-      ...instance({ state: "unavailable", reason: "No API key — open Settings → API keys." }),
+      ...instance({ state: "unavailable", reason: "No API key: open Settings → API keys." }),
       instanceId: "openaiCompat",
       driverKind: "openai-compat",
       displayName: "other (OpenAI-compatible)",
@@ -318,7 +318,7 @@ describe("API-key engine setup", () => {
   };
 
   it("takes a missing key in place, in the same key row as Settings, not in a config file", () => {
-    const html = render(keyEngine("grok", { state: "unavailable", reason: "No xAI API key — open Settings → API keys." }));
+    const html = render(keyEngine("grok", { state: "unavailable", reason: "No xAI API key: open Settings → API keys." }));
     expect(html).toContain("data-engine-setup-api-key");
     expect(html).toContain("Grok (API) needs an API key");
     expect(html).toContain("Paste it here. It saves and checks itself");

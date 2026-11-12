@@ -53,7 +53,7 @@ export function soulDiffLines(before: string, after: string): string[] {
   if (diff.length > MAX_DIFF_LINES) {
     return [
       `SOUL.md (${bytesBefore} → ${bytesAfter} bytes):`,
-      "Large change — complete proposed instructions (replaces the current SOUL.md):",
+      "Large change: complete proposed instructions (replaces the current SOUL.md):",
       after || "(empty)",
     ];
   }

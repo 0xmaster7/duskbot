@@ -215,7 +215,7 @@ describe("external voice claims", () => {
     expect(pause).toHaveBeenCalledTimes(2);
   });
 
-  it("starting an utterance pauses the holder — call mode takes the voice", async () => {
+  it("starting an utterance pauses the holder: call mode takes the voice", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: string | URL | Request) =>
@@ -235,7 +235,7 @@ describe("external voice claims", () => {
     await speaking;
   });
 
-  it("claiming during an utterance stops the utterance — a note takes the voice", async () => {
+  it("claiming during an utterance stops the utterance: a note takes the voice", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: string | URL | Request) =>

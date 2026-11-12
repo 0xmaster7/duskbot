@@ -334,7 +334,7 @@ const __APP_VERSION__: string;
        * file on disk). Absent in older builds of the shell. */
       getPathForFile?(file: File): string;
       /** {mic} TCC status: granted|denied|not-determined|unknown. Screen
-       * status is deliberately absent — macOS 15+ caches it per-process,
+       * status is deliberately absent, macOS 15+ caches it per-process,
        * so it lies for the whole session after a grant. `pageMic`: whether
        * this app lets the asking page use the microphone (this computer's
        * page always; a server's page only on the person's own Cloud).

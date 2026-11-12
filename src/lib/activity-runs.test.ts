@@ -35,14 +35,14 @@ describe("groupActivityRuns", () => {
     expect(items.map((i) => i.kind)).toEqual(["run", "message", "run"]);
   });
 
-  it("never folds an opened-thread chip into a run — it is navigation, not work", () => {
+  it("never folds an opened-thread chip into a run: it is navigation, not work", () => {
     const opened: Message = { ...tool("opened thread #QA PR 245 on Scout"),
       threadRef: { botId: "scout", threadId: "qa-245", title: "QA PR 245" } };
     const items = groupActivityRuns([tool("Edit"), tool("Edit"), opened, tool("Write"), tool("Write")]);
     expect(items.map((i) => i.kind)).toEqual(["run", "message", "run"]);
   });
 
-  it("never folds a bot-to-bot chip into a run — it links to the other conversation", () => {
+  it("never folds a bot-to-bot chip into a run: it links to the other conversation", () => {
     const messaged: Message = { ...tool("Messaged @Ada"),
       comm: { groupId: "g1", withBotId: "ada", withName: "Ada", withColor: "blue" } };
     const items = groupActivityRuns([tool("Edit"), tool("Edit"), messaged, tool("Write"), tool("Write")]);

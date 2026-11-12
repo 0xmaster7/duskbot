@@ -168,15 +168,15 @@ export type RuntimeEvent = RuntimeEventBase &
         type: "request.resolved";
         behavior: "allow" | "deny" | "answer";
         /** who decided: a person, auto mode, the ask's own timeout, the
-         * harness (turn ended / settings changed), or nobody — the answerer
+         * harness (turn ended / settings changed), or nobody, the answerer
          * was already gone and the action never ran */
         source: "user" | "auto" | "timeout" | "system" | "unavailable" | "peer";
         approvalScope?: "local-computer";
       }
     | {
         type: "thread.token-usage.updated"; input: number; output: number; cachedInput?: number;
-        /** What the model's window held on the most recent model call — the
-         * whole prompt, cache reads included — and the window's size when the
+        /** What the model's window held on the most recent model call, the
+         * whole prompt, cache reads included, and the window's size when the
          * driver knows it. The figure that predicts the next message's cost. */
         contextTokens?: number; contextWindow?: number;
         /** The part of `output` spent reasoning, where the engine reports it. A per-call report carries the call's own
@@ -193,7 +193,7 @@ export type RuntimeEvent = RuntimeEventBase &
     // ("model"), or that model's extra usage credits ("credits"); the engine's other models still work for the last two.
     | { type: "runtime.error"; message: string; partial?: boolean; setup?: boolean; terminal?: boolean; claudeUpdate?: boolean; trialCredit?: "used_up" | "ended" | "paused" | "too_low";
         stalled?: boolean; limitResetsAt?: number; limit?: "engine" | "model" | "credits" }
-    /** Something the person should know that did not fail the turn — for
+    /** Something the person should know that did not fail the turn, for
      * example, a saved model the engine no longer offers was replaced. */
     | { type: "runtime.notice"; message: string }
   );

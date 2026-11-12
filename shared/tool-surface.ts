@@ -43,7 +43,7 @@ export function screenSurfaceForTool(toolName: string): "browser" | "computer" {
   return bare.startsWith("agent_browser_") || bare.startsWith("browser_") ? "browser" : "computer";
 }
 
-/** Whether a tool belongs to a screen place at all — the built-in browser, a
+/** Whether a tool belongs to a screen place at all, the built-in browser, a
  * computer, or neither (shell, files, teammates, memory). Unlike
  * screenSurfaceForTool this never guesses "computer" for an unrelated tool. */
 export function toolSurfaceKind(toolName: string): "browser" | "computer" | null {

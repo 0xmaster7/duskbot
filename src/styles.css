@@ -69,7 +69,7 @@
    Two consequences worth knowing:
 
    1. The selector is `[data-skin=…]`, not `:root[data-skin=…]`. That means any
-      element can open a skin context for its subtree — which is how the skin
+      element can open a skin context for its subtree, which is how the skin
       picker renders a live miniature of each skin instead of a painted mockup.
    2. These blocks sit outside `@layer`, so they win against Tailwind's theme
       layer regardless of specificity.
@@ -188,7 +188,7 @@
   --transition-property-rounded: border-radius;
 }
 
-/* Tokens that no utility generates — declared outside `@theme` so Tailwind
+/* Tokens that no utility generates, declared outside `@theme` so Tailwind
    can't tree-shake them away, and so a skin can redefine them freely. */
 :root {
   --chat-bubble-max: 35rem;
@@ -230,7 +230,7 @@
   --color-bubble-user-ink: #f5f5f5;
   --color-success-ink: #072114;
   --color-scrollbar: #3d3d3d;
-  /* second speed line of the mascot — contrasts against the app ground */
+  /* second speed line of the mascot, contrasts against the app ground */
   --color-maus-line: #f5f5f5;
   --shadow-float: 0 0 #0000;
 }
@@ -238,7 +238,7 @@
 /* ── Midnight ──────────────────────────────────────────────────────────────
    The upstream palette, pixel-sampled from the real Grok app. Repeated here
    (rather than relying on the `@theme` defaults) so that a `[data-skin]`
-   subtree can switch *back* to it — the picker needs that.
+   subtree can switch *back* to it, the picker needs that.
 
    Two upstream contrast gaps are preserved deliberately, because this skin's
    job is to be the original: white on the accent fill measures 3.65:1 and
@@ -310,8 +310,8 @@
 
 /* ── Atelier ───────────────────────────────────────────────────────────────
    Daylight on paper, and the inverse of Midnight in every axis. Its one
-   structural idea: surfaces get BRIGHTER as they rise — rail, sidebar,
-   content — so the ground closest to the work is the lightest, the opposite
+   structural idea: surfaces get BRIGHTER as they rise (rail, sidebar,
+   content), so the ground closest to the work is the lightest, the opposite
    of a dark skin where raised means lighter-grey.
 
    Four tones were darkened from the first draft to clear AA; the original
@@ -322,7 +322,7 @@
   --frame-shade: 3%;
   --color-app: #f5f1eb;           /* outermost ground */
   --color-panel: #fbf8f2;         /* sidebar */
-  --color-raised: #ffffff;        /* content — raised means lighter here */
+  --color-raised: #ffffff;        /* content, raised means lighter here */
   --color-raised-hover: #f2e9dc;  /* warm beige doubles as the hover fill */
   --color-composer: #ffffff;    /* = raised: unchanged */
   --color-composer-ring: transparent;
@@ -343,7 +343,7 @@
   /* Two accent tones: the fill carries white, the text stands on white. */
   --color-accent: #a05f25;        /* #b06a2c darkened → 5.05:1 */
   --color-accent-border: #b06a2c; /* the original tone lives on as the border */
-  --color-accent-text: #96551f;   /* for links on a light ground — 5.81:1 */
+  --color-accent-text: #96551f;   /* for links on a light ground, 5.81:1 */
   --color-focus: #8a8884;
   --color-accent-ink: #ffffff;
   --color-bubble-user: #f2e9dc;   /* your own messages in the badge beige */
@@ -382,20 +382,20 @@
 
 /* ── Foundry ───────────────────────────────────────────────────────────────
    Night shift. The third corner of the grid: Midnight is dark and cool,
-   Atelier light and warm — this one is dark and warm, which is the register
+   Atelier light and warm; this one is dark and warm, which is the register
    most of this app's actual use falls into.
 
    Its one structural idea, and the thing that makes it read as metal rather
    than as "Atelier with the lights off": the accent is the brightest thing on
    screen, not a darker patch of it. Brass at #d99a3e glows against the ground
-   at 7.9:1 and carries near-black lettering at 7.4:1 — so filled buttons read
+   at 7.9:1 and carries near-black lettering at 7.4:1, so filled buttons read
    as lit, not as painted. That inversion is only possible because
    --color-accent-ink exists; with hardcoded white text the accent would have
    to stay dark and the skin would lose its point.
 
    Surfaces warm up as they rise (#100e0b → #262019), the way material does as
-   it comes closer to the lamp. Corners are tighter than Atelier's — 4px and
-   8px — because sheet metal doesn't round the way paper does.
+   it comes closer to the lamp. Corners are tighter than Atelier's (4px and
+   8px) because sheet metal doesn't round the way paper does.
    ───────────────────────────────────────────────────────────────────────── */
 [data-skin="foundry"] {
   --code-color-scheme: dark;
@@ -411,13 +411,13 @@
   --color-menu-active: var(--color-raised);
   --color-inset: #0b0a08;         /* inset sinks below the ground */
   --color-control: #262019;       /* = raised: Foundry is unchanged */
-  --color-hairline: #3d3529;      /* visible on purpose — this UI has edges */
+  --color-hairline: #3d3529;      /* visible on purpose, this UI has edges */
 
   --color-ink: #f4efe4;           /* warm off-white, never pure #fff */
   --color-ink-secondary: #b0a696; /* 6.7:1 on raised, 5.9:1 on hover */
   --color-ink-tertiary: #9c9384;
 
-  /* Brass. Bright fill, dark lettering — the inversion described above. */
+  /* Brass. Bright fill, dark lettering, the inversion described above. */
   --color-accent: #d99a3e;
   --color-accent-border: #e8b25e;
   --color-accent-text: #e0a44c;   /* 8.6:1 on the ground, for links */
@@ -457,14 +457,14 @@
 }
 
 /* ── Lagoon ────────────────────────────────────────────────────────────────
-   Cool daylight — the fourth corner, and the one the grid was missing:
+   Cool daylight, the fourth corner, and the one the grid was missing:
    Midnight is dark and cool, Atelier light and warm, Foundry dark and warm.
 
    Where Atelier is paper, this is glazed ceramic. The neutrals carry a green-
    blue cast rather than a cream one (#eef2f2, not #f5f1eb), so the whole
    surface reads cool without a single saturated pixel, and the deep teal
    accent belongs to the ground instead of sitting on top of it. Even the ink
-   is a very dark petrol rather than a neutral black — on a tinted ground a
+   is a very dark petrol rather than a neutral black; on a tinted ground a
    truly neutral black reads as a foreign object.
 
    Corners are the most generous of the four (8px / 14px): glass and ceramic
@@ -476,7 +476,7 @@
   /* The tint is the point, so it is carried by the surfaces, not by a button:
      the ground sits 13 points of green-blue above its red channel, roughly
      three times Atelier's cream cast, which is what makes the skin read as
-     teal at a glance. Raised surfaces stay pure white as the contrast anchor —
+     teal at a glance. Raised surfaces stay pure white as the contrast anchor,
      tinting those too turns the whole thing to soup. */
   --color-app: #dfeceb;
   --color-panel: #ecf4f3;
@@ -495,7 +495,7 @@
                                      every one it can land on: 1.44:1 on a
                                      card, 1.29:1 on the panel, 1.13:1 on an
                                      inset row, 1.09:1 under the hover tone. */
-  --color-hairline: #aebfbd;      /* 1.60:1 — level with the other three */
+  --color-hairline: #aebfbd;      /* 1.60:1, level with the other three */
 
   --color-ink: #14201f;           /* dark petrol; a neutral black would read
                                      as a foreign object on a tinted ground */
@@ -736,7 +736,7 @@
 
    Its structural quirk is the user's own bubble: ink on a near-white page,
    the one place a light skin carries inverted ink. That is what
-   --color-bubble-user-ink exists for — see the rule at the bottom of the
+   --color-bubble-user-ink exists for, see the rule at the bottom of the
    file. The surfaces are a short ladder: page #fcfcfc, sidebar and the
    window's frame #f5f5f5, selected row #e4e4e4, a bot's message #efefef,
    and white for the composer and menus.
@@ -1230,7 +1230,7 @@
    UI language. `plaintext` resolves direction per line from its own first
    strong character, so a pasted block that mixes an Arabic sentence with an
    English stack trace lays each line out correctly instead of letting the
-   first line decide for all of them — which is what a single dir="auto"
+   first line decide for all of them, which is what a single dir="auto"
    would do. `start` then follows that per-line direction. */
 .chat-text {
   unicode-bidi: plaintext;
@@ -1974,7 +1974,7 @@ body {
 }
 ::-webkit-scrollbar-thumb:vertical { min-height: 40px; }
 ::-webkit-scrollbar-thumb:horizontal { min-width: 40px; }
-/* the thumb was inert — it never acknowledged the pointer */
+/* the thumb was inert, it never acknowledged the pointer */
 ::-webkit-scrollbar-thumb:hover,
 ::-webkit-scrollbar-thumb:active {
   border-width: 1px;
@@ -2778,7 +2778,7 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
    Filled accent / danger / success surfaces
 
    Components hardcode `text-white` on these fills (~20 call sites). That works
-   only as long as every skin's accent is dark enough to carry white — which
+   only as long as every skin's accent is dark enough to carry white, which
    rules out any skin whose accent is meant to glow. Rather than edit twenty
    components, the ink is taken from a token here; `text-white` and this rule
    have equal specificity, and this file is loaded after Tailwind's utilities.
@@ -3029,7 +3029,7 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
 /* Disabled buttons.
    Upstream fades them with `disabled:opacity-40`. On a dark ground that holds:
    the button stays darker than the page and the white label survives. On a
-   light ground it inverts — Atelier's #a05f25 at 40% over white lands on
+   light ground it inverts, Atelier's #a05f25 at 40% over white lands on
    #d9bfa8, where white lettering measures 1.75:1 and effectively disappears.
    So the disabled state gets its own colours instead of transparency. */
 button:disabled.bg-accent,

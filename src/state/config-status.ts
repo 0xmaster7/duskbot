@@ -8,7 +8,7 @@ export interface SavedKey { configured: boolean; last4?: string }
 
 export type NestedKeyName = "ttsKey" | "fishAudioKey" | "geminiTtsKey" | "jevApiKey" | "openrouterDeciderKey" | "gatewayDeciderKey" | "workersAiToken" | "openaiImageApiKey" | "customImageApiKey" | "openaiLiveKey";
 
-/** GET /api/config — configured flags only; secrets are never echoed. */
+/** GET /api/config, configured flags only; secrets are never echoed. */
 export interface ConfigStatus {
   /** The workspace's banner picture (GET /api/workspace/banner), by a version that changes with it; null without one. */
   workspaceBanner?: import("@/lib/place-banner").BannerSummary | null;
@@ -121,7 +121,7 @@ export interface ConfigStatus {
     xaiConfigured?: boolean;
     customKeyConfigured?: boolean;
   };
-  /** who's using the app — collected in onboarding, shown in the sidebar */
+  /** who's using the app, collected in onboarding, shown in the sidebar */
   profile?: { name: string; email: string; aboutMe?: string; avatarUrl?: string };
   /** UI language override; "" (or absent) follows the system language. */
   language?: string;

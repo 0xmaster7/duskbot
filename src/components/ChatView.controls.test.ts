@@ -342,8 +342,8 @@ describe("thread control placement", () => {
     expect(markup).toContain(">The service is busy right now. Try again in a moment.</span>");
     expect(markup).toMatch(/<summary[^>]*>Details<\/summary><p[^>]*>API Error: 529/);
     expect(markup).toContain(" Retry</button>");
-    const plain = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: no activity for 10 minutes — the turn was stopped", ok: false }, engine: undefined }));
-    expect(plain).toContain(">no activity for 10 minutes — the turn was stopped</span>");
+    const plain = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: no activity for 10 minutes: the turn was stopped", ok: false }, engine: undefined }));
+    expect(plain).toContain(">no activity for 10 minutes: the turn was stopped</span>");
     expect(plain).not.toContain(">details</summary>");
   });
   it("offers to update Claude Code for a too-old install, or hands over the command", () => {

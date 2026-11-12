@@ -138,7 +138,7 @@ describe("snoozed threads", () => {
     expect(visibleSidebarThreads(withSnoozed, "8", "", [], true)).toEqual(withSnoozed);
     expect(visibleSidebarThreads(withSnoozed, "8", "thread 0").map((task) => task.threadId)).toEqual(["0"]);
   });
-  it("treats snoozedUntil: 0 as snoozed — presence, not truthiness — and says so in the byline", () => {
+  it("treats snoozedUntil: 0 as snoozed, presence, not truthiness, and says so in the byline", () => {
     const sentinel = [{ ...rows[0], snoozedUntil: 0 }, ...rows.slice(1)];
     expect(visibleSidebarThreads(sentinel, "8").map((task) => task.threadId)).toEqual(["1", "2", "3", "4", "5", "6", "8"]);
     expect(threadByline({ snoozedUntil: 0 })).toBe("snoozed");

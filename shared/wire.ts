@@ -111,7 +111,7 @@ export interface TaskUsage {
   output: number;
   /** cached share of input (context the model re-read) */
   cachedInput?: number;
-  /** null until any turn reported a cost — most engines never do */
+  /** null until any turn reported a cost, most engines never do */
   costUsd: number | null;
   turns: number;
   /** the most recent settled turn on its own */
@@ -223,7 +223,7 @@ export interface BotProject {
 }
 
 /** Public, package-authored playbooks installed for a bot. Process
- * guidance only — never executable code, credentials, or grants. */
+ * guidance only, never executable code, credentials, or grants. */
 export interface InstalledPlaybook {
   key: string;
   name: string;
@@ -287,7 +287,7 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
   name: string;
   title: string;
   description: string;
-  /** Standing instructions — the persona body. */
+  /** Standing instructions, the persona body. */
   soul?: string;
   /** sha256 of soul, for spotting a SOUL.md edited outside the app. */
   soulHash?: string;

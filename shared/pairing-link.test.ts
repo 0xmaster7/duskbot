@@ -127,7 +127,7 @@ describe("phonePairingLink", () => {
 
   it("drops unusable fallback hosts without breaking the link", () => {
     // A bad candidate costs the phone one failed dial at most, and an empty
-    // list is a link that simply carries no fallbacks — pairing still works.
+    // list is a link that simply carries no fallbacks, pairing still works.
     const link = phonePairingLink({
       address: "mac.local",
       port: 8810,

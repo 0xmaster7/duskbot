@@ -68,7 +68,7 @@ function duration(ms: number): string {
 }
 
 /** A bot's step as the voice may name it: the tool's own spoken label, or
- * the tool's name ("team notes: query database") — never its arguments,
+ * the tool's name ("team notes: query database"), never its arguments,
  * which can hold paths, queries or private text. */
 export function liveStepLabel(tool: { name: string; spoken?: string }): string {
   if (tool.spoken?.trim()) return brief(tool.spoken, 80);

@@ -12,8 +12,8 @@ export type SignInPlace = Surface;
 
 /** The site as a page address and the host shown on the card. A bare
  * domain means its https home page. Anything that is not a plain http(s)
- * address — a script URL, a file, an address carrying a username or
- * password — is refused, so the card can never open more than a page. */
+ * address, a script URL, a file, an address carrying a username or
+ * password, is refused, so the card can never open more than a page. */
 export function normalizeSignInSite(raw: unknown): { url: string; site: string } | null {
   if (typeof raw !== "string") return null;
   const text = raw.trim();
@@ -32,7 +32,7 @@ export function normalizeSignInSite(raw: unknown): { url: string; site: string }
   return { url: url.href, site: url.hostname.replace(/^www\./, "") };
 }
 
-/** A still-open sign-in card for this site — the set a newer request
+/** A still-open sign-in card for this site, the set a newer request
  * supersedes. Done, cancelled, already-superseded and answered-in-chat
  * cards keep their settled state. In a room only the asking bot's own
  * cards count. */

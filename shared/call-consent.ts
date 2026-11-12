@@ -1,5 +1,5 @@
 // Spoken answers to a permission card, shared by both call modes. Anything
-// else is read as a reply to the bot, not as consent — an approval must
+// else is read as a reply to the bot, not as consent, an approval must
 // never be granted by a sentence that merely contained the word "sure".
 export const YES = /^(yes|yeah|yep|yup|sure|ok|okay|go ahead|do it|allow|approve|approved|fine|please do)\b/i;
 export const NO = /^(no|nope|don'?t|do not|stop|deny|denied|cancel|never|skip it)\b/i;
@@ -17,7 +17,7 @@ const LIVE_YES = /^(?:yes|yeah|yep|yup|go ahead|do it|allow(?: it)?|approve(?: i
 /** "allow", "deny", or null when the words are not a clear decision. The
  * answer must open the utterance; filler before it ("uh, yes") is dropped.
  * `live`: a Live call, whose microphone stays open while the voice speaks
- * and which decides after a short quiet window — hedges never decide there.
+ * and which decides after a short quiet window, hedges never decide there.
  * `turns` (take turns) keeps its own rule: its microphone is closed while
  * the bot talks. */
 export function spokenConsent(text: string, mode: "turns" | "live" = "turns"): "allow" | "deny" | null {

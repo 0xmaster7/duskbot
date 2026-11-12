@@ -1,5 +1,5 @@
 // Inert voice-latency recorder. Every exported function is a no-op unless the
-// measurement harness installed a sink array at `window.__duskVoiceProbe` — with
+// measurement harness installed a sink array at `window.__duskVoiceProbe`, with
 // the probe off, the speak path runs exactly as it did before the probe existed.
 import type { RuntimeEvent, ThreadId } from "../../shared/runtime-events";
 import type { VoiceProbeSample } from "../../shared/voice-latency-probe";

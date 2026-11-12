@@ -250,7 +250,7 @@ export function credentialIsConfigured(config: CredentialConfig, id: CredentialT
   }
 }
 
-/** A still-pending credential card for this target — the set a newer
+/** A still-pending credential card for this target, the set a newer
  * request supersedes. Provided, dismissed, and already-superseded cards
  * keep their settled state untouched. */
 export function isPendingCredentialRequest(

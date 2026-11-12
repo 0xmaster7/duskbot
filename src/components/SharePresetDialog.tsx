@@ -114,7 +114,7 @@ export function SharePresetDialog({ onClose }: { onClose: () => void }) {
         if (cancelled) return;
         setPicture({
           dataUrl: prepared.avatars.defaults,
-          skipped: prepared.skipped.map((skip) => `${t("teamShare.field.picture")} — ${tFromServer(`teamShare.skip.${skip.reason}`, skip.reason)}`),
+          skipped: prepared.skipped.map((skip) => `${t("teamShare.field.picture")} (${tFromServer(`teamShare.skip.${skip.reason}`, skip.reason)})`),
         });
       })
       .catch(() => { if (!cancelled) setPicture({ skipped: [] }); });

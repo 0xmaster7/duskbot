@@ -370,7 +370,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
         body: JSON.stringify({ source: trimmed }),
       })) as { installed?: unknown[] };
       const count = (result.installed ?? []).length;
-      setImportMessage(`imported ${count} skill${count === 1 ? "" : "s"} — review and enable below.`);
+      setImportMessage(`imported ${count} skill${count === 1 ? "" : "s"}: review and enable below.`);
       setSource("");
       await refresh();
     } catch (cause) {

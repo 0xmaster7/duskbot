@@ -62,7 +62,7 @@ const KEY_SUFFIX_ASSIGNMENT = /\b([A-Za-z][A-Za-z0-9_-]*[_-]key)s?(=)(["']?)([A-
 /** `--token abc`, `--password=abc`: the flag names a secret; the value is
  * whatever single token follows, never another flag. */
 const SECRET_FLAG = /(--(?:token|password|passwd|api-key|apikey|secret|access-key|auth-token)(?:=|\s+))(["']?)(?!-)([A-Za-z0-9._~+/=-]+)\2/gi;
-/** `scheme://user:secret@host` — the password in a URL's userinfo. */
+/** `scheme://user:secret@host`, the password in a URL's userinfo. */
 const URL_USERINFO = /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@'"]+:)([^\s/@'"«»]+)(@)/gi;
 
 // A saved website password has no shape: it is known by value. The server

@@ -27,7 +27,7 @@ const frame = (type: string, turnId: string) => ({ type, turnId, threadId: "thre
 /** What the server answers a saved switch with, and the store hears. */
 const saved = (threadId = "thread-1") => ({ id: "bot-1", threadId, modelSelection: { instanceId: "claude", model: "opus" } });
 const switched = (threadId = "thread-1"): Action => ({ type: "botPatched", bot: saved(threadId) as never });
-const busyRefusal = () => Object.assign(new Error("the bot is working — stop it before changing models"), { status: 409 });
+const busyRefusal = () => Object.assign(new Error("the bot is working: stop it before changing models"), { status: 409 });
 let stopAnswer: unknown;
 let saveAnswers: Array<() => Promise<unknown>>;
 const saves = () => api.mock.calls.filter(([path]) => String(path).includes("/tasks/"));

@@ -16,7 +16,7 @@ export function nameIsCommand(name: string): boolean {
 /** What a tool chip should be counted as. Command-titled chips collapse to
  * one `shell` bucket: keyed on the raw command they never aggregate (a turn
  * that ran one tool twelve times reads as twelve tools), and the raw title
- * is unredacted — unlike `tool.summary`, which drivers bound and redact. */
+ * is unredacted, unlike `tool.summary`, which drivers bound and redact. */
 export function toolIdentity(name: string): string {
   return nameIsCommand(name) ? SHELL_TOOL : name;
 }

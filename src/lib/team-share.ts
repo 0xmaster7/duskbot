@@ -208,7 +208,7 @@ export function describePart(part: string, document?: PackageDocument): string {
 export function describeSkip(skip: ShareSkip, document?: PackageDocument, botNames?: ReadonlyMap<string, string>): string {
   const reason = tFromServer(`teamShare.skip.${skip.reason}`, skip.reason) ?? skip.reason;
   const who = botNames?.get(skip.part) ?? describePart(skip.part, document);
-  return `${who} — ${reason}`;
+  return `${who} (${reason})`;
 }
 
 export function saveShareFile(filename: string, document: PackageDocument): void {

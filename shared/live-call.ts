@@ -56,7 +56,7 @@ export class LiveTranscript {
     };
   }
 
-  /** Everything heard since the last taken request, without consuming it —
+  /** Everything heard since the last taken request, without consuming it,
    * used to read a spoken yes/no while a permission question is open.
    * `skipEcho` leaves out what was heard while the voice itself spoke. */
   pending(options: { skipEcho?: boolean } = {}): string {
@@ -164,18 +164,18 @@ export const LIVE_VOICE_OPTIONS: ReadonlyArray<{ id: string; label: string }> = 
   { id: "sage", label: "Sage" },
   { id: "shimmer", label: "Shimmer" },
   { id: "verse", label: "Verse" },
-  { id: "gleam", label: "Gleam — North American, feminine" },
-  { id: "meridian", label: "Meridian — North American, masculine" },
-  { id: "quartz", label: "Quartz — Australian, feminine" },
-  { id: "ripple", label: "Ripple — Australian, masculine" },
-  { id: "vesper", label: "Vesper — British, masculine" },
-  { id: "willow", label: "Willow — Irish, feminine" },
-  { id: "stone", label: "Stone — Irish, masculine" },
-  { id: "delta", label: "Delta — Southern U.S., feminine" },
-  { id: "cinder", label: "Cinder — Southern U.S., masculine" },
-  { id: "beacon", label: "Beacon — Filipino, masculine" },
-  { id: "bossa", label: "Bossa — Brazilian Portuguese, feminine" },
-  { id: "tempo", label: "Tempo — Brazilian Portuguese, masculine" },
+  { id: "gleam", label: "Gleam: North American, feminine" },
+  { id: "meridian", label: "Meridian: North American, masculine" },
+  { id: "quartz", label: "Quartz: Australian, feminine" },
+  { id: "ripple", label: "Ripple: Australian, masculine" },
+  { id: "vesper", label: "Vesper: British, masculine" },
+  { id: "willow", label: "Willow: Irish, feminine" },
+  { id: "stone", label: "Stone: Irish, masculine" },
+  { id: "delta", label: "Delta: Southern U.S., feminine" },
+  { id: "cinder", label: "Cinder: Southern U.S., masculine" },
+  { id: "beacon", label: "Beacon: Filipino, masculine" },
+  { id: "bossa", label: "Bossa: Brazilian Portuguese, feminine" },
+  { id: "tempo", label: "Tempo: Brazilian Portuguese, masculine" },
 ];
 
 /** A call's length as a clock: m:ss under an hour ("0:07", "1:42"),

@@ -88,7 +88,7 @@ it("hides local environments and the create form in a dev build", async () => {
   expect(html).not.toContain("/home/me/.duskbot-work");
 });
 
-it("creates an environment with the chosen folder — and without one when the field is left empty", async () => {
+it("creates an environment with the chosen folder, and without one when the field is left empty", async () => {
   const environments = stubEnvironments({}, { create: vi.fn().mockResolvedValue({ ok: true, state: envState() }) });
   await mount();
   expect(dialog("new-environment")).toBeUndefined();

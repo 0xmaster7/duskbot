@@ -67,7 +67,7 @@ beforeEach(() => {
 describe("the chat card a bot-made automation leaves", () => {
   const sentence = "every weekday at 9 AM, Scout summarizes the inbox and posts the three priorities";
 
-  it("says what was set up in one sentence, what happens next, and offers Pause, Edit and Undo — never a confirmation", () => {
+  it("says what was set up in one sentence, what happens next, and offers Pause, Edit and Undo, never a confirmation", () => {
     const html = render(scheduleCard);
     expect(html).toContain('data-trigger-card="routine-1"');
     expect(html).toContain(`set up: ${sentence}`);

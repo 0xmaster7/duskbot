@@ -116,7 +116,7 @@ describe("EffortRow", () => {
     expect(markup).not.toContain(">Max<");
   });
 
-  it("keeps Default and None apart — Default sends no level, None sends one", () => {
+  it("keeps Default and None apart: Default sends no level, None sends one", () => {
     const markup = renderEffort([engine(["none", "low"])]);
 
     expect(levelButtons(markup).map((button) => button.label)).toEqual(["default", "none", "low"]);

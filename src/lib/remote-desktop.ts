@@ -3,9 +3,9 @@ import { canWorkOnCloud, type CloudEngine } from "../../shared/cloud-computer";
 
 export function isRemoteScreenshotContention(error: { status: number; message: string }): boolean {
   return error.status === 409 && [
-    "this bot's cloud computer is being changed — wait for it to finish",
-    "the VPS is being prepared — try again shortly",
-    "VPS connection settings are being updated — wait for them to finish",
+    "this bot's cloud computer is being changed: wait for it to finish",
+    "the VPS is being prepared: try again shortly",
+    "VPS connection settings are being updated: wait for them to finish",
   ].includes(error.message);
 }
 

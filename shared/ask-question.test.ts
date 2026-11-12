@@ -80,7 +80,7 @@ describe("parseAskQuestions", () => {
     expect(parseAskQuestions(null)).toBeNull();
   });
 
-  it("keeps a question whose options are missing — free text still answers it", () => {
+  it("keeps a question whose options are missing: free text still answers it", () => {
     expect(parseAskQuestions({ questions: [{ question: "Which account?" }] })).toEqual([
       { question: "Which account?", options: [] },
     ]);
@@ -183,7 +183,7 @@ describe("formatQuestionAnswers", () => {
     { question: "Which stores?", multiSelect: true, options: [{ label: "Instamart" }] },
   ];
 
-  it("names each question beside its answer — the model sees only this text", () => {
+  it("names each question beside its answer: the model sees only this text", () => {
     expect(formatQuestionAnswers(questions, [["Opus"], ["Instamart", "Blinkit"]])).toBe(
       "The user answered your questions.\n\nQ: Which model?\nA: Opus\n\nQ: Which stores?\nA: Instamart, Blinkit",
     );
@@ -208,7 +208,7 @@ describe("ASK_USER_TOOL_DEFINITION", () => {
     expect(schema.maxItems).toBe(MAX_QUESTIONS);
     expect(schema.minItems).toBe(1);
     expect(schema.items.properties.options.maxItems).toBe(MAX_OPTIONS);
-    // a question with no options is still answerable — free text
+    // a question with no options is still answerable, free text
     expect(schema.items.properties.options.minItems).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@
 // renderer. Pure text, so the same rules validate a skill wherever it is read.
 
 /** Spec rule: lowercase alphanumerics with single hyphens, 1-64 chars,
- * folder name must equal it. The regex IS the traversal gate — no dots, no
+ * folder name must equal it. The regex IS the traversal gate, no dots, no
  * slashes, no way to name a skill "..". */
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const SKILL_NAME_MAX = 64;
@@ -123,20 +123,20 @@ export function readSkillFrontmatter(raw: string): { fields: Record<string, stri
 }
 
 /** Static red flags before a human review. Presence is a warning shown in
- * the review screen, never a silent rejection — the reviewer decides. These
+ * the review screen, never a silent rejection, the reviewer decides. These
  * are the three patterns the public registry audits actually caught. */
 export function scanSkillText(raw: string): string[] {
   const warnings: string[] = [];
   if (/[A-Za-z0-9+/]{120,}={0,2}/.test(raw)) {
-    warnings.push("contains a long base64-looking blob — a common wrapper for hidden instructions or payloads");
+    warnings.push("contains a long base64-looking blob: a common wrapper for hidden instructions or payloads");
   }
   if (/\b(curl|wget)\b[^\n]{0,200}\|\s*(ba|z|da)?sh\b/.test(raw)) {
-    warnings.push("pipes a download straight into a shell (curl|sh) — never enable without understanding why");
+    warnings.push("pipes a download straight into a shell (curl|sh); never enable without understanding why");
   }
   // zero-width and bidi-control characters hide text from the reviewer while
-  // the model still reads it — the invisible-instruction trick
+  // the model still reads it, the invisible-instruction trick
   if (/[​-‏‪-‮⁠-⁤﻿]/.test(raw)) {
-    warnings.push("contains invisible Unicode characters (zero-width or bidi controls) — text you cannot see");
+    warnings.push("contains invisible Unicode characters (zero-width or bidi controls): text you cannot see");
   }
   return warnings;
 }

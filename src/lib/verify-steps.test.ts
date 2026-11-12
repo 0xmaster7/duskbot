@@ -64,7 +64,7 @@ describe("parseControlCommand", () => {
     "npmcontrol:dusk doctor",
     "pnpm typecheck",
     "pnpm typecheck && pnpm test",
-  ])("rejects %s — the CLI is not what runs", (command) => {
+  ])("rejects %s: the CLI is not what runs", (command) => {
     expect(parseControlCommand(command)).toBeUndefined();
   });
 
@@ -97,7 +97,7 @@ describe("parseRunCommand", () => {
     "FOO=1",
     "export FOO=bar",
     "echo done > out.txt",
-  ])("%s is not a step — it only looks", (command) => {
+  ])("%s is not a step, it only looks", (command) => {
     expect(parseRunCommand(command)).toBeUndefined();
   });
 
@@ -152,7 +152,7 @@ describe("commandOf", () => {
   it("never reads a chip's name, so a server status chip quoting a command is not a step", () => {
     const stuck: Message = {
       id: "s1", at: 1, role: "bot", kind: "activity",
-      tool: { name: `Same call repeated 3× — Bash: ${DOCTOR} — it may be stuck`, ok: false },
+      tool: { name: `Same call repeated 3× (Bash: ${DOCTOR}), it may be stuck`, ok: false },
     };
     expect(commandOf(stuck)).toBeUndefined();
     expect(runSteps([stuck])).toEqual([]);
@@ -227,7 +227,7 @@ describe("askText", () => {
 });
 
 describe("showRun", () => {
-  it("shows a run with a verified step, or with two or more steps — one unverified command is a chip, not a run", () => {
+  it("shows a run with a verified step, or with two or more steps: one unverified command is a chip, not a run", () => {
     const [push, publish] = runSteps([claude(PUSH, true), claude("npm publish", true)]);
     const [doctor] = runSteps([claude(DOCTOR, true)]);
     expect(showRun([])).toBe(false);
@@ -308,18 +308,18 @@ describe("skillPrompt", () => {
     });
 
     it("ends with a blank line so the caret lands below the steps in the composer", () => {
-      expect(prompt.endsWith(`✓ git push — ${PUSH}\n\n`)).toBe(true);
+      expect(prompt.endsWith(`✓ git push: ${PUSH}\n\n`)).toBe(true);
       expect(prompt.endsWith("\n\n\n")).toBe(false);
     });
 
-    it("lists every step with its marker, the verified ones tagged — a dry run never as passing", () => {
-      expect(prompt).toContain(`✓ doctor — ${DOCTOR} (verified)\n`);
-      expect(prompt).toContain(`✗ send — ${SEND} (verified)\n`);
-      expect(prompt).toContain(`? press — ${PRESS} (verified)\n`);
-      expect(prompt).toContain(`[dry run] doctor — ${DOCTOR} --dry-run (verified)\n`);
-      expect(prompt).toContain(`✓ git push — ${PUSH}\n`);
+    it("lists every step with its marker, the verified ones tagged: a dry run never as passing", () => {
+      expect(prompt).toContain(`✓ doctor: ${DOCTOR} (verified)\n`);
+      expect(prompt).toContain(`✗ send: ${SEND} (verified)\n`);
+      expect(prompt).toContain(`? press: ${PRESS} (verified)\n`);
+      expect(prompt).toContain(`[dry run] doctor: ${DOCTOR} --dry-run (verified)\n`);
+      expect(prompt).toContain(`✓ git push: ${PUSH}\n`);
       expect(prompt).not.toContain(`${PUSH} (verified)`);
-      expect(prompt).not.toContain(`✓ doctor — ${DOCTOR} --dry-run`);
+      expect(prompt).not.toContain(`✓ doctor: ${DOCTOR} --dry-run`);
       expect(prompt).not.toMatch(/Launch \/ Doctor/);
       expect(prompt).not.toContain("skill_manage");
     });
@@ -329,7 +329,7 @@ describe("skillPrompt", () => {
     const steps = runSteps([claude(PUSH, true), claude("npm publish", false), claude("gh release create v1")]);
     const prompt = skillPrompt(steps, "publish the release");
 
-    it("asks in plain words — no slash command — with the goal and the one rule under the shared opening line", () => {
+    it("asks in plain words, no slash command, with the goal and the one rule under the shared opening line", () => {
       expect(prompt.startsWith(`${SAVE_RUN_AS_SKILL_LINE}\n`)).toBe(true);
       expect(prompt.split("\n").slice(0, 4)).toEqual([
         SAVE_RUN_AS_SKILL_LINE,
@@ -347,11 +347,11 @@ describe("skillPrompt", () => {
     });
 
     it("lists the steps untagged and ends with a blank line", () => {
-      expect(prompt).toContain(`✓ git push — ${PUSH}\n`);
-      expect(prompt).toContain("✗ npm publish — npm publish\n");
-      expect(prompt).toContain("? gh release — gh release create v1\n");
+      expect(prompt).toContain(`✓ git push: ${PUSH}\n`);
+      expect(prompt).toContain("✗ npm publish: npm publish\n");
+      expect(prompt).toContain("? gh release: gh release create v1\n");
       expect(prompt).not.toContain("(verified)");
-      expect(prompt.endsWith("? gh release — gh release create v1\n\n")).toBe(true);
+      expect(prompt.endsWith("? gh release: gh release create v1\n\n")).toBe(true);
     });
   });
 });

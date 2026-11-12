@@ -256,7 +256,7 @@ export function runSkill(messages: Message[], steps: RunStep[]): RunSkill {
 const MARK = { passed: "✓", failed: "✗", running: "…", unverified: "?" } as const;
 
 const stepLine = (step: RunStep) =>
-  `${step.dryRun ? "[dry run]" : MARK[step.status]} ${step.label} — ${step.command}${step.verified ? " (verified)" : ""}`;
+  `${step.dryRun ? "[dry run]" : MARK[step.status]} ${step.label}: ${step.command}${step.verified ? " (verified)" : ""}`;
 
 export function skillPrompt(steps: RunStep[], ask?: string): string {
   const lines = steps.some((step) => step.verified)

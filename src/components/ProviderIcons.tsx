@@ -104,7 +104,7 @@ export function QwenMark({ size = 16, className }: IconProps) {
   );
 }
 
-/** Official pi (pi.dev) mark — geometric "Pi" wordmark from pi.dev/logo.svg. */
+/** Official pi (pi.dev) mark, geometric "Pi" wordmark from pi.dev/logo.svg. */
 export function PiMark({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 800 800" className={cn("fill-[var(--color-ink)]", className)} aria-hidden>

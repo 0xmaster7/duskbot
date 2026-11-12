@@ -36,7 +36,7 @@ describe("share as preset", () => {
       "skills · arrive switched off 1 · objection-handling", "starter notes none", "pictures none",
       "Never included: model choices, folders, where bots work, approval levels, connected apps, MCP servers and routines.",
       "removed what looked like a key or password from: Support agent · standing instructions",
-      "Support agent · skill · follow-up — a bot in the department has a different skill with this name",
+      "Support agent · skill · follow-up (a bot in the department has a different skill with this name)",
     ]) expect(words).toContain(line);
   });
 
