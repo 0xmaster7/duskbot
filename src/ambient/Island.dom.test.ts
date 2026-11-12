@@ -87,7 +87,7 @@ it("opens into a grid of mascots with their names, the newest line in a tip just
   await act(async () => root.unmount());
 });
 
-it("closes soon after the pointer leaves: a pointer in the small margin or back within HOVER_OUT_MS keeps it open, then it folds", async () => {
+it("closes in a balanced beat: a pointer in the margin or back within HOVER_OUT_MS keeps it open, then it folds", async () => {
   let feed: (snapshot: AmbientSnapshot) => void = () => {};
   const bridge: AmbientBridge = {
     surface: "island", onState: (cb) => { feed = cb; return () => {}; }, onLayout: () => () => {}, pointer() {}, open() {}, act() {}, order() {}, ready() {},

@@ -10,15 +10,15 @@ import { CELEBRATE_MS, MOOD_EMOJI, finishedSince, isBusy, moodOf, rankBots, shor
 import { Reveal, rowLine, trayFor, useRowMoments } from "./rows";
 import { attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, HOLD_MS, ISLAND_EXIT, useSettledSignal, useTraceTransitions, LIVELY, SETTLE, SETTLE_MS, useAllClear, useSteady, useSurfaceValue, useAmbientFeed, useChangeMoment, useNow, usePointerRegion, useStill } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, IslandLayout } from "./types";
 
 const PANEL_W = 432;
 /** The flares where a notch island meets the top edge of the screen. */
 const EAR = 10;
 /** The island stays this long after the pointer leaves, and keeps a little margin around it while open. */
-export const HOVER_OUT_MS = 120;
-export const GRACE = 8;
+export const HOVER_OUT_MS = 260;
+export const GRACE = 16;
 /** The island widens this much for a moment when someone starts needing the person, or a turn finishes. */
 const NUDGE = 22;
 const NUDGE_MS = 1600;
@@ -129,9 +129,8 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
   anyBots.current = bots.length > 0;
   const hit = useCallback((x: number, y: number) => {
     if (!anyBots.current) return false;
-    // open, the margin is all the slack there is (the flares only reach out at the very top)
-    const half = w.get() / 2 + 2 + (openNow.current ? GRACE : notch ? EAR : 0);
     const grace = openNow.current ? GRACE : 0;
+    const half = w.get() / 2 + (notch ? EAR : 0) + 2 + grace;
     return Math.abs(x - stageW / 2) <= half && y >= c.top - 2 && y <= c.top + h.get() + 4 + grace;
   }, [w, h, notch, stageW, c.top]);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -210,7 +209,7 @@ export function Island({ bridge, embedded = false, forceOpen = false }: IslandPr
           style={{ paddingTop: c.height }}
           initial={false}
           animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : -6 }}
-          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: FADE_OUT, y: ISLAND_EXIT }}
+          transition={open ? { opacity: { ...FADE, delay: 0.05 }, y: SETTLE } : { opacity: { duration: 0.2, ease: EASE_OUT }, y: ISLAND_EXIT }}
         >
           <div ref={panel}>
             <PanelBody bots={bots} seen={seen} mark={mark} cheer={allClear} labels={labels} lang={snapshot?.lang ?? ""} open={open} bridge={bridge} onPin={setPinned} />
