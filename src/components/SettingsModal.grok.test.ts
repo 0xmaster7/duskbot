@@ -93,7 +93,8 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "data sharing", "bring your stuff"]);
     expect(html).not.toContain("data-settings-fold");
     expect(html).toContain("bring in from other apps");
-    expect(html).not.toContain("Grok bot");
+    // the import row names the apps it brings bots from; the Grok move itself lives on the import page
+    expect(html).not.toContain("move from Grok bot");
     expect(markers(html)).toEqual([]);
     expect(html).toContain('data-panel-page="import"');
     expect(markers(open("import"))).toEqual(["import"]);

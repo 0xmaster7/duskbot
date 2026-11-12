@@ -12,6 +12,8 @@ const fixture = vi.hoisted(() => {
 });
 vi.mock("@/state/store", () => ({ api: fixture.api, useStore: () => ({ state: { config: fixture.config }, dispatch: fixture.dispatch }) }));
 vi.mock("@/lib/analytics", () => ({ track: fixture.track }));
+// sealing has its own tests (src/lib/sealed-send.test.ts): here the patch the card asked to save is what the server gets
+vi.mock("@/lib/sealed-send", () => ({ putConfig: (patch: unknown) => fixture.api("/api/config", { method: "PUT", body: JSON.stringify(patch) }) }));
 
 import { XCard } from "./XCard";
 
@@ -133,7 +135,7 @@ describe("the X card in Apps", () => {
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { treg: { configured: true }, xResearch: { included: false } } });
     expect(card().dataset.xState).toBe("own");
     expect(text()).toContain("using your treg key");
-    expect(text()).toContain("treg is working ✓ Balance: $4.25.");
+    expect(text()).toContain("treg is working ✓ balance: $4.25.");
     expect(field()).toBeNull();
     expect(fixture.track).toHaveBeenCalledWith("api_key_saved", { provider: "treg", via: "apps", result: "ok" });
     expect(onConnection).toHaveBeenLastCalledWith(true);
