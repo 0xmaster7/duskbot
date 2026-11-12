@@ -6,7 +6,7 @@ import { currentServerCompat, isMissingRoute, readServerCompat, resetServerCompa
 import { serverBehindHint } from "./server-behind";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const server = (descriptors: Record<string, unknown>) => vi.fn(async (path: string) => (path in descriptors ? json(descriptors[path]) : json({ error: `no route: GET ${path}` }, 404)));
+const server = (descriptors: Record<string, unknown>) => vi.fn(async (input: string | URL | Request) => { const path = String(input); return path in descriptors ? json(descriptors[path]) : json({ error: `no route: GET ${path}` }, 404); });
 const noRoute = (path: string) => new ApiError(`no route: GET ${path}`, 404, { error: `no route: GET ${path}` });
 
 afterEach(() => resetServerCompat());
