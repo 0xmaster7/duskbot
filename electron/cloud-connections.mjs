@@ -9,6 +9,8 @@
 // `local`: this computer's server, `{ json(route), handoff(what) }`: a loopback read, and the private port's answer.
 // `target`: the owner session on My Cloud, `{ call(method, route, body?) }` answering `{ ok, status, body }`.
 
+import { cloudSealer } from "./cloud-seal.mjs";
+
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const sentence = (value) => (typeof value === "string" && value.trim() ? value.trim().slice(0, 300) : null);
 const pick = (source, names) => Object.fromEntries(names.filter((name) => source[name] !== undefined && source[name] !== null).map((name) => [name, source[name]]));
@@ -164,6 +166,7 @@ export async function sendConnections(collected, target, { local, release = true
   if (!cloud) throw new ConnectionMoveError("unreachable", "My Cloud did not answer. Try again in a moment.");
   const result = { moved: [], runsHere: [], kept: [], missing: [], failed: [], release: [], later: [] };
   const done = (item) => result.moved.push({ id: item.id, label: item.label });
+  const sealer = cloudSealer(target);
 
   /** A sign-in to My Cloud; one that refreshes itself (`digest`) is then let go of here. My Cloud keeps one of its own. */
   async function moveSignIn(item, signIn, digest) {
@@ -179,7 +182,7 @@ export async function sendConnections(collected, target, { local, release = true
     async key(item) {
       const { connection } = await secrets(local, item);
       if (!record(connection.config)) throw new ConnectionMoveError("local", `${item.label} could not be read on this computer.`);
-      const saved = await target.call("PATCH", "/api/config", connection.config);
+      const saved = await sealer.config("PATCH", connection.config);
       if (!saved.ok) throw refused(saved, `My Cloud did not take the ${item.label} key.`);
       done(item);
     },

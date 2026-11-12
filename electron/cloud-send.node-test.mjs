@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import vm from "node:vm";
+import { sealKeyAnswer } from "./fixtures/cloud-seal-key.mjs";
 
 import { BOT_PARTS, differenceSignature, itemKey, parseSendSummary, pendingRows, planSend } from "./cloud-send-parts.mjs";
 import { botPatch, CloudSendError, createCloudSend, parseSendState, sendNotice, unanswered } from "./cloud-send.mjs";
@@ -86,6 +87,8 @@ function fakeSides({ cloudItems = [], localItems = [], refuse = {} } = {}) {
   const reply = (status, body) => ({ status, ok: status < 400, body });
   const session = {
     call: async (method, route) => {
+      const sealKey = sealKeyAnswer(method, route);
+      if (sealKey) return sealKey;
       calls.push(`${method} ${route}`);
       if (route === "/api/cloud-send" || route === "/api/cloud-send?move=1") return reply(200, summary(cloudItems));
       if (refuse[route]) return reply(refuse[route].status, { error: refuse[route].error });

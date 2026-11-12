@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { cloudSealer, sealKeyAnswer } from "./fixtures/cloud-seal-key.mjs";
 
 import { adoptComposioId, collectConnections, ConnectionMoveError, parseConnections, releaseConnections, sendConnections } from "./cloud-connections.mjs";
 
@@ -33,6 +34,8 @@ function cloud({ connections = [], engines = [], commands = ["npx", "node"], rep
     calls,
     call: async (method, route, body) => {
       calls.push([method, route, body]);
+      const sealKey = sealKeyAnswer(method, route);
+      if (sealKey) return sealKey;
       if (method === "GET" && route === "/api/cloud-connections") {
         reads++;
         return { ok: true, status: 200, body: { computer: { environmentId: "env-cloud", label: "dusk-u-1" }, connections, engines: reads > readyAfter ? engines : [], commands } };
@@ -64,6 +67,9 @@ test("moves keys first, then MCP servers with their secrets and connected apps, 
   const result = await sendConnections(await collectConnections(local), target, { local, onProgress: (step) => progress.push(step) });
   assert.deepEqual(result.failed, []);
   assert.deepEqual(writes(target), ["PATCH /api/config", "POST /api/mcp/servers", "PATCH /api/mcp/servers/dodo", "POST /api/cloud-connections/connected-apps"]);
+  const key = target.calls.find(([method, route]) => method === "PATCH" && route === "/api/config")[2];
+  assert.deepEqual({ ...key, sealed: undefined }, { openrouter: {}, sealed: undefined, sealedPaths: ["openrouter.key"] }, "the key goes only sealed");
+  assert.deepEqual(await cloudSealer.openValues(key.sealed, "config", ["openrouter.key"], ["openrouter.key"]), { "openrouter.key": "sk-or" });
   assert.deepEqual(target.calls.find(([, route]) => route === "/api/mcp/servers")[2], { name: "dodo", command: "npx", args: ["-y", "dodo"], env: { KEY: "k" } });
   assert.deepEqual(target.calls.find(([, route]) => route === "/api/cloud-connections/connected-apps")[2], { share: "c".repeat(64), apps: ["gmail"] });
   assert.deepEqual(local.asked.find((what) => what.kind === "composio-share"), { kind: "composio-share", for: INSTALLATION });

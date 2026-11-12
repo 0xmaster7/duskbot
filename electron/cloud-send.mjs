@@ -19,6 +19,7 @@ import { AUTOMATION_KINDS, BOT_PARTS, EMPTY, MOVE_BOT_PARTS, MOVE_KINDS, PICTURE
 import { collectConnections, releaseConnections, sendConnections } from "./cloud-connections.mjs";
 import { createMoveKinds, mergeRoutines } from "./cloud-send-kinds.mjs";
 import { botsOnCloud } from "./cloud-logins.mjs";
+import { cloudSealer } from "./cloud-seal.mjs";
 import { checkChats, checkPassed, checkSecrets, manifestGaps, missingAttachments, roomsRemovedThere, roomsThatGo, rowIdChunks } from "./cloud-send-check.mjs";
 
 const LOCAL_ROUTE = /^\/api\/(?:cloud-send|cloud-send\?move=1|cloud-send\/manifest|cloud-send\/chats|cloud-send\/chats\?attachments=1|cloud-send\/kind\?key=[\w%.-]{1,300}|cloud-send\/memory|cloud-send\/memory\?bot=[\w-]{1,128}|cloud-send\/files|cloud-send\/files\?path=[\w%.()~!*'-]{1,12000}&offset=\d{1,16}&length=\d{1,9}|cloud-send\/chats\/rows\?thread=[\w-]{1,200}&after=\d{1,16}&id=[\w%.-]{0,600}|cloud-send\/chats\/ids\?thread=[\w-]{1,200}&from=\d{1,9}|cloud-send\/chats\/attachment\/[A-Za-z0-9-]{1,80}\.[A-Za-z0-9]{1,10}|cloud-connections|connectors\/connected|config|bots\?messages=0|bots\/[\w-]{1,128}\/(?:skills|skills\/[a-z0-9-]{1,64}|memory|memory\/file\?path=[\w%.-]{1,200})|attachments\/[A-Za-z0-9-]{1,80}\.(?:png|jpg|gif|webp))$/u;
@@ -840,8 +841,8 @@ export function createCloudSend({ local, cloud, handoff, store, onChange = () =>
     const login = handed?.login;
     if (!record(login)) throw new CloudSendError("local", "This login could not be read on this computer.");
     const kept = botsOnCloud(login.bots, ctx.cloudBots);
-    const saved = await ctx.session.call("POST", "/api/logins", { site: login.site, username: login.username, password: login.password,
-      ...(login.totp ? { totp: login.totp } : {}), bots: kept, exactHost: login.exactHost === true });
+    ctx.sealer ??= cloudSealer(ctx.session);
+    const saved = await ctx.sealer.login(login, { bots: kept, exactHost: login.exactHost === true });
     if (!saved.ok) throw new CloudSendError("refused", refusal(saved, "My Cloud could not save the login."));
     if (Array.isArray(login.bots) && kept.length < login.bots.length) ctx.result.notes.push({ kind: "narrowed", login: row.label });
     done(ctx, row.key);
@@ -854,7 +855,8 @@ export function createCloudSend({ local, cloud, handoff, store, onChange = () =>
     if (!record(onePassword) || typeof onePassword.token !== "string") throw new CloudSendError("local", "1Password is not connected on this computer.");
     const parts = row.parts ?? ["token", "vaults"];
     if (row.state === "only-here" || parts.includes("token")) {
-      const connected = await ctx.session.call("POST", "/api/logins/1password", { token: onePassword.token });
+      ctx.sealer ??= cloudSealer(ctx.session);
+      const connected = await ctx.sealer.onePassword(onePassword.token);
       if (!connected.ok) throw onePasswordRefusal(connected);
     }
     for (const [vault, bots] of Object.entries(onePassword.grants ?? {})) {

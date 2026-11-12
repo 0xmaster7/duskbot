@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { sealKeyAnswer } from "./fixtures/cloud-seal-key.mjs";
 
 import { EMPTY, itemKey } from "./cloud-send-parts.mjs";
 import { createCloudSend, sendNotice } from "./cloud-send.mjs";
@@ -25,6 +26,8 @@ function sides({ here = [], bots = {}, there = [], connections = [], secrets = {
   const cloud = new Map(there.map((item) => [item.key, structuredClone(item)]));
   const session = {
     call: async (method, route, body) => {
+      const sealKey = sealKeyAnswer(method, route);
+      if (sealKey) return sealKey;
       calls.push(`${method} ${route}`);
       const intercepted = await onCall(method, route, body, cloud);
       if (intercepted) return intercepted;
