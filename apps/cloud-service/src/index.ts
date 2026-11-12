@@ -109,7 +109,7 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
         dashboardUrl: ctx.dashboardUrl, adminOrigin: ctx.adminOrigin, removeWorkspace: ctx.removeWorkspace, clouds: ctx.clouds, entitle: ctx.entitlement, releaseKeys, labelKey });
       const sweep = createSweep({ dataDir: ctx.dataDir, file: "machine-sweep.json", provider, audit: deps.audit, retentionDays: settings.retentionDays, now: ctx.now });
       const claimLimits = new Map<string, { count: number; until: number }>();
-      /** failed redemptions per address: 30 per 15 minutes; a machine's own successful boot never counts */
+      /** failed redemptions per address: 60 per 15 minutes; a machine's own successful boot never counts */
       function limited(key: string): boolean {
         const now = ctx.now();
         for (const [k, item] of claimLimits) if (item.until <= now) claimLimits.delete(k);
@@ -118,6 +118,8 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
       function failed(key: string) {
         const now = ctx.now(), item = claimLimits.get(key);
         if (!item || item.until <= now) claimLimits.set(key, { count: 1, until: now + 15 * 60_000 }); else item.count++;
+        // a flood from many addresses must not grow this without bound: the oldest windows go first
+        for (const k of claimLimits.keys()) { if (claimLimits.size <= CLAIM_LIMIT_ENTRIES) break; claimLimits.delete(k); }
       }
       const digest = (value: string) => createHash("sha256").update(value).digest();
       async function handle(req: IncomingMessage, res: ServerResponse, url: URL, routes: ManagedCloudRoutesContext): Promise<boolean> {
@@ -193,6 +195,9 @@ export function createManagedCloud(deps: ManagedCloudDeps): ManagedCloudFactory 
     },
   };
 }
+
+/** addresses whose failed claim redemptions are remembered at once */
+export const CLAIM_LIMIT_ENTRIES = 10_000;
 
 /** a loopback service's own backup secret, kept beside its data */
 function localSecret(path: string): Buffer {

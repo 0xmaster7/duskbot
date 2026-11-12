@@ -12,7 +12,7 @@ import { createSealer } from "../../dashboard/server/clouds/seal.ts";
 import type { StoredCloud } from "../../dashboard/server/clouds/types.ts";
 import { Script } from "node:vm";
 import { homeControlScript, homeSetupScript, INSTABOX_BOOT_FILE, installCommand, REDEEM_SCRIPT } from "./home.ts";
-import { managedCloudFromEnv } from "./index.ts";
+import { CLAIM_LIMIT_ENTRIES, managedCloudFromEnv } from "./index.ts";
 import { homeFixture } from "./test-fixture.ts";
 import { machineVerifyScript, signRelease, verifyRelease, type ReleaseKey } from "./release-signing.ts";
 
@@ -92,6 +92,24 @@ describe("the machine never receives its secrets through the provider", () => {
     expect(codes.at(0)).toBe(403);
     expect(codes.at(-1)).toBe(429);
   });
+
+  it("remembers a bounded number of guessing addresses, the oldest dropped first", async () => {
+    const f = await homeFixture({ settings: { claims: true } });
+    const handle = managedOf(f).handle!;
+    const guess = async (ip: string) => {
+      const req = Object.assign(new PassThrough(), { method: "POST", url: "/v1/managed/claims/redeem", headers: {}, socket: { remoteAddress: ip } }) as unknown as IncomingMessage;
+      (req as unknown as PassThrough).end("");
+      let status = 0;
+      const res = { setHeader() {} } as unknown as ServerResponse;
+      await handle(req, res, new URL("/v1/managed/claims/redeem", "http://dash.test"), { publicUrl: "https://dash.example.test",
+        json: (_r, code) => { status = code; }, readJson: async () => ({ cloud: `c${"a".repeat(24)}`, claim: "y".repeat(43) }), clientIp: () => ip });
+      return status;
+    };
+    for (let n = 0; n < 60; n++) await guess("203.0.113.1");
+    expect(await guess("203.0.113.1")).toBe(429);
+    for (let n = 0; n < CLAIM_LIMIT_ENTRIES; n++) await guess(`10.${n >> 16 & 255}.${n >> 8 & 255}.${n & 255}`);
+    expect(await guess("203.0.113.1")).toBe(403);
+  }, 60_000);
 });
 
 describe("the scripts a machine runs", () => {

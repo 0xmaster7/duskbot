@@ -7,6 +7,7 @@ import worker, { deliveryId, wakeReason, QUEUE_LIMITS, type EdgeEnv } from "../e
 import { INSTABOX_RAILS } from "./instabox.ts";
 import { homeFixture } from "./test-fixture.ts";
 import { fakeHookQueues } from "./fake-hook-queue.ts";
+import { askWake, lookupRoute, ROUTE_TIMEOUT_MS } from "../edge/route.js";
 
 const TOKEN = "e".repeat(40), DOMAIN = "desktops.example.com", ROUTE_URL = "https://dash.example.test";
 afterEach(() => vi.unstubAllGlobals());
@@ -255,4 +256,23 @@ describe("the edge's hook queue for a sleeping home", () => {
     expect(await id("/hooks/x", {}, "1")).not.toBe(await id("/hooks/y", {}, "1"));
     expect(await id("/hooks/x", {}, "1")).toMatch(/^[0-9a-f]{64}$/);
   });
+});
+
+describe("the edge's calls to the account service", () => {
+  it("give up after a bounded time, so a hung service reads as unavailable instead of holding the request", async () => {
+    const signals: Array<AbortSignal | null | undefined> = [];
+    vi.stubGlobal("fetch", (_input: string, init?: RequestInit) => {
+      signals.push(init?.signal);
+      return new Promise((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("aborted"))));
+    });
+    const env = { ROUTE_URL, EDGE_TOKEN: TOKEN };
+    expect(ROUTE_TIMEOUT_MS).toBeLessThanOrEqual(10_000);
+    const looked = lookupRoute(`d${"a".repeat(20)}`, env), woke = askWake(`d${"a".repeat(20)}`, "client", env);
+    expect(signals).toHaveLength(2);
+    for (const signal of signals) expect(signal).toBeInstanceOf(AbortSignal);
+    // the timeout fires on its own; here it is fired at once to keep the test fast
+    for (const signal of signals) (signal as AbortSignal).dispatchEvent(new Event("abort"));
+    await expect(looked).rejects.toThrow("aborted");
+    expect(await woke).toBe(503);
+  }, 15_000);
 });
