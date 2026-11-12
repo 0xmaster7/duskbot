@@ -127,10 +127,10 @@ const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, 
 { const G = 540, hl = [hill(600, 460, 40)], f = footOn(G, hl);
   S['claude-code'] = page({ mood: 'dusk', G, hills: hl, seed: 'claude-code', title: 'claude code, even while you sleep', line: 'keep it working with your laptop shut.', size: 96,
     body: img('kit/p-laptop.webp', 150, 470, f(470), 420, 404) + bot('boxo', 'cyan', 'focus', 150, 690, f(690)) + bot('goo', 'mint', 'sleepy', 90, 850, f(850)) }); }
-// 15 /integrations/gmail: a bot standing on top of a giant gmail tile, reporting in
-{ const G = 540, hl = [hill(640, 400, 40)], f = footOn(G, hl), ts = 170, tx = 640 - ts / 2, ty = f(640) - ts - 6;
+// 15 /integrations/gmail: the gmail tile and kit side by side on the hill, kit reporting in
+{ const G = 540, hl = [hill(600, 460, 40)], f = footOn(G, hl), ts = 150, tx = 440, ty = f(tx + ts / 2) - ts - 6;
   S.gmail = page({ G, hills: hl, seed: 'gmail', title: 'your inbox, sorted before you wake up', line: 'a bot that files, flags and drafts in gmail.', size: 92,
-    body: tile(logo('gmail.png'), ts, tx, ty, 0) + bot('kit', 'violet', 'happy', 120, 640, ty + 8) +
+    body: tile(logo('gmail.png'), ts, tx, ty, 0) + bot('kit', 'violet', 'happy', 132, 700, f(700)) +
       bub('you', 'anything urgent?', 'left', '#fff3a0', 400) + bub('kit', 'two. drafts are ready.', 'right', '#ffc4dd', 400) }); }
 
 // which pages each card is for, and what it shows
