@@ -1,4 +1,5 @@
 import "../electron/legacy-names.mjs";
+import { rootErrorOptions } from "./lib/error-reports";
 import { startDesktopAnalytics } from "./lib/product-analytics-app";
 import { screen as productScreen } from "./lib/product-analytics";
 import { AccountGate } from "./components/account-gate/AccountGate";
@@ -71,5 +72,5 @@ async function chooseRoot(): Promise<React.ReactNode> {
 
 document.title = productName();
 void Promise.all([chooseRoot(), loadPageLanguage()]).then(([root]) => {
-  createRoot(document.getElementById("root")!).render(<StrictMode><PageBoundary>{root}</PageBoundary></StrictMode>);
+  createRoot(document.getElementById("root")!, rootErrorOptions).render(<StrictMode><PageBoundary>{root}</PageBoundary></StrictMode>);
 });

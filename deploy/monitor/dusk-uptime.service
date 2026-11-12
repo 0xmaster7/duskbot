@@ -1,10 +1,17 @@
 [Unit]
 Description=Dusk Bot uptime checks
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-# DUSK_BREVO_API_KEY (or DUSK_RESEND_API_KEY), DUSK_ALERT_TO, DUSK_ALERT_FROM, mode 0600
+# DUSK_BREVO_API_KEY (DUSK_RESEND_API_KEY as a fallback), DUSK_ALERT_TO, DUSK_ALERT_FROM; root-owned, mode 0600
 EnvironmentFile=/etc/dusk-uptime.env
-ExecStart=/opt/dusk-uptime/uptime-check.sh
+ExecStart=/usr/bin/node /opt/dusk-uptime/uptime-check.mjs
+TimeoutStartSec=90
 DynamicUser=yes
 StateDirectory=dusk-uptime
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
