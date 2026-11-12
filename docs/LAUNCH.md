@@ -42,10 +42,11 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 2. **App Store Connect API key** for notarization: Users and Access > Integrations > App Store Connect API >
    Team Key, role Developer. Download the .p8 once; note Key ID and Issuer ID.
 3. In **github.com/DuskBotAI/duskbot > Settings > Secrets and variables > Actions** add (as of 12 November 2026 the
-   repo has no Actions secrets at all, so `release.yml` cannot sign, notarize or write `latest.json` yet):
+   repo's only Actions secret is `DUSK_RELEASE_SIGNING_KEY`, set 13 November 2026, so `release.yml` signs `latest.json`
+   but cannot sign or notarize the Mac build yet):
    `MAC_CERT_P12_BASE64` (`base64 -i DeveloperID.p12 | pbcopy`), `MAC_CERT_PASSWORD`,
    `APPLE_API_KEY_P8_BASE64` (`base64 -i AuthKey_XXXX.p8 | pbcopy`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`,
-   `DUSK_RELEASE_SIGNING_KEY` (the private half of the pinned key `rel-2026-11`; if you no longer have it, make a new
+   `DUSK_RELEASE_SIGNING_KEY` (done: the private half of the pinned key `rel-2026-11`, also in dusk.env `[local]`; if it is ever lost, make a new
    one with `node apps/cloud-service/scripts/keygen.mjs rel-2026-12 ~/.config/duskbot/keys`, pin the printed public
    key in `apps/cloud-service/src/release-signing.ts` and `server/update-check.ts`, then set the secret).
    Optional: `CLOUDFLARE_API_TOKEN` (Workers Scripts:Edit) to let main pushes deploy the Composio broker.

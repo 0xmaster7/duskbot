@@ -11,8 +11,8 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService, publicIp } from "../src/app.mjs";
-import { createServerUpdater, createTunnelAgent, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
-import { signRelease } from "../../cloud-service/src/release-signing.ts";
+import { SERVER_RELEASE_KEYS, createServerUpdater, createTunnelAgent, serverReleaseSigned, open as agentOpen, openFrame as agentOpenFrame, sealBytes as agentSealBytes } from "../agent.mjs";
+import { PINNED_RELEASE_KEYS, signRelease } from "../../cloud-service/src/release-signing.ts";
 import { createRelayClient, createTunnelProxy, frameGuard, newLinkKeys, openFrame, openResult, seal, sealBytes, sealFrame, sha256hex, vpsTokenOf } from "../../../electron/vps-link-protocol.mjs";
 
 const run = promisify(execFile);
@@ -389,6 +389,14 @@ describe("a linked server's own update", () => {
     const part = await get(`/v1/tunnels/${id}/server/${sha}.tgz`, token, { range: "bytes=13-" });
     expect(part.status).toBe(206);
     expect(Buffer.from(await part.arrayBuffer())).toEqual(bytes.subarray(13));
+  });
+
+  it("the agent pins the same release keys as the service and the installer, and only those", () => {
+    expect([...SERVER_RELEASE_KEYS]).toEqual(PINNED_RELEASE_KEYS.map(k => `${k.kid}:${k.x}`));
+    const { privateKey } = generateKeyPairSync("ed25519");
+    const sha = "a".repeat(64);
+    const stranger = signRelease({ kind: "vps-package", name: "duskbot", version: "1.2.0", sha256: sha, signedAt: 1 }, `${PINNED_RELEASE_KEYS[0].kid}:${privateKey.export({ format: "der", type: "pkcs8" }).toString("base64url")}`);
+    expect(serverReleaseSigned(stranger, sha)).toBeNull();
   });
 
   it("limits update checks and downloads per server", async () => {
