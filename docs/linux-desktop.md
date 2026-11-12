@@ -33,7 +33,7 @@ CUA supply-chain work is tracked in [issue #113](https://github.com/goatedgrokbo
 Choose one Ubuntu 24.04 x86_64 package from the latest release:
 
 - [Debian package (`DuskBot-amd64.deb`)](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot-amd64.deb) — recommended; APT installs its desktop dependencies and configures the bundled bot browser's sandbox.
-- [Portable AppImage (`Dusk Bot.AppImage`)](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/Dusk Bot.AppImage) — does not install system files.
+- [Portable AppImage (`DuskBot.AppImage`)](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/DuskBot.AppImage) — does not install system files.
 - [SHA-256 checksums](https://github.com/goatedgrokbotalternative/duskbot/releases/latest/download/SHA256SUMS-ubuntu-x64.txt)
 
 Versioned packages and previous releases remain available on the
@@ -49,7 +49,7 @@ Requirements for building from source:
 
 ```sh
 git clone https://github.com/goatedgrokbotalternative/duskbot.git
-cd dusk bot
+cd duskbot
 corepack enable
 pnpm install --frozen-lockfile
 pnpm package:linux
@@ -83,7 +83,7 @@ chmod +x release/DuskBot-*-x86_64.AppImage
 ./release/DuskBot-*-x86_64.AppImage
 ```
 
-For a downloaded release AppImage, use `Dusk Bot.AppImage` in place of the versioned path above.
+For a downloaded release AppImage, use `DuskBot.AppImage` in place of the versioned path above.
 
 ### Arch Linux and EndeavourOS (AppImage)
 
@@ -92,8 +92,8 @@ install lacks the FUSE helper and some desktop libraries the AppImage needs, so 
 
 ```sh
 sudo pacman -S --needed fuse3 gtk3 nss alsa-lib libcups mesa
-chmod +x Dusk Bot.AppImage
-./Dusk Bot.AppImage
+chmod +x DuskBot.AppImage
+./DuskBot.AppImage
 ```
 
 A full desktop install (for example EndeavourOS with KDE or GNOME) usually has all of these already, and

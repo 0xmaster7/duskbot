@@ -23,7 +23,7 @@ and logged in. macOS is the primary release platform and Ubuntu 24.04 x64 is the
 the harness server itself is portable Node and the test suite runs on macOS, Linux, and Windows.
 
 ```sh
-git clone https://github.com/goatedgrokbotalternative/duskbot && cd dusk bot
+git clone https://github.com/goatedgrokbotalternative/duskbot && cd duskbot
 pnpm install
 
 pnpm dev:server    # harness server → 127.0.0.1:8799
@@ -60,7 +60,7 @@ fail-closed Wayland CUA smoke,
 and produces one release artifact containing:
 
 - the versioned `.deb` and AppImage;
-- stable `DuskBot-amd64.deb` and `Dusk Bot.AppImage` copies used by the latest-download links;
+- stable `DuskBot-amd64.deb` and `DuskBot.AppImage` copies used by the latest-download links;
 - `SHA256SUMS-ubuntu-x64.txt` covering both versioned and stable names.
 
 Before publishing, confirm that `package.json` has the release version and dispatch the workflow against the same
