@@ -61,7 +61,7 @@ const setupOf = (place, at) => (place.why === "team" ? null : { kind: place.why 
  *   open: (id: string) => unknown, connectCloud: () => unknown, counts?: () => Promise<Record<string, number>>,
  *   now?: () => number, log?: (line: string) => void }} deps `counts()`: each saved place's bots, by its id (readBotCounts).
  * `account()`: the signed-in account, null when there is none. `open(id)`: main's own switch to a saved place (or My Cloud
- * as home), settled once the window has gone there or stayed; `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
+ * as home), settled once the window has gone there or stayed, false (or a throw) when it didn't open; `connectCloud()`: main's connect to My Cloud from the verified session, never a renderer's address.
  */
 export function installBotsElsewhere({ ipcMain, guard, places, account, store, open, connectCloud, counts = async () => ({}), now = Date.now, log = () => {} }) {
   const signedIn = () => { const id = account()?.id; return typeof id === "string" && id ? id : null; };
@@ -83,11 +83,11 @@ export function installBotsElsewhere({ ipcMain, guard, places, account, store, o
 
   ipcMain.handle("elsewhere:state", guard("elsewhere:state", () => view()));
   // answered once the switch is over: a page still there to hear it was not taken anywhere, so it shows itself again,
-  // and one that was never hears it, so this computer's own page never shows in between
+  // and one that was never hears it, so this computer's own page never shows in between. false: the place didn't open
+  // (unknown, unreachable, or the switch said no), so the page can say so under its row.
   ipcMain.handle("elsewhere:open", guard("elsewhere:open", async (_event, id) => {
     if (typeof id !== "string" || !places().some((place) => place.id === id)) return false;
-    try { await open(id); } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); }
-    return true;
+    try { return (await open(id)) !== false; } catch (error) { log(`bots elsewhere: ${error?.message ?? error}`); return false; }
   }));
   ipcMain.handle("elsewhere:counts", guard("elsewhere:counts", () => counts().catch(() => ({}))));
   // "server": the page opens its own Add your VPS sheet; a Cloud connects from the session main holds, answered once over

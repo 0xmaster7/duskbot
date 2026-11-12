@@ -1640,9 +1640,11 @@ const workspaceReconnect = createWorkspaceReconnect({ fetch: (...args) => sessio
   publish: view => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("workspace-reconnect:changed", view); } });
 installWorkspaceReconnectIpc({ ipcMain, reconnect: workspaceReconnect });
 
+// the action's own answer, or false once it threw and the error was shown
 async function workspaceMenuAction(action) {
-  try { await action(); } catch (error) {
+  try { return await action(); } catch (error) {
     await dialog.showMessageBox({ type: "error", message: "could not update servers", detail: error.message });
+    return false;
   }
 }
 
@@ -1779,7 +1781,7 @@ async function switchEnvironment(id) {
       if (!(await cloudHomeSignedIn(entry.origin))) { await openCloudSettings(); return; }
     }
   }
-  if (entry && handSaved(entry) && !(await serverOpens(entry, { fetch: (...args) => session.defaultSession.fetch(...args), dialog, forget: (gone) => forgetEnvironment(gone, false, true) }))) return;
+  if (entry && handSaved(entry) && !(await serverOpens(entry, { fetch: (...args) => session.defaultSession.fetch(...args), dialog, forget: (gone) => forgetEnvironment(gone, false, true) }))) return false;
   persistEnvironments(withActive(environmentsState, id), "chosen"); return navigateMainWindow(activeOrigin());
 }
 

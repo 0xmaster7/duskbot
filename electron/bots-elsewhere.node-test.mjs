@@ -98,15 +98,28 @@ test("open answers only once the switch is over, so the page never drops its scr
   assert.equal(await reply, true);
 });
 
-test("a switch that throws still answers, so the page can show itself again", async () => {
+test("a switch that throws answers false, so the page can say the place didn't open", async () => {
   const handlers = new Map(), lines = [];
   installBotsElsewhere({
     ipcMain: { handle: (channel, run) => handlers.set(channel, run) }, guard: (_channel, run) => run,
     places: () => placesElsewhere({ environments: [SERVER] }), account: () => null, store: { read: async () => null, remember: async () => false },
     open: async () => { throw new Error("unreachable"); }, connectCloud: () => {}, log: (line) => lines.push(line),
   });
-  assert.equal(await handlers.get("elsewhere:open")({}, "srv"), true);
+  assert.equal(await handlers.get("elsewhere:open")({}, "srv"), false);
   assert.match(lines[0], /unreachable/);
+});
+
+test("a switch that says it didn't open answers false; any other answer means it went", async () => {
+  const handlers = new Map();
+  let said = false;
+  installBotsElsewhere({
+    ipcMain: { handle: (channel, run) => handlers.set(channel, run) }, guard: (_channel, run) => run,
+    places: () => placesElsewhere({ environments: [SERVER] }), account: () => null, store: { read: async () => null, remember: async () => false },
+    open: async () => said, connectCloud: () => {},
+  });
+  assert.equal(await handlers.get("elsewhere:open")({}, "srv"), false);
+  said = undefined;
+  assert.equal(await handlers.get("elsewhere:open")({}, "srv"), true);
 });
 
 test("bot counts come from each place's own list as the signed-in person; asleep or unreadable places get none", async () => {

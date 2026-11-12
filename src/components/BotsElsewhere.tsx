@@ -1,7 +1,7 @@
 // This computer's page with no bots of its own while the person's live somewhere else: a short list of every place they
 // have, how many bots each holds and whether it is up, the one with their bots marked, and a click on a row opens it
 // (src/lib/bots-elsewhere.ts). Kept apart from the first run (onboarding/*), which it covers while it shows.
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Fragment, useCallback, useEffect, useState, type CSSProperties } from "react";
 import type { RailPlace } from "../../electron/cloud-rail.mjs";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
 import { productName } from "@/lib/brand";
@@ -24,11 +24,11 @@ import { PixelIcon } from "./ui/PixelIcon";
 import { DOT, HEALTH_WORD, KIND_ICON, kindWord, placeHealth } from "./WorkspacesSettings";
 
 /** Settings' rows on this screen: 48px tall, 12px corners and the soft hover the settings sheet gives them, on the card's
- * own tonal fill; the place holding the bots keeps a deeper fill. */
+ * own tonal fill; the place holding the bots keeps a deeper fill. A row's note (data-row-note) sits under it unstyled. */
 const ROWS = cn(
   "[&_[data-settings-rows]]:gap-0.5",
-  "[&_[data-settings-rows]>*]:min-h-14 [&_[data-settings-rows]>*]:gap-4 [&_[data-settings-rows]>*]:rounded-[12px] [&_[data-settings-rows]>*]:px-3 [&_[data-settings-rows]>*]:py-2.5",
-  "[&_[data-settings-rows]>*:not(:disabled,[data-lit]):hover]:bg-ink/[0.035]",
+  "[&_[data-settings-rows]>*:not([data-row-note])]:min-h-14 [&_[data-settings-rows]>*:not([data-row-note])]:gap-4 [&_[data-settings-rows]>*:not([data-row-note])]:rounded-[12px] [&_[data-settings-rows]>*:not([data-row-note])]:px-3 [&_[data-settings-rows]>*:not([data-row-note])]:py-2.5",
+  "[&_[data-settings-rows]>*:not(:disabled,[data-lit],[data-row-note]):hover]:bg-ink/[0.035]",
 );
 
 const KIND_OF_WHY = { moved: "server", server: "server", cloud: "cloud", team: "team" } as const;
@@ -57,6 +57,8 @@ export function BotsElsewhere() {
   const [dismissed, setDismissed] = useState(dismissedPlaces);
   // the place being opened: the screen stays, saying so, until the window has gone there (main answers once it is over)
   const [opening, setOpening] = useState<string | null>(null);
+  // the place that last failed to open: its row says so and stays clickable
+  const [failed, setFailed] = useState<string | null>(null);
   const covered = elsewhereCovered({
     settings: state.appSettingsOpen, cloudAdd: Boolean(state.cloudAdd), addVps: useAddVpsOpen(), cloudMove: Boolean(useCloudMoveOpen()),
   });
@@ -91,7 +93,8 @@ export function BotsElsewhere() {
     const go = rail.places.some((place) => place.id === id) && workspaces?.open ? workspaces.open(id) : bridge?.open(id);
     if (!go) return;
     setOpening(id);
-    void Promise.resolve(go).catch(() => {}).finally(() => setOpening(null));
+    setFailed(null);
+    void Promise.resolve(go).then((said) => { if (said === false) setFailed(id); }, () => setFailed(id)).finally(() => setOpening(null));
   };
   const connect = () => {
     if (simulated) { setSimulatedFreshInstall(false); openAddVps(); return; }
@@ -111,6 +114,7 @@ export function BotsElsewhere() {
       counts={{ ...counts, ...Object.fromEntries(places.filter((place) => place.kind === "computer").map((place) => [place.id, ownHere])) }}
       lit={screen.place.id}
       opening={opening}
+      failed={failed}
       simulated={simulated}
       onOpen={open}
       onStay={stay}
@@ -123,8 +127,8 @@ export function BotsElsewhere() {
 /** The bots-on screen: a short heading and every place as one selectable row, how many bots it has and whether it is up,
  * then getting dusk cloud (or moving to it) and adding a place, and starting fresh here as the quiet last line. `lit`: the
  * place main says holds the bots, marked when no count says otherwise. */
-export function PlacesHub({ places, counts, lit, opening = null, simulated = false, onOpen, onStay, getCloud, onAdd }: {
-  places: RailPlace[]; counts: Record<string, number>; lit: string; opening?: string | null; simulated?: boolean;
+export function PlacesHub({ places, counts, lit, opening = null, failed = null, simulated = false, onOpen, onStay, getCloud, onAdd }: {
+  places: RailPlace[]; counts: Record<string, number>; lit: string; opening?: string | null; failed?: string | null; simulated?: boolean;
   onOpen: (id: string) => void; onStay: () => void; getCloud: (() => void) | null; onAdd: () => void;
 }) {
   const busy = opening !== null;
@@ -142,8 +146,15 @@ export function PlacesHub({ places, counts, lit, opening = null, simulated = fal
         <div className={cn("mt-6", ROWS)}>
           <div data-settings-rows="" className={cn(SIMPLE_CARD, "p-1.5")}>
             {places.map((place) => (
-              <PlaceRow key={place.id} place={place} count={counts[place.id]} lit={holds(place) && !place.active}
-                opening={opening === place.id} busy={busy} onOpen={() => onOpen(place.id)} />
+              <Fragment key={place.id}>
+                <PlaceRow place={place} count={counts[place.id]} lit={holds(place) && !place.active}
+                  opening={opening === place.id} busy={busy} onOpen={() => onOpen(place.id)} />
+                {failed === place.id && !busy && (
+                  <p role="alert" data-row-note="" className="pb-1.5 pl-[52px] pr-3 text-[12px] leading-4 text-danger [overflow-wrap:anywhere]">
+                    {t("elsewhere.openFailed", { name: place.name })}
+                  </p>
+                )}
+              </Fragment>
             ))}
           </div>
           <div data-settings-rows="" className={cn(SIMPLE_CARD, "mt-3 p-1.5")}>

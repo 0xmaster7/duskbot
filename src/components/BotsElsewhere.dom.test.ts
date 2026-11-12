@@ -60,3 +60,18 @@ it("steps aside while Settings is open, so connect a server shows the connect fl
   await render();
   expect(screen()).not.toBeNull();
 });
+
+it("a place that fails to open says so under its row, and the row can be tried again", async () => {
+  await render();
+  await act(async () => { primary().click(); });
+  await act(async () => { finish?.(false); });
+  const note = host.querySelector("[data-row-note]");
+  expect(note?.getAttribute("role")).toBe("alert");
+  expect(note?.textContent).toBe("Couldn't open instance-1. Check it's online and try again.");
+  expect(primary().disabled).toBe(false);
+  await act(async () => { primary().click(); });
+  expect(bridge.open).toHaveBeenCalledTimes(2);
+  expect(host.querySelector("[data-row-note]")).toBeNull();
+  await act(async () => { finish?.(true); });
+  expect(host.querySelector("[data-row-note]")).toBeNull();
+});

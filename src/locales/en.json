@@ -7965,6 +7965,7 @@
   "elsewhere.connect": "connect {name}",
   "elsewhere.setUpHere": "set up this computer instead",
   "elsewhere.pick.title": "pick where to open",
+  "elsewhere.openFailed": "Couldn't open {name}. Check it's online and try again.",
   "elsewhere.dev.simulate": "dev: fresh install with a VPS",
   "elsewhere.dev.stop": "dev: stop simulating",
   "elsewhere.dev.simulated": "simulated fresh install",
