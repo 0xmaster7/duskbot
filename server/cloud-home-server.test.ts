@@ -13,7 +13,7 @@ import { freePortBlock } from "./testing/ports.ts";
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "dusk-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
-// cloud pro's included cloud desktops, voice and decisions.
+// cloud pro's included voice and decisions.
 const included = {
   DUSK_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
   DUSK_CLOUD_VOICE_TOKEN: `dusk_voice_${randomBytes(24).toString("base64url")}`,
@@ -147,7 +147,7 @@ it.skipIf(process.platform === "win32")("rewrites the data folder of the compute
 it("offers the included computers, voice and decisions with no key, and never shows or saves their tokens", async () => {
   const status = await api("GET", "/api/config");
   expect(status.status).toBe(200);
-  expect(status.body.box).toEqual({ configured: true, included: true });
+  expect(status.body).not.toHaveProperty("box");
   expect(status.body.tts).toMatchObject({ configured: true, ready: true, provider: "elevenlabs", voice: "preset0voice0id", included: true });
   expect(status.body.decider).toEqual({ provider: "jev", configured: true, included: true, enabled: true, jobs: { roomRouting: true } });
   const saved = readFileSync(join(home, ".duskbot", "config.json"), "utf8");
@@ -219,8 +219,9 @@ it("signs a browser in from the Cloud page's \"Use in your browser\" into an own
   const change = (headers: Record<string, string>) => api("POST", "/api/auth/stream-ticket", { remote: true, headers: { cookie: cookie.split(";")[0], ...headers } });
   expect((await change({})).status).toBe(403);
   expect((await change({ "sec-fetch-site": "cross-site" })).status).toBe(403);
-  // (fetch sends its own Host here, so this Cloud's origin is the proxied scheme plus the fixture's address)
-  expect((await change({ origin: base.replace("http:", "https:") })).status).toBe(200);
+  // fetch sends its own loopback Host here, so the origin is the Cloud's public address
+  expect((await change({ origin: base.replace("http:", "https:") })).status).toBe(403);
+  expect((await change({ origin: `https://${HOST}` })).status).toBe(200);
   expect((await change({ origin: `https://evil.example`, "sec-fetch-site": "same-origin" })).status).toBe(403);
   expect((await change({ "sec-fetch-site": "same-origin" })).status).toBe(200);
   expect((await signIn()).status).toBe(401);
@@ -368,7 +369,9 @@ it("offers its bots the browser and cloud computers only, and tells them they ca
     const listed = await (await select()).json() as { canSelect: boolean; options: Array<{ surface: string }> };
     expect(listed.canSelect).toBe(true);
     expect(listed.options.map((option) => option.surface)).toEqual(["cloud", "browser"]);
-    expect(JSON.stringify(listed)).not.toMatch(/this computer|Local VM|container runtime/i);
+    expect(listed.options.map((option) => (option as { label?: string }).label)).toEqual(["the cloud computer", "the built-in browser"]);
+    // the cloud option's own "Connect a VPS ... before using this computer" names the VPS, not the person's machine
+    expect(JSON.stringify(listed)).not.toMatch(/Local VM|container runtime|this Mac|your computer/i);
     for (const surface of ["local", "vm"] as const) {
       const refused = await select(surface);
       expect(refused.status).toBe(409);
