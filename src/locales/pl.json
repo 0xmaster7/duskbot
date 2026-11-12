@@ -3557,7 +3557,6 @@
   "computer.problem.perBotRuntime": "Prywatny pulpit dla każdego bota wymaga Dockera lub Podmana, ponieważ kontener Apple wymaga stałego portu hosta",
   "computer.problem.desktopFailed": "Prywatny pulpit nie uruchomił się: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Otwórz Ustawienia → Computer.",
-  "computer.err.vpsAuto": "{problem}. Tryb automatyczny przygotuje go lub obudzi, gdy ten bot następnym razem zacznie pracować.",
   "computer.err.frameTimeout": "Aktualizacja ekranu trwała zbyt długo. Spróbuj ponownie.",
   "computer.confirm.replaceVm": "Zastąpić prywatny pulpit bota {name}? Jego folder trwały i logowania do witryn są zachowywane. Aplikacje zainstalowane na pulpicie i pliki poza folderem trwałym są usuwane.",
   "computer.phase.checking": "Sprawdzanie…",

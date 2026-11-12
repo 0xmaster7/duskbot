@@ -3261,7 +3261,6 @@
   "computer.problem.perBotRuntime": "Un escritorio privado para cada bot necesita Docker o Podman, porque Apple container necesita un puerto fijo en el host",
   "computer.problem.desktopFailed": "El escritorio privado no se inició: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Abre Ajustes → Computer.",
-  "computer.err.vpsAuto": "{problem}. Automático lo preparará o lo despertará la próxima vez que trabaje este bot.",
   "computer.err.frameTimeout": "La pantalla tardó demasiado en actualizarse. Inténtalo de nuevo.",
   "computer.confirm.replaceVm": "¿Reemplazar el escritorio privado de {name}? Su carpeta persistente y los inicios de sesión en sitios web se conservan. Se eliminan las aplicaciones instaladas dentro del escritorio y los archivos fuera de la carpeta persistente.",
   "computer.phase.checking": "Comprobando…",

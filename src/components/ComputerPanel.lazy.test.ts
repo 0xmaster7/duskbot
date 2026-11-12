@@ -22,6 +22,7 @@ const fixture = vi.hoisted(() => ({
   provisionGate: null as Promise<void> | null,
   outdated: false,
   updating: false,
+  daemonUp: false,
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -63,7 +64,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
         ...(fixture.screenStopped ? { state: "stopped", viewerKey: "unallocated" } : {}),
         ...(fixture.shared ? { teamComputer: { id: "shared", name: "Shared desktop" } } : {}),
         container: fixture.container, managed: fixture.container !== "missing", imageMatches: fixture.imageMatches, desktop: fixture.desktop, problem: "Fixture desktop is not running",
-        ...(fixture.outdated ? { outdated: true } : {}), ...(fixture.updating ? { updating: true } : {}) };
+        ...(fixture.outdated ? { outdated: true } : {}), ...(fixture.updating ? { updating: true } : {}), ...(fixture.daemonUp ? { daemonUp: true } : {}) };
     }
     return {};
   },
@@ -132,6 +133,7 @@ afterEach(() => {
   fixture.provisionGate = null;
   fixture.outdated = false;
   fixture.updating = false;
+  fixture.daemonUp = false;
   vi.useRealTimers();
 });
 
@@ -140,6 +142,22 @@ describe("VPS computer preparation", () => {
     await open(makeBot());
     expect(fixture.posts).toEqual([]);
     expect(text()).toContain("Fixture desktop is not running");
+  });
+
+  it("offers only Wake for a bot with no computer yet, and Wake creates it", async () => {
+    fixture.daemonUp = true;
+    let report: { detail: string | null } | null = null;
+    if (!root) { const container = document.createElement("div"); document.body.append(container); root = createRoot(container); }
+    flushSync(() => root!.render(createElement(BotEditorStore, { value: value(), children: createElement(ComputerPanel, { bot: makeBot({ computer: "cloud" }), inline: true, onReport: (next: { detail: string | null }) => { report = next; } }) })));
+    await settle();
+    expect(text()).not.toContain("Fixture desktop is not running");
+    expect(text()).not.toMatch(/start VPS automatically/i);
+    expect(report!.detail).toBeNull();
+    const wake = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
+    expect(wake?.getAttribute("aria-label")).toBe("Wake computer");
+    flushSync(() => wake!.click());
+    await settle();
+    expect(fixture.posts).toEqual(["/api/bots/scout/computer/provision"]);
   });
 
   it("leaves a stopped Auto computer asleep without a spinner or repeated polling", async () => {

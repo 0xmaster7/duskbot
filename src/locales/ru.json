@@ -3587,7 +3587,6 @@
   "computer.problem.perBotRuntime": "Личный рабочий стол для каждого бота требует Docker или Podman, потому что Apple container нужен фиксированный порт на хосте",
   "computer.problem.desktopFailed": "Личный рабочий стол не запустился: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Откройте «Настройки» → «Computer».",
-  "computer.err.vpsAuto": "{problem}. Авто подготовит или разбудит его, когда этот бот в следующий раз начнёт работу.",
   "computer.err.frameTimeout": "Экран обновлялся слишком долго. Попробуйте снова.",
   "computer.confirm.replaceVm": "Заменить личный рабочий стол {name}? Его постоянная папка и входы на сайты будут сохранены. Приложения, установленные внутри рабочего стола, и файлы за пределами постоянной папки будут удалены.",
   "computer.phase.checking": "Проверка…",

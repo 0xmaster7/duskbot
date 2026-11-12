@@ -1884,7 +1884,6 @@
   "computer.problem.perBotRuntime": "Для приватного робочого столу кожного бота потрібен Docker або Podman, бо Apple container потребує фіксованого порту хоста",
   "computer.problem.desktopFailed": "Приватний робочий стіл не запустився: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Відкрийте Налаштування → Computer.",
-  "computer.err.vpsAuto": "{problem}. Авто підготує або розбудить його, коли бот наступного разу працюватиме.",
   "computer.err.frameTimeout": "Екран надто довго оновлювався. Спробуйте ще раз.",
   "computer.confirm.replaceVm": "Замінити приватний робочий стіл {name}? Його постійна папка і входи на вебсайти залишаться. Застосунки, встановлені всередині робочого столу, і файли поза постійною папкою буде видалено.",
   "computer.phase.checking": "Перевіряємо…",

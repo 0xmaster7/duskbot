@@ -22,16 +22,19 @@ const { FailedReplyCard } = await import("./FailedReplyCard");
 const { trailingRows } = await import("@/lib/failed-reply");
 const { failedTurnTool } = await import("../../shared/failed-turn");
 
+// failures older than a day leave the card, so these rows are recent
+const T0 = Date.now();
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 fixture.instances = [{ instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude", snapshot: { state: "available", authenticated: true } } as InstanceInfo];
 fixture.bots = [{ id: "echo", name: "Echo", modelSelection: { instanceId: "claude", model: "sonnet" } } as Bot];
 
-const ask: Message = { id: "ask", role: "user", kind: "text", at: 1, text: "book it" };
+const ask: Message = { id: "ask", role: "user", kind: "text", at: T0 + 1, text: "book it" };
 let root: ReturnType<typeof createRoot> | null = null;
 const show = async (tool: NonNullable<Message["tool"]>) => {
   document.body.innerHTML = "";
   root = createRoot(document.body.appendChild(document.createElement("div")));
-  const row: Message = { id: `row-${Math.random()}`, role: "bot", kind: "activity", at: 2, tool };
+  const row: Message = { id: `row-${Math.random()}`, role: "bot", kind: "activity", at: T0 + 2, tool };
   await act(async () => { root!.render(createElement(FailedReplyCard, { rows: trailingRows([ask, row]), botId: "echo", threadId: "main", onRetry: vi.fn() })); });
   return [...document.querySelectorAll<HTMLButtonElement>("[data-chat-error] button:not([aria-label])")];
 };

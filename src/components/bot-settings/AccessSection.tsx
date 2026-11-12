@@ -617,9 +617,9 @@ export function CloudPreference({ bot, patch }: { bot: Bot; patch: ReturnType<ty
             </div>
           </div>
           <Switch
-            checked={Boolean(bot.autoStartVps)}
+            checked={bot.autoStartVps !== false}
             aria-label={t("botAccess.cloud.startVps")}
-            onClick={() => patch({ autoStartVps: !bot.autoStartVps })}
+            onClick={() => patch({ autoStartVps: bot.autoStartVps === false })}
           />
         </div>
       )}

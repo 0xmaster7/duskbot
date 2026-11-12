@@ -543,11 +543,9 @@ export function ComputerPanel({
           return;
         }
         setContainerState(status.container ?? null);
-        setError(
-          bot.autoStartVps
-            ? new LocalizedPanelError("computer.err.vpsAuto", status.problem, "computer.err.vpsNoContainer")
-            : new LocalizedPanelError("computer.err.vpsManual", status.problem, "computer.err.vpsNoContainer"),
-        );
+        // no computer yet, or one asleep: Wake makes or starts it, so the card says nothing more
+        const wakeable = status.daemonUp && (status.container === "missing" || status.container === "stopped");
+        setError(wakeable ? null : new LocalizedPanelError("computer.err.vpsProblem", status.problem, "computer.err.vpsNoContainer"));
         setPhase(status.container === "stopped" ? "vps-stopped" : "vps-unconfigured");
       })
       .catch((e) => {

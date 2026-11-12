@@ -26,6 +26,9 @@ const { RoomToolChip } = await import("./GroupView");
 const { FailedReplyCard } = await import("./FailedReplyCard");
 const { trailingRows } = await import("@/lib/failed-reply");
 
+// failures older than a day leave the card, so these rows are recent
+const T0 = Date.now();
+
 const claude = {
   instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude",
   snapshot: { state: "available", authenticated: false },
@@ -37,9 +40,9 @@ const NAMES = ["Echo", "Quill", "Rivet", "Nova"];
 fixture.instances = [claude];
 fixture.bots = NAMES.map((name) => ({ id: name.toLowerCase(), name, modelSelection: { instanceId: "claude", model: "sonnet" } }) as Bot);
 
-const ask: Message = { id: "ask", role: "user", kind: "text", at: 1, text: "hi all" };
+const ask: Message = { id: "ask", role: "user", kind: "text", at: T0 + 1, text: "hi all" };
 const failed = (name: string, cause: string, patch: Partial<NonNullable<Message["tool"]>> = {}): Message => ({
-  id: `failed-${name}`, role: "bot", kind: "activity", at: 2,
+  id: `failed-${name}`, role: "bot", kind: "activity", at: T0 + 2,
   from: { botId: name.toLowerCase(), name, color: "blue" },
   tool: { name: `error: ${cause}`, ok: false, ...patch },
 });
@@ -84,13 +87,13 @@ describe("failed replies in a room", () => {
   });
 
   it("goes away once a bot replies or the person writes again", () => {
-    const reply: Message = { id: "r", role: "bot", kind: "text", at: 3, text: "here", from: { botId: "echo", name: "Echo", color: "blue" } };
+    const reply: Message = { id: "r", role: "bot", kind: "text", at: T0 + 3, text: "here", from: { botId: "echo", name: "Echo", color: "blue" } };
     expect(card([ask, signedOut[0]!, reply])).toBe("");
-    expect(card([ask, ...signedOut, { ...ask, id: "again", at: 4 }])).toBe("");
+    expect(card([ask, ...signedOut, { ...ask, id: "again", at: T0 + 4 }])).toBe("");
   });
 
   it("folds a sign-out notice into the same card, one card total", () => {
-    const notice: Message = { id: "n", role: "bot", kind: "activity", at: 3, from: { botId: "echo", name: "Echo", color: "blue" },
+    const notice: Message = { id: "n", role: "bot", kind: "activity", at: T0 + 3, from: { botId: "echo", name: "Echo", color: "blue" },
       tool: { name: "notice: Claude is signed out on this computer. Sign in again in Settings → AI to keep using it.", ok: true, setup: true } };
     const rows = trailingRows([ask, signedOut[0]!, notice]);
     expect(rows.notices.map((m) => m.id)).toEqual(["n"]);
@@ -107,7 +110,7 @@ describe("failed replies in a room", () => {
   it("says a member that timed out, or whose AI never answered, in the same card, with Try again", () => {
     const timedOut = failed("Rivet", "Rivet's room turn made no progress for 1 minute and was stopped", { reason: "timeout" });
     const rescue = { botId: "quill", threadId: "room", turnId: "t", instanceId: "claude", ai: "Claude", groupId: "g" };
-    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: 2, from: { botId: "quill", name: "Quill", color: "blue" },
+    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: T0 + 2, from: { botId: "quill", name: "Quill", color: "blue" },
       tool: { name: "notice: Quill didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } };
     const markup = card([ask, failed("Echo", "API Error: 529 Overloaded"), timedOut, silent], true, () => {});
     expect(count(markup, "data-chat-error")).toBe(1);
@@ -122,7 +125,7 @@ describe("failed replies in a room", () => {
 
   it("says a direct chat's first reply that never came in the card, with Switch AI and Connect your subscription", () => {
     const rescue = { botId: "echo", threadId: "main", turnId: "t", instanceId: "claude", ai: "Claude" };
-    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: 2,
+    const silent: Message = { id: "silent", role: "bot", kind: "activity", at: T0 + 2,
       tool: { name: "notice: Echo didn't hear back from Claude.", ok: true, rescue: { ...rescue, over: true } } };
     const markup = renderToStaticMarkup(createElement(FailedReplyCard, { rows: trailingRows([ask, silent]), botId: "echo", threadId: "main", onRetry: () => {} }));
     expect(count(markup, "data-chat-error")).toBe(1);
@@ -142,7 +145,7 @@ describe("failed replies in a room", () => {
 describe("a member's hand-off that failed", () => {
   it("is a flat hand-off row in plain words, never a red pill with the engine's", () => {
     const message: Message = {
-      id: "h", role: "bot", kind: "activity", at: 2, from: { botId: "quill", name: "Quill", color: "blue" },
+      id: "h", role: "bot", kind: "activity", at: T0 + 2, from: { botId: "quill", name: "Quill", color: "blue" },
       roomRequest: { id: "job", phase: "result" },
       handoff: { phase: "result", from: { botId: "quill", name: "Quill", color: "blue" }, to: { botId: "nova", name: "Nova", color: "red" } },
       comm: { groupId: "room", withBotId: "quill", withName: "Quill", withColor: "blue" },

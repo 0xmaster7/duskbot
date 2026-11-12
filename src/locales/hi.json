@@ -1708,7 +1708,6 @@
   "computer.problem.perBotRuntime": "हर बॉट के लिए निजी डेस्कटॉप को Docker या Podman चाहिए, क्योंकि Apple container को एक तय होस्ट पोर्ट चाहिए",
   "computer.problem.desktopFailed": "निजी डेस्कटॉप शुरू नहीं हुआ: {detail}",
   "computer.err.vmOpenSettings": "{problem}। सेटिंग्स → Computer खोलें।",
-  "computer.err.vpsAuto": "{problem}. यह बॉट अगली बार काम करेगा तब ऑटो इसे तैयार या जागृत कर देगा।",
   "computer.err.frameTimeout": "स्क्रीन को अपडेट होने में बहुत समय लगा। फिर कोशिश करें।",
   "computer.confirm.replaceVm": "{name} का निजी डेस्कटॉप बदलें? उसका स्थायी फ़ोल्डर और वेबसाइट साइन-इन बने रहेंगे। डेस्कटॉप के अंदर इंस्टॉल किए गए ऐप और स्थायी फ़ोल्डर के बाहर की फ़ाइलें मिटा दी जाएँगी।",
   "computer.phase.checking": "जाँच हो रही है…",

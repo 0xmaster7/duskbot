@@ -3422,7 +3422,6 @@
   "computer.problem.perBotRuntime": "Um desktop privado para cada bot exige Docker ou Podman, porque o Apple Container precisa de uma porta fixa no host",
   "computer.problem.desktopFailed": "O desktop privado não iniciou: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Abra Configurações → Computer.",
-  "computer.err.vpsAuto": "{problem}. O Automático vai prepará-lo ou acordá-lo no próximo trabalho deste bot.",
   "computer.err.frameTimeout": "A tela demorou demais para atualizar. Tente de novo.",
   "computer.confirm.replaceVm": "Substituir o desktop privado de {name}? A pasta persistente e os logins em sites continuam lá. Os apps instalados dentro do desktop e os arquivos fora da pasta persistente são excluídos.",
   "computer.phase.checking": "Verificando…",

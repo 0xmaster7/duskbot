@@ -29,9 +29,17 @@ export function isFoldableNotice(message: Message): boolean {
   return status !== null && status.kind !== "stopped" && !message.tool?.rescue;
 }
 
+/** A failure stops being news after a day: by then it says nothing about how the bot is now. */
+export const FAILED_REPLY_STALE_MS = 24 * 60 * 60 * 1000;
+
+/** A failed reply the card no longer shows: its cause was fixed since (the server marks it), or it is a day old. */
+export function isStaleFailure(message: Message, now = Date.now()): boolean {
+  return Boolean(message.tool?.resolvedAt) || now - message.at > FAILED_REPLY_STALE_MS;
+}
+
 /** The rows nothing has followed, since the person last wrote: per bot, its newest failed reply, and the notices after
- * its newest other row. A reply, a new message or a stop clears them. */
-export function trailingRows(messages: readonly Message[], scan = 200): { failures: Message[]; notices: Message[] } {
+ * its newest other row. A reply, a new message or a stop clears them, and so does fixing the cause or a day passing. */
+export function trailingRows(messages: readonly Message[], scan = 200, now = Date.now()): { failures: Message[]; notices: Message[] } {
   const settled = new Set<string>();
   const failures: Message[] = [];
   const notices: Message[] = [];
@@ -44,7 +52,7 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
     if (settled.has(who)) continue;
     if (isFoldableNotice(m)) { notices.push(m); continue; }
     settled.add(who);
-    if (isFailedReply(m) || isUnansweredTurn(m)) failures.push(m);
+    if ((isFailedReply(m) || isUnansweredTurn(m)) && !isStaleFailure(m, now)) failures.push(m);
   }
   return { failures: failures.reverse(), notices: notices.reverse() };
 }
@@ -52,6 +60,16 @@ export function trailingRows(messages: readonly Message[], scan = 200): { failur
 // the runtime's own words for a turn a restart cut (server/runtime/tree.ts CUT_TWICE, INTERRUPTED_OUTWARD)
 const RESTART_CUT = /^Interrupted by (?:another |an? )?dusk bot restart\b/i;
 const RESTART_DID = /\bafter it already (.+?); not resumed\b/;
+
+// the app's names before it became dusk bot, as older stored errors still say them
+const OLD_NAMES = /\b(?:OpenMausBot|OpenMaus|Open Maus Bot|MausBot|Maus Bot)\b/g;
+const OLD_IMAGE = /^The VPS container uses an incompatible or untrusted (?:OpenMausBot|OpenMaus|MausBot|dusk bot) image\b/i;
+
+/** A stored error in today's words: a known old computer error becomes its plain line, old app names become dusk bot. */
+export function currentFailureWords(text: string): string {
+  if (OLD_IMAGE.test(text.trim())) return t("failedReply.computerOutdated");
+  return text.replace(OLD_NAMES, "dusk bot");
+}
 
 /** What a turn a restart cut had already done outside, in the server's words: "sent an email (gmail_send)". */
 export function restartAlreadyDid(cause: string): string | null {
@@ -116,7 +134,7 @@ export function failedReplyDetail(kind: FailedReplyKind, engineName: string, onS
   if (kind === "credits") return t("failedReply.credits", { engine: engineName });
   if (kind === "claude_update") return t("chat.claudeUpdate.offer");
   if (kind === "place" || kind === "blocker") return t("error.plain.generic");
-  if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? cause.trim();
+  if (kind === "other" && cause.trim()) return plainErrorLine(cause) ?? currentFailureWords(cause.trim());
   return t(DETAIL[kind]);
 }
 

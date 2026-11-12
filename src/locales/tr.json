@@ -2967,7 +2967,6 @@
   "computer.problem.perBotRuntime": "Her bot için özel masaüstü Docker veya Podman gerektirir, çünkü Apple container sabit bir ana bilgisayar bağlantı noktası gerektirir",
   "computer.problem.desktopFailed": "Özel masaüstü başlamadı: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Ayarlar → Computer bölümünü açın.",
-  "computer.err.vpsAuto": "{problem}. Bu bot bir sonraki çalışmasında Otomatik onu hazırlayacak veya uyandıracaktır.",
   "computer.err.frameTimeout": "Ekranın güncellenmesi çok uzun sürdü. Tekrar deneyin.",
   "computer.confirm.replaceVm": "{name} adlı botun özel masaüstü değiştirilsin mi? Kalıcı klasörü ve web sitesi oturumları korunur. Masaüstüne kurulan uygulamalar ve kalıcı klasör dışındaki dosyalar silinir.",
   "computer.phase.checking": "Kontrol ediliyor…",

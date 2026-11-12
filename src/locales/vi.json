@@ -2967,7 +2967,6 @@
   "computer.problem.perBotRuntime": "Mỗi bot có desktop riêng thì cần Docker hoặc Podman, vì Apple container cần một cổng cố định trên máy chủ",
   "computer.problem.desktopFailed": "Desktop riêng không khởi động được: {detail}",
   "computer.err.vmOpenSettings": "{problem}. Mở Cài đặt → Computer.",
-  "computer.err.vpsAuto": "{problem}. Hệ thống sẽ tự động chuẩn bị hoặc đánh thức khi bot này hoạt động ở lần tới.",
   "computer.err.frameTimeout": "Màn hình mất quá nhiều thời gian để cập nhật. Hãy thử lại.",
   "computer.confirm.replaceVm": "Thay thế desktop riêng của {name}? Thư mục lưu trữ cố định và thông tin đăng nhập trang web vẫn được giữ lại. Các ứng dụng cài trong desktop và các tệp nằm ngoài thư mục lưu trữ cố định sẽ bị xóa.",
   "computer.phase.checking": "Đang kiểm tra…",

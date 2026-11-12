@@ -3889,8 +3889,6 @@
   "computer.err.vmOpenSettings": "{problem}. 설정 → 컴퓨터를 여세요.",
   "computer.err.vpsNotReady": "VPS Cua 데스크톱이 아직 준비되지 않았어요",
   "computer.err.vpsNoContainer": "준비된 VPS 컨테이너가 없어요",
-  "computer.err.vpsAuto": "{problem}. 이 봇이 다음에 일할 때 자동으로 준비하거나 깨워요.",
-  "computer.err.vpsManual": "{problem}. 이 봇의 접근 설정에서 “VPS 자동 시작”을 켜거나, 시작하려면 클라우드 데스크톱을 고르세요.",
   "computer.err.emptyFrame": "화면이 비어 있는 상태로 돌아왔어요.",
   "computer.err.frameTimeout": "화면 업데이트가 너무 오래 걸렸어요. 다시 시도하세요.",
   "computer.err.screenUnavailable": "화면을 잠시 쓸 수 없어요.",

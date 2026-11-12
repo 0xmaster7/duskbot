@@ -1,7 +1,7 @@
 import { createContext, useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import { botEngine, claudeUpdateTarget } from "@/lib/failed-turn";
-import { blockerDetail, canOfferSignIn, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
+import { blockerDetail, canOfferSignIn, currentFailureWords, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
 import { statusActivity } from "@/lib/activity-runs";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
@@ -95,7 +95,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   let update = null;
   if (lead.kind === "place" && tool.place && leadBotId) {
     const view = placeRowViewFor(tool.place, seat, worksOnSimpleLabel(lead.bot?.computer, platform));
-    detail = view.line;
+    detail = currentFailureWords(view.line);
     const id = view.action?.id;
     if (id === "try-again") { if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry }); }
     else if (id && view.action) actions.push({ label: id === "open-computer-panel" ? t("chat.error.openScreen") : view.action.label, onClick: () => { openPlaceAction(id, { botId: leadBotId, threadId }, dispatch); } });

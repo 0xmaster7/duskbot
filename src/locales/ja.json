@@ -3614,7 +3614,6 @@
   "computer.problem.perBotRuntime": "ボットごとの専用デスクトップには、Docker または Podman が必要です。Apple の container は、固定のホストポートを必要とするためです",
   "computer.problem.desktopFailed": "専用デスクトップを起動できませんでした：{detail}",
   "computer.err.vmOpenSettings": "{problem}。「設定 → Computer」を開いてください。",
-  "computer.err.vpsAuto": "{problem}。このボットが次に作業するとき、自動が準備または起動します。",
   "computer.err.frameTimeout": "画面の更新に時間がかかりすぎました。もう一度お試しください。",
   "computer.confirm.replaceVm": "{name} の専用デスクトップを置き換えますか？永続フォルダーとウェブサイトのログインは残ります。デスクトップ内にインストールしたアプリと、永続フォルダー以外のファイルは削除されます。",
   "computer.phase.checking": "確認しています…",

@@ -63,21 +63,22 @@ afterEach(() => {
 });
 
 describe("a cancelled turn", () => {
-  const ask = { id: "ask", role: "user" as const, kind: "text" as const, at: 1, text: "Try the new model" };
+  const T0 = Date.now();
+  const ask = { id: "ask", role: "user" as const, kind: "text" as const, at: T0 + 1, text: "Try the new model" };
 
   it("leaves no row behind for the provider's stop sentence or a legacy stop row", () => {
-    render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "text", at: 2, text: CANCELLED }] });
+    render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "text", at: T0 + 2, text: CANCELLED }] });
     expect(host.textContent).toContain("Try the new model");
     expect(host.textContent).not.toContain(CANCELLED);
     expect(retry()).toBeUndefined();
-    render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "activity", at: 2, tool: { name: `error: ${CANCELLED}`, ok: false } }] });
+    render({ ...bot, messages: [ask, { id: "cancel", role: "bot", kind: "activity", at: T0 + 2, tool: { name: `error: ${CANCELLED}`, ok: false } }] });
     expect(host.textContent).not.toContain(CANCELLED);
     expect(retry()).toBeUndefined();
   });
 
   it("keeps a real error, including one that only mentions cancellation", () => {
     const cause = `${CANCELLED} See the logs.`;
-    render({ ...bot, messages: [ask, { id: "error", role: "bot", kind: "activity", at: 2, tool: { name: `error: ${cause}`, ok: false } }] });
+    render({ ...bot, messages: [ask, { id: "error", role: "bot", kind: "activity", at: T0 + 2, tool: { name: `error: ${cause}`, ok: false } }] });
     expect(host.textContent).toContain("Bot failed to respond");
     expect(host.querySelector("[data-failed-reply] [data-chat-error][role=alert]"), "a real error keeps the danger card, above the composer").not.toBeNull();
     expect(host.textContent).not.toContain("stopped");

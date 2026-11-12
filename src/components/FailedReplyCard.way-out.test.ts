@@ -21,15 +21,18 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 const { FailedReplyCard } = await import("./FailedReplyCard");
 const { trailingRows } = await import("@/lib/failed-reply");
 
+// failures older than a day leave the card, so these rows are recent
+const T0 = Date.now();
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 fixture.instances = [{ instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude", snapshot: { state: "available", authenticated: true } } as InstanceInfo];
 fixture.bots = [{ id: "echo", name: "Echo", modelSelection: { instanceId: "claude", model: "sonnet" } } as Bot];
 
-const ask: Message = { id: "ask", role: "user", kind: "text", at: 1, text: "hi" };
+const ask: Message = { id: "ask", role: "user", kind: "text", at: T0 + 1, text: "hi" };
 let seq = 0;
 const failed = (cause: string, patch: Partial<NonNullable<Message["tool"]>> = {}): Message => ({
-  id: `failed-${++seq}`, role: "bot", kind: "activity", at: 2, tool: { name: `error: ${cause}`, ok: false, ...patch },
+  id: `failed-${++seq}`, role: "bot", kind: "activity", at: T0 + 2, tool: { name: `error: ${cause}`, ok: false, ...patch },
 });
 
 let root: ReturnType<typeof createRoot> | null = null;

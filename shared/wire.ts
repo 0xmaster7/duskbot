@@ -525,6 +525,8 @@ export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLine
     claudeUpdate?: boolean; rescue?: import("./first-reply-rescue.ts").FirstReplyRescue;
   /** error rows: the place this turn could not use. */
     place?: PlaceRow;
+    /** error rows: epoch ms the server saw the cause fixed (the bot's computer ready again), so no card shows it. */
+    resolvedAt?: number;
     /** error rows: epoch ms when the usage limit that stopped the turn resets. */
     limitResetsAt?: number;
     /** error rows: the reply came back; only a step the turn ran failed or wasn't allowed. */

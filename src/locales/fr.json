@@ -1708,7 +1708,6 @@
   "computer.problem.perBotRuntime": "Un bureau privé pour chaque bot nécessite Docker ou Podman, car Apple container a besoin d'un port fixe sur l'hôte",
   "computer.problem.desktopFailed": "Le bureau privé n'a pas démarré : {detail}",
   "computer.err.vmOpenSettings": "{problem}. Ouvrez Paramètres → Computer.",
-  "computer.err.vpsAuto": "{problem}. Auto le préparera ou le réveillera au prochain travail de ce bot.",
   "computer.err.frameTimeout": "L'écran a mis trop de temps à se mettre à jour. Réessayez.",
   "computer.confirm.replaceVm": "Remplacer le bureau privé de {name} ? Son dossier durable et les connexions aux sites web sont conservés. Les applications installées dans le bureau et les fichiers hors du dossier durable sont supprimés.",
   "computer.phase.checking": "Vérification…",

@@ -366,29 +366,31 @@ describe("thread control placement", () => {
     expect(claudeUpdateTarget(undefined)).toBeUndefined();
   });
   it("keeps Retry on the last failed turn after its digest, but never on an older turn", () => {
+    const T0 = Date.now();
     const messages: Bot["messages"] = [
-      { id: "ask", role: "user", kind: "text", at: 1, text: "Try the new model" },
-      { id: "error", role: "bot", kind: "activity", at: 2, tool: { name: "error: outdated engine", ok: false } },
-      { id: "digest", role: "bot", kind: "digest", at: 3, text: "no tool activity" },
+      { id: "ask", role: "user", kind: "text", at: T0 + 1, text: "Try the new model" },
+      { id: "error", role: "bot", kind: "activity", at: T0 + 2, tool: { name: "error: outdated engine", ok: false } },
+      { id: "digest", role: "bot", kind: "digest", at: T0 + 3, text: "no tool activity" },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
     expect(render()).toContain("Try again</button>");
-    messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
+    messages.push({ id: "next", role: "user", kind: "text", at: T0 + 4, text: "A different request" });
     expect(render()).not.toContain("try again</button>");
   });
   it("keeps Retry on a failed turn after hanging up, when the call's record is the last row", () => {
+    const T0 = Date.now();
     const messages: Bot["messages"] = [
-      { id: "ask", role: "user", kind: "text", at: 1, text: "Try the new model", via: "call", callId: "c1" },
-      { id: "error", role: "bot", kind: "activity", at: 2, tool: { name: "error: outdated engine", ok: false } },
+      { id: "ask", role: "user", kind: "text", at: T0 + 1, text: "Try the new model", via: "call", callId: "c1" },
+      { id: "error", role: "bot", kind: "activity", at: T0 + 2, tool: { name: "error: outdated engine", ok: false } },
       {
-        id: "record", role: "bot", kind: "call", at: 3, text: "call with Pepper · 0:42",
+        id: "record", role: "bot", kind: "call", at: T0 + 3, text: "call with Pepper · 0:42",
         call: { callId: "c1", botId: "bot", client: "ios", startedAt: 0, endedAt: 3, seconds: 42, endReason: "hung-up" },
       },
     ];
     const render = () => renderToStaticMarkup(createElement(ChatView, { bot: { ...bot, busy: false, messages } }));
     expect(render()).toContain("Try again</button>");
     expect(render()).toContain('data-testid="call-record"');
-    messages.push({ id: "next", role: "user", kind: "text", at: 4, text: "A different request" });
+    messages.push({ id: "next", role: "user", kind: "text", at: T0 + 4, text: "A different request" });
     expect(render()).not.toContain("try again</button>");
   });
   it.each([false, true])("keeps recovery visible and outside tool folds when tool calls are %s", (showToolCalls) => {

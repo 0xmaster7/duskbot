@@ -4002,8 +4002,6 @@
   "computer.err.vmOpenSettings": "{problem}。请打开「设置 → 电脑」。",
   "computer.err.vpsNotReady": "你 VPS 上的桌面尚未就绪",
   "computer.err.vpsNoContainer": "你 VPS 上没有就绪的桌面",
-  "computer.err.vpsAuto": "{problem}。此机器人下次工作时，自动会准备或唤醒它。",
-  "computer.err.vpsManual": "{problem}。请在这个机器人的访问设置中开启「自动启动 VPS」，或选择云端桌面来启动它。",
   "computer.err.emptyFrame": "屏幕画面为空。请稍后重试。",
   "computer.err.frameTimeout": "屏幕更新耗时过长。请重试。",
   "computer.err.screenUnavailable": "屏幕当前不可用。请稍后重试。",

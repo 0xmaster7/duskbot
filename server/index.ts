@@ -119,6 +119,7 @@ import { connectorCallFromFrame, connectorRefusalText, connectorScopeRefusalText
 import { connectorCardDescription, connectorCardText } from "./connector-card-text.ts";
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel, readTeamRolesWith } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot, renameLegacyDefaultBots } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
+import { computerFailuresToResolve, RESOLVE_SCAN } from "./computer-failure-resolution.ts";
 import { hostTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
 import { createMemoryUpkeep, dreamConversations, upkeepEnabled } from "./memory-upkeep.ts";
 import { createCacheKeepWarm, type KeepWarmStatus, type KeepWarmTarget } from "./cache-keepwarm.ts";
@@ -5883,10 +5884,30 @@ async function rememberVpsReady(ownerId: string, status: vps.VpsComputerStatus, 
     if (activity) vpsLifecycle.activity(target, primary ? { botId: ownerId } : undefined);
     else { vpsLifecycle.observe(target); if (primary) vpsLifecycle.observeScreen(target, { botId: ownerId }); }
     if (activity) computerStateChanged(ownerId, alias, "ready");
+    resolveComputerFailures(ownerId);
   });
   vpsStatusObservations.set(key, observation);
   try { await observation; }
   finally { if (vpsStatusObservations.get(key) === observation) vpsStatusObservations.delete(key); }
+}
+
+const computerFailuresCheckedAt = new Map<string, number>();
+
+/** A ready computer clears the failed-reply cards its earlier failures left on its bots' chats. */
+function resolveComputerFailures(ownerId: string, now = Date.now()): void {
+  if (now - (computerFailuresCheckedAt.get(ownerId) ?? 0) < 60_000) return;
+  computerFailuresCheckedAt.set(ownerId, now);
+  for (const bot of store.bots) {
+    const shared = inheritedTeamComputer(bot);
+    if ((shared ? teamComputerOwner(shared.id) : bot.id) !== ownerId) continue;
+    for (const threadId of [bot.threadId, ...(bot.tasks ?? []).map((task) => task.threadId)]) {
+      try {
+        for (const message of computerFailuresToResolve(store.messagesTail(threadId, RESOLVE_SCAN).messages)) {
+          store.patchMessage(threadId, message.id, { tool: { ...message.tool!, resolvedAt: now } });
+        }
+      } catch (error) { console.warn(`[computer] could not clear old failures for ${bot.id}: ${error instanceof Error ? error.message : String(error)}`); }
+    }
+  }
 }
 
 function noteVpsTurnActivity(turn: { threadId: string; generation: string }): void {

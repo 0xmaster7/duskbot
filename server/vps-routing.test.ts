@@ -963,7 +963,8 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
       expect(thread.filter((message) => String(message.tool?.name ?? "").startsWith("error:"))).toEqual([]);
       const echo = thread.find((message) => message.text?.startsWith("echo: ")).text as string;
       expect(echo).toContain("This bot's VPS computer is unavailable this turn (The dusk bot VPS container is stopped)");
-      expect(echo).toContain("Open Computer and enable Start VPS automatically");
+      expect(echo).toContain("Wake it from this bot's Computer tab to use it.");
+      expect(echo).not.toMatch(/start VPS automatically/i);
     } finally {
       writeFileSync(template, original);
       writeFileSync(askerGate, "open");

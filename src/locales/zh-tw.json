@@ -2593,7 +2593,6 @@
   "computer.problem.perBotRuntime": "每個機器人各自的私人桌面需要 Docker 或 Podman，因為 Apple container 需要固定的主機連接埠",
   "computer.problem.desktopFailed": "私人桌面無法啟動：{detail}",
   "computer.err.vmOpenSettings": "{problem}。請開啟「設定 → Computer」。",
-  "computer.err.vpsAuto": "{problem}。自動模式會在這個機器人下次工作時準備或喚醒它。",
   "computer.err.frameTimeout": "畫面更新的時間過久。請再試一次。",
   "computer.confirm.replaceVm": "要替換 {name} 的私人桌面嗎？其持久資料夾與網站登入狀態會保留。安裝在桌面內的應用程式，以及持久資料夾以外的檔案會被刪除。",
   "computer.phase.checking": "檢查中…",
