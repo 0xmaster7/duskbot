@@ -1,10 +1,11 @@
 /** Milestones of one launch, in ms since the process started, written to the log once the window shows. */
-export function createStartupTrace({ now = () => performance.now(), log }) {
+export function createStartupTrace({ now = () => performance.now(), log, onMark }) {
   const marks = [];
   let done = false;
   const mark = (name) => {
     if (done || marks.some(([seen]) => seen === name)) return;
     marks.push([name, Math.round(now())]);
+    try { onMark?.(name); } catch {}
   };
   const finish = (name) => {
     if (done) return;

@@ -14,3 +14,10 @@ test("logs each milestone once, in order, when the launch finishes", () => {
   assert.deepEqual(lines, ["startup: ready 120ms, server 300ms, shown 910ms"]);
   assert.deepEqual(trace.marks().map(({ name }) => name), ["ready", "server", "shown"]);
 });
+
+test("reports each new milestone as it happens, once, and a throwing listener cannot break the trace", () => {
+  const seen = [];
+  const trace = createStartupTrace({ now: () => 0, log: () => {}, onMark: (name) => { seen.push(name); throw new Error("listener"); } });
+  trace.mark("ready"); trace.mark("ready"); trace.mark("server"); trace.finish("shown"); trace.mark("late");
+  assert.deepEqual(seen, ["ready", "server", "shown"]);
+});

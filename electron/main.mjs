@@ -34,12 +34,12 @@ import { chatLinkFrom, chatLinkFromCommandLine } from "./chat-link.mjs"; import 
 import { createOrganizationEntry, isOrganizationDeepLink, takeOrganizationDeepLink, organizationRestartIntent, withOrganizationRestartIntent, withoutOrganizationRestartIntent } from "./organization-entry.mjs";
 import { FRAME_BY_DEFAULT, widenedBounds, windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
-import { createStartupScreen } from "./startup-screen.mjs";
+import { createStartupScreen, startupDark } from "./startup-screen.mjs";
 import { createStartupTrace } from "./startup-trace.mjs";
 import { createDevServerChild, devOwnServerWanted, devServerConflictMessage, watchServerSource } from "./dev-server-child.mjs";
 import { createSystemTray } from "./system-tray.mjs";
 let startupScreen = null;
-const startupTrace = createStartupTrace({ log: line => slog(line) });
+const startupTrace = createStartupTrace({ log: line => slog(line), onMark: name => startupScreen?.progress(name) });
 let desktopTray = null;
 import { collisionFreeDownloadPath, defaultSaveName, openHtmlCopy, openLogsFolder, revealDownloadWhenDone, revealInFolder, withSavableFile } from "./save-file.mjs";
 import { desktopViewerPermissionAllowed } from "./desktop-viewer-permissions.mjs";
@@ -76,7 +76,7 @@ import {
   withDesktopCompanionAccess,
   withoutDesktopCompanionAccess,
 } from "./desktop-companion-client.mjs";
-import { isKnownSkin, skinChrome } from "./skin-overlay.cjs";
+import { isKnownSkin, skinChrome, skinIsLight } from "./skin-overlay.cjs";
 import { readSecureCredentials } from "./secure-credentials.mjs";
 import { createControlPlaneClient } from "./control-plane-client.mjs";
 import {
@@ -2425,11 +2425,23 @@ ipcMain.handle("desktop:reveal-file", localOnly("desktop:reveal-file", async (_e
 }));
 ipcMain.handle("desktop:open-html", localOnly("desktop:open-html", (_event, source, name) => openHtmlCopy(source, name, { dir: path.join(app.getPath("userData"), "open-html"), open: (file) => shell.openPath(file) })));
 ipcMain.handle("desktop:open-logs", localOrHome("desktop:open-logs", () => openLogsFolder(LOG_DIR, { open: (folder) => shell.openPath(folder) })));
+const startupThemeFile = () => path.join(app.getPath("userData"), "startup-theme.json");
+function readStartupTheme() {
+  try { return JSON.parse(fs.readFileSync(startupThemeFile(), "utf8")); } catch { return null; }
+}
+let startupThemeSaved = null;
+function rememberStartupTheme(light) {
+  const next = JSON.stringify({ light, systemDark: nativeTheme.shouldUseDarkColors });
+  if (next === startupThemeSaved) return;
+  startupThemeSaved = next;
+  fs.promises.writeFile(startupThemeFile(), next).catch(() => {});
+}
 ipcMain.handle("desktop:skin", (event, skin) => {
   if (!isKnownSkin(skin)) return false;
   if (chromeRail.owns(event)) return true;
   try {
     talk.skin(skin); const { color } = skinChrome(skin);
+    if (mainWindow && event.sender === mainWindow.webContents) rememberStartupTheme(skinIsLight(skin));
     const win = BrowserWindow.fromWebContents(event.sender) ?? mainWindow;
     if (win && !win.isDestroyed()) {
       try { win.setBackgroundColor(color); } catch {}
@@ -2994,6 +3006,7 @@ app.whenReady().then(async () => {
     isHidden: () => desktopTray?.isHidden() ?? false,
     onShow: (win) => desktopTray?.windowShown(win),
     onFinished: () => { startupScreen = null; },
+    dark: startupDark({ systemDark: nativeTheme.shouldUseDarkColors, saved: readStartupTheme() }),
   });
   // the splash is a data: page and paints on its own, so nothing waits for it
   const credentialsLoading = evictStartupCacheOnce({
