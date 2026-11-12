@@ -1,0 +1,47 @@
+# Windows Hello on a real Windows machine: the PowerShell/WinRT helper compiles, the availability probe answers, the
+# parented RequestVerificationForWindowAsync call reaches WinRT and completes, and with no Hello set up (a runner never
+# has it) the app falls back to its own confirm. The helper needs only Node built-ins, so no install step.
+name: Windows presence check
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - electron/user-presence*.mjs
+      - electron/windows-hello*.mjs
+      - .github/workflows/windows-presence.yml
+  pull_request:
+    paths:
+      - electron/user-presence*.mjs
+      - electron/windows-hello*.mjs
+      - .github/workflows/windows-presence.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-presence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hello:
+    name: Windows Hello helper (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Presence and Windows Hello tests
+        run: node --test --test-reporter=spec electron/windows-hello.node-test.mjs electron/user-presence.node-test.mjs
+      - name: Show the helper's own error
+        if: failure()
+        shell: bash
+        env:
+          DUSK_HELLO_MODE: check
+        run: |
+          node --input-type=module -e 'import { writeFileSync } from "node:fs"; import { WINDOWS_HELLO_SCRIPT } from "./electron/windows-hello.mjs"; writeFileSync("hello-debug.ps1", WINDOWS_HELLO_SCRIPT.replace("catch {", "catch { Write-Output ($_ | Out-String);"))'
+          "$SYSTEMROOT/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -ExecutionPolicy Bypass -File hello-debug.ps1

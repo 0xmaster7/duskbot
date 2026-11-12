@@ -7,6 +7,7 @@ import type { MobileDevice, MobilePairingRequest, MobilePairingResponse } from "
 import { companionBridge } from "@/lib/companion-bridge";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
+import { requireUserPresence } from "@/lib/user-presence";
 import { api, ApiError } from "@/state/store";
 import { lastSeen, minutesLeft } from "../lib/pairing-time";
 import { haptic } from "../mobile/haptics";
@@ -109,6 +110,7 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
     setOffer(null);
     baseline.current = null;
     try {
+      if (!(await requireUserPresence()) || generation.current !== epoch) return;
       const request: MobilePairingRequest = {};
       const companion = remote ? null : companionBridge();
       if (companion) {

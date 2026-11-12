@@ -259,6 +259,9 @@ const __APP_VERSION__: string;
         onOpenSettings?: (callback: () => void) => () => void;
       };
       confirm(message: string): Promise<boolean>;
+      /** Touch ID, Windows Hello or polkit, else an in-app confirm; true only when the person passed. Absent in older
+       * desktop builds. `reason` completes "Dusk Bot wants to …". */
+      requireUserPresence?(reason: string): Promise<boolean>;
       getCapabilities(): Promise<DesktopCapabilities>;
       onCapabilitiesChanged(cb: (capabilities: DesktopCapabilities) => void): () => void;
       remoteClient?: {

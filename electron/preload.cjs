@@ -91,7 +91,7 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots"]);
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "cloudAdd", "cloudPlan", "cloudSendPage", "accountSheet", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame", "sealTrust", "linkDirect", "onSlackOAuth", "ambient", "desktopBots", "requireUserPresence"]);
 /** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
 const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive", "productEvents"];
 function homePage() {
@@ -717,6 +717,9 @@ const bridge = {
   // lending this computer to a server is gone: a stub until pages of the last two releases stop calling it (bridge-contract.json).
   computerSharing: Object.fromEntries(["state", "chooseFolder", "save", "revoke", "activity"].map(name => [name, () => Promise.reject(new Error("Lending this computer is no longer available."))])),
   confirm: message => ipcRenderer.invoke("dialog:confirm", message),
+  /** The OS's own check that a person is at this computer (Touch ID, Windows Hello, polkit), else an in-app confirm.
+   * Resolves true only when they pass; never rejects for a failed check. */
+  requireUserPresence: reason => ipcRenderer.invoke("presence:require", typeof reason === "string" ? reason : ""),
   /** The window onto My Cloud once it is the person's home: this computer's screen while My Cloud can't be opened, and
    * on My Cloud's own page a new session when its own has ended. */
   home: {

@@ -58,6 +58,7 @@ import {
   phonePairingManualCodeMode,
 } from "../lib/companion-state";
 import { ConnectionDetail } from "./ConnectionDetail";
+import { requireUserPresence } from "@/lib/user-presence";
 
 export interface PhoneDevice {
   id: string;
@@ -491,7 +492,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     if (decision === "start") void runPairingAttemptRef.current(request);
   }, []);
 
-  const start = useCallback(() => {
+  const startNow = useCallback(() => {
     const baseline = phoneSetupBaseline(state?.devices ?? null);
     if (!baseline) return;
     const generation = ++setupGeneration.current;
@@ -508,7 +509,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     }
   }, [account, openPairing, state]);
 
-  const useLocal = useCallback(() => {
+  const useLocalNow = useCallback(() => {
     const baseline = phoneSetupBaseline(state?.devices ?? null);
     if (!baseline) return;
     if (!flow.active) {
@@ -522,7 +523,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     void openPairing("local", undefined, generation);
   }, [flow.active, openPairing, state?.devices]);
 
-  const useTailscale = useCallback(() => {
+  const useTailscaleNow = useCallback(() => {
     const baseline = phoneSetupBaseline(state?.devices ?? null);
     if (!baseline) return;
     if (!flow.active) {
@@ -535,6 +536,29 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     setAccountError(null);
     void openPairing("tailscale", undefined, generation);
   }, [flow.active, openPairing, state?.devices]);
+
+  // One OS check per pairing flow: it starts the flow, and Cancel or Done ends it, so the next flow asks again.
+  const presence = useRef<"none" | "asking" | "granted">("none");
+  const entries = useRef({ startNow, useLocalNow, useTailscaleNow });
+  useLayoutEffect(() => {
+    entries.current = { startNow, useLocalNow, useTailscaleNow };
+  }, [startNow, useLocalNow, useTailscaleNow]);
+  const afterPresence = useCallback((run: () => void) => {
+    if (presence.current === "granted") {
+      run();
+      return;
+    }
+    if (presence.current === "asking") return;
+    presence.current = "asking";
+    void requireUserPresence().then((ok) => {
+      if (presence.current !== "asking") return;
+      presence.current = ok ? "granted" : "none";
+      if (ok && mounted.current) run();
+    });
+  }, []);
+  const start = useCallback(() => afterPresence(() => entries.current.startNow()), [afterPresence]);
+  const useLocal = useCallback(() => afterPresence(() => entries.current.useLocalNow()), [afterPresence]);
+  const useTailscale = useCallback(() => afterPresence(() => entries.current.useTailscaleNow()), [afterPresence]);
 
   const refreshTailscale = useCallback(() => {
     void act((companion) => companion.refreshTailscale());
@@ -781,6 +805,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
   }, [pairingRoute, state]);
 
   const cancel = useCallback(() => {
+    presence.current = "none";
     const cancelledGeneration = setupGeneration.current;
     setupGeneration.current += 1;
     invalidatePhonePairingAttempt(pairingAttemptQueue.current, cancelledGeneration);
@@ -851,11 +876,12 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     verifyCode,
     retryAccount,
     cancel,
-    refreshCode: () => {
+    refreshCode: () => afterPresence(() => {
       const generation = ++setupGeneration.current;
       void openPairing(pairingRouteMode, undefined, generation);
-    },
+    }),
     finish: () => {
+      presence.current = "none";
       const generation = setupGeneration.current;
       setupGeneration.current += 1;
       invalidatePhonePairingAttempt(pairingAttemptQueue.current, generation);
