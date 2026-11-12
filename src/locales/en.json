@@ -7833,6 +7833,7 @@
   "ambient.status.needsYou": "needs you",
   "ambient.status.done": "replied",
   "ambient.status.error": "failed",
+  "ambient.status.waiting": "waiting",
   "ambient.now": "now",
   "ambient.open": "open the chat with {name}",
   "ambient.reply": "reply",

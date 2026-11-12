@@ -130,7 +130,7 @@ it("marks each mascot's state as the dock does: blue working, green unseen reply
   const root = createRoot(host);
   await act(async () => root.render(createElement(Island, { bridge, forceOpen: true })));
   const minutes = (count: number) => Date.now() - count * 60_000;
-  await act(async () => feed({ lang: "en", labels: { working: "Working", "needs-you": "Needs you", done: "Replied", error: "Failed", now: "now", open: "Open {name}" }, bots: [
+  await act(async () => feed({ lang: "en", labels: { working: "Working", "needs-you": "Needs you", waiting: "Waiting", done: "Replied", error: "Failed", now: "now", open: "Open {name}" }, bots: [
     bot("Ada", { at: minutes(120) }),
     bot("Bolt", { status: "working", detail: "Deploying" }),
     bot("Rivet", { status: "done", unread: true, line: "Fixed.", at: minutes(5) }),
@@ -140,10 +140,12 @@ it("marks each mascot's state as the dock does: blue working, green unseen reply
   const cells = [...host.querySelectorAll(".amb-strip [data-row]")];
   const marks = cells.map((cell) => [cell.getAttribute("data-row"), cell.querySelector(".amb-state-dot")?.getAttribute("data-state") ?? null, cell.querySelector(".amb-bubble")?.textContent ?? null]);
   expect(marks).toEqual([["Atlas", null, "2"], ["Cinder", null, "!"], ["Bolt", "working", null], ["Rivet", "done", null], ["Ada", null, null]]);
-  // under each mascot its name and its state in a quiet word or two; resting, only when it was last active
-  expect(cells.map((cell) => cell.querySelector(".amb-strip-state")?.textContent)).toEqual(["Needs you", "Failed", "Working", "Replied 5m", "2h"]);
-  // the state is in each mascot's name for a screen reader, not only its colour
+  // under each mascot its name and its state in one short word that fits the 48px cell; resting, only when it was last active
+  expect(cells.map((cell) => cell.querySelector(".amb-strip-state")?.textContent)).toEqual(["Waiting", "Failed", "Working", "Replied", "2h"]);
+  // the full state is in each mascot's name for a screen reader, not only its colour
   expect(cells[2]!.querySelector("button")?.getAttribute("aria-label")).toBe("Open Bolt. Working");
+  expect(cells[0]!.querySelector("button")?.getAttribute("aria-label")).toBe("Open Atlas. Needs you");
+  expect(cells[3]!.querySelector("button")?.getAttribute("aria-label")).toBe("Open Rivet. Replied 5m");
   await act(async () => root.unmount());
 });
 

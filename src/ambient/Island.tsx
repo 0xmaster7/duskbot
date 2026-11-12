@@ -307,6 +307,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
           const dot = dotOf(bot, news);
           const bubble = news === "ask" || news === "error" ? news : null;
           const state = statusLine(bot, seen, labels, lang, now);
+          const word = statusLine(bot, seen, labels, lang, now, true);
           return (
             <li key={bot.id} className="amb-strip-cell" data-row={bot.id} data-status={shown.status}>
               <button
@@ -327,7 +328,7 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
                   {dot && <span className="amb-state-dot" data-state={dot} aria-hidden />}
                 </span>
                 <span className="amb-strip-name" aria-hidden>{bot.name}</span>
-                <span className="amb-strip-state" data-status={bot.status} aria-hidden>{state}</span>
+                <span className="amb-strip-state" data-status={bot.status} aria-hidden>{word}</span>
               </button>
             </li>
           );
@@ -351,11 +352,13 @@ function PanelBody({ bots, seen, mark, cheer, labels, lang, open, bridge, onPin 
 }
 
 /** A grid cell's status in a word or two: what it is doing, its fresh reply or failure with when, or (resting, or
- * news already seen) only when it was last active. */
-export function statusLine(bot: AmbientBot, seen: ReadonlySet<string>, labels: AmbientLabels, lang: string, now: number): string {
+ * news already seen) only when it was last active. `short`: the one word drawn under a 48px mascot (an ask is
+ * "waiting", a fresh reply drops its when), the full line staying in the cell's name for a screen reader. */
+export function statusLine(bot: AmbientBot, seen: ReadonlySet<string>, labels: AmbientLabels, lang: string, now: number, short = false): string {
   const ago = shortAgo(bot.at, now, lang, say(labels, "now"));
+  if (short && bot.status === "needs-you") return say(labels, "waiting") || say(labels, bot.status);
   if (isBusy(bot.status) || bot.status === "needs-you") return say(labels, bot.status);
-  if (bot.status === "done" && isFresh(bot, seen)) return [say(labels, "done"), ago].filter(Boolean).join(" ");
+  if (bot.status === "done" && isFresh(bot, seen)) return short ? say(labels, "done") : [say(labels, "done"), ago].filter(Boolean).join(" ");
   if (bot.status === "error" && isFresh(bot, seen)) return say(labels, "error");
   return ago;
 }

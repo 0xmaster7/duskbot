@@ -34,6 +34,7 @@ export const AMBIENT_LABELS = {
   sent: "ambient.sent",
   dismiss: "ambient.dismiss",
   recent: "ambient.recent",
+  waiting: "ambient.status.waiting",
 } as const satisfies Record<AmbientLabel, LocaleKey>;
 
 export type { AmbientLabel, AmbientLabels } from "./say";
