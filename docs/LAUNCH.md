@@ -115,6 +115,8 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
    systemctl start dusk-account-backup.service && journalctl -u dusk-account-backup -n 5
    ```
    Test a restore once: `rclone copy remote:bucket/account/<file> . && age -d -i ~/secure/dusk-backup.key <file> | tar -tz`.
+   Not installed on the server as of 2026-11-12, though privacy.md already promises encrypted daily backups kept 30 days.
+   Add the backup destination's provider (Oracle or Backblaze) to docs/legal/subprocessors.md and privacy.md when it is.
 9. **Log rotation**: `cp deploy/account/logrotate.conf /etc/logrotate.d/dusk && logrotate -d /etc/logrotate.d/dusk`.
 10. **Rate limits at the edge** (optional, defence in depth): a `limit_req` zone on `/v1/auth/` in deployd's nginx
     template; the service already limits, an hour, sign-in starts (60 per IP, 15 per email, one per address every
@@ -203,6 +205,8 @@ Silence or test:
 1. **Error tracker** (pick one): self-hosted GlitchTip on the Oracle box (free; Docker Compose with Postgres and
    Redis, about 1 GB of memory; put it behind a subdomain such as errors.dusk.bot) or sentry.io's free Developer plan
    (5,000 errors a month, one user). Create one project per component or one shared project; copy its DSN.
+   sentry.io is a third party: add it to docs/legal/subprocessors.md and privacy.md and drop the "no third-party error
+   tracking" lines there before setting the DSN in production (self-hosted GlitchTip on the Oracle box needs Oracle listed).
 2. Set `DUSK_ERROR_DSN` in the account service env (and staging's, with `DUSK_ENVIRONMENT=staging`). Turn on the
    tracker's email alerts to your operator address for new issues.
 3. Desktop builds: before baking a DSN into release builds, add a Settings switch for the existing `errorReports`

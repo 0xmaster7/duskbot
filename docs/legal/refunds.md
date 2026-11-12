@@ -4,7 +4,7 @@ Effective date: 12 November 2026. Last updated: 12 November 2026.
 
 This policy explains how cancelling and refunds work for paid dusk bot plans. It is part of our [terms of use](terms.md). Nothing here limits rights you have under the consumer law that applies to you.
 
-The app itself is free for personal use, with every feature, on your own computer or server. You can try everything before you pay. A paid plan can add a dusk cloud desktop, a work license, or both: Plus adds a desktop, and Pro and Team plans add a desktop and a work license.
+The app itself is free for personal use, with every feature, on your own computer or server. You can try everything before you pay. A paid plan can add a dusk cloud desktop, a work license, or both: Plus ($20 a month) adds a desktop, Pro ($50 a month) adds a desktop and a work license for one person, and a Team license ($30 a month for 2 members, $18 for each extra member) adds a work license for each member. A Team plan with a dedicated desktop is $90 a month. A work license on its own is $12 a month. Yearly billing is two months free.
 
 ## Who bills you
 

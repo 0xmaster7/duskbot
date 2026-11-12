@@ -23,7 +23,7 @@ Commercial use needs a separate commercial license. Access to the source, an acc
 Using dusk bot at or for a business needs a work license. You can add one on its own from the billing page of your account (from $12 a month for one person), or get one with a paid plan:
 
 - **Pro** includes a work license for one person for as long as the plan is active. It covers that person using the app at or for a business, on their own computer, their own server or their dusk cloud desktop.
-- **Team** plans, from $100 a month, include a work license for each member of the team. Write to hello@dusk.bot to set one up.
+- **Team** license: $30 a month covers 2 members, and each extra member is $18 a month, up to 50. It includes a work license for each member, and you can add it yourself from the billing page of your account. A Team plan with a dedicated dusk cloud desktop (8 vCPU, 16 GB memory, 160 GB disk) is $90 a month; write to hello@dusk.bot to set that one up.
 
 Current prices are on the pricing page at dusk.bot/pricing. A work license from a plan ends when the plan ends. It grants the right to use the software for commercial purposes only. It does not grant rights to modify, distribute or sublicense the software.
 
