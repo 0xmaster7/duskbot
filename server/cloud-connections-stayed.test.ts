@@ -43,9 +43,9 @@ describe("what stayed on the person's computer", () => {
 
   it("says it in plain words: the program it needs, or that its mail stays there", () => {
     const [easy, fetch, notes] = stayedConnectors(SERVERS, ["npx", "node", "python3"]);
-    expect(stayedLine(undefined, easy!)).toBe("easy stayed on Mac mini when your bots moved to My Cloud, so bots here can't read or send mail through it. It keeps its accounts on Mac mini, and it can't reach a mail server from here. To read and send mail from My Cloud, connect your mailbox under Connected apps.");
-    expect(stayedLine(undefined, fetch!)).toBe("fetch stayed on Mac mini when your bots moved to My Cloud, so bots here can't use it. It needs uvx, which My Cloud doesn't have.");
-    expect(stayedLine(undefined, notes!)).toBe("notes stayed on Mac mini when your bots moved to My Cloud, so bots here can't use it. It uses files or an address only Mac mini has.");
+    expect(stayedLine(undefined, easy!)).toBe("easy stayed on Mac mini when your bots moved to my cloud, so bots here can't read or send mail through it. It keeps its accounts on Mac mini, and it can't reach a mail server from here. To read and send mail from my cloud, connect your mailbox under connected apps.");
+    expect(stayedLine(undefined, fetch!)).toBe("fetch stayed on Mac mini when your bots moved to my cloud, so bots here can't use it. It needs uvx, which my cloud doesn't have.");
+    expect(stayedLine(undefined, notes!)).toBe("notes stayed on Mac mini when your bots moved to my cloud, so bots here can't use it. It uses files or an address only Mac mini has.");
   });
 
   it("when the move ends one bot says all of it, once, and the person is told outside the chat too", () => {

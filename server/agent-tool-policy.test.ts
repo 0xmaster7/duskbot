@@ -19,6 +19,7 @@ describe("built-in agent tool read policy", () => {
       "list_room_targets",
       "list_team_library",
       "set_status",
+      "send_message",
     ]);
     for (const name of READ_ONLY_AGENT_TOOL_NAMES) {
       expect(isReadOnlyAgentTool(name)).toBe(true);

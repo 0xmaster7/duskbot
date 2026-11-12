@@ -12,7 +12,7 @@ const words = (starter: boolean, language?: string) => {
 describe("how a wait for memory reads", () => {
   it("names what runs and what is ahead, and that it starts by itself", () => {
     expect(words(false).waits.text("t", { first: true, running: 1, ahead: 2 }))
-      .toBe("Waiting for memory on this Cloud. Running now: 1. Ahead of this one: 2. It starts by itself when there's room.");
+      .toBe("Waiting for memory on this cloud. Running now: 1. Ahead of this one: 2. It starts by itself when there's room.");
     expect(words(false).waits.text("t", { first: false, running: 1, ahead: 0 })).toBe("Still waiting for memory. Running now: 1. Ahead of this one: 0.");
   });
 

@@ -291,7 +291,7 @@ describe("the Sign in card", () => {
     const { card } = await f.signIn();
     const olive = session("olive@acme.test", ["admin", "client"]);
     const noVouchedOrigin = { host: "dusk.example.com", "x-forwarded-proto": "https" };
-    expect(await f.authorize(card, olive, noVouchedOrigin)).toEqual({ status: 409, body: { error: "Finish this sign-in in Apps → MCP servers." } });
+    expect(await f.authorize(card, olive, noVouchedOrigin)).toEqual({ status: 409, body: { error: "Finish this sign-in in apps → MCP servers." } });
     expect(f.provider.counts.register, "decided before any client is registered").toBe(0);
     expect(f.current(card).connector).toMatchObject({ status: "required" });
     const onTheMac = await f.authorize(card);
@@ -302,7 +302,7 @@ describe("the Sign in card", () => {
     (preRegistered.cfg.mcpServers!.linear as { oauth?: unknown }).oauth = { clientId: "dusk-app" };
     const other = (await preRegistered.signIn()).card;
     const away = { host: "dusk.example.com", origin: "https://dusk.example.com", "x-forwarded-proto": "https" };
-    expect(await preRegistered.authorize(other, olive, away)).toEqual({ status: 409, body: { error: "Finish this sign-in in Apps → MCP servers." } });
+    expect(await preRegistered.authorize(other, olive, away)).toEqual({ status: 409, body: { error: "Finish this sign-in in apps → MCP servers." } });
     expect(preRegistered.mcpOAuth.authState("linear", preRegistered.url)).toBe("none");
     expect(preRegistered.current(other).connector).toMatchObject({ status: "required" });
   });

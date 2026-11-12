@@ -52,8 +52,8 @@ it("what stayed on the computer is told when the move ends and in the first conv
   const told = await Promise.all(bots.map(async (bot) => ({ bot, said: lines(await rows(bot.threadId)) })));
   const speakers = told.filter(({ said }) => said.length);
   expect(speakers).toHaveLength(1);
-  expect(speakers[0]!.said.join("\n")).toContain("fetch stayed on Mac mini when your bots moved to My Cloud, so bots here can't use it. It needs uvx, which My Cloud doesn't have.");
-  expect(speakers[0]!.said.join("\n")).toContain("easy stayed on Mac mini when your bots moved to My Cloud, so bots here can't read or send mail through it.");
+  expect(speakers[0]!.said.join("\n")).toContain("fetch stayed on Mac mini when your bots moved to my cloud, so bots here can't use it. It needs uvx, which my cloud doesn't have.");
+  expect(speakers[0]!.said.join("\n")).toContain("easy stayed on Mac mini when your bots moved to my cloud, so bots here can't read or send mail through it.");
   expect(speakers[0]!.said.join("\n"), "one switched off was not working anyway").not.toContain("idle");
   const notices = (await onCloud("GET", "/api/notifications")).body.notifications as Array<{ kind: string; body: string }>;
   expect(notices.filter((notice) => notice.kind === "notice" && notice.body.includes("stayed on Mac mini"))).toHaveLength(1);

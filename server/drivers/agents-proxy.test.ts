@@ -627,6 +627,7 @@ describe("agents-proxy MCP surface", () => {
     const list = await rpc("tools/list");
     expect(list.result.tools.map((t: { name: string }) => t.name)).toEqual([
       "set_status",
+      "send_message",
       "tool_result_read",
       "list_room_targets",
       "coordinate_bots",
@@ -752,7 +753,7 @@ describe("agents-proxy MCP surface", () => {
   it("advertises read annotations only for the reviewed built-in reads", async () => {
     const list = await rpc("tools/list");
     const readNames = [
-      "set_status", "tool_result_read", "list_room_targets",
+      "set_status", "send_message", "tool_result_read", "list_room_targets",
       "assignment_status", "list_bots", "usage_limits", "list_rooms", "list_threads",
       "list_team_setup", "list_team_library", "decide", "extract",
       "session_search", "trigger_info", "list_waits", "skills_list",
@@ -2371,7 +2372,7 @@ describe("tool bridge", () => {
   /** The main child's switches: a Chief with skills. */
   const CHIEF = { DUSK_SKILL_AUTHORING_ENABLED: "1", DUSK_CHIEF_OF_STAFF: "1", DUSK_COMPUTER_SELECTION: "1" };
   const CHIEF_ONLY = ["create_bot", "list_team_setup", "propose_team_setup", "propose_bot_deletion", "manage_room", "retry_thread"];
-  const HOT = ["set_status", "tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"];
+  const HOT = ["set_status", "send_message", "tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"];
   let chief: Rpc;
   let plain: Rpc;
   let off: Rpc;

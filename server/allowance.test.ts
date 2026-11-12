@@ -73,7 +73,7 @@ describe("the weekly allowance", () => {
     expect(h.allowance.over()).toBe(true);
     expect(h.allowance.report()).toMatchObject({ level: "over", spentUsd: 6, overrunUsd: 0.03, share: 1, skipped: [{ name: "Morning digest" }, { name: "Inbox check" }] });
     expect(h.allowance.held("en-US")).toBe("Skipped: weekly limit reached. It resets Monday 12:00 AM, in 4 days.");
-    expect(h.allowance.refusal("en-US")).toBe("Weekly limit reached, so new tasks wait until Monday 12:00 AM (in 4 days). Turn on Saver mode in Usage to keep chatting on a cheaper model.");
+    expect(h.allowance.refusal("en-US")).toBe("Weekly limit reached, so new tasks wait until Monday 12:00 AM (in 4 days). Turn on saver mode in usage to keep chatting on a cheaper model.");
     expect(h.allowance.refusal("en-US")).not.toMatch(/\$/);
     // a step still running when it hit is ours too
     h.spend(0.02);
