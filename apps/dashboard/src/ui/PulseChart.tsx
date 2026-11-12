@@ -4,8 +4,7 @@ import { percent } from "../lib/format";
 import { useReducedMotion } from "./motion";
 
 export const PULSE_SERIES = { cpu: "var(--viz-visitors)", mem: "var(--viz-renewal)" } as const;
-const H = 196, PAD = { top: 10, right: 6, bottom: 24, left: 38 };
-const BASE = H - PAD.bottom, TALL = BASE - PAD.top;
+const PAD = { top: 8, right: 4, bottom: 22, left: 34 };
 /** how quickly the window's right edge follows a change in how late samples arrive */
 const LAG_EASE_MS = 1500;
 
@@ -58,7 +57,8 @@ const ago = (ms: number) => ms < 4000 ? "now" : `${Math.round(ms / 1000)} s ago`
 
 /** cpu and memory over the last two minutes, sliding left as time passes: the paths are drawn once per new sample in
  * time space, and only the group's transform moves each frame */
-export function PulseChart({ samples, lag, empty }: { samples: PulseSample[]; lag: number; empty?: string | null }) {
+export function PulseChart({ samples, lag, empty, compact = false }: { samples: PulseSample[]; lag: number; empty?: string | null; compact?: boolean }) {
+  const H = compact ? 118 : 196, BASE = H - PAD.bottom, TALL = BASE - PAD.top;
   const [box, width] = useWidth();
   const clip = useId().replace(/:/g, "");
   const reduced = useReducedMotion() ?? false;
@@ -72,7 +72,7 @@ export function PulseChart({ samples, lag, empty }: { samples: PulseSample[]; la
     const line = (key: "cpu" | "mem") => parts.map((run) => monotone(run.map((s) => [(s.t - t0) * scale, y(s[key])]))).join("");
     const area = parts.map((run) => { const d = monotone(run.map((s) => [(s.t - t0) * scale, y(s.cpu)])); return `${d}L${((run.at(-1)!.t - t0) * scale).toFixed(1)},${BASE}L${((run[0]!.t - t0) * scale).toFixed(1)},${BASE}Z`; }).join("");
     return { cpu: line("cpu"), mem: line("mem"), area };
-  }, [samples, t0, scale]);
+  }, [samples, t0, scale, BASE, TALL]);
   const live = useRef({ t0, scale, lag, shown: lag, newest, reduced });
   live.current = { ...live.current, t0, scale, lag, newest, reduced };
   const edge = () => live.current.reduced ? live.current.newest : Date.now() - live.current.shown;
