@@ -83,6 +83,10 @@ await build({
   banner: NODE_REQUIRE,
   // every entry reads the old env names first, whichever process starts it
   inject: [join(root, "electron", "legacy-names.mjs")],
+  // dusk bot's own GitHub App and Google Drive device clients (server/app-tokens/device.ts), from the release environment
+  define: { DUSK_BUILD_DEVICE_CLIENTS: JSON.stringify(JSON.stringify(Object.fromEntries(
+    ["DUSK_GITHUB_APP_CLIENT_ID", "DUSK_GOOGLE_DRIVE_CLIENT_ID", "DUSK_GOOGLE_DRIVE_CLIENT_SECRET"].flatMap((name) => process.env[name] ? [[name, process.env[name]]] : []),
+  ))) },
 });
 
 // External MCP clients launch this as an independent stdio process, so release

@@ -1,0 +1,318 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { TOKEN_APPS, type TokenAppId } from "../../shared/app-tokens.ts";
+import type { StoredMcpServer } from "../mcp-registry.ts";
+import { PASS, type RouteContext } from "../routes/table.ts";
+import { pollDevice, refreshDevice, startDevice } from "./device.ts";
+import { apiUrl, callApi, handleApiRpc } from "./mcp.ts";
+import { APP_TOKENS_MCP_PREFIX, createTokenApps, freeName } from "./service.ts";
+import { APP_TOKENS_FILE } from "./store.ts";
+import { subdomain, TokenCheckError, VENDORS, type TokenFields } from "./vendors.ts";
+
+type Call = { url: string; init: RequestInit };
+/** A fetch that answers by URL prefix and records every call. */
+function fakeFetch(routes: Record<string, (call: Call) => { status?: number; body: unknown }>) {
+  const calls: Call[] = [];
+  const impl = (async (input: string | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    const call = { url, init };
+    calls.push(call);
+    const route = Object.keys(routes).sort((a, b) => b.length - a.length).find((prefix) => url.startsWith(prefix));
+    if (!route) throw new TypeError(`fetch failed: ${url}`);
+    const answer = routes[route]!(call);
+    return new Response(typeof answer.body === "string" ? answer.body : JSON.stringify(answer.body), { status: answer.status ?? 200 });
+  }) as typeof fetch;
+  return { impl, calls };
+}
+const header = (call: Call, name: string) => new Headers(call.init.headers).get(name);
+const signal = () => AbortSignal.timeout(5_000);
+
+// one live-check answer per app, from each vendor's documented response shape
+const WHOAMI: Record<TokenAppId, { fields: TokenFields; url: string; body: unknown; label: string; auth: [string, string] }> = {
+  github: { fields: { token: "github_pat_x" }, url: "https://api.github.com/user", body: { login: "octo" }, label: "octo", auth: ["authorization", "Bearer github_pat_x"] },
+  notion: { fields: { token: "ntn_x" }, url: "https://api.notion.com/v1/users/me", body: { name: "bot", bot: { workspace_name: "Acme" } }, label: "Acme", auth: ["authorization", "Bearer ntn_x"] },
+  linear: { fields: { token: "lin_api_x" }, url: "https://api.linear.app/graphql", body: { data: { viewer: { name: "Ada" } } }, label: "Ada", auth: ["authorization", "lin_api_x"] },
+  airtable: { fields: { token: "patx" }, url: "https://api.airtable.com/v0/meta/whoami", body: { id: "usr1", email: "a@b.test" }, label: "a@b.test", auth: ["authorization", "Bearer patx"] },
+  todoist: { fields: { token: "t0" }, url: "https://api.todoist.com/api/v1/user", body: { full_name: "Tod" }, label: "Tod", auth: ["authorization", "Bearer t0"] },
+  trello: { fields: { key: "k1", token: "t1" }, url: "https://api.trello.com/1/members/me", body: { fullName: "Tre" }, label: "Tre", auth: ["authorization", ""] },
+  clickup: { fields: { token: "pk_1" }, url: "https://api.clickup.com/api/v2/user", body: { user: { username: "cu" } }, label: "cu", auth: ["authorization", "pk_1"] },
+  hubspot: { fields: { token: "pat-na1" }, url: "https://api.hubapi.com/account-info/v3/details", body: { portalId: 42 }, label: "HubSpot 42", auth: ["authorization", "Bearer pat-na1"] },
+  jira: { fields: { site: "acme", email: "a@b.test", token: "j1" }, url: "https://acme.atlassian.net/rest/api/3/myself", body: { displayName: "Jay" }, label: "Jay", auth: ["authorization", `Basic ${Buffer.from("a@b.test:j1").toString("base64")}`] },
+  shopify: { fields: { shop: "store.myshopify.com", token: "shpat_1" }, url: "https://store.myshopify.com/admin/api/", body: { shop: { name: "Store" } }, label: "Store", auth: ["x-shopify-access-token", "shpat_1"] },
+  stripe: { fields: { token: "rk_live_1" }, url: "https://api.stripe.com/v1/balance", body: { object: "balance" }, label: "Stripe", auth: ["authorization", "Bearer rk_live_1"] },
+  cloudflare: { fields: { token: "cf1" }, url: "https://api.cloudflare.com/client/v4/", body: { success: true, result: [{ name: "Acme account" }] }, label: "Acme account", auth: ["authorization", "Bearer cf1"] },
+  googledrive: { fields: { token: "ya29" }, url: "https://www.googleapis.com/drive/v3/about", body: { user: { emailAddress: "g@b.test" } }, label: "g@b.test", auth: ["authorization", "Bearer ya29"] },
+};
+
+describe("vendor checks", () => {
+  for (const app of TOKEN_APPS) {
+    const fixture = WHOAMI[app.id];
+    it(`${app.id}: checks the token live and names the account`, async () => {
+      const fake = fakeFetch({ [fixture.url]: () => ({ body: fixture.body }) });
+      expect(await VENDORS[app.id].check(fixture.fields, fake.impl, signal())).toBe(fixture.label);
+      const [name, value] = fixture.auth;
+      if (value) expect(header(fake.calls[0]!, name)).toBe(value);
+      expect(fake.calls[0]!.init.redirect).toBe("error");
+      // every app is reachable one way or the other
+      expect(Boolean(VENDORS[app.id].mcp) || Boolean(VENDORS[app.id].api)).toBe(true);
+    });
+    it(`${app.id}: says the app refused a token`, async () => {
+      const fake = fakeFetch({ [fixture.url]: () => ({ status: 401, body: {} }) });
+      await expect(VENDORS[app.id].check(fixture.fields, fake.impl, signal())).rejects.toMatchObject({ kind: "refused" });
+    });
+  }
+
+  it("puts Trello's key and token in the query, never a header", async () => {
+    const fake = fakeFetch({ "https://api.trello.com/": () => ({ body: { fullName: "T" } }) });
+    await VENDORS.trello.check({ key: "k1", token: "t1" }, fake.impl, signal());
+    const url = new URL(fake.calls[0]!.url);
+    expect(url.searchParams.get("key")).toBe("k1");
+    expect(url.searchParams.get("token")).toBe("t1");
+  });
+
+  it("asks for a missing token instead of calling", async () => {
+    const fake = fakeFetch({});
+    await expect(VENDORS.notion.check({}, fake.impl, signal())).rejects.toMatchObject({ kind: "input" });
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("says a network failure is one", async () => {
+    await expect(VENDORS.github.check({ token: "x" }, fakeFetch({}).impl, signal())).rejects.toMatchObject({ kind: "network" });
+  });
+
+  it("refuses a Stripe value that isn't a secret or restricted key", async () => {
+    await expect(VENDORS.stripe.check({ token: "pk_live_1" }, fakeFetch({}).impl, signal())).rejects.toBeInstanceOf(TokenCheckError);
+  });
+
+  it("keeps a typed site or store to its own subdomain", () => {
+    expect(subdomain("https://Acme.atlassian.net/jira", ".atlassian.net", "site")).toBe("acme");
+    expect(subdomain("acme", ".atlassian.net", "site")).toBe("acme");
+    for (const bad of ["evil.com/x", "a.b", "", "-x", "acme.atlassian.net.evil.com"]) {
+      expect(() => subdomain(bad, ".atlassian.net", "site")).toThrow(TokenCheckError);
+    }
+  });
+
+  it("gives GitHub, Linear and Cloudflare the vendor's own MCP server with the token as a bearer", () => {
+    expect(VENDORS.github.mcp!({ token: "g" })).toEqual({ url: "https://api.githubcopilot.com/mcp/", headers: { authorization: "Bearer g" } });
+    expect(VENDORS.linear.mcp!({ token: "l" }).url).toBe("https://mcp.linear.app/mcp");
+    expect(VENDORS.cloudflare.mcp!({ token: "c" }).url).toBe("https://mcp.cloudflare.com/mcp");
+  });
+});
+
+describe("api_request", () => {
+  const access = { origin: "https://api.notion.com", headers: { authorization: "Bearer secret-token" }, docs: "https://developers.notion.com" };
+
+  it("keeps every call on the app's own origin", () => {
+    expect(String(apiUrl(access, "/v1/users/me", { page_size: "5" }))).toBe("https://api.notion.com/v1/users/me?page_size=5");
+    for (const bad of ["https://evil.test/x", "//evil.test/x", "v1/users", "/a b", "/x\\y", 7]) expect(typeof apiUrl(access, bad, undefined)).toBe("string");
+  });
+
+  it("adds the credentials, sends JSON or form bodies and hides the token in what comes back", async () => {
+    const fake = fakeFetch({ "https://api.notion.com/": () => ({ body: { echoed: "secret-token" } }) });
+    const scrub = (text: string) => text.split("secret-token").join("[hidden]");
+    const out = await callApi(access, { method: "post", path: "/v1/pages", body: { a: { b: 1 } } }, fake.impl, scrub);
+    expect(header(fake.calls[0]!, "authorization")).toBe("Bearer secret-token");
+    expect(fake.calls[0]!.init.body).toBe(JSON.stringify({ a: { b: 1 } }));
+    expect(out.content[0]!.text).toBe('HTTP 200\n{"echoed":"[hidden]"}');
+    await callApi(access, { method: "POST", path: "/v1/x", body: { amount: 5, metadata: { k: "v" } }, form: true }, fake.impl);
+    expect(fake.calls[1]!.init.body).toBe("amount=5&metadata%5Bk%5D=v");
+    expect(header(fake.calls[1]!, "content-type")).toBe("application/x-www-form-urlencoded");
+  });
+
+  it("refuses an unknown method and marks HTTP errors", async () => {
+    const fake = fakeFetch({ "https://api.notion.com/": () => ({ status: 404, body: { message: "nope" } }) });
+    expect((await callApi(access, { method: "TRACE", path: "/x" }, fake.impl)).isError).toBe(true);
+    expect((await callApi(access, { method: "GET", path: "/x" }, fake.impl)).isError).toBe(true);
+  });
+
+  it("answers MCP's initialize, tools/list and tools/call, and nothing for a notification", async () => {
+    const fake = fakeFetch({ "https://api.notion.com/": () => ({ body: { ok: true } }) });
+    const get = async () => access;
+    expect(await handleApiRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, "notion", get, fake.impl)).toBeUndefined();
+    expect(await handleApiRpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, "notion", get, fake.impl)).toMatchObject({ id: 1, result: { capabilities: { tools: {} } } });
+    const list = await handleApiRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, "notion", get, fake.impl) as unknown as { result: { tools: Array<{ name: string; description: string }> } };
+    expect(list.result.tools.map((tool) => tool.name)).toEqual(["api_request"]);
+    expect(list.result.tools[0]!.description).not.toContain("secret-token");
+    const call = await handleApiRpc({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "api_request", arguments: { method: "GET", path: "/v1/users/me" } } }, "notion", get, fake.impl);
+    expect(call).toMatchObject({ id: 3, result: { content: [{ text: 'HTTP 200\n{"ok":true}' }] } });
+    expect(await handleApiRpc({ jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "other" } }, "notion", get, fake.impl)).toMatchObject({ error: { code: -32602 } });
+  });
+});
+
+describe("device sign-in", () => {
+  it("starts GitHub's with the client id only and polls until done", async () => {
+    const fake = fakeFetch({
+      "https://github.com/login/device/code": () => ({ body: { device_code: "dc", user_code: "ABCD-1234", verification_uri: "https://github.com/login/device", expires_in: 900, interval: 5 } }),
+      "https://github.com/login/oauth/access_token": () => ({ body: { error: "authorization_pending" } }),
+    });
+    const code = await startDevice("github", { clientId: "Iv1.x" }, fake.impl);
+    expect(code).toMatchObject({ userCode: "ABCD-1234", verificationUrl: "https://github.com/login/device", interval: 5 });
+    expect(String(fake.calls[0]!.init.body)).toBe("client_id=Iv1.x");
+    expect(await pollDevice("github", { clientId: "Iv1.x" }, "dc", fake.impl)).toEqual({ status: "waiting" });
+    expect(String(fake.calls[1]!.init.body)).not.toContain("client_secret");
+  });
+
+  it("asks Google for drive.file only, with its installed-app secret", async () => {
+    const fake = fakeFetch({
+      "https://oauth2.googleapis.com/device/code": () => ({ body: { device_code: "dc", user_code: "XYZ", verification_url: "https://www.google.com/device", expires_in: 1800, interval: 5 } }),
+      "https://oauth2.googleapis.com/token": () => ({ body: { access_token: "ya29", refresh_token: "1//r", expires_in: 3599 } }),
+    });
+    await startDevice("googledrive", { clientId: "c", clientSecret: "s" }, fake.impl);
+    expect(new URLSearchParams(String(fake.calls[0]!.init.body)).get("scope")).toBe("https://www.googleapis.com/auth/drive.file");
+    const done = await pollDevice("googledrive", { clientId: "c", clientSecret: "s" }, "dc", fake.impl, 1_000);
+    expect(done).toEqual({ status: "done", tokens: { token: "ya29", refresh: "1//r", expiresAt: 1_000 + 3_599_000 } });
+    const next = await refreshDevice("googledrive", { clientId: "c", clientSecret: "s" }, "1//r", fake.impl, 0);
+    expect(next.refresh).toBe("1//r");
+  });
+
+  it("reads a denial and an expired code", async () => {
+    const denied = fakeFetch({ "https://github.com/": () => ({ body: { error: "access_denied" } }) });
+    expect(await pollDevice("github", { clientId: "c" }, "dc", denied.impl)).toMatchObject({ status: "failed" });
+    const expired = fakeFetch({ "https://github.com/": () => ({ body: { error: "expired_token" } }) });
+    expect(await pollDevice("github", { clientId: "c" }, "dc", expired.impl)).toMatchObject({ status: "failed" });
+  });
+});
+
+describe("token apps service", () => {
+  const dirs: string[] = [];
+  afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+
+  function setup(routes: Parameters<typeof fakeFetch>[0], clients = { github: null, googledrive: null }) {
+    const dataDir = mkdtempSync(join(tmpdir(), "app-tokens-"));
+    dirs.push(dataDir);
+    const servers = new Map<string, StoredMcpServer>();
+    const fake = fakeFetch(routes);
+    let clock = 1_000_000;
+    const apps = createTokenApps({
+      dataDir, origin: () => "http://127.0.0.1:8799", fetch: fake.impl, clients, now: () => clock,
+      servers: {
+        names: () => [...servers.keys()],
+        add: (name, server) => { servers.set(name, server); return { ok: true }; },
+        replace: (name, server) => { servers.set(name, server); },
+        remove: (name) => { servers.delete(name); },
+      },
+    });
+    return { apps, servers, fake, dataDir, tick: (ms: number) => { clock += ms; } };
+  }
+
+  async function route(apps: ReturnType<typeof createTokenApps>, method: string, path: string, body?: unknown) {
+    let status = 0;
+    let answer: any;
+    const ctx = {
+      req: {} as IncomingMessage, res: {} as ServerResponse, url: new URL(`http://x${path}`), path, method, auth: {} as RouteContext["auth"],
+      json: (_res: ServerResponse, code: number, data: unknown) => { status = code; answer = data; },
+      readBody: async () => body,
+    } as unknown as RouteContext;
+    const out = await apps.routes(ctx);
+    return { status, answer, passed: out === PASS };
+  }
+
+  it("connects a vendor-MCP app: the token goes into the server's header and nowhere readable", async () => {
+    const { apps, servers, dataDir } = setup({ "https://api.github.com/user": () => ({ body: { login: "octo" } }) });
+    const { status, answer } = await route(apps, "POST", "/api/app-tokens/github", { fields: { token: "github_pat_secret" } });
+    expect(status).toBe(201);
+    expect(answer.account).toMatchObject({ app: "github", label: "octo", server: "github", via: "token" });
+    expect(JSON.stringify(answer)).not.toContain("github_pat_secret");
+    expect(servers.get("github")).toEqual({ type: "http", url: "https://api.githubcopilot.com/mcp/", headers: { authorization: "Bearer github_pat_secret" }, enabled: true });
+    expect(readFileSync(join(dataDir, APP_TOKENS_FILE)).includes(Buffer.from("github_pat_secret"))).toBe(false);
+    expect(apps.scrub("leak github_pat_secret")).toBe("leak [hidden]");
+  });
+
+  it("connects an api app behind dusk bot's own endpoint, and a second account under its own name", async () => {
+    const { apps, servers } = setup({ "https://api.notion.com/": () => ({ body: { bot: { workspace_name: "Acme" } } }) });
+    await route(apps, "POST", "/api/app-tokens/notion", { fields: { token: "ntn_one" } });
+    await route(apps, "POST", "/api/app-tokens/notion", { fields: { token: "ntn_two" } });
+    const [first, second] = apps.status().accounts;
+    expect([first!.server, second!.server]).toEqual(["notion", "notion-2"]);
+    const entry = servers.get("notion") as { url: string; headers: Record<string, string> };
+    expect(entry.url).toBe(`http://127.0.0.1:8799${APP_TOKENS_MCP_PREFIX}${first!.id}`);
+    expect(entry.headers.authorization).toMatch(/^Bearer [a-f0-9]{64}$/);
+    expect(JSON.stringify(entry)).not.toContain("ntn_one");
+  });
+
+  it("says why a token was refused and keeps nothing", async () => {
+    const { apps, servers } = setup({ "https://api.notion.com/": () => ({ status: 401, body: {} }) });
+    const { status, answer } = await route(apps, "POST", "/api/app-tokens/notion", { fields: { token: "bad" } });
+    expect(status).toBe(400);
+    expect(answer.code).toBe("token_refused");
+    expect(apps.status().accounts).toEqual([]);
+    expect(servers.size).toBe(0);
+  });
+
+  it("disconnects one account and its server", async () => {
+    const { apps, servers } = setup({ "https://api.clickup.com/": () => ({ body: { user: { username: "cu" } } }) });
+    await route(apps, "POST", "/api/app-tokens/clickup", { fields: { token: "pk_1" } });
+    const id = apps.status().accounts[0]!.id;
+    expect((await route(apps, "DELETE", `/api/app-tokens/accounts/${id}`)).status).toBe(200);
+    expect(servers.size).toBe(0);
+    expect((await route(apps, "DELETE", `/api/app-tokens/accounts/${id}`)).status).toBe(404);
+  });
+
+  it("serves the api endpoint only on loopback with the entry's own bearer", async () => {
+    const { apps, servers } = setup({ "https://api.notion.com/": () => ({ body: { bot: { workspace_name: "Acme" }, results: [] } }) });
+    await route(apps, "POST", "/api/app-tokens/notion", { fields: { token: "ntn_one" } });
+    const account = apps.status().accounts[0]!;
+    const bearer = (servers.get("notion") as { headers: Record<string, string> }).headers.authorization!;
+    const call = async (authorization: string, remoteAddress = "127.0.0.1") => {
+      let status = 0; let body: any;
+      const req = { headers: { authorization }, socket: { remoteAddress } } as unknown as IncomingMessage;
+      const res = { writeHead: (code: number) => { status = code; }, end: () => {} } as unknown as ServerResponse;
+      await apps.mcp(req, res, `${APP_TOKENS_MCP_PREFIX}${account.id}`, "POST",
+        async () => ({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "api_request", arguments: { method: "GET", path: "/v1/search" } } }),
+        (_res, code, data) => { status = code; body = data; });
+      return { status, body };
+    };
+    expect((await call(`Bearer ${"0".repeat(64)}`)).status).toBe(401);
+    expect((await call(bearer, "10.0.0.5")).status).toBe(401);
+    const ok = await call(bearer);
+    expect(ok.status).toBe(200);
+    expect(ok.body.result.content[0].text).toMatch(/^HTTP 200/);
+  });
+
+  it("signs in to Google Drive with a device code, then refreshes the token before it expires", async () => {
+    let refreshed = 0;
+    const { apps, servers, tick } = setup({
+      "https://oauth2.googleapis.com/device/code": () => ({ body: { device_code: "dc", user_code: "XYZ", verification_url: "https://www.google.com/device", expires_in: 1800, interval: 5 } }),
+      "https://oauth2.googleapis.com/token": (call) => new URLSearchParams(String(call.init.body)).get("grant_type") === "refresh_token"
+        ? (refreshed++, { body: { access_token: "ya29-new", expires_in: 3600 } })
+        : { body: { access_token: "ya29", refresh_token: "1//r", expires_in: 3600 } },
+      "https://www.googleapis.com/": () => ({ body: { user: { emailAddress: "g@b.test" } } }),
+    }, { github: null, googledrive: { clientId: "c", clientSecret: "s" } } as never);
+    expect(apps.status().device).toEqual({ github: false, googledrive: true });
+    const start = await route(apps, "POST", "/api/app-tokens/googledrive/device");
+    expect(start.answer).toMatchObject({ userCode: "XYZ", verificationUrl: "https://www.google.com/device" });
+    expect((await route(apps, "GET", `/api/app-tokens/device/${start.answer.handle}`)).answer).toEqual({ status: "waiting" });
+    tick(5_000);
+    const done = (await route(apps, "GET", `/api/app-tokens/device/${start.answer.handle}`)).answer;
+    expect(done).toMatchObject({ status: "connected", account: { app: "googledrive", label: "g@b.test", via: "device" } });
+    expect(servers.has("googledrive")).toBe(true);
+    tick(55 * 60_000);
+    await apps.refreshDue();
+    expect(refreshed).toBe(1);
+    expect(apps.scrub("ya29-new")).toBe("[hidden]");
+  });
+
+  it("offers no device sign-in a build has no client for", async () => {
+    const { apps } = setup({});
+    expect((await route(apps, "POST", "/api/app-tokens/github/device")).status).toBe(400);
+  });
+
+  it("names servers without taking one that exists", () => {
+    expect(freeName("github", [])).toBe("github");
+    expect(freeName("github", ["github", "github-2"])).toBe("github-3");
+  });
+});
+
+describe("device clients", () => {
+  it("reads the environment first, then what the release was built with, and needs Google's secret", async () => {
+    const { deviceClients } = await import("./device.ts");
+    expect(deviceClients({}, {})).toEqual({ github: null, googledrive: null });
+    expect(deviceClients({ DUSK_GITHUB_APP_CLIENT_ID: "Iv1.env" }, { DUSK_GITHUB_APP_CLIENT_ID: "Iv1.built" }).github).toEqual({ clientId: "Iv1.env" });
+    expect(deviceClients({}, { DUSK_GOOGLE_DRIVE_CLIENT_ID: "g" }).googledrive).toBeNull();
+    expect(deviceClients({}, { DUSK_GOOGLE_DRIVE_CLIENT_ID: "g", DUSK_GOOGLE_DRIVE_CLIENT_SECRET: "s" }).googledrive).toEqual({ clientId: "g", clientSecret: "s" });
+  });
+});

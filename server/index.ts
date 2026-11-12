@@ -85,7 +85,7 @@ import { keyHint, keyStatus, nestedKeyStatus, withoutKeyHints } from "./key-hint
 import { chartRenderer, compileChart, dataEngine, validateVegaLite } from "./data/deps.ts";
 import { BUILT_IN_DATA_SYSTEM_PROMPT } from "./data/instructions.ts";
 import { DATA_INTERNAL_MCP_PATH, dataRpc } from "./data/rpc.ts";
-import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
+import { APP_TOKENS_MCP_PREFIX, createTokenApps } from "./app-tokens/service.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createSlackHost } from "./slack/host.ts";
 import { createPhones } from "./host/phones.ts"; import { createDevices } from "./host/devices.ts";
 import { desktopPhonesOffered, NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
@@ -12636,6 +12636,12 @@ const mcpConfig = createMcpConfig({
   mcpServerResponse, mcpPolicyRefusal, persistMcpServers, savedCustomDomain, appCatalog: chatAppsMcp, forgetPeople: (name) => teamConnections.forgetServer(name), health: mcpServersHost.health, botsPath: () => brokerPath(botBox),
   connectionsChanged: (change) => void routineHolds?.connections(change), probeAs: mcpServersHost.probeAs,
   changed: () => broadcast({ kind: "mcp.changed" }) });
+const tokenApps = createTokenApps({ dataDir: DATA_DIR, origin: () => `http://127.0.0.1:${PORT}`, servers: {
+  names: () => Object.keys(cfg.mcpServers ?? {}),
+  add: (name, server) => { const result = mcpConfig.add(name, server); return "body" in result ? { ok: true } : { ok: false, status: result.status, error: result.error }; },
+  replace: (name, server) => { const current = cfg.mcpServers?.[name] as { url?: unknown; headers?: unknown } | undefined; if (current && (current.url !== (server as { url?: string }).url || JSON.stringify(current.headers) !== JSON.stringify((server as { headers?: unknown }).headers))) mcpConfig.replace(name, server); },
+  remove: (name) => { if (cfg.mcpServers && Object.hasOwn(cfg.mcpServers, name)) mcpConfig.remove(name); },
+} }); addHeldSecretScrubber((text) => tokenApps.scrub(text)); tokenApps.repointServers(); ROUTES.push(tokenApps.routes);
 const persistAnnouncedMcpServers = (next: Record<string, unknown>) => { persistMcpServers(next); broadcast({ kind: "mcp.changed" }); };
 ROUTES.push(createConfigRoutes({ settingsChanged: (keys) => { for (const key of keys.slice(0, 10)) usageSignal("setting_changed", { key }); },
   sealer, store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
@@ -12827,6 +12833,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (refusal) return json(res, 403, { error: refusal, code: "managed_policy" });
     }
     // Public like the loopback listener it stands in for: the state is the credential, checked once.
+    if (path.startsWith(APP_TOKENS_MCP_PREFIX)) return await tokenApps.mcp(req, res, path, method, () => readBody(req), json);
     if (path === MCP_OAUTH_CALLBACK_PATH) {
       const answer = method === "GET"
         ? await teamConnections.mcpCallback(req.headers.host, url.search)
