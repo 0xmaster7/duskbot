@@ -3,7 +3,6 @@
 # hash per picture) in headless chromium and writes, into public/landing/art/seo:
 #   <id>.webp       the hero, 1320 by 528
 #   <id>-660.webp   the hero for phones, 660 by 264
-#   og/<id>.jpg     the share card, 1200 by 630
 #   python3 seo/art/render.py [--all] [id ...]     (needs playwright for python; headless only)
 import asyncio, glob, io, json, os, sys
 from playwright.async_api import async_playwright
@@ -21,7 +20,6 @@ async def main():
     everything = '--all' in sys.argv
     scenes = json.load(open(os.path.join(here, 'scenes.json')))
     done = json.load(open(done_file)) if os.path.exists(done_file) else {}
-    os.makedirs(os.path.join(out, 'og'), exist_ok=True)
     if args:
         todo = [s for s in scenes if s['id'] in args]
     else:
@@ -34,7 +32,7 @@ async def main():
         browser = await p.chromium.launch(headless=True, args=['--use-mock-keychain', '--password-store=basic'], **({'executable_path': shells[-1]} if shells else {}))
         page = await browser.new_page(viewport={'width': 1320, 'height': 528})
         for s in todo:
-            for mode, size in (('hero', (1320, 528)), ('og', (1200, 630))):
+            for mode, size in (('hero', (1320, 528)),):
                 await page.set_viewport_size({'width': size[0], 'height': size[1]})
                 tmp = os.path.join(art, f'_scene-{mode}.html')
                 with open(tmp, 'w') as f:
@@ -48,14 +46,12 @@ async def main():
                 if mode == 'hero':
                     im.save(os.path.join(out, s['id'] + '.webp'), quality=80, method=6)
                     im.resize((660, 264), Image.LANCZOS).save(os.path.join(out, s['id'] + '-660.webp'), quality=80, method=6)
-                else:
-                    im.save(os.path.join(out, 'og', s['id'] + '.jpg'), quality=84, optimize=True, progressive=True)
             done[s['id']] = s['hash']
             print(s['id'])
         await browser.close()
     # pictures of pages that are gone go too
     ids = {s['id'] for s in scenes}
-    for f in glob.glob(os.path.join(out, '*.webp')) + glob.glob(os.path.join(out, 'og', '*.jpg')):
+    for f in glob.glob(os.path.join(out, '*.webp')):
         name = os.path.basename(f).rsplit('.', 1)[0].removesuffix('-660')
         if name not in ids:
             os.remove(f)

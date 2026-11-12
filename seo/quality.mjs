@@ -91,7 +91,7 @@ export function checkPages({ rendered, records, site, TYPES, hubPages, check = f
     }
     if (!/<figure class="seo-hero"><img [^>]*alt="[^"]{20,}"/.test(html)) say(r, 'the hero picture needs real alt text');
     const id = sceneId(r.path);
-    if (!check) for (const f of [`art/seo/${id}.webp`, `art/seo/${id}-660.webp`, `art/seo/og/${id}.jpg`]) if (!fs.existsSync(path.join(site, f))) say(r, `no ${f} (run: node seo/art/scenes.mjs && python3 seo/art/render.py)`);
+    if (!check) for (const f of [`art/seo/${id}.webp`, `art/seo/${id}-660.webp`]) if (!fs.existsSync(path.join(site, f))) say(r, `no ${f} (run: node seo/art/scenes.mjs && python3 seo/art/render.py)`);
     const text = plain(html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, ''));
     const json = (html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || []).map((s) => s.replace(/<\/?script[^>]*>/g, ''));
     for (const j of json) { try { JSON.parse(j); } catch { say(r, 'structured data that does not parse'); } }
@@ -138,7 +138,7 @@ export function checkPages({ rendered, records, site, TYPES, hubPages, check = f
   for (const { h, html } of hubPages) {
     if ((html.match(/<h1[\s>]/g) || []).length !== 1) problems.push(`${h.at}: not exactly one h1`);
     if (/—/.test(html)) problems.push(`${h.at}: has an em dash`);
-    for (const f of [`art/seo/${sceneId(h.at)}.webp`, `art/seo/og/${sceneId(h.at)}.jpg`]) if (!fs.existsSync(path.join(site, f))) problems.push(`${h.at}: no ${f} (run python3 seo/art/render.py)`);
+    for (const f of [`art/seo/${sceneId(h.at)}.webp`]) if (!fs.existsSync(path.join(site, f))) problems.push(`${h.at}: no ${f} (run python3 seo/art/render.py)`);
   }
   return { problems, warnings };
 }

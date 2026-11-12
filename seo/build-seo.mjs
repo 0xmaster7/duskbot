@@ -42,15 +42,17 @@ export function writeScenes(site, records) {
   for (const h of Object.values(HUBS)) h.alt = byScene.get(h.at).alt;
   const fileUrl = (f) => 'file://' + f;
   const art = { base: fileUrl(kitDir) + '/', font: fileUrl(path.join(site, 'fonts', 'general-sans.woff2')), mark: fileUrl(path.join(kitDir, 'mark-320.webp')) };
-  const out = scenes.map((s) => { const hero = sceneHtml(s, 'hero', art), og = sceneHtml(s, 'og', art); return { id: s.id, path: s.path, alt: s.alt, hash: hash(hero + og), hero, og }; });
+  const out = scenes.map((s) => { const hero = sceneHtml(s, 'hero', art); return { id: s.id, path: s.path, alt: s.alt, hash: hash(hero), hero }; });
   fs.writeFileSync(path.join(seoDir, 'art', 'scenes.json'), JSON.stringify(out));
   return scenes;
 }
 
 // the og6 cards (art-src/og6) that take over a seo page or hub, by address
+// every seo page's and hub's share card (art-src/og6), by address; a page without a drawn one stops the build
 function og6Cards(site) {
   const list = JSON.parse(fs.readFileSync(path.join(seoDir, 'art', 'og6.json'), 'utf8'));
-  return new Map(list.filter((c) => c.seo && fs.existsSync(path.join(site, 'art', 'og6', `${c.id}.jpg`))).map((c) => [c.seo, { image: `/art/og6/${c.id}.jpg`, alt: c.alt }]));
+  const cards = new Map(list.filter((c) => c.seo).map((c) => [c.seo, { image: `/art/og6/${c.id}.jpg`, alt: c.alt, file: path.join(site, 'art', 'og6', `${c.id}.jpg`) }]));
+  return (at) => { const c = cards.get(at); if (!c) throw new Error(`${at}: no share card (art-src/og6/cards.mjs)`); if (!fs.existsSync(c.file)) throw new Error(`${at}: share card not drawn (python3 art-src/og6/render.py)`); return c; };
 }
 
 export function buildSeo(ctx) {
@@ -89,12 +91,12 @@ export function buildSeo(ctx) {
       { '@context': 'https://schema.org', '@type': 'Article', headline: r.h1, description: r.description, image: `${SITE_URL}/art/seo/${sceneId(r.path)}.webp`,
         datePublished: r.state.live_at || r.created || updated, dateModified: updated, author: org, publisher: org, mainEntityOfPage: `${SITE_URL}${r.path}` }];
     const html = layout({ title: r.title, description: r.description, body, page: r.path.slice(1), at: r.path, section: r.hub, kind: `p-doc p-seo p-seo-${r.kind}`,
-      og: 'seo', ogImage: og6.get(r.path)?.image || `/art/seo/og/${sceneId(r.path)}.jpg`, ogType: 'article', ogAlt: og6.get(r.path)?.alt || r.alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
+      og: 'seo', ogImage: og6(r.path).image, ogType: 'article', ogAlt: og6(r.path).alt, scripts: r.kind === 'tool' ? [`tools/${r.tool}.js`] : [], styles: ['seo.css'], jsonld, noindex: !r.indexable });
     rendered.push({ r, html, related });
   }
   const hubPages = hubs.map((h) => {
     const { body, pages } = t.hubPage(h);
-    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: og6.get(h.at)?.image || `/art/seo/og/${sceneId(h.at)}.jpg`, ogAlt: og6.get(h.at)?.alt || HUBS[h.id]?.alt || h.alt,
+    const html = layout({ title: h.title, description: h.description, body, page: h.id, at: h.at, section: h.id, kind: 'p-seo-hub', og: 'seo', ogImage: og6(h.at).image, ogAlt: og6(h.at).alt,
       styles: ['seo.css'], jsonld: [crumb([['Dusk Bot', '/'], [h.nav[0].toUpperCase() + h.nav.slice(1), h.at]])], noindex: preview && !pages.some((o) => o.indexable) });
     return { h, html, pages };
   });

@@ -1,11 +1,15 @@
-// the og6 share cards: fifteen hand-set cards in the home card's style (the waitlist page's pixel sky, white words centred,
-// the crew on the meadow), each with its own scene. node cards.mjs <dir> writes one page per card into <dir> and
-// seo/art/og6.json (which page each card is for, and its alt text); render.py photographs them into public/landing/art/og6.
-// core pages name their card by page name (core), seo pages by address (seo); pages without one keep their original card
+// the share cards, every page's: the home card's style (the waitlist page's pixel sky, white words centred, the crew on
+// the meadow). fifteen key pages have a scene of their own, set by hand; every other page gets its family's scene (an app
+// page its app's tile beside a bot, a comparison the rival's name, a docs page its topic's picture...) with a short title and
+// line of its own, so the art repeats within a family and the words never do. node cards.mjs <dir> writes one page per
+// card into <dir> and seo/art/og6.json (which page each card is for, its alt text, a hash of its page); render.py
+// photographs them into public/landing/art/og6. core pages name their card by page name (core), seo pages by address (seo)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { worldSvg, botSvg } from './world.mjs';
+import { createHash } from 'node:crypto';
+import { worldSvg, botSvg, rng } from './world.mjs';
+import { loadRecords, HUBS } from '../../seo/records.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url)), D = path.resolve(here, '..', '..'), A = 'file://' + D + '/public/landing/art';
 const OUT = process.argv[2], W = 1200, H = 630, M = 64;
 
@@ -17,7 +21,8 @@ const bot = (shape, colour, pose, size, cx, foot, { flip = false, rot = 0 } = {}
 };
 const img = (file, h, cx, foot, w0 = 420, h0 = 420) => { const w = Math.round(w0 * h / h0); return `<img class="px" src="${A}/${file}" style="left:${Math.round(cx - w / 2)}px;top:${foot - h}px;width:${w}px;height:${h}px" alt="">`; };
 // each logo file's own white margin, cut away so the mark itself fills the tile (top right bottom left, in the file's pixels)
-const CROP = { 'gmail.png': '13px 7px 13px 7px', 'calendar.png': '7px 11px 11px 11px', 'slack.png': '12px 11px 11px 12px', 'linear.png': '3px', 'notion.png': '0 0 0 1px' };
+const CROP = { 'gmail.png': '13px 7px 13px 7px', 'calendar.png': '7px 11px 11px 11px', 'slack.png': '12px 11px 11px 12px', 'linear.png': '3px', 'notion.png': '0 0 0 1px',
+  'drive.png': '10px 8px 11px 8px', 'figma.png': '19px 17px 19px 17px', 'outlook.png': '9px 8px 9px 7px' };
 const logo = (file) => `<img src="${A}/logos/${file}"${CROP[file] ? ` style="object-view-box: inset(${CROP[file]})"` : ''} alt="">`;
 const tile = (inner, size, x, y, rot = 0) => `<div class="tile" style="left:${x}px;top:${y}px;width:${size}px;height:${size}px;transform:rotate(${rot}deg)">${inner}</div>`;
 const bub = (who, text, side, tint, bottomY, x = M) => `<div class="bub ${side}" style="${side}:${x}px;bottom:${H - bottomY}px;--u:${tint}"><div class="in"><span>${who}</span>${text}</div><i></i></div>`;
@@ -36,6 +41,8 @@ body { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; font
 .px { image-rendering: pixelated; }
 .tile { display: grid; place-items: center; background: #fdfdfd; border-radius: 22%; box-shadow: 0 8px 0 rgba(12,24,60,0.14); }
 .tile img { width: 86%; height: 86%; object-fit: contain; }
+.tile span { display: block; max-width: 92%; color: #1b1b1f; font-weight: 600; letter-spacing: -0.03em; line-height: 1.02; text-align: center; }
+.vs { position: absolute; display: grid; place-items: center; width: 76px; height: 50px; background: #1b1b1f; color: #fff3a0; font-size: 28px; font-weight: 650; border-radius: 12px; }
 .bub { width: max-content; filter: drop-shadow(0 6px 0 rgba(12,24,60,0.12)); }
 .bub .in { padding: 10px 18px 16px; background: #fdfdfd; color: #212121; font-size: 22px; font-weight: 500; line-height: 1.18; letter-spacing: -0.015em; box-shadow: inset 0 -5px 0 var(--u);
   clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 6px 6px); }
@@ -151,7 +158,150 @@ const META = {
   'claude-code': { seo: '/run-claude-code-24-7', alt: 'claude code, even while you sleep: a closed laptop under the moon at sunset, one pixel bot still working beside it, one asleep' },
   gmail: { seo: '/integrations/gmail', alt: 'your inbox, sorted before you wake up: a purple cat bot standing on a big gmail tile, chatting "anything urgent?" "two. drafts are ready."' },
 };
+
+// ---- every other page: one scene per family, filled in per page ----
+const lower = (t) => String(t || '').toLowerCase();
+const LOGO = (name) => ['svg', 'png'].map((e) => `${name}.${e}`).find((f) => fs.existsSync(path.join(D, 'public', 'landing', 'art', 'logos', f)));
+// a tile with the app's mark, or its name when the site has no mark for it
+const appTile = (name, label, size, x, y, rot = 0) => { const f = name && LOGO(name); return tile(f ? logo(f) : `<span style="font-size:${label.length <= 6 ? Math.round(size * 0.24) : Math.round(size * 0.17)}px">${lower(label)}</span>`, size, x, y, rot); };
+// props from the kit, with their sizes
+const PROPS = { 's-books': [420, 203], 's-button': [420, 630], 's-clock': [420, 405], 's-cloud': [420, 96], 's-coins': [420, 349], 's-computer': [520, 599], 's-key': [420, 288], 's-mailbox': [420, 506], 's-map': [420, 277], 's-mobile': [300, 567], 's-notebook': [520, 378], 's-palette': [420, 359], 's-parcel': [420, 431], 's-phone': [520, 387], 's-plug': [420, 377], 's-server': [420, 188], 's-signpost': [420, 545],
+  'p-bag': [375, 419], 'p-binoculars': [420, 406], 'p-briefcase': [420, 370], 'p-bubbles': [420, 316], 'p-cap': [360, 419], 'p-chart': [297, 419], 'p-folder': [420, 360], 'p-house': [420, 401], 'p-laptop': [420, 404], 'p-magnifier': [298, 419], 'p-megaphone': [420, 333], 'p-mug': [313, 419], 'p-newspaper': [420, 316], 'p-receipt': [240, 418], 'p-shield': [368, 418] };
+const PROP_WORDS = { 's-books': 'a stack of books', 's-clock': 'an alarm clock', 's-coins': 'a coin purse', 's-computer': 'a computer', 's-key': 'a key', 's-mailbox': 'a mailbox', 's-map': 'a map', 's-mobile': 'a phone', 's-notebook': 'an open notebook', 's-palette': 'a paint palette', 's-parcel': 'a parcel', 's-phone': 'a desk phone', 's-plug': 'a plug', 's-server': 'a server box', 's-signpost': 'a signpost', 's-button': 'a big button', 's-cloud': 'a cloud',
+  'p-bag': 'a shopping bag', 'p-binoculars': 'binoculars', 'p-briefcase': 'a briefcase', 'p-bubbles': 'chat bubbles', 'p-cap': 'a graduation cap', 'p-chart': 'a chart', 'p-folder': 'a folder', 'p-house': 'a little house', 'p-laptop': 'a closed laptop', 'p-magnifier': 'a magnifying glass', 'p-megaphone': 'a megaphone', 'p-mug': 'a mug', 'p-newspaper': 'a newspaper', 'p-receipt': 'a receipt', 'p-shield': 'a shield' };
+const prop = (name, h, cx, foot) => { const [w0, h0] = PROPS[name] || [420, 420]; return img(name.startsWith('p-') ? `kit/${name}.webp` : `${name}.webp`, h, cx, foot, w0, h0); };
+// a crew picked from the page's address: shapes and colours that read on the blue sky and the lime meadow
+const SHAPES_OK = ['pip', 'kit', 'hop', 'bruin', 'boo', 'mochi', 'loaf', 'cheep', 'goo', 'sprout', 'drip', 'hearty', 'starry', 'hoot', 'boxo', 'egg', 'wisp', 'tofu'];
+const COLS = ['blue', 'violet', 'pink', 'coral', 'tangerine', 'sun', 'mint', 'emerald', 'indigo'];
+const NAMES = { blue: 'blue', violet: 'purple', pink: 'pink', coral: 'coral', tangerine: 'orange', sun: 'yellow', mint: 'mint', emerald: 'green', indigo: 'indigo' };
+function crewOf(seed, n) {
+  const r = rng(`og6:${seed}`), out = [], used = new Set();
+  while (out.length < n) { const sh = SHAPES_OK[Math.floor(r() * SHAPES_OK.length)], c = COLS[Math.floor(r() * COLS.length)]; if (used.has(sh) || used.has(c)) continue; used.add(sh); used.add(c); out.push([sh, c]); }
+  return out;
+}
+const said = (c) => `a ${NAMES[c[1]]} pixel bot`;
+
+// each family's scene: (page) => { body, alt }. G 540, one hill in the middle
+const G0 = 556, hl0 = [hill(600, 560, 36)], f0 = footOn(G0, hl0), K = 1.32;
+const FAM = {
+  // an app page (and each of its actions): the app's tile left of centre, a bot to its right. one bot per app
+  app: (p) => { const [b] = crewOf(p.app, 1), ts = 150, tx = 440; return { body: appTile(p.logo, p.appName, ts, tx, f0(tx + ts / 2) - ts - 6) + bot(b[0], b[1], 'happy', 132, 700, f0(700)),
+    alt: `${said(b)} standing beside the ${p.appName} mark on a hill under a blue pixel sky` }; },
+  // an alternatives page: the rival's name on a tile, a signpost, a bot weighing it up
+  rival: (p) => { const [b, c] = crewOf(p.seed, 2), ts = 136;
+    const left = p.label ? appTile(null, p.label, ts, 330, f0(398) - ts - 6, -4) : bot(c[0], c[1], 'look', 120, 400, f0(400), { flip: true });
+    return { body: left + prop('s-signpost', 170, 600, f0(600)) + bot(b[0], b[1], 'look', 132, 790, f0(790), { flip: true }),
+      alt: `${said(b)} at a signpost${p.label ? `, looking at a tile saying ${p.label}` : ', back to back with another bot'}, on a hill under a blue pixel sky` }; },
+  // a one-on-one: a bot, a vs badge, the other side's name on a tile
+  vs: (p) => { const [b] = crewOf(p.seed, 1), ts = 140; return { body: bot(b[0], b[1], 'big', 140, 450, f0(450)) + `<div class="vs" style="left:562px;top:${f0(600) - 110}px">vs</div>` + appTile(null, p.label || 'them', ts, 680, f0(750) - ts - 6, 3),
+    alt: `${said(b)} facing a tile saying ${p.label}, with a vs badge between them, on a hill under a blue pixel sky` }; },
+  // a use case: a bot with the job's object, a helper looking on
+  usecase: (p) => { const [b, c] = crewOf(p.seed, 2); return { body: bot(c[0], c[1], 'look', 96, 400, f0(400)) + bot(b[0], b[1], 'happy', 140, 560, f0(560)) + prop(p.props[0], 128, 740, f0(740)),
+    alt: `${said(b)} with ${PROP_WORDS[p.props[0]]}, another bot looking on, on a hill under a blue pixel sky` }; },
+  // a role: the job's object in the middle, a bot either side
+  role: (p) => { const [b, c] = crewOf(p.seed, 2); return { body: bot(b[0], b[1], 'wink', 128, 420, f0(420)) + prop(p.props[0], 140, 600, f0(600)) + bot(c[0], c[1], 'happy', 112, 780, f0(780), { flip: true }),
+    alt: `two pixel bots either side of ${PROP_WORDS[p.props[0]]}, on a hill under a blue pixel sky` }; },
+  // a routine: the object that sets it off, a bot at work, one asleep
+  routine: (p) => { const [b, c] = crewOf(p.seed, 2); return { body: prop(p.props[0], 124, 440, f0(440)) + bot(b[0], b[1], 'focus', 132, 620, f0(620)) + bot(c[0], c[1], 'sleepy', 86, 790, f0(790)),
+    alt: `${said(b)} at work beside ${PROP_WORDS[p.props[0]]}, another bot asleep, on a hill under a blue pixel sky` }; },
+  // a guide: follow the leader to the page's object
+  guide: (p) => { const cr = crewOf(p.seed, 3); return { body: prop(p.props[0], 116, 820, f0(820)) + bot(cr[0][0], cr[0][1], 'happy', 136, 660, f0(660), { flip: true }) + bot(cr[1][0], cr[1][1], 'look', 104, 500, f0(500), { flip: true }) + bot(cr[2][0], cr[2][1], 'look', 88, 380, f0(380), { flip: true }),
+    alt: `three pixel bots in a line, heading for ${PROP_WORDS[p.props[0]]}, on a hill under a blue pixel sky` }; },
+  // a glossary word: an open notebook, a bot reading over it
+  word: (p) => { const [b] = crewOf(p.seed, 1), nb = f0(600) + 4; return { body: bot(b[0], b[1], 'focus', 132, 600, nb - 98) + prop('s-notebook', 126, 600, nb) + prop('s-books', 64, 420, f0(420) + 4),
+    alt: `${said(b)} reading over an open notebook beside a stack of books, on a hill under a blue pixel sky` }; },
+  // a tool: a chart and a bot working it out
+  tool: (p) => { const [b] = crewOf(p.seed, 1); return { body: prop('p-chart', 140, 480, f0(480)) + bot(b[0], b[1], 'focus', 136, 660, f0(660)) + prop('s-coins', 80, 820, f0(820)),
+    alt: `${said(b)} working something out beside a chart, on a hill under a blue pixel sky` }; },
+  // a docs topic: its object, a bot beside it, a friend
+  topic: (p) => { const [b, c] = crewOf(p.seed, 2);
+    if (p.props[0] === 'cloud') return { body: `<img class="px" src="${A}/cloud-pink.png" style="left:420px;top:${f0(600) - 120}px;width:360px;height:120px" alt="">` + bot(b[0], b[1], 'happy', 120, 560, f0(600) - 92) + bot(c[0], c[1], 'wink', 92, 680, f0(600) - 92),
+      alt: `two pixel bots sitting on a cloud, on a hill under a blue pixel sky` };
+    return { body: prop(p.props[0], p.h || 140, 470, f0(470)) + bot(b[0], b[1], p.pose || 'happy', 136, 660, f0(660)) + bot(c[0], c[1], 'wink', 92, 820, f0(820)),
+    alt: `${said(b)} beside ${PROP_WORDS[p.props[0]]}, a friend next to it, on a hill under a blue pixel sky` }; },
+};
+// the scene is drawn at a comfortable size, then grown by K around the top of the hill so it fills the meadow
+const familyCard = (kind, p) => { const { body, alt } = FAM[kind](p); return { html: page({ G: G0, hills: hl0, seed: p.seed, title: p.title, line: p.line, size: 100,
+  body: `<div style="position:absolute;inset:0;transform:scale(${K});transform-origin:600px ${f0(600)}px">${body}</div>` }), alt: `${p.title}: ${alt}` }; };
+
+// short titles: from each record, six words or so, never the long seo title. a few pages are written by hand
+const TITLES = {
+  '/agents-when-laptop-closed': "your laptop's shut. your bots aren't.", '/ai-agent-that-controls-your-computer': 'give your bot its own computer',
+  '/ai-chief-of-staff': 'an ai chief of staff', '/ai-employees': 'ai employees, minus the hype', '/ai-executive-assistant': 'an assistant that preps your day',
+  '/ai-group-chat': 'a group chat with your bots', '/ai-teammates': 'ai teammates with clear jobs', '/claude-code-from-your-phone': 'claude code, from your phone',
+  '/personal-ai-agent': 'a personal ai agent, done right', '/scheduled-ai-tasks': 'ai tasks that run themselves', '/use-your-ai-subscription': 'put your ai plan to work',
+  '/guides/apps-that-use-your-ai-subscription': 'who can use your ai plan?', '/guides/is-it-safe-to-let-ai-use-your-computer': 'should ai use your computer?',
+  '/guides/claude-plan-vs-api': 'your claude plan, or the api?', '/guides/claude-cowork-pricing': 'what claude cowork really costs',
+  '/tools/always-on-cost': 'what does always-on really cost?', '/for/real-estate-agents': 'an ai team for realtors', '/for/small-business-owners': 'an ai team for small businesses',
+  '/alternatives/openclaw-hosting': 'hosting openclaw? read this first',
+};
+const words = (t) => t.trim().split(/\s+/).length, pre = (h) => h.split(/[:?]/)[0].trim() + (h.includes('?') && !h.split('?')[0].includes(':') ? '?' : '');
+function shortTitle(r) {
+  if (TITLES[r.path]) return TITLES[r.path];
+  const app = lower(r.app?.name || r.art?.label || r.action?.toolkit), p = pre(r.h1), nav = lower(r.nav);
+  switch (r.type) {
+    case 'integration': return `${app}, handled by your bots`;
+    case 'action': return words(`${nav} in ${app}`) <= 6 ? `${nav} in ${app}` : nav;
+    case 'alternative': return /alternative/.test(r.h1) && r.art?.label ? `tried ${lower(r.art.label)}? read this first` : words(p) <= 6 ? p : nav;
+    case 'comparison': return / vs /.test(p) && words(p) <= 6 ? p : `${lower(r.art?.label || nav)} vs dusk bot`;
+    case 'role': return `an ai team for ${nav}`;
+    case 'routine': return words(p) <= 6 ? p : `${nav}, on repeat`;
+    case 'use-case': return words(p) <= 6 ? p : `${nav}, handed to a bot`;
+    default: return words(p) <= 6 ? p : nav;
+  }
+}
+const KIND = { integration: 'app', action: 'app', alternative: 'rival', comparison: 'vs', 'use-case': 'usecase', role: 'role', routine: 'routine', guide: 'guide', pillar: 'guide', glossary: 'word', tool: 'tool' };
+const handSeo = new Set(Object.values(META).map((m) => m.seo).filter(Boolean));
+const sceneId = (at) => at.replace(/^\//, '').replace(/\//g, '--');
+const records = loadRecords();
+for (const r of records) {
+  if (handSeo.has(r.path)) continue;
+  const app = r.type === 'integration' ? r.app?.toolkit : r.type === 'action' ? r.action?.toolkit : null;
+  const appRec = app && records.find((o) => o.type === 'integration' && o.app?.toolkit === app);
+  const appName = appRec?.app?.name || r.art?.label || app;
+  const c = familyCard(KIND[r.type], { seed: r.path, app: app || r.path, logo: (appRec || r).art?.logo, appName, label: r.art?.label, props: r.art?.props?.length ? r.art.props : ['s-notebook'], title: shortTitle(r), line: r.og_line });
+  const id = sceneId(r.path); S[id] = c.html; META[id] = { seo: r.path, alt: c.alt };
+}
+// the hubs without a hand-set card
+const HUB = {
+  '/routines': ['routine', 'jobs your bots do on repeat', 'copy a routine. paste it in a chat.', ['s-clock']],
+  '/glossary': ['word', 'ai agent words, minus the jargon', 'short definitions, each with an example.', []],
+  '/tools': ['tool', 'free tools for planning bots', 'small helpers that run in your browser.', []],
+};
+for (const [at, [kind, title, line, props]] of Object.entries(HUB)) { if (handSeo.has(at) || !Object.values(HUBS).some((h) => h.at === at)) continue; const c = familyCard(kind, { seed: at, title, line, props }); const id = sceneId(at); S[id] = c.html; META[id] = { seo: at, alt: c.alt }; }
+// docs: each page's own title and line, its topic's picture
+const DOC_ART = { 'getting-started': ['s-signpost', 'happy', 180], bots: ['p-bubbles', 'wink'], 'group-chats': ['p-bubbles', 'happy'], tips: ['p-mug', 'wink'], computer: ['s-computer', 'focus', 160], 'files-and-apps': ['p-folder', 'focus'],
+  'dusk-cloud': ['cloud', 'happy'], phone: ['s-mobile', 'happy', 160], 'your-own-server': ['s-server', 'focus', 90], routines: ['s-clock', 'sleepy'], memory: ['s-notebook', 'focus', 120], 'privacy-and-data': ['p-shield', 'focus'],
+  'account-and-billing': ['s-key', 'happy', 100], troubleshooting: ['p-magnifier', 'big'], faq: ['p-magnifier', 'look'] };
+// each docs card's line, ten words at most (the page's own description is longer)
+const DOC_LINES = {
+  'account-and-billing': 'what is free, and how to change or cancel.', bots: 'make a bot, pick its ai, talk to it.',
+  computer: 'its own browser and desktop. take the mouse anytime.', 'dusk-cloud': 'a computer we host, so bots work with the lid shut.',
+  faq: 'the short answers, with a link to the long one.', 'files-and-apps': 'give it files, and plug it into your apps.',
+  'getting-started': 'from nothing to a bot doing real work.', 'group-chats': 'several bots in one thread, handing work along.',
+  memory: 'plain notes you can read, edit and delete.', phone: 'text your bots and hear back, from anywhere.',
+  'privacy-and-data': 'what stays on your machine, and what leaves it.', routines: 'ask once. it runs on a schedule, or on cue.',
+  tips: 'the habits that turn a bot into a teammate.', troubleshooting: 'the usual hiccups, and what to do about each.',
+  'your-own-server': 'paste one line. your bots live on your server.',
+};
+for (const f of fs.readdirSync(path.join(D, 'pages', 'docs')).filter((x) => x.endsWith('.md')).sort()) {
+  const name = f.slice(0, -3), m = fs.readFileSync(path.join(D, 'pages', 'docs', f), 'utf8').match(/^---\n([\s\S]*?)\n---/);
+  const meta = Object.fromEntries(m[1].split('\n').map((l) => l.match(/^(\w+):\s*(.*)$/)).filter(Boolean).map(([, k, v]) => [k, v.trim()]));
+  const [art, pose, h] = DOC_ART[name] || ['s-notebook', 'focus', 120];
+  const line = DOC_LINES[name] || meta.description;
+  const c = familyCard('topic', { seed: `/docs/${name}`, title: `docs: ${meta.title}`, line, props: [art], pose, h });
+  const id = `docs--${name}`; S[id] = c.html; META[id] = { core: [id], alt: c.alt };
+}
+// brand and the legal pages
+{ const sw = ['#c9f63f', '#fff3a0', '#ffc4dd', '#d0cefb', '#1b1b1f'].map((c, i) => `<div class="tile" style="left:${612 + i * 58}px;top:${f0(700) - 52}px;width:46px;height:46px;border-radius:10px;background:${c}"></div>`).join('');
+  S.brand = page({ G: G0, hills: hl0, seed: 'brand', title: 'the bots, the mark, the colours', line: 'everything you need to write about dusk bot.', size: 100,
+    body: `<div style="position:absolute;inset:0;transform:scale(${K});transform-origin:600px ${f0(600)}px">${tile(`<img src="${A}/mark-320.webp" alt="">`, 96, 352, f0(400) - 102) + bot('kit', 'violet', 'wink', 130, 530, f0(530)) + sw}</div>` });
+  META.brand = { core: ['brand'], alt: 'the bots, the mark, the colours: the dusk bot mark, a purple cat bot winking and five colour swatches, on a hill under a blue pixel sky' }; }
+{ const c = familyCard('topic', { seed: '/legal', title: 'the fine print, in plain words', line: 'terms, privacy, license and security.', props: ['p-shield'], pose: 'focus' });
+  S.legal = c.html; META.legal = { core: ['legal', 'terms', 'privacy', 'license', 'security'], alt: c.alt }; }
+
 fs.mkdirSync(OUT, { recursive: true });
 for (const [k, v] of Object.entries(S)) fs.writeFileSync(`${OUT}/${k}.html`, v);
-fs.writeFileSync(path.join(D, 'seo', 'art', 'og6.json'), JSON.stringify(Object.keys(S).map((id) => ({ id, ...META[id] })), null, 1) + '\n');
+const hash = (t) => createHash('sha256').update(t).digest('hex').slice(0, 16);
+fs.writeFileSync(path.join(D, 'seo', 'art', 'og6.json'), JSON.stringify(Object.keys(S).map((id) => ({ id, ...META[id], hash: hash(S[id]) })), null, 1) + '\n');
 console.log(`${Object.keys(S).length} cards`);

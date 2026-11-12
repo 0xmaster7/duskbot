@@ -235,25 +235,15 @@ const FOOT = [
 ];
 // the seo hubs (seo/), once any of their pages is live
 { const hubs = seoFooter(); if (hubs.length) FOOT.splice(2, 0, ['guides', hubs]); }
-// the share pictures: art/og-<name>.jpg for each page that has its own (art-src/og/make.py draws them; home and the
-// waitlist share the white "meet dusk bot" card, which og.jpg, the fallback, copies). each with what it shows, for alt text
-const HOME_ALT = 'meet dusk bot: a big purple cat bot and four small pixel bots on a hill under a blue pixel sky, chatting "can you sort my inbox?" "done. three need you."';
-const OG = {
-  home: HOME_ALT, waitlist: HOME_ALT,
-  docs: 'the docs: pixel bots looking over a white card, in front of a birch wood',
-  download: 'download dusk bot: pixel bots looking over a white card, in front of white cliffs and a waterfall',
-  pricing: 'pricing: pixel bots looking over a white card, in front of little islands on a lake',
-  changelog: "what's new: pixel bots looking over a white card, in front of a lily pond",
-  about: 'about dusk bot: pixel bots looking over a white card, in front of chalk cliffs by the sea',
-  contact: 'say hi: pixel bots looking over a white card, in front of sand dunes by the sea',
-  brand: 'brand: pixel bots looking over a white card, in front of an open blue sky',
-  legal: 'the fine print: pixel bots looking over a white card, in front of snowy hills and green fields',
-  404: 'this page wandered off: a pixel bot looking over a white card, in front of a calm sea with one small island',
-};
-// the og6 cards (art-src/og6) take over the pages they name; the rest keep their original card
+// the share cards (art-src/og6 draws them, seo/art/og6.json names each one's pages and alt text): every page names its card
+// with og. og.jpg, a copy of the home card, is the picture for anything that names none
 const OG6 = JSON.parse(fs.readFileSync(path.join(here, 'seo', 'art', 'og6.json'), 'utf8'));
-const og6 = (name) => OG6.find((c) => c.core?.includes(name) && has(`art/og6/${c.id}.jpg`));
-const ogCard = (name) => { const c = og6(name); if (c) return { wide: `/art/og6/${c.id}.jpg`, alt: c.alt }; return OG[name] && has(`art/og-${name}.jpg`) ? { wide: `/art/og-${name}.jpg`, alt: OG[name] } : { wide: '/art/og.jpg', alt: og6('home')?.alt || HOME_ALT }; };
+const ogCard = (name) => {
+  const c = OG6.find((x) => x.core?.includes(name));
+  if (!c) throw new Error(`no share card for ${name}: add one in art-src/og6/cards.mjs`);
+  if (!has(`art/og6/${c.id}.jpg`)) throw new Error(`the share card art/og6/${c.id}.jpg is not drawn: python3 art-src/og6/render.py`);
+  return { wide: `/art/og6/${c.id}.jpg`, alt: c.alt };
+};
 const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
 // page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
