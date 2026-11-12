@@ -179,7 +179,7 @@ describe("wire format", () => {
     for (const record of parsed.records) expect(record.klass).toBe(0x0001);
   });
 
-  it("leaves the enumeration PTR unflushed too — it is shared widest of all", () => {
+  it("leaves the enumeration PTR unflushed too: it is shared widest of all", () => {
     const { answers } = answersFor(decodeMessage(query(SERVICE_ENUMERATION, TYPE.PTR))!, service);
     const [record] = parseResponse(encodeResponse(answers)).records;
     expect(record).toMatchObject({ name: SERVICE_ENUMERATION, type: TYPE.PTR, klass: 0x0001 });

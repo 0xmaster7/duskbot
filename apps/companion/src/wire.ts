@@ -81,7 +81,7 @@ function scrubEvent(event: string): string {
   return event
     .split(/\r\n|\r|\n/)
     .map((line) => {
-      // `: keepalive` comments, `id:`, `event:`, `retry:` — not ours to touch
+      // `: keepalive` comments, `id:`, `event:`, `retry:`, not ours to touch
       if (!line.startsWith("data:")) return line;
       const raw = line.slice(5).trimStart();
       if (!raw) return line;

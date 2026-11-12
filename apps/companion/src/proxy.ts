@@ -489,7 +489,7 @@ export function createProxyHandler(options: ProxyOptions) {
       }
       return current.browserControlAccess ? null : {
         status: 403,
-        error: "browser control is off for this device — enable it in Remote access settings on the host computer",
+        error: "browser control is off for this device: enable it in Remote access settings on the host computer",
       };
     };
     if (viewers.isViewerPath(req.url)) {
@@ -507,14 +507,14 @@ export function createProxyHandler(options: ProxyOptions) {
     // session; the owner enables this per device, off by default.
     if (isCloudDesktopAccess(method, path) && !device?.cloudDesktopAccess) {
       return sendJson(res, 403, {
-        error: "computer access is off for this device — enable it in dusk bot → Settings → Remote access",
+        error: "computer access is off for this device: enable it in dusk bot → Settings → Remote access",
       });
     }
 
     // A separate grant: this browser is normally signed into the person's own accounts.
     if (isBrowserControlAccess(method, path) && !device?.browserControlAccess) {
       return sendJson(res, 403, {
-        error: "browser control is off for this device — open Remote access on the computer and turn on \"Allow browser control\" for it",
+        error: "browser control is off for this device: open Remote access on the computer and turn on \"Allow browser control\" for it",
       });
     }
 

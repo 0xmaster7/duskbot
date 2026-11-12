@@ -158,7 +158,7 @@ function parseSession(value: SessionWire): ComposioSession {
     userId: config?.user_id,
     // Only `enable` gates reuse: the cap and selection flags are requested at
     // creation, and recreating a Session would post the same config and get
-    // the same echo back — strict equality here can only churn, never fix.
+    // the same echo back, strict equality here can only churn, never fix.
     multiAccountConfigured: multi?.enable === true,
     authConfigs: Object.fromEntries(
       Object.entries(config?.auth_configs ?? {}).map(([slug, id]) => [canonicalToolkitSlug(slug), id]),

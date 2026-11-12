@@ -128,7 +128,7 @@ describe("buildDiagnosticsReport", () => {
       desktopLogTail,
       logTail: "server ready",
     });
-    expect(report).toContain("## Desktop crash events — privacy-safe metadata only");
+    expect(report).toContain("## Desktop crash events: privacy-safe metadata only");
     expect(report).toContain(desktopLogTail);
     expect(report.indexOf(desktopLogTail)).toBeLessThan(report.indexOf("server ready"));
   });

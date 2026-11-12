@@ -218,7 +218,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
 
   for (let i = 0; i < 40; i++) {
     if (exited) {
-      lastError = "the companion could not start — check the log";
+      lastError = "the companion could not start: check the log";
       return companionState();
     }
     try {
@@ -229,7 +229,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
           child.kill();
         } catch {
         }
-        lastError = `port ${CONTROL_PORT} is already serving another companion — stop it and try again`;
+        lastError = `port ${CONTROL_PORT} is already serving another companion: stop it and try again`;
         return companionState();
       }
       if (!Number.isSafeInteger(child.pid) || child.pid <= 0) {

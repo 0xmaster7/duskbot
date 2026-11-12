@@ -39,8 +39,8 @@ describe("buildApplicationMenu", () => {
     const tailnet = { id: "t1", name: "Mac mini", origin: "https://mac-mini.tail1f3f14.ts.net" };
     const template = build(platform, { environments: [local, tailnet], activeId: "t1", onSwitch });
     const items = template.find(entry => entry.label === "Server").submenu;
-    expect(items.find(entry => entry.label === "Work — /Users/me/.duskbot-work")).toMatchObject({ checked: false });
-    expect(items.find(entry => entry.label === "Mac mini — mac-mini.tail1f3f14.ts.net")).toMatchObject({ checked: true });
+    expect(items.find(entry => entry.label === "Work · /Users/me/.duskbot-work")).toMatchObject({ checked: false });
+    expect(items.find(entry => entry.label === "Mac mini · mac-mini.tail1f3f14.ts.net")).toMatchObject({ checked: true });
     items.find(entry => entry.label.startsWith("Work")).click();
     expect(onSwitch).toHaveBeenCalledWith("e1");
   });
@@ -112,10 +112,10 @@ describe("buildApplicationMenu", () => {
     const servers = [{ id: "cloud", name: "My Cloud", origin: "https://dusk-u-1.fly.dev" }];
     const without = build("darwin", { environments: servers }).find(entry => entry.label === "Server").submenu;
     expect(without.some(entry => entry.id === "add-cloud")).toBe(false);
-    expect(without.find(entry => entry.type === "radio" && entry.label.startsWith("My Cloud")).label).toBe("My Cloud — dusk-u-1.fly.dev");
+    expect(without.find(entry => entry.type === "radio" && entry.label.startsWith("My Cloud")).label).toBe("My Cloud · dusk-u-1.fly.dev");
     const onAddCloud = vi.fn();
     const submenu = build("darwin", { environments: servers, onAddCloud, sublabels: { cloud: "Always on" } }).find(entry => entry.label === "Server").submenu;
-    expect(submenu.map(entry => entry.id ?? entry.label ?? entry.type).slice(0, 4)).toEqual(["This computer", "My Cloud — Always on", "add-cloud", "separator"]);
+    expect(submenu.map(entry => entry.id ?? entry.label ?? entry.type).slice(0, 4)).toEqual(["This computer", "My Cloud · Always on", "add-cloud", "separator"]);
     submenu.find(entry => entry.id === "add-cloud").click();
     expect(onAddCloud).toHaveBeenCalledOnce();
     expect(submenu.find(entry => entry.id === "add-cloud").label).toBe("Add a Cloud…");
@@ -130,7 +130,7 @@ describe("buildApplicationMenu", () => {
     const onSwitch = vi.fn();
     const both = build("darwin", { environments: [cloud, office], activeId: "o", home, onSwitch });
     const items = both.find((entry) => entry.label === "Server").submenu.filter((entry) => entry.label);
-    expect(items.map((entry) => entry.label)).toEqual(["Back to My Cloud", "Office — office.example.test", "Add Server from Copied Pairing Link…", "Forget “Office”"]);
+    expect(items.map((entry) => entry.label)).toEqual(["Back to My Cloud", "Office · office.example.test", "Add Server from Copied Pairing Link…", "Forget “Office”"]);
     items[0].click();
     expect(home.onBack).toHaveBeenCalledOnce();
     expect(items.some((entry) => /This computer|organization|Add a Cloud|Connect to a server/.test(entry.label))).toBe(false);

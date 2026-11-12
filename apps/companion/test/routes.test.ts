@@ -17,7 +17,7 @@ describe("credentials", () => {
     expect(ask("POST", "/api/files", false)?.status).toBe(401);
   });
 
-  it("lets anyone curl liveness — it is the unauthenticated smoke test", () => {
+  it("lets anyone curl liveness: it is the unauthenticated smoke test", () => {
     expect(ask("GET", "/api/health", false)).toBeNull();
     expect(ask("POST", "/api/health", false)?.status).toBe(401);
     expect(ask("GET", "/api/healthz", false)?.status).toBe(401);

@@ -56,7 +56,7 @@ export function listenCompanionOrigin(
         }
       }
       server.on("error", (error: Error) => {
-        console.warn(`companion: private origin error — ${error.message}`);
+        console.warn(`companion: private origin error, ${error.message}`);
       });
       resolve();
     };

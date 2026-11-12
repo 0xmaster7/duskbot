@@ -218,7 +218,7 @@ if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.get
 }
 
 if (!app.requestSingleInstanceLock()) {
-  console.log("[desktop] dusk bot is already running — focusing that window");
+  console.log("[desktop] dusk bot is already running: focusing that window");
   process.exit(0);
 }
 

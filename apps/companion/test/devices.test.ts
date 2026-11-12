@@ -124,7 +124,7 @@ describe("DeviceRegistry", () => {
 
   it("points an out-of-window pairing attempt to Phone settings", () => {
     expect(new DeviceRegistry().redeem("000000", "iPhone")).toEqual({
-      error: "no pairing is in progress — open Phone settings on your computer",
+      error: "no pairing is in progress: open Phone settings on your computer",
     });
   });
 

@@ -1,7 +1,7 @@
 // cua-driver before 0.35.0 sends a Windows foreground type_text as one SendInput burst of Unicode key packets
 // (platform-windows/src/input/keyboard.rs, send_text_synthesized_after_focus), and modern Notepad reads a packet ahead of
 // translating the one before it, so later characters land in place of earlier ones: " Zeile Drei" came out " iiiiiiiiii".
-// https://github.com/trycua/cua/issues/4830 — 0.35.0 paces the text itself. With an older driver each character goes as
+// https://github.com/trycua/cua/issues/4830: 0.35.0 paces the text itself. With an older driver each character goes as
 // its own type_text, after its window is confirmed in front.
 
 /** The first driver that types foreground text one character at a time itself. */

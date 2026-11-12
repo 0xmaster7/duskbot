@@ -181,7 +181,7 @@ const listen = (server: ReturnType<typeof createServer>, port: number, host: str
   new Promise((resolve, reject) => {
     const onError = (error: NodeJS.ErrnoException) => {
       server.removeListener("listening", onListening);
-      const hint = ` — another copy of the companion may already be running; ${
+      const hint = `: another copy of the companion may already be running; ${
         port === COMPANION_PORT ? "DUSK_COMPANION_PORT" : "DUSK_CONTROL_PORT"
       } chooses a different one`;
       reject(
@@ -195,7 +195,7 @@ const listen = (server: ReturnType<typeof createServer>, port: number, host: str
       // A listening socket still emits `error` (EMFILE on accept, a vanished
       // interface), and an unhandled one is an uncaught exception.
       server.on("error", (error: NodeJS.ErrnoException) => {
-        console.warn(`companion: error on ${host}:${port} — ${error.message}`);
+        console.warn(`companion: error on ${host}:${port}: ${error.message}`);
       });
       resolve();
     };
@@ -228,7 +228,7 @@ async function main(): Promise<void> {
   await refreshMachineName();
 
   const tailscaleTried: string[] = [];
-  await refreshTailnetName((cli, outcome) => tailscaleTried.push(`  ${cli} — ${outcome}`)).catch(() => {});
+  await refreshTailnetName((cli, outcome) => tailscaleTried.push(`  ${cli}: ${outcome}`)).catch(() => {});
 
   // Through the watcher: a laptop may have no addresses yet, and they change
   // under a running sidecar. Discovery failing is never fatal.
@@ -251,7 +251,7 @@ async function main(): Promise<void> {
 }
 
 const shutdown = async (signal: string): Promise<void> => {
-  console.log(`\n${signal} — stopping`);
+  console.log(`\n${signal}: stopping`);
   // The watcher first, or a tick (or a name refresh already in flight) could re-advertise the withdrawn record.
   stopping = true;
   watcher.stop();

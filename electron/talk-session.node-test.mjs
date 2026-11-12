@@ -52,8 +52,8 @@ test("the box's words and timings are fixed", () => {
     serverDown: "Open Dusk to talk",
     starting: "Dusk is still starting. Try again in a moment.",
     noDusk: "Set up Dusk first, then try again.",
-    moved: "Dusk lives on My Cloud now — talk to it there",
-    permission: "Talking needs Microphone + Speech Recognition access — System Settings → Privacy & Security.",
+    moved: "Dusk lives on My Cloud now: talk to it there",
+    permission: "Talking needs Microphone + Speech Recognition access in System Settings → Privacy & Security.",
     dictationOff: "Turn on Dictation in System Settings → Keyboard, then try again.",
     unavailable: "Talking couldn't start. Try again.",
     failed: "Dusk couldn't take that · Open chat",
@@ -184,7 +184,7 @@ test("a server that can't take asks says why and stops listening: down, still st
     ["server-down", "Open Dusk to talk"],
     ["starting", TALK_TEXT.starting],
     ["no-dusk", TALK_TEXT.noDusk],
-    ["moved", "Dusk lives on My Cloud now — talk to it there"],
+    ["moved", "Dusk lives on My Cloud now: talk to it there"],
   ];
   for (const [code, text] of notices) {
     const h = harness({ prepare: async () => { throw new TalkServerError(code); } });

@@ -45,7 +45,7 @@ describe("readSecureCredentials", () => {
     expect(slept).toEqual([100]);
   });
 
-  it("says UNAVAILABLE — never empty — when every attempt fails", async () => {
+  it("says UNAVAILABLE, never empty, when every attempt fails", async () => {
     const decrypt = vi.fn().mockRejectedValue(transient());
     const result = await readSecureCredentials(deps({ decrypt }));
     expect(result.status).toBe("unavailable");

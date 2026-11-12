@@ -12,7 +12,7 @@ const MDNS_PORT = 5353;
 /** RFC 6762 §10: host records are short-lived, service records are not. */
 const TTL_HOST = 120;
 const TTL_SERVICE = 4500;
-/** RFC 6762 §11 — multicast DNS must not be routed off the link. */
+/** RFC 6762 §11: multicast DNS must not be routed off the link. */
 const MULTICAST_TTL = 255;
 const GOODBYE_FLUSH_MS = 250;
 
@@ -62,7 +62,7 @@ export const SERVICE_ENUMERATION = "_services._dns-sd._udp.local";
 export interface Question {
   name: string;
   type: number;
-  /** the QU bit — the asker wants a unicast reply */
+  /** the QU bit, the asker wants a unicast reply */
   unicast: boolean;
 }
 

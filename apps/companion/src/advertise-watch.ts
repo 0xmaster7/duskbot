@@ -42,14 +42,14 @@ export function createAddressWatcher(options: AddressWatchOptions): AddressWatch
     inflight = true;
     try {
       if (current.length === 0) {
-        options.log?.("no LAN addresses — advertising paused until a network appears");
+        options.log?.("no LAN addresses: advertising paused until a network appears");
         await options.withdraw();
       } else {
         const ok = await options.advertise();
         options.log?.(
           ok
             ? `advertising on ${current.join(", ")}`
-            : "could not advertise — pairing by typed address still works",
+            : "could not advertise: pairing by typed address still works",
         );
       }
       // Recorded even when advertising failed: the failure is tied to this

@@ -10,7 +10,7 @@ import { DATA_DIR, ensureDataDir, writeFileAtomic } from "./state.ts";
 export interface DeviceRecord {
   id: string;
   name: string;
-  /** sha256 of the bearer token — never the token itself */
+  /** sha256 of the bearer token, never the token itself */
   tokenHash: string;
   createdAt: number;
   lastSeenAt: number;
@@ -207,19 +207,19 @@ export class DeviceRegistry {
     }
 
     const window = this.pairing();
-    if (!window) return { error: "no pairing is in progress — open Phone settings on your computer" };
+    if (!window) return { error: "no pairing is in progress: open Phone settings on your computer" };
     if (!sameCredential(window.code, presented) && !sameCredential(window.token, presented)) {
       window.attemptsLeft -= 1;
       // Without burning the window, six digits is seconds of guessing.
       if (window.attemptsLeft <= 0) {
         this.closePairing();
-        return { error: "too many incorrect codes — start pairing again" };
+        return { error: "too many incorrect codes: start pairing again" };
       }
       return { error: "that pairing credential is not right" };
     }
     // After the code check: a full fleet must not answer wrong guesses, which
     // would leak state and cost no attempts.
-    if (this.devices.length >= MAX_DEVICES) return { error: "too many paired devices — remove one first" };
+    if (this.devices.length >= MAX_DEVICES) return { error: "too many paired devices: remove one first" };
     // Consume the window without clearing a replay; `closePairing` clears both.
     this.window = null;
 

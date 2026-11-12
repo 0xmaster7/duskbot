@@ -47,14 +47,14 @@ export function rememberRoutineWake(userData, keepAwake) {
 
 /**
  * `deps`:
- * - fetchStatus(): Promise<{hold, reason?, at?} | null> — the server's answer, null when unreachable
+ * - fetchStatus(): Promise<{hold, reason?, at?} | null>, the server's answer, null when unreachable
  * - isOnBattery(): boolean
- * - blocker: { start(type): id, stop(id), isStarted(id): boolean } — Electron's powerSaveBlocker
+ * - blocker: { start(type): id, stop(id), isStarted(id): boolean }, Electron's powerSaveBlocker
  * - settings(): { keepAwake: boolean }
  * - log(line)
- * - powerMonitor?: { on(event, listener) } — Electron's, once the app is ready
- * - isOnline?(): boolean — Electron's net.isOnline
- * - notify?(event): Promise<unknown> — tells the server "suspend", "resume" or "online" (POST /api/routines/wake)
+ * - powerMonitor?: { on(event, listener) }, Electron's, once the app is ready
+ * - isOnline?(): boolean, Electron's net.isOnline
+ * - notify?(event): Promise<unknown>, tells the server "suspend", "resume" or "online" (POST /api/routines/wake)
  */
 export function createRoutineWakeHold(deps) {
   let blockerId = null;

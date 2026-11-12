@@ -82,11 +82,11 @@ function workspaceSummary(state) {
 /** Native identity must not depend on a hosted renderer's version/title. `homeOrigin`: My Cloud once it is the person's
  * home: alone, it is simply the app; with a team or another place besides, the window names the place it shows. */
 function workspaceWindowTitle(state, companion, homeOrigin = null) {
-  if (companion) return `dusk bot — Connected to: ${companion.serverName} (${new URL(companion.endpoint).host})`;
+  if (companion) return `dusk bot · Connected to: ${companion.serverName} (${new URL(companion.endpoint).host})`;
   const active = activeEnvironment(state);
-  if (listedPlace(active)) return `dusk bot — ${active.name}`;
-  if (active && active.kind !== "local" && active.origin !== homeOrigin) return `dusk bot — Hosted: ${active.name} (${new URL(active.origin).host})`;
-  if (active && homeOrigin && active.origin === homeOrigin && otherPlaces(state, homeOrigin) > 0) return `dusk bot — ${active.name}`;
+  if (listedPlace(active)) return `dusk bot · ${active.name}`;
+  if (active && active.kind !== "local" && active.origin !== homeOrigin) return `dusk bot · Hosted: ${active.name} (${new URL(active.origin).host})`;
+  if (active && homeOrigin && active.origin === homeOrigin && otherPlaces(state, homeOrigin) > 0) return `dusk bot · ${active.name}`;
   return "dusk bot";
 }
 
