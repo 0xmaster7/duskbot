@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowUpRight, Bot, Calendar, ChartColumn, Code, Compass,
 import { cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { m } from "../ui/motion";
+import { Figure } from "../ui/Figure";
 import { Table, Td, Th } from "../ui/table";
 import { useAdmin } from "./api";
 import { duration, percent, type Range } from "./kit";
@@ -209,7 +210,7 @@ function Stat({ label: title, value, note }: { label: string; value: string; not
   return (
     <div className="min-w-0 rounded-[18px] bg-pop px-4 py-3">
       <div className="truncate text-12 text-ink-3">{title}</div>
-      <div className="mt-0.5 truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-ink num">{value}</div>
+      <div className="mt-0.5 truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-ink num"><Figure value={value} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em]" /></div>
       {note && <div className="truncate text-12 text-ink-3">{note}</div>}
     </div>
   );
@@ -253,7 +254,7 @@ export function UsageSection({ range }: { range: Range }) {
                 {data.categories.slice(0, 5).map((row, i) => {
                   const look = CATEGORY[row.key] ?? CATEGORY.other!;
                   return (
-                    <m.li key={row.key} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", visualDuration: 0.3, bounce: 0, delay: i * 0.04 }}>
+                    <m.li key={row.key} layout="position" initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ type: "spring", visualDuration: 0.3, bounce: 0, delay: i * 0.04 }}>
                       <button type="button" onClick={() => open("categories")} className={cx("flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-start transition-[filter] duration-150 hover:brightness-[0.98]", look.wash)}>
                         <span aria-hidden className="text-ink-2">{look.icon}</span>
                         <span className="min-w-0 flex-1 truncate text-13 text-ink">{look.label}</span>

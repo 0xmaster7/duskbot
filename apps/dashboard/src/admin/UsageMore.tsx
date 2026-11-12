@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Clock, CreditCard, Gauge, KeyRound, Sparkles } from "@/icons";
 import { cx } from "../ui/kit";
-import { m } from "../ui/motion";
+import { m, SwapText, useSlots } from "../ui/motion";
+import { Figure } from "../ui/Figure";
 import { Table, Td, Th } from "../ui/table";
 import { duration, percent } from "./kit";
 import { n } from "./ui";
@@ -47,11 +48,16 @@ function Line({ label, value, bar, note, onClick }: { label: ReactNode; value: s
   return (
     <button type="button" onClick={onClick} className="hover-row relative flex h-9 w-full items-center gap-3 overflow-hidden rounded-[10px] px-2.5 text-start text-13">
       {bar !== undefined && bar !== null && <m.span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/10" initial={{ width: 0 }} animate={{ width: `${Math.min(1, bar) * 100}%` }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} aria-hidden />}
-      <span className="relative min-w-0 flex-1 truncate text-ink">{label}</span>
-      {note && <span className="relative truncate text-12 text-ink-3 max-sm:hidden">{note}</span>}
-      <span className="relative w-14 text-end font-mono text-ink num">{value}</span>
+      <span className="relative min-w-0 flex-1 truncate text-ink">{typeof label === "string" ? <SwapText text={label} className="w-full" /> : label}</span>
+      {note && <span className="relative truncate text-12 font-medium text-ink-3 max-sm:hidden"><SwapText text={note} /></span>}
+      <span className="relative w-14 text-end font-mono text-ink num"><Figure value={value} className="!font-mono !text-13 !leading-5 !tracking-normal" /></span>
     </button>
   );
+}
+/** rows whose data swaps keep their elements (see useSlots), so a new window morphs the list instead of rebuilding it */
+function Slotted<T>({ rows, keyOf, render }: { rows: T[]; keyOf(row: T): string; render(row: T, key: string): ReactNode }) {
+  const slots = useSlots(rows.map(keyOf));
+  return <>{rows.map((row, i) => render(row, slots[i]!))}</>;
 }
 const Empty = ({ children }: { children: ReactNode }) => <p className="px-2 py-3 text-13 text-ink-2">{children}</p>;
 
@@ -72,7 +78,7 @@ export function MoreCards({ more, open }: { more: MoreAnswer; open(detail: MoreD
               <button key={label} type="button" onClick={() => open("reliability")} className="rounded-[16px] bg-pop px-3 py-2 text-start"><span className="block truncate text-12 text-ink-3">{label}</span><span className="block font-mono text-[20px] font-medium leading-7 text-ink num">{value}</span></button>
             ))}
           </div>
-          {r.toolErrors.length ? r.toolErrors.slice(0, 3).map((row) => <Line key={`${row.kind}:${row.key}`} label={<>{toolWords(row.kind, row.key)} <span className="text-ink-4">{row.kind}</span></>} value={percent(row.rate)} note={`${n(row.errors)} errors`} onClick={() => open("reliability")} />)
+          {r.toolErrors.length ? <Slotted rows={r.toolErrors.slice(0, 3)} keyOf={(row) => `${row.kind}:${row.key}`} render={(row, key) => <Line key={key} label={`${toolWords(row.kind, row.key)} ${row.kind}`} value={percent(row.rate)} note={`${n(row.errors)} errors`} onClick={() => open("reliability")} />} />
             : <Empty>no tool errors in this window.</Empty>}
         </Card>
       </div>
@@ -91,7 +97,7 @@ export function MoreCards({ more, open }: { more: MoreAnswer; open(detail: MoreD
           <button type="button" onClick={() => open("setups")} className="hover-link mt-1 px-2.5 text-12 text-ink-3">what people run it on</button>
         </Card>
         <Card title="features people find" icon={<Sparkles {...I} />} wash="bg-wash-lilac" onOpen={() => open("discovery")}>
-          {more.discovery.length ? more.discovery.slice(0, 5).map((row) => <Line key={row.feature} label={words(row.feature)} value={percent(row.share)} bar={row.share} note={days(row.medianDays)} onClick={() => open("discovery")} />)
+          {more.discovery.length ? <Slotted rows={more.discovery.slice(0, 5)} keyOf={(row) => row.feature} render={(row, key) => <Line key={key} label={words(row.feature)} value={percent(row.share)} bar={row.share} note={days(row.medianDays)} onClick={() => open("discovery")} />} />
             : <Empty>no feature use recorded yet.</Empty>}
         </Card>
       </div>
@@ -140,7 +146,7 @@ export function MoreTable({ detail, more }: { detail: MoreDetail; more: MoreAnsw
   );
   if (detail === "daily") return (
     <div className="flex flex-col gap-4">
-      <div><p className="mb-2 text-13 text-ink-3">when apps open, by hour</p><div className="flex h-20 items-end gap-0.5">{e.hours.map((value, hour) => <span key={hour} title={`${hour}:00 ${value}`} className="flex-1 rounded-[3px] bg-accent/60" style={{ height: `${Math.max(4, (value / Math.max(1, ...e.hours)) * 100)}%` }} />)}</div></div>
+      <div><p className="mb-2 text-13 text-ink-3">when apps open, by hour</p><div className="flex h-20 items-end gap-0.5">{e.hours.map((value, hour) => <span key={hour} title={`${hour}:00 ${value}`} className="flex-1 rounded-[3px] bg-accent/60 transition-[height] duration-300 ease-out" style={{ height: `${Math.max(4, (value / Math.max(1, ...e.hours)) * 100)}%` }} />)}</div></div>
       <CountTable title="by weekday" rows={e.weekdays.map((count, day) => ({ key: DAYS[day]!, count }))} />
       <CountTable title="attachments" rows={e.attachments} />
       <CountTable title="attachment size" rows={e.attachmentSizes} label={(key) => ({ lt100k: "under 100 kb", lt1m: "under 1 mb", lt10m: "under 10 mb", gte10m: "10 mb or more" } as Record<string, string>)[key] ?? key} />
