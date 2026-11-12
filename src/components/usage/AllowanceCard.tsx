@@ -10,6 +10,7 @@ import { formatCost } from "@/lib/usage-trace";
 import { api } from "@/state/store";
 import { buttonCls, fieldCls } from "../bot-panel/rows";
 import { Card as RowsCard, NoteRow, rowCls, SwitchRow } from "../ListRows";
+import { Art } from "../ui/Art";
 
 const amountOf = (text: string) => { const value = Number(text); return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null; };
 
@@ -73,9 +74,13 @@ export function AllowanceCard() {
     <RowsCard label={t("usage.allowance.title")} data-settings-block="allowance"
       footnote={set ? t("usage.allowance.footnote") : undefined}>
       {!set && editing !== "weekly" && (
-        <div className={cn(rowCls, "justify-between")} data-allowance="none">
-          <span className="text-[13px] leading-[18px] text-ink-secondary">{t("usage.allowance.none")}</span>
-          <button type="button" className={buttonCls} onClick={() => setEditing("weekly")}>{t("usage.allowance.set")}</button>
+        <div className="flex items-center gap-3 px-2 py-2" data-allowance="none">
+          <Art name="coins" className="size-8 shrink-0 object-contain" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] leading-[18px] text-ink">{t("usage.allowance.noneTitle")}</span>
+            <span className="block text-[12px] leading-4 text-ink-secondary">{t("usage.allowance.none")}</span>
+          </span>
+          <button type="button" className={cn(buttonCls, "shrink-0")} onClick={() => setEditing("weekly")}>{t("usage.allowance.set")}</button>
         </div>
       )}
       {editing === "weekly" && (
@@ -93,8 +98,8 @@ export function AllowanceCard() {
             </span>
             <span className="text-[12px] leading-4 text-ink-secondary">{t("usage.allowance.resets", { when: resets })}</span>
           </span>
-          <span className="h-1 w-full overflow-hidden rounded-full bg-ink/[0.06]" aria-hidden="true">
-            <span className={cn("block h-full rounded-full", over ? "bg-danger" : near ? "bg-warning" : "bg-ink/40")} style={{ width: `${Math.max(1, shown.share * 100)}%` }} />
+          <span className="h-1 w-full overflow-hidden rounded-full bg-ink/[0.07]" aria-hidden="true">
+            <span className={cn("block h-full rounded-full", over ? "bg-danger" : "bg-ink/70")} style={{ width: `${Math.max(1, shown.share * 100)}%` }} />
           </span>
         </button>
       )}
