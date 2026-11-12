@@ -200,7 +200,7 @@ describe("Dusk, every person's helper", () => {
     expect(() => store.deleteBot(maus.id)).toThrow(/Dusk can't be deleted or archived/);
     expect(store.bot(maus.id)).toBeTruthy();
     expect(defaultBotPatchRefusal(maus, { hidden: true })).toMatch(/Show Dusk in the sidebar/);
-    expect(defaultBotPatchRefusal(other, { sidebarHidden: true })).toMatch(/Only Dusk/);
+    expect(defaultBotPatchRefusal(other, { sidebarHidden: true })).toMatch(/Only your helper/);
     expect(defaultBotPatchRefusal(maus, { sidebarHidden: "yes" })).toBe("sidebarHidden must be true or false");
     expect(defaultBotPatchRefusal(maus, { sidebarHidden: true })).toBeNull();
     store.patchBot(maus.id, { sidebarHidden: true });

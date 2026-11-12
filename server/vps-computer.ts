@@ -442,7 +442,7 @@ function statusProblem(status: VpsComputerStatus, desktopVersion?: string): stri
   if (!status.image) {
     return status.desktop === "cua"
       ? `Prepare the pinned dusk bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
-      : `Prepare the Dusk bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
+      : `Prepare the dusk bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
   }
   if (status.container === "missing") return "No dusk bot container exists for this bot on the VPS";
   if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted dusk bot image";

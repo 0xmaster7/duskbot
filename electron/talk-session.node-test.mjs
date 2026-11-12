@@ -48,15 +48,15 @@ const holdAsk = updates => {
 test("the box's words and timings are fixed", () => {
   assert.deepEqual(TALK_TIMING, { replyHideMs: 12_000, noticeHideMs: 4_000, stillWorkingMs: 120_000, hoverRecheckMs: 500, maxListenMs: 60_000 });
   assert.deepEqual(TALK_TEXT, {
-    busy: "Voice is in use in Dusk",
-    serverDown: "Open Dusk to talk",
-    starting: "Dusk is still starting. Try again in a moment.",
-    noDusk: "Set up Dusk first, then try again.",
-    moved: "Dusk lives on My Cloud now: talk to it there",
+    busy: "Voice is in use in dusk bot",
+    serverDown: "Open dusk bot to talk",
+    starting: "The app is still starting. Try again in a moment.",
+    noDusk: "Set up your helper first, then try again.",
+    moved: "Your bots live on dusk cloud now: talk to them there",
     permission: "Talking needs Microphone + Speech Recognition access in System Settings → Privacy & Security.",
     dictationOff: "Turn on Dictation in System Settings → Keyboard, then try again.",
     unavailable: "Talking couldn't start. Try again.",
-    failed: "Dusk couldn't take that · Open chat",
+    failed: "Your helper couldn't take that · Open chat",
   });
   assert.ok(Object.isFrozen(TALK_TIMING));
   assert.ok(Object.isFrozen(TALK_TEXT));
@@ -135,7 +135,7 @@ test("voice in use refuses without listening", () => {
   const h = harness({ busy: true }); h.session.press();
   assert.deepEqual(h.starts, []);
   assert.equal(h.prepares, 0);
-  assert.deepEqual(h.views, [{ state: "error", text: "Voice is in use in Dusk" }]);
+  assert.deepEqual(h.views, [{ state: "error", text: "Voice is in use in dusk bot" }]);
   mock.timers.tick(3_999); assert.equal(h.closed, 0);
   mock.timers.tick(1); assert.equal(h.closed, 1);
 });
@@ -181,10 +181,10 @@ test("permission and setup problems say what to fix, in the composer's words: on
 
 test("a server that can't take asks says why and stops listening: down, still starting, no Dusk, or moved to My Cloud", async () => {
   const notices = [
-    ["server-down", "Open Dusk to talk"],
+    ["server-down", "Open dusk bot to talk"],
     ["starting", TALK_TEXT.starting],
     ["no-dusk", TALK_TEXT.noDusk],
-    ["moved", "Dusk lives on My Cloud now: talk to it there"],
+    ["moved", "Your bots live on dusk cloud now: talk to them there"],
   ];
   for (const [code, text] of notices) {
     const h = harness({ prepare: async () => { throw new TalkServerError(code); } });
@@ -199,7 +199,7 @@ test("a server that can't take asks says why and stops listening: down, still st
   }
 });
 
-test("a server that goes away as the words are sent says Open Dusk to talk", async () => {
+test("a server that goes away as the words are sent says Open dusk bot to talk", async () => {
   let fail;
   const late = harness({ prepare: () => new Promise((_, reject) => { fail = reject; }) });
   late.session.press(); say(late, "hello"); release(late); await flush();

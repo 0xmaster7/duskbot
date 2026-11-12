@@ -130,7 +130,7 @@ describe("phone MCP host", () => {
     expect(text(result)).toContain("Omkar's iPhone");
     expect(text(result)).toContain("events");
     expect(result.structuredContent).toEqual({ phone: { name: "Omkar's iPhone", platform: "ios" }, events: [] });
-    expect(request.mock.calls[0]![3]).toMatchObject({ timeoutMs: PHONE_JOB_TIMEOUT_MS, offlineText: "Omkar's iPhone is offline. Open the Dusk app on it." });
+    expect(request.mock.calls[0]![3]).toMatchObject({ timeoutMs: PHONE_JOB_TIMEOUT_MS, offlineText: "Omkar's iPhone is offline. Open the dusk bot app on it." });
     expect(h.registry.get(IPHONE)!.lastUsedAt).toBe(h.clock.now);
     expect(h.messages).toEqual([]);
     expect(h.checks()).toBe(2);
@@ -264,7 +264,7 @@ describe("phone MCP host", () => {
     // Neither allows Messages: refused before any job.
     const message = await h.handle(call("PHONE_SEND_MESSAGE", { to: "Mom", text: "On my way" })) as PhoneToolResult;
     expect(message.isError).toBe(true);
-    expect(text(message)).toBe("Dusk can't use Messages on this phone: it is not allowed in the Dusk app on the phone.");
+    expect(text(message)).toBe("Dusk can't use Messages on this phone: it is not allowed in the dusk bot app on the phone.");
     // A named phone without the app is refused too, though another phone allows it.
     const rsvp = await h.handle(call("PHONE_RESPOND_TO_INVITE", { id: "inv-1", response: "decline", phone: "work pixel" })) as PhoneToolResult;
     expect(rsvp).toMatchObject({ isError: true, structuredContent: { code: "denied" } });
@@ -356,7 +356,7 @@ describe("phone MCP host", () => {
     await vi.advanceTimersByTimeAsync(15_000);
     const result = await pending as PhoneToolResult;
     expect(result).toMatchObject({ isError: true, structuredContent: { code: "offline" } });
-    expect(text(result)).toBe("Omkar's iPhone is offline. Open the Dusk app on it.");
+    expect(text(result)).toBe("Omkar's iPhone is offline. Open the dusk bot app on it.");
     expect(h.jobs.busy(IPHONE)).toBe(false);
     expect(h.registry.get(IPHONE)!.lastUsedAt).toBeNull();
   });

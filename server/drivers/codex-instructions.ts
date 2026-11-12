@@ -45,7 +45,7 @@ export function codexDeveloperInstructions(config: unknown, botInstructions: str
   }
   // Native rules go last, keeping their precedence over the bot's.
   return configured
-    ? `${botInstructions || "No Dusk bot-specific instructions remain."}\n\n${configured}`
+    ? `${botInstructions || "No dusk bot-specific instructions remain."}\n\n${configured}`
     : botInstructions;
 }
 
@@ -81,7 +81,7 @@ export async function syncCodexInstructions(
           content: [{
             type: "input_text",
             text: "The following replaces the previous developer instruction block supplied by dusk bot, including its native configured rules and bot-specific instructions. Other Codex instructions and permissions still apply.\n\n"
-              + (instructions || "No Dusk bot-specific instructions remain."),
+              + (instructions || "No dusk bot-specific instructions remain."),
           }],
         }],
       });

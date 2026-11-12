@@ -205,7 +205,7 @@ export function createDashboardReporter(deps: DashboardReporterDeps) {
       [SIGNATURE_HEADERS.signature]: sign(null, Buffer.from(signedPayload("POST", new URL(`${normalized}/v1/enroll`).pathname, time, createHash("sha256").update(bytes).digest("hex"))),
         createPrivateKey({ key: Buffer.from(keys.privateKey, "base64"), type: "pkcs8", format: "der" })).toString("base64") };
     const response = await fetcher(`${normalized}/v1/enroll`, { method: "POST", redirect: "error", headers, body: bytes, signal: AbortSignal.timeout(15_000) });
-    if (response.status === 409) throw new Error("This workspace belongs to another Dusk account. Remove it from that account's dashboard first.");
+    if (response.status === 409) throw new Error("This workspace belongs to another dusk bot account. Remove it from that account's dashboard first.");
     if (!response.ok) throw new Error(`Dashboard enrollment failed (${response.status}).`);
     const answer = await response.json() as EnrollAnswer;
     if (answer.v !== 1 || !answer.workspaceId || !answer.claimUrl || typeof answer.claimExpiresAt !== "number") throw new Error("The dashboard returned an invalid enrollment.");

@@ -436,7 +436,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
     if (m && method === "POST") {
       const bot = store.bot(m[1]!);
       if (!bot?.defaultBot || bot.hidden) return json(res, 404, { error: "no such Dusk" });
-      if (!mayFollowUp(bot, auth)) return json(res, 403, { error: "only Dusk's own person can do this" });
+      if (!mayFollowUp(bot, auth)) return json(res, 403, { error: "only the helper's own person can do this" });
       const parsed = helperFollowupBody.safeParse(await readBody(req));
       if (!parsed.success) return json(res, 400, { error: "body must be { ai, apps?, threadId? }" });
       const threadId = parsed.data.threadId ?? bot.threadId;

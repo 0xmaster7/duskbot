@@ -153,7 +153,7 @@ const droppedLine = (language: string | undefined) => serverLine(language, "serv
 const FAILED_MARKER = "Dusk";
 
 /** Rides on the turn that answers a @devs message. */
-const TURN_NOTE = "\n\n[From dusk bot, not the person: this message tags @devs, so it is a bug report for the Dusk team, dusk bot's developers. Call report_bug once, first: what the person says went wrong; what you saw yourself in this conversation (errors, failed tools, stuck steps), or that you saw nothing unusual; and steps to reproduce. Leave out passwords, keys, tokens and file contents; dusk bot adds the app's own diagnostics. Then tell the person, word for word, the line report_bug returns, and help with the problem if you can.]";
+const TURN_NOTE = "\n\n[From dusk bot, not the person: this message tags @devs, so it is a bug report for dusk bot's developers. Call report_bug once, first: what the person says went wrong; what you saw yourself in this conversation (errors, failed tools, stuck steps), or that you saw nothing unusual; and steps to reproduce. Leave out passwords, keys, tokens and file contents; dusk bot adds the app's own diagnostics. Then tell the person, word for word, the line report_bug returns, and help with the problem if you can.]";
 
 const iso = (at: number) => new Date(at).toISOString();
 const firstLine = (text: string | undefined) => (text ?? "").split("\n").map((line) => line.trim()).find(Boolean) ?? "";
@@ -438,7 +438,7 @@ export function createDevsReports(deps: DevsReportsDeps) {
     if (!bot || !entry) {
       const last = lastSent.get(threadId);
       if (last && now() - last.at < REPEAT_MS) return { status: 200, text: `Already sent as report ${last.reportId}: report_bug sends once per @devs message. Do not call it again for it.` };
-      return { status: 409, text: "report_bug sends only for a message that tags @devs, once per message. To report a problem to the Dusk team, the person types @devs and a few words about what went wrong." };
+      return { status: 409, text: "report_bug sends only for a message that tags @devs, once per message. To report a problem to dusk bot's developers, the person types @devs and a few words about what went wrong." };
     }
     const fallingBack = inFlight.has(entry.messageId);
     const said = await deliver(entry, { bot, summary });
