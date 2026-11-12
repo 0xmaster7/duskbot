@@ -170,8 +170,10 @@ export interface CloudsService {
   order(input: OrderInput): StoredCloud;
   /** paid: provisioning starts (idempotent) */
   activate(cloudId: string, subscriptionId: string, plan: DesktopPlan): void;
-  /** a plan change: resized on the next reconcile; placement changes are refused */
+  /** a plan change: resized on the next reconcile; placement changes are refused unless `movable` */
   changePlan(cloudId: string, plan: DesktopPlan): void;
+  /** whether a plan change can take this cloud to `plan`: same placement, or a managed cloud whose backend runs that kind */
+  movable?(cloudId: string, plan: DesktopPlan): boolean;
   setPaymentProblem(cloudId: string, problem: boolean): void;
   /** destroyed at `at` unless cancelled (keep plan, renewed) */
   scheduleDestroy(cloudId: string, at: number): void;

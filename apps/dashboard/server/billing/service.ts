@@ -682,7 +682,7 @@ export function createBillingService(options: BillingServiceOptions) {
       if (open) throw new BillingError(409, "checkout_open", open.url);
     }
     if (sameCart(sub.cart, cart)) fail(409, "already_on_plan");
-    if (cart.interval !== sub.cart.interval || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && desktopPlan(cart).placement !== desktopPlan(sub.cart).placement)
+    if (cart.interval !== sub.cart.interval || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && desktopPlan(cart).placement !== desktopPlan(sub.cart).placement && !(sub.cloudId && clouds.movable?.(sub.cloudId, desktopPlan(cart))))
       || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && cart.desktop.region !== sub.cart.desktop.region)) fail(409, "plan_change_unavailable");
     if (cart.desktop.kind !== "none" && sub.cart.desktop.kind === "none") cap(account.id);
     const license = state.licenses.find(license => license.id === sub.licenseId);

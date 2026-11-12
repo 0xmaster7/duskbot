@@ -8,19 +8,20 @@ import { createFakePoolDriver } from "./fake-pool-driver.ts";
 import { createPoolProvider } from "./pool.ts";
 import { createSealer } from "./seal.ts";
 import { CloudError, createCloudsService } from "./service.ts";
+import type { ManagedCloud, ManagedCloudFactory } from "./managed.ts";
 
 const cleanup: Array<() => void> = [];
 afterEach(() => { for (const fn of cleanup.splice(0).reverse()) fn(); });
 const dedicatedPlan: DesktopPlan = { kind: "dedicated", placement: "dedicated", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null };
 const poolPlan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 20 }, botComputers: 1 };
-function fixture(options: { poolRam?: number; maxAttempts?: number } = {}) {
+function fixture(options: { poolRam?: number; maxAttempts?: number; managed?: ManagedCloudFactory } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "dusk-cloud-service-")); cleanup.push(() => rmSync(dataDir, { recursive: true, force: true }));
   let at = 1_790_000_000_000;
   const dedicated = createFakeCloudProvider(), driver = createFakePoolDriver({ hosts: [{ id: "pool1", region: "eu", domain: "pool.example.test", draining: false, capacity: { vcpu: 16, ramGb: options.poolRam ?? 32, diskGb: 200, slots: 10 } }] }), pool = createPoolProvider({ driver });
   const workspaces = { register: vi.fn(() => "workspace-1"), lastReportAt: vi.fn(() => at - 1000), remove: vi.fn() };
   const home = { healthy: vi.fn(async () => true), pair: vi.fn(async () => ({ code: "ABCD-EFGH-JKLM", expiresAt: at + 300_000 })) };
   const deps = { dataDir, providers: { dedicated, pool }, workspaces, home, sealer: createSealer(Buffer.alloc(32, 3)), config: { adminOrigin: "https://admin.example.test", dashboardUrl: "https://dash.example.test", image: "ghcr.io/example/duskbot-cloud-home:1.2.3", maxAttempts: options.maxAttempts, poolQuota: (_kind: DesktopPlan["kind"], spec: DesktopPlan["spec"], botComputers: number | null) => ({ ...spec, netMbps: 100, pids: 1000, botComputers }) }, now: () => at };
-  const service = createCloudsService(deps); cleanup.push(() => service.close());
+  const service = createCloudsService(options.managed ? { ...deps, managed: options.managed } : deps); cleanup.push(() => service.close());
   function order(plan = dedicatedPlan, accountId = "a") { return service.order({ ...plan, accountId, name: "My desktop", color: "blue", region: "eu" }); }
   async function ready(c: StoredCloud) { for (let n = 0; n < 20 && c.status === "provisioning"; n++) await service.reconcile(); expect(c.status).toBe("running"); }
   return { service, order, ready, dedicated, driver, pool, workspaces, home, deps, dataDir, advance: (ms: number) => { at += ms; }, now: () => at };
@@ -93,6 +94,18 @@ it.each([dedicatedPlan, poolPlan])("resizes $placement, preserving the requested
   expect(() => f.service.changePlan(c.id, plan.placement === "pool" ? dedicatedPlan : poolPlan)).toThrow(CloudError);
   await f.service.power("a", c.id, "off"); expect(c.status).toBe("stopped");
   await f.service.power("a", c.id, "on"); expect(c.status).toBe("running");
+});
+it("moves a managed cloud between placements, and only a managed one", () => {
+  const kinds = ["shared_s", "shared_m", "dedicated"] as const;
+  const backend = { kinds, fresh: () => ({}), reconcile: async () => {}, retryAt: () => null, view: () => ({}), afterPass: async () => {}, resizing: () => false, close() {} } as unknown as ManagedCloud;
+  const f = fixture({ managed: { kinds, create: () => backend } }), c = f.order(poolPlan);
+  f.service.activate(c.id, "sub", poolPlan);
+  expect(c.backend).toBe("managed"); expect(f.service.movable?.(c.id, dedicatedPlan)).toBe(true);
+  f.service.changePlan(c.id, { ...dedicatedPlan, spec: { vcpu: 8, ramGb: 16, diskGb: 160 } });
+  expect(c).toMatchObject({ placement: "dedicated", kind: "dedicated", desiredSpec: { vcpu: 8, ramGb: 16, diskGb: 160 } });
+  const plain = fixture(), other = plain.order(poolPlan); plain.service.activate(other.id, "sub", poolPlan);
+  expect(plain.service.movable?.(other.id, dedicatedPlan)).toBe(false);
+  expect(() => plain.service.changePlan(other.id, dedicatedPlan)).toThrow(CloudError);
 });
 it("resizes a stopped dedicated desktop without powering it back on", async () => {
   const f = fixture(), c = f.order(); f.service.activate(c.id, "sub", dedicatedPlan); await f.ready(c); await f.service.power("a", c.id, "off");

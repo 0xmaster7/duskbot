@@ -13,7 +13,7 @@ function opsAllowed(header: string | undefined, token: string) {
   const wanted = Buffer.from(token);
   return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
-const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later.", checkout_soon: "Paid plans open soon. Checkout is not live yet." };
+const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later.", checkout_soon: "Paid plans open soon. Checkout is not live yet.", plan_change_unavailable: "This plan can't switch to that size here. Write to hello@dusk.bot and we move it for you.", already_on_plan: "You're already on this plan.", price_changed: "The price changed. Check it and confirm again.", not_subscribed: "There is no active plan to change." };
 export function createBillingRoutes(ctx: BillingContext) {
   const { service, clouds } = ctx;
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {

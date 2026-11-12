@@ -93,9 +93,11 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   function get(id: string) { return store.state.clouds.find(c => c.id === id) ?? null; }
   function requireCloud(id: string) { const cloud = get(id); if (!cloud) throw new CloudError(404, "not_found"); return cloud; }
   function requireOwned(accountId: string, id: string) { const cloud = get(id); if (!cloud || cloud.accountId !== accountId) throw new CloudError(404, "not_found"); return cloud; }
+  /** a managed cloud is one backend machine of any kind, so it can move between placements; the others cannot */
+  function movable(c: StoredCloud, plan: DesktopPlan) { return c.placement === plan.placement || c.backend === "managed" && !!managed?.kinds.includes(plan.kind); }
   function applyPlan(c: StoredCloud, plan: DesktopPlan) {
-    if (c.placement !== plan.placement) throw new CloudError(409, "placement_change_unavailable");
-    c.kind = plan.kind; c.botComputers = plan.botComputers;
+    if (!movable(c, plan)) throw new CloudError(409, "placement_change_unavailable");
+    c.placement = plan.placement; c.kind = plan.kind; c.botComputers = plan.botComputers;
     c.desiredSpec = { ...plan.spec, diskGb: Math.max(c.spec.diskGb, plan.spec.diskGb) };
   }
   function kick() { void service.reconcile().catch(() => {}); }
@@ -304,6 +306,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (from !== undefined && from > now() && !c.ended) { c.endsAt = c.endsAt === undefined ? from : Math.min(c.endsAt, from); c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); save(c); return; }
       delete c.endsAt; if (!c.ended) c.endedAt = now(); c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },
+    movable(id, plan) { const c = get(id); return !!c && movable(c, plan); },
     revivable(id, plan) {
       const c = get(id);
       if (!c?.ended || c.status === "destroyed" || c.status === "destroying" || c.suspended !== null || c.placement !== plan.placement) return false;

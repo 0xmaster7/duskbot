@@ -139,6 +139,18 @@ describe("billing service isolated fixture", () => {
     expect(() => service.previewChange(owner, sub.id, preset(3))).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
     expect(() => service.previewChange(owner, sub.id, preset(2, "year"))).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
   });
+  it("moves a plan to a dedicated size when the cloud can move, and explains when it cannot", async () => {
+    const { sub } = await buy(desktopOnly()); time = (sub.currentPeriodStart! + sub.currentPeriodEnd!) / 2;
+    const dedicated: Cart = { ...desktopOnly(), desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } };
+    expect(() => service.previewChange(owner, sub.id, dedicated)).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
+    clouds.movable = vi.fn(() => true);
+    const preview = service.previewChange(owner, sub.id, dedicated);
+    expect(preview.chargeNowCents).toBeGreaterThan(0);
+    await service.change(owner, sub.id, preview.confirmation);
+    expect(clouds.movable).toHaveBeenCalledWith(sub.cloudId, expect.objectContaining({ kind: "dedicated", placement: "dedicated" }));
+    expect(clouds.changePlan).toHaveBeenLastCalledWith(sub.cloudId, { kind: "dedicated", placement: "dedicated", spec: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null });
+    expect(sub.cart).toEqual(dedicated);
+  });
   it("expires and binds confirmations, detects price changes and preserves the plan on provider failure", async () => {
     const { sub } = await buy();
     let preview = service.previewChange(owner, sub.id, preset(2)); time += 600_000;
