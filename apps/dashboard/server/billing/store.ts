@@ -2,6 +2,8 @@ import { join } from "node:path";
 import type { CancelSurvey, Cart, CartLine, LicenseView, SubscriptionStatus } from "../../../../shared/billing-api.ts";
 import type { DesktopPlan, OrderInput } from "../clouds/types.ts";
 import { createJsonStore } from "./json-store.ts";
+import { validLedgerEntry } from "./ledger.ts";
+import type { LedgerEntry } from "./ledger.ts";
 
 export interface PendingChange { cart: Cart; totalCents: number; lines: CartLine[]; products: { productId: string; addons: Array<{ addonId: string; quantity: number }> }; cloudId: string | null }
 export type CloudAction =
@@ -36,6 +38,8 @@ export interface StoredInvoice {
   id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; checkoutId: string | null; amountCents: number;
   currency: string; status: "paid" | "failed" | "refunded"; description: string; createdAt: number;
 }
+/** where a paying customer first came from, copied from analytics at their first payment so it outlives the raw events */
+export interface Attribution { source: string; channel: string; campaign: string | null; referrer: string | null; country: string | null; firstSeen: number | null }
 export interface AccountClosure {
   id: string; accountId: string; anonId: string; startedAt: number; completedAt: number | null; destroyDesktopsNow: boolean; steps: string[];
 }
@@ -47,7 +51,10 @@ export interface BillingState {
   duplicates?: Array<{ id: string; accountId: string; checkoutId: string; cancelledAt: number | null; payments: Array<{ id: string; refundedAt: number | null }> }>;
   cloudActions?: CloudAction[];
   refunds?: Array<{ id: string; paymentId: string; amountCents: number; currency: string }>;
-  customers: Array<{ accountId: string; email: string; providerCustomerId: string | null }>;
+  customers: Array<{ accountId: string; email: string; providerCustomerId: string | null; attribution?: Attribution }>;
+  ledger?: LedgerEntry[];
+  /** when the owner's backfill last finished, and what it added */
+  lastSync?: { at: number; added: number; scanned: number } | null;
   checkouts: StoredCheckout[]; subscriptions: StoredSubscription[]; licenses: LicenseView[]; invoices: StoredInvoice[];
   credits: Array<{ id: string; accountId: string; deltaCents: number; reason: "top_up" | "refund" | "usage" | "grant"; ref: string; at: number }>;
   webhookEvents: Array<{ id: string; at: number; type: string }>;
@@ -81,7 +88,9 @@ const valid = shape({
       || (action.kind === "activate" || action.kind === "revive") && str(action.subscriptionId) && plan(action.plan));
   })),
   refunds: optional(array(shape({ id: str, paymentId: str, amountCents: int, currency: str }))),
-  customers: array(shape({ accountId: str, email: str, providerCustomerId: nullable(str) })),
+  customers: array(shape({ accountId: str, email: str, providerCustomerId: nullable(str), attribution: optional(shape({ source: str, channel: str, campaign: nullable(str), referrer: nullable(str), country: nullable(str), firstSeen: nullable(int) })) })),
+  ledger: optional(array(validLedgerEntry)),
+  lastSync: optional(nullable(shape({ at: int, added: int, scanned: int }))),
   checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), packId: nullable(str), cloudId: nullable(str), providerSubscriptionId: optional(str), revive: optional(bool), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, creditCents: nullable(int), lines: array(line) })),
   subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), source: optional(nullable(str)), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
@@ -94,7 +103,7 @@ function validState(value: unknown): value is BillingState {
   if (!valid(value)) return false;
   const state = value as BillingState;
   const unique = (values: string[]) => new Set(values).size === values.length;
-  return Object.entries(state).filter(([key]) => key !== "cloudActions").every(([key, rows]) => unique(rows.map((row: { id?: string; accountId?: string }) => key === "customers" ? row.accountId! : row.id!)))
+  return Object.entries(state).filter(([key]) => key !== "cloudActions" && key !== "lastSync").every(([key, rows]) => unique(rows.map((row: { id?: string; accountId?: string }) => key === "customers" ? row.accountId! : row.id!)))
     && unique(state.invoices.map(row => row.providerPaymentId)) && unique(state.credits.map(row => `${row.reason}:${row.ref}`))
     && unique(state.subscriptions.flatMap(row => row.providerSubscriptionId ? [row.providerSubscriptionId] : []));
 }

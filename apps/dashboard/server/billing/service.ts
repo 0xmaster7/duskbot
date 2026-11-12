@@ -6,9 +6,12 @@ import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
 import { changeCharge, dodoCart, dodoCreditsCart, parseCart, quote, sameCart } from "./pricing.ts";
 import type { BillingStore, CloudAction, PendingChange, StoredCheckout, StoredSubscription } from "./store.ts";
-import { BillingProviderError } from "./types.ts";
+import { BillingProviderError, SYNC_PAGE } from "./types.ts";
 import type { AccountRef, BillingEvent, BillingProvider } from "./types.ts";
 import type { WebhookHeaders } from "./webhook-signature.ts";
+import { appendLedger, draft, moneyOf } from "./ledger.ts";
+import type { LedgerDraft, LedgerEntry } from "./ledger.ts";
+import type { Attribution } from "./store.ts";
 
 export class BillingError extends Error {
   status: number; code: BillingErrorCode; url?: string | null; blockers?: DeletionBlocker[];
@@ -18,6 +21,8 @@ export interface BillingServiceOptions {
   store: BillingStore; provider: BillingProvider; clouds: CloudsService; config?: BillingConfig; publicUrl: string; now?: () => number; random?: (bytes: number) => string;
   /** told after a change is stored: an email goes out for each; never throws into billing */
   notify?: (notice: BillingNotice) => void;
+  /** each new ledger row, after it is stored; never throws into billing */
+  onLedger?: (entry: LedgerEntry) => void;
 }
 export type BillingNotice =
   | { kind: "receipt"; accountId: string; invoiceId: string; amountCents: number; currency: string; description: string; paidAt: number;
@@ -51,16 +56,23 @@ export function createBillingService(options: BillingServiceOptions) {
   const { store, provider, clouds } = options, state = store.state, config = options.config ?? BILLING_CONFIG;
   const now = options.now ?? Date.now, random = options.random ?? (bytes => randomBytes(bytes).toString("base64url"));
   const publicUrl = guarded(() => new URL(options.publicUrl).origin)();
-  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= [];
+  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= [];
   const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number }>();
   const queues = new Map<string, Promise<unknown>>();
   const id = (prefix: string) => `${prefix}_${random(16)}`;
   const copy = <T>(value: T): T => structuredClone(value);
   let notices: BillingNotice[] = [];
+  let recorded: LedgerEntry[] = [];
   function sendNotices() {
     const due = notices; notices = [];
     for (const notice of due) try { options.notify?.(notice); } catch { console.warn("billing: a notice failed"); }
+    const rows = recorded; recorded = [];
+    for (const row of rows) try { options.onLedger?.(row); } catch { console.warn("billing: a ledger listener failed"); }
   }
+  function record(input: LedgerDraft) { const row = appendLedger(state.ledger!, input, now()); if (row) recorded.push(row); return row; }
+  const monthlyOf = (sub: Pick<StoredSubscription, "totalCents" | "cart" | "source">) => sub.source === "admin_comp" || sub.source === "ops_grant" ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+  const subFields = (sub: StoredSubscription) => ({ accountId: sub.accountId, subscriptionId: sub.id, providerSubscriptionId: sub.providerSubscriptionId,
+    plan: quote(sub.cart, config).bundle ?? "custom", interval: sub.cart.interval, mrrCents: monthlyOf(sub) });
   const planLabel = (sub: StoredSubscription) => config.bundles.find(bundle => bundle.id === quote(sub.cart, config).bundle)?.label.toLowerCase() ?? "custom";
   const cancelledNotice = (sub: StoredSubscription): BillingNotice =>
     ({ kind: "cancelled", accountId: sub.accountId, description: planLabel(sub), cloudId: sub.cloudId, endsAt: sub.currentPeriodEnd, graceDays: config.graceDays });
@@ -131,7 +143,8 @@ export function createBillingService(options: BillingServiceOptions) {
     for (const rows of [state.customers, state.checkouts, state.subscriptions, state.invoices, state.credits, state.feedback]) {
       for (const row of rows) if (row.accountId === original) row.accountId = anonId;
     }
-    for (const row of state.customers) if (row.accountId === anonId) row.email = "";
+    for (const row of state.ledger ?? []) if (row.accountId === original) row.accountId = anonId;
+    for (const row of state.customers) if (row.accountId === anonId) { row.email = ""; delete row.attribution; }
     for (const row of state.checkouts) if (row.accountId === anonId) { row.email = ""; row.source = null; row.url = null; }
     for (const row of state.feedback) if (row.accountId === anonId) { delete row.expected; delete row.improve; }
     for (const license of state.licenses) {
@@ -485,17 +498,75 @@ export function createBillingService(options: BillingServiceOptions) {
     const before = copy(state);
     try {
       const event = verified.event;
+      const prior = event.kind === "subscription" ? copy(state.subscriptions.find(sub => sub.providerSubscriptionId === event.subscriptionId) ?? null) : null;
       if (event.kind === "subscription") applySubscription(event, verified.at);
       else if (event.kind === "payment") applyPayment(event);
       else if (event.kind === "refund") applyRefund(event);
-      state.webhookEvents.push({ id: verified.id, at: now(), type: event.kind === "refund" ? "refund.succeeded" : event.kind === "ignored" ? event.type : `${event.kind}.${event.type}` });
+      ledgerOf(verified.id, verified.at, event, prior);
+      state.webhookEvents.push({ id: verified.id, at: now(), type: event.kind === "refund" ? "refund.succeeded" : event.kind === "ignored" || event.kind === "dispute" ? (event.kind === "dispute" ? `dispute.${event.type}` : event.type) : `${event.kind}.${event.type}` });
       state.webhookEvents = state.webhookEvents.filter(event => event.at >= now() - 30 * day).sort((a, b) => a.at - b.at);
       store.commit();
-    } catch (error) { Object.assign(state, before); notices = []; throw error; }
+    } catch (error) { Object.assign(state, before); notices = []; recorded = []; throw error; }
     sendNotices();
     flushCloudActions();
     kickProviderCancels();
     return { duplicate: false };
+  }
+  /** the ledger rows one verified delivery adds: only for records of ours, so a stray or duplicate subscription stays out */
+  function ledgerOf(webhookId: string, sentAt: number, event: BillingEvent, prior: StoredSubscription | null) {
+    const base = { via: "webhook" as const, webhookId };
+    if (event.kind === "payment") {
+      const invoice = state.invoices.find(row => row.providerPaymentId === event.paymentId);
+      if (!invoice) return;
+      const sub = state.subscriptions.find(row => row.id === invoice.subscriptionId);
+      record(draft({ ...base, key: `payment.${event.type}:${event.paymentId}`, at: event.createdAt ?? sentAt, type: `payment.${event.type}`, ...(sub ? subFields(sub) : { accountId: invoice.accountId }),
+        providerPaymentId: event.paymentId, providerCustomerId: event.customerId, amountCents: event.amountCents, currency: event.currency, ...moneyOf(event),
+        country: event.country ?? null, reason: event.errorCode ?? null, status: event.type }));
+      return;
+    }
+    if (event.kind === "refund" || event.kind === "dispute") {
+      const invoice = state.invoices.find(row => row.providerPaymentId === event.paymentId);
+      const sub = invoice ? state.subscriptions.find(row => row.id === invoice.subscriptionId) : undefined;
+      const type = event.kind === "refund" ? "refund.succeeded" : `dispute.${event.type}`, ref = event.kind === "refund" ? event.refundId : event.disputeId;
+      record(draft({ ...base, key: `${type}:${ref}`, at: event.createdAt ?? sentAt, type, ...(sub ? subFields(sub) : { accountId: invoice?.accountId ?? null }), providerPaymentId: event.paymentId,
+        providerRef: ref, amountCents: event.amountCents, currency: event.currency, reason: event.reason ?? null, status: event.kind === "dispute" ? event.stage : null }));
+      return;
+    }
+    if (event.kind === "ignored") {
+      if (!event.data) return;
+      const data = event.data, text = (value: unknown) => typeof value === "string" && value ? value.slice(0, 80) : null;
+      const metadata = data.metadata && typeof data.metadata === "object" ? data.metadata as Record<string, unknown> : {};
+      const checkout = state.checkouts.find(row => row.id === text(metadata.checkoutId));
+      const ref = text(data.checkout_session_id) ?? text(data.payment_id) ?? text(data.subscription_id) ?? webhookId;
+      record(draft({ ...base, key: `${event.type}:${ref}`, at: sentAt, type: event.type, accountId: checkout?.accountId ?? null, providerRef: ref,
+        providerPaymentId: text(data.payment_id), providerSubscriptionId: text(data.subscription_id), amountCents: Number.isSafeInteger(data.total_amount) ? data.total_amount as number : null,
+        currency: text(data.currency) }));
+      return;
+    }
+    const sub = state.subscriptions.find(row => row.providerSubscriptionId === event.subscriptionId);
+    if (!sub || sub.status === "pending") return;
+    const fields = { ...base, ...subFields(sub), at: sentAt, providerCustomerId: event.customerId, country: event.country ?? null, previousMrrCents: prior && prior.status !== "pending" ? monthlyOf(prior) : null };
+    const was = prior?.status ?? "pending";
+    const changed = prior && prior.status !== "pending" && monthlyOf(prior) !== monthlyOf(sub);
+    if (changed) {
+      const type = monthlyOf(sub) > monthlyOf(prior) ? "subscription.upgraded" : "subscription.downgraded";
+      record(draft({ ...fields, key: `${type}:${sub.providerSubscriptionId}:${webhookId}`, type, status: sub.status }));
+    }
+    if (event.type === "active" && sub.status === "active" && was === "pending") record(draft({ ...fields, key: `subscription.active:${sub.providerSubscriptionId}`, type: "subscription.active", at: event.createdAt ?? sentAt, status: "active" }));
+    if ((event.type === "active" || event.type === "renewed") && sub.status === "active" && was === "payment_problem") {
+      record(draft({ ...fields, key: `subscription.recovered:${sub.providerSubscriptionId}:${sub.currentPeriodEnd ?? webhookId}`, type: "subscription.recovered", status: "active" }));
+    }
+    if (event.type === "renewed" && sub.status === "active") record(draft({ ...fields, key: `subscription.renewed:${sub.providerSubscriptionId}:${event.nextBillingAt ?? webhookId}`, type: "subscription.renewed", status: "active" }));
+    if ((event.type === "on_hold" || event.type === "failed") && was !== "payment_problem" && sub.status === "payment_problem") {
+      record(draft({ ...fields, key: `subscription.${event.type}:${sub.providerSubscriptionId}:${sub.currentPeriodEnd ?? webhookId}`, type: `subscription.${event.type}`, status: event.status, reason: event.reason ?? null }));
+    }
+    if ((event.type === "cancelled" || event.type === "expired") && was !== "ended" && sub.status === "ended") {
+      record(draft({ ...fields, key: `subscription.${event.type}:${sub.providerSubscriptionId}`, type: `subscription.${event.type}`, at: event.cancelledAt ?? sentAt, status: "ended", reason: event.reason ?? null }));
+    }
+    if (prior && prior.status !== "pending" && sub.status !== "ended" && prior.cancelAtPeriodEnd !== sub.cancelAtPeriodEnd) {
+      const type = sub.cancelAtPeriodEnd ? "subscription.cancel_scheduled" : "subscription.cancel_undone";
+      record(draft({ ...fields, key: `${type}:${sub.providerSubscriptionId}:${webhookId}`, type, status: sub.status, reason: event.reason ?? null }));
+    }
   }
   kickProviderCancels();
   try { flushCloudActions(); } catch {}
@@ -536,7 +607,10 @@ export function createBillingService(options: BillingServiceOptions) {
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: item.kind, cart, packId: pack?.id ?? null,
       cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
       subscriptionId: null, amountCents: cart ? amount(quote(cart, config).totalCents) : pack!.priceCents, creditCents: pack?.creditCents ?? null, lines: cart ? quote(cart, config).lines : [] };
-    state.checkouts.push(entry); const owner = customer(account.id, account.email); store.commit();
+    state.checkouts.push(entry); const owner = customer(account.id, account.email);
+    if (!input.operator) record(draft({ key: `checkout.started:${entry.id}`, at: entry.createdAt, type: "checkout.started", via: "app", accountId: account.id, providerRef: entry.id,
+      amountCents: entry.amountCents, currency: config.currency, plan: cart ? quote(cart, config).bundle ?? "custom" : pack?.id ?? null, interval: cart?.interval ?? null, reason: source }));
+    store.commit(); sendNotices();
     try {
       const session = await provider.createCheckout({ checkoutId: entry.id, accountId: account.id, email: entry.email, customerId: owner.providerCustomerId, cart: lines, returnUrl: url,
         billing: { interval: cart?.interval ?? null, amountCents: entry.amountCents, currency: config.currency } });
@@ -758,7 +832,82 @@ export function createBillingService(options: BillingServiceOptions) {
     const totals = list.reduce((sum, row) => ({ started: sum.started + row.started, paid: sum.paid + row.paid, active: sum.active + row.active }), { started: 0, paid: 0, active: 0 });
     return { v: 1, from, to, rows: list, totals };
   }
+  let syncing: Promise<{ scanned: number; added: number }> | null = null;
+  /** reads the provider's past payments, refunds, disputes and subscriptions onto the ledger; what is already there stays as it is */
+  function syncFromProvider(): Promise<{ scanned: number; added: number }> {
+    if (!provider.list) fail(409, "unavailable");
+    syncing ??= (async () => {
+      let scanned = 0, added = 0;
+      const text = (value: unknown) => typeof value === "string" && value ? value.slice(0, 120) : null;
+      const time = (value: unknown) => { const at = typeof value === "string" ? Date.parse(value) : NaN; return Number.isFinite(at) ? at : null; };
+      const cents = (value: unknown) => Number.isSafeInteger(value) ? value as number : typeof value === "string" && /^\d{1,12}$/.test(value) ? Number(value) : null;
+      const accountOf = (item: Record<string, unknown>) => {
+        const customerId = text((item.customer as Record<string, unknown> | undefined)?.customer_id);
+        const metadata = item.metadata && typeof item.metadata === "object" ? item.metadata as Record<string, unknown> : {};
+        const known = (id: string | null) => id && state.customers.some(row => row.accountId === id) ? id : null;
+        return state.customers.find(row => customerId && row.providerCustomerId === customerId)?.accountId ?? known(text(metadata.accountId));
+      };
+      const add = (input: LedgerDraft) => { if (record(input)) added++; };
+      async function each(resource: "payments" | "subscriptions" | "refunds" | "disputes", fn: (item: Record<string, unknown>) => void) {
+        for (let page = 0; page < 50; page++) {
+          const items = await provider.list!(resource, page);
+          for (const item of items) { scanned++; fn(item); }
+          if (items.length < SYNC_PAGE) return;
+        }
+      }
+      await each("payments", item => {
+        const paymentId = text(item.payment_id), status = item.status === "succeeded" || item.status === "failed" ? item.status : null, at = time(item.created_at);
+        if (!paymentId || !status || at === null) return;
+        const invoice = state.invoices.find(row => row.providerPaymentId === paymentId);
+        const sub = state.subscriptions.find(row => (invoice && row.id === invoice.subscriptionId) || (text(item.subscription_id) && row.providerSubscriptionId === text(item.subscription_id)));
+        const settlement = cents(item.settlement_amount), tax = cents(item.settlement_tax) ?? cents(item.tax);
+        add(draft({ key: `payment.${status}:${paymentId}`, at, type: `payment.${status}`, via: "sync", ...(sub ? subFields(sub) : { accountId: invoice?.accountId ?? accountOf(item) }),
+          providerPaymentId: paymentId, providerSubscriptionId: text(item.subscription_id), providerCustomerId: text((item.customer as Record<string, unknown> | undefined)?.customer_id),
+          amountCents: cents(item.total_amount), currency: text(item.currency), netCents: settlement === null ? null : Math.max(0, settlement - (cents(item.settlement_tax) ?? 0)), taxCents: tax,
+          country: text((item.billing as Record<string, unknown> | undefined)?.country)?.toUpperCase().slice(0, 2) ?? null, reason: text(item.error_code), status }));
+      });
+      await each("refunds", item => {
+        const refundId = text(item.refund_id), paymentId = text(item.payment_id), at = time(item.created_at);
+        if (!refundId || !paymentId || at === null || item.status !== "succeeded") return;
+        const invoice = state.invoices.find(row => row.providerPaymentId === paymentId), sub = state.subscriptions.find(row => invoice && row.id === invoice.subscriptionId);
+        const paid = state.ledger!.find(row => row.providerPaymentId === paymentId && row.type === "payment.succeeded");
+        add(draft({ key: `refund.succeeded:${refundId}`, at, type: "refund.succeeded", via: "sync", ...(sub ? subFields(sub) : { accountId: invoice?.accountId ?? paid?.accountId ?? null }),
+          providerPaymentId: paymentId, providerRef: refundId, amountCents: cents(item.amount), currency: text(item.currency), reason: text(item.reason) }));
+      });
+      await each("disputes", item => {
+        const disputeId = text(item.dispute_id), paymentId = text(item.payment_id), at = time(item.created_at);
+        if (!disputeId || !paymentId || at === null) return;
+        const invoice = state.invoices.find(row => row.providerPaymentId === paymentId);
+        const paid = state.ledger!.find(row => row.providerPaymentId === paymentId && row.type === "payment.succeeded");
+        const fields = { via: "sync" as const, at, accountId: invoice?.accountId ?? paid?.accountId ?? null, providerPaymentId: paymentId, providerRef: disputeId, amountCents: cents(item.amount), currency: text(item.currency), status: text(item.dispute_stage) };
+        add(draft({ ...fields, key: `dispute.opened:${disputeId}`, type: "dispute.opened" }));
+        const now = text(item.dispute_status)?.replace(/^dispute_/, "");
+        if (now && now !== "opened" && ["challenged", "accepted", "cancelled", "expired", "won", "lost"].includes(now)) add(draft({ ...fields, key: `dispute.${now}:${disputeId}`, type: `dispute.${now}` }));
+      });
+      await each("subscriptions", item => {
+        const providerId = text(item.subscription_id), at = time(item.created_at);
+        if (!providerId || at === null || item.status === "pending") return;
+        const sub = state.subscriptions.find(row => row.providerSubscriptionId === providerId);
+        const fields = { via: "sync" as const, ...(sub ? subFields(sub) : { accountId: accountOf(item), providerSubscriptionId: providerId, mrrCents: cents(item.recurring_pre_tax_amount) }),
+          providerCustomerId: text((item.customer as Record<string, unknown> | undefined)?.customer_id), country: text((item.billing as Record<string, unknown> | undefined)?.country)?.toUpperCase().slice(0, 2) ?? null };
+        add(draft({ ...fields, key: `subscription.active:${providerId}`, type: "subscription.active", at, status: "active" }));
+        const ended = time(item.cancelled_at);
+        if ((item.status === "cancelled" || item.status === "expired") && ended !== null) add(draft({ ...fields, key: `subscription.${item.status}:${providerId}`, type: `subscription.${item.status}`, at: ended, status: "ended" }));
+      });
+      state.lastSync = { at: now(), added, scanned };
+      store.commit(); sendNotices();
+      return { scanned, added };
+    })().finally(() => { syncing = null; });
+    return syncing;
+  }
+  /** keeps a customer's first touch once; later calls never move it */
+  function setAttribution(accountId: string, attribution: Attribution) {
+    const row = state.customers.find(item => item.accountId === accountId);
+    if (!row || row.attribution) return false;
+    row.attribution = attribution; store.changed(); return true;
+  }
   return {
+    syncFromProvider: guarded(syncFromProvider), setAttribution: guarded(setAttribution),
     funnel: guarded(funnel),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), drainProviderCancels: guarded(drainProviderCancels),
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),

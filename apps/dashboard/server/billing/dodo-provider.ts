@@ -1,4 +1,4 @@
-import { BillingProviderError } from "./types.ts";
+import { BillingProviderError, SYNC_PAGE } from "./types.ts";
 import type { BillingProvider } from "./types.ts";
 import { verifyWebhook } from "./webhook-signature.ts";
 
@@ -78,5 +78,14 @@ export function createDodoProvider(options: DodoProviderOptions): BillingProvide
     async changePlan(input) { await request(`/subscriptions/${encodeURIComponent(input.subscriptionId)}/change-plan`, "POST", { product_id: input.productId, quantity: 1, proration_billing_mode: "difference_immediately", on_payment_failure: "prevent_change", addons: input.addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })) }); },
     async invoiceUrl() { return null; },
     invoicePdf: id => request(`/invoices/payments/${encodeURIComponent(id)}`, "GET", undefined, true),
+    async list(resource, page) {
+      const result = await request(`/${resource}?page_size=${SYNC_PAGE}&page_number=${page}`, "GET");
+      try {
+        const data: unknown = JSON.parse(result!.body.toString("utf8"));
+        const items = data && typeof data === "object" ? (data as { items?: unknown }).items : null;
+        if (!Array.isArray(items)) throw new Error();
+        return items.filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item));
+      } catch { throw new BillingProviderError("refused"); }
+    },
   };
 }

@@ -35,6 +35,7 @@ export const STORE_LAYOUTS: Record<string, StoreLayout> = {
     refunds: { collection: "billing_refunds", key: byId },
     providerCancels: { collection: "billing_provider_cancels", key: byId },
     duplicates: { collection: "billing_duplicates", key: byId, indexes: byAccount },
+    ledger: { collection: "billing_ledger", key: byId, indexes: [{ keys: { accountId: 1, at: -1 } }, { keys: { at: -1 } }, { keys: { key: 1 }, unique: true }] },
   },
   clouds: {
     clouds: { collection: "clouds", key: byId, indexes: [...byAccount, { keys: { status: 1 } }] },

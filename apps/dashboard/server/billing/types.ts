@@ -16,14 +16,31 @@ export interface CreateCheckoutInput {
 }
 
 /** a provider webhook after its signature was verified, mapped to our words */
+/** what a payment or subscription webhook also told us, kept on the billing ledger for the owner's numbers; every field is
+ *  optional and a malformed one is dropped, never a reason to refuse the delivery */
+export interface ProviderDetails {
+  /** the provider's own time for the object (created_at), else null */
+  createdAt?: number | null;
+  /** settlement_amount and settlement_tax, in the settlement currency (USD for us) */
+  settlementCents?: number | null; settlementTaxCents?: number | null; taxCents?: number | null; settlementCurrency?: string | null;
+  /** billing.country, two letters */
+  country?: string | null;
+  errorCode?: string | null; reason?: string | null;
+  /** a subscription's recurring price before tax and how often it bills */
+  recurringCents?: number | null; interval?: "month" | "year" | null;
+  cancelledAt?: number | null;
+}
 export type BillingEvent =
-  | { kind: "subscription"; type: "active" | "renewed" | "on_hold" | "failed" | "cancelled" | "expired" | "plan_changed" | "updated";
+  | ({ kind: "subscription"; type: "active" | "renewed" | "on_hold" | "failed" | "cancelled" | "expired" | "plan_changed" | "updated";
       subscriptionId: string; customerId: string | null; checkoutId: string | null; accountId: string | null; productId: string | null;
-      addons: Array<{ addonId: string; quantity: number }>; nextBillingAt: number | null; cancelAtPeriodEnd: boolean; status: string | null }
-  | { kind: "payment"; type: "succeeded" | "failed"; paymentId: string; subscriptionId: string | null; customerId: string | null;
-      checkoutId: string | null; accountId: string | null; amountCents: number; currency: string }
-  | { kind: "refund"; refundId: string; paymentId: string; amountCents: number; currency: string }
-  | { kind: "ignored"; type: string };
+      addons: Array<{ addonId: string; quantity: number }>; nextBillingAt: number | null; cancelAtPeriodEnd: boolean; status: string | null } & ProviderDetails)
+  | ({ kind: "payment"; type: "succeeded" | "failed"; paymentId: string; subscriptionId: string | null; customerId: string | null;
+      checkoutId: string | null; accountId: string | null; amountCents: number; currency: string } & ProviderDetails)
+  | ({ kind: "refund"; refundId: string; paymentId: string; amountCents: number; currency: string } & ProviderDetails)
+  /** a chargeback: opened, then challenged, won, lost, accepted, cancelled or expired. Recorded only; billing state is unchanged */
+  | ({ kind: "dispute"; type: "opened" | "challenged" | "accepted" | "cancelled" | "expired" | "won" | "lost"; disputeId: string; paymentId: string;
+      amountCents: number; currency: string; stage: string | null } & ProviderDetails)
+  | { kind: "ignored"; type: string; data?: Record<string, unknown> };
 
 export interface VerifiedWebhook { id: string; at: number; event: BillingEvent }
 
@@ -45,7 +62,11 @@ export interface BillingProvider {
   /** a url the owner's browser may open for this payment's invoice */
   invoiceUrl(paymentId: string): Promise<string | null>;
   invoicePdf(paymentId: string): Promise<{ contentType: string; body: Buffer } | null>;
+  /** one page (SYNC_PAGE) of the provider's past records, newest first, for the owner's backfill; absent where the
+   *  provider keeps no history to read */
+  list?(resource: ProviderResource, page: number): Promise<Array<Record<string, unknown>>>;
 }
+export type ProviderResource = "payments" | "subscriptions" | "refunds" | "disputes";
 
 export class BillingProviderError extends Error {
   code: "bad_signature" | "unavailable" | "refused";
@@ -61,3 +82,5 @@ export interface AccountResolver {
   /** the app's signed-in account (Authorization: Bearer omc_...), or null */
   fromBearer(req: IncomingMessage): AccountRef | null | Promise<AccountRef | null>;
 }
+/** records per backfill page: 50 dodo payments stay under the provider client's 256 KB response cap */
+export const SYNC_PAGE = 50;
