@@ -12,7 +12,7 @@
     "claude edit linear issue",
     "linear ai change due date"
   ],
-  "answer": "a bot can change the date, owner, priority, description or other supported fields on an existing linear issue. name the ticket and the correction; it can search for the issue and read it before editing. values it writes replace the old ones, including the entire label list. these are app changes, so the sending setting does not make them wait for your approval.",
+  "answer": "**fix the deadline while the rest of the ticket stays intact.** the bot finds and reads a linear issue, then changes the date, owner, priority or description you name. labels replace the whole label list. edits skip sending approval, so put a preview-and-agree step in the job before giving it write access.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,43 +43,43 @@
     "toolkit": "linear",
     "slug": "LINEAR_UPDATE_ISSUE"
   },
-  "what": "this action edits an issue that already exists. the bot first finds the ticket with search linear issues or get linear issue, then sends at least one field to change. for a new owner or workflow state, it looks up the workspace user or the states for that issue's team.\n\nbe especially clear about labels: the new list replaces the old list rather than adding to it. moving teams alongside a state, project or cycle change takes two stages, and a failure can leave the team move applied. inspect the issue before retrying.",
+  "what": "**name the ticket and the exact field to change.** the bot finds the existing issue and reads it before editing. new owners and states need lookups in your workspace and that issue's team.\n\n- labels replace the full list; they do not append\n- a team move with state, project or cycle changes takes two stages\n- a failed second stage can leave the team changed; inspect before retrying",
   "uses": [
-    "correct a delivery date after the person responsible confirms the new day",
-    "replace an outdated description with the agreed reproduction steps",
-    "move an issue to the named owner after checking the workspace user match",
-    "set an agreed priority without changing the issue's project or labels"
+    "correct a delivery date after its owner confirms the new day",
+    "replace an old description with agreed steps to reproduce the problem",
+    "hand an issue to a new owner after matching the person to your team",
+    "set an agreed priority without touching the project or labels"
   ],
   "routine": {
-    "message": "each weekday at 4:30, look for due-date corrections i have marked ready in this chat since your last run. find each linear issue, read its current date and show me the old and proposed dates here. ask me before you change anything, then apply only the due-date corrections i confirm and report the saved dates here. never change teams, labels, owners or priority.",
+    "message": "each weekday at 4:30, find open linear issues in the ops team whose due date has passed. show me each one here with its title, owner and current due date, and ask me what the new date should be.\n\nask me before you change anything, change only the due dates i give you, then tell me the saved dates. never change teams, labels, owners or priority.",
     "when": "weekdays at 4:30",
-    "needs": "linear connected, with read and write access for this bot",
-    "output": "after your confirmation\n\nops-62: packaging check for orin at mossvale studio.\ndue date changed from 18 november to 20 november.\nno other fields changed."
+    "needs": "linear with read and write; allow team issue lookup, required field lookups and issue updates",
+    "output": "after your confirmation\nops-62: packaging check for orin at mossvale studio\n- previous due date: 18 november\n- saved due date: 20 november\nno other changes."
   },
   "steps": [
-    "connect linear in **Connected apps** and enable **read and write** for the bot handling corrections.",
-    "keep its allowed actions to issue lookup, the relevant field lookups and issue updating; leave unrelated tracker changes unavailable.",
-    "test one date correction with the instruction 'ask me before you change anything', then inspect the saved issue.",
-    "add the weekday review only after that first correction; **Pause** lets you stop future runs from the routine card."
+    "connect linear and give the corrections bot read and write.",
+    "allow issue and field lookups plus issue updates. leave unrelated tracker changes out.",
+    "try one date correction. ask for the old and new date together, then agree to the edit.",
+    "schedule the weekday overdue review once the saved date is right. **Pause** stops future runs."
   ],
   "watch": [
-    "editing labels replaces every existing label. an empty new label list removes them all.",
-    "states, projects and cycles must fit the issue's team. the bot needs fresh lookups for names you give it.",
-    "a failed combined team move may have partly succeeded. check what changed before attempting it again.",
-    "write access permits these edits without a sending approval. an ask-first instruction in the routine is needed when you want to review them."
+    "**labels replace labels.** an empty list removes them all. read the existing list before changing it.",
+    "**team details must fit.** states, projects and cycles need lookups for the issue's team.",
+    "**read the issue before retrying a failed move.** the team may have changed even if the second stage failed.",
+    "**keep the date review supervised.** write access permits edits without a sending approval card. the routine above tells it to ask."
   ],
   "faq": [
     {
       "q": "can it add a label without losing the others?",
-      "a": "it needs to read the current labels and send the complete intended list, including the ones you want to keep. this update does not append a single label by itself."
+      "a": "**yes, if it keeps the complete list.** read the current labels first, then include every label you want to retain."
     },
     {
       "q": "does changing a date ask me first?",
-      "a": "not automatically. use the explicit ask-first instruction in the routine, or keep the bot read only if you only want a proposal."
+      "a": "**put the ask-first step in the instruction.** sending controls do not cover date edits. read only blocks the edit entirely."
     },
     {
       "q": "can i describe the owner or state in normal words?",
-      "a": "yes. the bot can look up users and the issue team's states before making the change. it should stop for a choice if the name matches more than one person or state."
+      "a": "**yes. you name them; the bot looks them up.** if a name fits several people or states, it should ask you to choose."
     }
   ],
   "sources": [
@@ -95,5 +95,35 @@
       "label": "dusk bot docs: sending and approval settings",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect linear with the lookup and update actions",
+      "name one ticket and ask for its current due date",
+      "give a new date and ask for a preview",
+      "agree to that change, then open the issue and read the saved date"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "sending just the new label",
+      "fix": "ask the bot to keep the old labels in the replacement list."
+    },
+    {
+      "mistake": "retrying a failed team move immediately",
+      "fix": "read the issue first. the team move may already have happened."
+    }
+  ],
+  "tip": {
+    "text": "old date beside new date. the fastest way to spot the right edit on the wrong ticket."
+  },
+  "checklist": {
+    "items": [
+      "the title and owner match the issue you meant",
+      "only the intended fields appear in the proposal",
+      "the routine asks before it changes anything",
+      "the saved issue has the agreed values"
+    ]
+  },
+  "voice": 2
 }

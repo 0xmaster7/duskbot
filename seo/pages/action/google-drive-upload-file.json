@@ -4,14 +4,14 @@
   "title": "Upload a file to Google Drive with AI to a chosen folder",
   "nav": "upload file",
   "h1": "ask ai to upload a file into the right google drive folder",
-  "description": "Upload a file to Google Drive with AI, within this action's 5 MB limit. Resolve the destination folder first because an invalid ID can fall back to root.",
+  "description": "Put a file up to 5 MB into the Google Drive folder you choose. Find the destination first, then open the saved copy where you expect it.",
   "keyword": "upload google drive file with ai",
   "keywords": [
     "chatgpt upload file google drive",
     "claude upload file drive folder",
     "ai google drive file upload"
   ],
-  "answer": "give your bot a file and it can upload a new copy to google drive, optionally inside a chosen folder. this action accepts files up to 5 mb. the destination needs special care: if the bot gets the folder wrong, the file lands in the top level of your drive with no error, so check where it went. uploads are writes and do not ask under the sending setting, so include a review instruction if folder placement matters.",
+  "answer": "**put the approved poster where the printer can find it.** give the bot a file up to 5 mb and a google drive folder. it creates a new copy rather than replacing an older file. a bad or missing destination can silently send it to drive's top level. uploads bypass sending approval, so ask for the folder preview before it writes.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -36,45 +36,44 @@
       "s-parcel",
       "p-folder"
     ],
-    "bubble": "check the upload folder"
+    "bubble": "the poster is in drive"
   },
   "og_line": "a small file, in the folder you confirmed.",
   "action": {
     "toolkit": "googledrive",
     "slug": "GOOGLEDRIVE_UPLOAD_FILE"
   },
-  "what": "the required input is the file to upload, with a clear filename and accurate file type. you can give a file to the bot using attach files or by dropping it into chat. the upload creates a new file; it is not a promise to replace an older drive copy.\n\nfor a folder destination, have the bot find the folder and show it to you before uploading. a familiar folder name is not enough when several folders share it. without a folder id, or with an invalid one, this action can place the file at the top of drive without reporting an error.",
+  "what": "**attach the file and name its home.** drop it into chat with a clear filename, file type and destination. the bot finds the folder before uploading.\n\nseveral folders can share a name. use the folder link when names overlap. after the upload, open that folder and the new file together.",
   "uses": [
-    "upload the approved poster pdf you attached into an event folder",
-    "place a small signed certificate in the named client handover folder",
-    "save a report the bot has made into the confirmed reporting folder",
-    "put a reference image in a shared project folder without moving other files"
+    "**event artwork:** put the approved poster pdf in the event folder.",
+    "**a client handover:** upload a small signed certificate to the right folder.",
+    "**report delivery:** save the bot's report in your reporting folder.",
+    "**project reference:** add an image without moving existing files."
   ],
   "routine": {
-    "message": "every thursday at 1, find the drive folder called hollymere exhibition prints and show me its full reference before uploading the poster pdf i marked approved here. check that the file is within the 5 mb limit, show its filename and file type, and ask me before you change anything. after approval, upload it to the confirmed folder and verify the returned file's location here. never upload if the folder is ambiguous or missing, and never replace or delete an older poster.",
+    "message": "every thursday at 1, look in the approved posters folder in the project folder i gave you. find new pdfs that aren't yet in the hollymere exhibition prints folder on google drive. compare each file's size with the 5 mb limit. show its filename, type and proposed drive folder here. ask me before you change anything. upload only the files i choose, then return each saved file and its actual folder. stop if the folder is missing or ambiguous. never replace, delete or upload a second copy.",
     "when": "thursdays at 13:00",
-    "needs": "google drive connected with read and write access; file finding, upload and file checks allowed; approved poster attached in chat",
-    "output": "upload proposal\n\nfile: hollymere-exhibition-poster.pdf\nfile type: pdf\nsize: within the 5 mb limit\ndestination: confirmed exhibition prints folder\n\nnikolina approved the artwork. waiting for your upload confirmation; no drive file created."
+    "needs": "access to the approved posters project folder; google drive read and write for finding, uploading and locating saved files",
+    "output": "upload proposal\n- file: hollymere-exhibition-poster.pdf\n- type: pdf\n- size: within 5 mb\n- destination: exhibition prints folder, found in drive\n\njess's approved artwork is ready for the exhibition prints folder."
   },
   "steps": [
-    "enable google drive for the bot in **Connected apps** with **read and write**, limited to the upload and location-checking actions it needs.",
-    "use **Attach files** to provide the approved file, then have the bot find and show the intended destination folder.",
-    "ask it to check the filename, file type and size before requesting your permission to upload.",
-    "after one approved upload, inspect its actual folder; only then schedule repeats, with **Pause** available on the routine card."
+    "**allow the needed actions.** connect drive with read and write for uploads and location checks.",
+    "**provide one file.** attach it and ask the bot to find the destination folder.",
+    "**review the preview.** review the name, type, size and folder. tell it to ask first.",
+    "**open the result.** open the file in its actual drive folder. schedule new files from a project folder only after that works."
   ],
   "watch": [
-    "the maximum file size for this upload action is 5 mb. do not assume it handles a larger file because drive itself can store it.",
-    "an invalid folder id can fall back to drive root without an error. verify both the resolved folder and the created file location.",
-    "uploading is a new-file operation. another run can produce another copy, so check whether the approved file has already been uploaded."
+    "**5 mb is this action's limit.** drive's storage allowance does not make this upload larger.",
+    "**find the existing copy before uploading again.** each upload creates another file."
   ],
   "faq": [
     {
       "q": "why did the upload appear outside my folder?",
-      "a": "this action falls back to drive root for a missing or invalid folder id. resolve the folder first and inspect the uploaded file's actual location afterwards."
+      "a": "**the folder choice may have failed.** a missing or wrong folder can send the file to drive's top level. inspect its actual location."
     },
     {
       "q": "can it upload the file i drop into dusk chat?",
-      "a": "you can give the bot a file that way or with attach files. it still needs drive write access, accurate file information and a file within this action's size limit."
+      "a": "**yes, within 5 mb.** attach it or drop it in chat. the bot still needs drive write access and the right filename and type."
     }
   ],
   "sources": [
@@ -90,5 +89,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "attach a small file",
+      "name the drive folder and ask the bot to find it",
+      "read the proposed filename and folder link",
+      "after uploading, open that folder"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting the upload result alone",
+      "fix": "open the new file and read its folder location."
+    },
+    {
+      "mistake": "rerunning the same upload",
+      "fix": "look for the existing copy first."
+    }
+  ],
+  "tip": {
+    "text": "give the printer a file in the right folder, not a treasure hunt."
+  },
+  "checklist": {
+    "items": [
+      "the file is within 5 mb",
+      "the filename and type match the file",
+      "the destination folder is unambiguous",
+      "there is no existing copy"
+    ]
+  },
+  "voice": 2
 }

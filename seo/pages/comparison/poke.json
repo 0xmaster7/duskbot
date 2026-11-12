@@ -1,10 +1,10 @@
 {
   "path": "/vs/poke",
-  "title": "Poke vs Dusk Bot: one contact or a small bot team?",
+  "title": "Poke vs Dusk Bot: a text contact or separate teammates?",
   "nav": "poke",
   "h1": "poke vs dusk bot: where you text your assistant",
-  "description": "Compare Poke’s messaging channels, included AI and plan prices with Dusk Bot’s named teammates, phone pairing and hosting choices.",
-  "answer": "poke is a personal assistant you text like a contact, through services including apple messages, telegram, whatsapp and rcs.[^1][^2] dusk bot has its own desktop and paired phone interface, where you text separate bots with different jobs. poke runs as an always-on cloud agent; dusk bots can live on your computer, your server or dusk cloud.[^3][^7] choose first by where you want the conversation and whether you want a single assistant or named roles.",
+  "description": "Compare Poke messaging, included AI and monthly prices with Dusk Bot roles, phone pairing and hosting. Pick the place you will actually use.",
+  "answer": "**pick where you'll actually text it.** poke works like a contact in apple messages, telegram, whatsapp or rcs.[^1][^2] dusk uses its own desktop and paired phone interface, with separate bots for different jobs.\n\npoke runs in the cloud. dusk bots live on your computer, server or dusk cloud.[^3][^7] pick where you'll text it first. the rest follows.",
   "tags": [
     "poke",
     "comparison",
@@ -33,17 +33,17 @@
   "verdict": {
     "them_title": "poke",
     "them": [
-      "you want to text an assistant through apple messages, telegram, whatsapp or rcs",
-      "you want cloud operation and ai included in the same service plan"
+      "**you want your usual messaging app.** text through apple messages, telegram, whatsapp or rcs.",
+      "**you want cloud and ai together.** both come inside its service plan."
     ],
     "dusk": [
-      "you want different bots for different responsibilities, with their own memory",
-      "you want control over where the bots live and which ai each one uses"
+      "**you have separate responsibilities to hand over.** each bot gets a job and memory.",
+      "**you want to choose the home and ai.** each bot uses the model you pick."
     ]
   },
   "compare": {
     "h": "start with the place you will actually use it",
-    "intro": "channel support and monthly usd prices below are from poke's own pages, read on 12 november 2026. the table does not assume the two products offer the same amount of ai work.",
+    "intro": "**a similar price can buy a different setup.** these monthly usd prices and channels are as of 12 november 2026. the plans do not promise equal ai work.",
     "cols": [
       "Poke",
       "Dusk Bot"
@@ -53,7 +53,7 @@
         "label": "conversation surface",
         "cells": [
           "apple messages, telegram, whatsapp and rcs",
-          "own desktop app and paired phone browser; store phone apps are on their way"
+          "own desktop app and paired phone browser; store apps are on the way"
         ],
         "src": [
           2,
@@ -63,8 +63,8 @@
       {
         "label": "assistant arrangement",
         "cells": [
-          "proactive personal assistant you text like a contact",
-          "separate named bots, each with a job, chats and memory"
+          "one proactive personal assistant you text like a contact",
+          "named bots with separate jobs, chats and memories"
         ],
         "src": [
           1,
@@ -74,7 +74,7 @@
       {
         "label": "where the agent runs",
         "cells": [
-          "always-on cloud agent",
+          "an always-on cloud agent",
           "your computer, your server or dusk cloud"
         ],
         "src": [
@@ -85,8 +85,8 @@
       {
         "label": "ai billing",
         "cells": [
-          "models included in the plan; pro and ultra describe frontier models",
-          "your chosen ai provider bills usage separately from dusk"
+          "models included; pro and ultra describe frontier models",
+          "your chosen ai provider bills usage separately"
         ],
         "src": [
           4,
@@ -96,8 +96,8 @@
       {
         "label": "monthly prices",
         "cells": [
-          "free $0; pro $19; ultra $199 with usage beyond credits billed pay-as-you-go",
-          "free personal desktop use; cloud plus $20 or pro $50, plus ai usage"
+          "free $0; pro $19; ultra $199, then pay-as-you-go usage beyond credits",
+          "free personal desktop use; cloud plus $20 or pro $50, with ai separate"
         ],
         "src": [
           4,
@@ -109,7 +109,7 @@
         "label": "background jobs",
         "cells": [
           "reminders and scheduled tasks; pro adds real-time background automations",
-          "routines from chat; desktop stops while asleep, cloud runs on time"
+          "routines made through chat; desktop sleeps stop work, cloud runs on time"
         ],
         "src": [
           1,
@@ -119,8 +119,8 @@
       {
         "label": "app connections",
         "cells": [
-          "recipe directory includes notion, github and linear; custom mcp integrations",
-          "connect an app and choose access per bot; mcp servers can be added as plugins"
+          "recipes include notion, github and linear; custom mcp integrations",
+          "connect apps with access chosen per bot; add trusted mcp servers through plugins"
         ],
         "src": [
           5,
@@ -129,33 +129,33 @@
       }
     ]
   },
-  "method": "poke's pages don't say which models it uses or how it asks before acting; that doesn't mean it has no safeguards.",
+  "method": "**try the habit you want to keep.** poke's own pages don't name its models or explain how it asks before acting. ask about those details when you try it.\n\nwe make dusk bot. these dated offers help you choose a trial; we haven't measured which handles your job better.",
   "sections": [
     {
-      "h": "a phone assistant should fit the way you check in",
-      "md": "if you want the conversation in an existing messaging app, poke directly supports that pattern.[^2] there is no reason to add a separate bot workspace merely to ask a small question. the [assistants you text comparison](/alternatives/ai-assistant-you-text) looks at that preference across products.\n\ndusk bot's phone interface is different. you pair it once with a computer or dusk cloud, then text your bots there. today pairing opens a browser version you can add to the home screen. that version sends no notifications; the store apps are still on their way.[^6] if you rely on a notification to notice work, take that limitation seriously."
+      "h": "use the conversation you will come back to",
+      "md": "**if you want a familiar contact, poke fits that habit.** it directly supports existing messaging apps.[^2] a separate bot workspace adds little if you only want a quick question or reminder. [assistants you text](/alternatives/ai-assistant-you-text) compares that choice.\n\ndusk pairing opens a phone browser you can add to your home screen. it has no notifications today. store apps are still on the way.[^6]\n\nif you depend on a ping to notice completed work, take that limit seriously."
     },
     {
-      "h": "the closed laptop changes the dusk choice",
-      "md": "poke is described as an always-on cloud agent.[^3] a dusk bot on your laptop still depends on the app running and the machine being on. pairing a phone to that laptop does not move the bot to the phone.[^6]\n\nwith dusk cloud, the bots run on a computer we host and your phone works with the laptop off. the cloud computer is your own machine, not shared, and ai usage remains a separate provider cost.[^7][^9] the [personal agent guide](/personal-ai-agent) is a useful next step if you want to choose where the bot should live before assigning more work."
+      "h": "a paired phone does not move the bot",
+      "md": "**get the phone reply even after you've shut the laptop.** poke already runs as a cloud agent.[^3] a dusk bot on your computer needs it on with the app running.[^6]\n\ndusk cloud hosts your bots on your own unshared machine. pair your phone there and it works with the laptop off. ai usage still goes on the provider's bill.[^7][^9]\n\nchoose the home before adding more work. the [personal agent guide](/personal-ai-agent) walks through that decision."
     },
     {
-      "h": "split responsibilities only when it helps",
-      "md": "in dusk bot, you might keep one bot for planning a writing project and another for reviewing attached drafts. each has its own memory and ai choice.[^8] give the planner a routine such as: \"every monday at 9, ask me which writing commitment matters most this week. keep the question in this chat.\"\n\nthat arrangement adds roles to manage. if you simply want one contact to remind you about things, poke's documented reminder and scheduling features may be a closer fit.[^1] [poke alternatives](/alternatives/poke) covers other choices without assuming more bots are always useful.\n\nfor dusk bots connected to apps, keep early trials read-only. sends ask first unless you set a daily allowance, but other changes inside an app can go ahead without asking. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^12] request \"ask me before you change anything\" if you later grant write access.[^11]"
+      "h": "add roles only when they earn their keep",
+      "md": "**give each bot a job worth keeping separate.** a planner and a draft reviewer can each keep their own memory and ai.[^8]\n\ntry: \"every monday at 9, read upcoming deadlines in my writing-project folder. ask which commitment matters most this week. return the question here; change nothing.\"\n\nif a reminder contact is enough, poke's reminders and schedules may fit better.[^1] [poke alternatives](/alternatives/poke) covers the other choices.\n\nstart dusk app access read only.[^12] for jobs that need writes, include \"ask me before you change anything\"; app edits can run without asking.[^11]"
     }
   ],
   "faq": [
     {
       "q": "can poke message me first?",
-      "a": "yes. as of 12 november 2026, poke's homepage describes proactive messages, reminders and scheduled tasks. it lists background automations on pro.[^1]"
+      "a": "**yes.** as of 12 november 2026, its homepage lists proactive messages, reminders and scheduled tasks. pro lists background automations.[^1]"
     },
     {
-      "q": "how do i run an agent from my phone when my laptop is closed?",
-      "a": "poke already runs in the cloud.[^3] for dusk bot, pair the phone to dusk cloud rather than a sleeping laptop. a phone paired to your computer needs that computer on and running dusk bot.[^6][^7]"
+      "q": "how can an agent answer my phone with my laptop closed?",
+      "a": "**the bot needs an awake home elsewhere.** poke runs in the cloud.[^3] for dusk, pair to dusk cloud. pairing to your computer still needs that computer on and the app running.[^6][^7]"
     },
     {
       "q": "is poke joining cognition?",
-      "a": "yes. cognition announced it was welcoming the interaction company on 23 july 2026 and said poke users could continue using the product as before. on 12 november 2026 poke's homepage still showed 'poke is joining cognition'.[^1][^3]"
+      "a": "**yes, according to its current announcement.** cognition welcomed the interaction company on 23 july 2026 and said users could continue as before. poke still showed the joining banner on 12 november 2026.[^1][^3]"
     }
   ],
   "sources": [
@@ -225,5 +225,52 @@
     "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
     "at": "2026-11-12"
   },
-  "connectors": []
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "choose the messaging app you already open every day",
+      "decide whether one assistant is enough",
+      "decide what must work with your laptop off",
+      "compare the full bill, including separate ai usage"
+    ]
+  },
+  "decide": {
+    "h": "start from your daily habit",
+    "cols": [
+      "if you need",
+      "try"
+    ],
+    "rows": [
+      [
+        "an assistant in apple messages or whatsapp",
+        "poke"
+      ],
+      [
+        "separate bots with their own memory and ai",
+        "dusk bot"
+      ],
+      [
+        "a phone reply while your laptop sleeps",
+        "poke or dusk paired to dusk cloud"
+      ],
+      [
+        "notifications from dusk's phone browser today",
+        "that browser version does not send them"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "expecting phone pairing to host the bot",
+      "fix": "pair to an awake computer or dusk cloud. the phone is where you talk."
+    },
+    {
+      "mistake": "building a team for one reminder",
+      "fix": "start with one assistant. add a role only when it has distinct work."
+    }
+  ],
+  "tip": {
+    "text": "the assistant in the app you open every day has a head start."
+  },
+  "voice": 2
 }

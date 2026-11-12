@@ -4,14 +4,14 @@
   "title": "Decline an Outlook meeting with AI and a clear boundary",
   "nav": "decline a calendar invitation",
   "h1": "decline a specific outlook invitation after your review",
-  "description": "Have a bot decline an Outlook invitation with an optional explanation or new time. Know when the organiser receives a response and why review is explicit.",
+  "description": "Free a calendar slot by declining an Outlook invitation. Choose the exact date, your explanation and whether the organiser gets a response.",
   "keyword": "outlook decline meeting with ai",
   "keywords": [
     "chatgpt decline outlook calendar event",
     "claude reject meeting invitation",
     "ai outlook decline with proposed time"
   ],
-  "answer": "your bot can decline an outlook meeting invitation, optionally adding an explanation or proposing another time. it finds the exact meeting first, and the organiser receives a response by default unless that option is turned off. dusk counts declining as a write, including when a response goes out. your sending setting doesn't cover it, so tell the bot to ask before it declines.",
+  "answer": "**free the calendar slot without making up an excuse.** the bot finds the outlook invitation and declines with your words, optionally proposing another time. outlook emails the organiser by default. dusk classes this as a write, so sending approval does not hold it. tell the bot to ask before declining.",
   "tags": [
     "outlook",
     "meeting invitations",
@@ -22,43 +22,43 @@
     "/integrations/outlook/search-calendar-events"
   ],
   "og_line": "choose the invitation and the response first.",
-  "what": "this changes your response to an invitation. first the bot can search calendar events or list events, find the requested meeting and confirm the exact occurrence. it can then decline that event with a plain explanation and, if you give it, a proposed start and end for another time.\n\nby default the organiser gets your decline by email. you can ask the bot to decline quietly instead.",
+  "what": "**say no to the meeting you actually mean.** name the date and organiser, especially when the title repeats. the bot finds the occurrence and can include your explanation or a proposed start and end time.\n\nchoose whether outlook should email the organiser; it sends a response by default. a proposed slot still needs a separate availability lookup and the other person's agreement.",
   "uses": [
-    "decline a supplier demonstration you have explicitly decided not to attend",
-    "turn down an optional workshop invitation with your chosen explanation",
-    "respond to a meeting conflict by declining and proposing a specific alternative period",
-    "record a decline without emailing the organiser when you intentionally select that behaviour"
+    "decline a supplier demo you have decided to skip",
+    "turn down an optional workshop with your chosen explanation",
+    "decline a clashing meeting and propose a specific alternative",
+    "decline quietly when you choose not to email the organiser"
   ],
   "routine": {
-    "message": "at 16:55 every tuesday, find upcoming outlook invitations matching the event links i marked decline in this chat. show the meeting title, organiser, date and proposed decline wording here, then ask me before changing my response. after approval, decline only the named event and send the exact explanation i approved, reporting the result here. never decline a different occurrence, invent a reason or propose a new time without my dates.",
+    "message": "at 16:55 every tuesday, read next week's outlook invitations for supplier demonstrations that overlap another calendar event. show each title, organiser, date and clash here.\n\npropose the explanation \"thank you for the invitation; i will not be attending this session.\" ask me before changing any response. decline only the occurrence i approve and send only that explanation. report the result here. never invent reasons or propose another time without my start and end dates.",
     "when": "tuesdays at 16:55",
-    "needs": "outlook connected with read and write for event lookup and decline; calendar write permission required",
-    "output": "decline awaiting review\n\nblythe's supplier demonstration, friday 11:00\norganiser: caraway optics\nproposed response: thank you for the invitation; i will not be attending this session.\norganiser response: send after approval.\ninvitation unchanged so far."
+    "needs": "outlook with read and write for event lookup and declines, including calendar write permission",
+    "output": "decline proposal\n- zoe's supplier demonstration, friday 11:00\n- organiser: caraway optics\n- explanation: thank you for the invitation; i will not be attending this session.\nemail the organiser only after you agree. invitation unchanged."
   },
   "steps": [
-    "enable outlook in **Connected apps** and choose **read and write** for the bot handling these invitations.",
-    "give it the exact event reference and ask it to find the exact meeting, including the intended occurrence for a repeating meeting.",
-    "review the explanation and whether an organiser response should be sent; require agreement before declining. **Ask every time** for sends does not control this write.",
-    "inspect the first event response yourself before scheduling more, and use **Pause** if the matched invitation is wrong."
+    "connect outlook. allow read and write for calendar lookup and declines.",
+    "name the exact meeting, date and occurrence if it repeats.",
+    "choose the explanation and whether to email the organiser. ask for review before declining.",
+    "open the invitation after the first decline and read its response status. **Pause** if it picked the wrong one."
   ],
   "watch": [
-    "unless you say otherwise, the organiser is told you declined, and dusk bot won't ask first because it counts this as a change, not a send.",
-    "similar titles and repeating meetings need a check of the title, date and organiser before declining.",
-    "a proposed new time is a start-and-end period, not a guarantee of availability or acceptance by other attendees.",
-    "a success message means the request was accepted. it does not prove anyone read or agreed to the response."
+    "**put the pause before the decline.** this action can email the organiser, but dusk classes it as a write. sending controls do not hold it.",
+    "**use the date and organiser to pick an occurrence.** repeating titles can hide different meetings.",
+    "**give both ends of the new slot.** look up availability separately; a proposed time reserves nothing.",
+    "**outlook accepted the request. the organiser still has to read it.** success says nothing about their agreement."
   ],
   "faq": [
     {
       "q": "can it decline without sending an email response?",
-      "a": "yes. ask it to decline without sending a response; otherwise the organiser gets one."
+      "a": "**yes.** ask it to decline without sending a response. otherwise outlook tells the organiser."
     },
     {
       "q": "does the bot ask before declining an invitation?",
-      "a": "the action is a write and does not automatically use sending approval. the routine must explicitly require your review before it changes your response."
+      "a": "**tell it to ask before declining.** dusk classes the action as a write, so the review step belongs in the routine."
     },
     {
       "q": "can it suggest another time while declining?",
-      "a": "the action accepts a proposed time period. give the intended start and end and check availability separately; a proposal does not book the organiser into that slot."
+      "a": "**yes, with a start and end time.** look up availability separately. the proposal does not book that slot for everyone."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook with calendar lookup and decline allowed",
+      "ask for one invitation's title, organiser and exact date",
+      "choose the response wording and whether to notify the organiser",
+      "ask the bot to wait for your agreement before declining"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming sending approval covers declines",
+      "fix": "put \"ask me before you decline anything\" in the routine."
+    },
+    {
+      "mistake": "rejecting a whole series by a familiar title",
+      "fix": "match the date and organiser to the occurrence you want to decline."
+    }
+  ],
+  "tip": {
+    "text": "want a quiet decline? ask for no response. outlook tells the organiser by default."
+  },
+  "checklist": {
+    "items": [
+      "the date and organiser match the invitation",
+      "you chose whether to email a response",
+      "the reason contains no invented details",
+      "any proposed time has a start, end and separate availability lookup"
+    ]
+  },
+  "voice": 2
 }

@@ -11,7 +11,7 @@
     "chatgpt plus vs api",
     "claude code without api key"
   ],
-  "answer": "as of 12 november 2026, claude pro costs $20 monthly, max $100 and ultra $200 before tax. the api charges by input and output tokens, with sonnet 5.5 at $2 and $10 per million respectively. neither price alone answers which is cheaper: compare your actual usage, any included api credits and the access method your provider documents. a plan is not a fixed token bundle.",
+  "answer": "**already paying for max? you may already have the api credits you need.** as of 12 november 2026, claude pro is $20/month, max $100 and ultra $200 before tax. sonnet 5.5 api costs $2 per million input units and $10 per million output units. add your actual usage, subtract applied credits, and compare the bill under the current access terms.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -40,38 +40,38 @@
   "og_line": "compare usage before comparing prices.",
   "sections": [
     {
-      "h": "the plan prices and api rates",
-      "md": "as of 12 november 2026, anthropic's pricing page lists these individual plans. prices exclude tax.[^1]\n\n| plan | price | detail relevant to this comparison |\n| --- | --- | --- |\n| pro | $20 billed monthly | $200 up front for annual billing, shown as $17 a month |\n| max | $100 a month | 5x pro usage and $100 a month in api credits |\n| ultra | $200 a month | 10x pro weekly usage and $200 a month in api credits |\n\nthe $200 plan is now called ultra, not max, so older comparisons may use the wrong name. anthropic also says pro, max and ultra include claude code alongside its web, desktop and mobile apps.[^1][^2]\n\nas of the same date, the api pricing page lists sonnet 5.5 at $2 per million input tokens and $10 per million output tokens. opus 5.5 is $4 input and $20 output per million. input and output must be counted separately; multiplying all tokens by the cheaper input rate understates the bill.[^3]"
+      "h": "what the plan and api prices cover",
+      "md": "**put the included credits beside the monthly price.** anthropic lists these prices before tax as of 12 november 2026.[^1]\n\n| plan | price | what matters here |\n| --- | --- | --- |\n| pro | $20 billed monthly | annual billing costs $200 up front, shown as $17/month |\n| max | $100/month | 5x pro usage; $100 monthly api credits |\n| ultra | $200/month | 10x pro weekly usage; $200 monthly api credits |\n\nthe $200 plan is now ultra. older comparisons may still call it max. pro, max and ultra include claude code plus the web, desktop and mobile apps.[^1][^2]\n\nthe api charges for incoming and outgoing text separately. rates per million text units on the same date:[^3]\n\n- sonnet 5.5: $2 input, $10 output\n- opus 5.5: $4 input, $20 output\n\noutput costs more. pricing everything at the input rate makes your estimate look pleasantly wrong."
     },
     {
-      "h": "example calculations, not typical bills",
-      "md": "these are invented workloads to show the arithmetic. they are not measured bot usage or promises about how much work fits a plan. amounts below cover the stated input and output only, before credits and any other charges.\n\n- **example, a small sonnet workload:** 1 million input tokens and 0.1 million output tokens. `(1 × $2) + (0.1 × $10) = $3`. that's less than pro's $20, but a plan and the api aren't the same thing, so this doesn't tell you what pro would cover.[^1][^3]\n- **example, a larger sonnet workload:** 8 million input and 2 million output tokens. `(8 × $2) + (2 × $10) = $36`. that exceeds $20 in raw api usage. it still does not prove this workload fits pro's limits.[^3]\n- **example, the same token counts on opus:** `(8 × $4) + (2 × $20) = $72`. changing the model changes the token subtotal even when counts stay the same.[^3]\n\nfor your own calculation, use input millions times the input rate, plus output millions times the output rate. then check credits and the actual billing terms for your account. do not convert a monthly plan price into an invented number of included tokens."
+      "h": "three invented bills, with the sums shown",
+      "md": "**see how a $3 api job becomes $36, then $72.** these are invented workloads, not typical usage. the sums cover only the stated input and output, before credits and other charges.[^3]\n\n**small sonnet workload.**\n\n```text\n1 million input units x $2 = $2\n0.1 million output units x $10 = $1\n$2 + $1 = $3\n```\n\nthat's below pro's $20 price. pro still has its own usage limits.[^1][^3]\n\n**larger sonnet workload.**\n\n```text\n8 million input units x $2 = $16\n2 million output units x $10 = $20\n$16 + $20 = $36\n```\n\nnow raw api use exceeds $20. find out whether the job fits pro's limits before assuming the plan is cheaper.[^3]\n\n**the same amounts on opus.**\n\n```text\n8 million input units x $4 = $32\n2 million output units x $20 = $40\n$32 + $40 = $72\n```\n\nsame text counts, different model, twice the subtotal.[^3] keep input and output separate, then apply credits and billing terms."
     },
     {
-      "h": "included api credits change the comparison",
-      "md": "as of 12 november 2026, the pricing page lists $100 in monthly api credits with max and $200 with ultra. anthropic's support article, updated 7 october 2026, says max, ultra and team now include monthly api credits, and that signed-in agent sdk and `claude -p` still draw from plan limits.[^4]\n\nkeep these quantities separate in your notes: the plan payment, included credits, raw api charges and anything due beyond credits. do not add the full raw api subtotal to a plan payment if your provider has applied credits to it. equally, do not assume all possible charges are covered simply because a monthly credit exists. check your provider's current billing details.\n\nfor someone already paying for max, the useful question may be whether existing credits cover the proposed work. for someone buying a plan only for one task, the whole plan price matters."
+      "h": "credits can change what you owe",
+      "md": "**your credits can cover the api bill before you pay another dollar.** as of 12 november 2026, max lists $100 monthly api credits; ultra lists $200.\n\nanthropic's support update of 7 october 2026 says max, ultra and team include monthly api credits. signed-in agent sdk and `claude -p` still draw from plan limits.[^4]\n\nkeep four lines apart:\n\n- the plan payment\n- included credits\n- raw api usage\n- the balance beyond credits\n\nuse the credits the provider actually applied. already paying for max? those may cover the job. buying a plan just for this work? count its whole price."
     },
     {
-      "h": "the login route is a terms question too",
-      "md": "as of 12 november 2026, anthropic describes sign-in to the unmodified claude code binary while restricting developer credential handling and reserving usage-credit billing for certain third-party tools; none of this says whether a particular app is covered, so check your provider's current terms and the [sign-in overview](/use-your-ai-subscription).[^5][^6] if two answers online disagree, the [dated sign-in log](/guides/apps-that-use-your-ai-subscription) shows which rule came first."
+      "h": "read the sign-in terms before choosing",
+      "md": "**choose a route the provider lets you use before pricing it.** as of 12 november 2026, anthropic describes sign-in to unmodified claude code. it restricts developers handling sign-ins and reserves usage-credit billing for certain third-party tools.[^5][^6]\n\nread your provider's current terms. they don't rule on a particular app here. the [sign-in overview](/use-your-ai-subscription) explains the routes; the [dated log](/guides/apps-that-use-your-ai-subscription) shows which rule came first."
     },
     {
-      "h": "add the computer only if you need one",
-      "md": "dusk's ai usage is billed by the ai provider, separately from dusk. personal use on your own computer is free. dusk cloud plus costs $20 monthly and pro $50 monthly; that pays for a hosted computer, not ai allowance.[^7]\n\nuse the [always-on cost calculator](/tools/always-on-cost) for the hosting part, and the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) for other product prices. an inexpensive token calculation is not a complete monthly budget if the bot also needs a paid machine."
+      "h": "count hosting only when the job needs it",
+      "md": "**add hosting only when your laptop needs to be off.** dusk's ai usage stays on your provider bill. personal use on your own computer is free. cloud plus costs $20/month; pro costs $50/month. that buys the computer; ai usage stays separate.[^7]\n\nput the machine in the [always-on calculator](/tools/always-on-cost) and other costs in the [agent cost guide](/guides/how-much-does-an-ai-agent-cost)."
     }
   ],
   "faq": [
     {
       "q": "is claude max cheaper than the api?",
-      "a": "it depends on the work and the credits already included in your account. as of 12 november 2026, max costs $100 monthly and lists $100 in monthly api credits. compare actual usage and billing rather than treating max as a token count.[^1]"
+      "a": "**sometimes, depending on usage and credits.** as of 12 november 2026, max costs $100/month with $100 monthly api credits. compare your real bill, not an invented text allowance.[^1]"
     },
     {
       "q": "does claude code need api-key billing?",
-      "a": "as of 12 november 2026, anthropic documents claude code access with pro, max and ultra. the code legal page also describes api-key authentication. the access method and its terms determine how a particular setup is billed.[^2][^5]"
+      "a": "**not always.** as of 12 november 2026, anthropic includes claude code with pro, max and ultra. api-key access is another route. the method and its terms decide billing.[^2][^5]"
     },
     {
       "q": "what should i measure before choosing?",
-      "a": "record input and output tokens separately for an api workload, the model, and credits actually applied. for a signed-in plan, check usage limits in the provider's own account. do not assume one unit of 'agent work' has a fixed price."
+      "a": "**record input and output separately.** note the model and credits actually applied. for plan sign-in, inspect the provider's usage limits. there is no fixed price for one unit of agent work."
     }
   ],
   "sources": [
@@ -109,5 +109,39 @@
       "label": "dusk bot: cloud and ai costs",
       "url": "/docs/dusk-cloud"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "open your provider's usage and billing records",
+      "note the model, input, output and credits applied",
+      "compare the full monthly cost with the plan you would actually buy"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "charging all text at the cheaper input rate",
+      "fix": "count output separately. its rate is higher in these examples."
+    },
+    {
+      "mistake": "adding a raw api bill after credits already covered it",
+      "fix": "use the balance actually due after applied credits."
+    },
+    {
+      "mistake": "assuming a $20 workload fits the $20 plan",
+      "fix": "read the plan limits. dollars do not map to a fixed text allowance."
+    }
+  ],
+  "tip": {
+    "text": "already paying for max? open the credits balance before buying another route."
+  },
+  "checklist": {
+    "items": [
+      "the rates match the model i intend to use",
+      "input and output have separate amounts",
+      "credits appear only once in the calculation",
+      "the access method fits the provider's current terms",
+      "hosting and tax appear where they apply"
+    ]
+  },
+  "voice": 2
 }

@@ -29,7 +29,7 @@ type **@** and a bot's name to hand something to that bot, whatever the setting.
 
 - **write group instructions.** open the group's panel and say what the project is, where the files live and how you want updates. every bot follows them.
 - **pin the one thing** everyone needs to the top.
-- **keep it small.** three focused bots beat eight that talk over each other.
+- **keep it small.** a few focused bots beat a crowd that talks over each other.
 
 bots hand work along by @mentioning each other, and tag you when they need a yes. each keeps its own ai and its own permissions, so a careful bot stays careful in a room with a bold one.
 

@@ -4,14 +4,14 @@
   "title": "List recurring Google Calendar dates with AI",
   "nav": "get event instances",
   "h1": "find the actual dates in a recurring calendar series",
-  "description": "Ask AI to list occurrences of a recurring Google Calendar event within a date window. Check the series ID, cancellations and result pages before relying on it.",
+  "description": "Turn a recurring Google Calendar meeting into actual dates, with cancellations marked and times in your zone. Get a four-week list in chat.",
   "keyword": "google calendar recurring event dates with ai",
   "keywords": [
     "chatgpt list recurring google calendar events",
     "claude google calendar event instances",
     "ai find recurring meeting occurrences"
   ],
-  "answer": "your bot can turn a recurring google calendar event into its individual occurrences for a date window you choose. the bot finds the repeating event first. it only looks, but dusk counts this action as a change, so the bot needs read and write access to google calendar; you can limit it to just this action. asking for occurrences does not itself move or cancel the meetings.",
+  "answer": "**hand the trainer real dates instead of saying every tuesday.** the bot finds your recurring google calendar event and lists its occurrences within a chosen window. include cancellations so nobody travels for a skipped session. this only lists dates, but dusk classes the action as a write. give it read and write access limited to this job.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,37 @@
     "toolkit": "googlecalendar",
     "slug": "GOOGLECALENDAR_EVENTS_INSTANCES"
   },
-  "what": "a repeating meeting rule is not a convenient list of dates. this action retrieves the occurrences belonging to one recurring series on one calendar. use find event or list events to locate the series id first, and list calendars if you need its calendar id. the main calendar can also be selected as primary.\n\ngive it a window, like \"the next four weeks\", rather than asking for every date forever. a long-running event can produce many results, so the bot must follow result pages before calling the list complete. include cancellation status when your question depends on skipped dates.",
+  "what": "**get the next four weeks laid out in order.** name the repeating event and its calendar; your main calendar works too. the bot finds the series first.\n\nname the time zone and ask for cancellations beside the scheduled dates. a long series can fill several batches, so tell it to keep going until it has the whole window.",
   "uses": [
-    "give a visiting trainer the dated sessions from one repeating course",
-    "check whether the occurrence you expect during a holiday week is cancelled",
-    "list the next appointments in a recurring treatment series for your own planning"
+    "give a visiting trainer the dated sessions in a recurring course",
+    "spot a cancelled holiday-week session before anyone travels",
+    "list upcoming dates in your own recurring treatment series"
   ],
   "routine": {
-    "message": "on the second tuesday of each month at 12:30, find the recurring kiln safety course on my training calendar. list its dates for the next four weeks in india time, following every result page and identifying cancellations. put the dated list here for nikhil to check. never edit the series or count a cancelled occurrence as a session to attend.",
+    "message": "on the second tuesday of each month at 12:30, find the recurring kiln safety course on my training calendar. list the next four weeks in india time here for nikhil. keep going until all dates in that window are listed. mark cancellations and never count them as sessions to attend. never edit the series.",
     "when": "second tuesday of each month at 12:30",
-    "needs": "google calendar connection with read and write access, calendar lookup and recurring-series lookup allowed",
-    "output": "kiln safety course: next four weeks\ntime zone: india time\n\n17 november: 10:00, scheduled\n24 november: cancelled\n1 december: 10:00, scheduled\n8 december: 10:00, scheduled\n\nall returned result pages checked. no calendar edits made."
+    "needs": "google calendar with read and write; allow calendar and series lookups plus this action only",
+    "output": "kiln safety course, next four weeks\nindia time\n- 17 november, 10:00: scheduled\n- 24 november: cancelled\n- 1 december, 10:00: scheduled\n- 8 december, 10:00: scheduled\n24 november is a week off."
   },
   "steps": [
-    "give the bot the course name and calendar through **Connected apps**, then ask it to locate the recurring series before expanding it.",
-    "enable **read and write** for this action, keeping event edits outside its action list if it only needs to retrieve occurrences.",
-    "check a short sample against your calendar, including the response time zone and any cancelled date.",
-    "make the bounded request a routine; inspect its next runs and use **Pause** when the course ends."
+    "connect google calendar. give the course name and the calendar it belongs to.",
+    "allow read and write for this action and its lookups. leave event edits outside the action list.",
+    "compare the short list with your calendar. look for the right time zone and marked cancellations.",
+    "schedule that same four-week search. look at the next runs and **Pause** when the course ends."
   ],
   "watch": [
-    "this needs a repeating event; a standalone appointment will not work.",
-    "always give a date window; asking for every date of a long series can be slow or fail.",
-    "an attendee cap can leave the returned participant information incomplete, so this is not automatically a complete attendance roster."
+    "**start with a repeating event.** a standalone appointment has no series to expand.",
+    "**a date window keeps the job manageable.** a request for every occurrence can run slowly or fail.",
+    "**use the dates for planning sessions.** an attendee limit can leave people out, so get attendance separately."
   ],
   "faq": [
     {
       "q": "will this change the repeating meeting?",
-      "a": "no. it only lists the dates. dusk files it under changes, which is why it needs read and write access, but it moves nothing."
+      "a": "**no meetings change.** it only lists occurrences. dusk counts this action as a change, so read and write is still required."
     },
     {
       "q": "can it include the skipped dates?",
-      "a": "ask it to include cancelled occurrences and show their status explicitly. keep the time window narrow so you can compare the returned dates with the series you intended."
+      "a": "**yes, ask for cancelled occurrences too.** show their status beside each date and compare the short list with your calendar."
     }
   ],
   "sources": [
@@ -89,5 +89,26 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name the calendar and repeating meeting",
+      "ask for the next four weeks in your time zone, including cancellations",
+      "compare one scheduled date and one skipped date with your calendar"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating every returned date as a meeting to attend",
+      "fix": "show cancellation status beside each date."
+    },
+    {
+      "mistake": "using it as a complete guest list",
+      "fix": "get attendance separately. the returned details can omit people."
+    }
+  ],
+  "tip": {
+    "text": "say the time zone in the request. a familiar meeting name is not enough."
+  },
+  "voice": 2
 }

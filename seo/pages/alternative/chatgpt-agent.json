@@ -11,7 +11,7 @@
     "chatgpt agent use cases",
     "openai operator alternative"
   ],
-  "answer": "as of 12 november 2026, openai's help page says chatgpt agent is no longer available.[^1] openai points people to chatgpt work for longer, multi-step tasks and finished deliverables. work is therefore the current option to compare with dusk bot. stay with work if you want tasks inside chatgpt; consider dusk if you want separate bots with individual jobs, memory and ai choices. work can also run locally in the desktop app, so cloud versus local is not the dividing line.",
+  "answer": "**try work before you leave chatgpt over agent mode.** as of 12 november 2026, openai says agent is no longer available.[^1] work handles longer, multi-step tasks and finished deliverables instead. it can also run locally through the desktop app. dusk suits you if separate bots, their own memory and different ai choices matter more than staying inside chatgpt.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -45,19 +45,19 @@
   "verdict": {
     "them_title": "chatgpt work",
     "them": [
-      "you want to choose work inside chatgpt rather than organise a separate bot app",
-      "you want openai models and chatgpt plan usage in one product",
-      "you want its documented web, mobile and desktop options, including local desktop work"
+      "**stay inside chatgpt.** choose work without organising another bot app.",
+      "**keep openai models and plan usage together.** one product may be enough.",
+      "**use web, phone or desktop.** desktop work also has a local option."
     ],
     "dusk": [
-      "you want different named bots, each with its own job, chats and memory",
-      "you want to change the ai per bot while keeping that bot's chats, files and memory",
-      "you want several bots in one group thread, with a leader or mentions deciding who answers"
+      "**give each helper a job.** named bots keep their own chats and memory.",
+      "**change the ai per bot.** its chats, files and memory stay put.",
+      "**bring bots together.** use a group thread with a leader or mentions."
     ]
   },
   "compare": {
     "h": "the current comparison: work and dusk bot",
-    "intro": "status and prices are as of 12 november 2026. old agent-mode message caps are not current work allowances.",
+    "intro": "**compare today's work, not yesterday's agent caps.** status and prices are as of 12 november 2026. old agent message limits aren't work allowances.",
     "cols": [
       "ChatGPT Work",
       "Dusk Bot"
@@ -147,33 +147,33 @@
       }
     ]
   },
-  "method": "we make dusk bot. we read openai's pages on 12 november 2026 and our own docs. we didn't run the same tasks in both. we left out old agent-mode message caps because they aren't work limits.",
+  "method": "**here's what you're buying in each app.** we make dusk bot. we compared openai's pages checked on 12 november 2026 with our own docs.\n\nthese are feature and price comparisons; we didn't run matching tasks. work has its own usage rules, so retired agent message caps don't belong in the budget.",
   "sections": [
     {
-      "h": "check whether the guide you found is about the retired product",
-      "md": "openai's agent help article now says agent is no longer available and directs readers to work.[^1] an older review about choosing agent mode can still describe something that used to exist. start with the current work instructions when deciding what to buy or how to begin.[^2]\n\nthis also changes the alternatives question. you do not have to leave chatgpt simply because agent was retired. work is the first option to evaluate if you want longer tasks there. the [dusk versus chatgpt page](/vs/chatgpt-agent) is useful if you want to stay focused on those two choices."
+      "h": "your old agent guide might be the problem",
+      "md": "**you don't need another app just because the button disappeared.** openai's help article says agent is no longer available and points to work.[^1] start with the current work instructions.[^2]\n\nan old review may accurately describe a retired feature. look for its date and whether it covers work before paying for a plan. use [work versus dusk](/vs/chatgpt-agent) when those are your final two choices."
     },
     {
-      "h": "local files are not a dusk-only feature",
-      "md": "openai's work help page documents cloud use on web and mobile and local work through the chatgpt desktop app, including local files, apps and browser.[^3] it would be misleading to describe work as only a remote browser.\n\ndusk's difference is that each bot is its own helper with one job. a bot has its own job, chats and memory, and can keep several threads. you can switch its ai without losing those chats, files or memory.[^9] a [group chat](/ai-group-chat) brings several bots together; each retains its own ai and permissions.[^13]\n\ntry a document brief before a large project: \"read these attached planning notes. prepare a decision brief with the options, the evidence in each file and the questions i still need to answer.\" dusk supports document attachments.[^12] check the brief against your notes yourself."
+      "h": "take the same document into either desktop app",
+      "md": "**you can try the document job on the machine you already own.** web and mobile run in the cloud. the desktop app can work locally with files, apps and a browser.[^3]\n\ndusk's difference is the team you keep: separate jobs, chats and memory. each bot can hold several threads. switching its ai keeps those chats, files and notes.[^9] in a [group chat](/ai-group-chat), each keeps its own ai and permissions.[^13]\n\ntry an attached planning document first. ask for a decision brief with evidence and open questions.[^12] read it beside the source."
     },
     {
-      "h": "budget shared usage, not old monthly message caps",
-      "md": "openai's current docs say work and codex share pricing, credits and usage limits.[^4] do not turn an old agent message cap into a promise about how much work you can do today. openai's pages we read don't give a fixed number of work tasks per plan.\n\nas of 12 november 2026, the documented usd plan figures include plus at $20/month and pro at $100, $200 or $500/month. local prices may differ.[^5][^6] dusk cloud hosting is a separate bill from ai usage, which your provider charges.[^8][^10] neither headline price proves which will be cheaper for your workload.\n\nif recurring work is the reason you arrived here, read the [chatgpt scheduled tasks guide](/guides/chatgpt-scheduled-tasks) with the product change in mind. dusk routines on your own computer also need the app running and the computer awake; dusk cloud runs them on time.[^14] check your ai provider's current terms before depending on a sign-in for ongoing work."
+      "h": "count shared usage before buying",
+      "md": "**work and codex draw from shared usage.** openai groups their pricing, credits and limits together.[^4] openai doesn't give a fixed work task count per plan. include codex use when you budget.\n\nas of 12 november 2026, plus costs $20 monthly. pro tiers cost $100, $200 or $500 monthly. local prices can differ.[^5][^6] dusk cloud hosting and ai usage are separate bills.[^8][^10]\n\nfor repeat jobs, read the [scheduled tasks guide](/guides/chatgpt-scheduled-tasks). dusk routines need the app open and computer awake locally; cloud runs them on time.[^14] check your ai provider's current terms before relying on a sign-in."
     }
   ],
   "faq": [
     {
       "q": "what happened to chatgpt agent mode?",
-      "a": "as of 12 november 2026, openai's help article says chatgpt agent is no longer available and directs readers to chatgpt work for longer, multi-step tasks and finished deliverables.[^1]"
+      "a": "**openai points you to work now.** as of 12 november 2026, its help article says agent is no longer available. work replaces it for longer, multi-step tasks and finished deliverables.[^1]"
     },
     {
       "q": "can i use the replacement on my iphone?",
-      "a": "the current work help page lists ios and android as well as web and macos and windows desktop apps. the desktop app also supports local work; phone and web work run in the cloud.[^3]"
+      "a": "**yes. work supports ios and android.** it also has web, macos and windows apps. phone and web tasks run in the cloud; desktop can work locally.[^3]"
     },
     {
       "q": "how many work tasks do i get with plus or pro?",
-      "a": "openai's help pages say work shares usage, pricing and credits with codex, but they don't give a fixed number of tasks per plan. check current plan limits rather than relying on a retired agent-mode allowance.[^4]"
+      "a": "**budget for work and codex together.** they share usage, pricing and credits. openai doesn't give a fixed task count per plan; read the current shared limits before buying.[^4]"
     }
   ],
   "sources": [
@@ -239,5 +239,52 @@
       "label": "dusk bot: routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "open work in chatgpt",
+      "attach a short planning note",
+      "ask for decisions, evidence and open questions",
+      "compare the answer with the note before trying another app"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "shopping from an old agent-mode review",
+      "fix": "look for work and current shared usage in the review, along with its date."
+    },
+    {
+      "mistake": "choosing dusk just for local file access",
+      "fix": "work has a local desktop option too. decide whether separate bot roles matter."
+    }
+  ],
+  "decide": {
+    "h": "what would make you switch?",
+    "cols": [
+      "your need",
+      "first thing to try"
+    ],
+    "rows": [
+      [
+        "longer tasks without leaving chatgpt",
+        "chatgpt work"
+      ],
+      [
+        "different ai choices for different helpers",
+        "dusk bots"
+      ],
+      [
+        "a local document task",
+        "test the desktop option in either app"
+      ],
+      [
+        "several bots discussing one job",
+        "dusk group chat"
+      ]
+    ]
+  },
+  "tip": {
+    "text": "don't move your whole week because one old tutorial points to a missing button."
+  },
+  "voice": 2
 }

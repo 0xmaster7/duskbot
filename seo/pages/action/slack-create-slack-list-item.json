@@ -11,7 +11,7 @@
     "claude slack list item",
     "ai add slack list subtask"
   ],
-  "answer": "a bot can add a row to a slack list and set its starting cell values. it can also copy an existing row or add a subtask under one you name. this changes the list without an automatic sending prompt, so define the destination and ask for a field preview when you want to review the entry first.",
+  "answer": "**rescue the repair request before channel scroll buries it.** a bot adds a slack list item with starting values, copies an existing row or creates a subtask. give the list link and columns to fill. ask for a row preview before creation: this counts as a write, so the sending setting won't pause it for you.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,37 +41,37 @@
     "toolkit": "slack",
     "slug": "SLACK_CREATE_SLACK_LIST_ITEM"
   },
-  "what": "list rows are separate from channel messages. paste the list's link and say what goes in which column. the bot fills in a new row to match.\n\nfor a subtask, point it at the row it belongs under. for a copy, name the row to duplicate and any values to change. text values can be wrapped into slack's rich-text format for you.",
+  "what": "**a list row keeps a request out of channel scroll.** paste the list link and say what belongs in each column. the bot creates the row with those starting values. this action doesn't post a channel message.\n\nfor a subtask, name its parent row. for a copy, name the original and the values to replace. the connection handles slack's rich text for ordinary text values.",
   "uses": [
-    "add a facilities request to the team's repairs list with the location you gave",
-    "create a smaller packing task under an existing event-preparation row",
-    "copy a recurring setup checklist row and replace its title for a new session"
+    "**capture the repair request.** add the facilities problem and the location you gave.",
+    "**split a packing job.** create a subtask beneath the existing event-preparation row.",
+    "**reuse the setup structure.** copy a checklist row and replace its title for the new session."
   ],
   "routine": {
-    "message": "every weekday at 15:25, take only the facilities requests i marked \"ready for list\" in this chat today for alderwick hall. use the repairs list i linked here, and show the proposed rows before adding them. after i approve, create each row and tell me here which rows were added. never invent an owner, copy yesterday's entries or post a channel message.",
+    "message": "every weekday at 15:25, read today's messages in the alderwick hall facilities-intake slack channel. use requests marked ready for list there.\n\ncompare them with the repairs list and skip requests already represented. show proposed rows here before adding anything. after i approve, create those rows and report which ones succeeded. stop on an uncertain match. leave unknown owners blank. never copy yesterday's requests or post a channel message.",
     "when": "weekdays at 15:25",
-    "needs": "slack connected, with read and write access, and a slack account that can edit the list",
-    "output": "alderwick hall list preview\nrequest: replace meeting room door sign\nlocation: west corridor\nowner: left unset\nawaiting approval to create the row."
+    "needs": "slack read and write; channel and list reads plus list creation; connect an account that can edit the list",
+    "output": "alderwick hall repairs preview\nrequest: replace meeting room door sign\nlocation: west corridor\nowner: blank\n\nrow ready for review."
   },
   "steps": [
-    "under **Connected apps**, connect the slack user account that can edit the destination list and allow **read and write**.",
-    "paste the list link and say what goes in each column, then ask the bot to describe one proposed row without creating it.",
-    "give a precise rule for missing fields and say that adding a row must wait for your approval.",
-    "approve one test entry and open the list to check its cells before scheduling the intake job."
+    "**connect an account that can edit the list.** give this bot slack read and write.",
+    "**map one request.** paste the list link, name the columns and ask for a row preview only.",
+    "**leave gaps visible.** say which fields may stay blank and which missing details should stop the job.",
+    "**open one new row.** read its cells before scheduling daily intake."
   ],
   "watch": [
-    "the slack account you connect has to be able to edit that list.",
-    "each value has to fit its column, like a date in a date column. the bot should show you the row before adding it.",
-    "a duplicate request can become a duplicate row; the example limits intake to entries explicitly marked ready today."
+    "**the account needs list access.** channel membership alone doesn't promise it can edit this list.",
+    "**values must fit their columns.** dates belong in date columns. preview the mapping before creation.",
+    "**duplicates still become rows.** compare today's marked requests with existing entries before adding more."
   ],
   "faq": [
     {
       "q": "can it add a subtask instead of a top-level row?",
-      "a": "yes. tell the bot which row it belongs under."
+      "a": "**yes, name the parent row.** the bot can attach the new entry beneath it."
     },
     {
       "q": "does adding a list row count as sending a slack message?",
-      "a": "no. dusk bot treats it as a write. it needs write permission and follows your explicit review instruction rather than the sending setting."
+      "a": "**it counts as a write.** ask for a review in the routine itself; the sending setting does not pause list creation."
     }
   ],
   "sources": [
@@ -87,5 +87,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste the slack list link",
+      "describe one request and its column values",
+      "ask for a row preview without creation",
+      "confirm it, then read the saved cells"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "inventing an owner to fill the row",
+      "fix": "leave ownership blank or ask. an empty cell beats assigning the wrong person."
+    },
+    {
+      "mistake": "copying a row with old values intact",
+      "fix": "name the values to replace. a new title alone can leave yesterday's details behind."
+    }
+  ],
+  "tip": {
+    "text": "one request per row makes the next action clearer. put packing details beneath it as subtasks when needed."
+  },
+  "voice": 2
 }

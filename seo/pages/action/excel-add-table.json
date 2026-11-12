@@ -11,7 +11,7 @@
     "claude convert range to excel table",
     "ai create table in excel worksheet"
   ],
-  "answer": "a bot can create an excel table over a range in a connected workbook. you choose the cells and say whether their first row already contains column headers. it finds the workbook for you, then needs the sheet and the cells. making a table is a change, and changes don't ask first, so add \"show me the range before you make the table\" if you want to check.",
+  "answer": "**turn the pasted cells into a proper excel table without typing them again.** a bot wraps the existing range in a table. give it the workbook, sheet and cells, then say whether the first row holds column names. you get the same data in a table, with the report title and footnotes left outside.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -40,38 +40,38 @@
     "toolkit": "excel",
     "slug": "EXCEL_ADD_TABLE"
   },
-  "what": "add table turns cells that already hold your data into an excel table. it doesn't type in any new rows. the bot can search your onedrive for the workbook by name, then read the cells before suggesting where the table starts and ends.\n\ntell it the sheet and the cells, like A1:D4 on the intake sheet, and say whether the first row holds column names. it has to know that, so don't leave it to guess.",
+  "what": "**the table should start at your column names and end at your last record.** the bot finds the workbook in onedrive and reads the cells first. it creates a table over existing data; it adds no new rows.\n\nname the sheet and range, such as `a1:d4` on intake. say whether that first row contains headers. that keeps a real record from becoming a heading.",
   "uses": [
-    "turn a small visitor log into a table after checking its first row",
-    "turn a pasted list of orders into a table before you share the workbook",
-    "convert a supplier contact range while keeping the title above it outside the selection"
+    "**tidy a visitor log.** turn its entries and column names into a table.",
+    "**prepare pasted orders.** turn the existing cells into a table before sharing the workbook.",
+    "**keep the title outside.** start a supplier contact table below the report heading."
   ],
   "routine": {
-    "message": "on the first monday of each month at 10, inspect the new monthly intake sheet in the cloudbridge permits workbook i linked. propose a table around the intake columns only, show its exact range and whether the first row contains headers, and wait for my confirmation. after i agree, create the table and report the selected worksheet and range here. never include the notes beneath the data, change cell values or create another table if one is already present.",
+    "message": "on the first monday of each month at 10, inspect the new monthly intake sheet in the cloudbridge permits workbook.\n\n- show the proposed range around intake columns only\n- say whether its first row contains headers\n- ask me before you change anything\n\nafter i agree, create the table and report the sheet and range here. exclude notes beneath the data. leave cell values alone. if a table already exists there, stop instead of making another.",
     "when": "first monday of the month at 10:00",
-    "needs": "excel connected, with read and write access to the workbook",
-    "output": "cloudbridge permits\nworksheet: november intake\nproposed range: A3:E18\nfirst selected row contains headers: yes\nnotes below row 18 excluded. waiting to create the table."
+    "needs": "excel connected with read and write; access to the cloudbridge permits workbook",
+    "output": "cloudbridge permits\nsheet: november intake\nrange: a3:e18\nheaders in the first selected row: yes\nnotes below row 18 stay outside.\nproposed table: november intake, a3:e18. approve that range to create it."
   },
   "steps": [
-    "connect excel in **Connected apps** and give this bot **read and write** access; making a table is a change, so read only won't do.",
-    "tell the bot the workbook's name and let it find the file.",
-    "review the proposed cell address and header choice; include an explicit wait-for-confirmation instruction.",
-    "open the workbook after the first creation and **Pause** the monthly job if the sheet layout changes."
+    "**allow table creation.** connect excel with read and write for this bot.",
+    "**find the workbook.** give its name and have the bot show which sheet it found.",
+    "**draw the boundary.** ask for the range and header choice before creation.",
+    "**inspect the result.** open the workbook after creation. pause the monthly job if its layout changes."
   ],
   "watch": [
-    "always name the sheet as well as the cells, or the bot won't know where to put the table.",
-    "if there's a title above your column names, start the range at the column names, below the title.",
-    "this creates a table rather than populating one; importing records requires another action.",
-    "making a table doesn't ask first; your sending setting only covers sends. put \"ask me first\" in the request if you want to check."
+    "**cells need a sheet.** name it separately or include it in the range address.",
+    "**start below the report title.** the first table row should contain column names or data, as you chose.",
+    "**use a separate import to add rows.** table creation wraps the cells already there.",
+    "**keep creation behind your go-ahead.** the sending rule does not cover tables; the routine above tells the bot to wait."
   ],
   "faq": [
     {
-      "q": "does the bot need me to type the table data again?",
-      "a": "not if it is already in the selected range. this action creates a table over that range; it has no input for a new set of row values."
+      "q": "do i need to type the data again?",
+      "a": "**no, keep the existing cells.** this action creates a table around them. it takes no new row values."
     },
     {
-      "q": "what if my column labels are below a report title?",
-      "a": "start the selected range at the column-label row and say it contains headers. ask the bot to show that choice before creating the table."
+      "q": "what if the report title sits above my column names?",
+      "a": "**start at the column names.** say that row contains headers and check the range before creation."
     }
   ],
   "sources": [
@@ -87,5 +87,41 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect excel with read and write",
+      "name a workbook, sheet and a small range",
+      "ask for a range preview, with no changes",
+      "open excel and confirm the selected top row contains column names"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: harriet turns a monthly intake sheet into a table.",
+    "before": "a report title sits above a3:e18. notes begin below row 18. selecting everything would mix three different things.",
+    "after": "the bot proposes a3:e18, with headers. harriet approves that range. the table holds the intake records; the title and notes stay outside."
+  },
+  "checklist": {
+    "h": "before making the table",
+    "items": [
+      "the workbook and sheet are right",
+      "the range starts at the column names",
+      "notes sit outside the selected cells",
+      "no table already occupies that range"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "selecting the whole report",
+      "fix": "choose the data and its column names. leave titles and footnotes outside."
+    },
+    {
+      "mistake": "expecting an approval card for a table",
+      "fix": "require a preview and your go-ahead in the request. table creation does not use the send setting."
+    }
+  ],
+  "tip": {
+    "text": "footnotes make terrible table records. stop the range at the last entry."
+  },
+  "voice": 2
 }

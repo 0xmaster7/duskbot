@@ -78,3 +78,63 @@
 .seo-actions { columns: 2; column-gap: 24px; padding-left: 1.1em; }
 .seo-actions li { break-inside: avoid; margin: 4px 0; }
 @media (max-width: 760px) { .seo-actions { columns: 1; } }
+
+/* every block in the article starts at the article's own left edge: lists that are layouts, not bullets, drop the
+   prose list indent */
+.prose .seo-cards, .prose .seo-quick, .prose .seo-check { padding-left: 0; }
+.prose .seo-cards > li, .prose .seo-quick > li, .prose .seo-check > li { margin: 0; }
+
+/* the hero: two clouds drift across and two pixels twinkle; nothing moves when motion is reduced */
+.seo-hero { position: relative; overflow: hidden; border-radius: var(--r-l); }
+.seo-drift { position: absolute; width: 120px; height: 40px; background: url("/art/cloud-lemon.png") center / contain no-repeat; image-rendering: pixelated; opacity: 0.9; pointer-events: none; }
+.seo-drift.d1 { top: 9%; left: -20%; animation: seo-drift 38s linear infinite; }
+.seo-drift.d2 { top: 21%; left: -20%; width: 90px; height: 30px; background-image: url("/art/cloud-pink.png"); animation: seo-drift 52s linear -20s infinite; }
+.seo-twinkle { position: absolute; width: 6px; height: 6px; background: #fff; pointer-events: none; animation: seo-twinkle 2.6s steps(2) infinite; }
+.seo-twinkle.t1 { top: 14%; right: 18%; }
+.seo-twinkle.t2 { top: 30%; left: 30%; animation-delay: -1.3s; background: #fff3a0; }
+@keyframes seo-drift { to { translate: calc(var(--w, 760px) + 140%) 0; } }
+@keyframes seo-twinkle { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .seo-drift, .seo-twinkle { animation: none; } .seo-drift.d1 { left: 8%; } .seo-drift.d2 { left: 58%; } }
+
+/* small pixel bots that react beside tips, limits and steps */
+.seo-mini { width: 28px; height: 28px; flex: none; }
+.seo-mini.big { width: 52px; height: 52px; }
+.seo-warned { position: relative; }
+.seo-mascot { position: absolute; top: 4px; right: 0; }
+.seo-mascot .seo-mini { width: 40px; height: 40px; animation: seo-bob 3s ease-in-out infinite; }
+@keyframes seo-bob { 50% { translate: 0 -4px; } }
+@media (prefers-reduced-motion: reduce) { .seo-mascot .seo-mini { animation: none; } }
+.seo-spotted { position: relative; }
+.seo-spot { float: right; width: 92px; height: auto; margin: 0 0 12px 20px; image-rendering: pixelated; rotate: 3deg; }
+.seo-th { display: inline-flex; align-items: center; gap: 6px; }
+.seo-compare .table tbody tr:nth-child(even) { background: #fff; }
+
+/* try it in 2 minutes: illustrated step cards */
+.seo-quick { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gut); counter-reset: q; }
+.seo-quick li { counter-increment: q; display: grid; gap: 10px; align-content: start; padding: 16px 16px 18px; border-radius: var(--r-l); background: var(--t-lime); font-size: 15.5px; color: var(--ink); }
+.seo-quick li::before { content: counter(q); font: 600 13px/1 var(--mono); color: var(--ink-2); }
+.seo-quick li:nth-child(2) { background: var(--t-sky); } .seo-quick li:nth-child(3) { background: var(--t-lilac); } .seo-quick li:nth-child(4) { background: var(--t-pink); }
+
+/* worked example, side by side */
+.seo-ba { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-ba .code { margin: 0; } .seo-ba pre code { white-space: pre-wrap; }
+
+/* checklist, estimate, mistakes, tip */
+.seo-check { list-style: none; display: grid; gap: 8px; }
+.seo-check li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 14px; border-radius: var(--r-m); background: var(--wash); }
+.seo-check .i { width: 18px; height: 18px; margin-top: 3px; color: var(--green); }
+.seo-saves { display: grid; grid-template-columns: 52px 1fr; gap: 18px; padding: 20px 22px; border-radius: var(--r-xl); background: var(--t-lemon); }
+.seo-saves-n { margin: 0 0 8px; font-size: 22px; line-height: 1.3; font-weight: 550; color: var(--ink); letter-spacing: -0.02em; }
+.seo-formula { background: #fff; margin: 10px 0; }
+.seo-mistakes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gut); }
+.seo-mistakes > div { padding: 16px 18px; border-radius: var(--r-l); background: var(--t-pink); }
+.seo-mistakes > div:nth-child(even) { background: var(--t-sky); }
+.seo-mistakes p { margin: 8px 0 0; font-size: 15.5px; }
+.seo-tip { display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: center; margin: 32px 0; padding: 16px 20px; border-radius: var(--r-xl); background: var(--t-sky); }
+.seo-tip.careful { background: var(--t-lemon); }
+.seo-tip p { margin: 0; color: var(--ink); }
+@media (max-width: 760px) {
+  .seo-ba, .seo-mistakes { grid-template-columns: 1fr; }
+  .seo-spot { width: 64px; }
+  .seo-mascot { display: none; }
+}

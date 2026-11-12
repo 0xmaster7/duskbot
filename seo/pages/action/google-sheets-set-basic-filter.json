@@ -4,14 +4,14 @@
   "title": "Set a Google Sheets filter with AI for a specific table",
   "nav": "set a basic filter",
   "h1": "show the google sheets rows that match your question",
-  "description": "Have a bot set a basic filter on a chosen Google Sheets table. Specify the range and conditions, review the change and distinguish it from a private report.",
+  "description": "Show the Google Sheets rows your team needs: name a table and condition, preview the range, then let a bot set its filter.",
   "keyword": "filter google sheets with ai",
   "keywords": [
     "google sheets set filter with ai",
     "chatgpt filter google sheets rows",
     "claude apply google sheets basic filter"
   ],
-  "answer": "a bot can set a basic filter on a google sheet to show or sort data within a specified range. tell it which table and conditions you mean, such as showing only unassigned applications. this changes the sheet's filter rather than merely returning matching rows in chat. it needs write access, and it won't ask you first unless you tell it to.",
+  "answer": "**bring the unassigned applications to the top of the meeting.** the bot can filter or sort a chosen google sheets range using your condition. name the tab and table, then ask for a preview. it needs write access because the filter changes the shared sheet. want your own list? ask for matching rows in chat.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -38,42 +38,42 @@
     ],
     "bubble": "only unassigned applications"
   },
-  "og_line": "a defined filter for a defined table.",
+  "og_line": "the rows your next meeting needs.",
   "action": {
     "toolkit": "googlesheets",
     "slug": "GOOGLESHEETS_SET_BASIC_FILTER"
   },
-  "what": "use this when the table itself should display the subset you are working on. you describe the filter in plain words and the bot sets it up, using the sheet link you paste.\n\nname the tab, columns and intended criteria in ordinary words so the bot can set up the filter. a basic filter affects the sheet; it is different from asking the bot to privately list matching rows in your chat. choose the latter when no sheet change is wanted.",
+  "what": "**show the rows your team needs right now.** give the spreadsheet link, tab and columns. describe the condition in ordinary words, such as applications without a reviewer. the bot sets the filter.\n\nfor a private report, ask it to read values and list matches in chat. that leaves everyone else's sheet view alone.",
   "uses": [
-    "show only applications without an assigned reviewer before a selection session",
-    "filter a bounded order table to the confirmed stage for a packing review",
-    "set the working table to the region and status your team is discussing"
+    "show applications with no reviewer before a selection session",
+    "show confirmed orders in a bounded table before packing",
+    "filter the working table to the region and status your team needs"
   ],
   "routine": {
-    "message": "on alternate mondays at 10:55, inspect the applications table in the rosehollow bursary sheet i linked. propose a basic filter showing records whose reviewer field is empty, and show the tab, range and exact condition here. ask before setting it, then report the applied filter in this chat. never delete hidden rows or change applicant details.",
+    "message": "on alternate mondays at 10:55, inspect the applications table in my linked rosehollow bursary sheet. propose a basic filter for rows whose reviewer field is empty. show the tab, range and condition here. ask me before setting it. after i agree, set the filter and report it here. never delete hidden rows or edit applicant details.",
     "when": "alternate mondays at 10:55",
-    "needs": "google sheets connected with read and write access for table inspection and setting a basic filter",
-    "output": "rosehollow bursary filter proposal\ntab: applications\nrange: A1:H41\ncondition: reviewer is empty\nawaiting agreement to change the sheet’s filter; applicant cells untouched."
+    "needs": "google sheets with read and write for reading the table and setting its filter",
+    "output": "rosehollow bursary filter proposal\n- tab: applications\n- range: A1:H41\n- condition: reviewer is empty\nset this filter for the selection meeting?"
   },
   "steps": [
-    "select sheets in **Connected apps** and allow **read and write** for the filter setter and necessary table inspection.",
-    "link the spreadsheet, identify the working table and define what an empty or matching field means for this job.",
-    "ask the bot to preview the filter conditions and range before setting them. keep a clear wait-for-me instruction in the routine.",
-    "inspect the filtered table once applied and check that the intended rows remain visible. use **Pause** before the next run if your review criteria change."
+    "connect google sheets. allow table reading and setting a basic filter with read and write.",
+    "link the spreadsheet and name the tab and table. explain which values should count as empty.",
+    "ask for the proposed range and condition. keep \"ask me before setting it\" in the routine.",
+    "look at the visible rows after the change. **Pause** if the selection rules change before the next run."
   ],
   "watch": [
-    "this is a sheet filter change, not a private filter report in dusk chat. check the intended working table before applying it.",
-    "the link alone isn't enough: say which table and what you want to see.",
-    "the filter stays on the sheet after the bot is done. turn it off in sheets when you no longer need it."
+    "**the filter belongs to the sheet.** it is not a private report inside dusk chat.",
+    "**name the table and the rows you want.** the spreadsheet link alone leaves the bot guessing.",
+    "**the filter stays after the bot leaves.** turn it off in sheets when the review ends."
   ],
   "faq": [
     {
       "q": "does filtering delete rows that do not match?",
-      "a": "this action sets a filter rather than deleting records. keep deletion actions outside the bot’s allowed actions if the job is only to filter."
+      "a": "**the rows stay in the file.** the filter hides non-matching rows. keep deletion actions out of this bot's allowance."
     },
     {
       "q": "can i get a list without changing the sheet filter?",
-      "a": "ask for a report in chat using a suitable value-reading action instead. set basic filter is the choice when you want the filter applied in the spreadsheet."
+      "a": "**yes, ask for matches in chat.** the bot needs a value-reading action for that. set basic filter changes the spreadsheet itself."
     }
   ],
   "sources": [
@@ -89,5 +89,26 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect sheets and paste the spreadsheet link",
+      "name the tab, table and condition you want",
+      "compare the proposed range with your table before agreeing"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for a private list but allowing a sheet change",
+      "fix": "request matching rows in chat when other people should keep their view."
+    },
+    {
+      "mistake": "including the wrong table in the range",
+      "fix": "match the tab and first and last columns to your table before setting the filter."
+    }
+  ],
+  "tip": {
+    "text": "missing applications? look for an active filter before rebuilding the list."
+  },
+  "voice": 2
 }

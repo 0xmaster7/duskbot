@@ -11,7 +11,7 @@
     "chatgpt read google sheets range",
     "claude retrieve spreadsheet values"
   ],
-  "answer": "a bot can retrieve values from a named range in a google spreadsheet and explain them in chat. choose whether you need formatted figures, raw calculated values or the formulas themselves. dusk classifies this action as a write, despite its value-reading purpose, so a read-only bot cannot call it. allow this exact action if you need the retrieval without enabling unrelated sheet changes.",
+  "answer": "**get the figures for your decision without digging through the workbook.** name the file, tab and cells. the bot can read displayed figures, raw calculated values or formulas from that range. dusk labels this lookup as a write, so allow read and write and limit the bot to this retrieval action.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,38 +43,38 @@
     "toolkit": "googlesheets",
     "slug": "GOOGLESHEETS_VALUES_GET"
   },
-  "what": "paste the sheet's link and say which tab and cells you mean, like \"cost review, A1 to D12\".\n\nformatted values are the default, so a currency or date may arrive as displayed text. ask for unformatted calculated values when the job requires arithmetic, or formulas when you need to inspect the expression rather than its result.",
+  "what": "**get the number, or find out how the sheet got it.** choose what your question needs. paste the sheet link and name the tab and cells, such as 'cost review, a1 to d12'.\n\n- displayed values are the default, including currency and date formatting\n- raw calculated values suit arithmetic\n- formulas show how the sheet gets its answer\n\nfor dates, choose readable dates or raw numbers.",
   "uses": [
-    "read a quoted price table without editing the source spreadsheet",
-    "explain the formulas used in a small costing range",
-    "compare calculated figures from a named monthly summary without importing the whole workbook"
+    "read a quoted price table without editing its source",
+    "explain formulas in a small costing range",
+    "compare a monthly summary without bringing in the whole workbook"
   ],
   "routine": {
-    "message": "every tuesday at 14:05, retrieve the values in A1:D12 of the cost review tab in the lunecrest print sheet i linked here. use unformatted calculated values for arithmetic and show the quoted range beside your comparison of paper and binding costs. return the comparison in this chat, marking blanks separately from zero. never update cells, reorder rows or widen the range without asking me.",
+    "message": "every tuesday at 14:05, read a1:d12 on the cost review tab in the linked lunecrest print sheet. use raw calculated values to compare paper and binding costs. name the range beside the result here. show blanks separately from zero. never update cells or reorder rows. ask before reading beyond that range.",
     "when": "tuesdays at 14:05",
-    "needs": "google sheets connected with read and write access limited to get spreadsheet values",
-    "output": "lunecrest print, cost review A1:D12\npaper: 180\nbinding: 95\ndifference: 85\nblank delivery cost excluded; no cells changed."
+    "needs": "google sheets read and write, limited to get spreadsheet values",
+    "output": "lunecrest print, cost review a1:d12\npaper: 180\nbinding: 95\ndifference: 85\nblank delivery cost excluded. no cells changed."
   },
   "steps": [
-    "open **Connected apps** and enable **read and write** for sheets with only this retrieval action allowed.",
-    "paste the spreadsheet link and state the exact tab and cell range.",
-    "choose calculated values or formulas before asking the question so the bot reads the right representation.",
-    "confirm one result against the source range, then inspect the scheduled card. **Edit** lets you revise the range-reading schedule."
+    "connect sheets with **read and write**, allowing only this lookup action",
+    "paste the file link and name the tab and exact cells",
+    "ask for figures or formulas to match your question",
+    "compare one result with the sheet, then edit the schedule card if needed"
   ],
   "watch": [
-    "if the bot says it can't find the range, check the tab name is spelled exactly as in sheets.",
-    "very big ranges can fail. the bot can read a long sheet a few hundred rows at a time.",
-    "formula mode returns expressions, not their calculated answers. date rendering also needs an explicit choice when raw serial numbers would be confusing."
+    "**copy the tab name from the sheet.** a spelling mismatch can stop the lookup.",
+    "**huge ranges can fail.** ask the bot to read a few hundred rows at a time.",
+    "**use calculated values to do the maths.** formulas show the workings; readable dates save you from puzzling over raw date numbers."
   ],
-  "rules": "keep this retrieval on an exact action list. its write classification is an access requirement, not a reason to enable sorting, cell updates or other changes.",
+  "rules": "**give it the lookup, keep the editing tools out.** allow this retrieval action only. reading a range needs no sorting or cell updates.",
   "faq": [
     {
       "q": "can it show formulas instead of the displayed totals?",
-      "a": "yes. request the formula render option. use calculated-value options when you want to compare the resulting numbers instead."
+      "a": "**yes, ask for formulas.** ask for calculated values instead when you want to compare the resulting figures."
     },
     {
       "q": "why is read-only access refusing a cell lookup?",
-      "a": "dusk bot counts this action as a change, even though it only reads. give the bot read and write for sheets, but limit it to this one action so it still can't edit anything."
+      "a": "**dusk classifies this lookup as a change.** give read and write access, then restrict it to this action. that keeps cell edits out."
     }
   ],
   "sources": [
@@ -90,5 +90,27 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste the spreadsheet link",
+      "name one tab and a small range",
+      "ask for raw figures or formulas",
+      "compare one returned cell with the sheet"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating an empty cost as zero",
+      "fix": "tell the bot to list blanks separately and leave them out of totals."
+    },
+    {
+      "mistake": "doing arithmetic on displayed currency text",
+      "fix": "ask for raw calculated values first."
+    }
+  ],
+  "tip": {
+    "text": "include the column headings. 180 means little until you know what it pays for."
+  },
+  "voice": 2
 }

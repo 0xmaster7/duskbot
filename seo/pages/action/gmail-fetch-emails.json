@@ -11,7 +11,7 @@
     "claude find gmail messages",
     "gmail email search with ai"
   ],
-  "answer": "tell a bot what you remember about an email and it can search gmail by sender, subject, date or label, then bring the matching messages into your chat. it only looks; it does not mark mail read or move it. a search can span several pages, and some message details can fail to load, so an incomplete result is not proof the email is missing.",
+  "answer": "**find the booking email before you ask someone to resend it.** give the bot a sender, date, subject fragment or label. it brings matching gmail messages into chat without marking them read or moving them. ask for the full message when you need a reference number, and for any results that failed to load. a quick subject list is only the start.",
   "tags": [
     "gmail",
     "search",
@@ -22,43 +22,43 @@
     "/integrations/gmail/search-people"
   ],
   "og_line": "the message behind the detail you remember.",
-  "what": "you can ask for something as ordinary as \"the hotel confirmation that arrived before the conference\". the bot turns that into gmail search terms and returns subjects, senders and dates you can recognise. labels can narrow the search further; selecting several label ids means a message must have all of them.\n\na quick search brings back the subject, sender and date. to answer something about what an email says, the bot opens the full message.",
+  "what": "**start with the clue you still have.** “the hotel confirmation before the conference” gives the bot somewhere to look. it returns subjects, senders and dates you can recognise.\n\nlabels narrow the search. ask for two labels and the email must have both.\n\na quick search gives basic details. for a booking reference or promise, ask it to open the full email. the subject alone cannot answer that.",
   "uses": [
-    "recover the delivery confirmation with the tracking reference you forgot to save",
-    "collect correspondence with a venue during the month you arranged an event",
-    "find unread messages carrying attachments under a specific project label",
-    "check which booking emails are in spam or trash as well as the inbox"
+    "**find the tracking reference.** recover a delivery confirmation before calling the courier.",
+    "**rebuild the conversation.** gather a venue’s emails from the month you booked.",
+    "**find the missing attachment.** search unread mail under the right project label.",
+    "**look beyond the inbox.** include spam and trash when a booking seems to have vanished."
   ],
   "routine": {
-    "message": "each tuesday at 8, search my personal gmail for hotel and train confirmations received in the last seven days. fetch all result pages and read the matched messages before listing the trip dates and booking references here. flag any message whose details could not be loaded. never change labels, mark messages read or send mail.",
+    "message": "each tuesday at 8, search my personal gmail for hotel and train confirmations from the last seven days. keep fetching results until none remain and open each matching email. list the trip dates and booking references here. flag any email whose details you could not load. never change labels, mark mail read or send anything.",
     "when": "tuesdays at 8:00",
-    "needs": "personal gmail connected with read only access",
-    "output": "travel mail found\n\nalder row inn: check-in friday; reference ar-482.\nwestmere rail: outbound saturday; reference wr-716.\nall result pages checked; no message-detail failures reported."
+    "needs": "personal gmail connected with read only",
+    "output": "travel mail found\n\nalder row inn: check-in friday; reference ar-482.\nwestmere rail: outbound saturday; reference wr-716.\nsearched to the end. every matching message loaded."
   },
   "steps": [
-    "choose the intended gmail account in **Connected apps** and give the searching bot **read only** access.",
-    "describe a known email using its sender and an approximate date; ask for the matching subject so you can recognise it.",
-    "request the remaining result pages and full message content when a reference or date needs checking.",
-    "schedule the search once it finds the right kind of mail, then inspect the next runs on the routine card and use **Edit** if the timing needs changing."
+    "**pick the mailbox.** connect the intended gmail account with read only.",
+    "**try a message you know.** give its sender and approximate date, then recognise its subject in the results.",
+    "**get the useful detail.** ask for the full email and all remaining results, including any that failed to load.",
+    "**save the useful search.** read the routine card’s next runs and edit the time if needed."
   ],
   "watch": [
-    "now and then gmail fails to load an email in the results. the bot should tell you when that happens instead of treating the list as complete.",
-    "big searches come back in pages of up to 500 emails; the bot should go through every page.",
-    "spam and trash are only included when requested; a missing inbox result may still exist there.",
-    "on your own computer the routine doesn't run while it sleeps or the app is closed; a run missed by less than 12 hours runs once when you're back. dusk cloud runs it on time."
+    "**a failed load can hide your answer.** gmail sometimes skips an email’s details. ask the bot to list those gaps alongside the matches.",
+    "**one batch tops out at 500 emails.** have the bot keep going until none remain.",
+    "**spam and trash need an explicit request.** include them before deciding the message is gone.",
+    "**a sleeping laptop misses the search.** a run under 12 hours late runs once when you return. dusk cloud runs it on time."
   ],
   "faq": [
     {
       "q": "can it find an email if i do not know the subject?",
-      "a": "give it a sender, a date window or a phrase you remember. the bot can combine gmail search operators instead of needing an exact subject."
+      "a": "**yes.** give it a sender, rough date or phrase. it can combine those clues in a gmail search."
     },
     {
       "q": "will opening search results mark them as read?",
-      "a": "this action retrieves messages without changing their labels. marking them read would need a separate change action."
+      "a": "**no.** this action reads messages without changing their labels. marking them read needs a separate change."
     },
     {
       "q": "why did the search show a sender but no email body?",
-      "a": "a quick search only brings back the subject, sender and date. ask it to open the full email."
+      "a": "**the quick search returns basic details.** ask it to open the full email before answering questions about the contents."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect the mailbox with read only",
+      "name a sender and rough date",
+      "ask for matching subjects",
+      "pick one and ask it to read the full message"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching every mailbox at once",
+      "fix": "name work or personal so private mail stays out of the result."
+    },
+    {
+      "mistake": "treating the first batch as everything",
+      "fix": "ask for all results and a note about anything that failed to load."
+    }
+  ],
+  "tip": {
+    "text": "“include spam and trash” is worth trying before you ask someone to resend."
+  },
+  "voice": 2
 }

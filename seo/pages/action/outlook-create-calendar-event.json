@@ -11,7 +11,7 @@
     "claude add outlook appointment",
     "ai schedule outlook calendar event"
   ],
-  "answer": "a bot can create an outlook calendar event from your subject, start, end and time zone. you can also specify a calendar, location, attendees or recurrence. if you don't name a calendar, it uses your main calendar. event creation is classified as a write, so the sending setting will not pause it for review. tell the bot to ask before creating anything when the details need your confirmation.",
+  "answer": "**put the agreed visit in outlook while the details are still fresh.** give a bot the subject, start, end and time zone. it can add a location, guests or repeating dates. leave the calendar unnamed and it uses your main one. creation counts as a change, so ask to review the entry first; sending approval won't pause it.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,43 +43,43 @@
     "toolkit": "outlook",
     "slug": "OUTLOOK_CALENDAR_CREATE_EVENT"
   },
-  "what": "turn an agreed appointment into a calendar entry by giving the bot its title and concrete dates. the start must precede the end, and the time zone is required. name the calendar you want; if you don't, it goes on your main calendar.\n\noptional details include body text, a physical location, categories, availability status and a repeating pattern. the online-meeting option can generate a teams link when the supported teams provider is specified. those options need deliberate instructions rather than guesses from the title.",
+  "what": "**an agreed time needs an exact entry.** give the title, start, end and time zone. the start must come before the end. name the calendar or it uses your main one.\n\n- add body text, location or categories when useful\n- choose busy, free or another availability status\n- give repeating dates a clear pattern\n- request the online-meeting option and teams for business provider for a teams link",
   "uses": [
-    "reserve a personal appointment on the calendar you name",
-    "add a confirmed site visit with its street address and travel notes",
-    "create an agreed recurring office-hours slot with a defined end to the pattern",
-    "set up a teams appointment using the requested online meeting option"
+    "**keep personal plans in the right place.** name the calendar before creating the appointment.",
+    "**make a site visit easy to find.** include the street address and travel notes.",
+    "**reserve agreed office hours.** give the repeating pattern an end.",
+    "**create the meeting people expect.** request the teams online-meeting option."
   ],
   "routine": {
-    "message": "on the last tuesday of each month at 16:40, prepare a personal stockroom inspection for the first thursday of the next month from 15:00 to 15:30 in europe/paris. list my outlook calendars and confirm the one named field visits, then show the subject, dates, location and no-attendee list here. ask me before you change anything and return the event details here only after i approve creation. never use the default calendar as a fallback, add attendees or create a duplicate inspection if one is already present.",
+    "message": "on the last tuesday of each month at 16:40, look in my outlook calendar named field visits for next month's stockroom inspection. propose it on the first thursday, 15:00 to 15:30, europe/paris, at the east stockroom. skip creation if it already exists. never fall back to my main calendar. show the title, full dates, location and empty guest list here. ask me before creating anything. after approval, create it and return the saved details. never add attendees.",
     "when": "last tuesday of the month at 16:40",
-    "needs": "outlook connected with read and write calendar access; calendar listing, event reading and event creation allowed",
-    "output": "event proposal for field visits\n\nsubject: stockroom inspection\nwhen: 3 december 2026, 15:00-15:30, europe/paris\nlocation: east stockroom\nattendees: none, personal calendar entry only\n\nawaiting your approval before creation."
+    "needs": "outlook connected with read and write for calendar listing, event reading and event creation",
+    "output": "proposal for field visits\nstockroom inspection\n3 december 2026, 15:00-15:30, europe/paris\neast stockroom. no attendees.\nadd this to field visits?"
   },
   "steps": [
-    "connect outlook under **Connected apps** and allow the bot **read and write** for the calendar actions it needs.",
-    "have it list calendars and read back the intended destination, plus the full start, end and time zone.",
-    "include an explicit ask-before-creating instruction, especially when attendees or recurring dates are part of the request.",
-    "check an approved test event in outlook and use **Pause** on its routine card if the inspection plan changes."
+    "connect outlook with read and write for the calendar actions this bot needs.",
+    "ask it to list calendars. read the destination, start, end and time zone together.",
+    "include 'ask me before creating anything', especially for guests or repeating dates.",
+    "open the approved event in outlook. pause the routine if the inspection plan changes."
   ],
   "watch": [
-    "if you don't name a calendar, the event goes on your main one.",
-    "an all-day event requires midnight start and end values in the same time zone. a timed appointment should not be marked all day by mistake.",
-    "say the time zone with the time (\"3pm paris time\") and check it in the preview.",
-    "this action creates an entry; its inputs do not include a conflict-checking step. ask the bot to inspect existing events separately before proposing a time."
+    "**no calendar name means your main one.** forbid that fallback when it would be wrong.",
+    "**all-day entries need midnight dates in one time zone.** don't mark a timed appointment all day.",
+    "**three o'clock needs a place.** give the time zone and read the local time in the preview.",
+    "**creation doesn't check clashes.** ask for a separate read of existing events first."
   ],
   "faq": [
     {
       "q": "will it ask me before adding a meeting?",
-      "a": "not automatically under the sending setting. calendar creation is a write, so put the request to ask first into your message or routine."
+      "a": "**only if you ask it to.** creation counts as a change. put the checkpoint in the message or routine."
     },
     {
       "q": "can it create a teams meeting link?",
-      "a": "the action supports an online meeting flag and the teams for business provider. request both when that is the meeting type you want."
+      "a": "**yes, with the right options.** ask for an online meeting using the teams for business provider."
     },
     {
       "q": "can i choose how the time appears to others?",
-      "a": "you can specify an availability status such as busy, free, tentative or out of office. tell the bot which one fits instead of assuming every appointment should block your time."
+      "a": "**yes. name the availability status.** busy, free, tentative and out of office are options. not every calendar entry needs to block time."
     }
   ],
   "sources": [
@@ -95,5 +95,36 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "ask which outlook calendars the bot can see",
+      "name the destination, start, end and time zone",
+      "request a proposal with no attendees",
+      "approve it, then open the saved event"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "leaving the destination unstated",
+      "fix": "name the calendar. otherwise the entry lands on your main one."
+    },
+    {
+      "mistake": "letting a monthly routine add duplicates",
+      "fix": "look for an existing inspection before proposing the next one."
+    }
+  ],
+  "tip": {
+    "text": "read back the full date as well as the weekday before you approve."
+  },
+  "checklist": {
+    "h": "before you create it",
+    "items": [
+      "the calendar name matches",
+      "start, end and time zone are clear",
+      "the bot read existing events for clashes",
+      "guests, location and repeat pattern match the plan"
+    ]
+  },
+  "voice": 2
 }

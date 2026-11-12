@@ -10,7 +10,7 @@
     "outlook mcp",
     "ai assistant for outlook"
   ],
-  "answer": "a bot in dusk bot can read outlook mail and calendar events together, then give you the context for a meeting or a reply you owe. connect outlook, choose the ai for the bot and name the mailbox to use. it can save drafts for review; email sends ask first unless you grant a daily sending amount or put the bot on **Full access**.",
+  "answer": "**walk into the renewal call knowing what you already promised.** an outlook bot reads the calendar, finds related mail and hands you the last agreement, open questions and replies you owe. connect the mailbox and choose its ai. start read only for briefings. saved drafts need write access; sends ask by default unless your sending settings allow them.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,7 +44,7 @@
   "app": {
     "name": "Outlook",
     "toolkit": "outlook",
-    "intro": "outlook work is often split between the calendar and the conversation that led to the meeting. a bot can collect both without moving the appointment or sending a reply. the useful starting actions are below.",
+    "intro": "**get the email behind the calendar title.** a meeting name rarely tells you the last agreement or the reply you owe. these actions put the appointment and its mail together, then let you draft or file when the job needs it.",
     "highlight": [
       {
         "slug": "OUTLOOK_SEARCH_MESSAGES",
@@ -79,57 +79,57 @@
         "use": "send a reviewed draft through the bot's sending controls"
       }
     ],
-    "setup": "choose outlook in **Connected apps**, complete microsoft's sign-in and enable it for your bot. label accounts clearly if you connect more than one. tell the bot whether a job concerns personal mail or work mail, and start with reading access for briefings that need no saved drafts."
+    "setup": "**tell the bot whether you mean work or personal mail.**\n\nchoose outlook in **connected apps**, sign in through microsoft and enable it for your bot. label accounts clearly when you connect more than one.\n\nstart with reading access for briefings that need no saved drafts."
   },
-  "routines_intro": "these messages target the gaps around a working day, rather than asking the bot to take over your whole inbox. replace the project names with yours before sending.",
+  "routines_intro": "**pick one gap in your day.** these routines read current outlook mail and events. start with background notes before allowing saved replies or folder changes.",
   "routines": [
     {
       "name": "meeting background",
-      "message": "every weekday at 8:30, read today's outlook events. for meetings about acme, find the related mail and give me the last agreed point, unanswered questions and relevant message subjects. do not move events or write to anyone.",
+      "message": "every weekday at 8:30, read today's outlook events. for meetings about hushfen, find related mail. show the last agreed point, open questions and relevant message subjects here. say when the mail cannot answer something. never move events or write to anyone.",
       "when": "weekdays at 08:30",
-      "output": "a meeting-by-meeting background note"
+      "output": "short background notes for today's hushfen meetings"
     },
     {
       "name": "promises i made",
-      "message": "every wednesday at 4, search my outlook mail from this week for replies where i promised to send something later. read the surrounding messages and list promises that do not have a clear follow-up. quote the promise and mark uncertain matches.",
+      "message": "every wednesday at 4, search this week's outlook replies for promises i made to send something later. read surrounding messages before deciding a follow-up is missing. quote each possible open promise here and mark uncertainty. never send reminders or edit mail.",
       "when": "wednesdays at 16:00",
-      "output": "a checklist of possible open commitments"
+      "output": "possible open commitments, with the promise beside each"
     },
     {
       "name": "project folder review",
-      "message": "every other friday at 10, read the outlook folder acme renewal. find messages that still need a response and prepare draft replies where the answer is supported by the mail. leave the drafts unsent and list questions you need me to answer.",
+      "message": "every other friday at 10, read my outlook folder hushfen renewal. find messages that still need a reply. draft answers only where the mail supports them. ask before creating each draft reply and leave it unsent. list missing decisions here. never invent prices or move messages.",
       "when": "alternate fridays at 10:00",
-      "output": "saved reply drafts and a list of missing decisions"
+      "output": "unsent reply drafts after approval, plus missing decisions"
     }
   ],
-  "asks": "saving a new email draft is different from sending it. one outlook quirk: a draft reply (**Create draft reply**) counts as a send in dusk bot, because its name carries \"reply\", so each one asks first like a send. an outlook send displays **Allow** and **Deny** by default; a daily sending amount can allow sends without that individual check. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. keep that setting narrow while learning the bot's judgement.\n\nmoving mail between folders and changing calendar events are not documented as asking first under the sending rule. use read-only access for a background reader. when a folder routine needs writes, tell it \"ask me before you change anything\" if you want each change reviewed.",
+  "asks": "**keep the reply ready while you decide what to say.** a new email draft stays a draft. **create draft reply** counts as a send in dusk because its name includes reply. it follows sending controls even though it saves a draft.\n\n- sends show **Allow** and **Deny** by default\n- a daily amount can allow sends without individual approval\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.\n\nfolder moves and calendar changes skip sending approval. keep a background reader read only. for supervised writes, say \"ask me before you change anything\".",
   "cannot": [
-    "create outlook drafts with a read-only grant. reading mail and reporting in chat works within that boundary; a saved draft needs write access.",
-    "work across an unconnected mailbox. an account signed in somewhere else is not automatically connected to dusk bot. connect each account you want the bot to use.",
-    "prepare an early meeting brief on a sleeping desktop. local routines pause during sleep; move the bot to dusk cloud if it needs to work before your computer wakes."
+    "**save outlook drafts while read only.** it can read and report in chat. a saved draft needs write access.",
+    "**read a mailbox you have not connected.** signing in elsewhere does not connect it to dusk. connect each account you want it to use.",
+    "**prepare an early brief on a sleeping computer.** local routines need dusk open and the computer awake. cloud can run the job before you wake."
   ],
   "sections": [
     {
-      "h": "read before inventing the answer",
-      "md": "an email saying \"can you confirm the price?\" does not establish the price. ask the bot to show what the mail supports and leave missing decisions as questions. the [meeting prep brief](/routines/meeting-prep-brief) helps turn that evidence into a focused agenda."
+      "h": "read the evidence before drafting the answer",
+      "md": "**bring the missing price decision into the meeting.** if the mail only asks \"can you confirm the price?\", put that question in the brief. draft an answer once someone decides.\n\nuse the [meeting prep brief](/routines/meeting-prep-brief) to turn open questions into an agenda you can use."
     },
     {
-      "h": "keep each inbox job small",
-      "md": "outlook has its own connected actions, so do not assume a [gmail routine](/integrations/gmail) maps to exactly the same folders or controls. begin with a single project or a short date window. if the real problem is deciding which mail needs you, use the narrower [email triage approach](/use-cases/email-triage)."
+      "h": "keep the mailbox job small",
+      "md": "**start with one project, not your whole working life.** outlook and [gmail](/integrations/gmail) use different actions, folders and controls. do not assume every instruction maps across unchanged.\n\nuse a short date window or named folder first. if deciding which messages need you is the main pain, try [email triage](/use-cases/email-triage)."
     }
   ],
   "faq": [
     {
       "q": "can an outlook ai assistant read my calendar as well as email?",
-      "a": "the outlook catalog includes event listing and message search. a bot allowed those actions can use the meeting topic to find relevant mail. it still needs you to say which account and project matter."
+      "a": "**yes, if you allow both actions.** outlook offers calendar listing and message search. name the account and project so the bot finds relevant mail."
     },
     {
       "q": "will it reply to customers while i am away?",
-      "a": "sending asks by default. leave drafts unsent if you want to read them later, don't set a daily sending amount for a bot that should never send alone, and set its sending to **Ask every time**, especially if the bot is on **Full access**."
+      "a": "**choose ask every time for sending.** leave drafts unsent and grant no daily sending amount. the full-access setting needs its own sending rule too."
     },
     {
       "q": "how do i use the assistant from my phone?",
-      "a": "pair the phone with the machine your bots live on. your own computer must be running dusk bot; a cloud pairing keeps working when the personal computer is off."
+      "a": "**pair your phone to the bot's host.** your computer must stay on with dusk running. pairing to dusk cloud works with your computer off."
     }
   ],
   "sources": [
@@ -149,5 +149,32 @@
       "label": "dusk bot docs: phone pairing",
       "url": "/docs/phone"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook with read only access",
+      "name one meeting on today's calendar",
+      "ask for related mail and the last agreed point",
+      "open the message behind its last-agreed point"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "answering a question with a guessed price",
+      "fix": "require a supporting message or leave the price open."
+    },
+    {
+      "mistake": "assuming every saved draft uses the same controls",
+      "fix": "outlook draft replies count as sends in dusk. set sending to ask every time."
+    }
+  ],
+  "tip": {
+    "text": "a useful brief can say \"we still do not know\". a confident guess costs more."
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "sophie has a renewal meeting at 10.\nthe latest email asks for a price confirmation.\nno message in the returned mail confirms the price.",
+    "after": "meeting note for sophie\n- renewal discussion is open\n- price still needs your decision\n- put price confirmation on the agenda before drafting a reply"
+  },
+  "voice": 2
 }

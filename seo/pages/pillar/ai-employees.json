@@ -13,7 +13,7 @@
     "ai employees for business",
     "ai coworker"
   ],
-  "answer": "ai employees are bots you give jobs to, not people you hire. in dusk bot, each has a name, a job, chats, memory and an ai you choose. they can help with bounded work such as reviewing a document or running a recurring check. you still decide what matters, check the work and own the outcome. budget for dusk's work license or hosting where needed, plus your ai provider's charges.",
+  "answer": "**give the bot the chore you keep putting off.** in dusk, it has a name, job, chats, memory and the ai you choose. ask it to compare a proposal with a brief or repeat a small review. keep the decisions with a person. work licensing, optional hosting and the ai provider’s bill still belong in the budget.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -43,7 +43,7 @@
   "og_line": "give a bot a job you can check.",
   "table": {
     "h": "compare the bill before the job titles",
-    "intro": "as of 12 november 2026. these are different things to buy, not equal amounts of work. a credit does not mean the same thing across products, and dusk's hosting price does not include ai usage.",
+    "intro": "**compare what the bill buys, not the job titles.** prices are as of 12 november 2026. credits differ across products. dusk cloud hosting does not include ai usage.",
     "cols": [
       "option",
       "listed price",
@@ -86,7 +86,7 @@
         "label": "sintra",
         "cells": [
           "$48.50/month promotional one-month price, list $97",
-          "all 12 helpers and 250 monthly credits; longer commitments have other rates"
+          "the full helper set and 250 monthly credits; longer commitments have other rates"
         ],
         "src": [
           4
@@ -106,46 +106,46 @@
   },
   "sections": [
     {
-      "h": "buy a result you can describe",
-      "md": "start with the work that keeps returning to your desk. can you name the input, the result and the point where a person takes over? that is a better buying question than how many employees an app offers.\n\na useful first job might be checking a proposal against an attached brief. a poor first job is running sales. the first has an end you can inspect. the second bundles judgment, relationships and promises into a title.\n\ndusk bot lets you define each bot's job in plain words through **New bot**. change the job later if it turns out to be too broad. a name and a friendly shape help you find it; they do not make it responsible for a business decision.[^1]"
+      "h": "start with the job that keeps coming back",
+      "md": "**buy relief from a real chore.** can you name its input, result and the point where a person takes over? that tells you more than a roster of “employees”.\n\nchecking a proposal against a brief has a finish line. running sales bundles relationships, judgment and promises into two words. start with the former.\n\nin dusk, new bot takes a name and a job in plain words. change that job if it grows too broad.[^1] a friendly shape helps you find the bot; it does not make it responsible for a business decision."
     },
     {
-      "h": "a small roster with separate responsibilities",
-      "md": "try these as job descriptions for bots you create, rather than claims about a ready-made staff pack:\n\n- **brief reader:** read the files i attach, pull out requirements and mark anything the files do not settle.\n- **draft writer:** turn the approved brief into a first draft. keep facts from the brief separate from suggestions.\n- **second reader:** compare that draft with the brief. flag missing requirements and unsupported claims. leave the final wording to me.\n\nattach the relevant documents to their chats. each bot has its own memory and can keep several threads. give the reviewer the source material too; asking it whether another bot sounds convincing is a weaker check than asking what the source actually supports.\n\nif the work becomes a shared conversation, the [small-team guide](/ai-teammates) covers handoffs and human ownership."
+      "h": "start with one bot, add a second reader when it earns its keep",
+      "md": "**get the brief reader useful before building a department.** ask it to pull requirements from attached files and flag what the brief leaves open. give it a result you can judge against the original.\n\nif review becomes the bottleneck, add a reviewer with the same source files. ask “which requirements did this draft miss?” rather than “does this sound convincing?”\n\neach bot has its own memory and can keep several threads. attach the relevant files to its chat. [ai teammates](/ai-teammates) covers shared conversations and handoffs."
     },
     {
-      "h": "write the job as a message before making it repeat",
-      "md": "send a bounded request first: \"read the attached supplier proposal against the requirements file. return missing requirements and questions for me. do not contact the supplier or change either file.\"\n\ncheck whether the bot finds the right document, distinguishes a fact from a guess and stops at the requested result. correct the job description when it misunderstands. adding more bots will not repair an unclear brief.\n\nonly then make a repeated job. for a folder you deliberately give the bot, try: \"every thursday at 4pm, review the proposal files in this project folder. list unresolved questions in this chat. ask me before you change anything.\"\n\na routine returns a schedule card with the next runs. inspect it, watch the early runs, and use **Pause** if the job keeps needing repair. local routines need your computer awake and the app open.[^6]"
+      "h": "make the first request work before it repeats",
+      "md": "**an unclear brief gets worse on a schedule.** try one job first: “read this supplier proposal against the requirements file. list missing requirements and questions. do not contact anyone or change files.”\n\nlook for three things:\n- did it find the right material?\n- did it separate facts from guesses?\n- did it stop at the requested result?\n\ncorrect the job if it missed. more bots will not fix a vague request.\n\nthen try: “every thursday at 4pm, review proposals in this project folder. list unresolved questions here. ask me before changing anything.”\n\nthe routine returns a schedule card with next runs. watch the early runs and pause it if corrections take over. local routines need your computer awake and dusk open.[^6]"
     },
     {
-      "h": "read the costs as separate decisions",
-      "md": "dusk has no model of its own. ai usage is billed by your ai provider on your plan with them. a cloud plan pays for the computer that keeps bots running, not an unlimited supply of thinking. check your provider's current terms before choosing how to sign in.\n\nwork use needs a work license even when you run the app on your own machine. pro includes one for one person; team plans start at $100/month. for a separate work license, check [pricing](/pricing) for the option you need.\n\nfor another buying model, [sintra](/alternatives/sintra) offers role-based helpers. [lindy](/alternatives/lindy) prices its team offering by active user and credits. compare the tasks you need with the credits and billing commitment, rather than treating a monthly headline as your finished-work budget."
+      "h": "count ai, licensing and hosting separately",
+      "md": "**a cloud bill buys a computer, not endless ai usage.** dusk has no model of its own. your ai provider bills its usage on your plan. check that provider’s current terms for your chosen sign-in.\n\nwork use needs a license even on your own computer. pro includes one person’s work license. for a team, plans start at $100 a month with a dedicated machine and shared bots ([pricing](/pricing)).\n\n[sintra](/alternatives/sintra) packages role-based helpers. [lindy](/alternatives/lindy) prices its team offer by active users and credits. match the work to the allowance and commitment. a monthly price is not a finished-work budget."
     },
     {
-      "h": "what still needs a human employee",
-      "md": "keep a person responsible for customer promises, hiring decisions, disputes and final approval of public claims. use bots to prepare material for that person. a neat draft can still misunderstand the situation.\n\nthere is no measured time-saving or success-rate claim behind this page. judge a trial against your actual work: how much did you need to correct, what did it miss, and was reviewing it easier than doing it yourself? do not count a task as delegated while you are quietly redoing all of it.\n\na human hire and a bot are different decisions. if you need someone to take responsibility, build relationships or handle unclear situations throughout the day, a list of bot roles is not a staffing plan."
+      "h": "a human still owns the promise",
+      "md": "**keep customer commitments and difficult decisions with a person.** bots can prepare material for hiring, disputes and public claims. the person checking it still owns what happens next.\n\na neat draft can misunderstand the whole situation. in a trial, ask:\n- how much did i have to correct?\n- what did it miss?\n- was checking it easier than doing it?\n\nwe have no measured time-saving or success-rate result to offer. do not count a job as delegated while you redo it quietly.\n\nif you need someone to build relationships and handle unclear situations all day, that is a staffing decision. a list of bot roles does not answer it."
     },
     {
-      "h": "start without giving the whole business away",
-      "md": "use one non-sensitive document and one job. connect apps only when that job needs them, and allow each bot only the relevant access. reading and drafting are separate from sending: sends ask first unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. other app changes are not documented as asking automatically. keep access read only, or write \"ask me before you change anything\" into the job.[^7]\n\nkeep the trial if its work is useful after review. narrow it if the checks are taking over your day. the [cost guide](/guides/how-much-does-an-ai-agent-cost) can help you think through the bill once you know which job is worth keeping."
+      "h": "start with one harmless document",
+      "md": "**get a useful answer from a harmless file first.** choose a non-sensitive document. give the bot only the accounts the task needs.\n\nkeep app access read only; if you permit writes, say “ask me before you change anything”.[^7]\n\nkeep the trial if the result helps. narrow it if corrections eat the benefit. the [cost guide](/guides/how-much-does-an-ai-agent-cost) helps budget for the job once it earns its place."
     }
   ],
   "faq": [
     {
       "q": "can ai employees replace my staff?",
-      "a": "do not plan on that. give bots bounded tasks with a person checking the result. a job title does not give a bot human accountability or the context your staff hold."
+      "a": "**do not make that your staffing plan.** give bots bounded work with a person checking the result. a job title does not give them human accountability or your staff’s context."
     },
     {
       "q": "can a non-technical business owner set this up?",
-      "a": "in dusk bot you create a bot with a name and a job in plain words, then text it. begin with an attached document before connecting business accounts. that gives you something small to check."
+      "a": "**yes.** create a bot with a name and plain-language job. start with an attached document so the first result is small enough to judge."
     },
     {
       "q": "is anyone running several agents without spending a fortune?",
-      "a": "compare the whole bill: app or hosting, work licensing and ai usage. dusk's local app is free for personal use, but that does not make business use or the ai itself free. set a narrow job before paying to keep it running all day."
+      "a": "**count the full bill before choosing the roster.** dusk’s local app is free for personal use. business licensing, ai usage and optional hosting still need a budget. start with one useful job."
     },
     {
       "q": "does each bot need the same ai?",
-      "a": "no. each dusk bot has its own model. you can change it later while keeping that bot's chats, files and memory. check the ai provider's terms and charges for your chosen setup."
+      "a": "**no.** choose a model for each bot and change it later. its chats, files and memory stay. check the provider’s terms and charges for your setup."
     }
   ],
   "sources": [
@@ -179,5 +179,41 @@
       "label": "dusk bot docs: app access and sending",
       "url": "/docs/files-and-apps"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose one non-sensitive brief and draft",
+      "make a bot whose job is comparing them",
+      "ask for missing requirements without editing anything",
+      "compare a finding with the original brief"
+    ]
+  },
+  "worked": {
+    "intro": "an invented first-job example",
+    "before": "elspeth asks a bot to “handle marketing”. the answer is a long plan she has no time to read.",
+    "after": "she asks it to compare one newsletter draft with her brief. it returns missing points she can verify before sending."
+  },
+  "checklist": {
+    "h": "does this job belong with a bot?",
+    "items": [
+      "the input is somewhere the bot can read",
+      "you can describe a finished result",
+      "a person owns the final decision",
+      "review takes less effort than redoing the job"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "building a whole roster before testing one job",
+      "fix": "keep the first job narrow until its results help."
+    },
+    {
+      "mistake": "comparing monthly prices without the extras",
+      "fix": "count work licenses, hosting, ai charges and credit terms."
+    }
+  ],
+  "tip": {
+    "text": "write “what done looks like” before you write the bot’s job title."
+  },
+  "voice": 2
 }

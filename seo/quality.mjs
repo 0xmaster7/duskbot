@@ -17,6 +17,23 @@ export const SUBSCRIPTION = [
   [/\b(?:official|authori[sz]ed)\s+(?:anthropic|openai|google|xai|claude|chatgpt|gemini|grok)\s+(?:partner|app|client|integration)\b/i, 'implies vendor endorsement'],
   [/\b(?:free|unlimited)\s+(?:claude|chatgpt|gemini|grok)\b/i, 'promises free or unlimited ai'],
 ];
+// the voice lint (owner, 12 november 2026: "be more human and genuine, hit hard"). filler phrases and hype are refused;
+// sentences stay short, paragraphs stay small, and most sentences are active. strict on rewritten pages ("voice": 2)
+export const FILLER = /\b(?:it'?s worth noting|it is worth noting|it'?s important to note|it is important to|please note|in today'?s|whether you'?re|in conclusion|furthermore|moreover|additionally,|in order to|unlock|supercharge|seamless(?:ly)?|game[- ]changer|revolutionary|effortless(?:ly)?|leverage|delve|robust|cutting[- ]edge|harness the power|elevate|empower|streamline|a wide range of|plethora|myriad|navigate the|the world of|look no further|at the end of the day|needless to say|this page|this guide (?:does|will)|documented|establish(?:es|ed)?|supplie[ds]|specif(?:y|ied|ies)|explicitly)\b/i;
+const PASSIVE = /\b(?:is|are|was|were|be|been|being|gets?|got)\s+(?:\w+ly\s+)?\w+(?:ed|en|wn|ung|ept|ent|ade|old|ound)\b/i;
+export function voice(html) {
+  const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [, html])[1]
+    .replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<table[\s\S]*?<\/table>/g, ' ').replace(/<(\w+)[^>]*class="[^"]*\bseo-boiler\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g, ' ').replace(/<section class="seo-sources"[\s\S]*?<\/section>/, ' ').replace(/<p class="lede seo-answer">[\s\S]*?<\/p>/, ' ');
+  const paras = [...article.matchAll(/<(?:p|li)[^>]*>([\s\S]*?)<\/(?:p|li)>/g)].map((m) => plain(m[1])).filter((t) => t.split(/\s+/).length > 3);
+  const sentences = paras.flatMap((t) => t.split(/(?<=[.!?:])\s+(?=[a-z0-9"“(])/)).map((x) => x.trim()).filter((x) => x.split(/\s+/).length > 2);
+  const n = (x) => x.split(/\s+/).length;
+  return {
+    avg: sentences.length ? sentences.reduce((a, x) => a + n(x), 0) / sentences.length : 0,
+    longPara: paras.filter((t) => n(t) > 60),
+    passive: sentences.length ? sentences.filter((x) => PASSIVE.test(x)).length / sentences.length : 0,
+    filler: [...new Set((plain(article).match(new RegExp(FILLER.source, 'gi')) || []).map((x) => x.toLowerCase()))],
+  };
+}
 const PLACEHOLDER = /\b(?:lorem|ipsum|todo|tbd|fixme|xxx+|placeholder|insert (?:here|link|name)|coming soon)\b|\[\s*(?:insert|link|source|citation needed)/i;
 
 // today where the site is built, not in utc (an evening build in india is already tomorrow there)
@@ -86,6 +103,15 @@ export function checkPages({ rendered, records, site, TYPES, hubPages, check = f
       if (check && planned.has(at.split(/[?#]/)[0])) continue;
       say(r, planned.has(at.split(/[?#]/)[0]) ? `links to ${at}, which is planned but has no record yet` : `links to ${at}, which is not on the site and not in seo/planned.json`);
     }
+    const v = voice(html), strict = r.voice === 2, vsay = (msg) => (strict ? say(r, msg) : warnings.push(`${r.path}: voice: ${msg}`));
+    if (v.filler.length) vsay(`filler or hype words: ${v.filler.join(', ')}`);
+    const counted = /\b(?:two|three|four|five|six|seven|eight|nine|ten|twelve)\s+(?:focused\s+|small\s+|ai\s+|pixel\s+|overlapping\s+)?(?:bots?|bot computers?|helpers?|desktops?|participants?|agents?|members?)\b|\b\d+\s+(?:focused\s+|small\s+)?(?:bots?|bot computers?)\b|\b\d+\s+awake\b|awake at once|plus \d+, pro \d+|group of (?:two|three|four|five|six|eight|\d+)/i.exec(ownText(html.replace(/<pre[\s\S]*?<\/pre>/g, ' ')));
+    if (counted) vsay(`counts bots ("${counted[0]}"); say a good amount, heavy workloads or a few instead`);
+    const checks = (ownText(html).match(/\bcheck(?:s)?\b(?! out)/gi) || []).length;
+    if (checks > 6) vsay(`says "check" ${checks} times; say what to look for instead`);
+    if (v.avg > 17) vsay(`sentences average ${v.avg.toFixed(1)} words (keep it under 17)`);
+    if (v.longPara.length) vsay(`${v.longPara.length} paragraph(s) over 60 words, e.g. "${v.longPara[0].slice(0, 70)}..."`);
+    if (v.passive > 0.15) vsay(`${Math.round(v.passive * 100)}% of sentences are passive (keep it under 15%)`);
     const mine = ownText(html), n = words(mine).length;
     if (n < type.words) say(r, `${n} words of its own (needs ${type.words})`);
     if (r.state.status !== 'draft') own.set(r, shingles(mine));

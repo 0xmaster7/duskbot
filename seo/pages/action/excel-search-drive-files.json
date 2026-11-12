@@ -4,14 +4,14 @@
   "title": "Find Excel workbooks in OneDrive with AI by asking",
   "nav": "search workbook files",
   "h1": "find the excel workbook before reading its cells",
-  "description": "Use a bot to search OneDrive for Excel workbook files, narrow results by extension and return candidate file IDs without changing workbook contents.",
+  "description": "Find Excel workbooks in OneDrive by name or project, including shared files. Pick the right copy before asking a bot to read its cells.",
   "keyword": "find excel workbook with ai",
   "keywords": [
     "excel search onedrive files with ai",
     "chatgpt find excel workbook",
     "claude search excel files onedrive"
   ],
-  "answer": "lost track of a spreadsheet? tell a bot part of its name or a phrase from the project and it searches your onedrive, including files people shared with you if you ask, and lists the excel files it finds. it only looks; nothing is opened or changed.",
+  "answer": "**get the right workbook without opening every file named final.** give the bot a name fragment or project phrase. it searches onedrive, including shared files if you ask, and lists matching excel files. pick the copy you want, then ask it to read the cells. the search itself opens and changes nothing.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -42,36 +42,36 @@
     "toolkit": "excel",
     "slug": "EXCEL_SEARCH_FILES"
   },
-  "what": "start with the words you know, such as part of a workbook name or a project phrase. the query can match filenames, file details and file content. choose the drive to search when it is not the connected user's default, and specify workbook extensions if other file types would get in the way.\n\nit can search everything you can see, including files shared with you, or only your own files. to read what's inside a workbook, the bot uses a separate excel action once you've picked the file.",
+  "what": "**you remember the project. the bot finds the file.** a search can match names, file details or content. name another drive if your default isn't the right one.\n\n- include shared files, or search only your own folders\n- ask for xlsx and xlsm if other files clutter the results\n- choose a workbook before asking a separate excel action to read its cells",
   "uses": [
-    "find the workbook for a past installation when you remember the project but not the filename",
-    "locate a shared costing workbook that does not live under your own drive hierarchy",
-    "collect candidate xlsx and xlsm files before selecting the one a report should read"
+    "find an old installation budget when only the project name rings a bell",
+    "track down a shared costing workbook outside your own folders",
+    "compare matching xlsx and xlsm files before choosing the report source"
   ],
   "routine": {
-    "message": "on the first of each month at 9, search my onedrive, including files shared with me, for excel files with \"timesheet\" in the name. go through every page of results and list the file names here, marking any you haven't shown me before.",
+    "message": "on the first of each month at 9, search my onedrive for excel files with \"timesheet\" in the name. include files shared with me. keep going until onedrive has no more results. list names and available file details here. flag files for the current month and any unclear matches. never open or change workbooks.",
     "when": "the 1st of each month at 9:00",
-    "needs": "excel connected with read only access for search drive files",
-    "output": "timesheet workbooks\n- timesheets-2026.xlsx\n- timesheets-november-contractors.xlsm (new)\nnothing opened or changed."
+    "needs": "excel connected; read only is enough for this search",
+    "output": "timesheet workbooks\n- timesheets-2026.xlsx\n- timesheets-november-contractors.xlsm: matches this month\nwhich copy should i read?"
   },
   "steps": [
-    "connect excel in **Connected apps** and give the file finder **read only** access.",
-    "tell it the query phrase and whether the search should include files shared with you or only your drive hierarchy.",
-    "choose the file extensions you want and require all returned search pages to be considered before declaring no match.",
-    "pick the right workbook before asking the bot to read it. use **Edit** on the routine card to change the search words."
+    "connect excel in **Connected apps**. give this finder read only access.",
+    "give a name fragment and say whether shared files belong in the search.",
+    "name the file types you want. tell it to follow the results to the end before reporting no matches.",
+    "pick the right copy before requesting cell values. **Edit** changes the routine search."
   ],
   "watch": [
-    "this searches onedrive items through the excel connection. it is not a search of local folders or google drive.",
-    "the excel-only filter is applied one page of results at a time, so an empty page doesn't mean there are no workbooks. ask the bot to check every page."
+    "**look in onedrive for this job.** local folders and google drive need a different search.",
+    "**keep going after an empty result.** excel filters each batch separately. the next batch may hold your workbook."
   ],
   "faq": [
     {
       "q": "can it find an excel file someone shared with me?",
-      "a": "yes. ask it to include files shared with you. say \"only my own files\" if you want it narrower."
+      "a": "**yes, if your account can see it.** ask to include shared files. say \"only my own files\" for a narrower search."
     },
     {
       "q": "does this search inside spreadsheet rows?",
-      "a": "the query may match file content, but the result is a list of drive items for workbook discovery. use a workbook range or table action after selecting a file to answer row-level questions."
+      "a": "**find the workbook, then ask about its rows.** content can match the file search, but a separate action reads the table or cells."
     }
   ],
   "sources": [
@@ -87,5 +87,26 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect excel with read only access",
+      "ask: \"find my november timesheet workbooks, including shared files\"",
+      "compare the names and file details before picking one"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "opening the first similar filename",
+      "fix": "ask which folder and project it belongs to before reading figures."
+    },
+    {
+      "mistake": "calling an empty result the end",
+      "fix": "ask it to keep going until onedrive has no further results, even after an empty batch."
+    }
+  ],
+  "tip": {
+    "text": "final-final.xlsx still needs a project and a month. filenames get optimistic."
+  },
+  "voice": 2
 }

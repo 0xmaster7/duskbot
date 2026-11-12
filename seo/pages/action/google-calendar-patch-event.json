@@ -11,7 +11,7 @@
     "claude patch google calendar event",
     "ai update meeting details"
   ],
-  "answer": "a bot can correct selected parts of an existing google calendar event, such as its location, title or start time, while leaving omitted fields alone. it needs the calendar id and the event's own id, which it can find before editing. lists behave differently: giving a guest list replaces the existing list. the edit is a write, so request a review explicitly if you want one before it runs.",
+  "answer": "**send visitors to the right entrance without rebuilding the meeting.** the bot can fix a google calendar location, title or time while leaving other details alone. name the calendar and event date. guest lists and repeat rules replace their whole existing lists, so keep those outside a simple room correction. ask for a preview and a pause before the edit.",
   "tags": [
     "google calendar",
     "event corrections",
@@ -22,43 +22,43 @@
     "/integrations/google-calendar/update-google-event"
   ],
   "og_line": "correct the detail that actually changed.",
-  "what": "use this when the appointment is still right but one detail is wrong. the bot finds the meeting, confirms the date and calendar, then changes only what you asked.\n\nan attendee list or recurrence list is replaced as a whole when provided. asking to add one guest therefore needs the current full list first. event update notifications also need an explicit choice, since leaving that setting out uses the account's default behaviour.",
+  "what": "**the appointment can stay while the address changes.** have the bot find it, confirm the date and calendar, then change only the detail you name.\n\n- guest and repeat schedules replace the whole existing list\n- adding one guest means reading the current guest list first\n- update emails follow your account default unless you choose yes or no\n\nsay what should stay, and whether guests should hear about the edit.",
   "uses": [
-    "correct a meeting room after a building change without touching the guest list",
-    "replace a vague event title with the agreed workshop name",
-    "move one appointment to a new start time after confirming the exact occurrence",
-    "fix a description that still points visitors to the old entrance"
+    "**save visitors a wrong turn.** correct the room without touching guests.",
+    "**make the title useful.** replace a vague name with the agreed workshop title.",
+    "**move the right appointment.** confirm the date before changing its start time.",
+    "**fix stale directions.** replace the old entrance in the description."
   ],
   "routine": {
-    "message": "every monday at 12:30, check the room corrections i have written in this chat for the current week's studio visits. find each matching event on my work calendar and show its date, current location and proposed location here. ask before applying a location-only patch, and explicitly turn guest update emails off for these room corrections. never alter attendees, recurrence, meeting links or times; leave ambiguous matches for me.",
+    "message": "every monday at 12:30, read emails received in my work gmail during the last seven days from our studio bookings team. find explicit room corrections for studio visits this week. match each to an event on my work google calendar. show the event date, current location and proposed location here. ask me before you change anything. change only locations i approve and turn guest update emails off. leave attendees, repeat schedules, meeting links and times alone. ask about unclear matches.",
     "when": "mondays at 12:30",
-    "needs": "google calendar connected with read and write access for event lookup and patching",
-    "output": "location correction awaiting review\n\npriya's studio visit, wednesday 14:00\ncurrent: north entrance\nproposed: courtyard entrance, wren house\nother event fields will be omitted from the patch."
+    "needs": "gmail read only; google calendar read and write for finding and correcting events",
+    "output": "location correction awaiting review\n\nstudio visit, wednesday 14:00\ncurrent: north entrance\nproposed: courtyard entrance, wren house\nsource: studio bookings email\nonly the location would change."
   },
   "steps": [
-    "allow the calendar bot in **Connected apps** with **read and write**, limiting its changes to the patch action if that is all it needs.",
-    "give the calendar and a date as well as the meeting title so the lookup can identify the correct event id.",
-    "ask for the before-and-after value in chat and make approval part of the instruction before applying the patch.",
-    "inspect the corrected field in calendar; use **Edit** on the routine card to narrow its matching rule if necessary."
+    "**connect the calendar.** give the bot read and write, limited to the actions it needs.",
+    "**name the meeting precisely.** include calendar, title and date. the bot finds the event.",
+    "**require a preview.** ask for old and new values, then a wait for your agreement.",
+    "**open the changed event.** confirm its location after the first edit and narrow unclear matching rules."
   ],
   "watch": [
-    "the bot finds the exact event first; for a repeating meeting, say which date.",
-    "if the bot sends a guest list, it replaces the old one completely. to add one person, it has to include everyone already invited.",
-    "whether guests get an update email is set on the edit itself, not by your sending setting. tell the bot yes or no.",
-    "changing a time without a zone can be interpreted in utc. confirm both the time and zone before accepting a move."
+    "**repeating meetings need a date.** say which occurrence you want changed.",
+    "**a guest list replaces everyone.** the bot must include current guests when adding someone.",
+    "**guest emails follow the edit’s own choice.** sending settings do not decide this. say yes or no in the request.",
+    "**times need a zone.** without one, the bot may interpret the time as utc."
   ],
   "faq": [
     {
       "q": "can it change just the address and keep the rest?",
-      "a": "a location-only patch leaves details you do not ask it to change unchanged. ask it to show the identified event before making that correction."
+      "a": "**yes.** ask for a location-only change and a preview of the meeting first. details left out of the edit stay as they are."
     },
     {
       "q": "what happens if i ask it to add one attendee?",
-      "a": "the new list replaces the current one. the bot should read the existing attendees and build the complete intended list before applying it."
+      "a": "**the new list replaces the old one.** the bot needs to read everyone already invited and include them too."
     },
     {
       "q": "will my guests get an email about the change?",
-      "a": "only if you say so. tell the bot whether guests should be told; if you leave it out, your google default applies."
+      "a": "**say whether guests should hear about it.** tell the bot to notify guests or keep update emails off. leaving it out uses your google default."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,40 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name the calendar and event date",
+      "ask for its current location",
+      "propose a new location with guest emails off",
+      "review before allowing the edit"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "adding one guest as a list of one",
+      "fix": "read the current guests first or the edit can remove everyone else."
+    },
+    {
+      "mistake": "moving “the friday meeting”",
+      "fix": "give the exact date and time zone before anything changes."
+    }
+  ],
+  "checklist": {
+    "items": [
+      "correct calendar and occurrence",
+      "only intended details will change",
+      "guest update choice says yes or no",
+      "new time includes its time zone"
+    ]
+  },
+  "tip": {
+    "text": "a room correction should not quietly become a guest-list edit."
+  },
+  "voice": 2,
+  "worked": {
+    "intro": "an invented room correction",
+    "before": "rosa’s wednesday visit still says north entrance. the bookings email now says courtyard entrance, wren house.",
+    "after": "the bot previews a location-only change for wednesday at 14:00. rosa’s guest list and meeting time stay out of the edit."
+  }
 }

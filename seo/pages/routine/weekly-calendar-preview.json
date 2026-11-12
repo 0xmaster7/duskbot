@@ -11,7 +11,7 @@
     "ai calendar assistant routine",
     "google calendar weekly summary ai"
   ],
-  "answer": "paste one message into a chat with your bot and every sunday at 6pm it reads next week's calendar, lists each day in a line or two, and flags what will hurt: meetings that overlap, days with no gap for lunch, and meetings that need something prepared. it suggests what to move but changes nothing in your calendar unless you ask.",
+  "answer": "paste one message and every sunday at 6pm a bot reads next week's calendar and tells you what's going to hurt: overlapping meetings, days with no lunch, the pitch you haven't prepped for. it suggests what to move and changes nothing. you walk into monday knowing, instead of finding out at 11:02.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -63,7 +63,7 @@
   "sections": [
     {
       "h": "why sunday, and why it only reads",
-      "md": "a preview the night before the week starts gives you time to move things while people can still say yes. keeping it read-only means you can turn it on for any bot without worrying: it needs only read access to your calendar, and dusk bot refuses any change from a bot that may only read.\n\nif you want it to move meetings later, give that bot write access and say so in the routine, with \"ask me before you move anything\" in the same message. read what it proposes the first few times before you say yes."
+      "md": "**sunday night is the last cheap moment to fix a week.** people can still say yes to a new time.\n\nread only is the point. the bot needs only read access to your calendar, and dusk bot blocks any change from a bot that may only read. so you can switch it on for any bot without a second thought.\n\nwant it to move meetings later? give it write access and put \"ask me before you move anything\" in the same message. read its first few proposals before you say yes."
     }
   ],
   "faq": [
@@ -93,5 +93,19 @@
       "label": "dusk bot docs: permissions and sends",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "voice": 2,
+  "mistakes": [
+    {
+      "mistake": "pointing it at every calendar you own",
+      "fix": "name the two that matter: work and the team calendar."
+    },
+    {
+      "mistake": "no quiet rule",
+      "fix": "\"if the week looks fine, just say so\" keeps sunday short."
+    }
+  ],
+  "tip": {
+    "text": "put your time zone in **About me** once. every routine then gets the hours right."
+  }
 }

@@ -12,6 +12,9 @@
   "/integrations/google-calendar/update-google-event": "near-duplicate of patch event and riskier",
   "/integrations/google-drive/list-file-revisions": "returns only ids and dates, nothing usable",
   "/integrations/slack/download-slack-file": "makes a public link to the file, even for a read-only bot",
-  "/integrations/slack/find-users": "a lookup step for other actions, not a job"
+  "/integrations/slack/find-users": "a lookup step for other actions, not a job",
+  "/integrations/hubspot/create-contact-from-natural-language": "needs an openai api key inside the hubspot action",
+  "/integrations/hubspot/list-deal-activities": "returns only activity ids, not what happened",
+  "/integrations/youtube/list-comments": "a helper step that needs comment ids first"
  }
 }

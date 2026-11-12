@@ -79,6 +79,7 @@ make that claim. Never invent features, numbers, integrations, users, ratings or
 - Turn off Let this bot use memory to stop it; files stay on disk. (/docs/memory)
 
 ## where bots live, and what it costs
+- COPY RULE (owner, 12 november 2026): never put a number on bots in page copy (no "2 awake at once", "5 on pro", "keeps about six", "start with three bots", "three focused bots beat eight"). Say "plus keeps a good amount of bots working", "pro is for heavy workloads, and for work", "start with one bot, add more when it earns its keep", "a few focused bots". The numbers below are for your understanding only.
 - Your computer: free; stops when it sleeps. Dusk Cloud: a computer Dusk hosts and looks after, always on, daily backups. Your own server: free plus the server; you look after it. You can keep several and switch from the menu at the top of the sidebar. (/docs/dusk-cloud)
 - Dusk Cloud Plus: $20 a month or $200 a year; 2 vCPU, 4 GB memory, 40 GB disk; 2 bot computers awake at once. Pro: $50 a month or $500 a year; 4 vCPU, 8 GB, 80 GB; 5 awake at once and first in line to wake; includes a work license for one person. Yearly is two months free. Team plans from $100 a month with a dedicated machine and shared bots (write to hello@dusk.bot). (/docs/dusk-cloud, /docs/account-and-billing, /pricing)
 - Dusk Cloud is your own machine, not shared. Your AI sign-in stays yours. Your phone works with your computer off when paired to the Cloud. (/docs/dusk-cloud)

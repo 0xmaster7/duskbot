@@ -11,7 +11,7 @@
     "chatgpt download outlook attachments",
     "claude get outlook attached file"
   ],
-  "answer": "a bot can download a particular file attachment from an outlook message and give the copy a useful filename. it first finds the message and checks its attachments for the file you mean. only attachments with binary file data work here: a link or embedded item is not enough. this read action leaves the mailbox unchanged and can run with read-only outlook access.",
+  "answer": "**get the delivery note out of the email before the van arrives.** a bot can find an outlook message, list its attachments and download the file you name. give the copy a filename you will recognise next week. read-only outlook access is enough. this action needs an actual attached file; cloud links and embedded items need a different route.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,36 +43,36 @@
     "toolkit": "outlook",
     "slug": "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT"
   },
-  "what": "tell the bot which email and which file. it finds the email, checks what's attached and saves the file under a name you'll recognise.",
+  "what": "**you name the email and file. the bot finds the rest.** describe the sender, subject and attachment you want.\n\nit finds the message, lists what's attached and saves the chosen file under a name you'll recognise. if two files look alike, ask it to show the choices before downloading.",
   "uses": [
-    "retrieve a supplier’s attached delivery note before receiving a shipment",
-    "get the image file attached to a customer email for a print proof",
-    "collect a specific signed form from the original mail without forwarding the whole conversation"
+    "**delivery paperwork:** get the supplier's attached note before a shipment arrives.",
+    "**a print proof:** retrieve the image attached to the customer's email.",
+    "**signed forms:** collect the file without forwarding the conversation."
   ],
   "routine": {
-    "message": "each friday at 13:15, search my outlook for this week's delivery-note emails from seraphine at coldbrook fittings. list the attachments on each matched message and download only actual pdf file attachments, naming the copies with their delivery references. return the files and message subjects in this chat, and report links or embedded items as unsupported. never forward the emails or change their folders.",
+    "message": "each friday at 13:15, search outlook for this week's delivery-note emails from beth at coldbrook fittings. list each message's attachments. download only actual pdf files and name the copies with their delivery references. return the files and subjects here. report links and embedded items as unsupported. never forward mail or move it to another folder.",
     "when": "fridays at 13:15",
-    "needs": "outlook connected with read only access for finding messages, listing attachments and downloading files",
-    "output": "coldbrook fittings delivery file\nmessage: delivery CB-217 paperwork, from seraphine\ndownload: coldbrook-CB-217-note.pdf\nseparate cloud link skipped; it is not a binary file attachment."
+    "needs": "outlook read only for finding messages, listing attachments and downloading files",
+    "output": "coldbrook fittings\n- email: delivery cb-217 paperwork, from beth\n- file: coldbrook-cb-217-note.pdf\n\ncloud link skipped: not an attached file."
   },
   "steps": [
-    "enable outlook in **Connected apps**, choosing **read only** for the attachment collector.",
-    "describe the source email and wanted file, and ask the bot to identify the message before listing its attachments.",
-    "confirm the chosen attachment if the names are ambiguous; provide a useful output filename for the downloaded copy.",
-    "try one file before scheduling a collection. **Pause** the routine if it repeatedly encounters unsupported attachment types."
+    "**connect read only.** that covers this outlook collection job.",
+    "**describe one file.** give the sender or subject. ask the bot to find the email and list its attachments.",
+    "**resolve lookalikes.** choose the right attachment and a useful filename.",
+    "**open the download.** open one copy before scheduling collections. pause if unsupported items keep appearing."
   ],
   "watch": [
-    "only real attached files work. a link to a cloud file or a picture pasted into the email can't be downloaded this way.",
-    "if several attachments have similar names, check which file the bot selected before downloading."
+    "**a cloud link isn't a file attachment.** links and embedded items can't download through this action.",
+    "**similar names can hide different files.** match the filename to its sender and subject before downloading."
   ],
   "faq": [
     {
       "q": "can it download a cloud link attached to an email?",
-      "a": "not with this action. it needs a file attachment containing binary data, rather than a link or embedded item."
+      "a": "**not through this action.** it needs the attached file itself. a link or embedded item won't do."
     },
     {
       "q": "why does it need to list attachments first?",
-      "a": "listing lets the bot see which files are attached and choose the one you described."
+      "a": "**so it chooses the right file.** listing shows what the message actually carries, instead of guessing from a filename."
     }
   ],
   "sources": [
@@ -88,5 +88,31 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name one email and the attachment you want",
+      "ask the bot to list its attachments",
+      "choose the file and a useful saved name",
+      "open the downloaded copy"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to download a cloud link",
+      "fix": "list the attachments and look for a file, rather than a link."
+    },
+    {
+      "mistake": "trusting \"final.pdf\"",
+      "fix": "match it to the email, sender and other attachments first."
+    }
+  ],
+  "tip": {
+    "text": "the sender and subject often matter more than \"final.pdf\"."
+  },
+  "worked": {
+    "before": "delivery cb-217 paperwork\nbeth attached a pdf and included a separate cloud link.",
+    "after": "coldbrook-cb-217-note.pdf downloaded.\ncloud link skipped. original email stays where it was."
+  },
+  "voice": 2
 }

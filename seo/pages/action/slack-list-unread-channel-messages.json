@@ -11,7 +11,7 @@
     "claude slack unread channel catch up",
     "ai read unread slack posts"
   ],
-  "answer": "your bot can retrieve unread posts from one slack channel using the connected user's last read position, then explain what needs attention in your dusk chat. this is a read action and works with read-only access. it returns main-channel posts, not replies inside threads. if slack doesn't know where you stopped reading, it starts from the oldest posts.",
+  "answer": "**catch up privately before you jump into the channel.** the bot reads unread slack posts and tells you what needs attention here. unread follows your connected account's reading position. read only is enough. this list leaves out thread replies, and starts at the oldest posts if slack has no saved reading position.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,38 +43,38 @@
     "toolkit": "slack",
     "slug": "SLACK_LIST_UNREAD_CHANNEL_MESSAGES"
   },
-  "what": "unread means unread for the account connected to slack, not for a bot's own memory. name the channel and the bot finds it. the connected user must belong to that channel, private channel or group dm.\n\nthe result is a page of timeline messages. the bot keeps reading until it reaches the newest post, and uses the separate thread-reading action if you also want replies. a summary based only on timeline posts should say that clearly, because an unanswered-looking question might already have an answer in its thread.",
+  "what": "**get back from lunch knowing what needs you.** unread follows your slack account's reading position, rather than the bot's memory. name the channel and let the bot find it. your connected account must belong to that channel, private channel or group dm.\n\nhave the bot continue through to the newest post. thread replies need a separate read; someone may already have answered the question there.",
   "uses": [
-    "return from lunch to a private list of unread announcements in the duty channel",
-    "skim a group conversation before taking over the evening shift",
-    "separate unread channel questions from routine status posts without sending replies"
+    "catch unread duty-channel announcements after lunch",
+    "skim the group conversation before the evening shift",
+    "pull out questions from status posts without replying to anyone"
   ],
   "routine": {
-    "message": "every weekday at 13:35, collect unread main-channel messages from the greywick duty channel using my connected slack account. keep reading to finish the unread list and group the posts into questions, notices and other updates here in dusk. make clear that threaded replies have not been checked. never post, react or change the read position.",
+    "message": "every weekday at 13:35, read unread main-channel posts in greywick duty through my connected slack account. finish all result batches. group questions, notices and other updates here. say clearly that you have not checked thread replies. if no posts are unread, say so in one line. never post, react or change my reading position.",
     "when": "weekdays at 13:35",
-    "needs": "slack connected with read only access; connected user is a member of the duty channel",
-    "output": "greywick duty: unread timeline posts\n\nquestions: soren asked who has the spare gate key.\nnotices: the east entrance is closed for cleaning.\nother updates: the evening rota has been shared.\n\nthread replies not checked. no slack messages sent."
+    "needs": "slack read only; your connected account belongs to the duty channel",
+    "output": "greywick duty: unread channel posts\nquestions: soren asked who has the spare gate key.\nnotices: east entrance closed for cleaning.\nupdates: evening rota shared.\nthread replies still to read."
   },
   "steps": [
-    "in **Connected apps**, choose the slack account whose unread position you want to use and grant **read only**.",
-    "name the duty channel and ask the bot to find it among the channels you can access.",
-    "request one catch-up and check that it distinguishes timeline posts from replies it has not read.",
-    "inspect the schedule card after sending the recurring instruction; use **Pause** during leave if you do not need lunchtime catch-ups."
+    "connect the slack account whose unread position you want; allow **read only**",
+    "name the channel and have the bot find it",
+    "try one catch-up and open the threads behind questions that need you",
+    "read the next run on the schedule card; pause lunchtime catch-ups during leave"
   ],
   "watch": [
-    "only main-timeline messages are included. a full discussion needs a separate fetch of the relevant message thread.",
-    "if slack doesn't know where you stopped, it starts from the oldest posts and may bring back older posts you did not expect.",
-    "unread posts come back 25 at a time unless you ask for more; the bot should keep going to the end.",
-    "scheduled catch-ups stop while your own computer sleeps or dusk bot is closed. dusk cloud runs scheduled routines on time."
+    "**channel posts leave out thread replies.** fetch the relevant threads before treating a question as unanswered.",
+    "**no saved reading position can bring old posts back.** ask the bot to flag that gap.",
+    "**the default batch holds 25 posts.** the bot should continue until it finishes.",
+    "**sleep stops local catch-ups.** dusk cloud keeps the scheduled routine running."
   ],
   "faq": [
     {
       "q": "does the summary include unread thread replies?",
-      "a": "not from this action. ask for a separate thread lookup on the posts that need discussion context."
+      "a": "**not with this action alone.** ask for a separate thread read when a post needs more context."
     },
     {
       "q": "why do i see posts i already remember reading?",
-      "a": "the query uses the connected user's read position and starts from the oldest posts when slack doesn't know where you stopped. confirm the connected account and ask the bot to report that limitation."
+      "a": "**slack starts at the oldest posts without a saved reading position.** use the account whose unread dots you want and have the bot flag when that position is missing."
     }
   ],
   "sources": [
@@ -90,5 +90,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect slack with read only",
+      "name one channel you belong to",
+      "ask for unread posts grouped by what needs you",
+      "read threads before acting on open questions"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling a channel question unanswered",
+      "fix": "read its thread before chasing someone."
+    },
+    {
+      "mistake": "using the wrong connected account",
+      "fix": "connect the account whose unread dots you want"
+    }
+  ],
+  "tip": {
+    "text": "the channel asks the question. the thread may already have the answer."
+  },
+  "voice": 2
 }

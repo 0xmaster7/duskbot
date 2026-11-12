@@ -4,12 +4,12 @@
   "title": "AI agent for real estate agents: drafts and showing prep",
   "nav": "real estate agents",
   "h1": "an ai agent for listing drafts and showing prep",
-  "description": "Turn your property notes into listing drafts, prepare lead follow-ups and check showing schedules. Three routines with no assumed real estate software access.",
+  "description": "Get listing drafts from your property notes, find promised follow-ups and prepare for showings. Copy routines for files, Gmail and Google Calendar.",
   "keyword": "ai agent for real estate agents",
   "keywords": [
     "ai assistant for real estate agents"
   ],
-  "answer": "use a property bot to turn verified notes into listing drafts, prepare follow-ups from email conversations and check the showing schedule in your calendar. give it the facts you would be comfortable putting in front of a client. these routines use attached material, gmail and google calendar. they do not assume access to your listing service or property software, and you review every claim before publishing.",
+  "answer": "**arrive at the showing with the address, the questions and the follow-up already in hand.** use verified property notes for listing drafts, gmail threads for promises and google calendar for showing prep. these routines work with files and supported apps; they assume no listing-service or property-software connection. you review property claims before publishing and keep client commitments with you.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -40,72 +40,72 @@
     "bubble": "details to confirm"
   },
   "og_line": "property facts first, polished copy second.",
-  "day_h": "between the listing desk and the next showing",
+  "day_h": "less desk chasing between showings",
   "day": [
     {
       "when": "morning desk time",
-      "what": "review draft listing language against your attached property fact sheet"
+      "what": "**start with a listing draft tied to its fact sheet.** turn unsupported phrases into questions."
     },
     {
       "when": "before leaving",
-      "what": "read today's showing times and addresses, with gaps and overlaps visible"
+      "what": "**read today's times and addresses.** spot gaps and overlaps before the first showing."
     },
     {
       "when": "after a showing",
-      "what": "send the bot your observations and ask for a follow-up draft that keeps buyer questions intact"
+      "what": "**save the questions while they're fresh.** send observations and ask for a follow-up draft."
     },
     {
       "when": "late afternoon",
-      "what": "find lead conversations where you promised to send a detail and have not recorded an answer"
+      "what": "**find promises still waiting on you.** read lead threads for details you agreed to send."
     },
     {
       "when": "before tomorrow's appointments",
-      "what": "prepare a [meeting brief](/routines/meeting-prep-brief) from calendar details and recent email, without guessing personal information"
+      "what": "**prepare from what you know.** use calendar details and recent email for a [meeting brief](/routines/meeting-prep-brief). don't guess personal facts."
     }
   ],
   "pack": [
     {
       "name": "the listing fact check",
-      "message": "every monday at 9, review the property fact sheets and listing drafts i attached. suggest clearer descriptions using only verified details in those files. put claims without supporting notes in a separate questions list. don't invent dimensions, renovation dates, amenities or availability. return the proposed copy here; don't publish it anywhere.",
-      "note": "supply current facts and identify which draft belongs to each property"
+      "message": "every monday at 9, read new or revised property fact sheets and matching listing drafts in the listings review folder i gave you. suggest clearer copy using only verified details. list unsupported claims as questions. never invent dimensions, renovation dates, amenities or availability. return drafts here. skip unchanged files and never publish.",
+      "note": "**keep current facts in the review folder.** name each property and match its fact sheet to its draft."
     },
     {
       "name": "the promised follow-up list",
-      "message": "each weekday at 3:30, read this week's lead conversations in my property gmail. find explicit promises i made to send information. list the property, the promised detail and the thread reference. draft a follow-up in this chat only when the answer is in my attached notes. if it isn't, tell me what to confirm. don't email anyone.",
-      "note": "[gmail](/integrations/gmail) can stay read-only when replies are drafted here"
+      "message": "each weekday at 3:30, read this week's lead threads in my property gmail. find promises i made to send information. show the property, promised detail and source thread. use current property notes in our project folder to draft answers here. if an answer is missing, say what i need to confirm. never email anyone.",
+      "note": "**gmail can stay read only.** these replies stay in dusk chat. see the [gmail setup](/integrations/gmail)."
     },
     {
       "name": "the showing schedule check",
-      "message": "every evening at 6, read tomorrow's showings from the google calendar i named. list start time, address as written and contact details already in the event. flag overlaps, missing addresses and gaps i should review for travel. don't calculate travel times or assume access is confirmed. don't move events or contact clients.",
-      "note": "use the [google calendar connection](/integrations/google-calendar); this is a diary check, not route planning"
+      "message": "every evening at 6, read tomorrow's showings in the google calendar named in your memory notes. list the start, address as written and contact details already in each event. flag overlaps, missing addresses and gaps to review for travel. never calculate travel times, assume access is confirmed, move events or contact clients.",
+      "note": "**see the diary gaps before you leave.** this reads events rather than calculating a route. use [google calendar](/integrations/google-calendar) as read only."
     }
   ],
   "sections": [
     {
-      "h": "property copy needs a traceable source",
-      "md": "keep a fact sheet for each property and attach the version you want used. separate verified details from a seller's suggestion or something you still need to measure. ask for each uncertain phrase to come back as a question.\n\nread the final description yourself. a fluent sentence does not establish a property's condition, permitted use or legal status. if a claim needs an inspection or a professional check, leave it out until that check is complete."
+      "h": "make every property claim traceable",
+      "md": "**keep the attractive detail you can back up.** keep one current fact sheet per property. separate verified details from seller suggestions and things still to measure. ask for uncertain phrases as questions.\n\nread the final copy yourself. condition, permitted use and legal status need evidence. leave claims out when they still need an inspection or professional review."
     },
     {
-      "h": "follow up on the conversation you actually had",
-      "md": "the bot can read a mail thread, but a phone conversation will be missing unless you supply notes. record the promised action after the call, then ask the bot to draft from that record. don't let it pretend a conversation happened.\n\nkeep lead handling focused on stated requests and property needs. don't ask the bot to guess a person's background or decide who deserves a reply. you choose the next action and review wording before it reaches a client."
+      "h": "follow up on the conversation you had",
+      "md": "**write down the promise before the next showing pushes it out of your head.** put the promised action in your property notes after the call. the bot can then draft the follow-up from what you actually agreed.\n\nkeep lead handling about stated requests and property needs. don't ask it to guess someone's background or who deserves a reply. you choose the action and read the wording."
     },
     {
-      "h": "keep access and commitments in human hands",
-      "md": "do not attach alarm codes, keysafe details or private access instructions for these drafts. the schedule routine only needs enough detail to help you check the diary. it cannot verify that a seller agreed to a showing just because an event exists.\n\nleave gmail and calendar read-only for this pack. if you later allow calendar writes, add \"ask me before you change anything\"; moving appointments does not automatically get a send approval. professional use needs a work license, with details on [pricing](/pricing)."
+      "h": "keep access and commitments with you",
+      "md": "**don't leave a buyer waiting outside a locked house.** the diary review finds dates and missing details. confirm access with the person who controls it.\n\n- leave alarm codes, keysafe details and private access instructions out of these drafts\n- keep gmail and calendar read only for this pack\n- if you later allow calendar writes, add 'ask me before changing anything'\n\nmoving an appointment doesn't automatically get sending approval. professional use needs a work license; see [pricing](/pricing)."
     }
   ],
   "faq": [
     {
       "q": "can i use this with my existing property software?",
-      "a": "these routines do not require or claim a property-software connection. attach the notes you choose to share, connect a supported inbox or calendar, and keep your existing listing system as the record you maintain."
+      "a": "**keep your listing system as the record.** this pack doesn't claim a connection to property software. use chosen files and a supported inbox or calendar."
     },
     {
       "q": "can i message the bot while i'm out at showings?",
-      "a": "yes. pair your phone and text the bot through the phone browser version. if the bot lives on your office computer, that computer must stay on with dusk bot running. dusk cloud is another place for bots to live."
+      "a": "**yes, through the paired phone browser version.** an office computer must stay on with dusk running if it hosts your bot. dusk cloud is another home for it."
     },
     {
       "q": "will it write and publish listings for me?",
-      "a": "it can draft from the property material you provide. this setup stops at proposed copy in chat. you check the facts, apply your professional requirements and publish through your normal process."
+      "a": "**you get draft copy in chat to use in your usual publishing process.** give it property material, compare each claim with your notes and apply your professional requirements."
     }
   ],
   "sources": [
@@ -135,5 +135,41 @@
       "url": "https://docs.composio.dev/toolkits/googlecalendar",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "attach one current property fact sheet",
+      "ask for a short listing draft using only those facts",
+      "ask which attractive claims lack evidence",
+      "compare the draft with your fact sheet before publishing"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for 'a more impressive listing'",
+      "fix": "ask for clearer wording from verified facts. don't reward invented amenities."
+    },
+    {
+      "mistake": "assuming the calendar confirms property access",
+      "fix": "confirm with the person who controls access. keep that commitment with you."
+    },
+    {
+      "mistake": "leaving a phone promise out of the notes",
+      "fix": "record what you agreed after the call so the follow-up has a source."
+    }
+  ],
+  "checklist": {
+    "h": "before a client sees it",
+    "items": [
+      "every property claim has a current source",
+      "open questions stay visible",
+      "follow-ups match real promises",
+      "you checked showing access separately",
+      "private access details stay out of the draft"
+    ]
+  },
+  "tip": {
+    "text": "send the bot the questions from the viewing while you're still outside the property."
+  },
+  "voice": 2
 }

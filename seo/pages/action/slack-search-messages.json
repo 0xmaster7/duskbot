@@ -11,7 +11,7 @@
     "claude find slack conversation",
     "ai slack message search by date"
   ],
-  "answer": "describe the slack message you need and a bot can search across the connected workspace, narrowing by channel, person or date. it can order matches by relevance or time and collect more than one result page. searching leaves slack unchanged. the important boundary is context: a matching message may be a suggestion that later replies overturned, so ask for a thread check before treating it as a decision.",
+  "answer": "**find the promise before you walk into the supplier call.** give the bot a phrase, person, slack channel or date. it searches by relevance or time and gathers more results when needed. use the match to open the thread: a later reply may have changed the deal. searching leaves slack alone.",
   "tags": [
     "slack",
     "message search",
@@ -22,42 +22,42 @@
     "/integrations/slack/add-reaction-to-message"
   ],
   "og_line": "a focused search beats a remembered phrase.",
-  "what": "you might remember that someone discussed a discount in a particular channel last month. the bot can combine those clues in a slack query, then present the matching wording with its author and time. sorting by time helps when you need the earliest mention rather than the most relevant hit.\n\nsearching and reading a conversation are separate actions. once a promising message appears, a thread lookup can establish what followed. use the search result to locate evidence, rather than assuming it contains the final answer.",
+  "what": "**start with the phrase you half remember.** add the channel, person or month if you know them. the bot returns matching wording with its author and time. ask for oldest first to trace the first mention.\n\nthen read the conversation. search and thread reading are separate actions, and later replies can turn a promising offer into a rejected one.",
   "uses": [
-    "locate the first message that proposed a supplier discount",
-    "find where a teammate mentioned the missing adapter in an equipment channel",
-    "collect messages containing an old product name before planning a rename",
-    "trace the wording of a delivery promise within a known date window"
+    "find the first proposal for a supplier discount",
+    "locate the missing-adapter message in the equipment channel",
+    "collect mentions of the old product name before a rename",
+    "trace a delivery promise inside a known date window"
   ],
   "routine": {
-    "message": "each wednesday at 14:35, search #vendor-terms for messages mentioning freight surcharges posted during the previous seven days. sort the matches oldest first and list the author, date and exact relevant wording here. read the matching threads separately if a reply may change the meaning. never post a response or treat a proposed price as an agreed price.",
+    "message": "each wednesday at 14:35, search #vendor-terms for freight surcharges mentioned in the previous seven days. show the matches oldest first here, with author, date and exact relevant words. read matching threads separately when replies could change the meaning. report failed reads. never post a reply or call a proposed price an agreed one.",
     "when": "wednesdays at 14:35",
-    "needs": "slack connected with read only access for message search and thread reading",
-    "output": "freight surcharge evidence\n\nren at hollow pine supply, monday: proposed winter surcharge.\nleonie, tuesday: asked whether it covers returns.\nthread check: no agreement found in the replies returned."
+    "needs": "slack with read only for message search and thread reading",
+    "output": "freight surcharge discussion\n- ren, hollow pine supply, monday: proposed a winter surcharge\n- leonie, tuesday: asked whether it covers returns\nreplies returned: still discussing it; no agreement found."
   },
   "steps": [
-    "select slack in **Connected apps** and enable **read only** for your search bot.",
-    "start with a remembered phrase plus a channel or person, and check whether the returned matches are relevant.",
-    "specify relevance or date order, and ask the bot to continue through results when the first page is insufficient.",
-    "turn a recurring evidence search into a routine; check the next runs on the routine card before it starts."
+    "connect slack and give the search bot read only.",
+    "give a phrase plus a channel or person. see whether the first matches fit.",
+    "choose relevance or date order. ask for more results if the first batch leaves gaps.",
+    "schedule the recurring search and read its next runs on the routine card."
   ],
   "watch": [
-    "if you expect lots of matches, ask the bot to collect all of them, not just the first page.",
-    "workspace search still depends on the connected account's access. it cannot reveal an inaccessible private conversation.",
-    "on a sleeping desktop the weekly search cannot start. keep the app running or place the routine on dusk cloud for scheduled delivery."
+    "**the first batch may be incomplete.** ask for all matches when the count matters.",
+    "**connect the account that can see the conversation.** search cannot reveal private messages outside its access.",
+    "**a sleeping laptop cannot start the search.** leave dusk running on an awake machine or use dusk cloud."
   ],
   "faq": [
     {
       "q": "can i search only messages from one person?",
-      "a": "the query supports a from modifier, along with channel and before or after date filters."
+      "a": "**yes.** name the person and the bot can narrow by sender. it can also narrow by channel and dates."
     },
     {
       "q": "can it find the oldest mention instead of the best match?",
-      "a": "ask for timestamp sorting in ascending order. relevance sorting serves a different purpose and may put a newer message first."
+      "a": "**yes, ask for oldest first.** sorting by relevance can put a newer message at the top."
     },
     {
       "q": "does searching slack tell me whether the question was answered?",
-      "a": "a search match alone does not establish that. the bot should fetch the thread and read the replies before calling something unanswered."
+      "a": "**follow the match into its thread.** the replies tell you whether anyone answered the question."
     }
   ],
   "updated": "2026-11-12",
@@ -93,5 +93,31 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect slack with read only access",
+      "ask for one phrase in a named channel during the last week",
+      "open the matching thread before treating the message as an answer"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "quoting the proposal as the final price",
+      "fix": "read the replies. later messages may change or reject it."
+    },
+    {
+      "mistake": "asking for the oldest mention but accepting relevance order",
+      "fix": "say \"oldest first\" and compare the dates."
+    }
+  ],
+  "tip": {
+    "text": "the reply that changes everything is often one message below the search hit."
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "in #vendor-terms, falk proposes a freight surcharge.\na search for \"surcharge\" finds that message.",
+    "after": "search result: falk proposed a surcharge.\nlater reply: rejected.\nthe returned conversation contains no agreed surcharge."
+  },
+  "voice": 2
 }

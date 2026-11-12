@@ -1,17 +1,17 @@
 {
   "path": "/routines/slack-channel-digest",
   "type": "routine",
-  "title": "Slack digest: end-of-day updates across your channels",
+  "title": "Slack channel digest: decisions, promises and open questions",
   "nav": "slack channel digest",
   "h1": "an end-of-day digest of the slack channels you choose",
-  "description": "Copy an end-of-day Slack digest for multiple channels, with linked updates and a check that separates access failures from quiet days.",
+  "description": "Try one end-of-day Slack digest across named channels. Keep links beside decisions, read the replies and separate quiet days from failed reads.",
   "keyword": "ai slack channel digest",
   "keywords": [
     "slack daily digest ai",
     "slack channel summary routine",
     "end of day slack summary"
   ],
-  "answer": "pick two or more slack channels and ask a bot for one end-of-day digest across them. it reads messages and relevant thread replies, then separates decisions, explicit commitments and unresolved questions with links back to the discussion. the digest comes to your dusk bot chat rather than adding another channel message. keep slack read-only; it should report inaccessible channels and stay quiet only after successful reads find nothing worth reporting.",
+  "answer": "**stop rereading three channels just to find what changed.** get an end-of-day digest of decisions, commitments and open questions from the channels you name. it follows the replies and keeps a message link beside each item.\n\nthe result comes to your dusk chat. slack can stay read only while you decide which conversation needs your attention.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -42,42 +42,42 @@
   },
   "og_line": "read the decisions, then follow the thread.",
   "routine": {
-    "message": "every weekday at 5:30pm, read today's messages across #acme-launch, #acme-support and any other channels i explicitly name in this workspace. include relevant thread replies you can access, even when the parent message is older.\n\ncombine the channels into one end-of-day digest here with three short groups:\n- decisions explicitly agreed in the discussion\n- commitments someone explicitly made, with the person and any stated deadline\n- questions still unresolved in the messages you read\n\ninclude the channel and a message link for each item. label suggestions as suggestions, not decisions. don't assign an owner or invent a deadline when neither was stated. skip greetings, repeated announcements and social chatter. check access to every named channel and its relevant threads before deciding the day was quiet. report any failed or incomplete reads here, naming the channel and the missing coverage. only stay quiet when all reads succeeded and there is nothing substantive across the channels.\n\nuse only the named channels, not direct messages or other channels. don't post, reply, react, mark anything read or change slack.",
-    "when": "weekdays at 17:30 in the time zone you choose, covering that day's discussion in your selected channels",
-    "needs": "slack connected with read access to the selected workspace and channels, including conversation history, thread reads and message links",
-    "output": "today in the selected acme channels\n\ndecisions: #acme-launch, priya confirmed that the public demo moves to thursday. source: priya's message at 10:20.\ncommitments: #acme-support, sam said he will test the corrected import file tomorrow morning. source: sam's thread reply at 15:40.\nopen questions: #acme-launch, no answer found to whether the old signup page should remain live. source: priya's question at 16:10.\nscope: #acme-launch and #acme-support only. both channel reads and relevant thread reads succeeded; no direct messages read."
+    "message": "every weekday at 5:30pm, read today's messages in #heathervale-launch and #heathervale-support. include other channels only when they are named in your job. read relevant replies too, including replies to older parent messages.\n\nreturn one short digest here:\n- confirmed decisions\n- explicit commitments, with the person and any stated deadline\n- questions still open in the messages you read\n\ninclude the channel and a message link for every item. call suggestions suggestions. never invent owners or deadlines. skip greetings, repeat announcements and social chatter.\n\ninclude every named channel and relevant thread. report failed or incomplete reads with the missing coverage. stay quiet only when all reads succeed and nothing substantive remains.\n\nread only the named channels. no direct messages. never post, reply, react, mark messages read or change slack.",
+    "when": "weekdays at 17:30, in your chosen time zone; covers that day in the named channels",
+    "needs": "slack read access to the chosen workspace and channels, with history, thread reads and message links",
+    "output": "today in the heathervale channels\n\n- decision: #heathervale-launch, petra confirmed the public demo moves to thursday. source: confirming message at 10:20.\n- commitment: #heathervale-support, arthur will test the corrected import file tomorrow morning. source: thread reply at 15:40.\n- open question: #heathervale-launch, should the old signup page stay live? source: question at 16:10.\n\nall named channels and relevant threads read successfully."
   },
   "knobs": [
-    "start with two named channels and add another only when you know what useful information it would contribute",
-    "change the reporting time to fit the team's working day, and say whether a cross-time-zone team needs a wider window",
-    "add a topic filter such as customer escalations, while keeping links so you can inspect what was left out",
-    "cap the digest at five items and ask the bot to group repeated references to the same decision",
-    "if you want a channel post later, grant the specific send action and keep **Ask every time** selected; sending is separate from reading"
+    "**start small.** choose two named channels. add another only when you know what it contributes.",
+    "**match the working day.** change the reporting time or widen the window for a team across time zones.",
+    "**follow a topic.** try customer escalations, keeping source links so you can judge the selection.",
+    "**keep it short.** cap it at five items and group repeat mentions of the same decision.",
+    "**keep the destination simple.** return the digest to dusk chat, where you can read it before sharing."
   ],
   "fails": [
-    "a proposal sounds like a final decision. require a message where someone explicitly confirms the choice, and list anything weaker as an open proposal.",
-    "it misses the answer in a thread. ask it to open the thread before calling a question unresolved, and to state when replies were inaccessible.",
-    "it reports yesterday's item again because the discussion continued today. ask it to include only the new decision or changed commitment, with the earlier context kept brief.",
-    "a quiet channel and an inaccessible channel look the same. require the bot to report an access failure instead of treating it as a day with no news."
+    "**a proposal sounds final.** require an explicit confirming message. anything weaker stays a proposal.",
+    "**the answer hides in replies.** open the thread before calling a question unresolved. report inaccessible replies.",
+    "**yesterday's item appears again.** include only the new decision or changed commitment. keep earlier context brief.",
+    "**a failed read looks like silence.** report the inaccessible channel. only successful reads can support a quiet result."
   ],
   "sections": [
     {
-      "h": "a useful digest keeps its sources close",
-      "md": "the [slack connector](/integrations/slack) lists conversation history, thread reads and message permalink retrieval. a summary should use those references so you can open the discussion behind a short line. do not treat the summary as a replacement for reading a sensitive disagreement.\n\na [product manager](/for/product-managers) might choose release and feedback channels; someone else may only need operational handoffs. if the problem is preparing for the morning rather than catching up at night, try a [daily briefing](/use-cases/daily-briefing). inspect the first digests and remove channels that only add noise. on a local computer, the scheduled run needs the computer awake and dusk bot open."
+      "h": "keep the discussion one click away",
+      "md": "**open the decision without hunting for it again.** the [slack connection](/integrations/slack) supports history, threads and message links. ask for the link beside each item. read sensitive disagreements in full.\n\na [product manager](/for/product-managers) may choose release and feedback channels. an operations lead may need handoffs. remove channels that only add noise.\n\nneed a morning view? try a [daily briefing](/use-cases/daily-briefing). local runs need an awake computer and dusk open."
     }
   ],
   "faq": [
     {
-      "q": "what do people actually use scheduled ai tasks for in slack?",
-      "a": "a bounded catch-up is a useful starting point: decisions, promises and unanswered questions from channels you would otherwise read manually. keep the source links and judge whether the selection is useful after a few runs."
+      "q": "what are scheduled ai tasks useful for in slack?",
+      "a": "**a focused catch-up is a good trial.** gather decisions, promises and questions you would otherwise hunt for. inspect source links and judge the selection after a few runs."
     },
     {
       "q": "will the digest be posted into slack?",
-      "a": "not with this message. it returns to the bot's chat, and slack can remain read-only. posting requires write access to the sending action and follows your bot's sending setting. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** for full-access bots.[^3]"
+      "a": "**the digest comes to dusk chat.** slack stays read only. posting is a separate job, with its own allowed action and sending setting.[^3]"
     },
     {
       "q": "does it read every channel and my direct messages?",
-      "a": "the routine explicitly limits the request to the channels you name. also limit the bot's app permissions and allowed actions. naming channels tells the bot where to look. the slack connection itself isn't locked to those channels."
+      "a": "**the instruction limits it to named channels.** also restrict app access and actions. naming channels guides the job; it does not lock the slack connection to those channels."
     }
   ],
   "sources": [
@@ -98,5 +98,40 @@
       "url": "https://docs.composio.dev/toolkits/slack",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose two project channels you already read",
+      "connect slack with read-only access",
+      "ask for today's confirmed decisions and source links",
+      "open one confirming reply before scheduling the digest"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for a summary of the whole workspace",
+      "fix": "name the channels. broad catch-ups turn into another inbox."
+    },
+    {
+      "mistake": "staying quiet when a channel cannot be read",
+      "fix": "name the channel it could not read. save silence for days it read successfully."
+    },
+    {
+      "mistake": "calling the first suggestion a decision",
+      "fix": "find the confirming reply and link it."
+    }
+  ],
+  "saves": {
+    "estimate": "roughly 35 minutes a week under these assumptions, not a measured result",
+    "formula": "10 minutes reading channels each day\n- 3 minutes checking the digest and source links\n= 7 minutes per day\nx 5 workdays\n= 35 minutes a week",
+    "assumptions": [
+      "your current catch-up takes 10 minutes on each workday",
+      "reading the digest and its important source links takes 3 minutes",
+      "setup and early corrections are extra time"
+    ]
+  },
+  "tip": {
+    "text": "the best catch-up is short enough to read before you open slack again."
+  },
+  "voice": 2
 }

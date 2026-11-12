@@ -1,10 +1,10 @@
 {
   "path": "/alternatives/manus",
   "type": "alternative",
-  "title": "Manus alternatives: credits or your own AI sign-in?",
+  "title": "Manus alternatives: compare credits with your own AI",
   "nav": "manus",
   "h1": "manus alternatives when you want a different ai bill",
-  "description": "Compare Manus credits with Dusk Bot's separate AI billing, see where each fits, and get the dated ownership update after the Meta deal was unwound.",
+  "description": "Choose between Manus cloud tasks and ongoing Dusk Bot teammates. Compare dated prices, credit limits and separate AI bills, plus the ownership update.",
   "keyword": "manus alternatives",
   "keywords": [
     "manus alternative",
@@ -13,7 +13,7 @@
     "manus ai review",
     "manus ai vs claude"
   ],
-  "answer": "manus suits someone who wants a cloud agent with its own models and a credit allowance. dusk bot suits someone who wants a few ongoing bots that think with the ai they already sign in to, with ai usage billed by that provider. neither arrangement guarantees a cheaper completed task. as of 12 november 2026, manus is independent again after the meta deal was unwound; describing it as still meta-owned is out of date.[^1][^2][^3][^10]",
+  "answer": "**need a finished deck, or a bot that knows next week's job?** manus bundles cloud tasks, models and credits. dusk keeps ongoing bots on the ai you choose, with your provider billing usage.[^1][^2][^3]\n\nas of 12 november 2026, manus is independent again after the meta deal unwound. old meta-owned descriptions miss the second half.[^10]",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -49,17 +49,17 @@
   "verdict": {
     "them_title": "manus",
     "them": [
-      "you want cloud tasks that produce research, websites, slides or media in one product",
-      "you prefer manus models and credits, or want to evaluate its pro bring-your-own-keys option"
+      "**you want a finished deliverable.** manus packages research, websites, slides and media in one cloud product.",
+      "**you prefer its models and credits.** pro also offers manus flex for your own keys."
     ],
     "dusk": [
-      "you want persistent bots with different jobs, chats, memory and ai choices",
-      "you want to start personally on your own computer and pay your ai provider directly for usage"
+      "**you want bots you keep.** give each one a job, chats, memory and its own ai.",
+      "**you want a separate ai bill.** start with personal desktop use and pay your provider for usage."
     ]
   },
   "compare": {
     "h": "a task allowance or a team you keep",
-    "intro": "prices and ownership here are as of 12 november 2026. a manus credit is not a dusk unit, so the allowances do not establish a cost per finished job.",
+    "intro": "**the same $20 buys credits here and hosting there.** prices and ownership are as of 12 november 2026. compare what you need delivered before comparing the allowances.",
     "cols": [
       "Manus",
       "Dusk Bot"
@@ -68,8 +68,8 @@
       {
         "label": "main shape",
         "cells": [
-          "general-purpose cloud agent producing research, websites, slides, images and video",
-          "desktop app with named bots, each with a job and its own memory"
+          "cloud agent for research, websites, slides, images and video",
+          "desktop app with named bots, separate jobs and memory"
         ],
         "src": [
           4,
@@ -79,8 +79,8 @@
       {
         "label": "model choice",
         "cells": [
-          "manus 2.0 lite on free; pro adds manus 2.0, 2.0 max and manus flex for your own keys",
-          "pick an ai for each bot; sign in, add an api key or choose a local model"
+          "free uses manus 2.0 lite; pro adds 2.0, 2.0 max and flex for your own keys",
+          "choose each bot's ai: sign in, add your own key or run a local model"
         ],
         "src": [
           1,
@@ -91,8 +91,8 @@
       {
         "label": "entry price",
         "cells": [
-          "free: 300 credits per day and 2 automations",
-          "free personal use on your computer; ai charges remain with your provider"
+          "free: 300 credits daily and 2 automations",
+          "personal desktop use is free; your ai provider still bills usage"
         ],
         "src": [
           1,
@@ -102,8 +102,8 @@
       {
         "label": "paid starting point",
         "cells": [
-          "pro: $20 monthly, 4,000 monthly credits and 20 automations",
-          "dusk cloud plus: $20 monthly for the hosted computer, with ai usage separate"
+          "pro: $20 monthly, 4,000 monthly credits, 20 automations",
+          "cloud plus: $20 monthly for hosting; ai costs stay separate"
         ],
         "src": [
           1,
@@ -115,7 +115,7 @@
         "label": "larger monthly option",
         "cells": [
           "max: $200 monthly, 40,000 credits, then pay as you go",
-          "dusk cloud pro: $50 monthly; includes a work license for one person"
+          "cloud pro: $50 monthly, including a work license for one person"
         ],
         "src": [
           1,
@@ -125,8 +125,8 @@
       {
         "label": "recurring work",
         "cells": [
-          "automations included by tier; scheduled summaries can arrive in telegram",
-          "routines made by asking; local runs need the app awake, cloud runs on time"
+          "automations by tier; scheduled summaries can arrive in telegram",
+          "routines made by asking; local app must stay awake, cloud runs on time"
         ],
         "src": [
           1,
@@ -137,8 +137,8 @@
       {
         "label": "getting into chat",
         "cells": [
-          "web with no install, desktop and phone apps, slack, and telegram",
-          "desktop app; pair a phone browser with your computer or cloud"
+          "web without installing; desktop and phone apps, slack, telegram",
+          "desktop app and phone browser paired to your computer or cloud"
         ],
         "src": [
           7,
@@ -148,33 +148,33 @@
       }
     ]
   },
-  "method": "we read manus's own pricing and product pages and compared them with dusk bot's docs on 12 november 2026. we make dusk bot and have not run identical research or creation tasks through both. no conversion from credits to finished tasks is available here. the current ownership account is a press report; the old acquisition announcement is retained only to explain the timeline.",
+  "method": "**use the published offer to choose your trial.** we read manus pricing and product pages against dusk docs on 12 november 2026. we make dusk bot.\n\nwe haven't run identical creation or research jobs through both, so we can't turn credits into a price for your finished work.\n\nthe ownership update comes from a press report. the older acquisition announcement shows how the story started.",
   "sections": [
     {
-      "h": "read the credit allowance before comparing totals",
-      "md": "manus free gives 300 credits each day; pro lists 4,000 per month. those periods are different, and neither number tells you how many of your particular jobs will finish. pro also lists 20 simultaneous tasks, compared with 3 on free.[^1] that can matter if you want several separate deliverables underway.\n\ndusk bot does not put ai usage on the dusk bill. your provider bills it on your plan with them.[^2] a free desktop app therefore does not mean free inference. compare the work you intend to repeat, the provider allowance you already have, and whether you need hosting. the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) follows those separate costs."
+      "h": "daily credits and monthly credits are different",
+      "md": "**the free daily allowance won't tell you what pro gets done.** manus free lists 300 credits a day; pro lists 4,000 a month. pro allows 20 tasks at once, versus 3 on free.[^1]\n\ntry a job you actually need and see how much allowance it uses. dusk leaves ai usage with your provider.[^2] free personal desktop use still needs that ai.\n\ncompare the recurring job, your existing ai allowance and hosting needs. the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) separates those costs."
     },
     {
-      "h": "the ownership story needs the second half",
-      "md": "manus announced a meta acquisition on 29 december 2025.[^4] a global times report says china's ndrc ordered the deal unwound in april 2026, and manus resumed independent operations on 1 september with its founding team leading.[^10]\n\nthat is why an old comparison calling manus a meta product can mislead you. the same report describes data backup and possible data loss during the separation. check current notices before relying on an old account's history. ownership alone does not tell us which agent will handle your task better."
+      "h": "the ownership story has a second half",
+      "md": "**read the september update before trusting an old meta headline.** manus announced the meta deal on 29 december 2025.[^4]\n\nthe global times reports that china's ndrc ordered it unwound in april 2026. manus resumed independent operations on 1 september, led by its founding team.[^10]\n\nthe report also describes backup notices and possible data loss during separation. read current account notices before relying on old history. the ownership story matters most if your work is still in that account."
     },
     {
-      "h": "choose between a deliverable and an ongoing relationship",
-      "md": "manus explicitly describes producing websites, slides and media, alongside research.[^4] if that package is what you need, keep it on the shortlist. dusk bot isn't built to match those specialised outputs.\n\ndusk's other shape is a bot you keep: one job, several chat threads, shared memory across those threads, and the ability to change its ai without losing chats or files.[^5] [ai teammates](/ai-teammates) explains that approach; [manus versus dusk bot](/vs/manus) keeps the direct comparison together. begin with one narrow recurring job and inspect its early runs before trusting it with more."
+      "h": "a deliverable or a bot you keep",
+      "md": "**keep manus on the shortlist if you want its creation package.** it offers websites, slides and media alongside research.[^4] dusk's different focus is a bot with an ongoing job.\n\nthat bot can keep several threads sharing memory and switch ai without losing chats or files.[^5] [ai teammates](/ai-teammates) explains the setup. [manus versus dusk bot](/vs/manus) covers the direct choice.\n\ntry one narrow recurring job first. inspect its early runs before handing over more."
     }
   ],
   "faq": [
     {
       "q": "manus ai: how many free credits do i get?",
-      "a": "as of 12 november 2026, its free plan lists 300 credits per day, manus 2.0 lite, 3 tasks at once and 2 automations. a credit count is not a promise of a fixed number of completed tasks.[^1]"
+      "a": "**300 credits daily, as of 12 november 2026.** free also lists manus 2.0 lite, 3 simultaneous tasks and 2 automations. try your job to see how far those credits go.[^1]"
     },
     {
       "q": "what are people switching to instead of manus?",
-      "a": "if your reason is wanting different ai billing, dusk bot is one option: it works with the ai apps you already use. if your reason is finished slides or websites inside one cloud product, manus may still fit better. this is a fit comparison, not a survey of people leaving.[^2][^3][^4]"
+      "a": "**switch for the job you want to keep doing.** dusk fits ongoing bots and separate ai billing.[^2][^3] manus may fit better for finished slides or websites.[^4] we have no survey of people leaving."
     },
     {
       "q": "is manus still owned by meta?",
-      "a": "the current recorded report says it resumed independent operations on 1 september 2026 after the acquisition was ordered unwound. the december 2025 acquisition announcement is real but does not describe the position as of 12 november 2026.[^4][^10]"
+      "a": "**it is independent again, according to the september report.** operations resumed on 1 september 2026 after the ordered unwind. the december 2025 announcement covers the earlier deal. read both for the position as of 12 november 2026.[^4][^10]"
     }
   ],
   "sources": [
@@ -222,5 +222,52 @@
       "url": "https://www.globaltimes.cn/page/202609/1369553.shtml",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name one job you want to repeat",
+      "write down the output you will accept",
+      "decide whether you need hosting or already have ai access",
+      "try that job before comparing monthly allowances"
+    ]
+  },
+  "decide": {
+    "h": "which shape fits the job",
+    "cols": [
+      "your priority",
+      "start here"
+    ],
+    "rows": [
+      [
+        "websites, slides and media inside one cloud product",
+        "manus"
+      ],
+      [
+        "ongoing bots with separate memories and ai choices",
+        "dusk bot"
+      ],
+      [
+        "a guaranteed cost per finished job",
+        "run your job and measure it; neither allowance fixes that price"
+      ],
+      [
+        "using an ai plan you already pay for",
+        "compare dusk with your provider's current terms"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "comparing the two $20 prices as identical bundles",
+      "fix": "list hosting, model usage and allowance separately before picking a plan."
+    },
+    {
+      "mistake": "calling manus meta-owned from an old article",
+      "fix": "read the september 2026 independence report alongside the original announcement."
+    }
+  ],
+  "tip": {
+    "text": "make it finish the job before deciding the credits are good value."
+  },
+  "voice": 2
 }

@@ -11,7 +11,7 @@ if you would rather not use [dusk cloud](/docs/dusk-cloud) and you're comfortabl
 
 ## what you need
 
-- **ubuntu 22.04 or 24.04**, with **2 gb of memory or more**. more memory means more bot computers awake at once (12 gb keeps about six).
+- **ubuntu 22.04 or 24.04**, with **2 gb of memory or more**. more memory means more bot computers awake at once.
 - root, or a user who can use `sudo`.
 - a fresh server is best. don't give bots a server that holds things you wouldn't hand them.
 

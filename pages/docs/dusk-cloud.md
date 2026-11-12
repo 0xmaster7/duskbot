@@ -22,7 +22,7 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 | --- | --- | --- |
 | **price** | $20 a month, or $200 a year | $50 a month, or $500 a year |
 | **cloud computer** | 2 vcpu, 4 gb memory, 40 gb disk | 4 vcpu, 8 gb memory, 80 gb disk |
-| **bot computers awake at once** | 2 | 5, and first in line to wake |
+| **bot computers awake at once** | a good amount | more, for heavy workloads, and first in line to wake |
 | **work license** | no | yes, for one person |
 
 ai usage is not part of the bill. your bots use the ai you sign in with, on your plan with them. current prices are always on [the pricing page](/pricing).

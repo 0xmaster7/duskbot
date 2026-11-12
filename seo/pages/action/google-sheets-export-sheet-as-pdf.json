@@ -4,14 +4,14 @@
   "title": "Export a Google Sheets tab as PDF with AI",
   "nav": "export sheet as pdf",
   "h1": "make a pdf of the google sheets tab you chose",
-  "description": "Ask a bot to export one Google Sheets tab or rectangular range as PDF. Set orientation and gridlines, then check the layout before sharing the file.",
+  "description": "Export one Google Sheets tab or rectangular range as PDF. Choose orientation and gridlines, then open the file to spot tiny text and awkward page breaks.",
   "keyword": "google sheets export pdf with ai",
   "keywords": [
     "chatgpt export google sheet to pdf",
     "claude sheets tab pdf",
     "ai google sheets range to pdf"
   ],
-  "answer": "a bot can render one google sheets tab, or a rectangular part of it, as a pdf with choices such as portrait orientation, gridlines and fit to width. give it the sheet's link and say which tab. dusk bot counts this export as a change, so the bot needs read and write for sheets, even though your sheet isn't touched.",
+  "answer": "**get a printable roster without exporting the budget beside it.** a bot can export one google sheets tab or rectangle as a pdf. give the original sheet link and tab name, then choose portrait, gridlines or fit to width. dusk counts export as a change, so it needs read and write access. your source cells stay untouched.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,39 +41,39 @@
     "toolkit": "googlesheets",
     "slug": "GOOGLESHEETS_EXPORT_SHEET_AS_PDF"
   },
-  "what": "export sheet as pdf is for a chosen tab or rectangle rather than an unspecified workbook. paste the normal link to the sheet and name the tab; the bot works out the rest.\n\nyou can request orientation, margins, sheet names and repeated frozen rows. google doesn't document some print settings, like margins, so open the pdf and check it before you share it. fit to width alone is not proof that every page will be easy to read.",
+  "what": "**get the right rows onto readable pages.** paste the normal sheet link and name the tab or rectangle. the export works on that selection rather than guessing which workbook content you want.\n\nchoose orientation, margins, sheet names and repeated frozen rows. google leaves some print settings, including margins, unclear. fit to width can still leave tiny text. open the pdf at normal size.",
   "uses": [
-    "make a printable duty roster from one tab without exposing the budget tabs",
-    "export the approved quote rectangle for an internal review",
-    "prepare a landscape copy of a wide workshop attendance table",
-    "create a gridline-free pdf of a small totals table for filing"
+    "**print the duty roster alone.** keep budget tabs out of the export.",
+    "**show only the quote that matters.** choose its approved rectangle for review.",
+    "**give a wide attendance table room.** try landscape.",
+    "**file a clean totals table.** turn gridlines off for the pdf."
   ],
   "routine": {
-    "message": "every tuesday at 15:45, export the \"rehearsal roster\" tab from the original fernwater production spreadsheet link i gave you as a landscape pdf, fitting it to width and repeating frozen rows. confirm the tab first and ask me before exporting. put the pdf in this chat for me to check. never include another tab, change source cells or email the result.",
+    "message": "every tuesday at 15:45, open the fernwater production spreadsheet saved in the production folder. confirm the rehearsal roster tab and export its current version as a landscape pdf. fit it to width and repeat frozen rows. ask me before exporting. put the pdf here for me to read. never include other tabs, change cells or email the result.",
     "when": "tuesdays at 15:45",
-    "needs": "google sheets connected, with read and write access for the export action",
-    "output": "fernwater rehearsal roster\nselected tab: rehearsal roster\nrequested layout: landscape, fit to width, frozen rows repeated\npdf returned here for a page-by-page check."
+    "needs": "google sheets connected with read and write for pdf export; access to the production folder containing the spreadsheet link",
+    "output": "fernwater rehearsal roster\ntab: rehearsal roster\nlayout: landscape, fit to width, frozen rows repeated\npdf attached. open it at normal size to read the column headings."
   },
   "steps": [
-    "enable google sheets in **Connected apps** with **read and write**, allowing the pdf export action specifically.",
-    "give the original spreadsheet link with its tab reference; a published viewing link is not supported.",
-    "choose orientation and the tab or range, and include an ask-before-export instruction if you want that checkpoint.",
-    "open the first pdf and check its edges and page breaks before keeping the schedule; **Pause** stops further exports."
+    "connect google sheets with read and write. allow the pdf export action.",
+    "paste the original sheet link with the chosen tab open. published viewing links won't work.",
+    "name the tab or whole cell block and choose orientation. ask for review before export if wanted.",
+    "open the pdf. look for clipped edges and awkward page breaks before keeping the schedule."
   ],
   "watch": [
-    "copy the link while the tab you want is open; that tells the bot exactly which tab.",
-    "published /d/e/ links cannot be used as the spreadsheet reference.",
-    "to export only part of a tab, give the whole block, like A1:F30. the bot shouldn't guess where it ends.",
-    "google doesn't document some print settings, like margins, so open the pdf and check it before you share it."
+    "**copy the link from the right tab.** it tells the bot which one to export.",
+    "**published viewing links won't work.** use the original spreadsheet link, not a /d/e/ address.",
+    "**give the whole rectangle.** say `a1:f30` rather than asking the bot to guess the edge.",
+    "**look at the margins in the pdf.** google leaves some print settings unclear, so the file itself is your guide."
   ],
   "faq": [
     {
       "q": "can i export only part of a tab?",
-      "a": "yes, using a rectangular range. give the whole block of cells, like A1:F30."
+      "a": "**yes. give a rectangular range.** name the whole block, such as `a1:f30`, so the bot doesn't guess where your table ends."
     },
     {
       "q": "will asking every time for sends approve this export?",
-      "a": "no. it is a write in dusk bot, so put any review-before-export requirement directly in the routine."
+      "a": "**no. dusk treats export as a change.** put 'ask me before exporting' in the routine if you want that checkpoint."
     }
   ],
   "sources": [
@@ -89,5 +89,36 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "open the tab you want and copy its normal link",
+      "ask for that tab as a landscape pdf",
+      "choose gridlines and repeated frozen rows",
+      "open the file at normal size and read the smallest text"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "copying a published viewing link",
+      "fix": "open the original spreadsheet and copy its link instead."
+    },
+    {
+      "mistake": "trusting fit to width",
+      "fix": "open the pdf at normal size. fitting everything can make it unreadable."
+    }
+  ],
+  "tip": {
+    "text": "repeat frozen rows when the reader needs column headings on every printed page."
+  },
+  "checklist": {
+    "h": "before you share the pdf",
+    "items": [
+      "only the intended tab or rectangle appears",
+      "the smallest text is readable",
+      "headings and page breaks make sense",
+      "no source cells changed"
+    ]
+  },
+  "voice": 2
 }

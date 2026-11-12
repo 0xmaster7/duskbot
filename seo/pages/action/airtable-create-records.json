@@ -4,7 +4,7 @@
   "title": "Add Airtable rows with AI from an attendance list",
   "nav": "create records",
   "h1": "add new airtable rows without rewriting existing records",
-  "description": "Turn an attendance list into Airtable records with an AI bot. Check the destination fields, the ten-row request limit and the risks of automatic conversion.",
+  "description": "Turn a workshop sign-in sheet into Airtable attendance rows. Match the fields, skip existing attendees and add up to ten new rows per request.",
   "keyword": "create airtable records with ai",
   "keywords": [
     "airtable add rows with ai",
@@ -12,7 +12,7 @@
     "claude add airtable rows",
     "airtable ai attendance records"
   ],
-  "answer": "a bot can add new rows to an airtable table using the values you give it, such as a workshop attendance list. it finds the base and reads the table fields before preparing the rows. each request can create up to ten records. adding rows is a change, so dusk's sending approval does not pause it; tell the routine to ask before writing if you want review.",
+  "answer": "**stop typing the same attendance list twice.** give the bot your sign-in sheet and airtable destination. it matches the fields and adds up to ten new rows per request, leaving existing records alone.\n\nrow creation can run without asking. put a preview in the routine so you choose what goes in.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -39,48 +39,48 @@
     ],
     "bubble": "attendance rows ready"
   },
-  "og_line": "new rows with values you can check.",
+  "og_line": "the sign-in sheet becomes attendance rows.",
   "action": {
     "toolkit": "airtable",
     "slug": "AIRTABLE_CREATE_RECORDS"
   },
-  "what": "creating records adds rows to a chosen base and table. the bot can use list bases and get base schema to find that destination from the names you give it, then match your list to the table's fields. this action creates new records rather than repairing existing ones.\n\nvalues normally need to match each field's expected type. optional automatic conversion asks airtable to interpret text as another type, which can produce a result you did not intend. keep conversion off for a first run and resolve mismatches before retrying a row.",
+  "what": "**new rows, without retyping the attendance sheet.** name the base and table. the bot lists bases and reads the table fields before matching your values. this action adds records; it doesn't repair old ones.\n\nkeep automatic conversion off for the first run. airtable otherwise tries to interpret text as dates or other values. a tidy-looking cell can still contain the wrong thing.",
   "uses": [
-    "add confirmed attendees from a completed workshop to the attendance table",
-    "log newly received equipment with its agreed category and arrival date",
-    "enter a set of approved expense rows without changing earlier entries",
-    "record new volunteer shifts from a checked sign-up list, leaving uncertain dates for review"
+    "**attendance without retyping.** add confirmed people from a finished workshop.",
+    "**equipment as it arrives.** log each new item's category and arrival date.",
+    "**expenses ready to file.** add new rows without replacing earlier entries.",
+    "**volunteer shifts.** use the confirmed sign-up list; leave unclear dates for you."
   ],
   "routine": {
-    "message": "on saturdays at 10, take only the new attendance lists i marked checked in this chat since the last run and add them to the workshop attendance table in the learning sessions base. inspect the fields and look for existing rows with the same session and email before preparing additions. show the proposed rows here and ask before writing, then report the rows created here. never overwrite existing records, guess an attendee's email or use automatic field conversion.",
-    "when": "saturdays at 10",
-    "needs": "airtable connected, with read and write access for this bot",
-    "output": "attendance rows added after confirmation\n\nworkshop: product sketching\nrue tan, rue@example.com, attended\nbela roy, bela@example.com, attended\n\none existing session-and-email match was skipped."
+    "message": "on saturdays at 10, read sign-in sheets added this week to the 'workshop sign-ins' folder in google drive. use the workshop attendance table in the learning sessions base.\n\n- read its fields and find existing rows with the same session and email\n- show only new rows here and ask me before writing\n- add the rows i approve, up to ten at a time, then report what you saved\n\nnever overwrite a record, guess an email or use automatic field conversion. skip existing matches. if a sheet is unclear, ask me.",
+    "when": "saturdays at 10:00",
+    "needs": "google drive read only; airtable read and write, including field reads and existing-row lookups",
+    "output": "attendance saved after your confirmation\n\nworkshop: product sketching\n- rue tan, rue@example.com, attended\n- bela roy, bela@example.com, attended\n\nskipped one existing match for the same session and email."
   },
   "steps": [
-    "connect airtable in **Connected apps** and grant the attendance bot **read and write**, since adding a row needs more than reading.",
-    "name the base and table, then ask the bot to describe the fields it will fill using a small attendance list.",
-    "allow the lookup and create-records actions while leaving record updates and table changes outside the bot's action list.",
-    "send the Saturday request with its explicit ask-before-writing sentence; use **Pause** if the saved rows differ from the reviewed values."
+    "**connect the two apps.** drive only needs reading. airtable needs read and write to add rows.",
+    "**name the destination.** ask which fields the attendance table expects before giving it a whole sheet.",
+    "**limit the actions.** allow lookups and row creation. leave record updates and table changes off.",
+    "**try one batch.** compare the saved names and session with the preview. pause the routine if they differ."
   ],
   "watch": [
-    "a create request holds at most ten records. larger lists need separate requests, and the base allows five requests per second.",
-    "automatic conversion is optional and off by default. switching it on can turn an unclear value into an unintended cell value.",
-    "repeating a create request can make duplicate rows. check existing records and inspect what was created before retrying an uncertain result.",
-    "the sending setting does not supervise record creation. the review in this routine comes from your written ask-before-writing rule."
+    "**ten rows per request.** larger sheets need batches. airtable allows five requests per second per base.",
+    "**conversion can guess wrong.** it starts off; leave it off until unclear values have an agreed meaning.",
+    "**a retry can add everyone twice.** inspect existing rows before repeating a request with an unclear result.",
+    "**the preview is your review step.** row creation does not wait for sending approval."
   ],
   "faq": [
     {
       "q": "can it add more than ten airtable records?",
-      "a": "yes, by splitting the rows into separate requests of up to ten each. the bot must also respect the base's five-requests-per-second limit."
+      "a": "**yes, in batches of ten or fewer.** it must also stay within five requests per second per base."
     },
     {
       "q": "will creating records update a matching row?",
-      "a": "no. this action adds new rows. finding existing matches is a separate read, and this routine skips them rather than overwriting them."
+      "a": "**no, it adds another row.** the routine reads existing records first and skips matches."
     },
     {
-      "q": "what happens if a date or category does not fit the field?",
-      "a": "have the bot stop and show the mismatch. automatic conversion is available, but it is a best-effort interpretation and may produce an unexpected result."
+      "q": "what if a date or category does not fit?",
+      "a": "**ask which date or category the sheet means.** automatic conversion can interpret text, but it can pick the wrong meaning."
     }
   ],
   "sources": [
@@ -96,5 +96,36 @@
       "label": "dusk bot docs: sending and approval settings",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick one finished sign-in sheet in drive",
+      "name the airtable base and table",
+      "ask for two proposed rows, without writing",
+      "match the fields and look for existing attendees"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "running the same list twice",
+      "fix": "look for the same session and email before adding rows, including after a timeout."
+    },
+    {
+      "mistake": "letting airtable guess a vague date",
+      "fix": "keep conversion off. ask which date the sign-in sheet means."
+    }
+  ],
+  "checklist": {
+    "h": "before the attendance goes in",
+    "items": [
+      "the session and email identify a new attendance row",
+      "each value fits the table field",
+      "the preview contains no more than ten rows",
+      "the routine asks before writing"
+    ]
+  },
+  "tip": {
+    "text": "a duplicate attendee looks harmless until you count the room twice."
+  },
+  "voice": 2
 }

@@ -11,7 +11,7 @@
     "hermes agent vs openclaw",
     "hermes agent"
   ],
-  "answer": "hermes agent is not only a terminal project: it has desktop apps, and paid nous portal tiers include a cloud agent. keep it if you want mit-licensed code, skills and subagents you can configure. consider dusk bot if you prefer bots with separate jobs in an app and optional hosting from dusk. compare the actual sign-in rules too: hermes' docs put specific limits on anthropic oauth rather than treating every paid plan alike.[^1][^2][^3]",
+  "answer": "**keep hermes if you want to change the code. pick dusk if you want to brief a teammate.** hermes has mit-licensed code, persistent memory, self-created skills and configurable subagents. it already has desktop apps and cloud hosting on paid nous portal plans. dusk gives named bots separate jobs in an app. compare the ai sign-in rules before comparing monthly bills.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -47,17 +47,17 @@
   "verdict": {
     "them_title": "hermes agent",
     "them": [
-      "you need mit-licensed code you may read and change, with persistent memory and self-created skills",
-      "you want configurable subagents and messaging channels, with the option of a nous portal cloud agent"
+      "**you want to change the code.** mit licensing, persistent memory and self-created skills matter to your work.",
+      "**you want configurable helpers and chat channels.** paid nous portal plans also offer a cloud agent."
     ],
     "dusk": [
-      "you would rather name a few bots and describe their jobs than configure an agent gateway",
-      "you want a hosted dusk computer with daily backups, or the same bots on your own machine"
+      "**you want to give bots jobs in plain words.** name a few teammates in an app.",
+      "**you want dusk to look after the machine.** choose a hosted computer with daily backups, or keep bots on your own."
     ]
   },
   "compare": {
     "h": "self-run is one hermes path, not all of them",
-    "intro": "the nous portal tiers and provider restrictions below are as of 12 november 2026. hermes' description of a sign-in is product documentation, not a guarantee about the vendor's future terms.",
+    "intro": "**you can buy hosting on either side.** tiers and sign-in limits below are as of 12 november 2026. read the current provider terms before choosing a connection.",
     "cols": [
       "Hermes Agent",
       "Dusk Bot"
@@ -88,7 +88,7 @@
       {
         "label": "local or hosted",
         "cells": [
-          "your computer or server; paid nous portal tiers include one cloud agent",
+          "your computer or server; paid nous portal tiers include a cloud agent",
           "your computer, your server or your own dusk cloud computer, not shared"
         ],
         "src": [
@@ -99,7 +99,7 @@
       {
         "label": "provider connections",
         "cells": [
-          "nous portal, api providers, own endpoints and local models; provider-specific oauth options",
+          "nous portal, api providers, custom model servers and local models; some provider sign-ins",
           "sign in to an ai app, add an api key or choose ollama or lm studio"
         ],
         "src": [
@@ -122,7 +122,7 @@
       {
         "label": "paid hosting entry",
         "cells": [
-          "nous portal plus $20 monthly, including one cloud agent with 4 gb ram and 25 gb disk",
+          "nous portal plus $20 monthly, including a cloud agent with 4 gb ram and 25 gb disk",
           "dusk cloud plus $20 monthly, 4 gb memory and 40 gb disk; ai usage separate"
         ],
         "src": [
@@ -134,7 +134,7 @@
       {
         "label": "repeated jobs",
         "cells": [
-          "natural-language cron scheduling through the gateway",
+          "built-in scheduler; describe the timing in plain words; gateway runs the job",
           "chat-created routines with edit, pause, undo and run history"
         ],
         "src": [
@@ -155,33 +155,33 @@
       }
     ]
   },
-  "method": "we make dusk bot. we compared the recorded hermes homepage, readme and provider documentation with dusk docs on 12 november 2026, without running identical workloads. we have not tested minimum hardware for hermes or compared sandbox strength. the sign-in section reports what hermes documents; it does not substitute for checking your ai provider's current terms.",
+  "method": "**compare the upkeep and sign-in bill before moving.** we make dusk bot. we read the saved hermes homepage, readme and provider docs against dusk docs on 12 november 2026.\n\nwe did not run matching jobs, measure minimum hardware or test isolation strength. use this comparison to choose a trial, then judge the result yourself.",
   "sections": [
     {
-      "h": "first decide whether you want to own the code",
-      "md": "hermes gives you mit-licensed code. that matters if changing or redistributing the software is part of the requirement.[^4] dusk bot is source-available, with no changing or passing it on under its personal-use license; it is not open source.[^5] an easier app is not a replacement for that license freedom.\n\nhermes also has persistent memory, self-created skills and configurable subagents.[^1] if those are why you chose it, ask whether a different interface is worth giving them up. the [openclaw and hermes comparison](/vs/openclaw-vs-hermes-agent) is useful when choosing between self-run projects rather than leaving that category."
+      "h": "keep hermes if the code matters",
+      "md": "**choose hermes when changing the code is part of the job.** its mit license lets you do that.[^4] dusk is source-available under polyform strict: personal use allows no changing or passing it on. work needs a license.[^5]\n\nhermes also has persistent memory, self-created skills and configurable subagents.[^1] if those are why you use it, an easier screenshot is a weak reason to move. compare [openclaw and hermes](/vs/openclaw-vs-hermes-agent) for another open project."
     },
     {
-      "h": "the sign-in details are not interchangeable",
-      "md": "hermes' provider docs list chatgpt/codex oauth. for anthropic oauth, they say claude max is required and only purchased extra usage is billed, not the base max allowance; claude pro cannot use that path.[^2] an existing paid ai plan therefore does not tell you what a hermes run will cost.\n\ndusk runs the ai vendors' own command-line apps, and you complete sign-in yourself on the bot's machine.[^11] that describes the mechanism, not a promise of unrestricted access or vendor endorsement. check current provider terms, supported sign-ins and usage limits before leaving any recurring job running."
+      "h": "find the bill behind the sign-in",
+      "md": "**claude max can leave you paying for extra usage.** hermes lists chatgpt/codex sign-in. its anthropic route needs claude max and bills purchased extra usage, outside the base max allowance. claude pro cannot use that route.[^2]\n\ndusk runs vendors' own command-line apps. you sign in yourself on the bot's machine.[^11] read current terms, supported sign-ins and usage limits before scheduling work. a working sign-in does not make every use permitted."
     },
     {
-      "h": "hosting removes a machine chore, not every decision",
-      "md": "paid nous portal tiers already include a cloud agent. as of 12 november 2026, plus is $20, super is $100 and ultra is $200 monthly.[^1] do not compare hermes only as something you must host yourself.\n\ndusk cloud gives you a computer dusk hosts and looks after, with daily backups; ai usage stays with your provider.[^6][^9] you still decide the jobs and permissions. for connected apps, start with read-only access if you want observation without changes.[^12] [agents with the laptop closed](/agents-when-laptop-closed) covers the hosting decision; the [openclaw alternatives overview](/alternatives/openclaw) covers other kinds of assistant."
+      "h": "hosting removes upkeep, not judgment",
+      "md": "**pay for hosting when you want your evenings back.** as of 12 november 2026, nous portal plus costs $20 monthly, super $100 and ultra $200. paid tiers include a cloud agent.[^1]\n\ndusk cloud includes a computer we look after and back up daily. ai usage stays on your provider's bill.[^6][^9] you still choose the jobs and permissions. start app reviews read only.[^12]\n\ncompare [homes for an always-on agent](/agents-when-laptop-closed) if missed routines are the pain. the [openclaw alternatives](/alternatives/openclaw) cover other ways to package an assistant."
     }
   ],
   "faq": [
     {
       "q": "do i have to run hermes agent myself?",
-      "a": "no. you can run it on your own computer or server, but paid nous portal plans include a cloud agent. desktop apps also mean a terminal install is not the only starting point.[^1]"
+      "a": "**no. hosting is already an option.** paid nous portal plans include a cloud agent. you can also use your own machine or server, with a desktop app or terminal install.[^1]"
     },
     {
       "q": "can hermes connect to the ai i already sign in to?",
-      "a": "its docs support some oauth routes, including chatgpt/codex. the anthropic route has narrower conditions: claude max with purchased extra usage, not the base allowance, and not claude pro. check the current provider documentation before budgeting.[^2]"
+      "a": "**some sign-ins work, with different limits.** chatgpt/codex is listed. anthropic requires claude max with purchased extra usage; base usage and claude pro don't count. read current terms before budgeting.[^2]"
     },
     {
       "q": "can i make a group chat of agents?",
-      "a": "hermes documents isolated subagents for parallel work, which is not the same interface as a shared chat. dusk documents groups where bots hand work over by mentions and you can choose a leader. choose based on which interaction you need.[^1][^8]"
+      "a": "**choose the interaction you want.** hermes has isolated subagents for parallel work. dusk has shared chats with mentions and an optional leader. those are different ways to hand work around.[^1][^8]"
     }
   ],
   "sources": [
@@ -236,5 +236,51 @@
       "label": "dusk connected-app permissions",
       "url": "/docs/files-and-apps"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "write the one hermes feature you cannot lose",
+      "read the billing rules for your exact model connection",
+      "choose who should look after the machine",
+      "try one small job before moving recurring work"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "leaving hermes to get a desktop app",
+      "fix": "it already has one. compare the work you actually need."
+    },
+    {
+      "mistake": "budgeting from the ai plan name",
+      "fix": "read the connection's usage rules, especially claude max extra usage."
+    }
+  ],
+  "tip": {
+    "text": "pick for the job and upkeep, not the screenshot."
+  },
+  "decide": {
+    "cols": [
+      "your requirement",
+      "better starting point"
+    ],
+    "rows": [
+      [
+        "change or pass on the code",
+        "hermes agent"
+      ],
+      [
+        "isolated subagents with configurable models",
+        "hermes agent"
+      ],
+      [
+        "named bots in a shared conversation",
+        "dusk bot"
+      ],
+      [
+        "hosting without running your own server",
+        "compare nous portal and dusk cloud"
+      ]
+    ]
+  },
+  "voice": 2
 }

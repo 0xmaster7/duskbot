@@ -11,7 +11,7 @@
     "claude find notion database",
     "ai notion page search"
   ],
-  "answer": "ask your bot for a notion page by its title and it can return matching accessible pages for you to choose from. databases need their own object-type filter because the search defaults to pages. this is title search, not a search through every paragraph. new or recently shared items can take time to appear, so no match does not prove the document is missing.",
+  "answer": "**get back to the notion page whose title you almost remember.** give the bot a few words and say whether you want a page or a database. it searches titles your connection can access, starting with pages by default. it can keep fetching results or list accessible items without a phrase. recently created or shared items can take time to appear.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,39 +43,39 @@
     "toolkit": "notion",
     "slug": "NOTION_SEARCH_NOTION_PAGE"
   },
-  "what": "use a few words you expect in the page or database name. the result helps the bot find the page for a later read, but does not itself explain the document's contents. ask for the candidates rather than letting a familiar-sounding title settle which one is authoritative.\n\nresults come in pages. an empty query can help list accessible items when a specific title search fails, though indexing can still lag. asking for selected properties only reduces how much page information comes back; it does not turn the action into a full-text or database-field search.",
+  "what": "**find the right document before asking what it says.** give the bot a few words from its title. ask for all candidates when several names sound familiar. open the selected policy next to find who approved it.\n\nresults arrive in batches. the bot can keep looking or try listing accessible items without a search phrase.\n\nasking for fewer page details makes the result smaller. it does not search document text or values inside a database.",
   "uses": [
-    "find the supplier policy before asking the bot to read its terms",
-    "locate a database called exhibition bookings rather than pages that mention exhibitions",
-    "identify competing versions of a similarly titled planning page",
-    "recover the page reference for a document whose title you partly remember"
+    "**find the policy first.** locate the supplier page before asking about its terms.",
+    "**look for the database itself.** ask for exhibition bookings, rather than pages mentioning exhibitions.",
+    "**spot competing versions.** compare similar planning titles before choosing one.",
+    "**recover a half-remembered page.** use a distinctive phrase from its name."
   ],
   "routine": {
-    "message": "every friday at 09:40, search notion page titles for willowglass supplier policy. return all matching titles and page references here, checking every page of results, and say when more than one might be the current policy. if the title search is empty, try an empty page query and explain that indexing may be delayed. never edit, rename or archive a result, and never call the newest title the approved policy without evidence.",
+    "message": "every friday at 09:40, search notion page titles for willowglass supplier policy. fetch results until none remain and list all matching titles and page links here. flag competing candidates for the current policy. if there are no matches, try listing accessible pages without a search phrase. explain that new or recently shared pages may not appear yet. never edit, rename or archive anything. do not call the newest page approved without evidence.",
     "when": "fridays at 09:40",
-    "needs": "notion connected with read only access to the pages being searched",
-    "output": "willowglass supplier policy: title matches\n\n- supplier policy, purchasing: candidate for mirela to confirm\n- supplier policy, workshop archive: similarly named page\n\npage references included beside both results. contents not read; no approved version assumed."
+    "needs": "notion read only, with access to the pages you want searched",
+    "output": "willowglass supplier policy: title matches\n\n- supplier policy, purchasing: needs confirmation\n- supplier policy, workshop archive: similar title\n\npage links beside both results. contents not read. no approved version assumed."
   },
   "steps": [
-    "connect notion in **Connected apps** and allow this search bot **read only** access.",
-    "give a distinctive part of the title and say whether you want pages or databases.",
-    "check the returned titles and references before choosing a page for the bot to read with a separate action.",
-    "if the lookup should repeat, send the schedule and inspect its card; choose **Pause** when that policy is no longer relevant."
+    "**connect notion for reading.** allow the search bot read only.",
+    "**name the kind.** say page or database and give a distinctive title phrase.",
+    "**pick the right document.** compare the candidate titles before a separate action reads its contents.",
+    "**schedule only a useful watch.** inspect the routine card and pause it when the version watch stops helping."
   ],
   "watch": [
-    "database searches need the database filter; leaving the default page filter can hide the object you wanted.",
-    "indexing is not immediate, especially for new or recently shared material. empty results are inconclusive.",
-    "results come back 25 at a time by default; ask the bot to keep going if you don't see the page.",
-    "the most recently edited page isn't always the right one; check before you use it."
+    "**databases need their own search choice.** the default looks for pages and can miss what you meant.",
+    "**new pages may not appear yet.** allow for a delay after creation or sharing.",
+    "**25 results is the default batch.** ask the bot to keep looking if your page is absent.",
+    "**find who signed off.** read the selected policy for its owner and approval before using it."
   ],
   "faq": [
     {
       "q": "does this search inside my notion documents?",
-      "a": "its query matches page and database titles. first find the right item, then use a page-reading action for its contents."
+      "a": "**no, it searches titles.** find the item first, then ask the bot to read it with a separate action."
     },
     {
       "q": "why can i not find a database i just shared?",
-      "a": "notion indexing can lag. try an empty query with the database filter and keep the result uncertain if the item still does not appear."
+      "a": "**it may not appear in search yet.** ask for databases with no title phrase. if it stays missing, treat the result as uncertain."
     }
   ],
   "sources": [
@@ -91,5 +91,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect notion with read only",
+      "give a distinctive title phrase",
+      "say page or database",
+      "compare all candidate titles before choosing one"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching for a sentence from the body",
+      "fix": "use words from the title, then read the selected page separately."
+    },
+    {
+      "mistake": "trusting the latest edit date",
+      "fix": "ask who approved the policy. a recent edit is a different fact."
+    }
+  ],
+  "tip": {
+    "text": "give it the odd word from the title. “supplier” finds less noise than “policy”."
+  },
+  "voice": 2
 }

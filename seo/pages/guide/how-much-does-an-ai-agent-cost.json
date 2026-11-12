@@ -1,17 +1,17 @@
 {
   "path": "/guides/how-much-does-an-ai-agent-cost",
   "type": "guide",
-  "title": "How much does an AI agent cost? Monthly prices compared",
+  "title": "How much does an AI agent cost? Count all three bills",
   "nav": "how much an ai agent costs",
   "h1": "how much does an ai agent cost each month?",
-  "description": "Compare dated agent product prices, separate software from hosting and AI usage, and build a budget without treating credits as equal.",
+  "description": "Find the full monthly cost of an AI agent: software, hosting and AI usage. Compare dated prices and two worked budgets before paying for a plan.",
   "keyword": "how much does an ai agent cost",
   "keywords": [
     "ai agent cost",
     "ai agent pricing",
     "ai agent pricing models"
   ],
-  "answer": "an ai agent bill can include software, a computer to run it and ai usage. some products bundle parts of that bill; others leave them separate. as of 12 november 2026, examples range from free personal desktop software to paid plans with credits and overages. compare the complete setup for your job, rather than assuming two $20 plans include the same work.",
+  "answer": "**that $20 plan might be the first of your bills.** an ai agent can also need hosting and paid ai usage. some products bundle them; others charge separately.\n\nas of 12 november 2026, the choice runs from free personal desktop software to credit plans with extra usage charges. add the whole job before deciding what's cheap.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -41,38 +41,38 @@
   "og_line": "three costs to put in your budget.",
   "sections": [
     {
-      "h": "product prices are only the starting point",
-      "md": "as of 12 november 2026, these are the monthly prices unless another billing period or currency is stated. credits from different products are not interchangeable units. this table compares prices, not equal capability or equal work.[^1][^2][^3][^4][^5][^6]\n\n| product | starting paid example | what to check in the bill |\n| --- | --- | --- |\n| dusk bot | cloud plus $20 a month | personal desktop use is free; cloud and ai usage are separate |\n| openclaw | software is free | you pay the model provider and any hosting |\n| hermes / nous portal | plus $20 a month | software is free; paid portal tiers include a cloud agent |\n| manus | pro $20 a month | 4,000 monthly credits; max $200 has 40,000 and pay-as-you-go beyond credits |\n| poke | pro $19 a month | ultra $199 adds pay-as-you-go usage beyond credits |\n| n8n | cloud starter €20 a month, billed annually | 2,500 workflow executions; community self-hosting is free |\n\nthe n8n price is in euros because that is the currency its pricing page showed us. do not silently compare it dollar-for-dollar. manus credits, n8n executions and an ai provider's tokens measure different things."
+      "h": "what the advertised prices cover",
+      "md": "**compare the bundle before comparing the number.** these prices are as of 12 november 2026. billing is monthly unless shown otherwise. the allowances measure different work.[^1][^2][^3][^4][^5][^6]\n\n| product | paid starting example | what else you pay for |\n| --- | --- | --- |\n| dusk bot | cloud plus $20 a month | personal desktop use is free; hosting and ai costs stay separate |\n| openclaw | software is free | model usage and any hosting are yours to pay |\n| hermes / nous portal | plus $20 a month | software is free; paid portal plans include a cloud agent |\n| manus | pro $20 a month | 4,000 monthly credits; max $200 has 40,000, then pay as you go |\n| poke | pro $19 a month | ultra $199 adds pay-as-you-go usage beyond credits |\n| n8n | cloud starter €20 a month, billed annually | 2,500 workflow executions; community self-hosting is free |\n\nn8n showed euros. keep that currency when comparing. manus credits, n8n executions and a provider's text usage aren't interchangeable units. a matching sticker price doesn't promise a matching result."
     },
     {
-      "h": "what dusk charges and what it leaves to you",
-      "md": "dusk bot is free for personal use on your computer, with every feature. work use needs a work license. if you host it on your own server, dusk charges nothing for that server option, but the hosting company still has a bill and you maintain the machine.[^1][^7][^13]\n\ndusk cloud plus is $20 a month or $200 a year, with two bot computers awake at once. pro is $50 monthly or $500 yearly, with five awake at once and a work license for one person. team plans start at $100 monthly. ai usage is billed by your ai provider, not included on dusk's bill.[^1]\n\n**example budget, not a typical bill:** cloud plus at $20 monthly plus claude pro at $20 monthly totals `$20 + $20 = $40` before any other charges or tax. a bot that works around the clock uses your ai plan around the clock; for heavy use, a bigger ai plan or an api key works best.[^1] that's just two prices added up, not what the plan will handle.[^1][^8]"
+      "h": "the dusk bill and the ai bill",
+      "md": "**pay for the home you need, then add the ai.** dusk personal desktop use includes every feature. work use needs a work license. your own server costs nothing from dusk; you pay the host and maintain it.[^1][^7][^13]\n\ncloud choices:\n\n- **plus:** $20 monthly or $200 yearly; keeps a good amount of bots working\n- **pro:** $50 monthly or $500 yearly; for heavy workloads, with a work license for one person\n- **team:** from $100 monthly\n\nyour ai provider bills usage separately.[^1]\n\n**example budget, not a typical bill:**\n\n```text\ncloud plus: $20 monthly\nclaude pro: $20 monthly\n$20 + $20 = $40 monthly\nbefore other charges or tax\n```\n\nthat adds the prices. it doesn't promise enough capacity for every job. all-night work uses your ai plan all night. heavy use can need a bigger plan or your own api key.[^1][^8]"
     },
     {
-      "h": "ai plan prices are another line item",
-      "md": "as of 12 november 2026, claude pro is $20 monthly, max $100 and ultra $200 before tax. max and ultra list monthly api credits, so account for those before adding api usage to the total.[^8]\n\nchatgpt plus is $20 monthly according to openai's help page. xai's x subscription lists plus at $8, premium at $30, super at $100 and ultra at $200. standalone supergrok was folded into that subscription for new customers on 12 october 2026; existing subscribers can keep their plan.[^9][^10]\n\nthese are vendor plan prices, not statements that each plan permits every third-party automation setup. check your provider's current terms and the current bill for your country."
+      "h": "the ai plan is another line",
+      "md": "**use the credits you're already paying for.** as of 12 november 2026, claude pro is $20 monthly, max $100 and ultra $200, before tax. max and ultra list monthly api credits.[^8]\n\nother monthly prices from 12 november 2026:\n\n- **chatgpt plus:** $20, per openai's help article[^9]\n- **x plus:** $8\n- **x premium:** $30\n- **x super:** $100\n- **x ultra:** $200\n\nstandalone supergrok joined the x subscription for new customers on 12 october 2026. existing subscribers can keep their plan.[^10]\n\nread current provider terms for your intended automation, then look at the actual bill in your country."
     },
     {
-      "h": "api usage needs a workload, not a guess",
-      "md": "as of 12 november 2026, sonnet 5.5 costs $2 per million input tokens and $10 per million output tokens. grok 4.7 lists $2 input and $6 output per million, with doubled long-context rates above 200,000 tokens.[^11][^12]\n\n**example token subtotal:** for an invented sonnet workload with 2 million input and 0.5 million output tokens, `(2 × $2) + (0.5 × $10) = $9`. that's only the token cost for this made-up example. the same bot may do very different amounts of work in two months.[^11]\n\nthe [claude plan versus api guide](/guides/claude-subscription-vs-api) works through more calculations. count the actual usage before predicting a bill from the number of bots."
+      "h": "pay-by-use needs a real workload",
+      "md": "**the long report spends more than the short reminder.** api vendors charge for small pieces of text. count what your job sends and receives. these rates are as of 12 november 2026.[^11][^12]\n\n```text\nper million pieces of text\nsonnet 5.5: $2 in, $10 out\ngrok 4.7: $2 in, $6 out\ngrok long-context rates double above 200,000 pieces\n```\n\n**invented sonnet example, usage subtotal only:**\n\n```text\n2 million pieces sent x $2 = $4\n0.5 million pieces returned x $10 = $5\n$4 + $5 = $9\n```\n\nthat workload is made up.[^11] measure your own before budgeting from it. the same bot can do different amounts of work each month. see [claude plan versus api](/guides/claude-subscription-vs-api) for more calculations."
     },
     {
-      "h": "make a budget you can compare later",
-      "md": "write three lines: product charge, hosting charge and ai charge. mark which are bundled so you do not count them twice. then add any annual commitment and the point where usage charges begin. keep the original currency next to every number.\n\nif the bot only works while you sit at your laptop, hosting may be unnecessary. if it must deliver before you wake, compare the machine cost in the [always-on calculator](/tools/always-on-cost). for product-specific tradeoffs, the [manus alternative guide](/alternatives/manus) and [poke alternative guide](/alternatives/poke) give the decision more context.\n\na plan can be affordable and still be the wrong fit if its output needs too much supervision. try one small job before budgeting around a whole collection of agents."
+      "h": "a budget you can compare with next month",
+      "md": "**write down three costs before subscribing.**\n\n- the product charge\n- the hosting charge\n- the ai charge\n\nmark bundled costs so you don't count them twice. keep currencies, annual commitments and extra-usage rules beside the prices.\n\nwork only at your laptop? you may not need hosting. need a brief before waking? compare machines in the [always-on calculator](/tools/always-on-cost).\n\ntry one small job and time the repairs it needs. [manus](/alternatives/manus) and [poke](/alternatives/poke) have different bundles. a cheap plan still costs attention when the output needs constant repair."
     }
   ],
   "faq": [
     {
       "q": "can i run an ai agent without paying for software?",
-      "a": "yes. dusk personal desktop use is free; openclaw and hermes software are also free according to their own pages as of 12 november 2026. that does not make model usage or a rented computer free.[^1][^2][^3]"
+      "a": "**yes, but other costs can remain.** dusk personal desktop use is free. openclaw and hermes also list free software as of 12 november 2026. model usage and rented computers can still cost money.[^1][^2][^3]"
     },
     {
       "q": "why did my api bill cost more than the app?",
-      "a": "the app price and ai usage can be separate. count actual input and output usage, check the model's rate and see whether credits were applied. an agent's name or number of threads is not a billing unit."
+      "a": "**the app and ai can have separate bills.** look at the model rate, text sent and returned, and credits applied. a long thread can cost more than you expected."
     },
     {
       "q": "does a $20 cloud plan include my ai?",
-      "a": "dusk cloud plus does not. it pays for the hosted computer; ai usage is billed by the provider. other products bundle different things, so compare their current pricing pages rather than the sticker alone.[^1]"
+      "a": "**dusk cloud plus does not.** it pays for the hosted computer. your provider bills the ai. compare other plans by what they include, not just the price.[^1]"
     }
   ],
   "sources": [
@@ -138,5 +138,41 @@
       "label": "dusk bot: personal use and ai billing",
       "url": "/docs/account-and-billing"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "write down the product's monthly price",
+      "mark whether hosting is included or needed",
+      "add your ai plan or actual usage cost",
+      "mark annual commitments and extra usage charges"
+    ]
+  },
+  "checklist": {
+    "h": "before you compare two plans",
+    "items": [
+      "the currency and billing period match",
+      "hosting and ai are counted once each",
+      "credits mean something clear for your job",
+      "you know what happens after the allowance runs out",
+      "the provider permits your intended use"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling a free app a free agent",
+      "fix": "include the ai provider and any machine you rent."
+    },
+    {
+      "mistake": "comparing credits from different products directly",
+      "fix": "test one small job. each product counts usage differently."
+    },
+    {
+      "mistake": "budgeting from the number of bots",
+      "fix": "measure the text sent and returned. the workload drives the usage bill."
+    }
+  ],
+  "tip": {
+    "text": "put the annual bill beside the monthly headline before you click pay."
+  },
+  "voice": 2
 }

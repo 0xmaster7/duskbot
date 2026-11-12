@@ -13,7 +13,7 @@
     "openclaw hosted",
     "openclaw mac mini"
   ],
-  "answer": "managed openclaw hosting keeps openclaw and moves its server care to a host. dusk cloud hosts a different product: your dusk bots, chats, memory and routines. choose a managed openclaw offer if keeping openclaw is the requirement. choose dusk cloud if you want dusk's app and a computer we look after. compare renewal prices and ai charges separately; a promotional hosting rate is not the complete cost of an assistant.[^1][^2][^3][^4]",
+  "answer": "**get your weekends back without giving up openclaw.** managed hosting keeps the assistant you chose and hands server care to someone else. dusk cloud runs a different product: dusk bots, chats, memory and routines. choose the assistant first, then compare renewal rates and ai charges. the opening rate is only part of what you'll pay.[^1][^2][^3][^4]",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -43,23 +43,23 @@
       "s-server"
     ],
     "label": "OpenClaw hosting",
-    "bubble": "check the renewal"
+    "bubble": "what does it renew at?"
   },
   "og_line": "the host is only part of the bill.",
   "verdict": {
     "them_title": "managed openclaw",
     "them": [
-      "you already want openclaw's channels and skills, with a host handling server care",
-      "you prefer to pay for deployment and maintenance of the open-source project rather than move to another bot app"
+      "**keep openclaw's channels and skills.** let a host handle server care.",
+      "**pay for upkeep rather than a product move.** you already want the open-source project."
     ],
     "dusk": [
-      "you want named dusk bots and their own chats, with a dedicated hosted computer",
-      "you want to move existing dusk chats, memory and routines from your computer to dusk cloud"
+      "**keep named dusk bots.** each has its own chats on your dedicated hosted computer.",
+      "**move existing dusk work off your laptop.** bring chats, memory and routines to dusk cloud."
     ]
   },
   "compare": {
     "h": "what the host is selling",
-    "intro": "prices are as of 12 november 2026. hostinger's headline rate is promotional and region-sensitive. these are different products, not interchangeable server specifications.",
+    "intro": "**put the renewal beside the offer before you compare hosts.** prices are as of 12 november 2026; hostinger's promotion varies by region. these services run different products, so choose the assistant as well as the machine.",
     "cols": [
       "Hostinger managed OpenClaw",
       "Elestio managed OpenClaw",
@@ -161,33 +161,33 @@
       }
     ]
   },
-  "method": "we make dusk bot and sell dusk cloud. this comparison uses the saved hostinger and elestio offers checked on 12 november 2026; maintenance descriptions are the hosts' claims, not an independent security assessment. we have not deployed identical jobs on these services, tested uptime or benchmarked their machines. the prices do not establish which service is cheapest for a completed task.",
+  "method": "**compare the bill and the upkeep each host says it handles.** we sell dusk cloud. hostinger and elestio offers were checked on 12 november 2026.\n\nmaintenance descriptions come from the hosts. we didn't test uptime, run matching jobs or benchmark machines. the prices show what you pay for hosting; task costs also depend on ai usage.",
   "sections": [
     {
-      "h": "read the term as carefully as the rate",
-      "md": "hostinger's $4.99 monthly figure is a promotional rate on a 24-month term, paid as $119.76 up front. its recorded renewal is $11.99 monthly. those are the terms shown as of 12 november 2026, and offers vary by region and date.[^1] elestio starts at $16 monthly with compute, storage, bandwidth, updates and backups included.[^2]\n\ndusk cloud plus is $20 monthly or $200 yearly; pro is $50 monthly or $500 yearly. pro includes a work license for one person.[^4] ai usage is not included in that price.[^5] use the [always-on cost tool](/tools/always-on-cost) to think through hosting and ai as separate lines rather than comparing only the largest discount."
+      "h": "read the term beside the rate",
+      "md": "**$4.99 monthly asks for $119.76 up front.** hostinger's promotion covers a 24-month term and renews at $11.99 monthly. those terms are from 12 november 2026; region and date can change them.[^1]\n\nelestio starts at $16 monthly, including compute, storage, bandwidth, updates and backups.[^2]\n\ndusk cloud plus costs $20 monthly or $200 yearly. pro costs $50 monthly or $500 yearly and includes one person's work license.[^4] ai usage costs extra.[^5] use the [cost tool](/tools/always-on-cost) with both bills in mind."
     },
     {
-      "h": "managed does not decide what the agent may do",
-      "md": "hostinger and elestio both describe taking care of server security and backups.[^1][^2] that is useful, but it does not answer which apps you should connect or which jobs you should delegate. openclaw supports skills and plugins, so choosing additions still deserves attention.[^6] the [openclaw safety guide](/guides/is-openclaw-safe) focuses on that question.\n\nin dusk bot, give a new bot read-only connected-app access while checking its work. sending emails, messages, posts or payments asks first unless you allow a daily amount (a bot on **Full access** with no sending rule of its own may send up to 25 a day). other app changes are not documented as automatically asking; keep read-only access or write \"ask me before you change anything\" into the routine.[^7] hosting does not replace that boundary."
+      "h": "managed doesn't choose what the agent may touch",
+      "md": "**pay the host to patch the server; choose the agent's reach yourself.** hostinger and elestio describe handling security and backups.[^1][^2] openclaw's skills and plugins still need your judgement.[^6] use the [safety guide](/guides/is-openclaw-safe) before adding them.\n\nin dusk, start a new bot with read only access.[^7] for app edits later, put 'ask me before changing anything' into the routine.[^7]"
     },
     {
-      "h": "keep the product choice separate from the server choice",
-      "md": "if openclaw already fits, managed hosting may solve the remaining problem without a product change. if only its installation put you off, [openclaw without terminal setup](/alternatives/openclaw-no-setup) explains its desktop installers too.[^8]\n\ndusk cloud is a route for dusk bots. its welcome moves their chats, memory and routines from your computer.[^4] that documented move is not evidence that an openclaw deployment can be imported. write down the jobs, instructions and schedules you need before choosing another app; do not assume the host can translate them.\n\nwith either kind of agent, you still own the decision to trust a result. this comparison cannot promise unattended success or that a host's backups cover every connected service."
+      "h": "choose the assistant before the server",
+      "md": "**if openclaw fits, hosting may be all you need.** its [desktop installers](/alternatives/openclaw-no-setup) also reduce setup work.[^8]\n\ndusk cloud moves existing dusk chats, memory and routines.[^4] moving from openclaw means rebuilding the jobs, instructions and schedules in dusk; there's no importer.\n\nlook at the finished job, even when someone else handles the machine. server backups cover the server; don't count on them to restore every connected service."
     }
   ],
   "faq": [
     {
       "q": "is there an official hosted openclaw?",
-      "a": "the openclaw project says it has no hosted tier. hostinger and elestio sell third-party managed offers. keep that distinction when comparing support and who you are paying.[^6][^1][^2]"
+      "a": "**the project says it has no hosted tier.** hostinger and elestio sell third-party offers. look at who handles support and who gets your payment.[^6][^1][^2]"
     },
     {
       "q": "is openclaw hosting free?",
-      "a": "the openclaw software is free under mit, but the managed offers here charge for hosting, and ai usage has its own arrangement. a free software license does not pay for the server or model calls.[^6][^3]"
+      "a": "**the mit software is free; hosting costs money.** these managed offers charge for the machine and care. ai usage has its own arrangement.[^6][^3]"
     },
     {
       "q": "do i need to buy a mac mini to keep an agent running?",
-      "a": "not for these hosted routes. they run on a host's servers; dusk cloud also keeps your bots available with your own computer off. a mac mini at home has its own purchase and power costs, which we don't compare here.[^1][^2][^4]"
+      "a": "**no, these routes use hosted servers.** dusk cloud keeps bots available with your computer off too. a mac mini has purchase and power costs outside this comparison.[^1][^2][^4]"
     }
   ],
   "sources": [
@@ -228,5 +228,52 @@
       "url": "https://docs.openclaw.ai/start/getting-started",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "write down whether you need openclaw or dusk bots",
+      "open the host's full payment terms",
+      "note the upfront bill and renewal rate",
+      "add ai charges before comparing the monthly totals"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "comparing only the promotional month",
+      "fix": "read the term, upfront charge and renewal rate together."
+    },
+    {
+      "mistake": "assuming managed means every skill is safe",
+      "fix": "choose apps and add-ons carefully. server care doesn't make those decisions."
+    }
+  ],
+  "decide": {
+    "h": "what problem are you paying to solve?",
+    "cols": [
+      "you need",
+      "look at"
+    ],
+    "rows": [
+      [
+        "openclaw with someone else handling upkeep",
+        "managed openclaw"
+      ],
+      [
+        "existing dusk bots working with your laptop off",
+        "dusk cloud"
+      ],
+      [
+        "an easier openclaw installation",
+        "openclaw's desktop installers"
+      ],
+      [
+        "the smallest real bill",
+        "hosting, renewal and ai costs together"
+      ]
+    ]
+  },
+  "tip": {
+    "text": "write the renewal price beside the deal before you enter your card details."
+  },
+  "voice": 2
 }

@@ -4,14 +4,14 @@
   "title": "Read unresolved Notion comments with AI",
   "nav": "fetch comments",
   "h1": "collect unresolved comments from a notion page with ai",
-  "description": "Ask AI to collect unresolved Notion comments from a specified page or block. Know why comments can go missing before you trust an empty list.",
+  "description": "Walk into the review with the open questions ready. A bot collects unresolved Notion comments and authors from the page or block you name.",
   "keyword": "read notion comments with ai",
   "keywords": [
     "chatgpt notion unresolved comments",
     "claude fetch notion page comments",
     "ai notion review comments summary"
   ],
-  "answer": "a bot can retrieve unresolved comments attached to a notion page or block and turn them into a private review list. it needs the page or block and a notion connection that can see that page. this action only reads. it is not a history of resolved discussion, and one result page may not contain every unresolved comment you meant to review.",
+  "answer": "**walk into the review knowing what still needs an answer.** a bot reads unresolved comments on a notion page or one block and brings the questions to your chat. it only reads, with access to that page and its comments. resolved discussions stay out. name the page or paragraph you mean, and ask it to finish the list before summarising.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,39 +43,39 @@
     "toolkit": "notion",
     "slug": "NOTION_FETCH_COMMENTS"
   },
-  "what": "point the bot at the place whose comments matter: a page for page discussion, or a particular block for comments on that block. paste the page link or name the page. for comments on a particular part, point it out and the bot finds it on the page.\n\nthe connection must be allowed to read that page's comments. a missing sharing grant can look like a not-found error, so have the bot report access problems rather than announce that nobody left feedback.",
+  "what": "**point to the discussion you actually want.** name the page or paste its link. for a comment on one paragraph, point out that part and let the bot find it. page discussion and block discussion have different scopes.\n\nthe connection needs permission to read the page's comments. a sharing problem can look like a missing page. ask the bot to show the error instead of claiming nobody left feedback.",
   "uses": [
-    "collect open questions on a proposal before you send the next version",
-    "review comments attached to one disputed paragraph without searching every document",
-    "turn unresolved feedback into a list for the author to answer",
-    "check whether a named page still has discussion to resolve before a review call"
+    "**prepare the next proposal.** collect open questions before sending another version.",
+    "**focus on a disputed paragraph.** read its comments without searching every document.",
+    "**give the author a clear queue.** turn unresolved feedback into questions to answer.",
+    "**get ready for the call.** see which discussions remain open on the named page."
   ],
   "routine": {
-    "message": "each thursday at 14:35, fetch unresolved page-level comments for the notion page cresswell pavilion proposal. check every page of comments, then list each question with its author here in dusk. say that comments on individual blocks are outside this check. never post a reply, resolve a discussion or rewrite the proposal.",
+    "message": "each thursday at 14:35, read unresolved page-level comments on the notion page cresswell pavilion proposal. keep fetching batches until the results end.\n\nlist each question and its author here. say where access or an error stopped the read. show that the report covers page comments, with block comments and resolved discussions left out. never reply, resolve a discussion or rewrite the proposal. if nothing remains open, say so in one line.",
     "when": "thursdays at 14:35",
-    "needs": "notion connected with read only access, with the proposal page shared with the connection",
-    "output": "cresswell pavilion proposal: unresolved page comments\n\n- aislinn asks which entrance stays open during setup.\n- mateusz requests the revised equipment list.\n\nall returned pages checked. block-specific and resolved discussions not included. no replies posted."
+    "needs": "notion read only; share the proposal page with the connection and allow comment reading",
+    "output": "cresswell pavilion proposal\n\n- alice: which entrance stays open during setup?\n- mateo: where is the revised equipment list?\n\npage comment list finished. block comments and resolved discussions excluded."
   },
   "steps": [
-    "connect notion through **Connected apps** and keep the bot on **read only** for this feedback job.",
-    "make sure this page is one you let notion share with the connection when you signed in.",
-    "name the page or point to the part you want checked and ask for an initial read before scheduling the review.",
-    "check that the report names its scope, then use **Pause** on the routine card once the proposal review ends."
+    "**keep this job read only.** connect notion and allow the bot to read feedback.",
+    "**share the right page.** include it among the pages the notion connection can open.",
+    "**test the scope.** name the page or paragraph and ask for one read before scheduling.",
+    "**read the coverage note.** it should name the page or block it covered. pause the routine when proposal review ends."
   ],
   "watch": [
-    "the action returns unresolved comments, so it cannot stand in for a complete record of past discussion.",
-    "a page that isn't shared with the connection can look like it doesn't exist. that's an access problem, not a deleted page.",
-    "a long discussion comes back in parts; the bot should keep going until it has them all.",
-    "comments on the specified block or page are the scope; a page-level request should not claim every nested block was reviewed."
+    "**resolved means outside this list.** this action doesn't return the full history of a discussion.",
+    "**give the connection access before the review.** a sharing problem can return \"not found\" even when the page exists.",
+    "**long discussions arrive in batches.** the bot should finish them before reporting a total.",
+    "**page comments don't cover every paragraph.** ask separately about a specific block when its discussion matters."
   ],
   "faq": [
     {
       "q": "can it reply to the reviewer as well?",
-      "a": "not with this action. fetching comments only reads them; posting a reply is a separate job with its own permissions."
+      "a": "**not through this action.** it only reads. posting a reply needs a separate action and permission."
     },
     {
       "q": "why can the bot read the page but not its comments?",
-      "a": "the notion connection may not be allowed to see that page's comments. ask it to show the retrieval error rather than treat the missing result as an empty discussion."
+      "a": "**comment access can be missing.** ask for the error. a failed read does not mean the discussion is empty."
     }
   ],
   "sources": [
@@ -91,5 +91,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "share one notion page with the connection",
+      "keep the bot on read only",
+      "ask for unresolved page comments and their authors",
+      "name the paragraph too if you need its block comments"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating an empty result as approval",
+      "fix": "confirm scope and access first. resolved or block comments can sit outside the result."
+    },
+    {
+      "mistake": "asking for everything under a page",
+      "fix": "name the paragraph when its comments matter. a page-level read does not cover nested discussions."
+    }
+  ],
+  "tip": {
+    "text": "ask the bot to finish with what it could not read. the missing part often matters more than the summary."
+  },
+  "voice": 2
 }

@@ -11,7 +11,7 @@
     "chatgpt sort google sheets range",
     "claude sort spreadsheet by multiple columns"
   ],
-  "answer": "a bot can reorder the cells in a chosen google sheets range using one or more column rules. later rules break ties in earlier ones, such as sorting by due date and then by customer. include every column that belongs to each record so values stay together. sorting doesn't ask you first, so tell the bot to show you the plan and wait.",
+  "answer": "**put dispatch in due-date order, with every customer still beside their own job.** the bot can sort a google sheets range by several columns. later rules break ties, such as customer name after due date. include the full width of each record, with headers and totals outside. ask it to show the range and wait before reordering.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,37 @@
     "toolkit": "googlesheets",
     "slug": "GOOGLESHEETS_SORT_RANGE"
   },
-  "what": "this changes the row order inside the range you specify. a multi-column sort has a priority: the second column only decides order when the first has equal values. the bot needs the sheet link, the block of rows to sort and what to sort by.\n\nshare the spreadsheet link and identify the tab, headers, record columns and last row. have the bot confirm the grid range against that structure. sorting just one column of a wider record can separate dates or names from the values they describe.",
+  "what": "**a date must travel with its customer and quantity.** sorting one column can separate values that belong together. give the bot the sheet link, tab and full record width.\n\nkeep headers and totals outside the range. name the last row or ask the bot to find where records end.\n\nput rules in order: due date first, customer second. the second rule only breaks ties in the first.",
   "uses": [
-    "put a dispatch queue in due-date order with customer name as the tie-breaker",
-    "sort a complete attendance table alphabetically while leaving the header above it",
-    "group a bounded job list by stage and then by scheduled date"
+    "**put dispatch in order.** sort by due date, then customer for matching dates.",
+    "**find attendees faster.** alphabetise complete records while leaving the header above.",
+    "**group the job list.** sort by stage, then scheduled date within each stage."
   ],
   "routine": {
-    "message": "every thursday at 16:30, inspect the dispatch tab in the ottervale joinery spreadsheet i linked. propose sorting all columns of its current job records by due date ascending, then customer ascending, excluding the header and totals. show the exact range and sort rules here, and wait for my agreement before sorting; confirm completion in this chat. never sort a single record column on its own or include the totals row.",
+    "message": "every thursday at 16:30, inspect the dispatch tab in the ottervale joinery spreadsheet. find all current job records and include every record column. exclude the header and totals. propose sorting by due date ascending, then customer ascending. show the exact range and both rules here. ask me before you change anything and wait for agreement. sort only that range, then confirm completion here. never sort one record column on its own.",
     "when": "thursdays at 16:30",
-    "needs": "google sheets connected, read and write access for inspecting the table and sorting the agreed range",
-    "output": "ottervale dispatch sort proposal\nrecords: dispatch A2:F24\nfirst: due date, earliest first\nthen: customer, a to z\nheader and totals excluded; waiting before reordering."
+    "needs": "google sheets read and write for inspecting and sorting the agreed range",
+    "output": "ottervale dispatch sort proposal\nrecords: dispatch a2:f24\nfirst: due date, earliest first\nthen: customer, a to z\nheader and totals excluded. waiting before reordering."
   },
   "steps": [
-    "connect sheets in **Connected apps** with **read and write** and allow only the inspection and sort actions needed.",
-    "give the spreadsheet link and explain where complete records begin and end, including every related column.",
-    "name the primary sort column, its direction and any tie-breaker. require a range preview and your agreement before execution.",
-    "check that the first sorted records still have their own dates and quantities. **Pause** scheduled sorting if the table layout changes."
+    "**limit the access.** connect sheets with read and write for inspection and sorting.",
+    "**describe the table.** include its link, tab, full record width and where records end.",
+    "**choose rule priority.** name directions and tie-breakers. require a range preview and your agreement.",
+    "**follow a familiar customer.** their date and quantity should travel with them. pause the routine if the layout changes."
   ],
   "watch": [
-    "all cells inside the selected range are reordered. include the full record width and exclude headers or totals deliberately.",
-    "later sort rules only break ties. reversing the priority can produce a different queue even with the same columns.",
-    "open the sheet after the first sort and check a few rows still line up."
+    "**everything in the range moves.** include full rows of record data and leave headers and totals out.",
+    "**rule order changes the answer.** customer first gives a different queue from due date first.",
+    "**follow the data after sorting.** open a familiar customer’s row and confirm its date still belongs to it."
   ],
   "faq": [
     {
       "q": "can it sort by two columns?",
-      "a": "yes. provide the rules in priority order. the later rule is used when values match under the earlier rule."
+      "a": "**yes.** put the rules in priority order. the second breaks ties where the first column has matching values."
     },
     {
       "q": "will sorting wait for me to approve it?",
-      "a": "only if your instructions require that review. this is an app write, so sending approval settings do not automatically pause it."
+      "a": "**only if you tell the bot to wait.** the sending setting does not pause this edit. include an ask-before-changing instruction."
     }
   ],
   "sources": [
@@ -89,5 +89,40 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste the sheet link",
+      "ask for the full record range without headers or totals",
+      "name the first sort rule and tie-breaker",
+      "review that plan before sorting"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "sorting only the date column",
+      "fix": "include the customer, quantity and every other record column."
+    },
+    {
+      "mistake": "letting the header join the sort",
+      "fix": "preview the first and last rows before allowing the change."
+    }
+  ],
+  "checklist": {
+    "items": [
+      "full record width included",
+      "header and totals excluded",
+      "sort directions and priority clear",
+      "review required before reordering"
+    ]
+  },
+  "tip": {
+    "text": "look at one familiar record after the sort. its date should still belong to it."
+  },
+  "voice": 2,
+  "worked": {
+    "intro": "an invented dispatch example",
+    "before": "otto sorts only the due-date column. the dates no longer sit beside their own customers.",
+    "after": "the proposed range covers dispatch a2:f24, with the header and totals outside. each complete record moves together."
+  }
 }

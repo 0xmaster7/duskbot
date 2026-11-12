@@ -11,7 +11,7 @@
     "claude jira",
     "claude linear"
   ],
-  "answer": "give a product bot a named project and a few relevant channels. it can read linear or jira issues, find the discussion behind them in slack and bring back a short list of decisions that need you. keep the bot read-only at first. the useful handoff is evidence and a proposed next step, with prioritisation and delivery promises still owned by your team.",
+  "answer": "**get the blocker before standup becomes a round of guesses.** a product bot reads linear or jira issues and the slack discussion behind them. name one project and a few channels. it brings decisions that need you, with links you can open. start read only and keep priorities, estimates and customer promises with your team.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -47,68 +47,68 @@
   "day": [
     {
       "when": "before standup",
-      "what": "review unresolved issues in one project and pull out explicit blockers from their comments"
+      "what": "**bring the actual blocker.** read unresolved project issues and pull explicit blockers from their comments."
     },
     {
       "when": "after customer feedback",
-      "what": "ask the bot to find related tickets, keeping the customer's request separate from the proposed solution"
+      "what": "**separate problem from solution.** find related tickets without rewriting what the customer asked for."
     },
     {
       "when": "before planning",
-      "what": "compare a small set of jira or linear issues and list missing acceptance criteria, without changing estimates"
+      "what": "**find the missing brief.** read a small issue set for acceptance criteria; leave estimates alone."
     },
     {
       "when": "after shipping",
-      "what": "draft a release update from the issues you confirm shipped, with uncertainty called out"
+      "what": "**draft from confirmed releases.** name unresolved rollout questions instead of hiding them."
     },
     {
       "when": "end of day",
-      "what": "read a [slack channel digest](/routines/slack-channel-digest) for decisions and open questions in the channels you chose"
+      "what": "**catch the decision you missed.** read a [slack digest](/routines/slack-channel-digest) for the channels you chose."
     }
   ],
   "pack": [
     {
       "name": "the standup evidence list",
-      "message": "every weekday at 8:45, read open issues and comments in the linear project i named. show only explicit blockers, unanswered questions and work needing a decision from me. link each item to its issue and say who last raised it. don't infer that quiet work is blocked. don't change status, priority, assignees or estimates.",
-      "note": "use [linear](/integrations/linear) reads; swap in one named jira project if that is your team's source"
+      "message": "every weekday at 8:45, read open issues and comments in the linear project i named. list explicit blockers, unanswered questions and decisions that need me.\n\nlink each item to its issue and name who last raised it. don't infer that quiet work is blocked. change no status, priority, owner or estimate. say when no decision needs me.",
+      "note": "**one tracker is enough.** use [linear](/integrations/linear), or name one jira project instead."
     },
     {
       "name": "the feedback trail",
-      "message": "every tuesday at 2, read the past week's messages in the slack feedback channel i chose. group requests by the problem described. search the jira project i named for related issues. give me the message reference and issue reference together, distinguishing a possible match from a confirmed one. propose questions for discovery; create nothing.",
-      "note": "[jira](/integrations/jira) issue searches and slack history are enough; no ticket-writing access needed"
+      "message": "every tuesday at 2, read the last week's messages in my chosen slack feedback channel. group requests by the problem people describe.\n\nsearch the named jira project for related issues. pair message and issue references. distinguish possible matches from confirmed ones. suggest discovery questions, but create nothing.",
+      "note": "**read the evidence, leave the tickets.** [jira](/integrations/jira) search and slack history need no ticket-writing access."
     },
     {
       "name": "the release update draft",
-      "message": "every friday at noon, read the release issue list i supplied and its latest comments. draft a short update here: confirmed shipped work, unresolved rollout questions and what i need to verify. don't treat a closed ticket as proof a customer can use the feature. don't post the update or edit the roadmap.",
-      "note": "give the bot the exact release scope so it does not combine unrelated teams' work"
+      "message": "every friday at noon, read this week's release issues and comments in the connected tracker project. use its release label to choose the scope.\n\ndraft a short update here: confirmed shipped work, open rollout questions and facts i need to verify. use release evidence beyond a closed ticket to confirm customer availability. don't post the update or edit the roadmap.",
+      "note": "**name the release boundary.** keep unrelated teams out by choosing the project and release label."
     }
   ],
   "sections": [
     {
       "h": "choose one home for each fact",
-      "md": "tell the bot which tracker owns delivery status and which slack channels carry discussion. a copied ticket in another system should not become a second vote that the same work shipped. name project boundaries in the routine, not just a broad keyword.\n\nlinear and jira both let a read-only bot search issues and read their comments. you do not need to connect both if your team uses only one. a smaller source set makes a missing or contradictory detail easier to spot."
+      "md": "**know which source owns the delivery date.** name the tracker for status and the slack channels for discussion. a copied ticket adds no new evidence. put project boundaries in the routine instead of relying on a broad keyword.\n\nlinear and jira both support issue and comment reads. connect the tracker your team uses. fewer sources make missing or contradictory details easier to spot."
     },
     {
       "h": "ask for the disagreement, not a smoother story",
-      "md": "a useful product brief preserves conflict. if a ticket says one thing and a later message says another, ask the bot to show both references and leave the conclusion open. include the date of the evidence so an old decision does not sound current.\n\nleave priority calls to the people who understand the tradeoffs. a list of repeated requests can inform discovery, but repetition alone is not a reason to move an item ahead of reliability, accessibility or an existing commitment."
+      "md": "**keep the uncomfortable contradiction in the brief.** if a ticket and later message disagree, ask for both links and dates. leave the conclusion open until someone resolves it.\n\nrepeated requests can guide discovery. they don't automatically outrank reliability, accessibility or a commitment your team already made. people still own that trade-off."
     },
     {
       "h": "read first, publish deliberately",
-      "md": "set tracker and slack permissions to read-only in **Connected apps** for this pack. the bot can report in its own chat without editing tickets or announcing dates. if you later allow tracker changes, add \"ask me before you change anything\" to the instructions. those changes are not covered by the sending prompt.\n\nsending a slack message asks first unless you choose a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^7] company work also needs a work license; the app's free personal use does not cover running product work. see [account and billing](/docs/account-and-billing)."
+      "md": "**get the brief without moving the roadmap.** set tracker and slack access to read only. the bot can report here without changing tickets or announcing dates.\n\nfor edits later, require \"ask me before you change anything\". ordinary tracker changes can happen without a sending prompt.[^7]\n\ncompany work needs a work license. see [billing](/docs/account-and-billing)."
     }
   ],
   "faq": [
     {
       "q": "what would a product manager actually schedule an ai to do?",
-      "a": "collect evidence for standup, connect feedback to existing issues and prepare a release update for review. start with work whose result you can check against a handful of source links."
+      "a": "**collect the evidence you keep chasing.** try standup blockers, feedback linked to issues or a release update draft. start with a handful of links you can compare with the brief."
     },
     {
       "q": "can it work with jira instead of linear?",
-      "a": "yes. a read-only bot can search jira issues and read their comments. name the project and rewrite the routine around your jira scope; connecting linear is optional."
+      "a": "**yes, name one jira project.** a read-only bot can search issues and read comments. you do not need to connect linear too."
     },
     {
       "q": "will it update tickets while summarising them?",
-      "a": "with read-only access it cannot. keep that permission while trying the pack. granting write access later is a separate choice, so give explicit instructions about which changes need your review."
+      "a": "**read-only access blocks that.** keep it while trying the pack. if you later allow writes, name the fields and require review before changes."
     }
   ],
   "sources": [
@@ -143,5 +143,39 @@
       "label": "dusk bot docs: permissions and sends",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick one project and its source tracker",
+      "connect it and slack read only",
+      "ask for blockers with the comments that name them",
+      "open a few source links before scheduling standup"
+    ]
+  },
+  "worked": {
+    "before": "olivia opens a ticket, a feedback thread and a rollout note.\nthe ticket is closed; the note says rollout is still waiting.",
+    "after": "release draft for olivia:\n- work marked complete in the tracker\n- customer availability still unconfirmed in the rollout note\n- decision needed: who will verify the live release?\n\nno roadmap changes or announcement."
+  },
+  "checklist": {
+    "items": [
+      "delivery status has one named source",
+      "every blocker points to evidence",
+      "conflicting dates remain visible",
+      "a closed ticket is not the only release proof"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "calling quiet work blocked",
+      "fix": "require an explicit blocker from the issue or discussion."
+    },
+    {
+      "mistake": "turning repeated requests straight into priority",
+      "fix": "use them as discovery evidence. compare them with existing commitments before changing the plan."
+    }
+  ],
+  "tip": {
+    "text": "ask for the disagreement and its dates. a clean story is less useful than the conflict you can resolve."
+  },
+  "voice": 2
 }

@@ -4,14 +4,14 @@
   "title": "Excel AI assistant for workbooks, tables and .xlsx files",
   "nav": "excel",
   "h1": "an excel bot for the workbook you actually mean",
-  "description": "Use the Microsoft Excel connection in Dusk Bot, or drop an .xlsx file into chat. Check ranges, review tables and prepare workbook reports.",
+  "description": "Get budget versus actual before the meeting. Connect a OneDrive workbook or drop an .xlsx into Dusk Bot for range, table and chart work.",
   "keyword": "claude excel",
   "keywords": [
     "chatgpt excel",
     "ai agent excel automation",
     "excel mcp"
   ],
-  "answer": "a bot in dusk bot can work with excel in two ways: through the microsoft excel connection, or on an .xlsx file you drop into chat. the connection offers workbook, range, table and chart actions. a dropped file gives the bot a file to work on. say which route you mean and where the result should go.",
+  "answer": "**get budget versus actual before the board meeting, without hunting through workbook copies.** dusk's excel connection reads and changes ranges, tables and charts. two ways in: a workbook in onedrive, or a file you drop in the chat. say which. name the sheet and where the result belongs. start with a report here before letting the bot write cells.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,7 +44,7 @@
   "app": {
     "name": "Excel",
     "toolkit": "excel",
-    "intro": "the excel toolkit is composio's microsoft excel connection. its workbook actions are separate from giving a bot a local attachment. choose a connected workbook for ongoing app work, or attach the .xlsx when the job is about that file.",
+    "intro": "**choose a connected workbook or attach the file.**\n\n- the excel toolkit uses composio's microsoft excel connection. its workbook actions are separate from local attachments.\n- choose a connected workbook for ongoing app work.\n- attach the .xlsx when the job concerns that file.",
     "highlight": [
       {
         "slug": "EXCEL_SEARCH_FILES",
@@ -60,7 +60,7 @@
       },
       {
         "slug": "EXCEL_GET_RANGE",
-        "use": "read the budget and actual values in a specified range"
+        "use": "read budget vs actual for the range you name"
       },
       {
         "slug": "EXCEL_LIST_TABLE_ROWS",
@@ -68,68 +68,68 @@
       },
       {
         "slug": "EXCEL_UPDATE_RANGE",
-        "use": "write a deliberate change into the destination you chose"
+        "use": "write the numbers into the cells you named"
       },
       {
         "slug": "EXCEL_ADD_CHART",
-        "use": "add a chart for the figures you want to present"
+        "use": "chart this month against last for the board deck"
       },
       {
         "slug": "EXCEL_EXPORT_WORKBOOK_TO_PDF",
         "use": "prepare a pdf version of the workbook for review"
       }
     ],
-    "setup": "for connected work, choose excel in **Connected apps**, finish microsoft's sign-in and allow the workbook bot to use it. identify the file and sheet before asking for an edit.\n\nfor a file task, drop the .xlsx into chat or use **Attach files**. tell the bot what to inspect and ask for the result as a file in chat. it can also use a project folder you give it."
+    "setup": "**name the file and sheet before asking for an edit.**\n\nfor connected work, choose excel in **connected apps** and sign in through microsoft. allow the workbook bot to use it.\n\nfor a file task, drop the .xlsx into chat or use **attach files**. say what to inspect and ask for the result as a file in chat. you can also give it a project folder."
   },
-  "routines_intro": "start with a workbook review that leaves values alone. add a write job only after the bot has correctly identified the sheets and columns.",
+  "routines_intro": "**get a useful report before handing over the cells.** name the workbook, sheet and columns. let it write only after a few correct reports.",
   "routines": [
     {
       "name": "budget variance reading",
-      "message": "every monday at noon, read the budget and actual columns in the acme planning workbook. list the largest differences, showing both inputs and the row label. keep different currencies separate. do not update formulas, values or formatting.",
+      "message": "every monday at noon, read the budget and actual columns in the connected planning workbook. list the largest differences with both inputs and each row label. keep currencies separate. change no formulas, values or formatting. if you cannot read a source value, say so.",
       "when": "mondays at 12:00",
-      "output": "a variance report with its source values"
+      "output": "a variance report here, with source values beside each difference"
     },
     {
       "name": "staffing table gaps",
-      "message": "every wednesday at 9, inspect the allocation table in the acme staffing workbook. flag rows with a missing person, week or assigned hours. report the row reference and missing field. leave the table order and all entries alone.",
+      "message": "every wednesday at 9, read the allocation table in the connected staffing workbook. flag rows missing a person, week or assigned hours. name the row and missing field. leave entries and table order alone. if every row is complete, say so briefly.",
       "when": "wednesdays at 09:00",
-      "output": "a checklist of incomplete staffing entries"
+      "output": "a checklist of incomplete entries; the staffing table stays unchanged"
     },
     {
       "name": "month-end report copy",
-      "message": "on the last day of each month at 3, find the acme monthly workbook and confirm its sheet names with me. ask me before you change anything or export it. after i agree, make a pdf for my review and put the result in this chat.",
+      "message": "on the last day of each month at 3, find the connected monthly workbook for that month. show me its sheet names. wait for my confirmation before edits or export. after i confirm, make a pdf here for review. don't email it or reuse last month's file if the current one is missing.",
       "when": "last day of the month at 15:00",
-      "output": "a reviewed workbook selection and a pdf report"
+      "output": "the selected workbook and its pdf report here after your review"
     }
   ],
-  "asks": "connected workbook edits use app permissions. updating cells or adding charts is not documented as pausing for a sending card. limit the bot to a narrow set of excel actions, and write \"ask me before you change anything\" when the job needs a checkpoint.\n\nfile work uses the bot's computer permissions instead. start on **Ask for approval** while you inspect how it handles a dropped workbook. these are different controls from the separate setting for sends such as emails and messages.",
+  "asks": "**keep the figures intact while you try the reports.** give the bot read-only excel access. for cell changes later, restrict the action list and write \"ask me before you change anything\". cell edits use app permissions, so they can happen without a sending prompt.\n\nattached-file work uses the bot's computer permissions instead. start on **ask for approval** while you see how it handles your workbook.",
   "cannot": [
-    "change a connected excel range under read-only access. a report in chat can stay separate from workbook writes.",
-    "run this connection as a local workbook-change event feed. composio lists no excel events, so the routines here run on a schedule instead.",
-    "open the desktop app and carry out a scheduled workbook job while your machine is sleeping. local work pauses then; use an always-on bot machine if the timing matters."
+    "**edit a connected range with read-only access.** a report here can stay separate from workbook writes.",
+    "**react to each workbook edit through this connection.** the excel catalog has no events. schedule the report instead.",
+    "**finish local workbook work during sleep.** the app and machine must stay awake. move timed jobs to an always-on bot machine when needed."
   ],
   "sections": [
     {
       "h": "make the file route explicit",
-      "md": "say \"review this attached workbook and return your findings here\" for a one-off .xlsx. for an ongoing report, give the connected file reference each time. do not let a familiar filename stand in for the source: ask which workbook and sheet the bot read. [google sheets](/integrations/google-sheets) uses a separate connector."
+      "md": "**name the source and stop the copy hunt.** for a one-off, say \"review this attached workbook and return findings here\". for recurring work, name the connected file and sheet.\n\nask which workbook the bot read. [google sheets](/integrations/google-sheets) uses a different connection, so name that source separately."
     },
     {
       "h": "decide where the report belongs",
-      "md": "a generated file appears in chat and lives in the bot's folder or project folder. think about that destination before building a [file organisation routine](/use-cases/file-organizer). if you later want to email the report through [outlook](/integrations/outlook), that is another connection and the send has its own approval setting."
+      "md": "**put the report where you will use it.** generated files appear in chat and live in the bot's folder or a project folder you give it.\n\nchoose that folder for a [file organisation routine](/use-cases/file-organizer). to email a report later, connect [outlook](/integrations/outlook) separately and review the send there."
     }
   ],
   "faq": [
     {
       "q": "can i just drop an excel file into the chat?",
-      "a": "yes. drop the .xlsx or use **Attach files**, then describe the workbook task. you do not need to connect a microsoft account merely to give the bot that file."
+      "a": "**yes, attach the .xlsx.** describe the job and ask for the result here. giving the bot that file needs no microsoft account connection."
     },
     {
       "q": "is this an excel connection or desktop screen control?",
-      "a": "the highlighted tools belong to composio's microsoft excel toolkit. they are app actions. working on an attached file is a separate route; neither description promises that the bot operates an open excel window."
+      "a": "**the highlighted tools are app actions.** they use composio's microsoft excel connection. attached-file work is another route. neither promises control of an open excel window."
     },
     {
       "q": "can it watch every workbook edit as it happens?",
-      "a": "the excel facts catalog lists no triggers, so this page offers scheduled inspections. choose a schedule that matches how often the workbook needs checking."
+      "a": "**schedule the report instead.** the excel catalog has no triggers for workbook edits. choose how often you need fresh figures."
     }
   ],
   "sources": [
@@ -145,5 +145,51 @@
       "label": "dusk bot docs: scheduled routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "drop in one .xlsx for a file-only trial",
+      "name the sheet and a small range",
+      "ask for findings here without edits",
+      "compare one reported value with the workbook"
+    ]
+  },
+  "worked": {
+    "before": "ben has a planning workbook and an older copy with a similar name.\nthe request says only: check the budget.",
+    "after": "clearer request:\nread the connected planning workbook, budget tab.\nshow budget and actual beside each large difference.\nkeep currencies separate and change no cells."
+  },
+  "decide": {
+    "cols": [
+      "you have",
+      "use"
+    ],
+    "rows": [
+      [
+        "one workbook file to inspect",
+        "attach the .xlsx"
+      ],
+      [
+        "a connected workbook to review regularly",
+        "excel connection and a schedule"
+      ],
+      [
+        "a report to email",
+        "a separate mail connection and send review"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "letting the filename stand in for the source",
+      "fix": "ask for the workbook and sheet before comparing figures."
+    },
+    {
+      "mistake": "assuming read access allows corrections",
+      "fix": "keep the report here first. allow specific write actions only when you want edits."
+    }
+  ],
+  "tip": {
+    "text": "ask for source values beside the conclusion. a variance without its inputs is harder to trust."
+  },
+  "voice": 2
 }

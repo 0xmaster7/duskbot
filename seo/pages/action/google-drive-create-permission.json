@@ -4,14 +4,14 @@
   "title": "Share a Google Drive file with AI using exact access",
   "nav": "create permission",
   "h1": "give a named person google drive access with ai",
-  "description": "Have AI grant Google Drive access to a file or folder. Review the recipient, role, notification and expiry, since this write is outside sending approvals.",
+  "description": "Give a contractor or reviewer access to the right Google Drive file. Choose their role, notification and expiry, then review the share before it happens.",
   "keyword": "share google drive file with ai",
   "keywords": [
     "chatgpt grant google drive permission",
     "claude share drive file with person",
     "ai google drive access permissions"
   ],
-  "answer": "a bot can grant access to a google drive file or folder for a person, group or domain, or make it available to anyone. it needs the file id, recipient type and access role, with an address for a person or group. sharing counts as a change in dusk, not a send, so it won't ask first, even when google emails the person. tell the bot to ask before it shares anything.",
+  "answer": "**let the contractor open the brief without making the folder public.** a bot can grant google drive access to a person, group, domain or anyone. name the file, audience and role. sharing counts as a change even when google emails the recipient. put 'ask me before sharing anything' in your request to review the audience first.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,43 +43,43 @@
     "toolkit": "googledrive",
     "slug": "GOOGLEDRIVE_CREATE_PERMISSION"
   },
-  "what": "sharing is a permission change, not just a link to a file. choose who gets access and what they may do: for example, reader, commenter or writer. user and group grants require an email address; a domain grant needs the domain. anyone access needs neither and can make the file publicly accessible.\n\nthe bot finds the file and shows you its name before sharing. notifications default to on for users and groups, with an optional custom message. expiry can be set for user and group grants only, at a future time no more than a year away.",
+  "what": "**give people just enough access to do the work.** pick who gets access and what they can do: read, comment or edit. the bot finds the file and shows its name first.\n\n- people and groups need an email address\n- domain access needs the domain; anyone access can make the file public\n- notifications default to on for people and groups, with an optional message\n- expiry only works for people and groups: a future time within one year",
   "uses": [
-    "give a named contractor reader access to a specific briefing file",
-    "let an agreed review group comment on a proposal without making it public",
-    "grant a temporary reviewer access with an explicit expiry date",
-    "give a particular collaborator writer access after you confirm they may edit"
+    "**give a contractor the brief.** grant reader access to the named file.",
+    "**collect comments without going public.** share with the agreed review group.",
+    "**limit a reviewer's access period.** choose an expiry date.",
+    "**let a collaborator edit.** confirm the person and writer role first."
   ],
   "routine": {
-    "message": "every tuesday at 3, review the drive file called amberwick lighting brief and prepare a reader permission for esteban@amberwickstage.example only if i marked that file ready here. show the file name, recipient address and reader role, with notification email off, then ask me before you change anything. after approval, share it and report the resulting access here. never grant anyone or domain access, transfer ownership or upgrade the role without a new instruction.",
+    "message": "every tuesday at 3, inspect new files in my google drive folder 'lighting briefs ready for review'. read each file's reviewer email from its brief and check current access. propose reader access only where that person lacks it. show me the file, email, role and expiry, with notification email off. ask me before changing anything. share only approved files with approved people, then report the access. stop if a reviewer address is missing. never grant anyone or domain access, transfer ownership or upgrade a role.",
     "when": "tuesdays at 15:00",
-    "needs": "google drive connected with read and write access; file lookup, permission reading and permission creation allowed on the brief",
-    "output": "permission proposal\n\nfile: amberwick lighting brief\naddress: esteban@amberwickstage.example\nrole: reader\nnotification email: off\n\nwaiting for approval. no public or domain permission requested."
+    "needs": "google drive connected with read and write access for file lookup, permission reading and permission creation",
+    "output": "permission proposal\nfile: amberwick lighting brief\nrecipient: esteban@amberwickstage.example\nrole: reader. notification email: off.\ngrant access to this person only?"
   },
   "steps": [
-    "connect drive through **Connected apps** and let the bot identify the exact file while still on **read only**.",
-    "decide the recipient type, address, role and whether a notification email is wanted; have the bot show all of them together.",
-    "enable **read and write** for the specific permission action only when you intend to grant access, and explicitly require confirmation before it runs.",
-    "check who has access after the first share. when the reviewer finishes, stop this routine with **Pause**."
+    "connect drive as read only first. ask the bot to find the exact file.",
+    "pick the recipient, role, notification choice and expiry. read them together.",
+    "allow the permission action with read and write access. tell it to show you the share before granting access.",
+    "open the file's sharing panel after the share. pause the routine when the review work ends."
   ],
   "watch": [
-    "change sharing on one file one person at a time; if two changes land together, only the last one sticks.",
-    "google emails the person by default when you share. say if you'd rather it didn't.",
-    "anyone or domain permissions have a broader audience than an individual grant. do not let a missing address turn into public access.",
-    "handing over ownership is a much bigger step than giving edit access: you become an editor on your own file. keep it out of routines."
+    "**one change at a time per file.** if permission changes land together, only the last sticks.",
+    "**google emails people by default.** turn notifications off if you don't want that email.",
+    "**a missing address isn't permission to go public.** stop before anyone or domain access.",
+    "**ownership is a bigger handover.** it makes you an editor on your own file. keep it out of routines."
   ],
   "faq": [
     {
       "q": "will it ask me before sharing?",
-      "a": "no. sharing is a change, not a send, even when google emails the person. put \"ask me before you share anything\" in the request."
+      "a": "**only if you tell it to.** sharing counts as a change, even when google emails someone. put 'ask me before sharing anything' in the request."
     },
     {
       "q": "can i give access that expires?",
-      "a": "the expiry option applies to user and group permissions. it must be in the future and no more than a year away."
+      "a": "**yes, for people and groups.** choose a future expiry no more than a year away. it doesn't apply to anyone or domain access."
     },
     {
       "q": "does turning off notifications stop access being granted?",
-      "a": "the notification option controls the email, while the permission determines access. check both independently before approving."
+      "a": "**turn notifications off to skip the email.** the person still gets access. choose the audience and notification setting separately."
     }
   ],
   "sources": [
@@ -95,5 +95,36 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick a file and a reviewer email",
+      "ask for a permission proposal without changes",
+      "choose reader, commenter or writer",
+      "say whether google should email them before approving"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "giving edit access for a review",
+      "fix": "choose commenter when you want feedback without edits."
+    },
+    {
+      "mistake": "sharing the same brief every week",
+      "fix": "read a ready-for-review folder and look up existing access first."
+    }
+  ],
+  "tip": {
+    "text": "read the actual email address, not just the recipient's first name."
+  },
+  "checklist": {
+    "h": "before you grant access",
+    "items": [
+      "the file is the intended version",
+      "the address belongs to the right person",
+      "the role grants only what they need",
+      "expiry and notification choices match your request"
+    ]
+  },
+  "voice": 2
 }

@@ -10,7 +10,7 @@
     "ai to rename files",
     "ai file organizer"
   ],
-  "answer": "start with a backup, then give a bot on your own computer one project folder to tidy. ask for a proposed list of moves and renames, with uncertain files left alone. inspect that list before authorizing changes. dusk bot has file-edit approval settings, but a folder plan is still your responsibility. this routine separates inspection from moving and never treats duplicate-looking names as permission to delete a file.",
+  "answer": "**find the receipt without opening half the project folder.** give a local bot the folder and ask for a tidy-up plan: where each file would go, what it would be called and why. you approve the moves after opening a separate backup. unclear files stay put, and similar names never turn into permission to delete.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -38,45 +38,43 @@
   },
   "og_line": "one folder, a backup, a plan first.",
   "routine": {
-    "intro": "make a separate backup of the target folder yourself and open a few files from that backup to check it. then give a bot running on your own computer that project folder. keep it on **Ask for approval**.",
-    "message": "every friday at 5pm, inspect only the project folder i gave you and propose a tidy-up in this chat. this run is a plan, not permission to move anything. ask me before you change anything.\n\nlist each proposed operation with its current path, proposed path and reason. group loose receipts under receipts, supplied reference material under references, and unfinished work under working. suggest descriptive names only when the contents make the name clear. keep file extensions unchanged.\n\nleave ambiguous files, shortcuts, hidden files and anything inside an app-managed folder alone. flag name collisions instead of overwriting. do not delete, deduplicate or move anything outside this folder.\n\nwait for me to confirm that my backup is checked and approve specific moves. before any approved move, check the paths still match the plan. stop if a file changed or a destination already exists. afterwards list only the operations actually completed.",
-    "when": "fridays at 17:00 for inspection; approved moves are a separate step",
-    "needs": "a bot on your own computer, one project folder you give it and a separately checked backup; no connected app",
-    "output": "proposed tidy-up for the cedar project\n\ncurrent path -> proposed path | reason\nreceipt-priya.pdf -> receipts/receipt-priya.pdf | document identifies itself as a receipt\ncedar-style-notes.txt -> references/cedar-style-notes.txt | supplied reference notes\ndraft-jo.txt -> working/draft-jo.txt | file is marked unfinished\n\nleft alone: final-final.pdf, purpose unclear.\ncollision: references/cedar-logo.png already exists; no replacement proposed.\n\nno files moved. confirm the backup is checked and tell me which listed operations to apply."
+    "intro": "**get a move list you can read before anything moves.** make a separate copy yourself and open a few files from it. then give a local bot the project folder, on ask for approval.",
+    "message": "every friday at 5pm, inspect only the project folder i gave you. propose a tidy-up here. ask me before you change anything.\n\n- list the current path, proposed path and reason for each move\n- group receipts under receipts, reference material under references and unfinished work under working\n- suggest clearer names only when the contents justify them\n- keep file extensions unchanged\n\nleave ambiguous files, shortcuts, hidden files and app-managed folders alone. flag name collisions. never delete, deduplicate or move anything outside this folder.\n\nwait for me to confirm my tested backup and approve specific moves. compare the paths with the plan again before moving. stop if a file changed or a destination exists. afterwards list only completed operations.",
+    "when": "fridays at 17:00 for inspection; specific approved moves follow separately",
+    "needs": "a local bot, one project folder and a separately tested backup; no connected app",
+    "output": "cedar project: proposed moves\nreceipt-talvo.pdf -> receipts/receipt-talvo.pdf | contents show a receipt\ncedar-style-notes.txt -> references/cedar-style-notes.txt | reference notes\nunfinished-copy.txt -> working/unfinished-copy.txt | marked unfinished\n\nleft alone: final-final.pdf; purpose unclear\ncollision: references/cedar-logo.png already exists\n\nno files moved. confirm the backup and choose which moves to apply."
   },
   "sections": [
     {
-      "h": "choose a folder with a clear boundary",
-      "md": "use a project folder you understand, rather than your whole home directory. tell the bot what belongs in each destination. “make it neat” leaves it guessing whether an old draft is finished work or an important reference.\n\nfiles a bot makes on your computer live in its own folder or a project folder you give it.[^1] keep this task on the machine holding the originals. the [computer-use overview](/ai-agent-that-controls-your-computer) explains the broader setup, but no screen control is required just to ask for a folder plan."
+      "h": "give it one folder with rules you understand",
+      "md": "**give every destination a job.** name a project folder and explain what belongs under receipts, references and working. an old draft might still be a useful reference. \"make it neat\" leaves those choices to the bot.\n\npoint the bot at the project folder itself, not its own workspace.[^1] the [computer-use overview](/ai-agent-that-controls-your-computer) explains the setup; a folder plan needs no screen control."
     },
     {
-      "h": "back up before approving the list",
-      "md": "use a separate copy or your normal backup method, and check it before the bot edits the original. there's no automatic undo for moved files, so keep your own backup. a written move list helps you review changes; it is not a replacement for a backup.\n\nkeep **Ask for approval** selected while trying the task. **Auto-accept edits** permits file changes, so leave that setting for a task whose scope you already trust.[^2] the [computer safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains why small permissions matter."
+      "h": "keep a way back to the originals",
+      "md": "**keep a separate copy you have actually opened.** the move list tells you what changed; the backup gives you the original files. use a separate folder or your normal backup method, rather than relying on automatic undo.\n\nbegin on ask for approval. auto-accept edits permits file changes; use that only once you trust the scope.[^2] the [computer safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains the settings."
     },
     {
-      "h": "leave uncertain files where they are",
-      "md": "names alone are weak evidence. two files called “invoice” may belong to different customers, and a shortcut may point somewhere outside the folder. tell the bot to list uncertainty rather than force every item into a category. do not let a tidy-up become deletion.\n\nrenaming a file can also break a reference in another document or app. keep app-managed material out of scope and inspect the completed list before continuing work. if the folder contains collected web material, [web scraping](/use-cases/web-scraping) shows how to retain source information before you reorganize it."
+      "h": "get the awkward files back as questions",
+      "md": "**let the bot sort the clear cases and bring you the rest.** files called invoice can belong to different customers. have it flag uncertainty rather than force a category.\n\nshortcuts can point outside the folder, and renaming can break links in another document or app. leave app-managed material outside the job and compare completed changes with the plan.\n\nfor collected web material, [web scraping](/use-cases/web-scraping) explains keeping the source information with the files."
     }
   ],
   "safeguards": [
-    "check a separate backup before authorizing any move or rename",
-    "make the scheduled routine inspect only, then approve named operations separately",
-    "keep the bot on **Ask for approval** while testing the folder rules",
-    "never overwrite a destination or delete a suspected duplicate in this routine",
-    "stop when paths differ from the reviewed plan; do not silently improvise a new move"
+    "**keep a working backup.** open a few files in a separate copy before approving moves or renames.",
+    "**make the schedule inspection only.** on ask for approval, let the bot propose named operations for you to choose.",
+    "**keep originals safe at the destination.** stop if a path changed or a file already exists. never overwrite, delete or deduplicate."
   ],
   "faq": [
     {
-      "q": "can ai organize files on my computer without touching everything?",
-      "a": "give the bot one project folder and require an inspection-only plan. this routine explicitly excludes other folders. review the proposed paths before authorizing the bot to change anything."
+      "q": "can it organise one folder without touching everything?",
+      "a": "**give it that project folder and name the boundary.** exclude other folders, ask for an inspection-only plan and compare the proposed paths with the files before approving."
     },
     {
-      "q": "can it rename files based on what is inside?",
-      "a": "you can ask for proposed descriptive names where the contents are clear. review each suggestion, preserve the extension and leave ambiguous files unchanged. some file types it may not be able to read."
+      "q": "can it rename files from their contents?",
+      "a": "**ask for proposed names first.** keep extensions and leave unclear files unchanged. the bot may not be able to read every file type."
     },
     {
-      "q": "is there an undo button if the folder looks wrong?",
-      "a": "do not rely on an automatic undo for folder moves. keep your own checked backup and the operation list. the routine asks for a completed list so you can see what was actually changed."
+      "q": "is there an undo button for a bad tidy-up?",
+      "a": "**keep the backup as your way back.** do not rely on an undo button. the completed operation list tells you which originals to recover."
     }
   ],
   "sources": [
@@ -92,5 +90,46 @@
       "label": "dusk bot docs: routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "make a separate copy of one folder and open a few files in it",
+      "give a local bot that project folder",
+      "ask for a move plan with no changes",
+      "compare one proposed move with the actual file"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: celia reviews a folder plan.",
+    "before": "a receipt, reference notes and an unfinished draft sit loose. final-final.pdf gives no clear clue about its purpose.",
+    "after": "the plan gives the three clear files destinations. final-final.pdf stays put. an existing logo would collide, so that move is flagged. celia gets a short list of moves she can choose."
+  },
+  "checklist": {
+    "h": "before allowing a move",
+    "items": [
+      "the backup opens correctly",
+      "the current and destination paths match the plan",
+      "the destination does not already hold a file",
+      "unclear and app-managed files remain outside the move list"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "starting with the whole home folder",
+      "fix": "choose one project you understand and define its destination folders."
+    },
+    {
+      "mistake": "deleting files because the names look duplicated",
+      "fix": "keep them. deciding whether they are duplicates is a separate job."
+    },
+    {
+      "mistake": "approving a plan after the files changed",
+      "fix": "compare the paths again and stop at any mismatch."
+    }
+  ],
+  "tip": {
+    "text": "ask for the current path, new path and reason. you should be able to follow the move without guessing.",
+    "careful": true
+  },
+  "voice": 2
 }

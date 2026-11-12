@@ -11,7 +11,7 @@
     "ai bookkeeping agent",
     "ai bookkeeping"
   ],
-  "answer": "use a bot to gather unpaid-invoice evidence and prepare reminders, with a human checking the amount, recipient and payment status. it can read invoice messages in gmail or list invoices in stripe, then put proposed follow-ups in your chat. an unanswered email does not prove an invoice is unpaid. keep this routine drafts only, and keep gmail and stripe read only and sending on **Ask every time**, so nothing goes out and no money moves without you.",
+  "answer": "**spend monday chasing the right invoices instead of assembling the evidence.** let the bot read gmail threads or stripe invoices and draft reminders in chat. amounts, recipients and payment details sit beside each draft. keep the apps read only. before sending, look at live payment status: money can arrive outside the records the bot can see.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -40,47 +40,47 @@
     ],
     "bubble": "reminders for your review"
   },
-  "og_line": "check what is owed before chasing it.",
+  "og_line": "the invoice, the evidence, the reminder.",
   "routine": {
-    "intro": "choose your evidence source before starting: gmail for invoice conversations, stripe for invoices held there, or both. keep both connections read-only; reminder text stays in chat.",
-    "message": "every monday at 9:45, review the invoice evidence in the accounts i named. use my work gmail threads, stripe invoices, or both, according to the access i gave you. put the result in this chat only.\n\nfor each apparently overdue invoice, show its identifier, customer, amount and currency, due date, evidence source and latest payment information available. look for recent replies about payment, disputes or a revised due date. if the status is unclear, put it under “check before chasing”. an email alone is not proof of nonpayment.\n\nwrite a short reminder draft only for entries with a clear unpaid status and no unresolved dispute. leave recipient details for me to verify. do not send, create gmail drafts, change invoice status, charge, refund, transfer money or edit either app. never add fees or payment links yourself.",
-    "when": "mondays at 9:45, after you have named the relevant accounts",
-    "needs": "read-only gmail or stripe access, or both; the result and reminder drafts stay in chat",
-    "output": "invoice review for sam, fictional customer records\n\nready for review: acme, invoice ac-104, £480, due 5 november. stripe shows it unpaid; no later payment reply found.\ndraft: hi priya, a quick check on invoice ac-104 for £480, due 5 november. could you let me know its payment status? thanks, sam.\n\ncheck before chasing: jo at cedar studio says payment was made. nothing in the mail confirms we got it, so no reminder drafted.\n\nverify recipient and live payment status before sending. no account changes or money movements."
+    "intro": "**get the reminder beside the reason to send it.** use gmail for conversations, stripe for invoices held there, or both. keep access read only and reminder text in chat.",
+    "message": "every monday at 9:45, review invoice evidence in my named work gmail, stripe account or both. put the review here only.\n\nfor each apparently overdue invoice, show its reference, customer, amount, currency, due date and evidence source. include the latest available payment information. read recent replies for payments, disputes or changed due dates. put unclear cases under \"resolve before chasing\". silence in email does not prove nonpayment.\n\ndraft a short reminder only where unpaid status is clear and no dispute remains open. leave recipient details for me to verify. never send, save gmail drafts, edit invoices or move money. never charge, refund or transfer. do not add fees or payment links.",
+    "when": "mondays at 9:45, using the accounts you named",
+    "needs": "gmail, stripe or both, read only; all review text and reminder drafts stay in chat",
+    "output": "fictional invoice review\n\nready for review: hannah at briarwake, invoice ac-104, £480, due 5 november. stripe shows unpaid. no later payment reply found.\n\ndraft: hi hannah, a quick question about invoice ac-104 for £480, due 5 november. could you let me know its payment status? thanks.\n\nresolve before chasing: felix at tarnbasket says payment was made. the mail does not confirm receipt. hold the reminder until someone looks at the payment record.\n\nverify the recipient and live payment status before sending."
   },
   "sections": [
     {
-      "h": "decide which record you trust",
-      "md": "gmail can fetch invoice threads and their attachments. stripe exposes a list-invoices action. neither means every payment your business receives is visible to the bot.[^4][^5] name the source that holds the invoices you want reviewed, and tell it where payments outside that source are recorded.\n\nif you only connect gmail, treat the result as a correspondence review. a client may have paid by bank transfer without sending a reply. the [gmail guide](/integrations/gmail) explains mail access, and the [stripe guide](/integrations/stripe) covers that connection."
+      "h": "choose the record you trust",
+      "md": "**put the invoice and the latest customer reply together.** gmail can fetch invoice threads and attachments; stripe can list invoices.[^4][^5] name the invoice source and say where other payments live.\n\nwith gmail alone, this is a correspondence review. a client can pay by bank transfer without replying, and neither source shows every payment your business receives.\n\nread the [gmail](/integrations/gmail) and [stripe](/integrations/stripe) guides to choose where the review starts."
     },
     {
-      "h": "draft in chat to keep the apps read-only",
-      "md": "a reminder written in chat does not need mail write access. read the wording beside its evidence, verify the recipient and check the current record before copying it into your email editor. save disputed items for a person who knows the account.\n\nchoose **Ask every time** for sending and do not grant a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. email sends and refunds then wait for **Allow**. some stripe payment steps do not ask. invoice edits are a different kind of change, so read-only access is the boundary here, rather than a promise that every edit will ask.[^3]"
+      "h": "keep drafts in chat and the apps read only",
+      "md": "**read the reminder beside the amount and evidence.** chat drafts let both apps stay read only. verify the recipient and live payment record before copying the words into email.\n\nread only also blocks invoice edits and money movement.[^3] emails, charges and refunds follow sending controls; some stripe payment steps use different controls. this routine needs none of those actions."
     },
     {
-      "h": "what this cannot reconcile",
-      "md": "missing records, partial payments and a changed due date can make a reminder wrong. ask the bot to name conflicting evidence instead of choosing whichever source looks newer. the routine does not settle disputes, calculate late fees or replace your accounting review.\n\nfor collecting expenses rather than chasing customers, use the [weekly receipts sweep](/routines/weekly-receipts-sweep). on a local computer, an invoice run also waits while dusk bot is closed or the machine sleeps; check **Automations** if a monday review is missing."
+      "h": "hold conflicts instead of guessing",
+      "md": "**catch the disputed total before it becomes an awkward email.** put conflicting evidence together: partial payments, changed due dates and missing records belong in the review. newer-looking does not always mean right.\n\nleave disputes, late fees and accounting decisions to someone who knows the account. use the [receipts sweep](/routines/weekly-receipts-sweep) for expenses.\n\nlocal runs need dusk open and the machine awake. if monday's review is missing, look at automations for its run history."
     }
   ],
   "safeguards": [
-    "give the bot read-only invoice and mail access; keep reminder drafts in chat",
-    "set sending to **Ask every time** so emails and refunds wait for **Allow**, and keep stripe read only: some stripe payment steps, like confirming a payment, don't ask.",
-    "recheck live payment status before sending a draft, especially after a client replies",
-    "hold disputed amounts, missing currencies and uncertain recipients for manual review",
-    "do not let a reminder routine change invoices, add late fees or create payment links"
+    "**keep both apps read only.** reminder wording stays in chat; saving a gmail draft would need write access.",
+    "**leave payment actions out.** sending controls hold emails, charges and refunds, but some stripe payment steps use different controls.",
+    "**look at live payment status before sending.** a client can pay or reply after the review.",
+    "**hold uncertainty.** disputed totals, missing currencies and unclear recipients need a person.",
+    "**no invoice changes.** keep late fees and payment links outside the reminder routine."
   ],
   "faq": [
     {
       "q": "can ai bookkeeping chase unpaid invoices for me?",
-      "a": "it can help collect evidence and draft the wording. this routine leaves the decision to chase with you because unpaid status and customer context can be incomplete."
+      "a": "**it can collect evidence and draft the words.** you decide whether to chase. unpaid status and customer context can be incomplete."
     },
     {
       "q": "do i need stripe if my invoices are in email?",
-      "a": "no. use gmail alone for a review of invoice conversations. it cannot confirm that a payment outside the available evidence has or has not arrived."
+      "a": "**gmail alone can review the correspondence.** use the live payment record to confirm whether money arrived outside that mail."
     },
     {
       "q": "can it take payment or refund a customer?",
-      "a": "no. this routine keeps stripe read only, so the bot can't move money at all. that matters: refunds and charges wait for **Allow** under **Ask every time**, but some stripe payment steps don't ask, and a bot on **Full access** with no sending rule may send up to 25 a day without asking.[^3][^5]"
+      "a": "**read only blocks money movement.** emails, charges and refunds use sending controls, but some stripe payment steps differ. keep this routine limited to reading and chat drafts.[^3][^5]"
     }
   ],
   "sources": [
@@ -106,5 +106,53 @@
       "url": "https://docs.composio.dev/toolkits/stripe",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect the invoice source with read only access",
+      "ask for one overdue candidate, its evidence and latest payment information",
+      "open the live payment record yourself",
+      "request reminder text in chat only"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "chasing because the client never replied",
+      "fix": "look at the payment record. a quiet email thread says nothing about money received."
+    },
+    {
+      "mistake": "saving drafts by granting broad mail access",
+      "fix": "keep reminder text in chat so mail can stay read only."
+    },
+    {
+      "mistake": "sending yesterday's reminder without opening the payment record",
+      "fix": "look for new payments, disputes and changed dates first."
+    }
+  ],
+  "tip": {
+    "text": "the most expensive reminder is the one you send to someone who paid this morning."
+  },
+  "checklist": {
+    "items": [
+      "the invoice reference, amount and currency match",
+      "the due date is still current",
+      "no payment or dispute has arrived since the review",
+      "the recipient belongs to this account"
+    ]
+  },
+  "worked": {
+    "intro": "an invented example, with made-up names.",
+    "before": "hannah's £480 invoice ac-104 was due 5 november.\nno reply appears in the original invoice thread.\nopen the payment record before deciding to chase.",
+    "after": "review for briarwake\n- stripe shows unpaid\n- no later payment reply found in the returned mail\n- reminder wording stays in chat\n- verify live status and recipient before sending"
+  },
+  "saves": {
+    "estimate": "roughly 10 minutes per weekly review under these assumptions, not a measured result",
+    "formula": "10 invoices x 3 minutes checking and drafting by hand = 30 minutes\n10 invoices x 2 minutes reviewing evidence and drafts = 20 minutes\n30 - 20 = 10 minutes saved",
+    "assumptions": [
+      "your manual check and wording take three minutes per invoice",
+      "you still spend two minutes checking every bot result",
+      "disputes, setup and missing payment records take extra time"
+    ]
+  },
+  "voice": 2
 }

@@ -10,7 +10,7 @@
     "ai agent web scraping",
     "ai web scraper no code"
   ],
-  "answer": "for a small collection of pages, give a bot the urls and the exact fields you want back. it reads them in its own browser and returns a table you can check against the originals. ask it to leave missing values blank and record pages it could not open. this is a supervised reading task, with no promise of complete coverage, bulk crawling or access through a blocked page.",
+  "answer": "**get the workshop dates and prices into a table without an afternoon of copying.** give a bot a short list of pages and the fields you need. it reads them in its own browser and returns a table with sources. keep missing values and failed pages visible. good for 5 to 50 pages you'd otherwise copy by hand. wrong tool for crawling a whole site.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -38,44 +38,44 @@
   },
   "og_line": "chosen fields, with the source beside them.",
   "routine": {
-    "intro": "send a short list of permitted public urls first. describe each field as you would to someone collecting it by hand. the example task below collects workshop listings, not personal contact details.",
-    "message": "every wednesday at 11, read the public workshop pages in the url list i gave you, using your own browser. do not follow links beyond that list.\n\nreturn one row per listing with: workshop title, organiser, displayed date, displayed location, displayed price and currency, source url, and date read. copy dates and prices as shown; do not calculate missing ones. use “not listed” for a missing field. if a page contains several sessions, keep them in separate rows.\n\nreport pages that failed separately. stop if a page blocks access, asks for a login or says automated access is not permitted. do not submit forms, accept terms, collect attendee details or bypass restrictions. keep the result in this chat.",
-    "when": "wednesdays at 11:00 for the same approved list of pages",
-    "needs": "a bot with its own browser, permitted urls and a field list; no connector needed",
-    "output": "example extraction for sam’s fictional workshop directory\n\nworkshop | organiser | date shown | location shown | price shown | source\nrepair basics | priya’s studio | 18 november | north room | £25 | supplied page “repair basics”\nwood finishing | jo’s workshop | not listed | east hall | not listed | supplied page “wood finishing”\n\nread: 12 november 2026\nfailed: “weekend sessions” showed an access restriction. no rows collected from it.\ncheck: the repair basics page also mentions materials; no separate materials price is listed."
+    "intro": "**define a row before asking for a table.** put a short list of permitted public links in a project file. name each field as you would to someone collecting it by hand.",
+    "message": "every wednesday at 11, read the public workshop links in the page-list file in our project folder. use your own browser and stay within that list.\n\nreturn one row per session: title, organiser, displayed date, displayed location, displayed price and currency, source link and reading date. copy dates and prices as shown. use 'not listed' for missing fields. don't calculate them. separate sessions on the same page into separate rows.\n\nlist failed pages separately. stop at access blocks, sign-ins or notices against automated access. never submit forms, accept terms, collect attendee details or bypass restrictions. keep the result here.",
+    "when": "wednesdays at 11:00, reading the approved page-list file",
+    "needs": "a bot with its own browser, a permitted page-list file and the fields to collect; no connector",
+    "output": "fictional workshop listings\nworkshop | organiser | date shown | location | price | source\nrepair basics | nelora studio | 18 november | north room | £25 | repair basics page\nwood finishing | east hall workshop | not listed | east hall | not listed | wood finishing page\nread: 12 november 2026\nfailed: weekend sessions blocked access. no rows from it.\nrepair basics mentions materials but lists no separate materials price."
   },
   "sections": [
     {
-      "h": "define the rows before the run",
-      "md": "a page can contain a headline price, an optional extra and an old offer. tell the bot which belongs in the table. keep the displayed wording when it matters: “from £25” should not become a guaranteed £25 booking.\n\nstart with pages whose structure you can inspect. compare the first table against those pages yourself before adding more urls. a blank field is useful evidence that the page did not provide an answer. filling it from a guess would make the table harder to trust."
+      "h": "decide what belongs in each cell",
+      "md": "**keep 'from £25' intact so the next person sees the real offer.** pages can mix headline prices, extras and old offers. tell the bot which price to collect and keep wording that changes its meaning.\n\nstart with pages you can inspect. compare the first table against them before expanding the list. leave missing values blank and labelled, ready for someone to follow up."
     },
     {
-      "h": "use the browser without promising a crawler",
-      "md": "a bot can have a browser separate from your own. **Screen** lets you watch it work, and **Take control** lets you step in.[^1] that gives you a way to inspect a difficult page, not a guarantee that every page can be read.\n\nit reads pages one by one like a person would; it isn't a bulk crawler. if your real question is what the pages mean, use [market research](/use-cases/market-research). if you only want to hear about changed pages, use [competitor monitoring](/use-cases/competitor-monitoring)."
+      "h": "it reads like you would, one page at a time",
+      "md": "**this reads pages one by one.** a bot can have its own browser. **screen** lets you watch, and **take control** lets you step in.[^1] use that to inspect a difficult page. some sites will still block access.\n\nfor what the pages mean, use [market research](/use-cases/market-research). for changes since a previous visit, use [competitor monitoring](/use-cases/competitor-monitoring)."
     },
     {
-      "h": "check permission before collecting",
-      "md": "respect each site’s terms and robots rules, and the personal data laws that apply to your work. review those before approving a page list; do not treat a publicly visible page as permission for every use. this is a practical boundary, not legal advice.\n\nkeep collection to fields needed for the task. for contact lists, the [lead research page](/use-cases/lead-research) explains a narrower starting point. a browser task can also fail when content needs a sign-in or never finishes loading. ask for that failure in the result rather than an empty table that looks complete."
+      "h": "choose the pages you may read this way",
+      "md": "**keep the job to fields you're allowed to collect.** read site terms, robots rules and the personal data rules that apply before approving the list. collect only what the job needs.\n\nfor company contact research, start with the narrower [lead research workflow](/use-cases/lead-research). decide on outreach separately.\n\nwhen a page needs sign-in or won't finish loading, have the bot name it beside the table. then you know which sessions still need a look."
     }
   ],
   "safeguards": [
-    "approve the page list after checking site terms and robots rules",
-    "exclude personal details unless you have established a lawful reason to collect them",
-    "keep the source url and reading date with every collected row",
-    "treat missing fields and blocked pages as gaps, never as instructions to bypass access"
+    "**approve the page list first.** read site terms and robots rules before collection.",
+    "**keep personal details out.** collect them only when you have a lawful reason.",
+    "**keep the evidence beside the row.** include source links and reading dates.",
+    "**show gaps honestly.** missing fields and blocked pages aren't permission to bypass access."
   ],
   "faq": [
     {
       "q": "can i scrape websites with ai without writing code?",
-      "a": "you can describe a small browser reading task in chat and specify the table you want back. it works best on a short list of pages; check the first table against the originals."
+      "a": "**yes. describe the fields and table in chat.** begin with a short page list and compare the result with the originals."
     },
     {
       "q": "what if the website blocks the bot?",
-      "a": "the routine tells it to stop and list the blocked page. review whether another permitted source meets the need. do not ask it to evade the restriction."
+      "a": "**this routine stops and names the page.** look for another permitted source. don't ask it to evade the block."
     },
     {
       "q": "can i use the table for lead generation?",
-      "a": "start by checking the permitted use and keeping only relevant company information. collection and outreach raise separate questions; getting a row into a table does not settle either one."
+      "a": "**company facts, yes. people's personal details, only with a lawful reason.** read the site's terms first."
     }
   ],
   "sources": [
@@ -91,5 +91,54 @@
       "label": "dusk bot docs: files and apps",
       "url": "/docs/files-and-apps"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose two public pages you may read this way",
+      "name four fields and what counts as missing",
+      "ask for a table with source links and reading dates",
+      "compare a row with each original page"
+    ]
+  },
+  "worked": {
+    "intro": "a fictional workshop listing with an honest blank.",
+    "before": "nelora studio: repair basics, 18 november, north room, £25.\nmaterials mentioned; no separate materials price.\nread 12 november 2026.",
+    "after": "repair basics | 18 november | north room | £25\nmaterials price: not listed.\nsource: repair basics page. no guessed total."
+  },
+  "mistakes": [
+    {
+      "mistake": "turning 'from £25' into '£25'",
+      "fix": "keep the qualifier. it changes what the price means."
+    },
+    {
+      "mistake": "filling a missing date from another session",
+      "fix": "leave 'not listed'. put separate sessions on separate rows."
+    },
+    {
+      "mistake": "treating failed pages as empty listings",
+      "fix": "list failures separately so the table's limits stay visible."
+    }
+  ],
+  "checklist": {
+    "h": "before you use the table",
+    "items": [
+      "every row has a source and reading date",
+      "price qualifiers and currencies survived",
+      "missing values stay visibly missing",
+      "failed pages appear separately"
+    ]
+  },
+  "saves": {
+    "estimate": "roughly 15 minutes per weekly run under these assumptions",
+    "formula": "6 pages x 4 minutes collecting by hand = 24 minutes\n24 minutes - 9 minutes checking the returned table\n= 15 minutes per run",
+    "assumptions": [
+      "six permitted pages each take about four minutes by hand",
+      "you spend nine minutes checking the whole returned table",
+      "this is a rough estimate, not a measured result; setup and blocked pages take extra time"
+    ]
+  },
+  "tip": {
+    "text": "keep the source beside the price; you'll need it when a number looks wrong."
+  },
+  "voice": 2
 }

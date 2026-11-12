@@ -1,16 +1,16 @@
 {
   "path": "/use-cases/newsletter",
   "type": "use-case",
-  "title": "AI newsletter agent: draft a weekly issue from sources",
+  "title": "AI newsletter agent: a weekly draft you still want to edit",
   "nav": "newsletter",
   "h1": "a weekly newsletter draft from the sources you choose",
-  "description": "Copy a routine that turns a source list into a weekly newsletter draft, keeps links attached and leaves sending behind Allow.",
+  "description": "Draft a weekly newsletter from your chosen sources and past issues. Keep links, flag thin material and leave the final editorial and sending decisions to you.",
   "keyword": "ai agent newsletter",
   "keywords": [
     "ai newsletter generator",
     "ai agent content repurposing"
   ],
-  "answer": "a newsletter bot needs an editorial brief before it needs a schedule: who reads the issue, which sources it may use and what deserves a place. ask it to turn that list into a weekly draft in your chat, with links kept beside each item. you check the selection and wording. keep sending on ask every time so an issue never leaves without allow.",
+  "answer": "**get thursday's first draft without losing thursday afternoon.** give the bot your audience brief, source links and past issues. it picks fresh material, drafts the issue and keeps links beside the claims.\n\nyou get something to edit in dusk chat. the routine stops there; you choose what deserves a place in readers' inboxes.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -38,44 +38,44 @@
   },
   "og_line": "your sources, a draft, your final say.",
   "routine": {
-    "intro": "first send your bot the actual source urls and describe the reader. the routine below uses that list, so there is no need to invent a publication or connect a mailing platform.",
-    "message": "every thursday at 3pm, draft next week’s issue in this chat. write for independent workshop owners using the sources list i gave you. include only material published since the last issue, or mark an older item as background.\n\nchoose one main item and two shorter notes. for each, explain what happened, why a workshop owner might care and where the reader can check it. keep source links with the item. write an original summary; do not copy articles.\n\ninclude a subject line, an opening and a closing question. finish with editorial notes: missing dates, unavailable sources and claims i should check. if nothing merits an issue, say so. do not invent a customer quote, a result or a personal experience. never send or publish.",
-    "when": "thursday at 15:00, leaving time for an editorial review before next week",
-    "needs": "your source urls, audience notes and a bot that can open web pages; no newsletter connector required",
-    "output": "draft issue for sam’s workshop letter\n\nsubject: a clearer handover note\n\nopening: this week, a small idea for the moment a repair changes hands.\nmain item: priya’s supplied workshop notes describe a handover card with room for the next person’s question. it may be worth discussing at your next team meeting. source: supplied priya notes, “handover card”.\nshort notes: held back; no other dated source met the brief.\nclosing question: what information is usually missing when a job reaches you?\neditorial note: ask priya’s permission before quoting her. nothing sent."
+    "intro": "**put the ingredients where the bot can find them next week.** keep your audience brief, source links and past issues in a newsletter folder. it reads those files each run. you need no mailing-platform connection.",
+    "message": "every thursday at 3pm, read the audience brief and source list in my newsletter folder. read the past-issues folder to see what we covered. open the listed sources and draft next week's issue here for independent workshop owners.\n\nuse material published since the latest issue. mark older material as background. choose one main item and two short notes only if the sources justify them.\n\nfor each item, say what happened, why workshop owners might care and where to read the source. keep the source link beside it. write original summaries, not copied articles.\n\ninclude a subject, opening and closing question. finish with editorial notes: missing dates, unavailable sources and claims needing your review. skip the issue if nothing merits it. never invent quotes, results or personal experiences. never send or publish.",
+    "when": "thursdays at 15:00, with time to review before next week",
+    "needs": "a readable newsletter folder with audience brief, source links and past issues; a bot able to open web pages",
+    "output": "draft for the fenrith field letter\n\nsubject: what the next person needs to know\nopening: a handover is easier when the next question has somewhere to go.\nmain item: sonia's workshop notes describe a handover card with space for that question. source: handover-card notes in the newsletter folder.\nshort notes: held back; no other dated source fits.\nclosing: what information is usually missing when a job reaches you?\neditorial note: ask sonia before quoting the private notes."
   },
   "sections": [
     {
-      "h": "make the source list an editorial boundary",
-      "md": "give each url a reason to be there: original reporting, a product update or a reference you trust. say which topics to leave out. the bot should not fill an empty issue with loosely related news just to meet a word count.\n\nkeep a separate list of links already covered and ask the bot to compare against it. an updated page can look fresh while repeating an old announcement. if you need new sources, run a focused [market research brief](/use-cases/market-research) before changing the editorial list."
+      "h": "the source list decides what belongs",
+      "md": "**a thin week should produce a thin draft.** give each source a reason to be there: original reporting, product updates or a trusted reference. say which topics to exclude. don't fill space with nearby news.\n\nkeep past issues in the folder too. an updated article can repeat an old announcement. the bot should compare against what you already covered.\n\nneed new sources? run a focused [market research brief](/use-cases/market-research) before expanding the list."
     },
     {
-      "h": "draft here, send after review",
-      "md": "the draft comes back in chat; you paste it into your newsletter tool. copy the edited issue into your usual editor and check the subject, links and recipient list there.\n\nif you later give a bot a supported way to send, choose **Ask every time** for sending. the **Allow** card is the send decision. do not set a daily amount it may send on its own if you want every issue reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^3] a [social posting routine](/use-cases/social-media-posting) can turn the same approved notes into a different format."
+      "h": "draft here, publish from your editor",
+      "md": "**arrive in your editor with the writing already started.** copy the edited draft into your newsletter tool. open the links and read the subject and recipient list there. publishing stays with you.[^3]\n\nwant another format from approved notes? try [social posting](/use-cases/social-media-posting). read that version in its own context before sharing."
     },
     {
-      "h": "leave room for an issue to be skipped",
-      "md": "a source may be inaccessible, undated or thin. tell the bot to return an editorial question instead of padding the issue. summaries can still miss a qualification, so read the original before making its claim your own.\n\nfor a letter based on product changes, [competitor monitoring](/use-cases/competitor-monitoring) offers a way to keep a dated change list. on your own computer, the newsletter routine needs dusk bot running and the machine awake. use [dusk cloud](/docs/dusk-cloud) if the draft must run while that computer is off."
+      "h": "skipping an issue is a valid result",
+      "md": "**send the good issue, skip the filler.** sources can be inaccessible, undated or thin. ask for an editorial question when the material won't carry an issue. read the original before putting your name on its claim.\n\nfor letters about product changes, [competitor monitoring](/use-cases/competitor-monitoring) can help keep a dated change list.\n\nlocal drafting needs an awake machine and dusk running. [dusk cloud](/docs/dusk-cloud) keeps the job available while your computer is off."
     }
   ],
   "safeguards": [
-    "set sending to **Ask every time**; publishing an issue requires your **Allow**",
-    "keep quotations brief and check permission before including someone’s private notes",
-    "check every destination link in the editor before sending to readers",
-    "remove unsupported claims even when they would make a stronger subject line"
+    "**keep the issue in draft.** this routine ends in dusk chat; publish from your editor.",
+    "**get permission for private notes.** ask before quoting, and keep quotations brief.",
+    "**open the links in your editor.** make sure each leads to the source you used.",
+    "**cut unsupported claims.** a stronger subject line is no reason to invent a result."
   ],
   "faq": [
     {
-      "q": "what can i actually use an ai newsletter agent for?",
-      "a": "selection and a first draft from a source list you maintain. it is useful when you have material but need help deciding what belongs together. you still own the editorial judgment."
+      "q": "what is an ai newsletter agent useful for?",
+      "a": "**selection and a first draft from sources you maintain.** use it when the material exists but needs a shape. editorial judgment stays with you."
     },
     {
       "q": "can it write my personal opening?",
-      "a": "give it the experience you want to describe in your own notes. without that, ask for a neutral opening. it should not invent a story about your week."
+      "a": "**give it your real experience in a note.** otherwise ask for a neutral opening. it should not invent what happened to you."
     },
     {
       "q": "will the weekly issue send while i sleep?",
-      "a": "this routine only drafts. keeping sending on **Ask every time**, with no daily sending allowance, means a supported send waits for your **Allow**. scheduled drafting on your computer also pauses while it sleeps."
+      "a": "**this routine only drafts.** you publish the finished issue yourself. local drafting stops while the computer sleeps."
     }
   ],
   "sources": [
@@ -91,5 +91,46 @@
       "label": "dusk bot docs: a bot’s computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "make a folder with an audience brief and source links",
+      "add your latest issue so it can avoid repeats",
+      "ask for one main item with its source link",
+      "read the source before setting the weekly schedule"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "forcing three items from one useful source",
+      "fix": "let the bot hold the short notes back or skip an issue."
+    },
+    {
+      "mistake": "asking it to sound personal without giving an experience",
+      "fix": "write the real note first, or choose a neutral opening."
+    },
+    {
+      "mistake": "mistaking an updated article for new news",
+      "fix": "compare against past issues, including the original announcement date."
+    }
+  ],
+  "worked": {
+    "intro": "invented editorial example with a made-up editor",
+    "before": "francesca has one useful source and a brief asking for three items. two dated sources could not be opened.",
+    "after": "one main item drafted. short notes held back. editorial note names both unavailable sources.\n\nfrancesca can edit the useful item instead of cutting two invented ones."
+  },
+  "checklist": {
+    "h": "before the issue leaves your editor",
+    "items": [
+      "every claim has a source you can open",
+      "old material is clearly marked as background",
+      "personal experience comes from your own notes",
+      "private quotations have permission",
+      "the subject and recipient list match this issue"
+    ]
+  },
+  "tip": {
+    "text": "a short issue worth opening beats a long one you padded to hit a quota."
+  },
+  "voice": 2
 }

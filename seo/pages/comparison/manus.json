@@ -4,7 +4,7 @@
   "nav": "manus",
   "h1": "manus vs dusk bot: a task service or bots you keep",
   "description": "Compare Manus credits, cloud tasks and automation limits with Dusk Bot roles and separate AI billing, without guessing a cost per task.",
-  "answer": "manus is a general-purpose agent that works in cloud computers and produces things such as research, websites and slides.[^1] dusk bot is an app for keeping bots with lasting jobs, chats and memory. manus packages models and tasks into credit-based plans; dusk separates the app or hosted computer from your ai provider's bill.[^2][^5] choose by the work you want to hand over and how you prefer to budget, rather than an unsupported cost-per-task claim.",
+  "answer": "**want a finished deck or a colleague for the next brief too?** manus produces research, websites and slides in its cloud computers.[^1] dusk bots keep lasting jobs, chats and memory. manus bundles models into credit plans; dusk separates hosting from your ai bill.[^2][^5] choose the handoff you want, then try the same small brief before paying for more.",
   "tags": [
     "manus",
     "comparison",
@@ -33,17 +33,17 @@
   "verdict": {
     "them_title": "manus",
     "them": [
-      "you want a cloud task service that produces research, slides or websites",
-      "you want the agent's models packaged into a credit-based plan rather than arranging separate ai billing"
+      "you want a hosted task to produce research, slides or a website",
+      "you want models inside a credit plan instead of a separate ai bill"
     ],
     "dusk": [
-      "you want a small set of bots that keep their roles and memory between jobs",
-      "you want to choose an ai per bot and decide separately whether to pay for hosting"
+      "you want bots that keep their jobs and memory between tasks",
+      "you want to choose an ai per bot and decide on hosting separately"
     ]
   },
   "compare": {
     "h": "compare the budget and the handoff",
-    "intro": "plan figures are monthly usd prices as of 12 november 2026. credits and model usage are different units. these rows do not convert one into the other.",
+    "intro": "**$20 buys different things here.** these are monthly usd figures as of 12 november 2026. manus credits cover work inside its service; dusk cloud buys the machine, with ai billed separately.",
     "cols": [
       "Manus",
       "Dusk Bot"
@@ -52,8 +52,8 @@
       {
         "label": "main arrangement",
         "cells": [
-          "general-purpose cloud agent producing research and other deliverables",
-          "named bots with jobs, independent chats and memory"
+          "cloud agent for research and other finished work",
+          "named bots with separate jobs, chats and memory"
         ],
         "src": [
           1,
@@ -63,8 +63,8 @@
       {
         "label": "starting a conversation",
         "cells": [
-          "web use needs no installation; telegram can be linked",
-          "desktop app; phone browser pairs with the computer or cloud"
+          "use the web without an install, or link telegram",
+          "desktop app with a phone browser paired to your computer or cloud"
         ],
         "src": [
           3,
@@ -75,8 +75,8 @@
       {
         "label": "free option",
         "cells": [
-          "300 daily credits, manus 2.0 lite, 3 concurrent tasks and 2 automations",
-          "personal use on your own computer, with every feature; ai usage is separate"
+          "300 credits a day; manus 2.0 lite; 3 tasks at once; 2 automations",
+          "every app feature for personal use on your computer; ai billed separately"
         ],
         "src": [
           2,
@@ -86,8 +86,8 @@
       {
         "label": "monthly paid starting point",
         "cells": [
-          "pro: $20 for 4,000 monthly credits, 20 concurrent tasks and 20 automations",
-          "cloud plus: $20 for hosting; your ai provider bills model usage"
+          "pro $20/month: 4,000 monthly credits, 20 tasks at once, 20 automations",
+          "cloud plus $20/month for the computer; ai provider bills the thinking"
         ],
         "src": [
           2,
@@ -98,8 +98,8 @@
       {
         "label": "ai arrangement",
         "cells": [
-          "manus models in the plan; pro lists manus flex for your own keys",
-          "sign in to the ai you already use, add an api key or choose a local model"
+          "models in the plan; pro lists manus flex for your own keys",
+          "sign in to your ai, add an api key or run a local model"
         ],
         "src": [
           2,
@@ -109,8 +109,8 @@
       {
         "label": "repeated work",
         "cells": [
-          "plans include an automation allowance; recurring chat summaries documented",
-          "routines have schedules, pause and run history; on your own computer it must be awake, dusk cloud runs them on time"
+          "automation allowances in plans; telegram post describes recurring summaries",
+          "scheduled routines with pause and run history; local host must stay awake, cloud runs on time"
         ],
         "src": [
           2,
@@ -120,33 +120,33 @@
       }
     ]
   },
-  "method": "we build dusk bot. we read manus's own product and pricing pages on 12 november 2026, compared them with dusk bot's docs, and did not run identical tasks through both. manus credit consumption for a matching job was not measured, so there is no claim that either product is cheaper per report. the table also does not rank their research accuracy or finished documents.",
+  "method": "**we make dusk bot. we haven't run the same brief through both.** this compares manus's product and pricing as of 12 november 2026 with dusk docs.\n\nwe cannot price an identical report in manus credits or name a winner for research accuracy and finished files.",
   "sections": [
     {
-      "h": "ask whether you are buying a task or keeping a role",
-      "md": "manus describes an agent that can produce research, websites, slides, images and video.[^1] if you want a particular deliverable from a hosted service, that is a direct place to start. its telegram integration also describes recurring tasks delivered back into chat.[^3]\n\nin dusk bot you keep a bot with a job and memory you can edit. changing the bot's ai keeps its chats, files and memory.[^4] that can suit an ongoing reviewer who follows how your plans develop. that's a different way of working, not a promise of a better report. the [market research use case](/use-cases/market-research) helps narrow the brief before choosing a service.\n\nmanus said on 1 september 2026 that it has resumed independent operations.[^12]"
+      "h": "a finished task or a lasting role",
+      "md": "**start with what you want to hand over.** manus offers research, websites, slides, images and video.[^1] its telegram post also describes recurring summaries.[^3]\n\ndusk keeps a bot's job and editable memory between tasks. change its ai and the chats, files and memory stay.[^4] try an ongoing reviewer if that suits your work.\n\nuse the [research brief](/use-cases/market-research) to narrow the task. manus said on 1 september 2026 that it resumed independent operations.[^12]"
     },
     {
-      "h": "the price calculation has an unknown",
-      "md": "as of 12 november 2026, manus pro lists $20 a month and 4,000 monthly credits. max lists $200 and 40,000 monthly credits, with pay-as-you-go after credits.[^2] the free tier's 300 daily credits are a daily allowance, not the same kind of monthly pool.\n\nwe cannot turn those figures into a reliable number of research reports. nothing on manus's pricing page tells you how many credits your task will use. write down the work you expect, inspect actual usage on a trial and then compare the plan.\n\nfor dusk bot, the bill depends on where the bots live and which ai you choose. your own computer is free for personal use; cloud plus is $20 a month and pro is $50. ai usage stays with your provider.[^5][^8] work use needs a work license, which cloud pro includes for one person.[^8][^11] [ai agent costs](/guides/how-much-does-an-ai-agent-cost) covers those separate budget lines."
+      "h": "credits leave one number unknown",
+      "md": "**run your brief once and watch the credits it eats.** as of 12 november 2026, manus lists:[^2]\n\n- free: 300 daily credits, separate from the monthly pools\n- pro: $20/month and 4,000 monthly credits\n- max: $200/month and 40,000 monthly credits, then pay as you go\n\nthat gives you the allowance, but only a trial tells you what your report consumes.\n\ndusk's bill has two parts: the machine and ai. personal local use is free; cloud plus is $20/month and pro $50/month. your provider bills ai.[^5][^8] work needs a license; cloud pro includes one for one person.[^8][^11] put every line in the [cost guide](/guides/how-much-does-an-ai-agent-cost)."
     },
     {
-      "h": "test with a brief that exposes missing evidence",
-      "md": "give the service a small set of documents and ask: \"compare the proposals against these requirements. show which claims are supported by the files and mark missing evidence. do not treat a missing answer as a yes.\" check a few claims against the originals before accepting the conclusion.\n\nwith a dusk bot, keep that first review within attached files. you can inspect and edit the bot's saved notes under **Memory** and turn off **Let this bot use memory** if you do not want it drawing on stored notes.[^10] memory is not a source citation. if you want other ways to package the job, [manus alternatives](/alternatives/manus) is the broader comparison."
+      "h": "make the missing answers visible",
+      "md": "**get the unanswered questions before they reach the client.** give both products a few proposals and your requirements. ask for file evidence beside each claim, with missing answers left open. read the claims against the files.\n\nfor dusk, start with attachments. inspect notes under memory, or turn off let this bot use memory.[^10] ask for the source file even when the bot remembers the context. see [manus alternatives](/alternatives/manus) for other ways to hand over the work."
     }
   ],
   "faq": [
     {
       "q": "how many free credits does manus ai give?",
-      "a": "its pricing page lists 300 credits a day on free as of 12 november 2026, with manus 2.0 lite, 3 concurrent tasks and 2 automations. that allowance does not establish how many of your tasks will finish.[^2]"
+      "a": "**300 a day, as of 12 november 2026.** free includes manus 2.0 lite, 3 tasks at once and 2 automations. that does not tell you how many of your tasks will finish.[^2]"
     },
     {
       "q": "what should i compare before switching from manus?",
-      "a": "compare the task you need, the allowed usage and where the work lives. if recurring research is the reason for switching, test the same narrow brief and inspect sources as well as usage. we haven't run the same task through both, so we can't say which is better or cheaper."
+      "a": "**test the work you actually repeat.** compare the same narrow brief, sources, usage and where files live. we have not run that comparison, so we cannot name a quality or cost winner."
     },
     {
       "q": "can i message manus from telegram?",
-      "a": "yes. the telegram launch post documents linking the account and using manus agents there, including recurring summaries.[^3] dusk bot uses its own desktop and paired phone interface; its store phone apps are still on the way.[^7]"
+      "a": "**yes.** its launch post describes linking telegram and getting recurring summaries there.[^3] dusk has its own desktop and paired phone interface. store phone apps are still on the way.[^7]"
     }
   ],
   "sources": [
@@ -215,5 +215,51 @@
     "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
     "at": "2026-11-12"
   },
-  "connectors": []
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "choose two short proposals and a requirement list",
+      "ask for a comparison with evidence beside each claim",
+      "trace two claims to the files and note actual usage before expanding the task"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "turning 4,000 credits into an invented report count",
+      "fix": "run your own small brief and inspect what it uses."
+    },
+    {
+      "mistake": "accepting a missing answer as a yes",
+      "fix": "require a separate list of requirements the files do not answer."
+    }
+  ],
+  "tip": {
+    "text": "bring the same files and questions to each trial. a different brief cannot settle the comparison."
+  },
+  "decide": {
+    "h": "pick the handoff that fits",
+    "cols": [
+      "you want",
+      "try first"
+    ],
+    "rows": [
+      [
+        "a cloud service for one finished task",
+        "manus"
+      ],
+      [
+        "models in a credit-based allowance",
+        "manus"
+      ],
+      [
+        "a bot that keeps its job and editable memory",
+        "dusk bot"
+      ],
+      [
+        "to choose the ai and host separately",
+        "dusk bot"
+      ]
+    ]
+  },
+  "voice": 2
 }

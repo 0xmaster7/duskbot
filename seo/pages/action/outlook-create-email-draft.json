@@ -11,7 +11,7 @@
     "chatgpt create outlook email draft",
     "claude write outlook email draft"
   ],
-  "answer": "a bot can save a new outlook email with a subject, body, recipients and optional attachments for you to finish later. this action starts a standalone conversation; it does not create a reply inside an existing thread. saving it is a write that needs read and write access, but it does not send the email. ask for a preview if even saving the draft should wait for you.",
+  "answer": "**get the new email written before choosing who gets it.** the bot can save an outlook draft with a subject, body and optional files. recipients can stay blank. it starts a new conversation rather than replying in an old thread. saving needs read and write access, but this action does not send the email.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,37 @@
     "toolkit": "outlook",
     "slug": "OUTLOOK_CREATE_DRAFT"
   },
-  "what": "give the bot the purpose of the email and the information it can safely use. subject and body are required; recipients can be left unset while you decide who should receive it. the action can add to, cc and bcc addresses and files.\n\nthis is for a fresh email, such as introducing a project to a new contact. to answer an email in its own thread, a different action, create draft reply, is used. dusk bot counts that one as a send, so it follows your sending setting. do not use a new standalone draft when keeping the original conversation is important.",
+  "what": "**get the introduction written while you decide who needs it.** give the bot the purpose and facts it can use. subject and body are required. to, cc, bcc and attachments are optional; addresses can stay empty.\n\nanswering an existing conversation? use create draft reply instead. that keeps the thread, but dusk counts that separate action as a send, so it follows your sending setting.",
   "uses": [
-    "prepare a new introduction from your notes while leaving the recipient for you to choose",
-    "save an event invitation email with the venue brief attached for your own review",
-    "turn a short project outline into an unsent announcement addressed to an approved list"
+    "prepare an introduction from your brief with the recipient left for you",
+    "save an event invitation with the venue brief attached",
+    "turn a project outline into an unsent announcement for an approved list"
   ],
   "routine": {
-    "message": "each thursday at 09:50, use the outreach brief i added here this week to propose a new outlook introduction for hazelspoke interiors. show the subject and body here, then wait for my agreement before saving a standalone draft with the recipients left blank. attach only the brochure i explicitly provided and tell me here when the draft is saved. never send it or create a reply to an existing email.",
+    "message": "each thursday at 09:50, read new outreach briefs added this week to the linked 'ready for introduction' drive folder for hazelspoke interiors. propose a fresh outlook email for each brief here. show its subject and body. wait for my agreement before saving a standalone draft with recipients blank. attach only the brochure named in that brief. skip briefs with an existing matching draft. never send or reply to old emails.",
     "when": "thursdays at 09:50",
-    "needs": "outlook connected with read and write access for create email draft",
-    "output": "new outlook draft proposal\nsubject: introducing hazelspoke interiors\nbody: a short introduction based on vera’s approved studio brief\nrecipient: left blank for you\nwaiting before saving; no email sent."
+    "needs": "google drive read only; outlook read and write to create drafts and find existing ones",
+    "output": "new draft proposal\nsubject: introducing hazelspoke interiors\nbody: a short introduction from vera’s studio brief\nrecipient: blank\nready for you to agree before it goes into drafts."
   },
   "steps": [
-    "connect outlook in **Connected apps** and enable **read and write** for new-draft creation.",
-    "tell the bot this is a new conversation, give the subject and brief, and decide whether to leave the recipient empty.",
-    "ask for one proposed draft in chat before saving. include an explicit checkpoint if you need that review on every run.",
-    "open the saved draft in outlook and inspect its addresses and files. **Pause** the outreach routine when the current campaign ends."
+    "connect outlook with **read and write** for draft creation",
+    "say this is a new conversation; give the brief and recipient choice",
+    "ask for the subject and body here before saving if you want a preview",
+    "open the saved draft, read the addresses and open its attachments; pause when outreach ends"
   ],
   "watch": [
-    "this action does not thread a reply to a received message. use the separate draft-reply action when that is the actual task.",
-    "html content needs the html flag. otherwise the markup can appear literally in the draft body.",
-    "read-only access cannot save a draft. you can limit the bot to this one action so it can't change anything else in outlook."
+    "**this does not reply inside an old thread.** use the separate draft-reply action for that.",
+    "**formatting needs the right option.** tell the bot to enable html for html content, or use plain text.",
+    "**read only cannot save drafts.** restrict allowed actions to this one if no other outlook changes are needed."
   ],
   "faq": [
     {
       "q": "can i save a draft without a recipient?",
-      "a": "yes. the subject and body are required, but recipient lists are optional. leaving them blank can be useful while the email is still being prepared."
+      "a": "**yes, leave the recipient blank.** only subject and body are required. add addresses when you know who should receive it."
     },
     {
       "q": "does this send the email or reply in the old thread?",
-      "a": "neither. it saves a new standalone draft. sending or creating a draft reply uses separate actions with their own handling."
+      "a": "**you get a fresh draft in outlook.** it starts a new conversation. sending it and drafting a reply in an old thread use separate actions."
     }
   ],
   "sources": [
@@ -89,5 +89,27 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect outlook and allow new drafts",
+      "give a two-line brief and a subject",
+      "ask for a draft with recipients blank",
+      "open the saved email and read it"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using a new draft to answer an old message",
+      "fix": "choose draft reply when keeping the conversation matters."
+    },
+    {
+      "mistake": "treating weekly outreach as a repeated introduction",
+      "fix": "read new briefs from a folder and skip ones already drafted."
+    }
+  ],
+  "tip": {
+    "text": "a blank recipient field buys you room to edit before anyone can get the email."
+  },
+  "voice": 2
 }

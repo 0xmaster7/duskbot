@@ -4,7 +4,7 @@
   "nav": "lindy",
   "h1": "lindy vs dusk bot: shared work, credits and control",
   "description": "Compare Lindy’s active-user pricing, pooled credits and scheduled routines with Dusk Bot’s separate bot roles, permissions and hosting costs.",
-  "answer": "lindy presents itself as a hosted ai employee for email, meetings, leads and reports, reached through tools such as slack and email.[^1] dusk bot gives you a small team of named bots, each with its own job, memory and ai. lindy's paid team plan pools credits and charges per active user; dusk separates ai costs from its app and hosting.[^2][^5] choose by how your team shares work and accounts for usage, not by the word employee.",
+  "answer": "**lindy puts the helper where your team already talks. dusk gives each job its own home.** lindy handles email, meetings, leads and reports through tools such as slack and email.[^1] its team plan pools credits and charges per active user. dusk separates bot jobs, memory and ai choices, with ai usage and hosting billed separately.[^2][^5]",
   "tags": [
     "lindy",
     "comparison",
@@ -29,24 +29,24 @@
     "label": "Lindy",
     "bubble": "who uses the credits?"
   },
-  "og_line": "check the team bill and the boundaries.",
+  "og_line": "price the weekly job your team needs done.",
   "verdict": {
     "them_title": "lindy",
     "them": [
-      "you want a hosted assistant for shared work in slack, email and text",
-      "you prefer a team credit pool and model selection within that service"
+      "**you want one hosted service for shared work.** reach it through slack, email and text.",
+      "**you prefer a team credit pool.** choose models within that service."
     ],
     "dusk": [
-      "you want separate bots with different ai choices and app permissions",
-      "you want to begin on your own computer and decide on hosting after trying a few bounded jobs"
+      "**you want distinct bot roles.** choose each bot’s ai and app permissions.",
+      "**you want to try jobs before choosing hosting.** start on your own computer and move later."
     ]
   },
   "compare": {
     "h": "how the assistant fits a working team",
-    "intro": "the prices here are the monthly usd prices as of 12 november 2026. a credit pool is not a guaranteed count of meetings, reports or other completed jobs.",
+    "intro": "**price the routine your team will actually run.** monthly usd prices are as of 12 november 2026. lindy pools credits; how far they go depends on the work.",
     "cols": [
-      "Lindy",
-      "Dusk Bot"
+      "lindy",
+      "dusk bot"
     ],
     "rows": [
       {
@@ -132,25 +132,25 @@
       }
     ]
   },
-  "method": "we make dusk bot. this page compares published features and billing structures from pages we read on 12 november 2026; we did not run identical tasks. lindy's integration total is its own claim, not a count of tested workflows. we have not measured credit consumption or verified the vendor's compliance claims, and do not use either as a quality score.",
+  "method": "**run the weekly report before betting the team’s workflow on it.** we make dusk bot. this compares the billing and features listed on 12 november 2026. we did not run matching tasks or measure credit use.\n\nlindy’s integration count comes from lindy. we did not test every workflow or verify compliance claims. use the table to choose your trial and look at the actual output before committing.",
   "sections": [
     {
-      "h": "an approval claim needs a clear boundary",
-      "md": "lindy says actions with outside impact need approval.[^1] ask which actions that covers in your team’s process. in dusk, keep a new bot on read-only access or write \"ask me before you change anything\" into the job; command and file approval levels are separate controls.[^9][^10] ask lindy what makes a user active before working out a team bill. see [lindy alternatives](/alternatives/lindy) for prices and credit details."
+      "h": "try the approval on a job with consequences",
+      "md": "**find out where the bot stops before it touches a customer’s work.** lindy says actions with outside impact need approval.[^1] ask it to show that pause on the job your team needs.\n\nin dusk, start with connected apps read only. for writes, say \"ask me before you change anything\". command and file approval levels are separate controls.[^9][^10]\n\nthen ask lindy what counts as an active user. [lindy alternatives](/alternatives/lindy) covers the credit pool and pricing in more detail."
     }
   ],
   "faq": [
     {
-      "q": "does lindy ai have a free plan?",
-      "a": "as of 12 november 2026, the listed free offer is $50 in credits lasting 7 days. team pricing starts at $29.99 monthly per active user. lindy's pricing page doesn't show a free allowance that renews.[^2]"
+      "q": "does lindy have a free plan?",
+      "a": "**you get a trial, not a renewing free allowance.** as of 12 november 2026, lindy lists $50 in credits for 7 days. team starts at $29.99 monthly per active user.[^2]"
     },
     {
-      "q": "can i text lindy instead of opening another app?",
-      "a": "the pricing page lists imessage as well as slack, email and phone calls.[^2] dusk bot has its own paired phone interface, with store apps still on the way.[^7]"
+      "q": "can i text lindy?",
+      "a": "**yes, its pricing lists imessage.** it also lists slack, email and phone calls.[^2] dusk uses a paired phone browser today; store apps are still on the way.[^7]"
     },
     {
-      "q": "is lindy ai better than openclaw for a business owner?",
-      "a": "lindy is a hosted service, while openclaw runs on your computer or server and has no first-party hosted tier.[^1][^3] that changes who looks after the machine. it does not establish which completes your business task more accurately. compare a bounded trial and the full usage bill before deciding."
+      "q": "is lindy better than openclaw for a business owner?",
+      "a": "**pick who you want handling the upkeep first.** lindy is hosted; openclaw runs on your computer or server with no first-party hosted tier.[^1][^3] then try the same small job and compare the complete usage bill."
     }
   ],
   "sources": [
@@ -214,5 +214,52 @@
     "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
     "at": "2026-11-12"
   },
-  "connectors": []
+  "connectors": [],
+  "quick": {
+    "steps": [
+      "choose one weekly team job",
+      "list who will use the assistant",
+      "read lindy’s active-user rule and the trial expiry",
+      "compare that job with a dusk bot draft you can inspect"
+    ]
+  },
+  "decide": {
+    "h": "choose around how your team works",
+    "cols": [
+      "if you prefer",
+      "look at"
+    ],
+    "rows": [
+      [
+        "shared work inside slack, email or text",
+        "lindy’s hosted service"
+      ],
+      [
+        "a credit pool charged per active user",
+        "lindy, once you know its active-user rule"
+      ],
+      [
+        "separate jobs, ai choices and permissions",
+        "dusk bots"
+      ],
+      [
+        "choosing your own bot location",
+        "dusk on your computer, server or cloud"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "pricing by headcount before asking what active means",
+      "fix": "get the billing definition first, then estimate the team bill."
+    },
+    {
+      "mistake": "assuming 3,000 credits means 3,000 jobs",
+      "fix": "run your real job during the trial and look at its credit use before budgeting."
+    }
+  ],
+  "tip": {
+    "text": "ask what happens to unused credits. lindy’s pool does not roll over."
+  },
+  "voice": 2
 }

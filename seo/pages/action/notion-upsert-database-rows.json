@@ -4,14 +4,14 @@
   "title": "Add or update Notion database rows with AI by a key",
   "nav": "add or update database rows",
   "h1": "match a notion record before adding another row",
-  "description": "Use a bot to add missing Notion records or update matches. Choose a stable matching key and check per-item results to avoid duplicate or wrong updates.",
+  "description": "Keep Notion bookings and records together as details change. A bot updates matching rows, adds missing ones and reports each result.",
   "keyword": "notion upsert database rows with ai",
   "keywords": [
     "chatgpt add or update notion rows",
     "claude sync notion database records",
     "ai notion upsert by unique key"
   ],
-  "answer": "a bot can process a list of records, look for a matching notion row for each one, and create or update it as needed. the matching rule matters more than the wording: multiple matches may update the first row or produce an error, and only the first query page is examined. use a stable reference and inspect each item's result before calling the whole batch complete.",
+  "answer": "**keep one booking in one row, even when its details change.** a bot updates matching notion rows and creates missing ones from your incoming list. you get a result for each item. match on a unique reference: only the first batch of matches counts, and multiple matches can update the first or fail. preview the changes before writing.",
   "tags": [
     "notion",
     "record matching",
@@ -23,42 +23,42 @@
     "/integrations/notion/update-page"
   ],
   "og_line": "match the reference before writing the record.",
-  "what": "this saves you choosing between add and update for every record in an incoming list. each item carries its own matching condition and the values for creating or updating a row. a missing match becomes a new row; a match becomes an update. the action returns an outcome for each item.\n\npaste the database link. the bot looks at its columns first so the new values land in the right ones.",
+  "what": "**one list can contain old records and new ones.** each incoming item carries its matching rule, creation values and update values. a missing match creates a row; a match updates one. the action returns a result for each item.\n\npaste the database link and let the bot inspect its columns first. creation and update values can differ. tell it which fields to leave alone rather than hoping a broad import will guess.",
   "uses": [
-    "maintain workshop registrations matched by booking reference",
-    "add new equipment records while updating existing items by asset number",
-    "refresh a vendor directory using stable supplier codes instead of names",
-    "import a corrected attendance list without intentionally creating a second row for each person"
+    "**keep registrations together.** match each workshop booking by its reference.",
+    "**refresh the equipment list.** update known asset numbers and add new ones.",
+    "**avoid supplier name mix-ups.** use stable supplier codes in the directory.",
+    "**correct attendance records.** match the existing entries before adding extra rows for the same people."
   ],
   "routine": {
-    "message": "on alternate tuesdays at 16:45, take the confirmed workshop registrations i pasted into this chat since the last run and prepare the updates for the database i linked. match only on booking reference, show the proposed creates and updates here and ask before writing. stop for my decision if any reference is missing or appears more than once in the input or destination. after approval, report every item outcome here; never match by attendee name or retry the whole batch blindly.",
+    "message": "on alternate tuesdays at 16:45, read confirmed registration files added in the past two weeks to the workshop registrations folder. compare them with the notion booking database.\n\nmatch only on booking reference. show proposed creates and updates here. stop when a reference is missing or repeated in the input or destination. ask before writing. after approval, report every item's result. never match by attendee name or retry the whole batch blindly.",
     "when": "alternate tuesdays at 16:45",
-    "needs": "notion connected with read and write; permission to read, insert and update the chosen data source",
-    "output": "registration import review\n\nbr-231, esme: existing row, update session choice.\nbr-232, kaspar: no match, create registration.\nbr-233: duplicate reference found, held for your decision.\nno writes made yet."
+    "needs": "access to the registration files; notion read and write for the chosen database",
+    "output": "registration review\n\nbr-231, esme: update session choice in the existing row.\nbr-232, kaspar: create a registration; no match returned.\nbr-233: repeated reference; needs your decision.\n\nno writes yet."
   },
   "steps": [
-    "enable notion under **Connected apps** with **read and write**, limited to the destination reads and upserts you intend.",
-    "paste the database link and pick a column that's different for every row, like a booking reference.",
-    "try a list containing one known match and one new reference, requiring review before the create or update calls.",
-    "ask the bot to list any failed items in the chat, and retry only those."
+    "**allow only this tracker work.** connect notion with the reads and writes the database needs.",
+    "**pick a unique reference.** paste the database link and name a column such as booking reference.",
+    "**test both paths.** preview one known match and one new reference before creating or updating.",
+    "**account for each result.** list failed items separately. leave earlier successes out when retrying just the failures."
   ],
   "watch": [
-    "only the first page of matches is examined. a broad filter can miss relevant rows or choose among multiple matches incorrectly.",
-    "multiple matches can update the first result or fail. a person's name is a poor key when two records can legitimately share it.",
-    "a batch can have mixed outcomes. retrying successful items along with failed ones can repeat changes or create unwanted rows if the matching data changed."
+    "**a unique reference keeps the right row in reach.** this action reads only the first batch of matches. broad matching can hide the row you need.",
+    "**stop when a reference matches twice.** the action may update the first or fail. a shared name is too weak a key.",
+    "**a batch can half succeed.** retrying successful items can repeat changes or create rows if the matching details changed."
   ],
   "faq": [
     {
       "q": "what does upsert mean for my tracker?",
-      "a": "for each item, it looks for a matching row, updates a match or creates a row when none is returned. the create and update values can differ."
+      "a": "**update a match, create when no match returns.** each item can use different values for creation and update."
     },
     {
       "q": "will it always prevent duplicates?",
-      "a": "a weak match or limited query results can still lead to the wrong update or an extra row. use a stable reference and review ambiguous cases before writing."
+      "a": "**a stable reference is your best defence.** weak matching and limited results can still hide an existing row. stop on ambiguity."
     },
     {
       "q": "can i see which records failed?",
-      "a": "the action returns per-item results. ask the bot to list each failed item separately and retry only after checking whether any earlier change succeeded."
+      "a": "**yes, each item gets a result.** ask for failures separately, then retry only items whose changes did not succeed."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste the destination database link",
+      "choose its unique booking or asset reference",
+      "preview one existing record and one new one",
+      "review each result before retrying anything"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "every incoming reference is present and unique",
+      "each matching rule narrows to one record",
+      "new values fit the database columns",
+      "successful items stay out of a retry"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using an attendee name to match",
+      "fix": "two people can share it. use the booking reference instead."
+    },
+    {
+      "mistake": "replaying the entire failed batch",
+      "fix": "some items may already have succeeded. read each result and retry only what needs it."
+    }
+  ],
+  "tip": {
+    "text": "a batch is done when you can account for every item, including the ones that failed."
+  },
+  "voice": 2
 }

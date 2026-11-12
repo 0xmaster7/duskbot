@@ -4,7 +4,7 @@
   "title": "Find Canva designs with AI, including files shared with you",
   "nav": "find designs",
   "h1": "find the canva design someone shared with you",
-  "description": "Search your owned and shared Canva designs with an AI bot. Sort recent edits, continue beyond the first results and avoid mistaking file details for artwork.",
+  "description": "Find the Canva deck someone shared with you. Search owned and shared designs, put recent edits first and keep going beyond the first results.",
   "keyword": "find canva designs with ai",
   "keywords": [
     "canva search designs with ai",
@@ -12,7 +12,7 @@
     "claude list canva designs",
     "find shared canva designs ai"
   ],
-  "answer": "if you remember a deck's topic but not where it went, a bot can search the canva designs you own or that others shared with you. it brings matching designs to your chat and can sort them by recent changes. the result is a list of designs and their file details, not a reading of the artwork or a finished export.",
+  "answer": "**find the deck without asking everyone to resend it.** a bot searches canva designs you own, designs people shared with you, or both. put recent edits first and get matching titles here. you get a shortlist to open, instead of another round of 'can you send that link again?'",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -42,43 +42,43 @@
     "toolkit": "canva",
     "slug": "CANVA_LIST_USER_DESIGNS"
   },
-  "what": "ask for designs matching a phrase and say whether to look at your own designs, shared designs or both. the bot can choose a supported sort order, such as most recently modified, to help you find the version someone worked on last.\n\none request returns a single group, normally 25 designs and at most 100. the bot can follow the returned continuation to read more groups without asking you to manage the search. a match here helps locate a file; it does not prove that the design contains the wording or images you need.",
+  "what": "**the deck is in there somewhere. get the titles in front of you.** name a phrase and choose owned designs, shared designs or both. ask for recent changes first when several versions look alike.\n\ncanva normally returns 25 designs per batch, with a maximum of 100. if more remain, tell the bot to keep going until it has them all.",
   "uses": [
-    "find the reseller presentation a colleague shared before a partner call",
-    "look for an older design by its campaign phrase when the folder is forgotten",
-    "separate designs you own from those shared by other people",
-    "check the most recently modified matching files before asking the designer which one to use"
+    "find the reseller deck someone shared before your partner call",
+    "recover an old campaign design when you forget its folder",
+    "separate your designs from files other people shared",
+    "bring recent matches to the designer so they can choose the approved version"
   ],
   "routine": {
-    "message": "every friday at 3, search designs shared with me in canva for 'reseller training', sorted by most recently modified. keep reading further result groups until the matching list is covered, and put the design titles and returned references here. flag similar titles for me to choose between rather than declaring one approved. never export, rename, move or edit a design, and do not claim to have read its slides.",
+    "message": "every friday at 3, find shared canva designs matching 'reseller training'. sort by most recently changed. read further batches yourself until you cover the matches. list the titles here and flag designs changed this week. if nothing changed, say so in one line. ask me to choose between similar titles. never export, rename, move or edit designs. don't claim you read the slides.",
     "when": "fridays at 3",
-    "needs": "canva connected, with read only access for this bot",
-    "output": "shared designs matching reseller training\n\n1. reseller training: november refresh, from lunecrest learning.\n2. reseller training: field guide.\n\nlisted most recently modified first. similar titles need your choice; slide contents were not reviewed."
+    "needs": "canva connected; read only is enough",
+    "output": "shared reseller training designs\n\n1. reseller training: november refresh, from lunecrest learning.\n2. reseller training: field guide.\n\nmost recently changed first. open either to see the slides."
   },
   "steps": [
-    "find canva under **Connected apps** and set the design-finding bot to **read only**.",
-    "tell it a search phrase and whether you mean owned designs, shared designs or both.",
-    "ask for the most recently modified matches and have it continue past the first group when more results remain.",
-    "once the first search finds the right kind of file, send the weekly search message and use **Pause** when that recurring topic is finished."
+    "connect canva under **connected apps**; give this bot read only",
+    "name the phrase and say whether to include shared designs",
+    "ask it to finish all batches and list matching titles",
+    "open a matching title, then schedule the search while the campaign keeps changing"
   ],
   "watch": [
-    "the first group is not necessarily the whole list. the bot must continue when canva says more results remain.",
-    "shared designs and owned designs use different filters. checking only owned designs can miss the file your colleague sent.",
-    "a design listing does not expose the individual artwork elements. the bot cannot verify slide copy from these results.",
-    "recently modified is not the same as approved. ask a person to choose when several versions fit."
+    "**the first batch can hide the file you need.** have the bot keep reading until canva has no more matches.",
+    "**owned only misses shared work.** include both when you cannot remember who made it.",
+    "**open the design to see the artwork.** the list gives you file details, not slide contents.",
+    "**let the designer choose the final version.** newest only tells you when someone last edited it."
   ],
   "faq": [
     {
       "q": "can it find designs other people shared with me?",
-      "a": "yes. the ownership filter can include shared designs, your own designs or both, within what the connected account can access."
+      "a": "**yes, within your connected account.** include shared designs, owned designs or both in the request."
     },
     {
       "q": "can it tell which deck has the correct slides?",
-      "a": "not from this listing alone. it can locate likely designs and order the matches, but file details do not show whether the slide content meets your brief."
+      "a": "**open the shortlisted decks to choose.** the list finds likely files and sorts them; it cannot judge the slides."
     },
     {
       "q": "does finding a design download it?",
-      "a": "no. this action lists designs. checking export formats and starting an export are separate jobs."
+      "a": "**finding a design gives you its details.** export formats and downloads take separate actions."
     }
   ],
   "sources": [
@@ -90,5 +90,27 @@
       "label": "dusk bot docs: routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect canva with read only",
+      "ask for shared designs matching a phrase",
+      "request recent edits first",
+      "open the title that matches your deck"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching only your own designs",
+      "fix": "include shared designs when a colleague made the deck."
+    },
+    {
+      "mistake": "calling the latest edit final",
+      "fix": "ask the designer which version is approved before presenting it."
+    }
+  ],
+  "tip": {
+    "text": "ask for design titles first; include links only when canva returns them."
+  },
+  "voice": 2
 }

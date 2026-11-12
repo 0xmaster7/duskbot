@@ -47,12 +47,12 @@
     "toolkit": "gmail",
     "slug": "GMAIL_CREATE_EMAIL_DRAFT"
   },
-  "what": "the bot writes an email and saves it in your gmail drafts folder instead of sending it. it can put the draft inside an existing conversation, so it shows up as a reply to the right message, and it can add people on cc, attach a file and add your gmail signature.\n\nif it can't find the conversation you meant, gmail still saves the draft, just as a new email. that's worth knowing when you search your drafts later.",
+  "what": "**it writes the email and parks it in your drafts. you press send.** it can file the draft inside the right conversation, add people on cc, attach a file and add your signature.\n\nif it can't find the thread you meant, gmail still saves the draft, just as a new email. worth knowing when you go looking for it.",
   "uses": [
-    "answer the three clients who wrote overnight, so you only have to read and press send",
-    "turn your notes from a call into a follow-up email with the agreed next steps",
-    "reply to a supplier with the invoice attached, pulled from the email they sent you last week",
-    "prepare a polite \"no\" to an invitation, in your words, for you to soften or send"
+    "answer the three clients who wrote overnight, so you just read and send",
+    "turn your call notes into a follow-up with the agreed next steps",
+    "reply to a supplier with the invoice attached from their last email",
+    "write a polite \"no\" to an invitation for you to soften or send"
   ],
   "routine": {
     "message": "every weekday at 9, look at emails from people at @acme.com that came in since yesterday and still have no reply from me. for each one, read the whole thread and save a short reply in my gmail drafts, in that thread, leaving the subject empty so it stays in the thread, in my voice: friendly, no exclamation marks, sign off with just my first name. then tell me here which drafts you made, one line each. never send anything.",
@@ -61,17 +61,16 @@
     "output": "3 drafts in gmail\n\n1. dana (acme): re: q3 quote, says we can do the 15th.\n2. lee (acme): re: invoice 1042, attached the corrected pdf.\n3. omar (acme): re: kickoff, proposes tuesday or wednesday at 10.\n\nnothing sent."
   },
   "steps": [
-    "connect gmail in **Connected apps** and let this bot use it with read and write access. drafting is a change, so a read-only bot can't save drafts.",
-    "tell the bot how you write once: \"short, warm, no exclamation marks, first name only\". it keeps that in its memory.",
-    "ask for one draft first, read it in gmail, and tell the bot what to fix (\"shorter\", \"don't apologise\"). it notes the correction.",
-    "when the drafts look right, turn the request into a routine like the one above, and keep sending in your own hands."
+    "connect gmail in **Connected apps** with read and write for this bot. drafting is a change, so read only won't do.",
+    "tell it how you write, once: \"short, warm, no exclamation marks, first name only\". it keeps that in **Memory**.",
+    "ask for one draft, read it in gmail, fix what's off (\"shorter\", \"don't apologise\").",
+    "once two or three come back right, turn it into a routine like the one above."
   ],
   "watch": [
-    "a draft can land outside its thread if the bot can't open the conversation; it then saves as a new email with the subject you gave it.",
-    "drafts aren't free of risk: anything with your name on it can be sent by mistake. read before you press send.",
-    "the bot doesn't see what you write in other apps or say in person, so a draft can miss context. say it once and it will keep a note.",
-    "it doesn't send, and that's on purpose here. sending is a separate action that asks you first by default, unless you set a daily amount. a bot on **Full access** with no sending rule can send up to 25 a day without asking.",
-    "if the bot gives a reply its own subject, gmail starts a new conversation instead of replying in the thread. ask it to leave the subject blank for replies."
+    "no thread found? it saves a new email with the subject you gave it.",
+    "if the bot gives a reply its own subject, gmail starts a new conversation. ask it to leave the subject blank for replies.",
+    "a draft has your name on it. read before you send.",
+    "it doesn't know what you said on a call. tell it once and it keeps a note."
   ],
   "faq": [
     {
@@ -99,6 +98,29 @@
     {
       "label": "dusk bot docs: a bot's computer, asking first",
       "url": "/docs/computer"
+    }
+  ],
+  "voice": 2,
+  "quick": {
+    "steps": [
+      "connect gmail with read and write",
+      "ask: \"draft a reply to dana's last email, two lines\"",
+      "open your drafts and read it",
+      "say what to fix; it remembers"
+    ]
+  },
+  "worked": {
+    "before": "from: lee (acme)\n\"the total on invoice 1042 looks wrong, can you check?\"",
+    "after": "draft, in the same thread:\n\"hi lee, you're right, we doubled the shipping. corrected invoice attached. sorry about that.\nmaya\"\n\nwaiting in drafts. nothing sent."
+  },
+  "mistakes": [
+    {
+      "mistake": "giving it read only",
+      "fix": "saving a draft is a change. it needs read and write for gmail."
+    },
+    {
+      "mistake": "no voice notes",
+      "fix": "three lines about how you write beat ten corrections later."
     }
   ]
 }

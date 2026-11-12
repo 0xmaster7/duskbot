@@ -11,7 +11,7 @@
     "gmail outlook receipt routine",
     "weekly expense receipt check"
   ],
-  "answer": "once a week, have a bot compare emailed receipts with the expense rows you already keep in google sheets. it can search gmail or outlook, read receipt attachments and check the named sheet range. ask for unmatched rows, receipts absent from the sheet and uncertain duplicates. this routine produces a review list in chat without labelling mail or updating your expense records.",
+  "answer": "**catch the missing receipt before month-end turns into an inbox hunt.** once a week, a bot compares gmail or outlook receipts with a named google sheets range. it reads messages and attachments, then brings you missing rows, missing receipts and uncertain duplicates. mail and the sheet stay as they are. you get a short list of gaps to resolve.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,42 +44,42 @@
   },
   "og_line": "find the gaps before updating your records.",
   "routine": {
-    "message": "every monday at 9, compare receipts from the previous monday through sunday with my expense sheet. use only the gmail and outlook accounts i name, and the google sheets file, tab and range i give you.\n\nread the receipt messages and accessible attachments. compare merchant, transaction date, total, currency and receipt reference with the sheet. don't match on amount alone. distinguish the receipt date from the date the email arrived.\n\nreturn four groups in this chat: receipts with a clear matching row, sheet rows with no receipt found, receipts with no matching row, and uncertain or possible duplicate records. include the sheet row and message reference for each proposed match. keep refunds separate from purchases. flag unreadable or missing amounts; don't guess them.\n\ndon't change the sheet, label or move mail, pay anything or contact suppliers. if both sources cannot be read, say the comparison is incomplete.",
-    "when": "mondays at 9:00, reviewing the previous monday through sunday in your chosen time zone",
-    "needs": "gmail or outlook, or both, plus google sheets; read-only access and a named expense range with merchant, date, amount and currency columns",
-    "output": "weekly receipt comparison for priya\nclear match: acme supplies receipt a17, usd 42.00, matches expenses row 18 on merchant, transaction date and reference.\nno receipt found: row 21, sam's print shop, usd 18.00. the inbox search is not proof it was never issued.\nno sheet row found: acme supplies receipt a22, usd 12.00.\nuncertain: two acme emails show receipt a17; likely copies of the same receipt, not two expenses.\ncoverage: work gmail and work outlook read; expenses rows 2 to 40 read. no records changed."
+    "message": "every monday at 9, compare last monday through sunday's receipts with my expense sheet. use only the named gmail and outlook accounts and the google sheets file, tab and range.\n\nread messages and accessible attachments. compare merchant, transaction date, total, currency and receipt reference. don't match on amount alone. keep the transaction date separate from email arrival.\n\nreturn four groups here:\n- receipts with a clear matching row\n- sheet rows with no receipt found\n- receipts with no matching row\n- uncertain matches or possible duplicates\n\ninclude sheet rows and message references. keep refunds separate. flag unreadable or missing amounts; never guess. change no records, labels or folders. pay nothing and contact nobody. if either source cannot be read, call the comparison incomplete.",
+    "when": "mondays at 9:00; previous monday through sunday in your chosen time zone",
+    "needs": "gmail, outlook or both, plus google sheets; read only; name a range with merchant, date, amount and currency columns",
+    "output": "sophie's weekly receipt comparison\n\nclear match: heathquill stationery a17, usd 42.00; expenses row 18 matches merchant, transaction date and reference.\nno receipt found: row 21, oscar's print shop, usd 18.00; needs another look outside this search.\nno sheet row found: heathquill stationery a22, usd 12.00.\nuncertain: two emails contain a17; likely copies of one expense.\n\ncoverage: work gmail, work outlook and expenses rows 2 to 40."
   },
   "knobs": [
-    "choose the account labels explicitly so a personal purchase does not enter a business expense review",
-    "name the date column and what it means; transaction date and statement posting date should not silently be treated as identical",
-    "provide merchant aliases you already know, while requiring the bot to explain any new proposed alias",
-    "use a longer lookback for late receipts, keeping the transaction window separate from the email search window",
-    "ask for exceptions only once clear matches are consistently easy to check"
+    "**keep personal spending out.** name the exact account labels to include.",
+    "**name what the date means.** transaction and statement posting dates are not interchangeable.",
+    "**teach known merchant aliases.** require an explanation before accepting a new one.",
+    "**look further back for late mail.** separate the receipt transaction window from the email search window.",
+    "**shorten once matches look sound.** switch to exceptions only after you can trace clear matches back to the rows."
   ],
   "fails": [
-    "equal amounts get matched to unrelated merchants. require several agreeing fields and put weak matches in the uncertain group rather than choosing the nearest row.",
-    "a scan or attachment cannot be read. keep its message reference in the review list and inspect it yourself; a blank amount must not become zero.",
-    "the same receipt arrived in both mailboxes. compare the receipt reference and transaction details before counting it twice. a forwarded copy is not necessarily a second purchase.",
-    "an expense has no email match because its receipt is elsewhere. record the search scope and check your other records. this is not a bank reconciliation or proof that every expense is accounted for."
+    "**same amount, wrong merchant.** require several agreeing fields. keep weak matches uncertain rather than choosing the closest row.",
+    "**the scan won't read.** keep its message reference and inspect it yourself. a missing amount must never become zero.",
+    "**one receipt reaches both inboxes.** compare reference and transaction details before counting it twice. a forward can be a copy.",
+    "**keep the search limits beside a missing receipt.** look in other records before treating it as lost. this comparison supports receipt gathering; bank reconciliation and complete accounting take more work."
   ],
   "sections": [
     {
       "h": "match first, change the ledger later",
-      "md": "the [gmail page](/integrations/gmail) has a smaller friday sweep that labels messages and lists amounts. this routine does a different job: comparing receipt evidence with existing expense rows, including mail from [outlook](/integrations/outlook). it leaves both sources unchanged.\n\non read only, the bot reads the [google sheet](/integrations/google-sheets) with **Look up spreadsheet row** and **Get Spreadsheet by Data Filter**; test the first run.[^5] identify the exact tab and range before scheduling the sweep. keep sheets and mail read-only and tell the bot not to change any row. you decide what to enter after checking the evidence, including currency and refund treatment."
+      "md": "**bring the ledger a short list of gaps.** [gmail's smaller sweep](/integrations/gmail) labels mail and lists amounts. this routine compares receipts with existing rows, including [outlook mail](/integrations/outlook), and leaves both alone.\n\nread-only [google sheets](/integrations/google-sheets) access uses look up spreadsheet row and get spreadsheet by data filter.[^5] try the first run against the exact tab and range.\n\nuse currency, refunds and the underlying evidence to decide what belongs in the ledger."
     }
   ],
   "faq": [
     {
       "q": "can it check receipts across gmail and outlook?",
-      "a": "yes. connect and name each account you want included. it can search and read messages in both, and both can read attachments. ask it to report which accounts it actually checked."
+      "a": "**yes, name each account.** both can read mail and attachments. ask the bot to list which accounts it searched."
     },
     {
       "q": "will it fill the spreadsheet automatically?",
-      "a": "this version only reads the sheet and proposes matches in chat. keep the sheet on read only and tell the bot not to change any row. if you later add write actions, include an explicit instruction to ask before changing any row."
+      "a": "**this version only proposes matches here.** keep sheets read only. if you later allow writes, require confirmation before changing any row."
     },
     {
       "q": "does a matched receipt prove the bill was paid?",
-      "a": "the match only says the email and the row appear to describe the same transaction. check the underlying receipt and your payment records before drawing any conclusion about payment or bookkeeping treatment."
+      "a": "**look at the payment evidence to decide that.** a match links a receipt to a likely sheet row. it cannot settle payment status or bookkeeping treatment."
     }
   ],
   "sources": [
@@ -106,5 +106,44 @@
       "url": "https://docs.composio.dev/toolkits/googlesheets",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose one expense tab and a small range",
+      "connect that sheet and your mail read only",
+      "ask for one receipt-to-row comparison",
+      "compare merchant, date, currency and reference yourself"
+    ]
+  },
+  "worked": {
+    "before": "sophie sees two heathquill emails for receipt a17.\nexpenses row 18 shows usd 42.00.\ncounting emails would make one purchase look like two.",
+    "after": "both emails refer to a17 with the same transaction details.\nproposed match: one receipt, expenses row 18.\nkeep the duplicate email separate from any new expense."
+  },
+  "saves": {
+    "estimate": "roughly 15 minutes per weekly sweep, under these assumptions",
+    "formula": "25 minutes comparing receipts yourself\n- 10 minutes reviewing the proposed matches\n= 15 minutes a week",
+    "assumptions": [
+      "your current weekly comparison takes 25 minutes",
+      "reviewing all exceptions and sample matches takes 10 minutes",
+      "you still correct the records yourself; setup time is excluded"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "matching on the total alone",
+      "fix": "compare merchant, date, currency and receipt reference together."
+    },
+    {
+      "mistake": "counting forwarded receipts twice",
+      "fix": "compare transaction details before treating another email as another purchase."
+    },
+    {
+      "mistake": "turning an unreadable amount into zero",
+      "fix": "leave it unknown and open the attachment yourself."
+    }
+  ],
+  "tip": {
+    "text": "keep refunds in their own group. a matching amount does not make a refund another purchase."
+  },
+  "voice": 2
 }

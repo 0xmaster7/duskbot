@@ -13,7 +13,7 @@
     "moltbot alternative",
     "openclaw safe alternative"
   ],
-  "answer": "if you like openclaw's idea, an assistant you text that works on your behalf, but not the setup and upkeep, there are three kinds of alternative: another open-source agent you still run yourself (hermes agent), a hosted assistant you just text (poke, genspark claw), or an app with a team of bots that can move to a hosted computer later (dusk bot). which fits depends on whether you want to keep your own ai sign-in and how much you want to look after.",
+  "answer": "love the idea of openclaw but not the upkeep? you have three ways out. run another open-source agent yourself (hermes agent). text a hosted assistant and install nothing (poke, genspark claw). or use an app with a small team of bots that can move to a hosted computer later (dusk bot). the right one depends on how much you want to own and look after.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -65,7 +65,7 @@
   },
   "compare": {
     "h": "five options side by side",
-    "intro": "every cell comes from the product's own site or docs, checked on 12 november 2026, unless the source says otherwise. prices change; check the product's page before you buy.",
+    "intro": "**every cell comes from the product's own pages, checked 12 november 2026.** prices change, so check before you pay.",
     "cols": [
       "OpenClaw",
       "Hermes Agent",
@@ -228,19 +228,19 @@
       }
     ]
   },
-  "method": "we read each product's own homepage, docs and pricing page on 12 november 2026 and wrote down only what they say. for openclaw's security record we counted its published advisories through github's api the same day; the malicious-skills finding is from a security firm's audit as reported by the hacker news. we did not run the same tasks through every product, so this page compares what each offers, not how well each one does a job. we make dusk bot, so read our column with that in mind, and tell us at hello@dusk.bot if any cell is wrong.",
+  "method": "**we read each product's own site, docs and pricing on 12 november 2026 and wrote down only what they say.** for openclaw's security record we counted its published advisories through github's api the same day; the malicious-skills finding is from a security firm's audit, reported by the hacker news.\n\nwe didn't run the same tasks through every product. this compares what each offers, not how well each does a job. and yes, we make dusk bot. read our column with that in mind, and tell us at hello@dusk.bot if a cell is wrong.",
   "sections": [
     {
-      "h": "why people look for an openclaw alternative",
-      "md": "openclaw is the best-known open-source assistant of its kind, and it's free. people who move on usually give one of three reasons.\n\n**the upkeep.** its main install paths use a terminal and node.js, and it runs as a gateway on your machine or a server you look after. the desktop apps make the start easier, but updates and the server are still yours. openclaw itself apologised for a run of broken releases in late april 2026.[^16]\n\n**security.** an agent that can read your mail and run commands is only as safe as its permissions and its add-ons. openclaw's github lists 722 published security advisories since january 2026, 14 of them critical,[^4] and an audit found 341 malicious skills in its skill store in february.[^15] the project has since added skill scanning and an outside audit, per its blog.\n\n**the ai sign-in.** openclaw can reuse some vendor sign-ins, and its own docs recommend api keys for anthropic in production.[^3] what a vendor allows in third-party tools has changed during 2026, so check your ai provider's current terms whichever tool you pick."
+      "h": "why people leave openclaw",
+      "md": "**it's free, it's famous, and it's work.** three reasons come up again and again.\n\n- **upkeep.** the main installs use a terminal and node.js, and it runs as a gateway you look after. the desktop apps help at the start; updates and the server are still yours. openclaw itself apologised for a run of broken releases in late april 2026.[^16]\n- **security.** an agent that reads your mail and runs commands is only as safe as its add-ons. its github lists 722 published security advisories since january 2026, 14 critical,[^4] and an audit found 341 malicious skills in its store in february.[^15] the project has since added skill scanning and an outside audit.\n- **the ai sign-in.** openclaw can reuse some vendor sign-ins, and its own docs recommend api keys for anthropic in production.[^3] vendor rules shifted during 2026. check your provider's terms whatever you pick."
     },
     {
-      "h": "the kinds of alternative",
-      "md": "**another agent you run yourself.** [hermes agent](/alternatives/hermes-agent) is the closest swap: also open source, also texted from chat apps, also yours to install and look after. it has a desktop app for mac and windows.\n\n**a hosted assistant you just text.** poke and genspark claw need nothing installed. you text them from apps you already use. the ai is part of their plan, paid in their credits or tiers, rather than an ai account you already have.\n\n**an app with a team of bots.** dusk bot is a desktop app where you keep a few bots, each with one job, its own memory and the ai you picked for it. they start on your own computer for free and can move to [dusk cloud](/docs/dusk-cloud), a computer we host, when you want them working with your laptop shut."
+      "h": "the three kinds of alternative",
+      "md": "**pick by how much you want to own.**\n\n- **run it yourself:** [hermes agent](/alternatives/hermes-agent) is the closest swap. open source, texted from chat apps, yours to install and maintain. there's a desktop app for mac and windows.\n- **text a hosted assistant:** poke and genspark claw need nothing installed. the ai comes inside their plan, paid in their credits or tiers, not an ai account you already have.\n- **an app with a team of bots:** dusk bot. a few bots, one job each, own memory, the ai you picked. free on your computer; move to [dusk cloud](/docs/dusk-cloud) when you want them working with the lid shut."
     },
     {
       "h": "moving over from openclaw",
-      "md": "there is no importer from openclaw to dusk bot. the parts that move by hand are small: write each job you gave openclaw as a bot's job in plain words, connect the same apps once in **Connected apps**, and ask each bot for the routines you had (\"every weekday at 8, summarise my inbox\"). your notes about how you like things done are worth pasting into a bot's first message; it keeps them in its memory."
+      "md": "**there's no importer. you won't need much of one.**\n\n- write each job you gave openclaw as one bot's job, in plain words\n- connect the same apps once in **Connected apps**\n- ask each bot for the routines you had: \"every weekday at 8, summarise my inbox\"\n\npaste your \"how i like things done\" notes into a bot's first message. it keeps them in memory."
     }
   ],
   "faq": [
@@ -338,5 +338,35 @@
       "label": "dusk bot docs: the phone app",
       "url": "/docs/phone"
     }
-  ]
+  ],
+  "voice": 2,
+  "decide": {
+    "h": "which one fits you",
+    "cols": [
+      "if you want",
+      "pick"
+    ],
+    "rows": [
+      [
+        "to read and change every line of code",
+        "openclaw or hermes agent"
+      ],
+      [
+        "to text from imessage and install nothing",
+        "poke"
+      ],
+      [
+        "several bots with separate jobs, on the ai you already use",
+        "dusk bot"
+      ],
+      [
+        "a hosted computer without running a server",
+        "genspark claw or dusk cloud"
+      ]
+    ]
+  },
+  "tip": {
+    "text": "whatever you pick, check its add-ons before you install them. that's where most agent trouble starts.",
+    "careful": true
+  }
 }

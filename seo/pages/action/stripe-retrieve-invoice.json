@@ -12,7 +12,7 @@
     "claude explain stripe invoice",
     "ai check specific stripe invoice"
   ],
-  "answer": "when someone asks about a particular stripe bill, a bot can locate the invoice and read its details before you answer. it searches or lists invoices to find the one matching the customer and bill you describe, then opens that invoice. this action only reads: it does not send a bill, change its status or collect money, and it is not a list of all invoices.",
+  "answer": "**answer the billing question with the actual bill in front of you.** give the bot the customer and invoice context. it lists or searches stripe invoices, finds the match and opens the bill. if several fit, it asks you to choose.\n\nyou get invoice details in chat while billing records and payments stay untouched.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,43 +43,43 @@
     "toolkit": "stripe",
     "slug": "STRIPE_GET_INVOICES_INVOICE"
   },
-  "what": "retrieving an invoice gives the bot a closer look at one existing bill. you can name the customer and describe which bill you mean; list invoices or search invoices finds the matching record before this action opens it. if several fit, the bot should show the candidates rather than read the wrong bill as though it were certain.\n\nrelated details can be requested in the same read through supported expansions, up to four levels deep. this still concerns one invoice. ask the bot to say which details it actually received rather than assume every related record was included.",
+  "what": "**find the november bill before explaining the october one.** one customer can have several invoices. a separate list or search finds the candidates; this action opens the one you choose. ask for the choices when the description fits more than one.\n\nit can request linked details up to four levels deep. have it name what came back and leave missing details unknown.",
   "uses": [
-    "check the recorded details of a bill a customer says they do not recognise",
-    "read one invoice before explaining it to a colleague in chat",
-    "compare the invoice a client named with the bill your team was discussing",
-    "inspect an invoice and supported related customer details before preparing a billing answer"
+    "**explain an unfamiliar bill.** read its details before answering the customer.",
+    "**explain one invoice to a colleague.** keep the findings in your chat.",
+    "**confirm which bill the client meant.** compare their description with the actual invoice.",
+    "**prepare a billing answer.** request supported linked customer details alongside the invoice."
   ],
   "routine": {
-    "message": "at noon each weekday, review the new billing questions i have left in this chat since your last check. find the stripe invoice matching each named customer and bill, and ask me to choose if more than one fits. open the confirmed invoice and put its recorded status, amount and currency here, saying when a requested detail is unavailable. never send the invoice, contact a customer, edit billing records or take a payment.",
+    "message": "at noon each weekday, read emails from the last day that ask about an invoice. find the stripe invoice matching each sender and the bill they describe. ask me to choose if more than one fits.\n\nread the matched invoice and report its status, amount and currency here. if a requested linked detail doesn't come back, say you don't know it. never send the invoice, contact the customer, edit billing records or take a payment.",
     "when": "weekdays at noon",
-    "needs": "stripe connected, with read only access for this bot",
-    "output": "billing question: rosewater print's november bill\n\nmatched invoice: rw-204\nrecorded status: open\namount: 240 usd\n\ninvoice read only; no customer message or payment action."
+    "needs": "gmail and stripe both read only; email reads and invoice lookup and retrieval allowed",
+    "output": "rosewater print asks about its november bill\n\n- matched invoice: rw-204\n- status: open\n- amount: 240 usd\n\nready to use when you write the customer reply."
   },
   "steps": [
-    "select stripe in **Connected apps** and enable the billing reader with **read only** permission.",
-    "describe the invoice by customer and billing context, and have the bot confirm its search match.",
-    "ask for the details needed to answer the question; when related customer data matters, ask it to request that alongside the invoice.",
-    "check the first answer against the invoice in stripe before scheduling the daily questions review, then adjust it with **Edit** if needed."
+    "**connect both sources for reading.** gmail finds the question; stripe provides the bill.",
+    "**confirm a first match.** describe the customer and billing context before opening the invoice.",
+    "**ask for the needed details.** request related customer information too if it matters to the answer.",
+    "**compare the first answer with stripe.** then schedule the daily review. use **edit** to narrow it if needed."
   ],
   "watch": [
-    "this action needs a specific invoice found by a separate lookup. it cannot choose correctly from an ambiguous customer description alone.",
-    "invoice expansions have a four-level depth limit. a related detail not returned should remain unknown in the bot's explanation.",
-    "stripe invoice search may lag: new data is usually searchable within a minute, but outages can delay it for up to an hour. a fresh invoice may need list invoices instead.",
-    "the midday read cannot run on your computer while it sleeps. a missed run less than 12 hours old runs once when you return; dusk cloud runs on time."
+    "**retrieval opens one invoice.** another lookup finds it first. an unclear customer name is not enough.",
+    "**linked reads stop at four levels.** if a detail does not return, the bot should say it does not know.",
+    "**search can lag behind new bills.** usually within a minute; outages can delay it up to an hour. try listing fresh invoices instead.",
+    "**local routines need an awake computer.** a run under 12 hours late runs once on return. older runs skip; dusk cloud runs on time."
   ],
   "faq": [
     {
       "q": "can it find the invoice if i only know the customer?",
-      "a": "it can use stripe's list or search actions to find candidates, then retrieve the one you mean. if that customer has several bills, it should ask which bill rather than guess."
+      "a": "**it can find candidates.** list or search finds the bills; retrieval opens the right one. have it ask when several fit."
     },
     {
       "q": "will opening an invoice email it to the customer?",
-      "a": "no. retrieving it is a read. sending the invoice is a separate action that this routine does not use."
+      "a": "**no.** this only reads. sending an invoice is another action, outside this routine."
     },
     {
       "q": "why is a newly created invoice missing from search?",
-      "a": "stripe search can take time to catch up, especially during an outage. the bot can try listing invoices and confirm the match before retrieving the bill."
+      "a": "**search may not have caught up.** try listing invoices, then confirm the match before opening the bill."
     }
   ],
   "sources": [
@@ -91,5 +91,27 @@
       "label": "dusk bot docs: routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick one recent billing email",
+      "ask the bot to find matching stripe invoices",
+      "confirm the customer and bill",
+      "ask for status, amount and currency, without sending"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "picking the first bill for that customer",
+      "fix": "match the bill in the email. ask when several invoices fit."
+    },
+    {
+      "mistake": "inventing a missing linked detail",
+      "fix": "say it is unknown. request the needed detail separately if the connection supports it."
+    }
+  ],
+  "tip": {
+    "text": "the invoice gives you its status. why it reached that status can take another question."
+  },
+  "voice": 2
 }

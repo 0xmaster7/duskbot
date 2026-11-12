@@ -11,7 +11,7 @@
     "openclaw vs n8n",
     "make.com alternative"
   ],
-  "answer": "n8n fits when you want to build a workflow on a visual canvas and control its steps. dusk bot fits when you want to describe a job to a bot, review its work and steer it with another message. both can live on a server, so hosting is not the main difference. the choice is whether you want to maintain a process or keep giving a teammate instructions.",
+  "answer": "**if you enjoy drawing the steps, keep n8n.** its visual canvas gives you the sequence to build and inspect. if you would rather describe the job, dusk gives you a bot to steer and a result to review. both can run on servers. choose how much process you want to build and maintain yourself.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -45,22 +45,22 @@
   "verdict": {
     "them_title": "n8n",
     "them": [
-      "you want a visual canvas for multi-step workflows and agents",
-      "you want self-hosted community software under its sustainable use license",
-      "you prefer a price based on workflow executions rather than steps or users"
+      "**draw the process.** you want a visual canvas for multi-step workflows and agents.",
+      "**host the community edition.** you accept its sustainable use license.",
+      "**pay per execution.** that meter suits you better than counting steps or users."
     ],
     "dusk": [
-      "you want to create a routine by describing it in a chat",
-      "you want ongoing chats and memory attached to a bot with one job",
-      "you want an app on your computer before deciding whether to host the bots"
+      "**describe the job once.** make routines through chat.",
+      "**keep context with a bot.** its job, conversations and memory stay together.",
+      "**try the desktop app first.** decide on hosting once the work needs it."
     ]
   },
   "compare": {
     "h": "a workflow canvas beside a bot conversation",
-    "intro": "n8n prices are quoted in eur exactly as n8n's page showed them on 12 november 2026. the annual billing basis matters. these are plan allowances, not measured jobs completed.",
+    "intro": "**n8n starter is 20 eur a month, with the year paid up front.** prices are as of 12 november 2026. executions measure workflow runs; your finished job can take more than one.",
     "cols": [
       "n8n",
-      "Dusk Bot"
+      "dusk bot"
     ],
     "rows": [
       {
@@ -112,7 +112,7 @@
         "label": "larger plan",
         "cells": [
           "pro 50 eur/month billed annually, with 10,000 executions",
-          "dusk cloud pro $50/month or $500/year; 5 bot computers awake at once"
+          "dusk cloud pro $50/month or $500/year; for heavy workloads"
         ],
         "src": [
           2,
@@ -144,33 +144,33 @@
       }
     ]
   },
-  "method": "we read n8n's repository and pricing page on 12 november 2026 and used our own docs for dusk. we didn't build the same workflow in both.",
+  "method": "**we compared the offers, not matching test runs.** n8n's repository and pricing were checked on 12 november 2026. dusk details come from our docs.\n\nwe didn't build the same workflow in both. use the comparison to choose the kind of setup you want, then test your actual job.",
   "sections": [
     {
       "h": "first decide who should spell out the steps",
-      "md": "n8n is a workflow platform with a visual canvas, including ai agents and multi-step processes.[^1] choose that shape if you want the process represented as steps you can inspect. a conversational bot is a different way to hand over responsibility: you describe the goal, then inspect what it did. neither approach removes the need to check the result.\n\nfor instance, try asking a dusk bot: \"every friday at 4, list the files added to this project folder this week, with one line on each.\" routines are created in chat, and files can live in a project folder you give the bot.[^7][^8] watch the first few runs before you trust it."
+      "md": "**own the sequence when the sequence matters.** n8n represents multi-step workflows and ai agents visually.[^1] inspect the steps you built, then read the result.\n\na dusk routine starts with the job: \"every friday at 4, list files added to this project folder this week. give one line on each.\"[^7][^8]\n\ntry a small report first. [gumloop](/alternatives/gumloop) offers another approach if the workflow shape matters most."
     },
     {
       "h": "execution pricing is useful, but not the whole budget",
-      "md": "as of 12 november 2026, n8n starter is 20 eur/month billed annually for 2,500 executions; pro is 50 eur/month billed annually for 10,000. business is 667 eur/month billed annually for 40,000 executions and is self-hosted only. community edition is free to self-host.[^2]\n\na workflow execution is the billing unit, not each step or user. do not equate one execution with one dusk message or one ai task. they are different meters. n8n's cloud offering also includes ai model access and assistant credits.[^2] [gumloop](/alternatives/gumloop) has another credit model worth comparing if that is your main concern."
+      "md": "**budget for the job you will repeat.** as of 12 november 2026, n8n bills per workflow execution, rather than per step or user.[^2]\n\n- starter: 20 eur/month, billed annually; 2,500 executions\n- pro: 50 eur/month, billed annually; 10,000 executions\n- business: 667 eur/month, billed annually; 40,000 executions; self-hosted only\n- community edition: free to self-host[^2]\n\nn8n cloud also includes ai model access and assistant credits.[^2] an execution and a dusk message count different things. price a real run before deciding which bill is smaller."
     },
     {
       "h": "a server does not turn one tool into the other",
-      "md": "both products give you hosting choices. n8n offers its cloud and self-hosting; dusk offers your computer, your own server and dusk cloud.[^2][^4] if you are comparing [openclaw](/alternatives/openclaw) too, keep the interface question separate from the server question.\n\nlocal dusk jobs stop when the app closes or the computer sleeps. a run missed by less than 12 hours runs once when you return; older ones are skipped.[^7] for a friday report that must arrive while you are away, choose where it will actually run before relying on [scheduled tasks](/scheduled-ai-tasks).\n\nwhen connecting apps, start a new bot with read-only access. if you later allow changes, put \"ask me before you change anything\" in the routine. sending (emails, messages, posts) asks first unless you set a daily amount. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for full-access bots. the sending setting doesn't cover other changes inside an app, so keep the bot read-only or write \"ask me before you change anything\" into the routine.[^8][^10] your ai provider's current terms still decide what its sign-in allows."
+      "md": "**choose who keeps the machine running.** n8n offers cloud and self-hosting. dusk offers your computer, your server or dusk cloud.[^2][^4] [openclaw](/alternatives/openclaw) gives you another route to compare.\n\nlocal dusk routines stop when the app closes or the computer sleeps. misses under 12 hours run once when you return; older ones skip.[^7] [scheduled work](/scheduled-ai-tasks) needs an awake machine.\n\nstart connected apps read only. for later edits, write \"ask me before you change anything\"; ordinary app changes use that boundary, rather than the sending setting.[^8][^10] read your ai provider's current terms before relying on its sign-in.[^10]"
     }
   ],
   "faq": [
     {
       "q": "is there an n8n alternative for non-technical people?",
-      "a": "dusk bot is worth trying if your aim is to give a bot a small job in plain words. it does not give you n8n's visual workflow canvas. write down whether you need to control the sequence or mainly review the final work before choosing."
+      "a": "**try dusk for a small job in plain words.** choose n8n if you need its visual workflow canvas. decide whether you want to control each step or review the finished work."
     },
     {
       "q": "where do your agents actually run when your laptop is closed?",
-      "a": "n8n can run in its cloud or on your server.[^2] dusk bots can run on dusk cloud or your own server. the local dusk app cannot keep a job going while your computer sleeps.[^4][^7]"
+      "a": "**on a different machine that stays on.** n8n offers its cloud or your server.[^2] dusk offers dusk cloud or your server. the local dusk app stops during sleep.[^4][^7]"
     },
     {
       "q": "is n8n open source?",
-      "a": "its repository calls it fair-code under the sustainable use license, with separate enterprise licensing. that is not osi open source. dusk bot is source-available too, with free personal use and a work license for work.[^1][^6]"
+      "a": "**its repository calls it fair-code.** the sustainable use license and separate enterprise licensing are not osi open source. dusk is source-available: personal use is free; work needs a license.[^1][^6]"
     }
   ],
   "sources": [
@@ -216,5 +216,51 @@
       "label": "dusk bot: computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "write one repeated job in a single sentence",
+      "list the steps you must control exactly",
+      "list the parts that need judgement",
+      "choose a canvas or bot trial around that split"
+    ]
+  },
+  "decide": {
+    "cols": [
+      "you want to",
+      "try"
+    ],
+    "rows": [
+      [
+        "inspect the process as explicit steps",
+        "n8n"
+      ],
+      [
+        "give a bot a job and steer its work",
+        "dusk bot"
+      ],
+      [
+        "self-host the community workflow platform",
+        "n8n"
+      ],
+      [
+        "start locally with separate bot memories",
+        "dusk bot"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "comparing executions with chat messages",
+      "fix": "they measure different things. price the actual repeated job instead."
+    },
+    {
+      "mistake": "treating a free local install as an always-on service",
+      "fix": "the machine still needs to stay awake. include hosting and upkeep in your choice."
+    }
+  ],
+  "tip": {
+    "text": "if you enjoy drawing the steps, n8n may be the right answer. that control is the point."
+  },
+  "voice": 2
 }

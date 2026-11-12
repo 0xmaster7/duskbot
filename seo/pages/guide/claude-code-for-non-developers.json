@@ -4,14 +4,14 @@
   "title": "Claude Code for non-developers: a small first task",
   "nav": "claude code for non-developers",
   "h1": "claude code for non-developers: start with one folder",
-  "description": "Start with a bounded file task, write a brief you can verify, and compare Dusk Bot chat with Claude's terminal-free knowledge-work experience.",
+  "description": "Try Claude Code on a few files you understand. Write a clear first request, check the result, and compare Dusk Bot with Claude’s own Cowork experience.",
   "keyword": "claude code for non developers",
   "keywords": [
     "claude code for non programmers",
     "claude code tutorial for non developers",
     "claude code without terminal"
   ],
-  "answer": "you can start with claude code without making software your first project. in dusk bot, a bot can think with claude through its official command-line app while you text it in plain words. begin with files you intentionally supply and a result you can inspect. if you want anthropic's own terminal-free knowledge-work experience, cowork, now becoming part of claude, is another route.[^1][^2][^3]",
+  "answer": "**that folder of notes can become a useful outline without you learning to code.** give claude code a few files you understand and a clear job. dusk runs the official command-line app while you text a bot. prefer anthropic's own route without a terminal? cowork is another option, now becoming part of claude.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -41,42 +41,42 @@
   "og_line": "start with a result you can inspect.",
   "sections": [
     {
-      "h": "pick a job that does not need a terminal lesson",
-      "md": "choose a small set of files you understand: notes from a personal project, a reading packet or a planning document. the first job should be to inspect and summarize those files, leaving the originals alone. avoid a request to reorganize your whole computer.\n\nthe important skill is writing a brief you can check. name the input, what counts as finished, what should remain untouched and what to do when information is missing. the [ai agent introduction](/guides/what-is-an-ai-agent) explains why those limits matter when a program can take several steps instead of just answering a question."
+      "h": "pick the notes you keep putting off",
+      "md": "**turn the reading packet into decisions you can use.** start with personal project notes or a planning document. ask for a summary and leave the originals alone.\n\na useful first request names:\n\n- the files to read\n- what the answer should contain\n- what must stay untouched\n- where to leave unanswered questions\n\n\"organise my computer\" is a lot to hand over on day one. the [agent introduction](/guides/what-is-an-ai-agent) explains the trade-off."
     },
     {
-      "h": "set up one bot for that job",
-      "md": "in dusk bot, choose **New bot** and give it a name, shape, colour and one job in plain words. choose the ai for the bot. dusk has no model of its own: it runs the vendors' official command-line apps on the machine where the bots live, and you sign in yourself.[^8]\n\nwork with the ai you already sign in to, and check your provider's current terms for the use you intend. do not assume installing a different desktop interface changes those terms. dusk bot can also take an api key or a local model, but you do not need to compare every option before trying one bounded task.[^1]"
+      "h": "make one bot for the job",
+      "md": "**give the bot the job you wish you had finished yesterday.** choose new bot, then a name, shape, colour and plain-word job. pick its ai.\n\ndusk has no model of its own. it runs vendors' official command-line apps where your bots live; you sign in yourself.[^8]\n\nread your provider's current terms before choosing sign-in. dusk also accepts an api key or local model if another route fits better.[^1]"
     },
     {
-      "h": "supply the material deliberately",
-      "md": "drop files into the chat or use **Attach files**. dusk accepts documents, spreadsheets, pictures and screenshots. the work it makes appears in the chat and lives in the bot's folder, or a project folder you give it. use a copy of your first packet if you are experimenting.[^5]\n\nask it to identify what it could read before you request a summary. then ask for an outline with a source for each point and a list of unresolved questions. check the outline against the files yourself."
+      "h": "give it only the files it needs",
+      "md": "**drop the packet in chat and ask what it could read.** attach files accepts documents, spreadsheets, pictures and screenshots.[^5]\n\nrequest an outline with a source beside each point and unanswered questions at the end. compare it with the originals.\n\noutput appears in chat and lives in the bot's folder or a project folder you choose. use copies for the first try."
     },
     {
-      "h": "steer it while it works",
-      "md": "replies stream in, and a line shows the tools the bot uses. send another message if you see it heading toward the wrong task. **Cmd .** on mac, or **Ctrl .** on windows and linux, stops it. questions can come as **Allow** or **Deny** cards.[^4]\n\nstart a new bot on **Ask for approval** for a few days. that setting covers commands and file changes. connected-app sends have their own sending setting, while other app changes should be kept read-only or carry an explicit ask-first instruction. for the first file exercise, there is no need to connect mail, chat or payments.[^6]"
+      "h": "watch and correct the first run",
+      "md": "**steer it while it works.** replies stream in and a line shows each tool. send another message when it takes the wrong turn. cmd . on mac, or ctrl . on windows and linux, stops it. answer its questions with allow or deny cards.[^4]\n\nkeep ask for approval on for commands and file edits.[^6] this file exercise needs no mail, chat or payment connections."
     },
     {
-      "h": "learn from the first correction",
-      "md": "if the summary misses a decision, point to the relevant source and say what was missing. if it uses a tone you dislike, give a precise correction. dusk bots remember what you tell them, and you can read and edit their notes in **Memory**. you can also turn memory off.[^7]\n\nkeep task-specific instructions separate from durable preferences. \"use short paragraphs\" may be useful across work; a deadline in one document may not be. when you find a way of working you want to reuse, [skills](/guides/claude-skills) show how to save it."
+      "h": "give corrections it can use",
+      "md": "**\"you missed the decision in paragraph three\" beats \"try again\".** point to the source. if the tone is wrong, name the change you want.\n\ndusk remembers what you tell it. read or edit notes in memory, or turn memory off.[^7]\n\nkeep lasting preferences apart from one-off facts. \"short paragraphs\" can travel; one document's deadline should not become a rule. [skills](/guides/claude-skills) can hold a way of working you want to reuse."
     },
     {
-      "h": "when another interface is a better fit",
-      "md": "anthropic describes cowork as bringing claude code's agentic capabilities to knowledge work without requiring a terminal. it is included in paid plans. anthropic now describes cowork and chat as one claude, with cowork brought in automatically for file work.[^2][^3]\n\nthe [cowork pricing guide](/guides/claude-cowork-pricing) helps if you want that route. dusk bot fits a different choice: keeping your own named bots and conversations, with a model per bot. neither approach removes the need to review a result. if you cannot tell whether the answer is correct, choose a smaller first task or ask someone who understands the material to check it."
+      "h": "when claude’s own app fits better",
+      "md": "**try cowork if you want claude's own file-work interface.** as of 12 november 2026, anthropic includes it in paid plans without a terminal. it now describes cowork and chat as one claude, bringing in cowork for file work.[^2][^3]\n\nread the [pricing guide](/guides/claude-cowork-pricing) for that route. choose dusk when you want named bots, separate conversations and an ai per bot.\n\nuse the same small packet to see which way of working fits you."
     }
   ],
   "faq": [
     {
       "q": "can i use claude code without a terminal?",
-      "a": "dusk bot lets you text a bot while it runs the official command-line ai app. anthropic also describes cowork as a terminal-free knowledge-work experience. they are different product paths.[^1][^2]"
+      "a": "**yes, with a different interface.** dusk lets you text a bot running the official command-line app. anthropic offers cowork for knowledge work without a terminal.[^1][^2]"
     },
     {
       "q": "do i need to learn programming first?",
-      "a": "no. you won't write code or approve commands you don't understand for this exercise."
+      "a": "**no programming lesson needed for this exercise.** ask it to read files and explain them. do not approve a command you cannot understand."
     },
     {
       "q": "what should i try before giving it my inbox?",
-      "a": "supply a small packet of non-sensitive files and ask for a source-based outline. review missing or mistaken points before giving the bot access to a connected account."
+      "a": "**turn a small packet into an outline with references.** choose non-sensitive files you understand, then compare the outline with them."
     }
   ],
   "sources": [
@@ -114,5 +114,39 @@
       "label": "dusk bot docs: official ai apps and sign-in",
       "url": "/docs/your-own-server"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "attach two short notes you already understand",
+      "ask: \"summarise the decisions, with a source beside each; change no files\"",
+      "trace each decision back to the notes",
+      "give one precise correction"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "starting with a folder you cannot review",
+      "fix": "use two files whose contents you know."
+    },
+    {
+      "mistake": "approving an unfamiliar command to keep things moving",
+      "fix": "stop and ask what it does before allowing it."
+    },
+    {
+      "mistake": "saving one deadline as a lasting preference",
+      "fix": "keep task facts tied to their source; reserve memory rules for habits."
+    }
+  ],
+  "tip": {
+    "text": "if you cannot tell whether the answer is right, shrink the job."
+  },
+  "checklist": {
+    "items": [
+      "i can name the files the bot should read",
+      "i know what a correct answer would include",
+      "the request says what must stay untouched",
+      "missing evidence stays a question"
+    ]
+  },
+  "voice": 2
 }

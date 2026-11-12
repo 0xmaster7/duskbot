@@ -27,3 +27,5 @@ VARIATION (mandatory; the build fails pages more than 40% alike and the editor r
 VERIFY: run `node seo/check.mjs <file>` after each file until "all checks pass"; at the end run it on all your files and make sure no warning names your pages. Final message: one line per file and anything you could not do.
 
 YOUR CANDIDATES (path, toolkit, slug, composio name, kind):
+
+UPDATE (owner, 12 november 2026): write in the voice of seo/WRITING.md "voice" (point first in bold, short active sentences, real pains, no filler; the build lint fails pages that miss it), set "voice": 2, add the useful blocks from WRITING.md where true (quick, worked, mistakes, tip, saves only from checkable assumptions), and never build a routine on "notes i marked in this chat": routines read from connected apps, files, folders or memory notes. The rewritten exemplar seo/pages/action/gmail-create-email-draft.json is the bar.

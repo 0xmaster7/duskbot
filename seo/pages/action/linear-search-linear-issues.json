@@ -12,7 +12,7 @@
     "claude find linear ticket",
     "search archived linear issues"
   ],
-  "answer": "you can ask a bot to find the linear ticket about a problem without remembering its exact title. it searches issue titles, descriptions and issue references, then brings the matches to your chat. archived issues are left out unless you ask for them. this is a text search: asking for a team or assignee does not turn those words into filters.",
+  "answer": "**stop asking the team who remembers that ticket.** give the bot words from the problem, title or issue reference. it searches linear and brings back matches, including archived work when you ask. use the separate team-listing action when you need one team’s backlog: putting a team, project or person’s name in this search only adds words.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,42 +43,42 @@
     "toolkit": "linear",
     "slug": "LINEAR_SEARCH_ISSUES"
   },
-  "what": "give the bot the phrase you remember, such as a particular error message or a feature name. it can search active issues or include archived work, which helps when an old fix disappears from the usual views.\n\nresults arrive in groups of up to 50, with 25 returned by default. the bot can keep reading further groups. for a search confined to a team, it needs the separate list issues by team action; this search cannot filter by team, project, owner, state or label.",
+  "what": "**dig up the old investigation before repeating it.** this search reads issue titles, descriptions and references. archived work stays out unless you ask for it.\n\nyou get 25 matches by default, with up to 50 in a batch. the bot can fetch more. team, project, owner, status and label filters need a different action; use list issues by team for a team’s issues.",
   "uses": [
-    "find the ticket that mentioned a customer seeing a blank screen after signing in",
-    "look up an archived investigation before reopening the same technical question",
-    "collect issues mentioning an exact error phrase for a support call",
-    "recover a ticket when all you remember is a few words from its description"
+    "**recover a support lead.** find the ticket about a blank screen after sign-in.",
+    "**pick up an old investigation.** include archives before reopening the same question.",
+    "**prepare for a support call.** collect tickets mentioning the exact error phrase.",
+    "**find a half-remembered ticket.** use words from its description."
   ],
   "routine": {
-    "message": "every monday at 11, search linear for the phrase 'password reset' and include archived issues. read through the available matches and bring me the issue titles and references here, marking archived results separately. explain when a match is only a loose text match. never edit, reopen or create an issue.",
-    "when": "mondays at 11",
-    "needs": "linear connected, with read only access for this bot",
-    "output": "password reset matches\n\nweb-84: reset link opens a blank page, active.\nweb-19: reset email delay reported by mira at vellumworks, archived.\n\nthese are text matches, not a team-filtered list."
+    "message": "every monday at 11, search linear for \"password reset\", including archived issues.\n\n- finish reading available results\n- bring the issue titles and references here\n- mark archived results separately\n- flag loose matches\n\ninclude the matching phrase beside loose matches. never edit, reopen or create an issue.",
+    "when": "mondays at 11:00",
+    "needs": "linear connected with read only for this bot",
+    "output": "password reset matches\nweb-84: reset link opens a blank page; active\nweb-19: reset email delay; archived\nweb-84 is the closest match for the blank-page investigation."
   },
   "steps": [
-    "add linear under **Connected apps** and give the search bot **read only** access.",
-    "name a phrase you remember and say whether old, archived work belongs in the results.",
-    "try a search in chat and check the titles against what you meant; ask for the next group if the first is incomplete.",
-    "send the recurring search message when you have a topic worth checking regularly, then use **Pause** on its card if the topic stops being useful."
+    "**connect linear with read only.** search needs no write access.",
+    "**give it the phrase.** include the error words and say whether archives belong in the results.",
+    "**open the closest tickets.** ask the bot to fetch remaining results before calling the list complete.",
+    "**schedule a topic worth watching.** pause when the investigation ends."
   ],
   "watch": [
-    "a team name in the search text is just text. use list issues by team when the team boundary matters.",
-    "archived work stays hidden by default, so an empty search does not rule out an old issue.",
-    "a single response holds at most 50 issues. the bot should read further results before calling its list complete."
+    "**a team name is just another word here.** use the separate team-listing action for a team boundary.",
+    "**bring the archives into an old-bug search.** ask for them by name so earlier work appears.",
+    "**50 is the largest batch.** there may still be more matches to read."
   ],
   "faq": [
     {
-      "q": "can it search comments inside linear issues?",
-      "a": "this search covers the issue reference, title and description. it does not search the comment discussion; finding a ticket and reading its comments are separate jobs."
+      "q": "can it search issue comments?",
+      "a": "**not with this action.** it checks the issue reference, title and description. reading comments takes a separate step."
     },
     {
-      "q": "how do i find a ticket without its number?",
-      "a": "describe the problem or quote part of the title. the bot uses those words to find candidates, and can ask you which one you meant if several fit."
+      "q": "what if i do not know the ticket number?",
+      "a": "**quote the problem instead.** the bot can show candidates and ask which one you meant."
     },
     {
-      "q": "will a search bring an archived issue back?",
-      "a": "no. including archived issues only makes them visible in the results; their state stays as it was."
+      "q": "does including archives reopen anything?",
+      "a": "**no, it only finds them.** archived issues stay as they are."
     }
   ],
   "sources": [
@@ -90,5 +90,36 @@
       "label": "dusk bot docs: routines",
       "url": "/docs/routines"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect linear with read only",
+      "quote a distinctive error phrase",
+      "ask to include archived issues",
+      "compare the matching title and description with your problem"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "adding \"ops team\" and expecting a team filter",
+      "fix": "that only adds search words. use list issues by team when the team matters."
+    },
+    {
+      "mistake": "looking only at active tickets",
+      "fix": "include archives when you suspect someone solved this before."
+    }
+  ],
+  "checklist": {
+    "h": "is this the right search?",
+    "items": [
+      "you need words from a title, description or issue reference",
+      "you chose whether to include archives",
+      "you are not relying on team, owner, project, status or label filters",
+      "you will read the matching issue before using it"
+    ]
+  },
+  "tip": {
+    "text": "the exact error message is a better clue than \"that bug from last month\"."
+  },
+  "voice": 2
 }

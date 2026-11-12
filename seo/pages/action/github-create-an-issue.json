@@ -4,14 +4,14 @@
   "title": "Create a GitHub issue with AI from a clear bug report",
   "nav": "create an issue",
   "h1": "turn your bug notes into a github issue with ai",
-  "description": "Have a bot create a GitHub issue in a named repository. Review the title and evidence first, and check whether labels or assignees actually took effect.",
+  "description": "Give a developer a GitHub issue they can start on: what happened, what you expected and the steps you tried, with a review before filing.",
   "keyword": "create github issue with ai",
   "keywords": [
     "chatgpt create github issue",
     "claude write github bug report",
     "ai turn notes into github issue"
   ],
-  "answer": "your bot can turn the bug notes you give it into a github issue with a title and optional body, labels and assignees. it needs the repository owner and name, and that repository must have issues enabled. opening an issue is a change, not a send, so it won't ask first. say \"show me the issue before you file it\" if you want to check the wording.",
+  "answer": "**a useful bug report saves the next person a round of questions.** give your bot the repository and what you saw. it can file an issue with a title, body, labels and assignees. the repository must allow issues. creation is a write, so say \"show me before you file it\" when you want a review.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,39 +43,39 @@
     "toolkit": "github",
     "slug": "GITHUB_CREATE_AN_ISSUE"
   },
-  "what": "creating an issue gives a report its own entry in a repository. the required inputs are the owner, repository and issue title. give the bot the observed behaviour, expected behaviour and reproduction steps for the body, and tell it to leave uncertain details as questions.\n\nit can also add labels, assign someone or set a milestone, but only if your github account can make changes in that repository. if it can't, github files the issue and quietly skips those extras.",
+  "what": "**give the developer enough to start, without a follow-up interview.** the bot needs the repository owner, name and issue title. add what happened, what you expected and the steps you actually tried. leave unknown details as questions.\n\nlabels, assignees and milestones are optional. github can quietly skip extras your account cannot set. open the finished issue to see which ones stuck.",
   "uses": [
-    "turn notes from a customer demonstration into a reproducible bug report",
-    "record a missing accessibility behaviour with the steps you observed",
-    "file a small documentation improvement in the repository that owns it",
-    "make an issue from an agreed task without adding an invented deadline or owner"
+    "**save the demo failure.** turn your customer demonstration notes into steps someone can follow.",
+    "**make accessibility work concrete.** describe the missing behaviour and exactly how you found it.",
+    "**fix a docs gap.** file the small writing change in the repository that owns it.",
+    "**capture an agreed task.** leave the deadline and owner blank unless someone chose them."
   ],
   "routine": {
-    "message": "every friday at 4, take the bug note i marked ready in this chat for copperfinch/booking-desk and prepare an issue title and body. search that repository for an existing report of the same behaviour, then show me any match and your proposed issue here. ask me before you change anything, and only create it after i confirm. never invent reproduction steps, assign someone or create an issue when a matching report already exists without asking me.",
+    "message": "every friday at 4, read bug notes added this week to the booking-desk bug reports folder. use only notes marked ready for copperfinch/booking-desk.\n\n- prepare a title, observed result, expected result and reproduction steps from each note\n- search the repository for matching reports\n- show any matches and proposed issues here\n\nask me before you change anything. create only the issues i confirm. don't invent steps or assign anyone. if a matching report exists, ask what to do. skip notes that already link to a filed issue.",
     "when": "fridays at 16:00",
-    "needs": "github connected with read and write access to copperfinch/booking-desk; issue search and creation enabled",
-    "output": "issue proposal: booking confirmation loses the room name\nrepository: copperfinch/booking-desk\n\nobserved by: renata\nsteps: choose a room, save a booking, reopen the confirmation.\nexpected: the selected room name remains visible.\nactual: the room field is blank.\n\nno matching report found in the search. waiting for approval to create."
+    "needs": "access to the bug reports folder; github read and write for issue search and creation in copperfinch/booking-desk",
+    "output": "issue proposal: booking confirmation loses the room name\nrepository: copperfinch/booking-desk\n\nrenata's note: choose a room, save a booking, reopen the confirmation.\nexpected: the selected room name stays visible.\nactual: the room field is blank.\n\nsearch found no matching report. waiting before creation."
   },
   "steps": [
-    "connect github in **Connected apps**, then provide the exact owner and repository rather than just a project nickname.",
-    "grant **read and write** with issue creation and any necessary search actions; **read only** cannot file the report.",
-    "ask for a proposed title and body and include an explicit instruction to wait for your confirmation.",
-    "after one approved creation, inspect the returned issue and any requested labels or assignments before relying on the routine."
+    "**name the repository exactly.** connect github and give its owner and repository, not just an internal nickname.",
+    "**allow only needed actions.** issue search and creation need read and write. read only cannot file anything.",
+    "**read the proposal first.** tell it to wait for your confirmation before creating the issue.",
+    "**see what stuck.** open the new issue and look for the labels, assignees and milestone you requested."
   ],
   "watch": [
-    "issues must be enabled in an existing, accessible repository. this action does not create the repository or turn issues on.",
-    "if your account can't make changes in the repository, labels, assignees and milestones are quietly skipped. check the new issue in github.",
-    "opening an issue doesn't ask first. keep \"ask me first\" in the routine.",
-    "an issue body records the evidence you give it; opening the issue does not show that the bot reproduced or fixed the bug."
+    "**issues must already work there.** this action cannot create a repository or turn its issues on.",
+    "**success can hide skipped extras.** github can file the issue while dropping labels, assignees or a milestone your account cannot set.",
+    "**creation doesn't pause by itself.** keep an ask-first line in the routine if you want to review it.",
+    "**the issue starts the investigation.** your evidence gives a developer somewhere to begin; filing alone neither reproduces nor fixes the bug."
   ],
   "faq": [
     {
       "q": "can it file an issue without assigning a developer?",
-      "a": "the title, owner and repository are required, while assignees are optional. say that ownership should stay unset if you have not chosen someone."
+      "a": "**yes, ownership can stay blank.** only the title, repository owner and repository name are required. assignees are optional."
     },
     {
       "q": "why did my new issue appear without its label?",
-      "a": "adding labels when filing needs an account that can make changes in the repository. without that, the issue is filed and the label is quietly skipped."
+      "a": "**github can quietly drop a label your account cannot set.** creation can still succeed. open the issue and look at its labels."
     }
   ],
   "sources": [
@@ -91,5 +91,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "give the repository owner and name",
+      "describe one actual failure and its steps",
+      "ask for an issue proposal without filing",
+      "look for an existing report before confirming"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "the repository has issues enabled",
+      "the steps describe what someone really tried",
+      "uncertain details remain questions",
+      "the final issue has the extras you requested"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "filing a polished guess",
+      "fix": "leave missing evidence as questions. tidy wording cannot replace a reproduction step."
+    },
+    {
+      "mistake": "treating a successful create as a complete setup",
+      "fix": "open the issue. labels and assignments can disappear without stopping creation."
+    }
+  ],
+  "tip": {
+    "text": "a screenshot and three honest steps beat a confident paragraph about a cause nobody tried to reproduce."
+  },
+  "voice": 2
 }

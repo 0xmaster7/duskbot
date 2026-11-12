@@ -10,7 +10,7 @@
     "obsidian mcp",
     "claude obsidian vault"
   ],
-  "answer": "there is no obsidian connection to sign in to in dusk bot. the local route is files: obsidian notes are plain markdown, and you can give a bot on your own computer the vault as its project folder. it can help read and organise those notes. the bot's own memory notes also open in obsidian.",
+  "answer": "**your unanswered questions are scattered across notes you keep reopening.** give a local dusk bot the obsidian vault as its project folder and ask it to bring those questions together, with filenames. it works with markdown files, so there is no obsidian sign-in. the bot’s own memory opens in obsidian too, separately from your project vault.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -41,58 +41,58 @@
   "app": {
     "name": "Obsidian",
     "toolkit": null,
-    "intro": "obsidian work here means working with markdown files on your computer. there's no obsidian sign-in; the bot works with the files. give a local bot the vault as its project folder, then name the folders and notes it may use. separately, the bot keeps its own memory in markdown files, and **Open in Obsidian** opens those notes.",
-    "setup": "keep the bot on the computer that holds the vault and give it the project folder deliberately. start with a request to list the notes it intends to read. ask for findings in chat before asking for file edits.\n\nfor the bot's own memory, open its **Memory** settings. those notes live under `.duskbot/workspaces/<bot>/`; they are separate from a project vault you give it."
+    "intro": "**get the thread running through your notes without reopening them all.**\n\nobsidian work here uses markdown files on your computer. give a local bot the project folder and name the notes it may read. ask for recurring questions, written commitments or filing proposals in chat. no obsidian sign-in is needed.\n\nthe bot also keeps its own markdown memory. open that from its memory settings in obsidian; it is separate from the vault you choose for project work.",
+    "setup": "**point it at the folder where the notes live.**\n\nrun the bot on that computer, choose the project folder and name the reading area. ask for filenames beside its findings so you can go back to the original note.\n\nthe bot’s own memory lives under `.duskbot/workspaces/<bot>/`. read and edit it in memory settings. those notes stay separate from your project vault."
   },
-  "routines_intro": "these routines use files as their source and return proposals in chat. each gives the bot a narrow reading area, so a loose request to tidy your notes does not become a vault-wide rewrite.",
+  "routines_intro": "**let the notes come back as questions worth answering.** each routine reads a named area and brings its findings to chat. start with the part of the vault you keep meaning to revisit.",
   "routines": [
     {
       "name": "reading note review",
-      "message": "every saturday at 10, read the markdown notes in the reading folder of this project. group the questions i left unanswered by topic and include the file name for each. do not edit notes or search outside that folder.",
+      "message": "every saturday at 10, read markdown notes in this project’s reading folder. group unanswered questions by topic and name the file behind each one. return the list here. never edit notes or search outside that folder.",
       "when": "saturdays at 10:00",
-      "output": "a topic list of open reading questions"
+      "output": "open reading questions grouped by topic, with filenames"
     },
     {
       "name": "weekly journal thread",
-      "message": "every sunday at 7 in the evening, read this week's notes in the journal folder. summarise commitments i wrote down and separate them from ideas i was only considering. keep the summary in our chat and leave the journal files unchanged.",
+      "message": "every sunday at 7 in the evening, read this week’s files in the journal folder. list commitments separately from ideas i was only considering. keep the review here. never change the journal files.",
       "when": "sundays at 19:00",
-      "output": "a private review of written commitments"
+      "output": "a review of written commitments and tentative ideas"
     },
     {
       "name": "filing proposals",
-      "message": "on the first day of each month at 4, inspect the loose markdown notes at the root of this vault. suggest a destination folder for each using my existing folder names. explain uncertain choices. ask me before you change anything; do not move or rename files yet.",
+      "message": "on the first day of each month at 4, inspect loose markdown notes at the root of this vault. suggest a folder for each, using only existing folder names. explain uncertain choices here. ask me before you change anything. do not move or rename files yet.",
       "when": "first day of the month at 16:00",
-      "output": "a filing plan for your review"
+      "output": "a filing plan with uncertain choices left open"
     }
   ],
-  "asks": "this is local file work, so connected-app read-only settings are not an obsidian permission boundary. use the bot's computer approval settings and begin on **Ask for approval**. **Auto-accept edits** permits file changes, so do not choose it expecting every note edit to pause.\n\nput \"ask me before you change anything\" in a routine that may propose moving or rewriting notes. the separate sending setting covers emails, messages, posts and payments; it is not the control for a markdown edit.",
+  "asks": "**get the findings in chat before changing the vault.** local file edits use the computer approval setting. start on **ask for approval**; auto-accept edits permits file changes. there is no obsidian connected-app grant to set read only.\n\nthe filing routine above asks the bot to wait before moves or rewrites. keep that instruction when you adapt it.",
   "cannot": [
-    "offer an obsidian sign-in or obsidian-specific actions; it works with the note files.",
-    "run a local vault routine while that computer is asleep or dusk bot is closed. a phone paired with that machine also needs it awake to reach the bot.",
-    "treat a cloud-shared folder as a writable local vault. the documented cloud folder sharing is a read-only copy, updated while your computer is on. for editing, use a project folder on your own computer."
+    "**there is no obsidian sign-in or action list here.** the bot works with files.",
+    "**local routines need an awake computer.** they stop when it sleeps or dusk closes. a paired phone also needs that computer running.",
+    "**a cloud-shared folder is not a writable local vault.** sharing gives cloud bots a read-only copy, updated while your computer is on. use a local project folder for edits."
   ],
   "sections": [
     {
-      "h": "your vault is not the bot's memory",
-      "md": "a project folder is the material you gave the bot to work with. its own memory is a separate set of notes you can inspect and edit under **Memory**. turning off **Let this bot use memory** stops memory use and leaves those files on disk. opening them in obsidian does not make your whole vault the bot's memory."
+      "h": "the vault and memory have different jobs",
+      "md": "**your project notes and the bot’s memory can sit side by side.** the vault holds material you chose for the task. memory holds the bot’s own notes; opening it in obsidian keeps those jobs separate.\n\ninspect and edit memory in its settings. turning off let this bot use memory stops the bot using it and leaves the files on disk."
     },
     {
-      "h": "begin with questions rather than rearranging",
-      "md": "for [study notes](/for/students), ask which questions recur across the files you name. for [file organisation](/use-cases/file-organizer), ask for a move plan first. if your notes live in a connected workspace instead, the [notion integration](/integrations/notion) uses app permissions and a different set of actions."
+      "h": "questions are a better first job than moving files",
+      "md": "**find the idea you kept coming back to.** for [study notes](/for/students), ask which questions recur and have it name the files behind them.\n\nfor [file organisation](/use-cases/file-organizer), ask for a move plan. if the notes live in [notion](/integrations/notion), use its connected-app permissions and actions instead."
     }
   ],
   "faq": [
     {
       "q": "can claude read my obsidian vault?",
-      "a": "a bot in dusk bot using the ai you choose can work with a vault you give it as a project folder on your own computer. specify the notes to use and ask it to leave the files unchanged for a reading task."
+      "a": "**yes, through files you choose.** a dusk bot using your chosen ai can read a local project vault. name the notes and request no changes for a reading job."
     },
     {
-      "q": "do i need an obsidian mcp server for this?",
-      "a": "the file-based setup described here does not use one. dusk bot supports adding trusted mcp servers separately, but we haven't checked any particular obsidian server or plugin, so we don't name one."
+      "q": "do i need an obsidian mcp server?",
+      "a": "**the local-file setup needs no mcp server.** dusk also supports trusted mcp servers, but we have not evaluated a particular obsidian server or plugin."
     },
     {
-      "q": "are the notes kept only on my disk?",
-      "a": "the vault in this setup is local, but text used for the bot's work goes to the ai provider you choose. you can instead choose a model you run locally. see [privacy and data](/docs/privacy-and-data)."
+      "q": "do the notes stay only on my disk?",
+      "a": "**the files are local; the ai may not be.** text used for the job goes to your chosen ai provider. choose a local model if you want that route. see [privacy and data](/docs/privacy-and-data)."
     }
   ],
   "sources": [
@@ -124,5 +124,32 @@
       "label": "dusk bot docs: shared cloud folders",
       "url": "/docs/dusk-cloud"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose a small folder of markdown notes",
+      "give a local bot that project folder",
+      "ask for unanswered questions with filenames, no edits",
+      "open the note behind one question and compare the wording"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: naomi reviews reading notes.",
+    "before": "questions sit at the ends of several markdown notes. naomi keeps reopening files to remember what remains unresolved.",
+    "after": "naomi gets the open questions grouped by topic, each with its source file. she can pick up the reading without reopening every note."
+  },
+  "mistakes": [
+    {
+      "mistake": "asking it to \"tidy everything\"",
+      "fix": "name one folder and request a plan before edits."
+    },
+    {
+      "mistake": "assuming local files mean local ai",
+      "fix": "look at the bot’s model choice. local files can still send text to an ai provider."
+    }
+  ],
+  "tip": {
+    "text": "ask it to name the note behind every question. you will want the context when you come back."
+  },
+  "voice": 2
 }

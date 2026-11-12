@@ -10,7 +10,7 @@
     "relevance ai pricing",
     "relevance ai review"
   ],
-  "answer": "relevance ai is aimed at companies building business agent teams, especially for sales and operations. dusk bot is a smaller starting point if you want to give a few bots jobs yourself. before comparing prices, note that relevance ai's own marketing page and docs disagree about available plans. so ask them which plan you can actually buy.",
+  "answer": "**need a sales deployment, or just help with tomorrow's handoff?** relevance ai builds business agent teams for sales and operations. dusk lets you name a bot and give it that smaller job in plain words. as of 12 november 2026, relevance ai's marketing and docs disagree on plans. get an offer you can buy before budgeting around either price.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,19 +44,19 @@
   "verdict": {
     "them_title": "relevance ai",
     "them": [
-      "you are buying a business agent deployment and want to discuss it with a sales team",
-      "you need its documented native and pipedream connection catalogue",
-      "you want a platform offering unlimited workforces and curated multi-agent systems"
+      "**you are planning a business deployment.** you want to work with its sales and deployment team.",
+      "**its app catalogue matters.** you need the native and pipedream connections it lists.",
+      "**you want workforces.** its offer includes unlimited workforces and curated multi-agent systems."
     ],
     "dusk": [
-      "you want to define a bot by naming it and describing one job",
-      "you prefer separate bot memories and control over whether group conversations become memory",
-      "you want to try personal work on your own computer before choosing hosting"
+      "**your first job is small.** name a bot and describe what it should do.",
+      "**you want separate memories.** decide which bots learn from group conversations.",
+      "**you want to try personal work locally.** choose hosting later if you need it."
     ]
   },
   "compare": {
     "h": "business deployment beside a personal bot team",
-    "intro": "the table shows which page says what. we can't tell you whether the docs prices are still on sale.",
+    "intro": "**get a quote before you build the budget.** as of 12 november 2026, relevance ai's marketing and docs list different plans. ask which docs prices a new account can actually buy.",
     "cols": [
       "Relevance AI",
       "Dusk Bot"
@@ -144,33 +144,33 @@
       }
     ]
   },
-  "method": "we make dusk bot, and this is a comparison of documented offerings, not an independent performance review. we read relevance ai's own pages on 12 november 2026. those pages disagree on plans, so we have not resolved the disagreement by guessing. we did not run identical tasks through both products or test a sales-led deployment.",
+  "method": "**use the offer to choose a trial, then judge the work.** we make dusk bot. we compared relevance ai's own pages on 12 november 2026.\n\nits pages disagree about plans. we show both. we did not run matching jobs or test a deployment with its sales team.",
   "sections": [
     {
-      "h": "get a plan confirmed before budgeting",
-      "md": "as of 12 november 2026, relevance ai's marketing pricing page shows enterprise with custom pricing and a request to talk to sales.[^2] its docs still list pro at $19/month billed annually or $29 monthly, and team at $234/month billed annually or $349 monthly. the docs say the free plan is retired for new and existing accounts.[^3]\n\nthose are conflicting buying instructions from the same company. ask relevance ai which plans are available to a new account, which billing period applies and what is included in writing. we cannot tell you that the docs price will be offered at checkout.\n\nthe docs also list pro allowances of 2,500 actions and 10,000 vendor credits, plus extra usage at $80 per 1,000 actions and $20 per 10,000 vendor credits.[^3] ask about both meters, rather than treating credits as another name for completed jobs."
+      "h": "get the plan in writing",
+      "md": "**get the plan and billing period in writing.** as of 12 november 2026, marketing lists enterprise at a custom price through sales.[^2] the docs still list these prices:[^3]\n\n- pro: $19/month billed annually, or $29 monthly\n- team: $234/month billed annually, or $349 monthly\n- free: retired for new and existing accounts\n\nask which plans a new account can buy, which billing period applies and what it includes. don't build your budget around an unresolved offer.\n\n**there are two usage meters too.** pro's listed allowances are 2,500 actions and 10,000 vendor credits. extra usage costs $80 per 1,000 actions and $20 per 10,000 vendor credits.[^3] ask about both; neither number means completed jobs."
     },
     {
-      "h": "do you need a workforce or one careful reader?",
-      "md": "relevance ai describes a platform for business workforces, with unlimited workforces and curated multi-agent systems.[^1][^2] that is worth considering when deployment is an organisation-wide project. if you are still deciding what one agent should do, start with the smallest handoff you can review.\n\na dusk instruction to try is: \"read these attached sales handoff notes. separate confirmed commitments from questions nobody has answered. keep the source filename with each item, and leave the originals alone.\" attaching files is supported.[^9]\n\nif you need several viewpoints, [ai teammates](/ai-teammates) explains that model of work. in dusk, a group can have one leader handing work to other bots. each retains its own ai and permissions. group chat learning is off unless you enable it for the bot.[^10][^11]"
+      "h": "start with one handoff you can judge",
+      "md": "**start with the handoff that keeps falling through.** relevance ai offers business workforces and curated multi-agent systems.[^1][^2] that can fit an organisation planning a deployment.\n\nfor a smaller trial, attach sales handoff notes to dusk. ask it to separate confirmed commitments from unanswered questions. keep each source filename beside the finding and leave the originals alone.[^9]\n\nneed more viewpoints? [ai teammates](/ai-teammates) explains the setup. a dusk group can have a leader handing out tasks. each bot keeps its own ai and permissions. group learning stays off unless you enable it.[^10][^11]"
     },
     {
-      "h": "keep the first deployment narrow",
-      "md": "a [founder](/for/founders) trying a first assistant has a different buying problem from a company commissioning a sales workforce. list the documents, apps and decisions the first bot actually needs. do not connect every account because it is available.\n\ndusk lets you choose app access per bot, including read-only access. sending messages or emails asks first unless you set a daily allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^12] other app changes are not documented to require approval, so keep the bot read-only or include \"ask me before you change anything\" in its instructions.[^9]\n\nif what you really want is a building platform with different billing, [gumloop](/alternatives/gumloop) belongs in the comparison too. a simpler app isn't automatically safer or more accurate; we haven't measured either. check the current terms of any ai provider you sign in to as well."
+      "h": "give the first bot one useful job",
+      "md": "**a good first brief ends with a decision you can make.** a [founder](/for/founders) can start with sales handoff notes and a list of unanswered questions. attach the files the bot needs.\n\nkeep app reviews read only. if you later allow edits, write \"ask me before you change anything\". dusk can restrict access per bot.[^9][^12]\n\nneed a building platform for business workflows? compare [gumloop](/alternatives/gumloop). read current ai provider terms before signing in. this comparison measures neither safety nor accuracy."
     }
   ],
   "faq": [
     {
       "q": "what is the current relevance ai price?",
-      "a": "its own pages disagree as of 12 november 2026. marketing shows enterprise custom pricing; docs list pro and team prices. ask sales to confirm availability before using those docs figures in a budget.[^2][^3]"
+      "a": "**its own pages disagree.** as of 12 november 2026, marketing lists custom enterprise pricing; docs list pro and team. ask sales which prices a new account can buy.[^2][^3]"
     },
     {
       "q": "can non-technical business owners use an agent team?",
-      "a": "start by writing one job and deciding how you will check it. relevance ai offers a deployment route through its sales team.[^2] dusk lets you make bots in an app and put them in group chats.[^6][^10] neither approach makes unclear instructions clear by itself."
+      "a": "**start with a handoff you already understand.** relevance ai offers deployment help through sales.[^2] dusk lets you make bots and groups in an app.[^6][^10] neither can rescue an unclear brief."
     },
     {
       "q": "can i bring my own model credentials to relevance ai?",
-      "a": "its plan docs say own api keys are optional on every plan, alongside vendor credits for model and tool costs. that is separate from which commercial plan a new buyer can get.[^4]"
+      "a": "**yes, its plan docs allow your own api keys.** vendor credits cover model and tool costs otherwise. that doesn't resolve which paid plan a new buyer can get.[^4]"
     }
   ],
   "sources": [
@@ -227,5 +227,55 @@
       "label": "dusk bot: permissions and sends",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "write one task and the result you need",
+      "list only the files and apps it needs",
+      "compare the trial setup for that job",
+      "ask relevance ai to confirm the available plan"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using docs prices as a quote",
+      "fix": "get the available plan and billing period in writing."
+    },
+    {
+      "mistake": "treating actions and credits as the same unit",
+      "fix": "ask what uses each allowance and what extra usage costs."
+    },
+    {
+      "mistake": "connecting every account on day one",
+      "fix": "start with only the sources the first job needs."
+    }
+  ],
+  "tip": {
+    "text": "a useful quote names both usage meters."
+  },
+  "decide": {
+    "cols": [
+      "what you are buying",
+      "start here"
+    ],
+    "rows": [
+      [
+        "business deployment with sales help",
+        "relevance ai"
+      ],
+      [
+        "one bot you can name and brief yourself",
+        "dusk bot"
+      ],
+      [
+        "a large native and pipedream app catalogue",
+        "read relevance ai's listed connections"
+      ],
+      [
+        "separate bots with optional group memory",
+        "dusk bot"
+      ]
+    ]
+  },
+  "voice": 2
 }

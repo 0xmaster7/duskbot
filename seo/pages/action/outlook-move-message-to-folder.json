@@ -4,14 +4,14 @@
   "title": "Move Outlook messages to a chosen folder with AI",
   "nav": "move message to folder",
   "h1": "move an outlook email into the right folder",
-  "description": "Have a bot move an Outlook email into the right folder, checking the email and the folder before anything moves.",
+  "description": "File completed Outlook emails where you will find them later. A bot finds the message and folder, previews the move and reports the result.",
   "keyword": "outlook move email to folder with ai",
   "keywords": [
     "chatgpt move outlook message",
     "claude file outlook email",
     "ai outlook folder filing"
   ],
-  "answer": "a bot can move an outlook message from its current folder into another folder in the same mailbox. it finds the exact email and destination folder before filing. moving is a write, which the sending approval setting does not cover; ask explicitly for a preview if you want one.",
+  "answer": "**get completed claims out of your inbox and into the folder you'll search later.** a bot finds the outlook message and destination, then moves it within the same mailbox. ask for a subject-and-folder preview before it moves anything. this is a write, so the sending setting won't pause it for review. you get a result for each move.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,37 +41,37 @@
     "toolkit": "outlook",
     "slug": "OUTLOOK_MOVE_MESSAGE"
   },
-  "what": "the bot finds the email and the folder first, then moves it. it won't guess a folder from a similar name.\n\nif a move fails, ask the bot to find the email again before retrying. this action moves mail within one user's mailbox, not into another person's inbox.",
+  "what": "**find both ends before moving anything.** the bot looks up the exact email and destination folder. tell it to stop rather than choose a similar folder name. this stays within one mailbox; it won't transfer mail to a colleague.\n\nif a move fails, have the bot find the message again before retrying. small batches make the result easier to inspect and avoid piling moves on at once.",
   "uses": [
-    "file a completed warranty claim under its existing project folder",
-    "move an event confirmation out of the inbox after adding its details to your plan",
-    "return an incorrectly filed message to the intended folder",
-    "keep an agreed supplier thread's individual messages in the same mailbox folder"
+    "**close out a warranty claim.** file the completed message under its existing project folder.",
+    "**clear a handled confirmation.** move it once its event details are in your plan.",
+    "**repair a filing mistake.** return one email to the folder it belongs in.",
+    "**keep supplier mail together.** move the chosen thread's individual messages into the same mailbox folder."
   ],
   "routine": {
-    "message": "every friday at 11:55, find outlook messages i marked ready to file in this chat for oakmarsh warranties. look up the existing \"warranties / completed\" folder and show the selected subjects and destination here before moving them. after i confirm, move only those messages and report each result. never create folders, delete mail or guess which email i mean.",
+    "message": "every friday at 11:55, read messages in my outlook folder warranties / ready to file for oakmarsh warranties. use that folder as the input, not previous chat messages.\n\nfind the existing warranties / completed folder. show each selected subject and destination here, then ask me before moving anything. move only the messages i confirm and report each result. never create folders, delete mail or guess a message. if nothing is ready, say so briefly.",
     "when": "fridays at 11:55",
-    "needs": "outlook connected, with read and write access to the mailbox folders",
-    "output": "oakmarsh warranties filing plan\nmessage: replacement hinge confirmation\ndestination: warranties / completed\nfull message and folder references found. awaiting your confirmation."
+    "needs": "outlook read and write; existing ready-to-file and completed folders in the chosen mailbox",
+    "output": "oakmarsh warranties\nmessage: replacement hinge confirmation\nfrom: warranties / ready to file\nto: warranties / completed\n\nmessage and destination found. ready for your decision."
   },
   "steps": [
-    "choose the correct mailbox in **Connected apps** and permit **read and write** for the filing bot.",
-    "ask it to list folders and identify your destination before giving it a move request.",
-    "check one message subject and the destination folder, then put the approval checkpoint in the routine.",
-    "verify the destination after the first move and use **Pause** if any filing rule becomes unclear."
+    "**choose the mailbox.** allow outlook read and write for this filing bot.",
+    "**find the destination first.** ask it to list folders and show the one you mean.",
+    "**put review in the job.** read one subject and destination together before allowing a move.",
+    "**inspect the result.** open the destination after the first move. pause the routine if the filing rule becomes unclear."
   ],
   "watch": [
-    "if a move fails, ask the bot to find the email again and try once more.",
-    "move a big batch a few at a time."
+    "**don't retry a stale lookup.** if the move fails, find the email again before one more attempt.",
+    "**large batches need patience.** move a few at a time so you can track what happened."
   ],
   "faq": [
     {
       "q": "can it make a new folder if it's missing?",
-      "a": "no. this only moves mail into a folder you already have. make the folder in outlook first."
+      "a": "**not with this action.** it moves mail into an existing folder. create the destination in outlook first."
     },
     {
       "q": "will this move mail into a colleague's mailbox?",
-      "a": "the action moves a message between folders within the specified user's mailbox. transferring to another mailbox is not what it does."
+      "a": "**no, it stays in one mailbox.** the source message and destination folder belong to the same user."
     }
   ],
   "sources": [
@@ -87,5 +87,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick one email in the chosen mailbox",
+      "ask the bot to find its destination folder",
+      "review the subject and folder together",
+      "confirm the move, then open the destination"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming ask every time covers filing",
+      "fix": "that setting covers sends. put \"ask me before moving anything\" in the filing request."
+    },
+    {
+      "mistake": "retrying without finding the email again",
+      "fix": "look it up afresh after a failure. open the destination before repeating a move."
+    }
+  ],
+  "tip": {
+    "text": "start with one message. if its destination looks wrong, you have one correction instead of a missing inbox."
+  },
+  "voice": 2
 }

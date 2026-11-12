@@ -11,7 +11,7 @@
     "chatgpt make notion page",
     "claude create notion page from notes"
   ],
-  "answer": "a bot can turn your notes into a new notion page with a title and markdown content, or create an empty page for later. it must place the page under an existing, accessible page or database. it cannot create a root-level page. creation is a write, so ask for a title and content preview if you want to approve the new page before it appears.",
+  "answer": "**get the field notes out of chat and into the project.** a bot can create a notion page with a title and markdown, or start a blank page for later. give it an existing parent page or database.\n\nthat's where the new note will live; this action can't make a top-level workspace page.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,37 @@
     "toolkit": "notion",
     "slug": "NOTION_CREATE_NOTION_PAGE"
   },
-  "what": "this makes a new document where you want it in notion, rather than adding text to an existing document. provide a title and the parent page or database. a page can start empty or take your prepared markdown as its content.\n\npaste the link to the page it should go under, or name it and let the bot find it. a link is safer when names repeat.",
+  "what": "**a new page needs a home, not just a title.** give the bot the parent page or database and your note. it can start with markdown content or an empty page for later.\n\npaste the parent's link when names repeat. otherwise the bot searches by name, and a familiar title can lead to the wrong project. this creates a fresh page rather than extending an existing one.",
   "uses": [
-    "turn a site-visit note into a child page beneath the right building project",
-    "create an empty interview page with a clear title before each scheduled research session",
-    "save an approved workshop outline as a separate page without rewriting the project home"
+    "**file the site visit under its building.** turn the note into a separate child page.",
+    "**prepare for each interview.** create a clearly titled blank page before the research session.",
+    "**save the agreed workshop outline.** give it a page without rewriting the project home."
   ],
   "routine": {
-    "message": "each monday at 16:25, collect the field visit notes i wrote here today for alderfinch restoration. propose a titled notion page under the field visits parent i linked, and show the markdown here first. after i confirm, create that one page and return its reference in this chat. never invent observations or create a page if there are no notes.",
+    "message": "each monday at 16:25, read field visit notes added today to the alderfinch restoration project folder. group notes from the same visit. look under the notion field visits parent for existing pages first.\n\nshow the title, parent and markdown for each new visit here. ask before creating its page, then return the page reference. never invent observations or repeat a visit already saved. if no new notes exist, create nothing.",
     "when": "mondays at 16:25",
-    "needs": "notion connected with read and write access to find the parent and create a child page",
-    "output": "proposed page: alderfinch, north stair visit\nparent: field visits\ncontent: ceiling staining recorded by noemi; moisture reading not provided.\nno page created yet; waiting for your review."
+    "needs": "read access to the field-notes folder; notion read and write for parent lookup and child-page creation",
+    "output": "new visit proposal\n\n- title: alderfinch, north stair visit\n- parent: field visits\n- note: noemi noted ceiling staining. no moisture reading in the file.\n\nthe title, parent and text are ready for your review."
   },
   "steps": [
-    "connect notion through **Connected apps** and grant the note bot **read and write** with page search and creation allowed.",
-    "paste the parent page's link and have the bot confirm where the new page will go.",
-    "send a title and a short note, specifying markdown content and a preview before creation.",
-    "open the first created child page to check its placement. use **Edit** on the routine card to adjust when later notes are collected."
+    "**connect notion.** allow search and page creation with read and write. give the bot the field-notes folder.",
+    "**confirm the parent.** paste its link and ask where the new page will appear.",
+    "**preview a short note.** read the title and markdown before allowing creation.",
+    "**open the first child page.** verify placement. use **edit** on the routine card to change collection time."
   ],
   "watch": [
-    "a parent must already exist and be accessible. this action cannot make a new top-level workspace page.",
-    "if two pages share a name, the bot may pick the wrong one. paste the parent page's link to be sure.",
-    "rapid page creation can encounter conflicts. check whether a page was created before retrying a failed request."
+    "**the parent must exist and be accessible.** this action cannot create a top-level workspace page.",
+    "**names repeat.** use the parent link when search could find more than one match.",
+    "**a lost reply can hide a successful save.** rapid creation can also hit conflicts. look for the page before retrying."
   ],
   "faq": [
     {
-      "q": "can it make a blank notion page for me to fill in?",
-      "a": "yes. provide the required title and parent without content. you can add the body later."
+      "q": "can it make a blank notion page?",
+      "a": "**yes.** give it the title and parent without body text. fill the page later."
     },
     {
       "q": "can it add a cover image?",
-      "a": "it accepts a publicly accessible image url for the cover. a private file on your computer is not itself a usable cover url."
+      "a": "**yes, from a public image address.** a private file on your computer is not a usable cover link."
     }
   ],
   "sources": [
@@ -89,5 +89,27 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose an existing notion parent page",
+      "paste its link with a short note",
+      "ask for a title and content preview",
+      "allow creation, then open the child page"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "naming the parent when two projects share it",
+      "fix": "paste the link. moving a misplaced note later is avoidable work."
+    },
+    {
+      "mistake": "retrying before checking notion",
+      "fix": "look for the first page. a lost reply does not mean creation failed."
+    }
+  ],
+  "tip": {
+    "text": "give the note a parent before giving it a clever title."
+  },
+  "voice": 2
 }

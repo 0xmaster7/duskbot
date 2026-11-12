@@ -4,14 +4,14 @@
   "title": "Send Slack messages with AI to the right conversation",
   "nav": "send message",
   "h1": "send a slack message or thread reply with ai",
-  "description": "Have AI post an approved Slack message to a channel, DM or thread. Check the destination, sending setting and duplicate risk before handing it a routine.",
+  "description": "Post a Slack notice or reply through AI, with the wording and destination ready for your Allow. Keep thread replies under the original message.",
   "keyword": "send slack message with ai",
   "keywords": [
     "chatgpt send slack message",
     "claude post slack thread reply",
     "ai slack channel message"
   ],
-  "answer": "a bot can post the message you request in a slack channel, direct message or private group it can access. it can also reply under an existing message after finding the original message. sends ask first by default unless you grant a daily amount. check the destination carefully: repeating the same call can post the same message twice.",
+  "answer": "**turn the maintenance calendar into a notice the team can use.** a bot can post to an accessible slack channel, direct message or private group, and reply in a thread. show it the destination and the wording to send. sends ask first by default unless you allow a daily amount. after an uncertain result, open slack before retrying to avoid a duplicate.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,39 +43,39 @@
     "toolkit": "slack",
     "slug": "SLACK_SEND_MESSAGE"
   },
-  "what": "give the bot a destination and the wording to send. for an ordinary note it can use markdown; for a structured slack layout it uses blocks instead. those are alternative ways to provide the visible message, not two bodies to combine.\n\nfor a thread reply, the bot finds the original message first. for a direct message, it opens the conversation with that person first. a thread reply can also be broadcast to the main channel, so say explicitly when the reply should stay within the thread.",
+  "what": "**choose the destination before the wording.** name the channel or person and say what to send. ordinary notes use markdown; structured layouts use slack blocks instead.\n\nfor a reply, the bot finds the original message. for a direct message, it opens that conversation first. say \"keep it in the thread\" if you don't want a broadcast to the main channel.",
   "uses": [
-    "post the maintenance notice you approved to the operations channel",
-    "reply beneath a specific delivery question without starting another channel conversation",
-    "send a direct message confirming the address a teammate asked you to check",
-    "put an agreed agenda in the project channel before the working session"
+    "**maintenance notices:** post approved wording to operations.",
+    "**delivery questions:** reply under the original message.",
+    "**a teammate's request:** send the address you checked by direct message.",
+    "**working sessions:** put the agreed agenda in the project channel."
   ],
   "routine": {
-    "message": "every wednesday at 16:10, prepare a notice in slack channel kilnworks-maintenance using only the service window i confirmed here that day. show me the exact message and destination, then ask to send it. put the posting result back in this chat and stay quiet when no window was confirmed. never broadcast to other channels or retry an uncertain send until you have checked whether it appeared.",
+    "message": "every wednesday at 16:10, read this week's confirmed maintenance windows on the maintenance calendar. prepare a notice for kilnworks-maintenance in slack. show the exact wording and channel here, then wait for my allow. if there is no confirmed window, stay quiet. report the posting result here. never mention people, broadcast elsewhere or retry an uncertain send without checking if it appeared.",
     "when": "wednesdays at 16:10",
-    "needs": "slack connected with read and write access, access to kilnworks-maintenance, and Ask every time enabled",
-    "output": "awaiting approval for kilnworks-maintenance\n\nmaelle confirmed that the loading bay will be unavailable during the agreed maintenance window. please use the side entrance.\n\nno mentions added. message not posted yet."
+    "needs": "google calendar access for reading maintenance windows; slack read and write with channel access; sending set to ask every time",
+    "output": "ready for your allow: kilnworks-maintenance\n\nerin confirmed the loading bay maintenance window on the calendar. please use the side entrance during that time.\n\ndestination: kilnworks-maintenance, with no mentions."
   },
   "steps": [
-    "connect the intended slack workspace in **Connected apps** and allow this bot **read and write** access to send.",
-    "under **Sending on your behalf**, pick **Ask every time** and confirm the channel or dm before a first test.",
-    "for replies, ask the bot to read the parent message and keep the reply in its thread without a channel broadcast.",
-    "approve a single test notice, inspect where it landed, then add the schedule you want."
+    "**choose the workspace.** connect slack and allow read and write for posting.",
+    "**set ask every time.** read the channel or person on the first sending card.",
+    "**keep replies where they belong.** have the bot read the original and avoid a channel broadcast.",
+    "**inspect one post.** open the posted message before setting a repeat schedule."
   ],
   "watch": [
-    "**Full access** without a bot-specific sending rule allows up to 25 sends a day without asking. set **Ask every time** explicitly when you want every post reviewed.",
-    "a missing, archived or inaccessible channel causes the post to fail; a familiar channel name does not establish access.",
-    "duplicate calls create duplicate posts. after an uncertain result, check the conversation before trying again.",
-    "if slack says to slow down, the bot waits instead of resending."
+    "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
+    "**a familiar name doesn't grant access.** missing, archived or inaccessible channels can block a post.",
+    "**retries can duplicate messages.** look for the message in the conversation before sending again.",
+    "**if slack asks it to slow down, it waits.** repeated sends aren't the fix."
   ],
   "faq": [
     {
       "q": "can it reply without alerting the whole channel?",
-      "a": "it can put a reply under the original message without broadcasting to the channel. tell it to keep the response inside that thread."
+      "a": "**yes. keep it in the thread.** ask the bot to reply beneath the original without broadcasting to the main channel."
     },
     {
       "q": "can it message a person by name alone?",
-      "a": "yes, if it can find them. it looks the person up, opens a direct message and shows you before posting."
+      "a": "**yes, if it can find the person.** it looks them up and opens the direct message. read the person's profile before posting."
     }
   ],
   "sources": [
@@ -91,5 +91,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "set sending to ask every time",
+      "name one channel and ask for a short test note",
+      "read the workspace and destination before allow",
+      "open slack and inspect the posted message"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying \"reply\" without naming the thread",
+      "fix": "link the original and ask to keep the reply there."
+    },
+    {
+      "mistake": "retrying after a timeout",
+      "fix": "open slack first. the first post may already be there."
+    }
+  ],
+  "tip": {
+    "text": "after an uncertain send, look before you retry."
+  },
+  "checklist": {
+    "items": [
+      "the workspace and channel or person are right",
+      "the reply stays in the intended thread",
+      "mentions and broadcasts are deliberate",
+      "an earlier attempt did not already post"
+    ]
+  },
+  "voice": 2
 }

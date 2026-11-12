@@ -11,7 +11,7 @@
     "chatgpt add blocks to notion page",
     "claude insert notion page content"
   ],
-  "answer": "a bot can add several content blocks to an existing notion page or a supported parent block in one request. it can append them or insert them after a chosen child. check the placement before writing: say which heading the notes go under. very long paragraphs can be cut short, so open the page and check the end of each one.",
+  "answer": "**get the latest test notes under the heading where people will read them.** a bot can add paragraphs, headings and lists to an existing notion page. append them at the bottom or insert them after a chosen block. keep long notes in shorter blocks: text can cut off, so open the saved section and read its final line.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,36 @@
     "toolkit": "notion",
     "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT"
   },
-  "what": "this is useful when a page is already structured and you have a new section to add without replacing the rest. a batch can contain different supported block types. you can give the notes as plain text with simple headings and bullets.\n\nto put them under a particular heading instead of at the bottom, name the heading. the bot reads the page first to find exactly where it is, rather than guessing from the words.",
+  "what": "**keep the structure you already have.** give the bot short notes with headings and bullets. it can add several supported block types together.\n\nname the page and insertion point. the bot reads the page to find them. without a chosen position, notes go at the bottom. adding after a heading and nesting inside a block are different placements.",
   "uses": [
-    "add a short test summary beneath the existing test results heading",
-    "append interview observations as a heading followed by a bulleted list",
-    "insert a new workshop section between two established parts of a planning page"
+    "**test results:** add a short summary after the existing heading.",
+    "**interview notes:** append observations as a heading and bullets.",
+    "**workshop planning:** insert a section between two existing parts of the plan."
   ],
   "routine": {
-    "message": "every thursday at 12:15, take the glaze test notes i give you here for marlowfen pottery and prepare a short heading and bullet list for the linked notion page. read its blocks and show me where the new batch will go after the test results heading. wait for my agreement, add the batch, and confirm the added text here. never replace existing blocks or guess missing measurements.",
+    "message": "every thursday at 12:15, read new glaze test files from the glaze tests folder in my project folder. prepare a short heading and bullets for the marlowfen pottery notion page. skip notes already on the page. read the page and show where the batch will go after test results. ask me before you change anything. after i agree, add the notes and read back the saved text, including its ending. never replace blocks or guess missing measurements.",
     "when": "thursdays at 12:15",
-    "needs": "notion connected, read and write access for reading destination blocks and adding content",
-    "output": "marlowfen glaze tests\nproposed insertion: after test results, inside the existing page\n- celeste recorded pinholes on the blue sample.\n- firing temperature not recorded.\nbatch prepared; destination awaiting your confirmation."
+    "needs": "access to the glaze tests project folder; notion read and write for page reads and additions",
+    "output": "marlowfen glaze tests\n- position: after test results on the existing page\n- celeste found pinholes on the blue sample.\n- firing temperature: not available\n\nproposed placement: directly after test results."
   },
   "steps": [
-    "in **Connected apps**, give the notion writer **read and write** access limited to the block-reading and adding actions it needs.",
-    "link the destination page and identify the heading or last block that should precede the addition.",
-    "ask for a short batch and a placement preview. require the bot to wait before adding it.",
-    "read the inserted section in notion after a trial. **Pause** repeated additions if the same source notes start appearing twice."
+    "**connect the writer.** allow notion read and write, limited to reading and adding blocks.",
+    "**choose the spot.** link the page and name the heading the notes should follow.",
+    "**read the preview.** ask for short notes and their position before any addition.",
+    "**read the saved ending.** open notion and read the end of each paragraph. pause if repeated runs add the same notes."
   ],
   "watch": [
-    "each request accepts at most 100 blocks. longer additions need separate batches and a check that each landed once.",
-    "long text handling differs by format, and simplified text segments may be truncated. inspect the saved wording rather than assuming the full source survived.",
-    "ask the bot to show you where the notes will land before it adds them."
+    "**100 blocks fit in one request.** split larger additions into separate batches and confirm each lands once.",
+    "**choose after or inside.** adding after a heading and nesting inside a block put the notes in different places."
   ],
   "faq": [
     {
       "q": "can it insert text after a heading instead of at the bottom?",
-      "a": "yes. name the heading and the bot finds it on the page, then adds the notes right after it."
+      "a": "**yes. name the heading.** the bot reads the page, finds that spot and adds the notes after it."
     },
     {
       "q": "does adding blocks erase the rest of the page?",
-      "a": "this action adds children rather than replacing the page body. still confirm the position, because appending at the bottom and inserting after a heading are different choices."
+      "a": "**it adds content rather than replacing it.** name the position so the notes reach the people reading that section."
     }
   ],
   "sources": [
@@ -89,5 +88,31 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "link a notion page",
+      "give it a heading and two short notes",
+      "ask where it would insert them before writing",
+      "open the saved section and read its last line"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "saying \"add this to the page\"",
+      "fix": "name the heading it should follow."
+    },
+    {
+      "mistake": "pasting one enormous paragraph",
+      "fix": "split the text into shorter blocks, then read the saved ending."
+    }
+  ],
+  "tip": {
+    "text": "read the last line. cut-off text often looks fine at the top."
+  },
+  "worked": {
+    "before": "test results\nold notes only; celeste's new findings sit in a file.",
+    "after": "test results\nnew glaze test\n- blue sample: pinholes\n- firing temperature: not available\n\nolder notes remain."
+  },
+  "voice": 2
 }

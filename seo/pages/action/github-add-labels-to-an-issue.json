@@ -4,14 +4,14 @@
   "title": "Add GitHub issue labels with AI using your rules",
   "nav": "add labels to an issue",
   "h1": "ask ai to add the right labels to a github issue",
-  "description": "Apply named labels to a GitHub issue with AI. Keep spelling controlled: this action creates missing labels and does not ask under the sending setting.",
+  "description": "Add the labels your team agrees on to a GitHub issue with AI. Existing labels stay, and a missing name becomes a new label, so spelling matters.",
   "keyword": "add github issue labels with ai",
   "keywords": [
     "chatgpt label github issues",
     "claude github issue labels",
     "ai add labels to github issue"
   ],
-  "answer": "give your bot a github issue and a list of label names, and it can add those labels to that issue. names that do not already exist are created, so a spelling mistake can add a new label rather than fail. adding a label is a change, and changes don't ask first. give the bot your exact list of labels, and say \"ask me first\" if you want to approve each one.",
+  "answer": "**give every keyboard bug the same label, without losing the labels already there.** paste a github issue and the exact names to add. the bot keeps existing labels. missing names become new labels, so a typo becomes part of your system. label changes bypass sending approval; put an ask-first instruction in the job if you want a preview.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,39 +43,38 @@
     "toolkit": "github",
     "slug": "GITHUB_ADD_LABELS_TO_AN_ISSUE"
   },
-  "what": "paste the issue link, or describe the issue and let the bot find it. it reads the issue, then adds only the labels you allow.\n\nthis is an add operation, not a request to replace every existing label. because missing labels get created, a typo like \"acessibility\" becomes a real new label. give the bot your allowed names and definitions rather than asking it to invent a useful label for every report.",
+  "what": "**make the next issue easier to find.** paste its link, or describe it so the bot can find it. give your allowed labels and what each means.\n\nuse the owner, repository and issue number together. \"acessibility\" becomes a real label if it does not exist. the bot adds labels without removing the ones already there.",
   "uses": [
-    "add needs-reproduction to a named report after you confirm its steps are missing",
-    "mark a keyboard-navigation report with your existing accessibility label",
-    "apply the agreed component label to a bug in one specific part of the product",
-    "add a review label after an owner asks for another look"
+    "**missing steps:** add needs-reproduction after checking the report lacks them.",
+    "**keyboard trouble:** use your existing accessibility label for a navigation bug.",
+    "**wrong component:** add the agreed label for the affected part of the product.",
+    "**another look:** add a review label when the owner requests one."
   ],
   "routine": {
-    "message": "when a github issue opens in tamsin-tickets/box-office, read it and propose either the existing label access-check for keyboard access reports or no label. show me the issue number and the text supporting your choice here, and ask me before you change anything. after i confirm, add only access-check and report the labels returned. never create alternative spellings, remove labels or label issues in another repository.",
-    "when": "when an issue opens in tamsin-tickets/box-office",
-    "needs": "github connected with read and write access; issue reading and label addition allowed in the named repository",
-    "output": "label proposal for tamsin-tickets/box-office #28\n\nreporter: zuleika\nevidence: the date picker cannot be reached with the keyboard.\nproposed addition: access-check\n\nother labels will be left alone. awaiting your confirmation."
+    "message": "when a github issue opens in ticket-desk/box-office, read the report. propose access-check only for keyboard access problems. otherwise propose no label. show the issue number and the words supporting your choice here. ask me before you change anything. after i agree, add only access-check and report the saved labels. never create other spellings, remove labels or touch another repository.",
+    "when": "when an issue opens in ticket-desk/box-office",
+    "needs": "github read and write for this bot; allow issue reads and label addition in this repository",
+    "output": "ticket-desk/box-office #28\n- reporter: hannah\n- evidence: the date picker cannot be reached with the keyboard.\n- proposed label: access-check\n\nproposed addition: access-check. current labels will stay."
   },
   "steps": [
-    "connect the repository account through **Connected apps** and tell the bot the exact label names and what each means.",
-    "enable **read and write** for label addition, limiting its action list to issue reading and the changes this job needs.",
-    "try one known issue and require a proposal before the first label call.",
-    "check the labels on that issue in github, then send the routine message above. use **Pause** if your labels change."
+    "**name your labels.** connect github and give the bot the allowed spellings and meanings.",
+    "**keep its reach small.** allow read and write, limited to issue reads and label addition.",
+    "**try one report.** ask for the issue and proposed label before it changes anything.",
+    "**open the issue.** confirm the saved labels match your choice, then set the routine. pause it when label rules change."
   ],
   "watch": [
-    "missing names are created automatically. do not rely on a typo being rejected.",
-    "a label request needs the issue number together with its repository and owner. a title match alone is not the destination.",
-    "adding labels doesn't ask first; your sending setting doesn't cover it. keep \"ask me first\" in the routine if labels set off work for your team.",
-    "github issue events arrive at once, but a bot on your own sleeping computer cannot act then. dusk cloud keeps routines running on time."
+    "**your allowed list is the spelling guide.** missing names become labels. keep the routine to the names you gave it.",
+    "**use the full issue reference.** the same number can belong to a different repository.",
+    "**keep triage running overnight.** github events arrive at once. dusk cloud keeps the bot working while your computer sleeps."
   ],
   "faq": [
     {
       "q": "will this replace the labels already on the issue?",
-      "a": "this action adds the requested labels. if the job is only to add one, say that existing labels must remain alone."
+      "a": "**it adds to them.** existing labels stay. tell it to add only the one you named."
     },
     {
       "q": "what happens if the label does not exist?",
-      "a": "the action creates it. give the bot the exact names it may use, so you don't end up with \"bug\", \"bugs\" and \"bug-report\"."
+      "a": "**github creates it.** exact spellings prevent a collection of bug, bugs and bug-report labels."
     }
   ],
   "sources": [
@@ -91,5 +90,31 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste one issue link",
+      "give the exact label name",
+      "ask for a proposal before any change",
+      "open the issue and read its labels"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "letting it invent labels",
+      "fix": "give it a short allowed list, with meanings."
+    },
+    {
+      "mistake": "recognising the title and skipping the repository",
+      "fix": "match the owner, repository and issue number."
+    }
+  ],
+  "tip": {
+    "text": "agree on label names before you automate them."
+  },
+  "worked": {
+    "before": "hannah reports a keyboard problem on issue #28. it currently has only bug.",
+    "after": "after your yes: bug and access-check. no extra spelling, no labels removed."
+  },
+  "voice": 2
 }

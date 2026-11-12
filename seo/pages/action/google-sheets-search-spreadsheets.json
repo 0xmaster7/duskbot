@@ -11,7 +11,7 @@
     "claude search spreadsheets by name",
     "ai find shared google sheet"
   ],
-  "answer": "when the spreadsheet link is missing, a bot can search the google spreadsheets accessible to your account by name, content, dates or sharing status. it returns candidate files rather than editing cells. filename searches match from the start of the name, and shared-drive results may be incomplete, so an empty answer needs more care than \"the sheet does not exist\".",
+  "answer": "**the supplier sent the sheet. now the link is buried.** a bot finds accessible google spreadsheets by name, content, dates or sharing status. it returns candidate files without changing cells. name searches start at the beginning of filenames, so give it the opening words or ask for a broader match when you only remember the middle.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,38 +41,38 @@
     "toolkit": "googlesheets",
     "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS"
   },
-  "what": "you can narrow the search to starred files, items shared with you or files changed after a date. a name search uses the beginning of a filename. a content search also matches names and descriptions, so it cannot guarantee the term appeared inside a cell.\n\nif there are lots of matches, ask the bot to keep going until it has them all. if you already have the link, you don't need to search.",
+  "what": "**start with the bit of the filename you remember.** name mode matches from the beginning. you can also find starred files, shared files or spreadsheets changed after a date.\n\ncontent search covers names and descriptions too. ask where the word matched before assuming it came from a cell. have the bot gather the full result list. already have the link? use it and skip the hunt.",
   "uses": [
-    "locate a supplier's shared pricing sheet when the email containing its link is lost",
-    "find starred planning spreadsheets changed since a project restarted",
-    "collect spreadsheets whose filenames begin with a project code",
-    "find a spreadsheet that mentions a venue, even when you've forgotten its title"
+    "**recover supplier prices.** find a shared sheet after losing the email with its link.",
+    "**resume planning.** collect starred spreadsheets changed since the project restarted.",
+    "**find a project’s trackers.** search filenames beginning with its project code.",
+    "**search beyond the title.** use a venue clue when you forget the spreadsheet name."
   ],
   "routine": {
-    "message": "every other thursday at 09:50, search google sheets for spreadsheets shared with me whose names begin \"brackenport supplier\". include shared drives and check every page of results. bring the candidate names and references to this chat, stating if the shared-drive search is incomplete. never edit a cell, export files or choose a winner when filenames are ambiguous.",
+    "message": "every other thursday at 09:50, find google spreadsheets shared with me whose names begin \"brackenport supplier\".\n\n- include shared drives\n- finish reading all results\n- return candidate names and file references here\n- say if the shared-drive search is incomplete\n\nnever edit cells or export files. if names are ambiguous, leave the choice to me.",
     "when": "alternate thursdays at 09:50",
-    "needs": "google sheets connected, with read only access; restrict allowed actions to spreadsheet search",
-    "output": "brackenport supplier candidates\nbrackenport supplier rates - west\nbrackenport supplier contacts\n2 candidate references returned. no spreadsheet selected for edits."
+    "needs": "google sheets connected with read only; allow only spreadsheet search",
+    "output": "brackenport supplier candidates\n- brackenport supplier rates - west\n- brackenport supplier contacts\n2 file references ready to open."
   },
   "steps": [
-    "connect google sheets in **Connected apps** and allow this bot **read only** for the search.",
-    "limit its allowed actions to search spreadsheets so the lookup stays within this task.",
-    "start with a filename prefix you recognise, then try content matching only if the name search misses the file.",
-    "schedule the search after inspecting its first candidates; use **Edit** to change the prefix when the project name changes."
+    "**keep the lookup read only.** connect google sheets for this bot.",
+    "**allow search only.** limit its app actions to spreadsheet search.",
+    "**try the name’s beginning.** if that misses, try a content clue.",
+    "**open the closest candidate.** once it finds the right files, schedule the search and update the prefix as the project changes."
   ],
   "watch": [
-    "content matching can find the term in a file name or description, so it is not proof of a matching cell.",
-    "searches across shared drives can miss files, so \"nothing found\" doesn't always mean it isn't there.",
-    "spreadsheets in trash are excluded unless requested, which matters when looking for an accidentally discarded tracker."
+    "**a content match can come from the title.** read the cells separately before claiming a row contains your term.",
+    "**name a shared drive when a familiar file is missing.** searches across shared drives can be incomplete; an empty list is not a full inventory.",
+    "**trash stays out by default.** ask to include it when recovering a discarded tracker."
   ],
   "faq": [
     {
-      "q": "why does searching a word in the middle of the filename miss my sheet?",
-      "a": "the name mode matches prefixes from the start of filenames. ask the bot to look for the word anywhere in the name instead."
+      "q": "why does a word in the middle of the filename miss?",
+      "a": "**name mode starts at the beginning.** ask the bot to search anywhere in the filename instead."
     },
     {
-      "q": "does finding the spreadsheet also read every row?",
-      "a": "this action discovers spreadsheet files. inspecting ranges is a separate action after you choose the right file."
+      "q": "does this read every row too?",
+      "a": "**no, it finds spreadsheet files.** choose one, then ask to read the relevant cells with a separate action."
     }
   ],
   "sources": [
@@ -88,5 +88,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect google sheets with read only",
+      "ask for filenames beginning with a familiar project name",
+      "request all candidates and any search gaps",
+      "choose the file before asking about its cells"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming content means cell contents only",
+      "fix": "ask where the word matched. a title or description can cause the result."
+    },
+    {
+      "mistake": "searching again when you already have the link",
+      "fix": "give the bot the link and move on to the range you need."
+    }
+  ],
+  "tip": {
+    "text": "if you remember only the middle of the name, say that. a prefix search will miss it."
+  },
+  "voice": 2
 }

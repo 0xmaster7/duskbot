@@ -11,7 +11,7 @@
     "automated meeting brief",
     "ai meeting prep routine"
   ],
-  "answer": "ask a bot every weekday at 8 for a brief for each meeting that day with someone outside your organisation. it reads the calendar entries and your recent email with the attendees, then tells you who they are according to those records, what you last discussed and what is still open. the briefs stay in your chat. missing background should come back as a question, not a guessed biography.",
+  "answer": "**stop opening old email threads as the call starts.** every weekday at 8, the bot can read today’s outside meetings and recent email with the attendees. it returns the last exchange, open promises and useful questions in chat. roles come from those records, not guessed biographies. missing context should appear as a gap you can fix.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,42 +44,43 @@
   },
   "og_line": "the last conversation, before the next one.",
   "routine": {
-    "message": "every weekday at 8, for each meeting today with someone outside my organisation, prepare a brief in this chat. use the work calendar and work mailbox i named. treat the internal email domains i give you as internal; ask if the boundary is unclear. skip cancelled events and meetings with only internal attendees.\n\nread the event and recent email threads with the outside attendees. give me:\n- meeting time, purpose and attendees\n- who each outside attendee is, only as stated in the event or email signatures\n- the latest exchange and any explicit promise still open\n- questions worth asking, separate from facts\n\ninclude references to the event and relevant messages. say when you cannot find prior email or confirm someone's role. don't search unrelated personal mail, send anything or change the event.",
-    "when": "every weekday at 8:00, reviewing today’s meetings against the calendar and internal domains you specify",
-    "needs": "google calendar and gmail, or outlook calendar and mail; read-only access to the chosen work accounts",
-    "output": "14:30 call with priya at northstar works\npurpose: review the draft support agreement, from the event description.\nwho: priya's latest email signature says operations lead. sam is also invited; no role found.\nlast exchange: priya asked whether weekend coverage is included. your latest reply promised to confirm.\nopen promise: coverage answer not found in the messages read.\nquestions to ask: which weekend hours matter to the team?\nsource notes: today's calendar event and the latest northstar works email thread."
+    "intro": "**start with the accounts that hold the work.** connect the work calendar and mailbox with read only. name your internal email domains before scheduling.",
+    "message": "every weekday at 8, prepare a brief here for each outside meeting today. read my work calendar and mailbox. use the internal email domains in your memory notes to tell internal and outside attendees apart. ask if that boundary is unclear. skip cancelled and internal-only events.\n\nread each event and recent email threads with its outside attendees. give me:\n- time, purpose and attendees\n- each outside attendee’s role, only as stated in the event or email signatures\n- the latest exchange and any explicit promise still open\n- questions worth asking, separate from facts\n\ninclude event and message references. say when you find no prior email or cannot confirm a role. never search personal mail, send anything or change an event.",
+    "when": "weekdays at 8:00; today’s meetings on the work calendar you name",
+    "needs": "google calendar and gmail, or outlook calendar and mail; read only for the chosen work accounts",
+    "output": "14:30 call with lena at northstar works\npurpose: review the draft support agreement, from the event.\nwho: lena’s latest signature says operations lead. joel is invited; no role found.\nlast exchange: lena asked about weekend coverage. your reply promised to confirm.\nopen promise: no coverage answer found in the messages read.\nquestion: which weekend hours matter?\nsources: today’s event and the latest northstar works email thread."
   },
   "knobs": [
-    "define outside precisely: list your internal email domains and any partner domains you want treated as internal",
-    "set a narrower mail window, such as the past month, if old conversations keep crowding out the current topic",
-    "limit the brief to one screen: purpose, last exchange, open promise and a question",
-    "exclude sensitive appointments by calendar or title rather than giving the bot every event you keep",
-    "choose a weekday run time before your first outside call and check the routine card’s next runs and time zone"
+    "**define outside.** list your internal email domains and any partner domains you treat as internal.",
+    "**trim the mail window.** try the past month if old threads keep crowding out the current subject.",
+    "**keep it on one screen.** ask for purpose, last exchange, open promise and one question.",
+    "**exclude private appointments.** name calendars or titles to skip before granting wider access.",
+    "**beat your first call.** choose an earlier weekday time and read the card’s next runs and time zone."
   ],
   "fails": [
-    "it mixes up two people with the same name. require the attendee's exact email address when finding prior conversations, and keep uncertain matches out of the brief.",
-    "a meeting changes after the morning review. ask the bot to refresh that brief before the call; the weekday 8:00 schedule does not automatically follow every calendar edit.",
-    "there is no prior email. a short brief saying that is correct. supply your call notes if the last discussion happened elsewhere.",
-    "the 8:00 briefs arrive late because the computer was asleep. a local run missed by less than 12 hours runs once when you return, which can be too late for morning preparation. check run history or use an always-on machine."
+    "**same name, wrong person.** use the attendee’s exact email address to find old conversations. leave uncertain matches out.",
+    "**the meeting changed after 8.** ask for a refresh before joining. this schedule does not automatically follow later calendar edits.",
+    "**no earlier email exists.** that is a valid short brief. attach call notes if the conversation happened elsewhere.",
+    "**the laptop slept through 8.** a local run under 12 hours late runs once on return, which may miss the call. open run history or use an always-on machine."
   ],
   "sections": [
     {
-      "h": "a small brief with a clear evidence boundary",
-      "md": "this routine uses the event and mail you already have, not an invented profile of the person. [google calendar](/integrations/google-calendar) provides event reads; see [outlook](/integrations/outlook) if that is where your work account lives. gmail is another supported mailbox. keep each app read-only.\n\nan email signature can be old, so say where a role came from rather than calling it verified current employment. if you need a whole day's overview instead, the [daily briefing](/use-cases/daily-briefing) is a better shape. after sending the message, inspect the schedule card and next runs before relying on the first brief."
+      "h": "bring the last exchange into the next conversation",
+      "md": "**walk in knowing what you promised last time.** this routine reads the event and earlier email, then brings the open promise into chat. keep roles beside the email signature or event that named them; ask about gaps instead of guessing.\n\n[google calendar](/integrations/google-calendar) and gmail work together here. [outlook](/integrations/outlook) can provide both work calendar and mail instead. keep each connection read only.\n\nread the schedule card’s next runs after sending the request. for a whole-day overview, use [daily briefing](/use-cases/daily-briefing)."
     }
   ],
   "faq": [
     {
       "q": "will it join the call or record the meeting?",
-      "a": "this routine does neither. every weekday at 8 it reads today’s events and prior email to prepare text briefs for your outside meetings."
+      "a": "**no.** this weekday 8:00 routine prepares text briefs from today’s events and earlier email. it does not join or record calls."
     },
     {
       "q": "what happens when my laptop is closed?",
-      "a": "a bot on that laptop cannot run the weekday 8:00 review while it sleeps or dusk bot is closed. dusk cloud is an always-on place for bots to live. check the schedule against your time zone as well."
+      "a": "**the local bot cannot run while that laptop sleeps.** it also stops when dusk closes. dusk cloud is an always-on home. read the routine’s time zone too."
     },
     {
       "q": "can i use outlook without connecting gmail?",
-      "a": "yes. name the outlook work calendar and mailbox in the weekday routine. see the [outlook integration](/integrations/outlook) for the supported reads."
+      "a": "**yes.** name your outlook work calendar and mailbox. the [outlook integration](/integrations/outlook) lists the available reads."
     }
   ],
   "sources": [
@@ -110,5 +111,42 @@
       "url": "https://docs.composio.dev/toolkits/outlook",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect work calendar and mail with read only",
+      "tell the bot your internal email domains",
+      "ask for a brief on one outside meeting today",
+      "find its open promise in the cited email"
+    ]
+  },
+  "worked": {
+    "intro": "an invented prep example",
+    "before": "lena’s call is minutes away. you remember discussing support, but not what you promised to confirm.",
+    "after": "the brief points to your unanswered weekend-coverage promise. you can answer it before joining instead of searching mid-call."
+  },
+  "saves": {
+    "estimate": "roughly 35 minutes a week under these assumptions",
+    "formula": "10 outside meetings a week\nx 5 minutes finding context\n= 50 minutes\n\n10 briefs x 1.5 minutes to review\n= 15 minutes\n\n50 - 15 = 35 minutes a week",
+    "assumptions": [
+      "you currently spend five minutes finding context per outside meeting",
+      "you have ten such meetings a week",
+      "each brief takes you 90 seconds to review",
+      "this is a rough estimate, not a measured result; setup and corrections add time"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "treating an old signature as a current role",
+      "fix": "keep the source beside the role and ask when it matters."
+    },
+    {
+      "mistake": "reading every mailbox for every attendee",
+      "fix": "limit the routine to the chosen work accounts."
+    }
+  ],
+  "tip": {
+    "text": "refresh the brief when the calendar changes after the morning run."
+  },
+  "voice": 2
 }

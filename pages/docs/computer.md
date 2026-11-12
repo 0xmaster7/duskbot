@@ -12,7 +12,7 @@ some jobs need a screen: holding a fare, filling in a form, checking a dashboard
 
 ## where it is
 
-on [dusk cloud](/docs/dusk-cloud) each bot gets a desktop on your cloud (2 awake at once on plus, 5 on pro). on [your own server](/docs/your-own-server) it's a private desktop there. on a mac you can also point a bot at your own screen, on purpose.
+on [dusk cloud](/docs/dusk-cloud) each bot gets a desktop on your cloud (plus keeps a good amount of them awake; pro is for heavy workloads and wakes them first). on [your own server](/docs/your-own-server) it's a private desktop there. on a mac you can also point a bot at your own screen, on purpose.
 
 a computer nobody is using goes to sleep and wakes when a bot needs it.
 

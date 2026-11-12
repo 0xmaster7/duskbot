@@ -4,14 +4,14 @@
   "title": "Label or archive Gmail messages in bulk with AI",
   "nav": "change message labels in bulk",
   "h1": "apply one gmail filing decision to a batch of messages",
-  "description": "Give a bot a precise Gmail message list to label, archive or mark read. See the batch limit and why a success response needs checking.",
+  "description": "Clear delivery notices, label registrations or mark newsletters read in Gmail. Preview the messages, then file up to 1,000 at a time.",
   "keyword": "gmail bulk label emails with ai",
   "keywords": [
     "chatgpt archive gmail messages",
     "claude bulk label gmail",
     "gmail mark emails read with ai"
   ],
-  "answer": "a bot can apply or remove gmail labels across a chosen set of messages, including archiving them or changing their read state. it first searches gmail to find the exact emails. each request can cover up to 1,000 messages. filing is a change, so it won't ask first; add \"show me the list before you change anything\" to the routine.",
+  "answer": "**clear the delivery notices without losing the customer replies beside them.** the bot finds individual gmail messages and adds or removes labels. that can archive mail or mark it read. one request covers up to 1,000 messages. filing skips sending approval, so tell it to show the matches and ask before changing them.",
   "tags": [
     "gmail",
     "labels",
@@ -21,43 +21,43 @@
     "/integrations/gmail",
     "/integrations/gmail/fetch-emails"
   ],
-  "og_line": "one filing rule for a checked message list.",
-  "what": "this is useful when every message in a carefully chosen group needs the same label change. removing the inbox label archives messages; removing the unread label marks them read. the action works on messages, so the bot should not treat one matched email as permission to change every message in its conversation.\n\nthe bot searches first to pick the emails, and looks up your own labels by name. when gmail says done, that means it accepted the batch, not that every email changed, so ask the bot to check afterwards.",
+  "og_line": "file the notices. keep the customer replies.",
+  "what": "**turn a pile of delivery notices into a clear inbox.** removing inbox archives a message. removing unread marks it read. work on individual messages, so a customer reply in the same conversation stays put.\n\nthe bot searches first and looks up custom labels by name. gmail's success response means it accepted the request. have the bot read back the saved labels to see which changes stuck.",
   "uses": [
-    "archive delivery-status notices after the shipment has arrived",
-    "mark a checked batch of newsletters as read",
-    "apply an existing workshop label to registration emails from a named sender",
-    "remove an outdated project label from messages you have reviewed"
+    "archive delivery notices after the parcels arrive",
+    "mark a chosen group of newsletters read",
+    "label workshop registrations from one named sender",
+    "remove an old project label from emails you have reviewed"
   ],
   "routine": {
-    "message": "on the second wednesday of each month at 4, find last month's delivery-status emails from heron parcel notices in my work gmail. show the sender, subject and date for every proposed match here and ask me before you change anything. after i agree, remove only their inbox label and check their labels again. never delete mail or include a customer-written message.",
+    "message": "on the second wednesday of each month at 4, find last month's delivery notices from heron parcel notices in work gmail. show every sender, subject and date here. ask me before you change anything. after i agree, remove only the inbox label from those messages. read back their labels and report any failures. never delete mail or include customer-written messages.",
     "when": "second wednesday of the month at 16:00",
-    "needs": "work gmail connection, read and write access for message search and batch label changes",
-    "output": "proposed archive batch\n\nheron parcel notices, 3 october: delivered to studio.\nheron parcel notices, 9 october: delivery window updated.\n\nwaiting for your approval; no labels changed."
+    "needs": "work gmail; read and write for message search and label changes",
+    "output": "archive proposal\n- heron parcel notices, 3 october: delivered to studio\n- heron parcel notices, 9 october: delivery window updated\nremove inbox from these messages?"
   },
   "steps": [
-    "enable gmail for this filing bot under **Connected apps**, allowing **read and write** for the needed actions.",
-    "ask it to search a small, recognisable group first and show the message list without applying labels.",
-    "name the exact label change, and include your own ask-before-changing instruction in the routine. **Ask every time** for sending does not govern batch labels.",
-    "review the labels after the first batch. if the search catches too much mail, stop future runs with **Pause**."
+    "connect work gmail. allow the search and label actions with read and write.",
+    "try a small group first. ask for the matching messages without any changes.",
+    "name the exact label to add or remove. keep the preview-and-agree step in the routine.",
+    "inspect the labels after it finishes. **Pause** stops future runs if the search catches too much."
   ],
   "watch": [
-    "a batch accepts no more than 1,000 message ids. split larger approved sets and keep a record of which messages went into each request.",
-    "for your own labels the bot looks each one up first; a label it can't match can quietly do nothing.",
-    "acceptance is not a per-message receipt. inspect the resulting labels before reporting every message as filed."
+    "**file up to 1,000 messages in one request.** split larger approved groups and keep the message list for each.",
+    "**look up custom labels before filing.** an unmatched label name can leave mail unchanged without a clear failure.",
+    "**read back the labels to see what stuck.** an accepted request can still leave individual messages unchanged."
   ],
   "faq": [
     {
       "q": "does archiving delete the emails?",
-      "a": "archiving here removes the inbox label. it does not permanently delete the messages."
+      "a": "**no.** archiving removes the inbox label. it leaves the email in gmail."
     },
     {
       "q": "can it mark a group of messages unread?",
-      "a": "it adds the unread label to the selected message ids. ask for the selection first if you want to inspect which emails qualify."
+      "a": "**yes.** it adds unread to the messages you choose."
     },
     {
       "q": "will it ask me before it files anything?",
-      "a": "not by itself. filing is a change, and your sending setting only covers sends. write \"ask me first\" into the request, or keep the bot on read only."
+      "a": "**tell it to ask before filing.** sending settings do not cover labels. read only blocks filing entirely."
     }
   ],
   "updated": "2026-11-12",
@@ -93,5 +93,35 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect gmail and allow search plus label changes",
+      "ask for five newsletter matches, without changing them",
+      "read the list, then ask it to mark only those messages read",
+      "ask it to read back their saved labels"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "filing whole conversations from one matching message",
+      "fix": "review individual messages. a customer reply can share a thread with a notice."
+    },
+    {
+      "mistake": "trusting the word success",
+      "fix": "have the bot inspect the labels after the batch."
+    }
+  ],
+  "tip": {
+    "text": "archive a handful first. a bad search hurts more at 1,000 messages."
+  },
+  "checklist": {
+    "items": [
+      "the account and date window match the job",
+      "every selected message belongs in this group",
+      "the requested change names the label to add or remove",
+      "the saved labels show the filing worked"
+    ]
+  },
+  "voice": 2
 }

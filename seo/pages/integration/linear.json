@@ -4,13 +4,13 @@
   "title": "Linear AI agent for issue context and cycle reviews",
   "nav": "linear",
   "h1": "a linear bot that spots missing context before planning",
-  "description": "Connect Linear to Dusk Bot for issue readiness, cycle checks and project updates. Copy routines that flag gaps without inventing priorities or owners.",
+  "description": "Walk into planning with the question holding the work up. Dusk Bot reads Linear issues, comments and cycles, then brings you the evidence.",
   "keyword": "linear mcp",
   "keywords": [
     "claude linear",
     "linear ai agent"
   ],
-  "answer": "a bot in dusk bot can search linear issues, read comments and inspect cycles before helping you plan. give it a team and a small question, such as which issues lack enough detail to start. it can also create and update issues when allowed. use reading access for planning reports, and explicit ask-first instructions before granting tracker edits.",
+  "answer": "**walk into planning with the question that is holding the work up.** a dusk bot reads linear issues, comments and cycles, then brings you blockers with their evidence. give it one team and read access. it can create or update issues later if you allow it. keep priorities and edits with you until you ask for that work.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,7 +44,7 @@
   "app": {
     "name": "Linear",
     "toolkit": "linear",
-    "intro": "issue status is only one part of readiness. the description may lack a clear outcome, or comments may contain an unresolved question. these actions let the bot gather that context without assuming it has authority over your team's priorities.",
+    "intro": "**find the unanswered comment behind the tidy status.** read the issue, its discussion and the team's cycle before deciding what needs you. these actions bring the context to your chat.",
     "highlight": [
       {
         "slug": "LINEAR_SEARCH_ISSUES",
@@ -76,60 +76,60 @@
       },
       {
         "slug": "LINEAR_UPDATE_ISSUE",
-        "use": "apply a specified field change after you set the boundary"
+        "use": "change the field you asked it to change, leaving the rest alone"
       }
     ],
-    "setup": "add linear in **Connected apps**, complete linear's sign-in and allow your planning bot to use it. give the team name and a few issue references to establish the scope. explain what your ready and blocked states mean rather than asking the bot to guess from their names."
+    "setup": "**explain what ready and blocked mean to your team.**\n\nadd linear in **connected apps**, sign in through linear and allow your planning bot to use it. name the team and give it a few issues to define the scope.\n\nexplain your states instead of asking the bot to guess from their names."
   },
-  "routines_intro": "these routines look for possible duplicates, cycle questions and gaps in project communication. send one to your bot, then inspect its first few runs before expanding the scope.",
+  "routines_intro": "**make planning questions smaller.** try duplicate candidates, blocked work or missing project updates. inspect the first runs before widening the job.",
   "routines": [
     {
       "name": "possible duplicate review",
-      "message": "every monday at 10, search the acme team issues for possible duplicates of the new issue briefs i supplied. compare descriptions and comments, not just titles. list candidate pairs with their issue references, matching details and differences. label uncertain matches for my review. do not create, merge, close or edit issues.",
+      "message": "every monday at 10, list issues created last week for the team named in your memory notes. compare descriptions and comments with possible older matches. use word search only to find candidates, then check each candidate's actual team and project.\n\nshow matching details and differences with both issue references. mark uncertain pairs for review. don't create, merge, close or edit anything. if the team note is missing, ask instead of guessing.",
       "when": "mondays at 10:00",
-      "output": "candidate duplicate pairs with evidence to review"
+      "output": "candidate duplicate pairs with the evidence and differences to check"
     },
     {
       "name": "cycle question list",
-      "message": "every thursday at 2, inspect the current cycle for the acme team and read the issues we marked blocked. group the blockers by the decision or input explicitly requested in their comments. mark unclear blockers as unclear. leave linear unchanged.",
+      "message": "every thursday at 2, inspect the current cycle for the team named in your memory notes. read issues in the blocked states listed there.\n\ngroup blockers by the decision or input requested in comments. mark unclear reasons as unclear. leave linear unchanged. say briefly when no decision needs me.",
       "when": "thursdays at 14:00",
-      "output": "a list of decisions needed before work can continue"
+      "output": "decisions and missing inputs that the issue discussion actually names"
     },
     {
       "name": "project update gaps",
-      "message": "every other tuesday at 4, read recent linear project updates for the projects i linked here. list projects with no update in the last two weeks, and questions that the latest update leaves open. do not publish a new update or edit a project.",
+      "message": "every other tuesday at 4, read updates for the linear projects listed in your memory notes. flag projects without an update in the last two weeks. list questions the latest update leaves open. don't publish updates or edit projects. stop if the project list is missing.",
       "when": "alternate tuesdays at 16:00",
-      "output": "a project communication checklist"
+      "output": "a project communication checklist with gaps left visible"
     }
   ],
-  "asks": "creating an issue and changing its priority, owner or state are tracker changes. they may not ask first. keep a reviewer on read-only access so its findings cannot quietly change the plan.\n\nif you want it to maintain issues later, restrict its action list and say \"ask me before you change anything\". posting a comment is a send, so it waits for **Allow** unless you've set a daily sending amount. creating a project update is an app change, not a send, so it may not ask first. keep it off the bot's list, or write \"ask me before you change anything\". one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.",
+  "asks": "**keep the planning bot read only so the review leaves your plan intact.** creating issues and changing priority, owner or state are writes that can happen without asking. creating a project update works the same way.\n\nfor maintenance later, restrict the action list and write \"ask me before you change anything\".\n\ncomments count as sends and wait for **allow** unless you set a daily amount.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.",
   "cannot": [
-    "assign work, change priority or create issues with a read-only linear permission. a suggested issue outline in dusk chat stays within a much smaller job.",
-    "know that a ticket is complete from its state name alone. ask for the description and comments behind a conclusion, and leave ambiguous readiness for a person to decide.",
-    "carry out a cycle review on a sleeping laptop. desktop routines need the app open; an always-on dusk cloud machine can perform the scheduled review while you are away."
+    "**assign work or change priority under read-only access.** an issue outline here needs no tracker writes.",
+    "**tell you work is finished from its state name alone.** ask for the description and comments too. leave unclear readiness for a person.",
+    "**review a cycle on a sleeping laptop.** local routines need dusk open and the machine awake. dusk cloud can run the review while you are away."
   ],
   "sections": [
     {
       "h": "keep a blocker tied to its evidence",
-      "md": "tell the bot which states to inspect and ask it to point to the issue or comment behind every blocker. if implementation discussion lives in [github](/integrations/github), connect that source separately before asking for code context. a title that sounds similar is not enough to declare two issues duplicates."
+      "md": "**bring both tickets and the difference between them.** a similar title is a lead worth reading. name the states to inspect and require an issue or comment behind each blocker.\n\nlinear's word search cannot filter by team, owner, state, project or label. the bot uses a separate team-list action for team scope. typing a team name into search only searches for those words.\n\nif code discussion lives in [github](/integrations/github), connect it separately and bring that context into the review."
     },
     {
       "h": "write the rule before allowing the update",
-      "md": "define the fields a routine may maintain and where missing values should be reported. a team decision in [notion](/integrations/notion) can supply context, but the bot should not turn an old note into a new priority without your instruction. [product managers](/for/product-managers) can use these small reviews around planning rather than delegating every tracker change."
+      "md": "**keep today's priority decision with the person who owns it.** name the fields the bot may maintain and where it should report missing values. a [notion note](/integrations/notion) can add context without setting the plan.\n\n[product managers](/for/product-managers) can gather evidence before planning, then permit tracker changes once the rules are clear."
     }
   ],
   "faq": [
     {
       "q": "can i connect claude to linear without writing an mcp setup?",
-      "a": "you can choose claude or another ai for a bot in dusk bot and connect linear through **Connected apps**. a bot uses the composio actions listed here, so you don't set up a separate server."
+      "a": "**yes, use connected apps.** choose claude or another ai for your dusk bot and connect linear there. the composio actions need no separate server setup."
     },
     {
       "q": "can the bot just tell me what is blocked?",
-      "a": "yes. grant reading access and ask it to inspect your blocked issues and their comments. give it the team and state names, and have it report the supporting context in chat."
+      "a": "**yes, give it read access and the team's state names.** ask for the relevant issues and comments, with evidence here. word search alone cannot narrow by team or state."
     },
     {
       "q": "will issue creation ask me first?",
-      "a": "not by itself. creating an issue isn't a send, so it may not ask. include an explicit ask-first instruction and avoid granting create access to a bot that only needs to review."
+      "a": "**put the pause in your request.** issue creation is a write and can happen without asking. keep a reviewing bot read only; ask for confirmation before letting a maintenance bot create anything."
     }
   ],
   "sources": [
@@ -145,5 +145,35 @@
       "label": "dusk bot docs: approval controls",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name one team and its blocked states",
+      "connect linear read only",
+      "ask for blockers with supporting issue comments",
+      "check one result before scheduling a cycle review"
+    ]
+  },
+  "checklist": {
+    "items": [
+      "team and project scope came from the records, not search words",
+      "each blocker points to the request that would unblock it",
+      "possible duplicates include differences as well as similarities",
+      "reviewing bots cannot create or edit issues"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "typing a team name and trusting every search hit",
+      "fix": "word search only matches words. check the actual team on each result."
+    },
+    {
+      "mistake": "reading a status as the whole story",
+      "fix": "look at the description and comments. a label can hide the question that matters."
+    }
+  ],
+  "tip": {
+    "text": "ask what decision would unblock the work, and which comment says so. that makes the planning list worth reading."
+  },
+  "voice": 2
 }

@@ -10,7 +10,7 @@
     "ai daily briefing email calendar",
     "daily ai summary"
   ],
-  "answer": "start the day with a brief that connects your meetings to the messages behind them. give a bot read-only access to your work email and calendar, then ask for today’s first commitment, the latest context and any decision due before you finish. the result belongs in your chat. it is a reading list for today, with a source for each item, linked where one is available, rather than another inbox to clear.",
+  "answer": "**walk into the 9:30 knowing what you owe by noon.** a morning brief joins today's calendar with the mail behind it. give the bot read-only access to work email and calendar. get confirmed requests, suggested prep and missing sources here, with links when available. read the few things that matter before the first meeting starts.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -41,48 +41,48 @@
   },
   "og_line": "today, with the context you need.",
   "routine": {
-    "intro": "connect your work gmail and google calendar in **Connected apps**. allow this bot to read each. change the time and calendar name in the message to fit your morning.",
-    "message": "every weekday at 8:15, give me a brief for today in this chat. use my work gmail and work calendar only.\n\nstart with today’s date and time zone. find today’s meetings and read recent email threads involving their attendees or project names. only join a thread to a meeting when the connection is clear.\n\nlist my first meeting, what i need to bring, and any request due today. for each item give the meeting time, sender or event title, and a source link when available. separate confirmed requests from suggested prep. if two sources disagree, show both. finish with anything you could not check.\n\nkeep it short. do not label mail, create drafts, reply, or change events.",
-    "when": "weekday mornings at 8:15; confirm the routine’s time zone with the bot",
-    "needs": "work gmail and google calendar connected with read-only access",
-    "output": "today’s brief for sam, 8:15 local time\n\nfirst: 9:30, acme handover with priya.\nconfirmed prep: priya’s latest thread asks for the revised delivery note. source: email thread “acme handover”.\ndecision due today: jo needs a yes on the workshop venue before noon. source: email “venue hold”.\nsuggested prep: read your delivery note before the handover.\nnot checked: the attachment mentioned in priya’s message was unavailable. do not assume it matches your copy."
+    "intro": "**start with work mail and one work calendar.** allow this bot to read both under connected apps. change the time and calendar name to match your morning.",
+    "message": "every weekday at 8:15, brief me here using work gmail and my work calendar only. start with today’s date and time zone. read today’s meetings and recent email threads about their attendees or projects. join them only when the connection is clear.\n\nlist my first meeting, what i need to bring and requests due today. name the time, sender or event and source link when available. separate confirmed requests from suggested prep. show both sources if they disagree. finish with any source you could not read.\n\nkeep it short. if there is nothing to prepare, say so. never label mail, create drafts, reply or change events.",
+    "when": "weekdays at 8:15; confirm the time zone with the bot",
+    "needs": "work gmail and google calendar connected with read only",
+    "output": "morning brief for alex, 8:15 local time\nfirst: 9:30, brambleford handover with ben.\nconfirmed: ben’s latest email asks for the revised delivery note. source: \"brambleford handover\" thread.\ndue today: chloe needs a venue decision before noon. source: \"venue hold\" email.\nsuggested: read your delivery note before the handover.\ncould not read: ben’s attachment. its contents still need a look."
   },
   "sections": [
     {
-      "h": "join the context, not every message",
-      "md": "a useful brief answers “what do i need before my first conversation?” tell the bot which calendar belongs to work and which inbox carries the supporting mail. gmail can fetch messages and whole threads; google calendar has a find-event action. these are enough to build a brief without writing into either app.[^4][^5]\n\nask for the reason behind each suggested task. an attendee’s name appearing in a thread does not prove that thread is meeting prep. leave loose matches out, or put them under questions."
+      "h": "join the right context, not every message",
+      "md": "**get the email behind the meeting, without the rest of the inbox.** name the work accounts and ask why each thread belongs beside its event. an attendee's name alone can pull in the wrong conversation.\n\ngmail can read messages and full threads. google calendar can find events. the brief needs no writes to either app.[^4][^5]\n\nleave loose matches out, or show them as questions. the brief earns its place by making the next conversation easier."
     },
     {
-      "h": "keep confirmed requests separate from guesses",
-      "md": "a deadline stated in an email is different from the bot’s suggestion to prepare a document. keeping those apart lets you decide what matters without treating a guess as a commitment. if a meeting title is vague, add the project name to the routine.\n\nfor a deeper look at one call, use the [meeting prep brief](/routines/meeting-prep-brief). the [gmail connection guide](/integrations/gmail) explains the mail access; the [google calendar guide](/integrations/google-calendar) covers the calendar side."
+      "h": "separate requests from suggestions",
+      "md": "**know what you owe, then what would help you prepare.** 'send the note by noon' is a request. 'you could read the note' is a suggestion. keep them separate.\n\nif the event title is vague, add the project name to the routine. use the [meeting prep brief](/routines/meeting-prep-brief) for a call needing a deeper read.\n\nthe [gmail guide](/integrations/gmail) and [calendar guide](/integrations/google-calendar) cover each connection. put a source beside each commitment so you can open the request yourself."
     },
     {
-      "h": "a brief can be incomplete",
-      "md": "it cannot know about a call arranged outside the connected calendar or a deadline someone only told you aloud. ask it to name unavailable sources instead of filling the gaps. check the original event before leaving for a meeting.\n\non your computer, the morning run needs dusk bot open and the machine awake. a run missed by less than 12 hours runs once when you return; older runs are skipped. [dusk cloud](/docs/dusk-cloud) runs routines on time if the brief must be ready before you open your laptop."
+      "h": "let the brief admit what it missed",
+      "md": "**get the brief before you open the laptop.** [dusk cloud](/docs/dusk-cloud) runs routines on time. local runs need dusk open and the computer awake. a run missed by less than 12 hours happens once when you return; older runs skip.\n\nask the brief to show missing attachments and other gaps. it can't know about a call outside your calendar or a deadline only mentioned aloud.\n\nopen the original event before heading to the meeting. use its time and location to plan the trip."
     }
   ],
   "safeguards": [
-    "keep both app connections read-only for this bot; the brief needs no edits",
-    "name the work accounts so personal appointments and mail stay outside the brief",
-    "require a source for each deadline and mark suggested prep as a suggestion",
-    "leave sensitive message text out of the brief when an event title and link are enough"
+    "**keep both apps read only.** a morning reading job needs no changes.",
+    "**name the work accounts.** leave personal mail and appointments outside the request.",
+    "**require a source for each deadline.** mark prep suggestions as suggestions.",
+    "**quote only what you need.** an event title and link can spare sensitive message text."
   ],
   "faq": [
     {
       "q": "what are people actually using scheduled ai tasks for?",
-      "a": "one small use is joining today’s meetings to relevant mail before work starts. this routine produces context you can read, without sorting the inbox or rearranging your week."
+      "a": "**the morning brief is the one people keep.** today's meetings, the email behind each one, and what you owe by noon."
     },
     {
       "q": "can it brief me on two gmail accounts?",
-      "a": "yes. connect each with a different label and name both in your message. dusk bot supports up to five connected accounts per app. keep the calendar choice explicit too."
+      "a": "**yes, name both labelled accounts.** dusk supports up to five connected accounts per app. name the calendar too."
     },
     {
       "q": "why did my brief arrive after i opened my laptop?",
-      "a": "local routines stop while the computer sleeps or dusk bot is closed. check **Automations** for run history and ask the bot which time zone the routine uses."
+      "a": "**local routines pause during sleep.** open run history under automations to see what ran, and ask which time zone the routine uses."
     },
     {
       "q": "can i use this for my job?",
-      "a": "dusk bot is free for personal use; using it for your work needs a work license, which dusk cloud pro includes for one person. see [account and billing](/docs/account-and-billing)."
+      "a": "**work use needs a work license.** personal use is free. dusk cloud pro includes a work license for one person; see [billing](/docs/account-and-billing)."
     }
   ],
   "sources": [
@@ -108,5 +108,36 @@
       "url": "https://docs.composio.dev/toolkits/googlecalendar",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect work gmail and calendar with read only",
+      "ask what you need for today’s first meeting",
+      "open the source behind each request",
+      "send the morning routine once the result fits"
+    ]
+  },
+  "saves": {
+    "estimate": "roughly 40 minutes a week, if these timings match your mornings",
+    "formula": "12 minutes finding mail and calendar context\n- 4 minutes reading the brief and sources\n= 8 minutes per morning\nx 5 workdays\n= 40 minutes per week",
+    "assumptions": [
+      "you currently spend about 12 minutes finding meeting context each morning",
+      "reading the brief and opening its sources takes about 4 minutes",
+      "this is a rough estimate, not a measured result; initial setup is excluded"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "turning every attendee email into prep",
+      "fix": "require a clear project or meeting connection."
+    },
+    {
+      "mistake": "counting suggestions as agreed deadlines",
+      "fix": "keep confirmed requests and suggested prep in separate groups."
+    }
+  ],
+  "tip": {
+    "text": "the missed attachment might be the thing your first meeting is about. keep that gap visible."
+  },
+  "voice": 2
 }

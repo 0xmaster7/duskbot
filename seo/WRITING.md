@@ -33,13 +33,45 @@ the record carries what is this page's own. Read one finished exemplar of the sa
 - `faq`: 2 to 4 `{ "q", "a" }` taken from how people actually ask (the plan's keywords, the Reddit phrasing in omb-ref/seo-research/03-keywords-competitors.md section 3). Plain content; there is no FAQ markup.
 - `sources`: `[{ "label", "url", "checked" }]`. Dusk Bot docs as `/docs/...` with no date. Every outside source needs `checked`. Integration pages get their Composio source added by the build; do not add it yourself.
 
-## voice
+## voice (owner, 12 november 2026: "be more human and genuine, hit hard")
 
-- Lowercase headings and lowercase body text, like the rest of the site (product and app names stay lowercase in body copy too: gmail, claude, dusk cloud). `title` and `description` are sentence case.
-- Short, warm sentences in plain words a non-technical person gets. Say "you". No hype, no exclamation marks, no "unlock", "supercharge", "seamless", "game-changer", "in today's fast-paced world".
-- Never an em dash. Use a colon, a comma, a full stop or parentheses.
-- Be honest about limits: every page says what it can't do or where something else fits better.
-- Write what a person would want to bookmark: the exact message to send, the real setting names (in **bold**, as the app spells them), real numbers with their source.
+Write like a sharp friend who has done this, not a manual. Every record gets `"voice": 2` once it's written this way;
+the build then holds it to the lint below.
+
+- **Point first, proof second.** Each section opens with the takeaway in one bold line, then 2 to 4 short lines that
+  back it up. Lead with the stakes: what it costs you, what you get back, what goes wrong if you skip it.
+- **Short and active.** Sentences average under 17 words. Paragraphs stay under 60 words. "The bot files it", not
+  "it is filed by the bot". "You", not "the user".
+- **Real pain, real trade-offs.** The laptop that dies at 2am. The morning brief that never came. The weekend lost to
+  VPS updates. Say when dusk bot is the wrong pick, and say it plainly.
+- **Opinions where they're honest.** "Most people overpay here." "Start with one bot, not five." "Don't hand it your
+  bank yet." A little wit is fine; jokes that cost clarity are not.
+- **Make it scannable.** Bullets for lists. A tiny table for comparisons. Any maths goes in a `text` code block, one
+  step per line, never inside a sentence. Don't list every assumption in prose: put them in a short list.
+- **No throat-clearing.** Banned (the build refuses them): it's worth noting, it's important to, please note, in
+  today's, whether you're, in conclusion, furthermore, moreover, additionally, in order to, unlock, supercharge,
+  seamless, game-changer, revolutionary, effortless, leverage, delve, robust, cutting-edge, empower, streamline,
+  elevate, a wide range of, "this page", documented, establish, supplied. No hedging stacks ("may potentially").
+- **No counts of bots, ever.** Not "2 awake on plus", not "start with three bots". Say "a good amount", "heavy workloads", "a few focused bots", "start with one".
+- Lowercase body text and headings, like the rest of the site; titles and descriptions in sentence case. No em dash,
+  ever. No hype. Every claim still comes from the facts files.
+
+- **Hooks, not hedges.** Open with the moment it hurts (the client call you walk into blind, the flight email you trashed). Don't make every line a warning; one clear safety point per page beats ten "check it" reminders (the build flags more than six "check"s).
+- **The Full access line is always this sentence:** "careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**."
+- Example names should look like names people have (maya, theo, ines works once, not quessira or thessaline), and never repeat across pages.
+
+## blocks that make a page useful
+
+Use the ones that are true for the page; leave the rest out. Each is a record field the templates render with art.
+
+- `quick`: `{ "steps": [3 or 4 short steps] }`, "try it in 2 minutes", rendered as illustrated cards.
+- `worked`: `{ "intro"?, "before", "after", "before_label"?, "after_label"? }`, a before/after with clearly invented
+  names and numbers (the page says so).
+- `checklist`: `{ "h"?, "items": [...] }` or `decide`: `{ "h"?, "cols": [...], "rows": [[...]] }`, a quick decision aid.
+- `saves`: `{ "estimate": "about 2 hours a week", "formula": "20 minutes a day\nx 5 workdays\n= 100 minutes a week", "assumptions": [...] }`.
+  Only as a rough estimate from stated assumptions the reader can check; never a measured result.
+- `mistakes`: `[{ "mistake", "fix" }]`, 2 to 4 real ones.
+- `tip`: `{ "text", "careful"? }`, one line a pixel bot says beside the page.
 
 ## facts
 

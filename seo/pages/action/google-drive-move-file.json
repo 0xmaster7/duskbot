@@ -4,14 +4,14 @@
   "title": "Move Google Drive files with AI to a chosen folder",
   "nav": "move a file",
   "h1": "move the exact drive file into its agreed folder",
-  "description": "Have a bot move a Google Drive file after checking its ID and destination. Understand one-parent folders, shared-drive restrictions and explicit approval.",
+  "description": "Move a Google Drive file into the right folder after checking both links. See shared-drive limits and how to request a review before moving it.",
   "keyword": "google drive move file with ai",
   "keywords": [
     "chatgpt move google drive file",
     "claude organise drive files into folders",
     "ai move file to shared drive folder"
   ],
-  "answer": "a bot can move a google drive file into a specified destination folder after finding both. when you give it the destination, the action checks and removes the current parent automatically. drive files have one parent, so this is a move rather than a second placement. moving is a change, so it won't ask first; ask for a review before moving files whose location other people depend on.",
+  "answer": "**put the signed agreement where the team will look for it.** give the bot the google drive file and destination folder. it removes the old folder placement and adds the new one, leaving one copy. moves skip sending approval, so tell it to show the proposed move and ask before acting.",
   "tags": [
     "google drive",
     "file moves",
@@ -22,42 +22,42 @@
     "/integrations/google-drive/find-file"
   ],
   "og_line": "the right file, moved to the agreed folder.",
-  "what": "give the bot the file and destination folder references, or let find file and find folder locate candidates first. it checks where the file is now before moving it.\n\nthe bot takes the file out of its current folder and puts it in the new one. a drive file lives in one folder at a time; to have it show up in two places, ask for a shortcut instead. shared drives can have their own rules about who may move what.",
+  "what": "**give it the file link and the folder link. that's the whole handoff.** if you only know the name, ask for candidates first. the action finds the current folder itself.\n\na drive file lives in one folder at a time. use a shortcut for another placement. shared-drive roles and rules can block a move, even with the right file and destination.",
   "uses": [
-    "file one signed agreement into the project folder you have selected",
-    "move a completed photography brief from intake to its commissioned-work folder",
-    "return a misfiled document to the folder confirmed by its owner",
-    "relocate a permitted shared-drive file after checking the destination and account role"
+    "file a signed agreement in its chosen project folder",
+    "move a finished photography brief out of intake",
+    "return a misfiled document to the folder its owner confirmed",
+    "move a shared-drive file after checking your role and destination"
   ],
   "routine": {
-    "message": "at 11:30 on the last wednesday of each month, find the signed agreement file whose exact link i marked ready to file in this chat. check its current folder and the destination folder link i gave you, then show that single move here and ask me before changing anything. after approval, move the file and check its new folder before reporting completion. never rename, delete, copy or move another file, and stop if shared-drive permissions prevent the move.",
+    "message": "at 11:30 on the last wednesday of each month, inspect my google drive contract intake folder. find signed agreement files added this month. match each to an existing project folder using the project name in its filename. show each file, current folder and proposed destination here.\n\nask me before you change anything. move only the files i approve, then return their new folder links. leave unclear matches alone. never rename, delete or copy files. stop if shared-drive rules block a move.",
     "when": "last wednesday of the month at 11:30",
-    "needs": "google drive connected, with read and write access",
-    "output": "single move proposed\n\nellery's signed agreement, windlass studio\nfrom: contract intake\nto: windlass studio signed agreements\nfile and folder checked from their links.\nawaiting approval; file remains in intake."
+    "needs": "google drive with read and write; allow file lookups and moves only",
+    "output": "move proposal\n- lucy, windlass studio: signed agreement\n- from: contract intake\n- to: windlass studio signed agreements\nmove this agreement to the project folder?"
   },
   "steps": [
-    "choose google drive in **Connected apps**, permit **read and write** and restrict the bot to moves and their supporting lookups.",
-    "provide the file reference and destination folder reference, asking the bot to verify the current parent before proposing a move.",
-    "include an ask-before-moving instruction and inspect the source-to-destination proposal; the sending control does not supervise file moves.",
-    "check the new folder after one approved move, then schedule the job and use **Pause** while resolving any ambiguous destinations."
+    "connect google drive. allow read and write for moves and the lookups they need.",
+    "give the file and destination links. ask the bot to show the current folder.",
+    "review the proposed move before agreeing. sending settings do not cover folder moves.",
+    "open the new folder after your first move. **Pause** the routine when destination names need work."
   ],
   "watch": [
-    "a drive file has one parent. moving it does not leave another folder placement behind; use a shortcut when you need an additional placement.",
-    "in a shared drive, your role there decides whether you can move files at all.",
-    "drive can't move a folder from your own drive into a shared drive; the bot should tell you rather than keep trying."
+    "**a move leaves one folder placement.** use a shortcut if people need to find the file in two folders.",
+    "**shared drives have their own rules.** your role there decides which moves you can make.",
+    "**keep own-drive folders out of shared-drive moves.** drive cannot move a folder from your own drive into a shared drive. stop rather than retry."
   ],
   "faq": [
     {
       "q": "do i have to tell it which folder to remove the file from?",
-      "a": "no. give it the new folder and it takes the file out of the old one for you."
+      "a": "**no.** give the destination. the action checks and removes the old folder placement itself."
     },
     {
       "q": "can it keep the same file in both folders?",
-      "a": "drive files have one parent. moving changes that placement; a shortcut is the appropriate way to provide another folder entry."
+      "a": "**use a shortcut for that.** a drive file has one parent folder. moving replaces that placement."
     },
     {
       "q": "will the move wait for an approval card?",
-      "a": "a file move is a write and is not covered by send approval. the sample routine explicitly asks before making the move; keep that instruction if you want review."
+      "a": "**put the ask-first step in your instruction.** file moves sit outside sending approval. the routine above asks before moving."
     }
   ],
   "updated": "2026-11-12",
@@ -93,5 +93,34 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "give the bot one file link and one destination folder link",
+      "ask it to show the current folder and proposed move",
+      "agree to that move, then open the new folder"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "moving the first file with a matching name",
+      "fix": "compare the file link and current folder before choosing."
+    },
+    {
+      "mistake": "expecting a move to leave a copy behind",
+      "fix": "ask for a shortcut when two folders need an entry."
+    }
+  ],
+  "tip": {
+    "text": "a tidy folder is no help if the team cannot find the signed copy."
+  },
+  "checklist": {
+    "items": [
+      "the file link points to the signed copy",
+      "the project folder already exists and matches",
+      "the move has your agreement",
+      "the saved location matches the proposal"
+    ]
+  },
+  "voice": 2
 }

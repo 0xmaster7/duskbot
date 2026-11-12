@@ -11,7 +11,7 @@
     "openclaw security issues",
     "openclaw safe"
   ],
-  "answer": "openclaw has a substantial public security history, so treat it as software that needs careful setup and upkeep, not something to give every account at once. as of 12 november 2026, its repository lists 722 published advisories. that is a historical count, not a count of flaws still present in your install. the useful question is which versions and permissions affect you.[^1]",
+  "answer": "**openclaw's power comes with an upkeep job: yours.** it can reach files and accounts, so start with a small reading task and limited access. as of 12 november 2026, github lists 722 published security advisories.[^1] use the affected versions and fixes to judge your install. that historical count alone won't tell you how many flaws remain.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -42,37 +42,37 @@
   "sections": [
     {
       "h": "what the advisory numbers tell you",
-      "md": "as of 12 november 2026, github lists **722 published security advisories**: 14 critical, 249 high, 390 medium and 69 low. the first was published on 31 january 2026. the record includes a one-click remote code execution advisory involving authentication-token theft, along with gateway privilege-escalation and sandbox-escape advisories from february to april.[^1]\n\nthose are reasons to read the advisory for the version you run. they are not proof that every release is vulnerable to every issue. a published-advisory total alone cannot tell you whether your installation is patched, exposed or compromised. compare the affected versions and fixes with your actual install before connecting sensitive accounts."
+      "md": "**your installed version matters more than the headline number.** as of 12 november 2026, github lists 722 published advisories.[^1]\n\n- critical: 14\n- high: 249\n- medium: 390\n- low: 69\n- first publication: 31 january 2026[^1]\n\nthe history includes one-click remote code execution through stolen sign-in access. february to april brought gateway privilege-escalation and sandbox-escape reports.[^1]\n\nfind your version in each affected range, then apply its fix. the total alone tells you neither whether you are exposed nor whether your machine was compromised."
     },
     {
       "h": "the malicious skills audit is a separate problem",
-      "md": "a vulnerability in the agent and a malicious add-on are different risks. koi security audited 2,857 clawhub skills and found 341 malicious ones, according to the hacker news report dated 2 february 2026. this was a particular audit, not a current measurement of the whole catalog.[^2]\n\na skill can look useful while asking you to run something unrelated to its job. before adding one, read its instructions and any scripts it carries. avoid instructions that require unexplained commands or secrets. if you cannot tell what the package does, leave it out. popularity is not a substitute for understanding what you are installing."
+      "md": "**read the skill before giving it your accounts.** koi audited 2,857 clawhub skills and found 341 malicious ones. the hacker news reported that audit on 2 february 2026.[^2]\n\na skill can cause trouble even when the agent is patched. read its instructions and scripts. leave it out if you cannot explain why it needs a command or secret.\n\nthose figures describe one audit, rather than today's whole catalog."
     },
     {
       "h": "give the security work its due",
-      "md": "openclaw says it has added skill scanning with virustotal and nvidia, and had a trail of bits audit. those are meaningful responses to the earlier reports. they do not establish that every skill or configuration is safe.\n\nread the current advisory details rather than treating an old headline as a verdict forever. open development makes reports visible; visibility helps you inspect the history, but does not replace updating your own system. if you need someone else to maintain the machine, compare the responsibilities in [openclaw alternatives](/alternatives/openclaw)."
+      "md": "**openclaw has added scanning and brought in outside auditors.** it says it added skill scanning with virustotal and nvidia and completed a trail of bits audit.\n\nkeep following current advisories and updating your own machine. scanning and audits help you assess the work; they cannot vouch for every skill you add.\n\nif you want someone else to maintain it, compare the responsibilities in [openclaw alternatives](/alternatives/openclaw)."
     },
     {
       "h": "a smaller first job for any agent",
-      "md": "start on a separate machine or in a workspace without your private files. connect one account, with reading access only if the task is a summary. leave payments, publishing and broad file access out of the trial. decide what a wrong action would cost before enabling it.\n\nask for a short explanation of the sources used and inspect the result yourself. then add only the access the next job needs. our [computer-use safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) goes through supervision and stopping a bot. a separate computer reduces what is in reach; it does not make a connected account harmless."
+      "md": "**make the first mistake cheap.** use a separate machine or a workspace without private files. connect one account, read only for a summary. leave payments, publishing and broad file access out.\n\ncompare the answer with the sources it names. add access when the next job needs it. connected accounts still reach beyond a separate computer.\n\nthe [computer-use safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) covers watching and stopping the work."
     },
     {
       "h": "how to set a boundary in dusk bot",
-      "md": "in dusk bot, **Connected apps** lets you choose access per bot: off, read only, or read and write. read-only restrictions are enforced before a call reaches the app.[^3] sending has a separate choice: **Ask every time** or **Allow a daily amount**. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^4]\n\nother changes, like labels or page edits, may not ask first. keep the bot read-only or say \"ask me before you change anything\". only add trusted servers under **Plugins**, **MCP servers**; the [mcp explainer](/guides/what-is-mcp) describes that connection boundary. these settings shrink what can go wrong; they don't make any agent risk-free."
+      "md": "**in dusk, a read-only bot can bring you the summary without changing the account.** app access is off, read only, or read and write per bot. dusk blocks read-only changes before they reach the app.[^3]\n\nsending uses its own setting.[^4] ordinary edits, such as labels or page changes, can happen without asking. keep the first job read only; require confirmation if you later permit edits.\n\nadd trusted servers under plugins, mcp servers. the [mcp explainer](/guides/what-is-mcp) covers that connection."
     }
   ],
   "faq": [
     {
       "q": "is openclaw safe for non-technical users?",
-      "a": "only take on the access and upkeep you understand. if advisory versions, permissions or add-on code are unfamiliar, start with a low-stakes reading task or get help before giving it important accounts."
+      "a": "**take on only the upkeep you understand.** start with a small reading job. get help before adding important accounts if versions, permissions or add-on code are unfamiliar."
     },
     {
       "q": "does 722 advisories mean 722 open bugs?",
-      "a": "no. it is the published repository advisory count on 12 november 2026. you need each advisory's affected-version and remediation details to assess an installation.[^1]"
+      "a": "**no, it is a historical published count.** that total comes from 12 november 2026. check affected versions and fixes to judge your install.[^1]"
     },
     {
       "q": "are all clawhub skills malicious?",
-      "a": "koi's audit found 341 malicious skills among 2,857 examined. it does not say every skill is malicious, or establish today's catalog-wide rate.[^2]"
+      "a": "**koi found 341 malicious skills among 2,857 examined.** that was the audit reported on 2 february 2026, rather than a rate for today's whole catalog.[^2]"
     }
   ],
   "sources": [
@@ -94,5 +94,41 @@
       "label": "dusk bot docs: sending and approval settings",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "find the version you run",
+      "open an advisory and compare its affected versions",
+      "remove one add-on you cannot explain",
+      "give the first reading task only read access"
+    ]
+  },
+  "checklist": {
+    "h": "before connecting an important account",
+    "items": [
+      "you know your installed version and its relevant fixes",
+      "you can explain each skill you added",
+      "the first job has only the access it needs",
+      "you know how to stop it and revoke its app access"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "reading the advisory total as current open flaws",
+      "fix": "compare affected versions and fixes. the count alone cannot judge your installation."
+    },
+    {
+      "mistake": "trusting a popular skill without reading it",
+      "fix": "read its commands and access requests. skip anything you cannot explain."
+    },
+    {
+      "mistake": "thinking a separate machine protects connected accounts",
+      "fix": "it limits local files in reach. the account permissions still need their own limits."
+    }
+  ],
+  "tip": {
+    "text": "if you cannot explain what a skill runs, leave it out of the first setup.",
+    "careful": true
+  },
+  "voice": 2
 }

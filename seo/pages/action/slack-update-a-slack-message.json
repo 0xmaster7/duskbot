@@ -11,7 +11,7 @@
     "chatgpt edit existing slack message",
     "claude change slack message text"
   ],
-  "answer": "a bot can replace the visible content of an existing slack message when you point it at the message; it finds the exact one before editing. editing is a write rather than a send in dusk. if you want to review the correction first, say so in the request before granting access to this action.",
+  "answer": "**fix the announcement people already bookmarked.** paste its slack link and ask the bot to read the original, then show replacement wording. it can update that message instead of creating a competing announcement. edits count as writes, so sending approvals do not pause them. tell the bot to wait for your agreement before replacing the text.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,36 +43,36 @@
     "toolkit": "slack",
     "slug": "SLACK_UPDATES_A_SLACK_MESSAGE"
   },
-  "what": "use an edit when the message people already saved has the wrong address or a changed deadline. point the bot at the message and have it read the original before preparing a correction.\n\nfor ordinary wording, the action takes markdown text. structured slack blocks are an alternative for a layout that needs them; it can only attach files that are already in slack.",
+  "what": "**fix the old announcement before posting a competing one.** point the bot at the message with the wrong address or deadline. have it read that text before drafting a correction.\n\nordinary wording uses markdown. slack’s layout blocks are another option for more complex content. choose one approach for the visible message.\n\nattachments must already be in slack. uploading a fresh local file is a separate job.",
   "uses": [
-    "correct the check-in address in an event announcement people have already bookmarked",
-    "update a status message with a new confirmed delivery time",
-    "replace outdated instructions in a thread reply without broadcasting it to the whole channel"
+    "**keep bookmarks useful.** correct the check-in address in an existing event announcement.",
+    "**show the current promise.** replace a status message’s old delivery time with the confirmed one.",
+    "**keep a correction in its thread.** update a reply without broadcasting it to the channel."
   ],
   "routine": {
-    "message": "every friday at 08:50, find the specific slack announcement i linked for the brackley depot collection. compare its collection time with the confirmed time i gave you in this chat, and show me a replacement here only if they differ. ask before updating that exact message, using ordinary markdown and no thread broadcast. never post a second announcement or touch another message.",
+    "message": "every friday at 08:50, read this week’s depot collection times in the operations tracker in google sheets. find the corresponding weekly announcements in slack’s depot collections channel. compare their times with the tracker. show each mismatch with the original message link and proposed replacement here. ask me before you change anything. update only messages i choose, using ordinary markdown with thread broadcast off. never post a second announcement or edit unrelated messages.",
     "when": "fridays at 08:50",
-    "needs": "slack connected with read and write access to locate and update the specified message",
-    "output": "brackley depot announcement\noriginal: collection at 15:00, east entrance.\nproposed correction: collection at 16:00, east entrance.\noriginal message located; awaiting your permission to replace its wording."
+    "needs": "google sheets read only for the operations tracker; slack read and write for finding and updating messages",
+    "output": "brackley depot announcement\noriginal: collection at 15:00, east entrance.\ntracker: collection at 16:00.\nproposed: collection at 16:00, east entrance.\nwaiting before replacing the original wording."
   },
   "steps": [
-    "allow the message editor in **Connected apps** with **read and write** slack access and a restricted action list.",
-    "give it the message reference and ask it to confirm the channel and original text before any revision.",
-    "request a proposed replacement in chat, with an explicit wait for your agreement. **Ask every time** under sending does not supervise this edit.",
-    "inspect the changed message after the first correction. **Pause** the routine if the announcement no longer needs maintenance."
+    "**limit the editor.** connect slack with read and write for reading and updating messages.",
+    "**give the message link.** ask the bot to confirm its channel and original text.",
+    "**require your review.** say “ask me before updating”. sending’s ask-every-time setting does not cover this edit.",
+    "**open the original link.** read the saved correction there. pause recurring maintenance when the announcements stop."
   ],
   "watch": [
-    "a channel name alone doesn't say which announcement to replace. point the bot at the message and check its original text.",
-    "broadcasting an edited thread reply is an optional input. leave it off when a correction should stay inside the thread."
+    "**a channel has many messages.** read the linked original before replacing anything.",
+    "**thread broadcasts are optional.** keep that choice off when the correction belongs only in the thread."
   ],
   "faq": [
     {
       "q": "will editing show a sending approval card?",
-      "a": "this action is classified as a write. add an explicit ask-before-updating instruction if you need a checkpoint before the message changes."
+      "a": "**no automatic sending checkpoint applies.** this is a write. tell the bot to ask before updating if you need review."
     },
     {
       "q": "can it attach a new local file during the edit?",
-      "a": "it can only attach files that are already uploaded to slack. uploading a new file is separate from this message update."
+      "a": "**only files already in slack can join the edit.** upload a new file separately first."
     }
   ],
   "sources": [
@@ -88,5 +88,27 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "paste the message link",
+      "ask the bot to read the original",
+      "preview the replacement with broadcast off",
+      "allow the edit and open the same message"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "giving only a channel name",
+      "fix": "paste the exact message link and compare its original text."
+    },
+    {
+      "mistake": "trusting sending settings to pause an edit",
+      "fix": "put an ask-before-updating rule in the request."
+    }
+  ],
+  "tip": {
+    "text": "after an edit, open the original message link. that is where the correction needs to live."
+  },
+  "voice": 2
 }

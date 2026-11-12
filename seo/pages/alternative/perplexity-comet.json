@@ -10,7 +10,7 @@
     "perplexity comet review",
     "perplexity comet vs chatgpt atlas"
   ],
-  "answer": "comet is a browser with an assistant that can research, browse and act on pages. dusk bot is an app where a bot can have a browser and desktop separate from yours. keep comet on your shortlist if browser work is the main job. consider dusk if you want the job to belong to a named bot with its own files, memory and routines, rather than choosing a new everyday browser.",
+  "answer": "**want help with the tabs in front of you? comet fits that job.** it researches and acts on pages inside your browser. dusk gives named bots their own ongoing work, files, memory and routines, with a separate browser and desktop available. choose dusk when you want the helper to keep its own workspace while you keep yours.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -44,22 +44,22 @@
   "verdict": {
     "them_title": "comet",
     "them": [
-      "you want an assistant built into a chromium-based browser",
-      "you want to import your existing browser setup and use most chrome extensions",
-      "you want perplexity's model routing as part of its own plans"
+      "**you want help inside your browser.** comet builds its assistant into chromium.",
+      "**you want familiar browser tools.** import your setup and use most chrome extensions.",
+      "**you want models within one service.** perplexity handles the routing through its plans."
     ],
     "dusk": [
-      "you want a bot's browser and desktop separate from your everyday screen",
-      "you want to watch through Screen, take control yourself and hand it back",
-      "you want the same bot's job, files and memory alongside ongoing conversations"
+      "**you want a separate work area.** give the bot its own browser and desktop.",
+      "**you want to watch and step in.** use screen, take control, then hand control back.",
+      "**you want the job to stay with a bot.** keep its files, memory and ongoing conversations together."
     ]
   },
   "compare": {
     "h": "browser assistant versus a bot with a computer",
-    "intro": "plan access is as of 12 november 2026. downloading a free browser does not mean browser agent queries are included on the free plan. no browser speed or task-success test is included.",
+    "intro": "**budget for the assistant you need after the download.** as of 12 november 2026, comet’s free plan leaves browser agent queries out. we did no browser-speed or task-success test.",
     "cols": [
-      "Perplexity Comet",
-      "Dusk Bot"
+      "perplexity comet",
+      "dusk bot"
     ],
     "rows": [
       {
@@ -145,37 +145,37 @@
       }
     ]
   },
-  "method": "we make dusk bot. the comet column uses perplexity's own pages, read on 12 november 2026, and the safety note uses brave's dated disclosure. we did not run identical tasks, test browsing performance or retest the disclosed vulnerability. this is a comparison of working environments and documented access, not a current security certification for either product.",
+  "method": "**use this comparison to choose where you want the work to happen.** we make dusk bot. perplexity’s plan and product details are from 12 november 2026; brave’s safety disclosure has its own date.\n\nwe did not run matching tasks, time either browser or retest the vulnerability. plan access and working arrangements are what we can compare here.",
   "sections": [
     {
-      "h": "put the browser in the right place",
-      "md": "comet is a chromium-based browser with a built-in assistant that can browse, research and act on pages.[^1] it fits the question \"can an assistant help where i am already browsing?\" its docs say you can import from other browsers and use most chrome extensions.[^1]\n\ndusk asks you to organise work around bots. on dusk cloud, each bot gets a desktop. a bot on your own server can have a private desktop there, and on a mac you can deliberately give a bot your own screen.[^6] that is useful when you want to separate the bot's work area from the browser you use yourself. see [ai that controls a computer](/ai-agent-that-controls-your-computer) for that broader way of working."
+      "h": "which browser do you want it working in?",
+      "md": "**comet helps in the browser you use every day.** it is a chromium browser for research and page actions.[^1] import another browser’s setup and keep most chrome extensions.[^1]\n\ndusk keeps the bot’s work together. each cloud bot gets a desktop; a server bot can have a private one there. using your own mac screen is a deliberate choice.[^6]\n\nif you want the bot to have its own working area, read [ai that controls a computer](/ai-agent-that-controls-your-computer). you can keep your everyday browser as it is."
     },
     {
-      "h": "free download and agent access are different",
-      "md": "as of 12 november 2026, perplexity's plan help page says the free plan has no browser agent queries. pro and max have monthly limits.[^4] check perplexity's site for the current pro price.\n\ndusk's free personal desktop use still involves whatever your ai provider charges. dusk cloud pays for a computer that stays on, with plus at $20/month and pro at $50/month; the ai bill remains separate.[^8][^9] compare the total arrangement you need, rather than the word \"free\" on either download. if you choose a signed-in ai for dusk, check the provider's current terms too."
+      "h": "price the assistant, not the download",
+      "md": "**comet’s free download gets you the browser. agent queries need a paid plan.** as of 12 november 2026, free has no browser agent queries; pro and max have monthly limits.[^4] read the current pro offer before subscribing.\n\ndusk’s personal desktop app is free, with ai billed by your provider. cloud hosting is $20 monthly for plus or $50 for pro, with ai separate.[^8][^9]\n\ncompare the bill for the setup you will actually use. for a signed-in ai in dusk, read your provider’s current terms too."
     },
     {
-      "h": "page text can try to steer an agent",
-      "md": "brave disclosed an indirect prompt-injection vulnerability in comet page summarisation on 20 august 2025 and reported it to perplexity.[^13] that is a dated disclosure, not evidence from a current exploit test. we haven't checked whether it's fixed.\n\nwhen evaluating either tool, separate the material it reads from instructions you actually gave it. for dusk, you can watch the bot's screen, take control for sign-ins and stop it. sending in your name has its own approval setting. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set full-access bots to **Ask every time**.[^6] none of this makes a bot immune to tricky page text. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains what to think through before giving access."
+      "h": "a web page can contain instructions aimed at the bot",
+      "md": "**a page can try to give your bot orders.** brave disclosed an indirect prompt-injection flaw in comet page summarisation on 20 august 2025.[^13] its current fix status is unverified here.\n\nkeep page content separate from your instructions in either tool. in dusk, watch with screen, take control for sign-ins and stop the bot when needed.[^6]\n\nstart with a reading task that ends before submitting forms. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) explains the access choices."
     },
     {
-      "h": "try a research handoff with a clear stopping point",
-      "md": "a bounded instruction to try is: \"read these product pages and write a shortlist. keep a link beside every claim, separate missing information from confirmed facts, and stop before submitting forms.\" check the links and the shortlist yourself.\n\nif you are also weighing the chatgpt option, openai has replaced chatgpt agent with chatgpt work; [chatgpt agent alternatives](/alternatives/chatgpt-agent) covers that. browser assistants and desktop agents overlap, so choose based on the job and the access you want to give, not the category name."
+      "h": "give the trial a stopping point",
+      "md": "**try the shortlist you keep putting off.** ask: \"read these product pages. make a shortlist with a link beside each claim. mark missing information. stop before submitting forms.\"\n\nopen the links and compare the claims with the pages. judge the corrections you need and how the working setup feels.\n\nalso considering chatgpt? openai replaced chatgpt agent with chatgpt work. [chatgpt agent alternatives](/alternatives/chatgpt-agent) covers that option."
     }
   ],
   "faq": [
     {
       "q": "is perplexity comet free?",
-      "a": "the browser is free to download, but perplexity's plan help page says free includes no browser agent queries as of 12 november 2026. pro and max have monthly query limits.[^4]"
+      "a": "**the browser download is free.** as of 12 november 2026, the free plan includes no browser agent queries. pro and max have monthly limits.[^4]"
     },
     {
-      "q": "is comet safe to use for agent work?",
-      "a": "there is a dated brave prompt-injection disclosure from 20 august 2025.[^13] we haven't checked whether it's fixed. review the access a task needs and keep the first task small enough to inspect."
+      "q": "is comet safe for agent work?",
+      "a": "**keep the first job to reading public pages.** brave disclosed a prompt-injection flaw on 20 august 2025.[^13] we have not retested it; its current fix status remains unverified here."
     },
     {
-      "q": "can a dusk bot use its own browser instead of mine?",
-      "a": "yes. dusk cloud gives each bot a desktop; a bot on your own server can have a private desktop too. you can watch with Screen, use Take control and then Hand control back. using your own mac screen is a separate choice.[^6]"
+      "q": "can a dusk bot use a browser separate from mine?",
+      "a": "**yes, on its own computer.** dusk cloud gives each bot a desktop. your own server can host a private desktop too. watch with screen and take control when needed. your mac screen is a separate choice.[^6]"
     }
   ],
   "sources": [
@@ -236,5 +236,37 @@
       "url": "https://brave.com/blog/comet-prompt-injection/",
       "checked": "2026-11-12"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose two public product pages",
+      "ask for a linked shortlist, with no forms submitted",
+      "open the sources beside each claim",
+      "decide whether you prefer browser help or an ongoing bot"
+    ]
+  },
+  "checklist": {
+    "h": "before giving an agent browser access",
+    "items": [
+      "you know which browser and accounts it can reach",
+      "the first task stops before submitting forms",
+      "you will open the source links yourself",
+      "the first trial ends with a shortlist you can inspect"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming a free download includes agent work",
+      "fix": "read the plan’s browser agent allowance before subscribing."
+    },
+    {
+      "mistake": "treating an old flaw report as today’s test result",
+      "fix": "keep the disclosure date visible and look for a current fix report separately."
+    }
+  ],
+  "tip": {
+    "text": "give it the shortlist you need, with a source link beside every reason to pick something.",
+    "careful": true
+  },
+  "voice": 2
 }

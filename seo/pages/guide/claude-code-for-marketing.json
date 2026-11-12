@@ -3,14 +3,14 @@
   "type": "guide",
   "title": "Claude Code for marketing: briefs before publishing",
   "nav": "claude code for marketing",
-  "h1": "claude code for marketing work you can check",
-  "description": "Plan a source-based campaign brief, a copy review and a recurring content check with a Claude Code bot, while keeping publication behind approval.",
+  "h1": "claude code for marketing that gets past the blank brief",
+  "description": "Turn campaign facts into a useful brief review, find unsupported copy and repeat the job with a Claude Code bot. Keep publishing behind your approval.",
   "keyword": "claude code for marketing",
   "keywords": [
     "claude code for marketing agency",
     "claude code for marketing automation"
   ],
-  "answer": "a useful marketing job for a claude code bot starts with material you can check: a campaign brief, approved claims, a content inventory or a spreadsheet you supply. ask it to compare, organize or draft from that material before giving it publishing access. in dusk bot you can text a bot using claude code, attach files and repeat a narrow job with a routine.[^1][^2][^3]",
+  "answer": "**the draft sounds great. the delivery promise is made up.** give a claude code bot the approved facts and ask it to find those gaps before customers do. it can review briefs, compare copy with approved claims and organise a content inventory. in dusk bot, attach the files and text the job. repeat a useful review as a routine.[^1][^2][^3]",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -38,45 +38,45 @@
     ],
     "bubble": "where is the source?"
   },
-  "og_line": "prepare the work. check before it goes out.",
+  "og_line": "catch the promise your brief never made.",
   "sections": [
     {
-      "h": "start with a campaign packet",
-      "md": "give the bot the approved product facts, audience, offer, deadline and writing rules as files. ask for a list of missing facts before asking for copy. if the price, launch date or terms are absent, the right next step is a question, not an invented sentence.\n\nin dusk bot, use **Attach files** or drop the material into the chat. what the bot makes appears in the chat and lives in its folder, or a project folder you provide. keep the source packet separate from the working draft so you can compare each claim against the material that supports it.[^2]"
+      "h": "the brief comes before the copy",
+      "md": "**give it the brief you would give a writer.** attach the product facts, audience, offer, deadline and writing rules. ask what is missing before asking for copy. a missing price should come back as a question.\n\nin dusk, drop files into chat or choose attach files. the work appears in chat and lives in the bot’s folder or your chosen project folder.[^2]\n\nkeep the source packet beside the draft so you can trace each promise."
     },
     {
-      "h": "three bounded jobs to try",
-      "md": "- **brief review:** ask it to identify contradictions between the campaign brief and the approved product facts. require the relevant passage for each concern.\n- **copy review:** ask it to mark claims in a supplied draft that are missing a source, and to separate factual concerns from style suggestions.\n- **content inventory:** provide a file of existing titles and ask it to group overlapping topics before proposing another article.\n\ncheck the first answer closely. pick one job per thread. for wider discovery, the [market research workflow](/use-cases/market-research) is a different task from reviewing supplied material."
+      "h": "pick one job you can inspect",
+      "md": "**hand it the review you keep putting off.** start with a job whose answer you can judge:\n\n- **brief review:** quote contradictions with approved facts\n- **copy review:** separate unsupported claims from style edits\n- **content inventory:** group overlapping titles before proposing another article\n\nkeep each job in its own thread and compare the answer with the files. need fresh material? [market research](/use-cases/market-research) covers that separate request."
     },
     {
-      "h": "turn a repeated review into a routine",
-      "md": "after a useful manual run, make the repeat job precise. for a weekly content review, name the source file, the day, the destination and when to stay quiet. tell the bot to report missing material rather than fill gaps, and to ask before changing anything.\n\ndusk routines are made by describing the repeating job. a card shows the schedule and next runs with **Edit**, **Pause** and **Undo**. **Automations** has the calendar and run history. the [newsletter workflow](/use-cases/newsletter) is a related place to separate drafting from the final send.[^3]"
+      "h": "get the friday review without remembering to ask",
+      "md": "**a routine can bring you the claims that need a human decision.** name the folder, time and destination. say when to stay quiet and what to do if a file is missing.\n\ntry: \"every friday, read new briefs in the campaign folder. list claims missing from approved-facts.md here. ask before changing anything.\"\n\ndescribe that job in chat to create a dusk routine. its card has edit, pause, undo and next runs. automations holds the calendar and run history.[^3] keep the final send separate, as in the [newsletter workflow](/use-cases/newsletter)."
     },
     {
-      "h": "claude code has its own scheduler too",
-      "md": "if you prefer working directly with claude code, its routines are now called **cloud scheduled tasks**. as of 12 november 2026, they save a prompt, repositories and connectors, and can start on a schedule, api call or github event. they run on anthropic-managed infrastructure and count against plan usage.[^4]\n\nthat may fit a marketing site managed as a code project. it is not the same setup as a dusk routine created in a bot chat. the [scheduled-task explainer](/guides/claude-code-routines) helps distinguish cloud tasks, local desktop tasks and /loop before you choose one for recurring work."
+      "h": "claude code has a separate cloud scheduler",
+      "md": "**you may already have the scheduler you need.** as of 12 november 2026, claude code calls its routines cloud scheduled tasks. each saves a prompt, repositories and connectors.\n\nthey can start on a schedule, an api call or a github event. anthropic’s infrastructure runs them, and runs count against plan usage.[^4]\n\nthat may suit a marketing site you manage as code. a dusk routine uses a different setup. the [scheduled-task explainer](/guides/claude-code-routines) separates cloud tasks, local desktop tasks and /loop."
     },
     {
-      "h": "give publishing its own decision",
-      "md": "for reviewing source files, the bot needs no social account. if you later connect an app, choose access for that bot only. in dusk bot, reads and drafts can happen freely. sending messages, posts, emails or payments asks first unless you choose a daily amount the bot may send on its own. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^5][^2]\n\nthe sending setting doesn't cover changes like editing a page or changing app records. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job. the [social posting workflow](/use-cases/social-media-posting) covers a separate publishing task. approval of one draft is not a reason to remove review from the whole campaign."
+      "h": "approval belongs at the point of publishing",
+      "md": "**get the copy ready before giving it a way to publish.** reviewing files needs no social account. connect an app only when the job needs it, with access chosen for that bot.\n\ndusk reads and drafts freely. sends ask first unless you set a daily amount. careful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^5][^2]\n\npage edits follow different rules. keep access read only or say \"ask me before you change anything\". [social posting](/use-cases/social-media-posting) covers publication."
     },
     {
-      "h": "what remains an editor’s job",
-      "md": "check names, prices, links, dates and promises against your source files. a bot cannot know an unpublished launch decision you never gave it. it also cannot establish customer results, testimonials or search demand from a blank brief.\n\na draft that reads well can still say the wrong thing. keep unsupported claims out, preserve uncertainty and review the exact version that will be published. when a task needs fresh research rather than supplied material, define that research separately."
+      "h": "good writing can still make a bad promise",
+      "md": "**read the version customers will see.** match names, prices, dates, links and promises to the source packet. a bot cannot know a private launch decision you never gave it.\n\ncustomer results, testimonials and search demand need evidence of their own. a brief with none cannot support those claims. ask for fresh research separately when the files cannot answer the question.\n\nthe win is catching the invented delivery date before it becomes a customer’s expectation."
     }
   ],
   "faq": [
     {
       "q": "can a non-developer use claude code for marketing?",
-      "a": "in dusk bot you can choose a bot's ai and text it in plain words. start with attached campaign files and a result you can verify, rather than a broad request to run all your marketing.[^1][^2]"
+      "a": "**yes, attach a draft and the approved facts.** choose the bot’s ai in dusk and ask it to flag unsupported claims. you can judge the answer against those files.[^1][^2]"
     },
     {
       "q": "will a marketing bot publish without asking?",
-      "a": "dusk bot asks before posts and other sends unless you set a daily amount it may send alone. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it. page edits and other app changes aren't covered by the sending setting; keep the app read-only or tell the bot to ask first.[^2][^5]"
+      "a": "**use ask every time for sends.** a daily amount lets the bot send within that allowance. page edits need read-only access or an ask-first instruction; they follow different rules.[^2][^5]"
     },
     {
-      "q": "can the weekly review run when my laptop is shut?",
-      "a": "a dusk routine on your laptop cannot run while it sleeps. dusk cloud keeps routines running. claude code's own cloud scheduled tasks also run independently of your laptop, through a separate setup.[^3][^4]"
+      "q": "will the weekly review run with my laptop shut?",
+      "a": "**local dusk routines stop when the laptop sleeps.** dusk cloud keeps them running. claude code’s own cloud tasks also run away from your laptop, through a separate setup.[^3][^4]"
     }
   ],
   "sources": [
@@ -101,5 +101,41 @@
       "label": "dusk bot docs: computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "attach a short draft and its approved fact sheet",
+      "ask for unsupported claims only, with no edits",
+      "open the fact sheet beside each flagged sentence",
+      "correct the review before repeating the job"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: nadia reviews a launch draft.",
+    "before": "the draft promises friday delivery. the approved brief gives a launch date but no delivery promise.",
+    "after": "the bot flags the delivery sentence and quotes the gap. nadia removes the promise before approving the copy."
+  },
+  "checklist": {
+    "h": "before the campaign goes out",
+    "items": [
+      "every price and date matches the approved facts",
+      "customer claims have real evidence",
+      "you checked the final wording, not an earlier draft",
+      "publishing and page edits have clear review rules"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "asking for copy with half the brief missing",
+      "fix": "ask for missing facts first. a fluent guess is still a guess."
+    },
+    {
+      "mistake": "letting one good draft justify automatic publishing",
+      "fix": "keep review on the version customers will actually see."
+    }
+  ],
+  "tip": {
+    "text": "ask \"which claim can you not support?\" before asking \"can you make it punchier?\""
+  },
+  "voice": 2
 }

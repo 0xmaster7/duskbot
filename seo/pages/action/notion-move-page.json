@@ -11,7 +11,7 @@
     "claude organise notion pages",
     "ai move notion page to database"
   ],
-  "answer": "you can move an existing notion page under a different page, or place it in a database using that database's link. a bot needs the page to move and the exact destination. this is a location change without an automatic send approval, so make confirmation part of the instruction before you give it permission to move anything.",
+  "answer": "**put the finished brief where your team will look for it.** a bot moves an existing notion page under another page or into a database, keeping its contents intact. give it the source link and destination link. you get the original page in its new home, without a second copy to keep in sync.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,37 +41,37 @@
     "toolkit": "notion",
     "slug": "NOTION_MOVE_PAGE"
   },
-  "what": "move page changes where an existing page sits. it needs the source page link and a destination, rather than a title that could point to several places. search notion pages and databases can help identify the source and a page destination from their names.\n\nthe destination type matters. moving into a database works differently from moving under a page; the bot checks which you mean before it moves anything.",
+  "what": "**two pages called archive are a good reason to paste the link.** links settle which page moves and where it belongs. the bot can search notion by name to find candidates.\n\na database destination works differently from a parent page. say which you mean. the move changes the page’s home and leaves the writing alone.",
   "uses": [
-    "file a completed event brief beneath the correct annual archive page",
-    "move a standalone project note into its agreed database destination",
-    "place a misplaced onboarding page under the team handbook without rewriting it"
+    "**file a finished event brief.** move it under the right annual archive.",
+    "**bring a stray note home.** place it in the agreed project database.",
+    "**repair the handbook’s structure.** move the onboarding page without rewriting it."
   ],
   "routine": {
-    "message": "on the first friday of each month at 13:45, look under the events page i linked for event briefs whose event date has passed. list them here with where each would go under the archive page i linked, and ask me before moving any. never move a database, rewrite a brief or pick a destination by title alone.",
+    "message": "on the first friday of each month at 13:45, read event briefs under the events page i linked. find briefs whose event date has passed.\n\n- show each source link and proposed destination under the linked archive\n- ask me before you change anything\n- move only the pages i choose\n\nnever move a database or rewrite a brief. never choose a destination from its title alone.",
     "when": "first friday of the month at 13:45",
-    "needs": "notion connected, with read and write access to the source and destination",
-    "output": "event briefs proposed for archive\n\nrookhaven winter fair brief: event date has passed\nfrom: events\nto: events archive / winter fairs\nwaiting for your ok before moving anything."
+    "needs": "notion connected with read and write; access to source pages and the destination",
+    "output": "event briefs proposed for archive\nrookhaven winter fair brief: event date passed\nfrom: events\nto: events archive / winter fairs\nproposed move: this brief only, to the winter fairs archive."
   },
   "steps": [
-    "open **Connected apps**, allow this bot to use notion and set **read and write** for the move.",
-    "give both source and destination references; ask the bot to distinguish a page from a database target.",
-    "ask the bot to name both pages and wait for your ok before it moves anything.",
-    "check the moved page in notion and **Pause** the routine after the filing job is complete."
+    "**allow a move deliberately.** connect notion with read and write for this bot.",
+    "**give both links.** say whether the destination is a page or database.",
+    "**approve the route.** ask the bot to show source and destination links before it moves the page.",
+    "**open its new home.** confirm the first brief is there. pause the routine when monthly filing is finished."
   ],
   "watch": [
-    "if a move into a database fails, tell the bot it's a database, not a page.",
-    "a familiar title is not enough to identify which page should move when several copies exist.",
-    "read-only access blocks moves, while enabling writes does not make the sending setting supervise them."
+    "**database moves need a database destination.** tell the bot if it treated one as a page.",
+    "**use links to tell copies apart.** open the source and destination before approving the route.",
+    "**make the bot wait for your go-ahead.** moves use write access and bypass the email sending setting. the routine above adds the pause."
   ],
   "faq": [
     {
       "q": "can it move a page into a database?",
-      "a": "yes. paste the database link and the bot finds the right place for it."
+      "a": "**yes, give the database link.** the bot must use that database’s destination rather than treat it as a parent page."
     },
     {
-      "q": "does this also rewrite the page for its new home?",
-      "a": "the action moves an existing page. any content revision is a different task and should have its own explicit instruction."
+      "q": "does moving also rewrite the contents?",
+      "a": "**no, this action relocates the page.** ask for any rewrite as a separate job."
     }
   ],
   "sources": [
@@ -87,5 +87,32 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "copy the source page link",
+      "copy the destination link and say page or database",
+      "ask for a move preview without changing anything",
+      "open both links before allowing the move"
+    ]
+  },
+  "worked": {
+    "intro": "invented example: felix files a finished event brief.",
+    "before": "the winter fair brief sits under events. two other pages also have \"archive\" in their names.",
+    "after": "felix gives the exact archive link. the bot shows the source and destination, waits, then moves only that brief."
+  },
+  "mistakes": [
+    {
+      "mistake": "giving only the word \"archive\"",
+      "fix": "paste the destination link so the bot can distinguish copies."
+    },
+    {
+      "mistake": "expecting send approval to stop a move",
+      "fix": "require your go-ahead in the move request. sending approval covers a different action."
+    }
+  ],
+  "tip": {
+    "text": "a move should leave the writing alone. say so if you want filing rather than editing."
+  },
+  "voice": 2
 }

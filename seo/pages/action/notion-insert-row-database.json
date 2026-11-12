@@ -4,14 +4,14 @@
   "title": "Add Notion database rows with AI from your approved notes",
   "nav": "add database row",
   "h1": "turn a clear request into a notion database row",
-  "description": "Ask a bot to create a Notion database row with matching properties and a short page body. Check database access and avoid unsupported multi-source targets.",
+  "description": "Turn an approved decision into a Notion database row with matching columns and a short page body. See how to keep missing fields and duplicate rows out.",
   "keyword": "notion add database row with ai",
   "keywords": [
     "chatgpt insert notion database row",
     "claude create notion database entry",
     "ai turn notes into notion rows"
   ],
-  "answer": "a bot can create a new page inside a notion database, filling the properties you specify and adding short content blocks to its body. give it the database reference and field meanings first. the database must be shared with the connection and have only one data source; creating the row is a write that does not automatically ask before proceeding.",
+  "answer": "**get the approved purchase out of your notes and into the tracker.** a bot adds a notion database row with table properties and a short page body. missing fields can stay empty. share the database with the connection first, and use a database with one data source. put any approval step in the request.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,38 +41,38 @@
     "toolkit": "notion",
     "slug": "NOTION_INSERT_ROW_DATABASE"
   },
-  "what": "each row is also a notion page. properties hold the table fields, while child blocks hold the longer description inside that page. paste the database link; the bot looks at its columns before filling one in.\n\nkeep the first entry small. long text segments in child blocks may be shortened, and extra blocks are appended after the page is created. a created row is therefore not proof that every paragraph arrived. this action adds a new row rather than updating an existing one.",
+  "what": "**put the headline in the table and the detail inside the row.** properties fill the columns; content blocks hold the longer note. paste the database link and have the bot read its columns first.\n\nkeep entries short. long text can lose its ending, and extra blocks arrive after the page exists. open the body to see the whole note. this inserts a new row rather than updating an old one.",
   "uses": [
-    "record a confirmed equipment purchase in the purchasing database",
-    "turn a single accepted research proposal into a row with its short brief inside",
-    "add a workshop booking once the date and organiser are confirmed",
-    "save an idea with its source note while leaving undecided properties empty"
+    "record a confirmed equipment purchase in your purchasing database",
+    "add an accepted research proposal with its short brief inside",
+    "log a workshop booking after the date and organiser agree",
+    "save an idea with its source and leave undecided fields empty"
   ],
   "routine": {
-    "message": "every thursday at 12:35, take the purchase decisions i explicitly approved in this chat this week for thistledown theatre. prepare rows for the notion purchasing database i linked, matching its existing property names, and show them here before creating anything. once i agree, insert the rows and include a short body note with the decision source. never guess costs, update existing rows or retry an uncertain creation without checking for a duplicate.",
+    "message": "every thursday at 12:35, read new approval files added this week to the 'approved purchases' google drive folder for thistledown theatre. look for existing entries in the linked notion purchasing database. show proposed rows here with the source file and matching columns. ask me before you change anything. create only the rows i confirm, with short source notes. never guess costs or update old rows. if an insert result is uncertain, look for the row before trying again.",
     "when": "thursdays at 12:35",
-    "needs": "notion connected, with read and write access; the single-source database shared with the connection",
-    "output": "thistledown theatre purchase preview\nitem: portable lectern\napproval note: accepted by hedda paulsen in this chat\ncost: not provided, left empty\nwaiting before creating a notion row."
+    "needs": "google drive read only; notion read and write; a single-source database shared with the connection",
+    "output": "thistledown theatre purchase preview\nitem: portable lectern\nsource: approved purchases / lectern-approval.pdf\ncost: missing, left empty\nconfirm this preview to create the row."
   },
   "steps": [
-    "connect notion through **Connected apps** and share the intended database with the connection.",
-    "allow **read and write** for row creation, narrowing the bot to the insertion and inspection actions it needs.",
-    "have it inspect the database and map one short example to the actual properties before permitting an insert.",
-    "read the new row and its body, then use **Pause** on the routine card if text or fields are missing."
+    "connect notion and share the intended database with the connection",
+    "allow **read and write**, limited to inspection and insertion",
+    "match one short entry to the actual columns before inserting",
+    "open the saved row and its body; pause if anything went missing"
   ],
   "watch": [
-    "databases with several data sources are not supported by this insert action.",
-    "long child-block text may be truncated, and appended blocks can fail after the page already exists.",
-    "adding a row doesn't ask you first. put \"ask me first\" in the routine if you want to check each one."
+    "**choose a database with one data source.** this action cannot insert into a multi-source database.",
+    "**a row can exist before its whole body arrives.** inspect long notes and extra blocks.",
+    "**inserts do not ask first by default.** put the review instruction in your message."
   ],
   "faq": [
     {
       "q": "is a database row different from a notion page?",
-      "a": "the inserted row is a page within the selected database. its properties appear in the table and its child blocks form the page body."
+      "a": "**the row is a page inside the database.** its properties fill the table. its content blocks form the page body."
     },
     {
       "q": "will it replace a row with the same title?",
-      "a": "this is an insert action. do not rely on it to update or deduplicate matching titles; check existing entries before retrying."
+      "a": "**each insert adds a fresh row.** look for an existing entry before retrying an uncertain result, even when the title is the same."
     }
   ],
   "sources": [
@@ -88,5 +88,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "share one notion database with the connection",
+      "ask the bot to read its columns",
+      "preview one short row with missing fields empty",
+      "confirm, then inspect the row and body"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "retrying because the body looks unfinished",
+      "fix": "look for the row first. its body can still be arriving."
+    },
+    {
+      "mistake": "feeding the routine approvals buried in chat",
+      "fix": "point it at new approval files in a connected folder."
+    }
+  ],
+  "tip": {
+    "text": "an empty cost is more useful than a confident guess."
+  },
+  "voice": 2
 }

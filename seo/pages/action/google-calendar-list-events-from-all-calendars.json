@@ -11,7 +11,7 @@
     "chatgpt list events across calendars",
     "claude combine google calendar events"
   ],
-  "answer": "a bot can collect and deduplicate events across selected google calendars for a time window, then show them together in chat. it can use your calendar list when you do not specify calendars. check for failed calendars before trusting the result as complete. it only looks, but dusk counts this action as a change, so the bot needs read and write access to google calendar; you can limit it to just this action.",
+  "answer": "**put your gallery visits, travel and classes on one list.** a bot can gather events across selected google calendars and remove duplicates. give it start and end times with your time zone. ask it to put calendar errors before the appointments. this action only looks, but dusk counts it as a write, so allow it by name.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,38 +43,38 @@
     "toolkit": "googlecalendar",
     "slug": "GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS"
   },
-  "what": "use this when an appointment may be on your studio, teaching or personal calendar and you want one combined list. the action removes duplicate events from the gathered results. a compact summary comes back by default; request full detail if the question needs more of each event.\n\ngive the bot a start and end with an explicit time zone. you can name the calendars to include, or let it check all of them. failures on individual calendars can leave a plausible-looking but incomplete combined result.",
+  "what": "**see the appointments together without moving them.** studio, teaching and personal bookings can sit side by side. duplicate events appear once.\n\n- name the calendars, or let the bot use your calendar list\n- give start and end times with your time zone\n- ask for full details when the compact summary leaves out the location\n\nthe bot can expand recurring events into individual dates.",
   "uses": [
-    "collect next month’s exhibition appointments from the gallery and travel calendars",
-    "check which calendars contain a customer’s named appointments during a handover",
-    "gather recurring class occurrences and one-off workshops into a dated list"
+    "**exhibition planning:** gather next month's gallery and travel appointments.",
+    "**a customer handover:** find their named appointments across calendars.",
+    "**class planning:** list recurring classes beside one-off workshops."
   ],
   "routine": {
-    "message": "every second thursday at 6, gather the next fortnight's events from my gallery and travel google calendars in london time. show them here grouped by date, with full details where needed to explain the location. report any calendar errors or unfinished pages before the list. never create, move or cancel an event.",
+    "message": "every second thursday at 6, gather the next fortnight's events from my gallery and travel google calendars. use london time. group them by date here. include full details when they help explain the location. keep fetching results from each calendar until none remain. put calendar errors or missing results before the list. never create, move or cancel events.",
     "when": "alternate thursdays at 18:00",
-    "needs": "google calendar connected with read and write access; allow this listing and calendar identification actions only",
-    "output": "mossglass gallery: next fortnight\n- tuesday, 10:00: lighting visit, gallery calendar.\n- thursday, 14:00: courier appointment, travel calendar.\ncoverage: both selected calendars returned results; no event edits requested."
+    "needs": "google calendar read and write; allow only this combined listing and the calendar lookups it needs",
+    "output": "mossglass gallery: next fortnight\n- tuesday, 10:00: lighting visit, gallery calendar\n- thursday, 14:00: courier appointment, travel calendar\n\ncoverage: both selected calendars returned results."
   },
   "steps": [
-    "connect google calendar in **Connected apps**, then use **read and write** with a narrow action list because this listing is classified as a write.",
-    "ask the bot to list calendars and confirm the two calendars you want included.",
-    "set the date window and time zone, and request an explicit note about errors and remaining pages.",
-    "check one combined list against your calendars before scheduling it; **Edit** on the routine card lets you adjust the next review."
+    "**connect narrowly.** this listing needs read and write in dusk. allow only the listing actions it needs.",
+    "**choose calendars.** ask which it can see, then name the two you want.",
+    "**set the window.** include your time zone. ask it to fetch the remaining results and report errors.",
+    "**compare once.** compare one appointment from each selected calendar with google calendar before scheduling it. edit the routine card if needed."
   ],
   "watch": [
-    "a missing time-zone offset is treated as utc. that can shift the intended local date window.",
-    "limits on each calendar and unread pages can cut the results short; the bot should check every page.",
-    "recurring events expand into occurrences by default. say whether you want occurrences or a different view before comparing counts."
+    "**no time-zone offset means utc.** that can shift the dates you meant.",
+    "**ask for the whole window.** the bot needs to fetch the remaining batches from each calendar.",
+    "**recurring events expand by default.** expect individual class dates, rather than one repeating entry."
   ],
-  "rules": "allowing this action does not mean you need to allow event creation or deletion. restrict the bot to the listing actions needed for the combined view.",
+  "rules": "**allow the list, without allowing calendar edits.** an exact action list can keep event creation and deletion out of reach.",
   "faq": [
     {
       "q": "why does a calendar listing need write access in dusk?",
-      "a": "dusk classifies this particular action as a write. give it an exact action allowance rather than enabling every calendar change."
+      "a": "**dusk counts this action as a write.** allow it by name rather than enabling every calendar change."
     },
     {
       "q": "does an empty combined list mean i am free?",
-      "a": "only after checking the selected calendars, time window and reported errors. a calendar that failed to return results cannot show whether you are free."
+      "a": "**look at the coverage note first.** every intended calendar must return results for the right dates and time zone. a failed calendar leaves your availability unknown."
     }
   ],
   "sources": [
@@ -90,5 +90,35 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "name two calendars and tomorrow's date window",
+      "include your time zone",
+      "ask for a combined list with any errors first",
+      "compare one appointment with google calendar"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "trusting an empty list",
+      "fix": "look for a result or error beside every calendar name."
+    },
+    {
+      "mistake": "saying \"next week\" without a time zone",
+      "fix": "state the dates and local time zone."
+    }
+  ],
+  "tip": {
+    "text": "read the coverage note before the appointment list."
+  },
+  "checklist": {
+    "items": [
+      "the intended calendars appear",
+      "the start, end and time zone match my request",
+      "the bot fetched all result batches",
+      "any failed calendar appears before the list"
+    ]
+  },
+  "voice": 2
 }

@@ -11,7 +11,7 @@
     "claude duplicate google sheets tab",
     "ai copy tab between google spreadsheets"
   ],
-  "answer": "your bot can copy one tab from a google spreadsheet into another spreadsheet that already exists. it needs to know three things: the file to copy from, which tab, and the file to copy into. the source remains a separate sheet, and the action creates a copy rather than an ongoing sync. copying is a write, so tell the bot to show both files and ask before it adds the tab.",
+  "answer": "**give the meeting its briefing tab without handing over the whole workbook.** the bot copies one google sheets tab into an existing destination spreadsheet. give it both file links, the direction and the tab name.\n\nthe original stays put. the copy is a snapshot, so later source edits won't follow.",
   "tags": [
     "google sheets",
     "tab copies",
@@ -21,44 +21,44 @@
     "/integrations/google-sheets",
     "/integrations/google-sheets/create-a-google-sheet"
   ],
-  "og_line": "one selected tab, one checked destination.",
-  "what": "this is for handing over a selected sheet without copying an entire workbook. give the bot both spreadsheet links and the source tab name. it looks up the tab itself, so the tab's name is enough.\n\nthe destination must be an existing spreadsheet; this call does not create that file. it also has no input for choosing a new tab name or selecting only a few cells. plan a separate operation if the copied tab needs renaming or further editing.",
+  "og_line": "the briefing tab goes where you need it.",
+  "what": "**hand over the useful tab without sending the whole workbook.** the bot finds the tab from its name and copies it into the destination file. say which link is the source and which is the destination.\n\nthe destination must already exist. this action can't choose a new tab name or copy just a few cells. those need separate steps. it's a snapshot: later edits to the source won't follow.",
   "uses": [
-    "copy a prepared agenda tab into a meeting workbook that already exists",
-    "give a new project an approved planning tab from a template spreadsheet",
-    "place a selected reporting tab into a handover workbook for review",
-    "duplicate a worksheet into a separate analysis file before experimenting there"
+    "**put the agenda where the meeting happens.** copy its prepared tab into the existing meeting workbook.",
+    "**start a project from an agreed plan.** copy the planning tab from your template file.",
+    "**hand over one report.** add the selected reporting tab to the review workbook.",
+    "**experiment away from the original.** copy the worksheet into a separate analysis file."
   ],
   "routine": {
-    "message": "every other wednesday at 15:10, copy this fortnight's briefing tab from the research workbook i linked into the steering workbook i linked. first check the steering workbook: if this fortnight's copy is already there, stop and tell me. otherwise show me both file names here and ask me before you copy. never copy any other tab or rename anything.",
+    "message": "every other wednesday at 15:10, find this fortnight's dated briefing tab in the research workbook. look in the steering workbook for an existing copy of that briefing.\n\nif a copy exists, stop and tell me. otherwise show both file names and the dated tab here. ask me before copying the complete tab. never copy other tabs or rename anything.",
     "when": "alternate wednesdays at 15:10",
-    "needs": "google sheets connected with read and write, access to the source and permission to add a sheet to the destination",
-    "output": "tab copy awaiting approval\n\nsource: ivo marsh's research workbook, briefing tab\ndestination: willow bend steering\noperation: copy one complete tab\nsource tab confirmed; no destination changes made."
+    "needs": "google sheets read and write; access to the source and permission to add a destination tab",
+    "output": "copy proposal\n\n- source: ivo marsh's research workbook, this fortnight's briefing tab\n- destination: willow bend steering\n- scope: one complete tab\n\nready for you to approve this direction."
   },
   "steps": [
-    "connect google sheets for the transfer bot in **Connected apps**, with **read and write** and access to both files.",
-    "paste both spreadsheet links and name the tab you want copied.",
-    "review the bot's source-to-destination proposal, explicitly requiring your agreement before the copy.",
-    "check the added tab in the destination before recurring runs, and select **Pause** if you only needed a one-time handoff."
+    "**connect both files.** the bot needs google sheets read and write, plus access to source and destination.",
+    "**give both links.** say which direction to copy and name the tab.",
+    "**read the proposal.** require your yes before it adds the tab.",
+    "**inspect the first copy.** keep the routine only for fresh dated briefings. pause after a one-time handoff."
   ],
   "watch": [
-    "if two tabs have similar names, say exactly which one; the bot copies one tab only.",
-    "this copies one complete sheet, with no cell-range input. select another approach if the handoff should contain only a small excerpt.",
-    "copying again can add another copy. after a timeout or unclear response, inspect the destination before retrying.",
-    "nothing in this action keeps the two sheets synchronised after copying. later source edits need a separate decision about updating the destination."
+    "**similar tab names are easy to mix up.** use the exact one you want.",
+    "**the whole tab goes across.** this action has no cell selection. choose another approach for an excerpt.",
+    "**a retry can create another copy.** inspect the destination after a timeout before trying again.",
+    "**copies grow apart.** later source edits do not update the destination. decide separately whether to copy again."
   ],
   "faq": [
     {
       "q": "does it copy the whole spreadsheet?",
-      "a": "no, just the one tab you name. the rest of the file stays where it is."
+      "a": "**no, just one tab.** the other tabs stay in the source file."
     },
     {
       "q": "can it make a new destination spreadsheet too?",
-      "a": "create that file first with create a google sheet. then give the bot that file's link as the destination for this copy."
+      "a": "**make that file first.** use **create a google sheet**, then give the new file link as the destination."
     },
     {
       "q": "can i choose the new tab name in the same request?",
-      "a": "this copy action has no naming input. renaming the returned sheet would need a separate permitted action."
+      "a": "**this copy action cannot name it.** renaming needs another allowed action."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,36 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "open the source and destination spreadsheets",
+      "copy their links to the bot",
+      "name one tab and ask for a copy proposal",
+      "confirm the copy goes from source to destination"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "expecting the copy to stay current",
+      "fix": "treat it as a snapshot. later source edits need a separate update."
+    },
+    {
+      "mistake": "retrying when the reply is unclear",
+      "fix": "look in the destination first. the tab may already be there."
+    }
+  ],
+  "checklist": {
+    "h": "before the handoff",
+    "items": [
+      "the source tab is the right dated briefing",
+      "the destination file already exists",
+      "the whole tab belongs in that destination",
+      "there is no existing copy of this briefing"
+    ]
+  },
+  "tip": {
+    "text": "two links don't say which way the copy goes."
+  },
+  "voice": 2
 }

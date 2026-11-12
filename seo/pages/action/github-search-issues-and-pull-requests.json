@@ -11,7 +11,7 @@
     "chatgpt search github issues",
     "claude find github issues and pull requests"
   ],
-  "answer": "a bot can turn your question into a github search across issues and pull requests, narrowed by repository, author, label or status. ask it to show the query alongside the matches so you can see the scope. results only cover repositories the connection can access, and search limits can leave them incomplete. no match is not proof that nobody has reported the problem.",
+  "answer": "**someone may have solved that bug before you lost the morning to it.** a bot searches github issues and pull requests by repository, author, label or status. it brings back matches and the search words it used. start in the repository where the error happens, then read the closest report for symptoms and affected versions.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -43,37 +43,37 @@
     "toolkit": "github",
     "slug": "GITHUB_SEARCH_ISSUES"
   },
-  "what": "describe what you're looking for and the bot writes the github search for you. the bot can combine ordinary keywords with qualifiers for a repository, label, involved person or open or closed status. specify issue or pull request when you do not want the two mixed together.\n\nsearch results can be sorted and retrieved by page. use them to identify candidates, then read the matched records before drawing a conclusion about cause or resolution. a similar title may describe a different failure, and a closed issue does not by itself show that your version contains a fix.",
+  "what": "**find the earlier investigation before starting yours from scratch.** describe the error and name the repository. the bot combines words with filters for people, labels and open or closed work. say whether you want issues, pull requests or both.\n\nit can sort matches and fetch more results. have it open the promising reports: a closed issue helps only if the fix covers your version.",
   "uses": [
-    "find closed reports of a named error before writing a new bug report",
-    "locate open pull requests mentioning a component you are about to change",
-    "list the issues assigned to a teammate before you cover for them on holiday"
+    "**avoid a duplicate report.** look for closed issues about the same error first.",
+    "**see what might fix it next.** find open pull requests that mention your component.",
+    "**cover a teammate.** find their assigned issues before they leave for holiday."
   ],
   "routine": {
-    "message": "every tuesday at 9, search larchstone-dev/atlas for open issues and pull requests mentioning the phrase export timeout. return the query and matching references here, grouped by issue or pull request, and say whether more pages or search limits leave gaps. read the promising matches before saying they describe the same problem. never label, close, assign or comment on a result.",
+    "message": "every tuesday at 9, search larchstone-dev/atlas for open issues and pull requests mentioning \"export timeout\".\n\n- show the search words and repository\n- group matches into issues and pull requests\n- read promising matches before calling them the same problem\n- say if unread results or search limits leave gaps\n\nreturn the report here. never label, close, assign or comment on anything.",
     "when": "tuesdays at 9:00",
-    "needs": "github connected with read only access for search and reading matched records",
-    "output": "larchstone-dev/atlas search\nquery: repo:larchstone-dev/atlas state:open \"export timeout\"\nissue #47: mireya reports a timeout on large exports.\npull request #52: retry change, relevance needs inspection.\nno repository changes made."
+    "needs": "github connected with read only; allow search and reading matched issues or pull requests",
+    "output": "larchstone-dev/atlas\nsearch: repo:larchstone-dev/atlas state:open \"export timeout\"\nissue #47: large exports time out.\npull request #52: retry change; needs a closer read.\nno repository changes."
   },
   "steps": [
-    "connect github in **Connected apps** and keep this search bot **read only**.",
-    "state the owner and repository, the phrase to search and whether you want issues, pull requests or both.",
-    "ask for the exact query and any incomplete-search warning beside the results, then inspect one match yourself.",
-    "schedule the search after that trial and use **Edit** to change the question when the investigation moves to another component."
+    "**keep it read only.** connect github for this search bot.",
+    "**name the search area.** give the owner, repository and error phrase. choose issues, pull requests or both.",
+    "**inspect a match.** ask for the search wording and any gaps beside the results.",
+    "**keep the investigation on your radar.** schedule the search, then change the question as the problem narrows."
   ],
   "watch": [
-    "it only searches repositories your connected github account can see; a private one it can't see won't show up.",
-    "each page contains only a slice of results. unread pages and github search limits can both leave gaps the bot should disclose.",
-    "keywords and qualifiers narrow the search, but a match is only a candidate. read the report before calling it a duplicate or a fix."
+    "**private work needs access.** a repository your account cannot open will not appear.",
+    "**finish the search before ruling out an earlier report.** accessible repositories can still hit github search limits. ask the bot to show any gaps.",
+    "**find out whether the fix reached your version.** open the closed issue and read the affected versions."
   ],
   "faq": [
     {
       "q": "can it search only pull requests?",
-      "a": "yes. ask for pull requests only and it adds that to the search. ask it to show you the search it ran."
+      "a": "**yes, say pull requests only.** have it show the exact search wording beside the matches."
     },
     {
-      "q": "does an empty search prove an issue is new?",
-      "a": "no. access restrictions, wording differences and search limits can hide related records. try a narrower repository search and another phrase before deciding."
+      "q": "does no result mean nobody reported it?",
+      "a": "**try a different error phrase before giving up.** wording, repository access and search limits can hide an earlier report. have the bot name any gaps."
     }
   ],
   "sources": [
@@ -89,5 +89,36 @@
       "label": "dusk bot docs: computer permissions",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect github with read only",
+      "name one repository and an error phrase",
+      "ask for issues and pull requests separately",
+      "open the closest report and compare the symptoms"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "searching every repository at once",
+      "fix": "start where the error happens. widen the search if that finds nothing."
+    },
+    {
+      "mistake": "calling a similar title a duplicate",
+      "fix": "read the symptoms and affected version before joining the reports."
+    }
+  ],
+  "checklist": {
+    "h": "before calling it a duplicate",
+    "items": [
+      "same symptoms, not just the same title",
+      "same component and relevant version",
+      "the bot read the report, not just the search result",
+      "any access or search gaps appear in the answer"
+    ]
+  },
+  "tip": {
+    "text": "ask for the search words with the results. it is the quickest way to spot the wrong scope."
+  },
+  "voice": 2
 }

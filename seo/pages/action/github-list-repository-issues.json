@@ -11,7 +11,7 @@
     "claude filter github issues",
     "ai github issues by assignee"
   ],
-  "answer": "a bot can read a github repository's issue list using filters such as label, assignee, milestone and last update time. github's issue list also includes pull requests, so say whether you want them in. you can keep the whole job read only, with references and a clear filter summary in chat rather than changes to the issue queue.",
+  "answer": "**walk into the handover knowing which issues still need an owner.** give the bot a github repository and narrow it by label, assignee, milestone or recent updates. it brings the matching work here without editing the queue. github includes pull requests too, so ask for those in a separate list.",
   "updated": "2026-11-12",
   "review": {
     "status": "needs_review"
@@ -41,38 +41,38 @@
     "toolkit": "github",
     "slug": "GITHUB_LIST_REPOSITORY_ISSUES"
   },
-  "what": "start with the owner and repository from a github repo link. then say what belongs in the list: a named assignee, unassigned work, a label, a milestone or a chosen state. if you only know a milestone's name, the bot looks up its number first.\n\nthe since filter means updated at or after a time, not created since that date. a week of updated work may include much older reports. a long list comes in pages of up to 100, so ask the bot to read them all.",
+  "what": "**get the queue down to the work you can act on.** name the assignee, label, milestone or state you need. the bot can find a milestone's number from its name.\n\n'updated since monday' includes older issues with new activity. use opening dates when you want new issues. long lists arrive in batches of up to 100; have the bot reach the end before counting.",
   "uses": [
-    "list unassigned reports carrying the accessibility label before a staffing decision",
-    "find the issues attributed to a named teammate for a coverage handover",
-    "collect work in a particular milestone without moving or reprioritising it",
-    "see which closed issues got new activity this week"
+    "find unassigned accessibility reports before deciding who can help",
+    "list a teammate’s issues before a coverage handover",
+    "collect a milestone’s work without moving or reprioritising it",
+    "find closed issues that picked up fresh activity this week"
   ],
   "routine": {
-    "message": "every wednesday at 11, list open unassigned issues with the accessibility label in hazelpoint/atlas-desk. follow all result pages and separate any pull requests from the issue list. return issue numbers and titles here, showing the filters used and reporting failed pages. never assign people, add labels or close anything.",
+    "message": "every wednesday at 11, list open, unassigned issues labelled accessibility in hazelpoint/atlas-desk. finish every result batch. keep pull requests separate. show issue numbers, titles and the filters you used here. report any batch you could not read. if no issues match, say so. never assign people, add labels or close anything.",
     "when": "wednesdays at 11:00",
-    "needs": "github connected, with read only repository access",
+    "needs": "github connected; read only repository access",
     "output": "hazelpoint/atlas-desk\nfilters: open, unassigned, accessibility\n#118 keyboard focus missing on search\n#126 chart labels need text alternatives\npull requests excluded from the issue count."
   },
   "steps": [
-    "connect github through **Connected apps** and choose **read only** for this queue report.",
-    "identify the owner and repo, then give the exact label names or assignee login instead of a broad request to tidy issues.",
-    "ask for the filters beside the first list and check that pull requests are handled as requested.",
-    "create the weekly report and inspect its schedule; **Pause** it if the project or label stops being relevant."
+    "connect github with **read only** for a report that changes nothing",
+    "paste the repo link and name the label, person or milestone",
+    "read the filters beside the first result and find the separate pull request list",
+    "schedule the report, then pause it when the staffing question ends"
   ],
   "watch": [
-    "the issue listing includes pull requests, which can inflate a report unless they are separated.",
-    "filtering by since finds updated records, including older issues; it is not a new-issue counter.",
-    "paste the repository link, not just its name."
+    "**pull requests can inflate the count.** ask for separate lists.",
+    "**old work can come back to life.** use updated for recent activity, opened for newly filed issues.",
+    "**repo names can repeat.** paste the full github link."
   ],
   "faq": [
     {
       "q": "can it show only issues nobody owns?",
-      "a": "yes. the assignee filter supports unassigned issues. combine that with a label or milestone to keep the result useful."
+      "a": "**yes, unassigned is a supported filter.** add a label or milestone to keep the list short."
     },
     {
       "q": "why are old issues appearing in my weekly list?",
-      "a": "a since timestamp selects records updated during the window. an old issue with recent activity can therefore appear."
+      "a": "**someone touched them this week.** the update filter includes old issues with new activity during your chosen week."
     }
   ],
   "sources": [
@@ -88,5 +88,27 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "connect github with read only",
+      "paste one repository link",
+      "ask for open issues with one exact label",
+      "read the filters beside the issue count"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "counting pull requests as unresolved reports",
+      "fix": "ask for issues and pull requests in separate groups."
+    },
+    {
+      "mistake": "asking for new issues with an update filter",
+      "fix": "say whether you mean opening dates or recent activity."
+    }
+  ],
+  "tip": {
+    "text": "a count without its filters is a number you cannot plan around."
+  },
+  "voice": 2
 }

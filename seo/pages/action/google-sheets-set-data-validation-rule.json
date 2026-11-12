@@ -3,7 +3,7 @@
   "type": "action",
   "title": "Add Google Sheets dropdowns and validation with AI",
   "nav": "set data validation",
-  "h1": "give a google sheets range an explicit entry rule",
+  "h1": "give a google sheets column the choices your team uses",
   "description": "Ask a bot to add dropdowns, number checks or formula validation to a Google Sheets range. Choose rejection or warnings and include filtered rows deliberately.",
   "keyword": "google sheets data validation with ai",
   "keywords": [
@@ -11,7 +11,7 @@
     "claude set sheet validation rule",
     "ai google sheets restrict cell values"
   ],
-  "answer": "a bot can add or clear entry rules on a specific google sheets range: a dropdown, a numeric condition or a custom formula check. you choose whether invalid entries are rejected or merely warned about. it needs the sheet link, tab name and exact range of cells. adding the rule doesn't ask you first unless you tell it to, so review the target range before allowing it.",
+  "answer": "**stop a status column becoming five spellings of the same thing.** a bot can add dropdowns, number checks or formula rules to a google sheets range. choose warnings or rejection. name the spreadsheet, tab and cells. these edits don't automatically ask first, so tell the bot to show the range before changing it.",
   "tags": [
     "google sheets",
     "dropdowns",
@@ -22,43 +22,43 @@
     "/integrations/google-sheets/create-a-google-sheet"
   ],
   "og_line": "clear choices in the cells people fill in.",
-  "what": "a dropdown makes a status column easier to fill consistently. the bot can use a fixed list, take choices from another range, or set a condition that each entry should satisfy. set mode applies the rule; clear mode removes validation from the target cells.\n\npaste the spreadsheet link and name the tab and range in familiar terms such as bookings!d2:d40. the bot can turn \"bookings!D2:D40\" into the numbers google needs. strict validation rejects invalid data by default.",
+  "what": "**one clear rule beats another cleanup.** use a fixed list, choices from another range, or a condition each entry must meet.\n\n- set applies the rule\n- clear removes the rule, leaving cell contents alone\n- strict validation rejects wrong entries by default\n\nname the cells, such as bookings!d2:d40. the bot finds the tab and handles google's numbering.",
   "uses": [
-    "limit a workshop booking status column to held, confirmed or cancelled",
-    "offer a team-approved category list to people entering expenses",
-    "require a quantity field to satisfy a numerical rule",
-    "remove an obsolete dropdown from a carefully identified range"
+    "**booking status:** limit choices to held, confirmed or cancelled.",
+    "**expenses:** offer the categories your team agreed.",
+    "**quantities:** require entries to meet a number rule.",
+    "**an old dropdown:** remove its rule from the exact cells you name."
   ],
   "routine": {
-    "message": "every tuesday at 08:40, find the last filled row on the bookings tab of the workshop sheet i linked and make sure column d, from row 2 down to that row, only allows held, confirmed or cancelled. show me the range here and ask me before you add or extend the dropdown. never change what's typed in the cells or touch the header.",
+    "message": "every tuesday at 08:40, read the bookings tab in my workshop sheet. find the last filled row. inspect column d from row 2 to that row. propose extending the dropdown only where needed, with held, confirmed and cancelled as the choices. reject invalid entries and include filtered rows. show the range here and ask me before you change anything. leave existing values and the header alone. if the rule already covers the rows, stay quiet.",
     "when": "tuesdays at 08:40",
-    "needs": "google sheets connection with read and write access for spreadsheet details and validation changes",
-    "output": "validation proposal for miren's workshops\n\nbookings!d2:d40\nchoices: held, confirmed, cancelled\ninvalid entry: reject\nfiltered rows: included\nwaiting for range approval; existing values untouched."
+    "needs": "google sheets read and write for inspecting the sheet and changing entry rules",
+    "output": "rosa's workshops: dropdown proposal\n- range: bookings!d2:d40\n- choices: held, confirmed, cancelled\n- wrong entries: reject\n- filtered rows: include\n\nproposed range ends at row 40; the header and existing values stay."
   },
   "steps": [
-    "enable the sheets bot through **Connected apps**, giving **read and write** for validation and the sheet lookup it needs.",
-    "paste the file link, tab name and exact cell range; the bot looks up the tab.",
-    "choose rejection or warnings, decide whether filtered rows count and have the bot present those choices before writing.",
-    "after approving one bounded rule, try a valid and invalid entry yourself; use **Edit** to narrow the routine if its range is wrong."
+    "**connect the sheet.** allow read and write for its details and entry rules.",
+    "**name the cells.** paste the file link, tab and range. the bot finds the tab.",
+    "**choose the behaviour.** rejection or warnings? filtered rows too? ask to see the choices before any edit.",
+    "**test the rule.** try one valid and one invalid entry. edit the routine if it reaches too far."
   ],
   "watch": [
-    "check the range the bot shows you. one row off can put the dropdown on your header or the next column.",
-    "rows hidden by filters are excluded by default. ask for them to be included if the rule should cover them too.",
-    "say what's allowed, not just the kind of rule: the list of choices, the cells to take choices from, or the number limit.",
-    "clear mode removes validation rather than clearing the cell contents. confirm that removing the entry rule is actually the intended change."
+    "**one row off can catch the header.** read the proposed range before agreeing.",
+    "**filtered rows stay out by default.** ask to include them if every row needs the rule.",
+    "**name the allowed entries.** a rule needs choices, a source range or a clear number condition.",
+    "**clear removes the rule.** it doesn't empty the cells or correct their values."
   ],
   "faq": [
     {
       "q": "can it warn people instead of blocking an entry?",
-      "a": "yes. by default a wrong entry is refused; ask for a warning instead and people can still type it."
+      "a": "**yes. ask for warnings.** strict rules reject wrong entries by default. warnings let people keep what they typed."
     },
     {
       "q": "can dropdown options come from cells on another tab?",
-      "a": "range-based dropdowns use a source range in a1 notation. give the bot both the options range and the target range."
+      "a": "**yes. give both ranges.** name the cells holding the choices and the cells receiving the dropdown."
     },
     {
       "q": "does setting validation correct values already in the column?",
-      "a": "this action sets or clears the rule. it is not a value-cleaning action, so review existing entries separately instead of assuming they have been repaired."
+      "a": "**no. it changes the rule.** review existing values separately; a dropdown won't repair earlier entries."
     }
   ],
   "updated": "2026-11-12",
@@ -94,5 +94,39 @@
       "label": "dusk bot docs: a bot's computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "choose a small test range without headers",
+      "give the exact dropdown choices",
+      "ask for a range preview before any edit",
+      "try one allowed entry and one wrong entry"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "including the header",
+      "fix": "start at row 2 when row 1 holds column names."
+    },
+    {
+      "mistake": "forgetting filtered rows",
+      "fix": "ask to include them if the rule belongs on every row."
+    },
+    {
+      "mistake": "expecting old typos to fix themselves",
+      "fix": "review existing values separately."
+    }
+  ],
+  "tip": {
+    "text": "a warning lets the typo stay. rejection keeps it out."
+  },
+  "checklist": {
+    "items": [
+      "the tab and range are right",
+      "the header stays outside the range",
+      "the choices match our agreed spellings",
+      "warnings or rejection is a deliberate choice"
+    ]
+  },
+  "voice": 2
 }

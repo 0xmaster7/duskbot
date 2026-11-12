@@ -11,7 +11,7 @@
     "claude code from phone",
     "claude code remote control"
   ],
-  "answer": "you can reach claude code from a phone in several ways. as of 12 november 2026, anthropic's remote control opens a window into a session on your computer, while its cloud sessions run elsewhere. with dusk, you text a bot whose engine is claude code. choose by where the work needs to live: your phone reaching a laptop does not keep that laptop awake.",
+  "answer": "**leave the desk and keep the conversation going from your phone.** remote control reaches claude code on your computer. anthropic cloud sessions run elsewhere. dusk lets you text a named bot using claude code. as of 12 november 2026, all three routes exist. pick where the work lives so you know whether the laptop can come with you.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -40,7 +40,7 @@
   "og_line": "your phone reaches the work.",
   "table": {
     "h": "which computer is doing the work?",
-    "intro": "anthropic options below are documented as of 12 november 2026. dusk phone access depends on the computer you pair it with.",
+    "intro": "**choose the host that will still be on when you need it.** anthropic details are as of 12 november 2026. dusk access depends on which host you pair with.",
     "cols": [
       "option",
       "where the session lives",
@@ -93,38 +93,42 @@
   },
   "sections": [
     {
-      "h": "remote control keeps your existing machine involved",
-      "md": "as of 12 november 2026, anthropic's remote control connects a claude code session on your own machine to claude.ai/code or the claude mobile app. the local process still does the work. the computer must stay on, and the claude process must remain running. if sleep or a lost network interrupts it, claude code reconnects when the machine comes back.[^1]\n\nthat fits a session tied to the computer at your desk. it does not turn the phone into a replacement host. before leaving, think about power, connectivity and whether the machine will stay available long enough to finish.\n\nanthropic lists remote control on pro, max, ultra, team and enterprise. api-key authentication is not supported for it; team and enterprise need an owner to enable the feature.[^1]"
+      "h": "remote control still needs the machine at your desk",
+      "md": "**pick up the session you left running at your desk.** remote control connects claude.ai/code or the claude ios/android app to claude code on your own machine.[^1]\n\nleave that computer on with the claude process running. after sleep or a lost network, it reconnects when the machine returns; work pauses during the gap.[^1]\n\nas of 12 november 2026, remote control supports pro, max, ultra, team and enterprise. api-key sign-in is not supported. team and enterprise need an owner to enable it.[^1]\n\nchoose this for work that belongs on your desk computer. leave it powered and connected before heading out."
     },
     {
-      "h": "cloud sessions are anthropic's separate option",
-      "md": "as of 12 november 2026, anthropic documents cloud sessions that keep running when you close the laptop. you can start from the **Code** tab in its mobile app, claude.ai/code, the desktop app or `claude --cloud`. usage counts toward plan limits.[^2]\n\nthe page lists pro, max, ultra and team, plus eligible enterprise seats. if the goal is a coding session you can check while travelling, read this option before setting up another computer. for repeating work rather than one session, the [claude scheduled tasks guide](/guides/claude-scheduled-tasks) explains its cloud scheduler. do not assume a session and a schedule are the same thing."
+      "h": "cloud sessions leave the laptop out of the job",
+      "md": "**close the laptop and let a cloud session keep working.** anthropic hosts it elsewhere, so you can read or steer it from another device.[^2]\n\nstart from the mobile **code** tab, claude.ai/code, desktop or `claude --cloud`. usage counts toward your plan limits. as of 12 november 2026, plans include pro, max, ultra, team and eligible enterprise seats.[^2]\n\ntry this for a coding session while travelling before renting another machine. repeating work is a separate decision; see the [claude schedules guide](/guides/claude-scheduled-tasks)."
     },
     {
-      "h": "dusk gives you a bot to text",
-      "md": "in dusk, a bot is a named teammate with a job, its own chats and memory, and an ai you pick. choosing claude code as the engine means dusk runs that official command-line app on the machine where the bot lives, with you completing sign-in yourself. texting the bot lets you give work and follow up through that chat.[^4][^6]\n\nthis fits ongoing work with a named bot, rather than a window into a particular terminal session. if you want one bot for planning and another for reviewing documents, they can have different jobs and different ais. each keeps its own memory. switching an ai does not discard the bot's chats or files.[^4]\n\nusing a phone doesn't change anthropic's terms. its legal page (checked 12 november 2026) says nothing in it prevents 'an end user from signing in to the unmodified Claude Code binary with their own Claude subscription', and it sets conditions for platforms that host it. check the current page yourself.[^7]"
+      "h": "dusk gives the work a named bot",
+      "md": "**text the same teammate tomorrow, with its memory intact.** a dusk bot has a name, a job, its own chats and memory, and the ai you choose.[^4]\n\nchoose claude code and dusk runs that official command-line app where the bot lives. you complete the sign-in yourself.[^6]\n\nkeep planning and document review as separate jobs, with different memories or ais. changing a bot's ai keeps its chats, files and memory.[^4]\n\nchoose dusk for continuing work with a teammate you text. use remote control to reach a particular session."
     },
     {
-      "h": "pair once, then test away from your desk",
-      "md": "open dusk's phone pairing and scan the code. alternatives are a six-digit code, a nearby list on wi-fi or tailscale. pairing needs no account. iphone and android are supported, but the store apps are still on their way. for now, pairing opens dusk in your phone's browser and you add it to the home screen. that browser version sends no notifications.[^3]\n\nsend a simple question while the host is awake. then check which host you paired to. if it is your laptop, **Settings**, **Remote access**, **Keep this computer awake** helps keep it reachable. if you need it after shutting the laptop, pair with dusk cloud instead.[^3]\n\n[keeping claude code available overnight](/run-claude-code-24-7) covers the hosting tradeoffs. for people looking specifically for other chat channels, the [telegram, discord and slack guide](/guides/claude-code-telegram-discord-slack) is a separate question from phone pairing."
+      "h": "phone access does not change provider terms",
+      "md": "**use your own sign-in in the unmodified claude code app.** anthropic's legal page, checked on 12 november 2026, permits that end-user setup.[^7]\n\nit also sets conditions for platforms that host claude code.[^7] read the current terms for your setup. phone access keeps the same subscription rules and provider limits."
     },
     {
-      "h": "use the small screen for decisions",
-      "md": "give a narrow instruction you can review on the phone: 'read the proposal i attached and tell me which two assumptions need checking. leave the file alone.' that gives you a useful checkpoint without asking you to inspect a whole document while walking.\n\ndusk approval cards can reach the phone. connected apps can be limited per bot, including read-only access. for changes inside an app, write 'ask me before you change anything' if you want supervision. sending has a separate approval setting. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Sending on your behalf** to **Ask every time** for full-access bots.[^8] do not treat phone access as a reason to grant broader permissions.[^8]"
+      "h": "pair once, then text it from the couch",
+      "md": "**scan the code and send your first message from the phone.** alternatives include a six-digit code, the nearby wi-fi list or tailscale. no account is needed.[^3]\n\niphone and android use the paired browser version today. add it to the home screen. store apps are on their way; this browser version sends no notifications.[^3]\n\nyour paired computer needs dusk running. **settings**, **remote access**, **keep this computer awake** helps it stay reachable. pair to dusk cloud for access with your own computer off.[^3][^5]\n\n[overnight hosting](/run-claude-code-24-7) covers that choice. [telegram, discord and slack](/guides/claude-code-telegram-discord-slack) covers separate chat channels."
+    },
+    {
+      "h": "use the small screen for small decisions",
+      "md": "**get the next small decision off your desk.** ask for two assumptions to revisit in an attached proposal. have the bot leave the file alone. save the whole-document review for a bigger screen.\n\ndusk approval cards can reach your phone. allow apps per bot, read only where enough. for app writes, say 'ask me before you change anything'.[^8]\n\nread the preview before allowing a command or file change.[^8] if the phone makes it hard to read, wait until you can see it properly."
     }
   ],
   "faq": [
     {
       "q": "how are people running claude code from their phone?",
-      "a": "as of 12 november 2026, anthropic offers remote control into a running local session and cloud sessions started from its mobile code tab. dusk offers chat with a bot backed by the ai you choose. the hosting choice is what decides whether the laptop may sleep.[^1][^2][^3]"
+      "a": "**three routes serve different jobs.** as of 12 november 2026, remote control reaches a local session, cloud sessions run remotely, and dusk offers chat with a named bot. the host decides whether your laptop can sleep.[^1][^2][^3]"
     },
     {
       "q": "why does it stop working when i leave my laptop?",
-      "a": "for remote control, the local claude process and computer must stay running. for dusk paired to that computer, dusk must also be open. check the host before troubleshooting the phone.[^1][^3]"
+      "a": "**the local host paused when you left it.** remote control needs the computer and claude process running. dusk paired to that computer needs dusk open too.[^1][^3]"
     },
     {
       "q": "do i need an app store download to pair dusk?",
-      "a": "not yet. the store apps are on their way. use the paired browser version and add it to your home screen; keep in mind that this version does not send notifications.[^3]"
+      "a": "**use the paired browser version today.** store apps are on their way. add dusk to the home screen and remember that this version has no notifications.[^3]"
     }
   ],
   "sources": [
@@ -163,5 +167,52 @@
       "label": "dusk bot: computer and approvals",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "keep dusk open on the host computer",
+      "scan its phone-pairing code",
+      "ask the bot a short question from your phone",
+      "see which computer you paired with and leave it awake"
+    ]
+  },
+  "decide": {
+    "h": "which route fits the job?",
+    "cols": [
+      "you want",
+      "start with"
+    ],
+    "rows": [
+      [
+        "continue a session on your desk computer",
+        "remote control"
+      ],
+      [
+        "a coding session that survives laptop sleep",
+        "anthropic cloud sessions"
+      ],
+      [
+        "ongoing chats with separate named bots",
+        "dusk phone pairing"
+      ],
+      [
+        "dusk bots with your own computer off",
+        "pair with dusk cloud"
+      ]
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "assuming the phone keeps a local session running",
+      "fix": "leave the host powered on with the right app running."
+    },
+    {
+      "mistake": "waiting for browser notifications",
+      "fix": "open the paired browser to read replies; it has no notifications."
+    }
+  ],
+  "tip": {
+    "text": "before packing the laptop, ask which computer is actually doing the work."
+  },
+  "voice": 2
 }

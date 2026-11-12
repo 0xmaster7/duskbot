@@ -1,28 +1,36 @@
 {
   "path": "/tools/always-on-cost",
   "type": "tool",
+  "voice": 2,
   "title": "Always-on AI agent cost calculator: laptop, server or cloud",
   "nav": "always-on cost calculator",
-  "h1": "what does it cost to keep an ai agent running?",
-  "description": "A free calculator: the monthly cost of keeping AI bots running on a spare computer, a rented server or Dusk Cloud, from your own electricity price and time.",
+  "h1": "what does it really cost to keep an ai agent running?",
+  "description": "A free calculator: what a month of keeping AI bots running costs on a spare computer, a rented server or Dusk Cloud, once your own time counts.",
   "keyword": "always on ai agent cost",
   "keywords": ["cost to run ai agent 24/7", "ai agent hosting cost", "vps vs cloud for ai agents"],
-  "answer": "type in your electricity price, your server's price and how much your time is worth, and the table shows what a month of keeping bots running costs in each place. a laptop is free but sleeps. a spare computer costs electricity and care. a rented server costs its bill and care. dusk cloud is a flat $20 or $50 a month, and we look after it.",
+  "answer": "the server is rarely the expensive part. your time is. a spare computer costs a few dollars of power a month, a small server costs whatever your host charges, and both cost you every evening spent on updates and restarts. dusk cloud is a flat $20 or $50 a month and we do the upkeep. put your own numbers in below and see which one wins for you.",
   "updated": "2026-11-12",
-  "review": { "status": "approved", "by": "lead agent; arithmetic checked by hand for the default values", "at": "2026-11-12" },
+  "review": { "status": "approved", "by": "lead agent, rewritten by hand in the new voice; arithmetic checked", "at": "2026-11-12" },
   "tags": ["always-on", "cloud", "server", "cost", "calculator"],
   "connectors": [],
   "related": ["/agents-when-laptop-closed", "/run-claude-code-24-7", "/guides/how-much-does-an-ai-agent-cost"],
   "art": { "props": ["s-coins", "p-chart"], "bubble": "about $3 of power" },
   "og_line": "laptop, spare computer, server or cloud.",
   "tool": "always-on-cost",
-  "method": "a spare computer's electricity is its idle draw in watts, divided by 1,000 for kilowatts, times the hours a day you keep it on, times 30.4 days in an average month, times your price per kwh. at the starting values, 20 watts for 24 hours at $0.20 per kwh, that's 0.02 × 24 × 30.4 × 0.20 = about $2.92 a month.\n\nyour time is the hours a month you'd spend on updates, restarts and backups, times what an hour of it is worth to you. it starts at zero because only you know it, but it's usually the biggest number on the page.\n\na rented server is the monthly price your hosting company charges, plus your time. dusk bot charges nothing to run on [your own server](/docs/your-own-server); it needs ubuntu 22.04 or 24.04 and 2 gb of memory or more.\n\ndusk cloud prices are from [our pricing page](/pricing): plus is $20 a month or $200 a year, pro is $50 a month or $500 a year, and we keep the computer running and back it up daily.\n\nwhat this leaves out: the price of buying a spare computer in the first place, your internet connection, and your ai plan. every option uses the ai you sign in to, billed by your provider.",
+  "method": "**electricity is cheap. it's almost never the deciding number.**\n\na spare computer idling all month:\n\n```text\nwatts / 1,000 = kilowatts\nx hours on per day\nx 30.4 days in an average month\nx your price per kwh\n= your monthly power bill for it\n\n20 w, 24 h, $0.20: 0.02 x 24 x 30.4 x 0.20 = about $2.92\n```\n\n**your time is the big one.** updates, a restart after a power cut, a backup you forgot to check. one hour a month at $40 an hour already costs more than the power and most small servers.\n\n**a rented server is its bill plus that same time.** dusk bot is free to run on [your own server](/docs/your-own-server). it needs ubuntu 22.04 or 24.04 and 2 gb of memory or more.\n\n**dusk cloud is flat.** plus is $20 a month or $200 a year. pro is $50 a month or $500 a year. we keep the machine running and back it up every day ([pricing](/pricing)).\n\nleft out on purpose:\n\n- buying the spare computer in the first place\n- your internet bill\n- your ai plan, which every option uses and your ai provider bills",
   "sections": [
-    { "h": "reading the result", "md": "if your laptop is only open while you work and you only use bots then, the free row is the honest answer: stay where you are.\n\nthe other rows matter once you want routines to run before you wake, or to text a bot from your phone at night. then compare the spare computer and server rows with your time included. a server that costs a few dollars but takes an evening a month to look after is rarely the cheapest option once that evening has a price.\n\nthe page [where do ai agents run when your laptop is closed](/agents-when-laptop-closed) walks through what each option is like to live with, beyond the cost." }
+    { "h": "reading the result", "md": "**if you only use bots at your desk, the free row wins.** stay on your laptop. no shame in it.\n\n**the other rows only matter when you want things to happen without you.** the morning brief at 7, a reply from your phone at midnight, a long job that finishes while you sleep.\n\n**then compare with your time switched on.** a $5 server that eats an evening a month isn't a $5 server. most people who run their own box underprice their evenings.\n\nwant the full picture of each option, not just the money? read [where ai agents run when your laptop is closed](/agents-when-laptop-closed)." }
   ],
+  "quick": { "steps": ["type your electricity price from your last bill", "guess the hours a month you'd spend on upkeep", "put a price on one of those hours", "look at the row that's cheapest with your time in"] },
+  "mistakes": [
+    { "mistake": "leaving your time at zero", "fix": "even $20 an hour changes the answer. be honest with yourself." },
+    { "mistake": "using the watts on the power brick", "fix": "that's the maximum. idle draw is much lower: check the spec sheet or a plug-in meter." },
+    { "mistake": "forgetting the ai plan", "fix": "a bot working all night uses your ai plan all night. that bill doesn't change with where the bot lives." }
+  ],
+  "tip": { "text": "a bot that runs around the clock uses your ai plan around the clock. for heavy use, a bigger plan or an api key is the cheaper route." },
   "faq": [
-    { "q": "where do the starting numbers come from?", "a": "they are examples, not measurements. the right watts are on your computer's spec sheet or a plug-in power meter, and the right electricity price is on your bill." },
-    { "q": "does the calculator send my numbers anywhere?", "a": "no. it runs in this page in your browser and sends nothing." }
+    { "q": "where do the starting numbers come from?", "a": "they're examples, not measurements. your real watts are on the computer's spec sheet or a plug-in meter. your real power price is on your bill." },
+    { "q": "does the calculator send my numbers anywhere?", "a": "no. it runs in your browser and sends nothing." }
   ],
   "sources": [
     { "label": "dusk bot pricing", "url": "/pricing" },

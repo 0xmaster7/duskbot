@@ -1,17 +1,17 @@
 {
   "path": "/guides/claude-connectors",
   "type": "guide",
-  "title": "Claude connectors explained: choose useful app access",
+  "title": "Claude connectors: choose the app access your job needs",
   "nav": "claude connectors",
   "h1": "claude connectors: connect the job you actually need",
-  "description": "Understand Claude connectors, compare them with Dusk Bot connected apps, and pick from 20 app tasks without granting access to everything.",
+  "description": "Get answers from the apps you already use. Compare Claude connectors with Dusk Bot connections, then pick one of 20 reading jobs to try.",
   "keyword": "claude connectors",
   "keywords": [
     "claude connectors list",
     "chatgpt connectors",
     "claude connectors not working"
   ],
-  "answer": "claude connectors let claude retrieve data and take actions in apps and services. anthropic lists them in its connectors directory, with use cases, read and write capabilities and availability. dusk bot has a separate connected-app flow through composio. decide which task needs access first, then connect the app in the product you will use. a connection in one product is not the setup for another.[^1][^3]",
+  "answer": "**get the answer from the app instead of hunting through it yourself.** claude connectors retrieve data and act in services. anthropic's directory lists what each connection can read, change and access.[^1]\n\ndusk connects through composio on its own screen.[^3] choose where you'll do the job: connecting gmail in claude won't connect it in dusk.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -64,38 +64,38 @@
   "og_line": "pick a task before you connect an app.",
   "sections": [
     {
-      "h": "what anthropic means by connectors",
-      "md": "as of 12 november 2026, anthropic says web connectors are available to all users and work across claude, claude desktop, claude code and the api. the pricing page marks connectors as included on free, pro, max and ultra. check the individual directory entry for the connector's capabilities and availability.[^1][^2]\n\nanthropic also describes custom connectors for services that support mcp. the [mcp guide](/guides/what-is-mcp) explains the standard. do not read a broad plan entitlement as a promise that every connector exposes every action in an app. the directory entry is the place to check the specific connection."
+      "h": "what a claude connector gives you",
+      "md": "**find the connection that does the job you keep putting off.** as of 12 november 2026, web connectors are available to all users. they work across claude, claude desktop, claude code and the api. free, pro, max and ultra include connectors.[^1][^2]\n\nopen the directory entry for its actual read and write abilities and availability. the plan gets you connectors; each entry tells you what you can do.\n\nanthropic also supports custom connections for services using mcp. the [mcp guide](/guides/what-is-mcp) explains that standard."
     },
     {
-      "h": "how dusk connected apps differ",
-      "md": "dusk bot connects apps through composio. open **Connected apps**, sign in on the app's own page, then choose which bots may use the connection. each bot can have an app off, read only, or read and write, with an exact action list also possible. a bot set to read only can't make changes; dusk blocks the call before it reaches the app.[^3]\n\nthis is a separate setup from anthropic's connectors directory. dusk bot does not store the provider tokens for these connections; composio holds them, and **Disconnect** revokes the grant upstream. when comparing instructions, first check which product's connection screen they describe.[^3]"
+      "h": "dusk has its own connection screen",
+      "md": "**sign in once where you'll do the work.** in dusk, open **connected apps** and sign in on the app's own page. choose which bots may use it.[^3]\n\neach bot can have the app off, read only, or read and write. you can allow exact actions too. dusk blocks changes from a read-only bot before they reach the app.\n\ncomposio holds the connection; dusk stores no provider tokens. **disconnect** revokes the grant upstream.[^3]"
     },
     {
-      "h": "twenty app tasks to consider in dusk bot",
-      "md": "here are twenty small reading jobs dusk bots can do with connected apps. anthropic's directory may offer different ones. choose the ones your actual work needs.\n\n- **[gmail](/integrations/gmail)**: find messages for one sender before writing a follow-up list.[^4]\n- **google calendar**: find the event you need to prepare for.[^5]\n- **google drive**: find a source file by name before asking for a summary.[^6]\n- **google sheets**: read a spreadsheet range for a small status check.[^7]\n- **[slack](/integrations/slack)**: search messages for a decision you need to trace.[^8]\n- **notion**: search pages and databases for the right project home.[^9]\n- **[github](/integrations/github)**: list issues assigned to you for a work review.[^10]\n- **linear**: list a team's issues before planning the next discussion.[^11]\n- **figma**: retrieve file data for a design handoff check.[^12]\n- **stripe**: list invoices for a billing review, without taking a payment.[^13]\n- **hubspot**: list contacts for a review of your contact records.[^14]\n- **airtable**: list records from the table you want to inspect.[^15]\n- **asana**: get tasks for a status summary.[^16]\n- **outlook**: list messages when your work inbox lives there.[^17]\n- **canva**: list your designs to locate the right asset.[^18]\n- **salesforce**: search contacts before preparing account notes.[^19]\n- **youtube**: list channel videos for a content inventory.[^20]\n- **jira**: search issues for a focused project review.[^21]\n- **excel**: list worksheets before choosing the one to read.[^22]\n- **discord**: list your server memberships for an account review.[^23]"
+      "h": "twenty reading jobs to try in dusk",
+      "md": "**start where you already waste time looking things up.** these are dusk app tasks. anthropic's directory can expose different actions.\n\n- **[gmail](/integrations/gmail):** find one sender's messages for a follow-up list.[^4]\n- **google calendar:** find the meeting you need to prepare for.[^5]\n- **google drive:** locate the named source file before summarising it.[^6]\n- **google sheets:** read the cells behind your weekly status report.[^7]\n- **[slack](/integrations/slack):** find the message behind a decision.[^8]\n- **notion:** find the right project page or database.[^9]\n- **[github](/integrations/github):** list your assigned issues before planning work.[^10]\n- **linear:** read a team's issues before its planning discussion.[^11]\n- **figma:** get file details for a design handoff.[^12]\n- **stripe:** review invoices without taking payments.[^13]\n- **hubspot:** pull up the contacts you need before an account review.[^14]\n- **airtable:** read the table records you want to inspect.[^15]\n- **asana:** gather tasks for a status note.[^16]\n- **outlook:** list messages from your work inbox.[^17]\n- **canva:** find the right design in your own collection.[^18]\n- **salesforce:** find contacts before preparing account notes.[^19]\n- **youtube:** list channel videos for a content inventory.[^20]\n- **jira:** search a project's issues for a focused review.[^21]\n- **excel:** list worksheets before choosing one to read.[^22]\n- **discord:** review the servers your account belongs to.[^23]"
     },
     {
-      "h": "connect fewer things, then test the result",
-      "md": "begin with a question you can answer by reading one app. check whether the bot used the right account and material. connect another app only when that job needs it. a long list of available services is not a reason to give a bot access to all of them.\n\nif your problem is repeated formatting or a method the ai keeps forgetting, [skills](/guides/claude-skills) address a different need. more app access will not repair unclear instructions. keep an explicit source and destination in each request so you can tell where information came from and where the result will go."
+      "h": "one connection can be enough",
+      "md": "**one useful answer beats a screen full of connections.** pick a question one app can answer. name the account and source material before adding another.\n\nif the ai keeps forgetting your preferred format, look at [skills](/guides/claude-skills). app access gets it the data; instructions tell it what to do with it.\n\n\"read work gmail; return a list here\" gives it a source and a destination. that's a job you can judge after one run."
     },
     {
-      "h": "write access is a separate choice",
-      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it. the sending setting doesn't cover changes like labels or page edits. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job.[^3][^24]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
+      "h": "keep the first job read only",
+      "md": "**a reading job earns its keep without changing your apps.** start with read-only access in dusk.[^3][^24] labels and page edits don't automatically ask first. for a job that needs writes, put \"ask me before you change anything\" in the routine.\n\nconnection failing? open the product's connection screen. confirm the signed-in account and the bot's allowed actions. more access won't fix a sign-in to the wrong account."
     }
   ],
   "faq": [
     {
       "q": "why are my claude connectors not working?",
-      "a": "first check the connector's own directory entry for availability and supported actions. if you are using dusk bot, inspect its separate **Connected apps** setup and the access allowed for that bot.[^1][^3]"
+      "a": "**start with the action you expected to use.** find it in the connection entry and read its availability.[^1] in dusk, use the separate **connected apps** screen and look at that bot's access.[^3]"
     },
     {
       "q": "do claude connectors need a paid plan?",
-      "a": "anthropic's pricing page marks connectors yes on free, pro, max and ultra as of 12 november 2026. check the individual connector entry for its availability.[^1][^2]"
+      "a": "**no: free includes connectors as of 12 november 2026.** so do pro, max and ultra. individual connections still have their own availability.[^1][^2]"
     },
     {
       "q": "can i connect multiple gmail accounts in dusk bot?",
-      "a": "yes. dusk bot supports up to five usable accounts per app, each with a label. name the intended account in the task rather than leaving the bot to guess.[^3]"
+      "a": "**yes, up to five usable accounts per app.** label them and name the account in each task.[^3]"
     }
   ],
   "sources": [
@@ -217,5 +217,40 @@
       "label": "dusk bot docs: computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "pick one reading job from the list",
+      "open connections in the product you will use",
+      "connect the right account with the smallest useful access",
+      "ask one question, then open the source behind the answer"
+    ]
+  },
+  "checklist": {
+    "h": "before you grant app access",
+    "items": [
+      "you know whether the setup is for claude or dusk",
+      "the exact action exists in that connection",
+      "the intended account is clear",
+      "reading alone is enough, or the write has a review rule"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "following claude setup steps inside dusk",
+      "fix": "use dusk's own connected-app flow. the two connections are separate."
+    },
+    {
+      "mistake": "granting writes to solve a read error",
+      "fix": "confirm the signed-in account and allowed action first. extra access may not fix the failure."
+    },
+    {
+      "mistake": "connecting everything before choosing a task",
+      "fix": "start with one app and one result you can verify."
+    }
+  ],
+  "tip": {
+    "text": "pick the question you wasted ten minutes looking up this morning."
+  },
+  "voice": 2
 }

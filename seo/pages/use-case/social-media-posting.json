@@ -10,7 +10,7 @@
     "automate social media with ai",
     "ai agent for social media posting"
   ],
-  "answer": "give a bot your approved shipping notes and ask it to draft posts about what actually changed. keep the drafts in chat until you have checked availability, wording and links. posting is a send, so choose ask every time and leave any daily sending allowance off. the x connection needs your own composio project key and auth configuration; you can still draft without connecting a social account.",
+  "answer": "**turn the thing you shipped into a post someone can understand.** a bot drafts from release notes you cleared for public use, with the source beside each option. compare availability, wording and links before publishing. keep sending on ask every time with no daily allowance. x needs your own composio project setup; drafting here needs no social account.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -40,44 +40,44 @@
   },
   "og_line": "real changes, reviewed before posting.",
   "routine": {
-    "intro": "send the release notes you have cleared for public use, including the release link and anything still private. drafting in chat needs no social connection. connect x only if you want the bot to post after review.",
-    "message": "every friday at 1pm, use only this week’s approved shipping notes i supplied in this chat. draft two possible posts for x: one explaining a user-visible change, one showing a practical use for it. if there is no approved change, skip the drafts and say why.\n\nput the source note beside each draft and flag anything whose availability is unclear. use the public link i supplied; do not make one up. never add customer names, usage numbers, testimonials or claims that the notes do not support. omit private roadmap items.\n\nleave everything in chat. do not publish, reply, message anyone or change the account. when i ask you to publish a reviewed draft, post exactly that wording. if i edit the wording, use that version.",
-    "when": "fridays at 13:00, after approved shipping notes are available in the chat",
-    "needs": "approved release notes; optional twitter connector for x posting, with your own composio project key and auth config",
-    "output": "post options for sam’s fictional product, cedar notes\n\noption a: cedar notes now lets you rename a saved view. open the view and choose a name that matches the work.\nsource: sam’s approved shipping note, “rename saved views”.\n\noption b: keep a saved view called “handover” for the items you discuss with priya. the new rename option lets you give an existing view that name.\nsource: the same shipping note; the handover scenario is an illustration.\n\nheld back: jo’s mobile layout work is still private.\nneeds review: no public release url supplied. neither option posted."
+    "intro": "**put the source somewhere the routine can read again.** use an approved release-notes folder, with public links and private items clearly marked. drafting needs no social connection. connect x only for posting after review.",
+    "message": "every friday at 1pm, read release notes added this week to the approved public releases project folder. use only notes cleared for public use.\n\ndraft two possible x posts: a user-visible change and a practical use for it. if no approved change exists, skip drafting and say why.\n\nshow the source note beside each draft. flag unclear availability. use the public link in the note; never invent one. omit private roadmap work, customer names, usage numbers, testimonials and unsupported claims.\n\nleave drafts here. don't publish, reply, message anyone or change the account. when i later request publication, use the exact reviewed wording, including my edits.",
+    "when": "fridays at 13:00; reads this week's approved release files",
+    "needs": "access to the approved public releases folder; optional x connection needs your own composio project key and auth setup",
+    "output": "x draft options for the fictional product lumenettle\n\noption a: lumenettle now lets you rename a saved view. choose a name that matches the work.\nsource: chloe's approved release file, rename saved views.\n\noption b: name a saved view handover for the items you discuss with elliot. rename an existing view instead of starting again.\nsource: the same release file; handover is an example use.\n\nheld back: private mobile layout work.\nneeds review: no public release link in the file. nothing posted."
   },
   "sections": [
     {
       "h": "start with shipped work you can point to",
-      "md": "a merge, a draft announcement and a feature available to customers are different things. tell the bot which notes are approved and which audience can use the change. if rollout is uncertain, the draft should ask you a question rather than announce availability.\n\nyou can paste notes yourself. if you want to explore a repository connection later, read the [github guide](/integrations/github) and choose its access separately. this routine does not require access to your code or private issues."
+      "md": "**announce what customers can use today.** name the approved notes and the audience with access. if rollout is unclear, the bot should ask before announcing it.\n\nkeep recurring inputs in the release folder. for a one-off draft, paste the note directly. the [github guide](/integrations/github) covers a separate repository connection if you want one. this routine needs no code access."
     },
     {
       "h": "x needs a connection you configure",
-      "md": "the twitter toolkit includes a create-post action, but its managed sign-in is unavailable. you need your own composio project key and auth configuration to connect x.[^3] do that setup before expecting the bot to publish. the [x integration guide](/integrations/twitter) covers the connection.\n\nkeep **Ask every time** selected for sending. when you ask the bot to publish, review the text and account before pressing **Allow**. posting is a send, even when the text began as a draft. do not use a daily sending allowance if every post needs a decision. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^4]"
+      "md": "**draft here first; connect x when you want to publish.** the twitter toolkit has a create-post action but no managed sign-in. use your own composio project key and auth configuration.[^3] the [x guide](/integrations/twitter) covers the connection.\n\nset sending to **ask every time**, with no daily allowance. read the text and account before **allow**.\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^4]"
     },
     {
       "h": "a draft is not a publishing strategy",
-      "md": "a draft can't tell you whether a post reaches the right people or sells anything. it also cannot infer your release status from missing notes. keep speculative benefits out of the final wording and check any linked page yourself.\n\nfor a longer explanation of a release, use the [newsletter routine](/use-cases/newsletter). edit the social post for its own reader instead of squeezing an entire issue into it. revisit the notes after a release changes so an old draft does not announce something that is no longer available."
+      "md": "**give the reader a reason to care, straight from the release.** open the public link and cut benefits the note cannot support. drafts tell you neither reach nor sales.\n\nuse the [newsletter routine](/use-cases/newsletter) when a release needs a longer explanation. write the social post for its own reader and revisit old drafts when the feature changes."
     }
   ],
   "safeguards": [
-    "use only notes you have cleared for public release; exclude private roadmap material",
-    "leave sending on **Ask every time**, with no daily allowance for posts",
-    "check the destination account and final text on the send decision before **Allow**",
-    "remove unverified benefits, customer names and invented adoption numbers"
+    "**use public notes only.** exclude private roadmap work and anything not cleared for release.",
+    "**keep each post behind review.** select ask every time and leave daily allowance off.",
+    "**choose the final destination.** read the account and exact text before allow.",
+    "**cut claims without evidence.** remove invented benefits, customer names and adoption numbers."
   ],
   "faq": [
     {
       "q": "can an ai agent post on social media without me?",
-      "a": "dusk bot can allow a daily sending amount, but this workflow leaves that off. drafts wait in chat, and a later supported post requires your **Allow** with **Ask every time** selected. one exception: a bot on **Full access** with no sending rule of its own may post up to 25 a day without asking, so give it **Ask every time**.[^4]"
+      "a": "**it can if you grant that freedom.** this routine leaves drafts here. for later publication, keep **ask every time** and review the exact wording before **allow**. the full-access sending rule above matters here too.[^4]"
     },
     {
       "q": "does x connect with the normal managed sign-in?",
-      "a": "no. x has no ready-made sign-in, so you connect it with your own composio project key and auth config.[^3]"
+      "a": "**no, x needs your own setup.** use your composio project key and auth configuration.[^3]"
     },
     {
       "q": "can i use it just to draft posts?",
-      "a": "yes. give it approved notes and keep the result in chat. you can edit and publish through your usual social app yourself without connecting x to the bot."
+      "a": "**yes, no x connection needed.** give approved notes, review the drafts here and publish through your usual social app."
     }
   ],
   "sources": [
@@ -98,5 +98,43 @@
       "label": "dusk bot docs: a bot’s computer",
       "url": "/docs/computer"
     }
-  ]
+  ],
+  "quick": {
+    "steps": [
+      "attach one approved release note",
+      "ask for a change post and a practical-use post",
+      "compare every claim and link with the note",
+      "edit the draft and publish it yourself"
+    ]
+  },
+  "worked": {
+    "before": "public release note from chloe: saved views can now be renamed.\nno public link attached. mobile layout work remains private.",
+    "after": "draft: lumenettle now lets you rename a saved view for the work you use it for.\n\nquestion before posting: which public release link should go with it?\nprivate layout work stays out."
+  },
+  "checklist": {
+    "items": [
+      "the feature is available to the named audience",
+      "every claim traces to an approved note",
+      "the public link opens the right release",
+      "the reviewed account and wording match the post"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "using a closed issue as release proof",
+      "fix": "read rollout and audience in the approved release note first."
+    },
+    {
+      "mistake": "leaving the routine's input in old chat messages",
+      "fix": "keep approved notes in the named project folder so each run has a clear source."
+    },
+    {
+      "mistake": "adding benefits the release note never claimed",
+      "fix": "describe the actual change. ask before turning a possible benefit into a promise."
+    }
+  ],
+  "tip": {
+    "text": "if nothing shipped, skip the post. a quiet friday beats announcing work customers cannot use."
+  },
+  "voice": 2
 }

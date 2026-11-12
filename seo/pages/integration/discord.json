@@ -1,11 +1,11 @@
 {
   "path": "/integrations/discord",
   "type": "integration",
-  "title": "Discord AI connection: account checks, with clear limits",
+  "title": "Discord AI connection: know your accounts and servers",
   "nav": "discord",
   "h1": "what this discord connection can actually do",
-  "description": "See the Discord actions available to Dusk Bot: account, server and invite checks. This toolkit cannot read channel chats or send Discord messages.",
-  "answer": "this discord connection is for account and server lookups, not a bot that reads your channels and chats back. the available actions can inspect your profile, list your servers, resolve invites and check server widgets. dusk bot can put those checks on a schedule, but this toolkit has no actions for reading channel messages or sending replies.",
+  "description": "Find the Discord account, server or invite you meant. Review memberships and linked accounts on a schedule, with clear limits on chat access.",
+  "answer": "**find the server behind the invite before sharing the wrong one.** a bot can look up your discord profile, list servers, resolve invites and inspect server widgets. schedule the account housekeeping you keep putting off.\n\nthis toolkit has no channel-message reading or reply action. use it for account and server lookups, rather than conversation summaries.",
   "tags": [
     "discord",
     "accounts",
@@ -26,99 +26,99 @@
       "p-magnifier",
       "s-key"
     ],
-    "bubble": "check the right server"
+    "bubble": "which server is this?"
   },
-  "og_line": "account checks, with honest chat limits.",
+  "og_line": "know the account and where invites lead.",
   "app": {
     "name": "Discord",
     "toolkit": "discord",
-    "intro": "the useful starting point is identity: which account is connected, which servers it belongs to, and what an invite points to. these are lookup tools. their presence does not mean the bot can search the discussions inside those servers.",
+    "intro": "**know which servers and accounts you're still connected to.** the bot lists your memberships, looks up your profile and finds where an invite points. use that for account housekeeping. conversations inside the servers need a different connection.",
     "highlight": [
       {
         "slug": "DISCORD_GET_MY_USER",
-        "use": "confirm the signed-in profile before reviewing any servers"
+        "use": "find out which profile you connected before looking through its servers"
       },
       {
         "slug": "DISCORD_LIST_MY_GUILDS",
-        "use": "list the servers associated with the connected account"
+        "use": "bring back the server list you keep meaning to sort through"
       },
       {
         "slug": "DISCORD_GET_MY_GUILD_MEMBER",
-        "use": "inspect your own membership in a specified server"
+        "use": "show your membership details for the server you name"
       },
       {
         "slug": "DISCORD_INVITE_RESOLVE",
-        "use": "resolve an invite you provide before you share it"
+        "use": "find where that invite leads before you pass it on"
       },
       {
         "slug": "DISCORD_GET_GUILD_WIDGET",
-        "use": "inspect the widget data returned for a particular server"
+        "use": "read the widget for the server you are reviewing"
       },
       {
         "slug": "DISCORD_GET_GUILD_TEMPLATE",
-        "use": "read a specified server template for a setup review"
+        "use": "read the server template you want to review"
       },
       {
         "slug": "DISCORD_LIST_MY_CONNECTIONS",
-        "use": "review the external connections returned for your account"
+        "use": "show the external accounts still linked to your discord"
       },
       {
         "slug": "DISCORD_GET_MY_OAUTH2_AUTHORIZATION",
-        "use": "inspect the current authorization when checking which account is connected"
+        "use": "look up the current authorization when you need to identify the connection"
       }
     ],
-    "setup": "connect discord and give the bot read-only access. ask it to confirm your profile first, then provide the server or template you want checked. invite resolution needs sending permission instead. this avoids building a routine around the wrong account. the sign-in takes place on discord's page; your password does not go to the bot."
+    "setup": "**start with your own profile.** connect discord, allow this bot to read it, then ask which account it found. name the server or template next.\n\nyou sign in on discord's page. your password never goes to the bot."
   },
-  "routines_intro": "these routines are deliberately about account housekeeping and links you supply. none depends on listening to a channel. name the servers or give the relevant template or expected linked-account list when setting one up.",
+  "routines_intro": "**let it do the account housekeeping you keep postponing.** give it your expected accounts and server categories once, in memory notes. these routines compare them with current discord details and return the differences here.",
   "routines": [
     {
-      "name": "review my server list",
-      "message": "on the first monday of each month at 9, list my discord servers and group their names into communities, work and unsure using the categories i gave you. show unsure entries for me to review. never leave a server or change my account.",
-      "when": "first monday monthly at 9:00",
-      "output": "a membership review in dusk bot chat"
+      "name": "monthly server memberships",
+      "message": "on the first monday of each month at 9, list my discord servers. compare them with the community and work categories in your memory notes. show names under community, work and unsure here. ask about anything unclassified. never leave a server or change my account.",
+      "when": "first monday each month at 9:00",
+      "output": "server names grouped in dusk chat, with uncertain memberships left for you"
     },
     {
-      "name": "review my linked accounts",
-      "message": "every friday at noon, list the external connections returned for my discord account. compare them with the account list i gave you and flag any differences. leave all account settings unchanged.",
+      "name": "linked-account review",
+      "message": "every friday at noon, read the external accounts connected to my discord. compare them with the expected-account list in your memory notes. flag differences here. report a failed lookup as a failed lookup, not a change. leave settings alone.",
       "when": "fridays at 12:00",
-      "output": "a linked-account review in dusk bot chat"
+      "output": "a comparison with your expected accounts, or a clear lookup failure"
     },
     {
-      "name": "prepare a server setup review",
-      "message": "every tuesday at 11, retrieve the discord server template i gave you and its server widget, if available. summarise the returned information for our onboarding review. state which lookup failed rather than filling in missing details.",
+      "name": "server setup review",
+      "message": "every tuesday at 11, read the template and widget for the discord server named in your job. compare the returned details with the onboarding checklist in your memory notes. report changes or missing information here. if both lookups succeed and nothing differs, stay quiet. never fill gaps by guessing.",
       "when": "tuesdays at 11:00",
-      "output": "a short setup note based on returned data"
+      "output": "a note about current setup differences, with failed lookups named separately"
     }
   ],
-  "asks": "dusk counts resolving an invite as a send, so it waits for your Allow each time, and a read-only bot can't do it. the other checks here are plain reads. the toolkit shown here has no send-message action, so enabling write access would not turn the routines into a channel assistant. keep the connection read only for the routines here. a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so set **Ask every time** for it.[^3]\n\nthe sending setting doesn't cover changes like account or application settings. to keep them supervised, give the bot read-only access or write \"ask me before you change anything\" into the job.[^3] you can disable this app for a bot without changing what the rest of your bots may use.",
+  "asks": "**keep the account reviews read only.** that covers these routines, and you can turn discord off for one bot without affecting the others.\n\ninvite resolution is the oddity: dusk classes it as a send. a read-only bot can't use it. with that action allowed, it asks unless you set a daily amount.[^3]\n\ncareful with **Full access**: a bot there with no sending rule can send up to 25 a day without asking. give it **Ask every time**.[^3]\n\nthis toolkit still has no send-message action. granting writes won't add one.",
   "cannot": [
-    "read a channel history, search server conversations or summarise yesterday's discussion through this toolkit. this connection has no way to read channel messages.",
-    "send channel replies or direct messages here. this is not a way to place a conversational ai teammate inside a discord server.",
-    "treat a missing widget result as a full server audit. a routine should report what the lookup returned and what it could not inspect.",
-    "perform recurring checks while dusk bot is closed on your own computer. a server-list review waits for a running machine; dusk cloud is an option for scheduled work."
+    "**read or search channel conversations.** this toolkit cannot retrieve yesterday's discussion to summarise it.",
+    "**reply in channels or direct messages.** connecting this toolkit does not place a conversational teammate inside discord.",
+    "**turn a missing widget into a server audit.** report what came back and what the bot could not inspect.",
+    "**run while its local computer sleeps.** the app and machine must be on. dusk cloud provides a home for scheduled work."
   ],
   "sections": [
     {
-      "h": "if you meant a chat with several bots",
-      "md": "you can have several bots talk together in a [dusk bot group chat](/ai-group-chat). that conversation is separate from discord. each bot keeps its own job and permissions, and you can choose who answers.\n\nif your actual job is reviewing work conversations, inspect the available [slack actions](/integrations/slack) before choosing a connector. do not assume two messaging apps expose the same tools."
+      "h": "if you wanted several bots talking",
+      "md": "**put bots in a dusk group when you want them talking together.** each keeps its own job and permissions in the [group thread](/ai-group-chat). choose who answers there.\n\nfor work conversations you want reviewed, look at the [slack actions](/integrations/slack). choose the connection that can read your source."
     },
     {
-      "h": "make failed checks useful",
-      "md": "ask for a clear difference between \"the linked-account list changed\" and \"the account connections could not be retrieved\". one identifies a change; the other leaves the comparison incomplete. keep the expected account list in the routine so you can tell what the bot compared."
+      "h": "put the missing lookup in the report",
+      "md": "**know which account differences need your attention.** keep the expected-account list in the bot's memory notes. ask it to name that baseline beside any difference.\n\nif a lookup fails, have it say which one. then you know whether to fix access or investigate a real account change."
     }
   ],
   "faq": [
     {
       "q": "can i talk to claude in my discord server through this connection?",
-      "a": "no. the discord toolkit here does not include channel-message reading or sending. it supports account, server and application lookups, which is a narrower job than chatting in a server."
+      "a": "**no.** it provides account, server and application lookups. channel-message reading and sending are absent."
     },
     {
-      "q": "can it summarise messages while my laptop is closed?",
-      "a": "this connection cannot retrieve channel messages in the first place. separately, local scheduled jobs stop while your computer sleeps. hosting a bot elsewhere does not add missing discord actions."
+      "q": "can it summarise messages with my laptop closed?",
+      "a": "**it cannot read those messages at all.** cloud hosting keeps a bot awake; it does not add missing discord actions. local schedules also stop during sleep."
     },
     {
-      "q": "what is a useful discord routine if it cannot read chats?",
-      "a": "review your own server memberships, check your linked accounts, or retrieve a server template you provide. these are bounded checks supported by the actions listed here."
+      "q": "what discord routine is useful without chat access?",
+      "a": "**review memberships or linked accounts.** a server-template check can also help. choose one of those supported lookups rather than asking for a conversation summary."
     }
   ],
   "sources": [
@@ -145,5 +145,36 @@
     "status": "approved",
     "by": "lead agent: independent reviewer pass against seo/facts (4 reviewers), every finding applied, automated gate",
     "at": "2026-11-12"
-  }
+  },
+  "quick": {
+    "steps": [
+      "connect discord for reading",
+      "ask which profile is connected",
+      "ask it to list your servers",
+      "compare one membership with discord itself"
+    ]
+  },
+  "checklist": {
+    "h": "does this connection fit your job",
+    "items": [
+      "the task concerns accounts, memberships, invites or server setup",
+      "you are not relying on channel-message access",
+      "the expected account or server is clear",
+      "failed lookups will appear as unknowns"
+    ]
+  },
+  "mistakes": [
+    {
+      "mistake": "expecting a channel assistant from a discord connection",
+      "fix": "use it for account and server lookups. it has no channel-message actions."
+    },
+    {
+      "mistake": "reading missing widget data as no change",
+      "fix": "report the failed lookup. no data means you cannot make the comparison."
+    }
+  ],
+  "tip": {
+    "text": "ask which profile is connected. the right server list from the wrong account still wastes your morning."
+  },
+  "voice": 2
 }
