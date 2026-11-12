@@ -48,7 +48,11 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
   let child: ChildProcess | null = null;
   let base = "";
 
-  const vm = (state: Record<string, unknown>) => writeFileAtomic(stateFile, JSON.stringify(state));
+  // an existing desktop has its home folder, which is how the server finds it again at boot
+  const vm = (state: { containers?: string[] } & Record<string, unknown>) => {
+    if (state.containers?.includes("shared")) mkdirSync(join(data, "vm-home"), { recursive: true });
+    return writeFileAtomic(stateFile, JSON.stringify(state));
+  };
   const readVm = () => JSON.parse(readFileSync(stateFile, "utf8"));
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(base + path, {
@@ -168,7 +172,7 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
     rmSync(dumpFile, { force: true });
   });
 
-  it("gives an Auto chat no computer and a plain note, updates the desktop by itself keeping sign-ins, then uses it", async () => {
+  it("gives an Auto chat no computer and a plain note, updates the desktop by itself keeping sign-ins, then lets Auto work again", async () => {
     vm(OLD_DESKTOP);
     await start();
     const { bot } = await apiOk("POST", "/api/bots", { name: "Desk Auto Bot", browser: false });
@@ -198,9 +202,8 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
 
     const nextThread = await send(bot.id, "Now check the dashboard again.");
     const next = await dumpFor("Now check the dashboard again.");
-    const computer = next.mcpConfig.mcpServers.computer;
-    expect(computer.args.some((arg: string) => arg.includes("container-mcp"))).toBe(true);
-    expect(computer.args.some((arg: string) => arg.includes("local-computer-proxy"))).toBe(false);
+    // once nothing awaits an update, Auto on a computer whose own desktop is on offer works there
+    expect(next.mcpConfig.mcpServers.computer.args.some((arg: string) => arg.includes("local-computer-proxy"))).toBe(true);
     expect(next.systemPrompt).not.toContain("is being updated");
     await finish(bot.id, nextThread);
   }, 60_000);
@@ -277,7 +280,8 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
     vm({ noContainers: true });
     rmSync(join(fakeBin, "docker.log"), { force: true });
     await start();
-    expect((await api("PUT", "/api/config", { vps: { sshAlias: defaultAlias } })).status).toBe(200);
+    // per-bot: a fresh install's shared workspace computer is not this bot's own desktop
+    expect((await api("PUT", "/api/config", { vps: { sshAlias: defaultAlias, mode: "per-bot" } })).status).toBe(200);
     const { bot } = await apiOk("POST", "/api/bots", { name, browser: false });
     await apiOk("PATCH", `/api/bots/${bot.id}`, { cloudBackend: "vps", computer: null, ...(botAlias ? { vpsAlias: botAlias } : {}) });
     const threadId = await send(bot.id, "Check the VPS desktop.");
@@ -291,7 +295,8 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
       ...(method === "POST" ? { body: JSON.stringify({ surface: "auto" }) } : {}),
     }).then(async (response) => ({ status: response.status, body: await response.json() as any }));
     const offered = (await select("GET")).body.options as any[];
-    expect(offered.find(option => option.surface === "local")).toMatchObject({ available: false, reason: HOST_WHILE_UPDATING });
+    // a bot with a VPS on Auto is offered only its VPS
+    expect(offered.map(option => option.surface)).toEqual(["cloud"]);
     expect(offered.find(option => option.surface === "cloud").reason).toContain(VPS_OUTDATED_HINT);
     const picked = await select("POST");
     expect(picked.body.surface).not.toBe("local");
