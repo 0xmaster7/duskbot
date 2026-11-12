@@ -10,18 +10,18 @@ import { appLink, openApp } from "../lib/app-link";
 import { ago, plural, until } from "../lib/format";
 import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
-import { Button, Card, cx } from "../ui/kit";
+import { Button, Card } from "../ui/kit";
 import { BotMascot, Mascot, type BotState } from "../ui/Mascot";
 import { PulseChart } from "../ui/PulseChart";
 import { CloudStatus, PowerButton, Provisioning, regionName } from "./cloud-bits";
 
 const ORDER: Record<BotMood, number> = { working: 0, waking: 1, idle: 2, drowsy: 3, sleeping: 4 };
-const STATE: Record<BotMood, { label: string; dot: string }> = {
-  working: { label: "working", dot: "text-good" },
-  waking: { label: "waking up", dot: "text-warn" },
-  idle: { label: "waiting", dot: "text-accent" },
-  drowsy: { label: "waiting", dot: "text-ink-4" },
-  sleeping: { label: "asleep", dot: "text-ink-4" },
+const STATE: Record<BotMood, { label: string }> = {
+  working: { label: "working" },
+  waking: { label: "waking up" },
+  idle: { label: "waiting" },
+  drowsy: { label: "waiting" },
+  sleeping: { label: "asleep" },
 };
 
 /** what a bot is on now, or what it did last: a routine by name when that was it, otherwise a chat */
@@ -41,7 +41,7 @@ export function botRoutines(bot: BotReport, now: number): string {
   return !active.length ? `${count}, paused` : next ? `${count}, next ${until(next, now)}` : count;
 }
 
-/** a bot as the island shows it: its mascot with a state dot, its name, and its state in a quiet word; the rest is in
+/** a bot as the island shows it: its mascot, its name, and its state in a quiet word; the rest is in
  * its tooltip and accessible name */
 function BotCell({ bot, mood, now }: { bot: BotReport; mood: BotMood; now: number }) {
   const state = STATE[mood];
@@ -50,9 +50,8 @@ function BotCell({ bot, mood, now }: { bot: BotReport; mood: BotMood; now: numbe
     <li className="w-[68px] shrink-0 sm:w-[76px]">
       <Link to={`/bots/${encodeURIComponent(bot.id)}`} title={more} aria-label={`${bot.name}, ${state.label}. ${more}`}
         className="press hover-ghost group flex w-full flex-col items-center rounded-[16px] px-1 pb-1.5 pt-2 text-center">
-        <span className="relative grid size-11 place-items-center">
+        <span className="grid size-11 place-items-center">
           <span className="transition-transform duration-150 ease-out [@media(hover:hover)_and_(pointer:fine)]:group-hover:-translate-y-px motion-reduce:transition-none"><BotMascot bot={bot} mood={mood} size={40} /></span>
-          <span className={cx("live-dot absolute bottom-0.5 right-0.5 !size-2 ring-2 ring-pop", state.dot)} data-live={mood === "working"} aria-hidden />
         </span>
         <span className="mt-1 block w-full truncate text-13 font-medium leading-[1.3] text-ink">{bot.name}</span>
         <span className="block w-full truncate text-12 font-medium leading-[1.3] text-ink-3">{state.label}</span>
@@ -101,8 +100,7 @@ export function CloudCard({ cloud, detail }: { cloud: CloudDesktop; detail: Work
       ) : (
         <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(240px,300px)]">
           <section className="min-w-0 rounded-[20px] bg-pop px-4 pb-3 pt-4" aria-labelledby="cloud-bots-title">
-            <h3 id="cloud-bots-title" className="flex items-center gap-2 px-1 text-14 font-medium text-ink">
-              <span className={cx("live-dot", working ? "text-good" : "text-ink-4")} data-live={working > 0} aria-hidden />
+            <h3 id="cloud-bots-title" className="px-1 text-14 font-medium text-ink">
               {!rows.length ? "bots" : working ? `${working} of ${plural(rows.length, "bot")} working` : on ? `${plural(rows.length, "bot")}, all quiet` : `${plural(rows.length, "bot")}, asleep`}
             </h3>
             {detail === null ? (
