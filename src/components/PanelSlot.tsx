@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 /** Grok Bot's docked info pane, at its 320px: the column's width grows from 0 (and back) while the chat beside it reflows,
  * its content pinned to the column's left edge so it slides in from the window's right. */
 export const PANEL_WIDTH = 320;
-const DURATION_MS = 300;
+const DURATION_MS = 170;
 
 /** The chat keeps at least this much beside a docked pane, as in Grok Bot; narrower, the pane cannot dock. */
 export const CHAT_MIN_WIDTH = 424;
@@ -40,7 +40,7 @@ export function PanelSlot({ open, children }: { open: boolean; children: ReactNo
       ref={slot}
       data-panel-slot={open ? "open" : "closing"}
       inert={!open}
-      className="relative h-full w-0 shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none max-md:contents"
+      className="relative h-full w-0 shrink-0 overflow-hidden transition-[width] duration-[170ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-md:contents"
     >
       <div className="absolute inset-y-0 left-0 flex w-[320px] max-md:contents md:[&>aside]:animate-none!">
         {open ? children : last.current}
