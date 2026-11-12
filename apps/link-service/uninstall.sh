@@ -200,7 +200,7 @@ banner() {
       for (f = 0; f <= S; f++) { frame(f); if (f < S) system("sleep 0.05") }
     }'
   say ""
-  printf '  %s%-58s%s%s<:3 )~%s\n' "$DIM" "taking Dusk Bot off this server" "$R" "$ACC" "$R"
+  printf '  %s%-58s%s%s<:3 )~%s\n' "$DIM" "taking dusk bot off this server" "$R" "$ACC" "$R"
   MASCOT_COL=61 MASCOT=1
   [ "$DEPTH" -gt 0 ] || MASCOT=0
   say ""
@@ -371,9 +371,9 @@ survey() {
 BACKUP_FILE=""
 plan() {
   glyph dot; _d=$G
-  printf '  %sThis takes Dusk Bot off %s%s%s:%s\n\n' "$BOLD" "$ACC" "$NAME" "$R$BOLD" "$R"
+  printf '  %sThis takes dusk bot off %s%s%s:%s\n\n' "$BOLD" "$ACC" "$NAME" "$R$BOLD" "$R"
   item() { printf '    %s%s%s %s\n' "$DIM" "$_d" "$R" "$*"; }
-  [ -n "$S_UNITS" ] && item "the Dusk Bot server and its link to your app ($(count "$S_UNITS") services)"
+  [ -n "$S_UNITS" ] && item "the dusk bot server and its link to your app ($(count "$S_UNITS") services)"
   _nc=$(count "$S_CONTAINERS") _nv=$(count "$S_VOLUMES")
   if [ "$_nc" -gt 0 ] || [ "$_nv" -gt 0 ]; then item "$(plural "$_nc" "bot computer" "bot computers") and $(plural "$_nv" "saved home" "saved homes") of bot computers"; fi
   if [ -n "$S_IMAGES" ] && [ -n "$S_NETWORKS" ]; then item "the bot computer image and network"
@@ -423,7 +423,7 @@ PHASES="unlink stop computer home packages"
 phase_title() {
   case "$1" in
     unlink) say "Unlinking from your app" ;;
-    stop) say "Stopping Dusk Bot" ;;
+    stop) say "Stopping dusk bot" ;;
     computer) say "Clearing the bot computers" ;;
     home) say "Removing your bots' home" ;;
     packages) say "Removing what it installed" ;;
@@ -845,7 +845,7 @@ finale() {
   glyph sep
   if [ "$LEFT" -eq 0 ]; then
     glyph ok; _ok=$G; glyph sep
-    printf '\n  %s%s %sDusk Bot is gone from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
+    printf '\n  %s%s %sRemoved dusk bot from %s%s  %s%s %s%s\n' "$OK" "$_ok" "$BOLD" "$NAME" "$R" "$DIM" "$G" "$total" "$R"
     if [ -f "$BACKUP_FILE" ]; then printf '    %syour bots are saved in %s%s\n' "$DIM" "$BACKUP_FILE" "$R"; fi
     printf '\n  %s%sAll clean. Paste the install line from the app whenever you want it back.%s\n\n' "$ACC" "$BOLD" "$R"
   else
@@ -874,7 +874,7 @@ take_lock() {
   command -v flock >/dev/null 2>&1 && ( : >>"$INSTALL_LOCK" ) 2>/dev/null || return 0
   exec 9>>"$INSTALL_LOCK"
   flock -n 9 && return 0
-  printf '\nDusk Bot is being installed on this server right now (another terminal, or one whose connection dropped). Wait for it to finish, then run this again.\n\n' >&2
+  printf '\nSomeone is installing dusk bot on this server right now (another terminal, or one whose connection dropped). Wait for it to finish, then run this again.\n\n' >&2
   exit 1
 }
 
@@ -897,7 +897,7 @@ main() {
   survey
   if [ "$S_ANY" = 0 ]; then
     glyph ok
-    printf '  %s%s %sNothing of Dusk Bot is on %s.%s\n' "$OK" "$G" "$BOLD" "$NAME" "$R"
+    printf '  %s%s %sNo dusk bot on %s.%s\n' "$OK" "$G" "$BOLD" "$NAME" "$R"
     leftovers
     printf '\n  %sPaste the install line from the app to set it up.%s\n\n' "$DIM" "$R"
     return 0

@@ -902,7 +902,7 @@ function localOnce(method, path, body) {
         resolve({ status: res.statusCode ?? 0, body: parsed });
       });
     });
-    req.on("timeout", () => req.destroy(new Error("Dusk Bot on this server did not answer")));
+    req.on("timeout", () => req.destroy(new Error("The dusk bot server here did not answer")));
     req.on("error", reject);
     req.end(payload ?? undefined);
   });
@@ -958,10 +958,10 @@ async function link() {
   if (claimed.status !== 200) throw new Error(claimed.body?.error ?? `the link service answered ${claimed.status}`);
   const appPub = claimed.body.appPub;
   const [pairing, environment] = await Promise.all([
-    local("POST", "/api/auth/pairing", { label: claimed.body.label || "Dusk Bot app" }),
+    local("POST", "/api/auth/pairing", { label: claimed.body.label || "dusk bot app" }),
     local("GET", "/.well-known/duskbot/environment"),
   ]);
-  if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`Dusk Bot here would not make a pairing code (${pairing.status})`);
+  if (pairing.status !== 200 || typeof pairing.body?.code !== "string") throw new Error(`The dusk bot server here would not make a pairing code (${pairing.status})`);
   const origin = mode === "direct" ? `https://${env("LINK_HOST")}` : null;
   const spki = mode === "direct" ? await spkiOf(env("LINK_HOST")) : null;
   const tunnel = { key: randomBytes(32).toString("base64url"), vps: randomBytes(32).toString("base64url"), app: randomBytes(32).toString("base64url") };
@@ -1147,8 +1147,8 @@ export async function control(op, data, context = {}) {
   if (op === "direct-off") { if (context.id) setDirectKey(context.id, null); return { ok: true }; }
   if (op === "pair") {
     // a fresh one-time code for the app's own sign-in here, when its session lapsed (sessions end after 180 days)
-    const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "Dusk Bot app" });
-    if (answer.status !== 200 || typeof answer.body?.code !== "string") throw new Error("Dusk Bot here would not make a pairing code");
+    const answer = await local("POST", "/api/auth/pairing", { label: typeof data?.label === "string" ? data.label.slice(0, 60) : "dusk bot app" });
+    if (answer.status !== 200 || typeof answer.body?.code !== "string") throw new Error("The dusk bot server here would not make a pairing code");
     return { code: answer.body.code };
   }
   if (op === "claude-token") {
@@ -1172,7 +1172,7 @@ export async function control(op, data, context = {}) {
     const answer = op === "freeze"
       ? await local("POST", "/api/move/freeze", typeof data?.place === "string" ? { place: data.place.slice(0, 120) } : {})
       : await local("DELETE", "/api/move/freeze", undefined);
-    if (answer.status !== 200) throw new Error(answer.body?.error ?? `Dusk Bot here answered ${answer.status}`);
+    if (answer.status !== 200) throw new Error(answer.body?.error ?? `The dusk bot server here answered ${answer.status}`);
     return { ok: true };
   }
   throw new Error("unknown request");
@@ -1831,7 +1831,7 @@ export function createServing({ server = SERVER, sink, stopped = () => false, co
       res.on("end", () => { if (pending.delete(frame.r)) emit({ t: "end", r: frame.r }); });
       res.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "reply cut off" }); });
     }); } catch { emit({ t: "err", r: frame.r, message: "That request could not be sent." }); return; }
-    req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "Dusk Bot on the server did not answer" }); });
+    req.on("error", () => { if (pending.delete(frame.r)) emit({ t: "err", r: frame.r, message: "The dusk bot server did not answer" }); });
     // bytes the app sent before the handshake was answered wait for the socket
     const early = [];
     let earlyBytes = 0;
