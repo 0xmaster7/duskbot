@@ -15,6 +15,7 @@ import {
   botDesktopNetworkIsPrivate,
   botDesktopRunArgs,
   botDesktopVolume,
+  botDesktopEnvIsStale,
   containerBotDesktopMode,
   containerDesktopKind,
   hostBuildTiming,
@@ -99,7 +100,9 @@ describe("bot desktop run flags", () => {
     expect(strict).toContain("--read-only");
     expect(flag(strict, "--cap-add").sort()).toEqual(["NET_ADMIN", "SETGID", "SETUID"]);
     expect(flag(strict, "--security-opt")).toEqual(["no-new-privileges"]);
-    expect(flag(strict, "-e")).toEqual(["DUSK_MODE=strict", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`, "DUSK_BLOCK_EXTRA=203.0.113.7"]);
+    // the published image reads OMB_, a build from today's rootfs DUSK_: both get the same values
+    expect(flag(strict, "-e")).toEqual(["OMB_MODE=strict", "DUSK_MODE=strict", "OMB_BROWSER_AT_START=off", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`,
+      "OMB_BLOCK_EXTRA=203.0.113.7", "DUSK_BLOCK_EXTRA=203.0.113.7"]);
     expect(strict).not.toContain("--runtime");
   });
 
@@ -110,7 +113,7 @@ describe("bot desktop run flags", () => {
     for (const cap of ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "SYS_PTRACE", "SYS_MODULE", "MKNOD", "DAC_READ_SEARCH", "SETFCAP"]) {
       expect(flag(free, "--cap-add")).not.toContain(cap);
     }
-    expect(flag(free, "-e")).toEqual(["DUSK_MODE=free", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`]);
+    expect(flag(free, "-e")).toEqual(["OMB_MODE=free", "DUSK_MODE=free", "OMB_BROWSER_AT_START=off", "DUSK_BROWSER_AT_START=off", `VNC_PW=${SECRET}`]);
     expect(flag(free, "--runtime")).toEqual(["runsc"]);
     expect(flag(free, "--label")).toContain(`${BOT_DESKTOP_MODE_LABEL}=free`);
   });
@@ -166,9 +169,19 @@ describe("bot desktop isolation checks", () => {
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=free"])).toBe("free");
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "strict" }, ["VNC_PW=x"])).toBe("strict");
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=strict"])).toBeUndefined();
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["OMB_MODE=free", "DUSK_MODE=free"])).toBe("free");
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["OMB_MODE=strict", "DUSK_MODE=free"])).toBeUndefined();
     expect(containerBotDesktopMode({}, [])).toBeUndefined();
     expect(botDesktopIsHardened(freeInspected(), undefined)).toBe(false);
     expect(botDesktopIsHardened(freeInspected(), "strict")).toBe(false);
+  });
+
+  it("a box given only DUSK_MODE is stale: the published image reads OMB_MODE and refuses to start", () => {
+    expect(botDesktopEnvIsStale(["DUSK_MODE=free", "VNC_PW=x"])).toBe(true);
+    expect(botDesktopEnvIsStale(["OMB_MODE=free", "DUSK_MODE=free"])).toBe(false);
+    expect(botDesktopEnvIsStale(["OMB_MODE=strict"])).toBe(false);
+    expect(botDesktopEnvIsStale(["VNC_PW=x"])).toBe(false);
+    expect(botDesktopEnvIsStale(undefined)).toBe(false);
   });
 
   it("allows only its own home volume and its own network", () => {
@@ -247,14 +260,14 @@ describe("bot desktop provisioning", () => {
     expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "network create", "probe ip", "run -d"]);
     const started = fake.calls.at(-1)!;
     expect(started.at(-1)).toBe(IMAGE_ID);
-    expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "DUSK_MODE=strict", "DUSK_BLOCK_EXTRA=198.51.100.4"]));
+    expect(started).toEqual(expect.arrayContaining(["--read-only", "--runtime", "runsc", "OMB_MODE=strict", "DUSK_MODE=strict", "OMB_BLOCK_EXTRA=198.51.100.4", "DUSK_BLOCK_EXTRA=198.51.100.4"]));
   });
 
   it("behind the host fence with gVisor: a free box, no address probe needed", async () => {
     const fake = host({ runsc: true, network: true, fenced: true });
     expect(await provisionBotDesktop(fake.run, input)).toBe("free");
     expect(steps(fake.calls)).toEqual([`pull ${BOT_DESKTOP_IMAGE}`, "image inspect", "network inspect", "info --format", "probe /usr/local/bin/omb-host-fence", "run -d"]);
-    expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "DUSK_MODE=free"]));
+    expect(fake.calls.at(-1)).toEqual(expect.arrayContaining(["--runtime", "runsc", "OMB_MODE=free", "DUSK_MODE=free"]));
     expect(fake.calls.at(-1)).not.toContain("--read-only");
   });
 
@@ -401,7 +414,7 @@ describe("bot desktop on the VPS path", () => {
   const name = vpsContainerName(BOT);
 
   function daemon() {
-    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined };
+    const state = { image: false, container: false, running: false, secret: "", containerImageId: IMAGE_ID, pidsLimit: undefined as number | undefined, env: [] as string[] };
     const calls: string[][] = [];
     const runner: VpsCommandRunner = async (args) => {
       const docker = args.slice(2);
@@ -422,6 +435,7 @@ describe("bot desktop on the VPS path", () => {
         state.container = true;
         state.running = true;
         state.secret = docker.find((arg) => arg.startsWith("VNC_PW="))!.slice(7);
+        state.env = flag(docker, "-e") as string[];
         const labels = Object.fromEntries(flag(docker, "--label").map((label) => label!.split("=") as [string, string]));
         Object.assign(state, { labels });
         return { stdout: `${name}\n`, stderr: "" };
@@ -433,7 +447,7 @@ describe("bot desktop on the VPS path", () => {
           stdout: JSON.stringify([{
             Id: "d".repeat(64),
             Image: state.containerImageId,
-            Config: { Image: state.containerImageId, Env: [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
+            Config: { Image: state.containerImageId, Env: state.env.length ? state.env : [`VNC_PW=${state.secret}`], Labels: (state as unknown as { labels: Record<string, string> }).labels },
             HostConfig: { ...hostConfig, PidsLimit: state.pidsLimit },
             NetworkSettings: { Networks: { [BOT_DESKTOP_NETWORK]: { IPAddress: "172.30.0.2" } } },
             Mounts: _mounts,
@@ -442,6 +456,9 @@ describe("bot desktop on the VPS path", () => {
           stderr: "",
         };
       }
+      if (command === "rm") { state.container = false; state.running = false; return { stdout: "", stderr: "" }; }
+      if (command === "update") return { stdout: "", stderr: "" };
+      if (command === "start") { state.running = true; return { stdout: "", stderr: "" }; }
       if (command === "exec") {
         if (docker.at(-1) === "--version") return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
         if (docker.includes("dusk-desktop-probe") || docker.includes("health_report")) return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
@@ -479,6 +496,29 @@ describe("bot desktop on the VPS path", () => {
     expect(fake.calls.every((args) => args[0] === "image" || args[0] === "inspect")).toBe(true);
     expect(fake.state).toMatchObject({ container: true, running: false, containerImageId: oldImage, pidsLimit: 512 });
     expect(inspected(name)._mounts[0].Name).toBe(botDesktopVolume(name));
+  });
+
+  it("remakes a stopped box its image could never start (only DUSK_ names) on its home volume, and starts the rest", async () => {
+    const fake = daemon();
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    // what the rename build made: the published image reads OMB_MODE, so it fell back to strict and exited 70
+    Object.assign(fake.state, { running: false, env: fake.state.env.filter((entry) => !entry.startsWith("OMB_")) });
+    fake.calls.length = 0;
+    const status = await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    expect(status).toMatchObject({ ready: true, container: "running", security: "hardened" });
+    const removed = fake.calls.findIndex((args) => args[0] === "rm");
+    expect(fake.calls[removed]).toEqual(["rm", "-f", "d".repeat(64)]);
+    const remade = fake.calls.findIndex((args) => args[0] === "run" && args[1] === "-d");
+    expect(remade).toBeGreaterThan(removed);
+    expect(fake.calls[remade]).toEqual(expect.arrayContaining(["OMB_MODE=strict", "DUSK_MODE=strict", `type=volume,source=${botDesktopVolume(name)},target=/home/cua`]));
+    expect(fake.calls.some((args) => args[0] === "volume")).toBe(false);
+
+    // a healthy stopped box is only started
+    fake.state.running = false;
+    fake.calls.length = 0;
+    await vpsComputerAction("provision", CONFIG, BOT, fake.runner);
+    expect(fake.calls.some((args) => args[0] === "rm" || (args[0] === "run" && args[1] === "-d"))).toBe(false);
+    expect(fake.calls.some((args) => args[0] === "start")).toBe(true);
   });
 
   it("never silently falls back to the Cua desktop: it builds the bot desktop from the kit, or refuses", async () => {
