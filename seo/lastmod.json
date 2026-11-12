@@ -36,7 +36,7 @@
   "lastmod": "2026-11-12"
  },
  "/privacy": {
-  "hash": "071e80f24476578d",
+  "hash": "8638abd771eca5d9",
   "lastmod": "2026-11-12"
  },
  "/license": {
@@ -135,16 +135,44 @@
   "hash": "f750e14e6d481dee",
   "lastmod": "2026-11-12"
  },
+ "/ai-teammates": {
+  "hash": "b51a7d3d6a84dc19",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/ai-assistant-you-text": {
+  "hash": "e5d5fd547a5d3d08",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/chatgpt-agent": {
+  "hash": "8d61f9365027e71e",
+  "lastmod": "2026-11-12"
+ },
  "/alternatives/claude-cowork": {
   "hash": "e2f92ba30350760c",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/genspark": {
+  "hash": "d4acaadbd156b767",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/gumloop": {
+  "hash": "267e1fc0b0370269",
   "lastmod": "2026-11-12"
  },
  "/alternatives/hermes-agent": {
   "hash": "c629949c4a9c0441",
   "lastmod": "2026-11-12"
  },
+ "/alternatives/lindy": {
+  "hash": "7f582f7f6a1e4d5f",
+  "lastmod": "2026-11-12"
+ },
  "/alternatives/manus": {
   "hash": "6316a88caa3cf7f4",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/n8n": {
+  "hash": "32e0b875ddb41c32",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw": {
@@ -159,28 +187,168 @@
   "hash": "570597fbb5a0d827",
   "lastmod": "2026-11-12"
  },
+ "/alternatives/perplexity-comet": {
+  "hash": "e863bc1d2c1b23e5",
+  "lastmod": "2026-11-12"
+ },
  "/alternatives/poke": {
   "hash": "ad1b45be4d53279d",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/relevance-ai": {
+  "hash": "37e9a92969b3d1a3",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/sintra": {
+  "hash": "117b8b248eaa046c",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/zapier-agents": {
+  "hash": "c57938c4d49a1a63",
+  "lastmod": "2026-11-12"
+ },
+ "/claude-code-from-your-phone": {
+  "hash": "62fd2b44c612e76a",
+  "lastmod": "2026-11-12"
+ },
+ "/for/ecommerce": {
+  "hash": "bd055a83c1c04d89",
   "lastmod": "2026-11-12"
  },
  "/for/founders": {
   "hash": "6eb58fea6f5105c1",
   "lastmod": "2026-11-12"
  },
+ "/for/product-managers": {
+  "hash": "fd9d11f6bcba11cb",
+  "lastmod": "2026-11-12"
+ },
+ "/for/real-estate-agents": {
+  "hash": "98cface5e7b8cd12",
+  "lastmod": "2026-11-12"
+ },
+ "/for/recruiters": {
+  "hash": "8ba44ce093a32268",
+  "lastmod": "2026-11-12"
+ },
+ "/for/small-business-owners": {
+  "hash": "d74ec6d6245c9236",
+  "lastmod": "2026-11-12"
+ },
+ "/for/students": {
+  "hash": "0ad8d67d49f41fc5",
+  "lastmod": "2026-11-12"
+ },
+ "/glossary/always-on-ai-agent": {
+  "hash": "091f9ee66b8fb1d2",
+  "lastmod": "2026-11-12"
+ },
  "/guides/apps-that-use-your-ai-subscription": {
   "hash": "0dc522c4b0c8af78",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/chatgpt-scheduled-tasks": {
+  "hash": "daf8a7af698f67dd",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-code-for-email": {
+  "hash": "5ea8c450ccf600b3",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-code-for-marketing": {
+  "hash": "56b643504c321b09",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-code-for-non-developers": {
+  "hash": "b5173d806098f59a",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-code-routines": {
+  "hash": "2ec47a4d989f0a3d",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-code-telegram-discord-slack": {
+  "hash": "752380ea8ad42426",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-connectors": {
+  "hash": "20eaa4ef43664d9a",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-cowork-pricing": {
+  "hash": "494bd0af1b1513da",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-cowork-windows": {
+  "hash": "3958fdacc2e6a4e6",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-scheduled-tasks": {
+  "hash": "9fb1dba03109f656",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/claude-skills": {
+  "hash": "12d982835d5430c7",
   "lastmod": "2026-11-12"
  },
  "/guides/claude-subscription-vs-api": {
   "hash": "3ba13c88afbd6f8a",
   "lastmod": "2026-11-12"
  },
+ "/guides/gemini-scheduled-actions": {
+  "hash": "f890e125c3942601",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/grok-tasks": {
+  "hash": "0e25353322cec43a",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/how-much-does-an-ai-agent-cost": {
+  "hash": "4c9b40a1931f4dca",
+  "lastmod": "2026-11-12"
+ },
  "/guides/is-it-safe-to-let-ai-control-your-computer": {
   "hash": "980a309a2720449f",
   "lastmod": "2026-11-12"
  },
+ "/guides/is-openclaw-safe": {
+  "hash": "987a23fb4f1d95c1",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/openclaw-clawdbot-moltbot-explained": {
+  "hash": "7c0d95bf2330d7bd",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/what-is-an-ai-agent": {
+  "hash": "da3b9f6c9846d9c3",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/what-is-mcp": {
+  "hash": "3059b9e59610c43e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/airtable": {
+  "hash": "0bd1fce6ae8e654e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/asana": {
+  "hash": "ed55ab6520ac6ed7",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/canva": {
+  "hash": "cffe15158193986b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/discord": {
+  "hash": "f89132be59ee9198",
+  "lastmod": "2026-11-12"
+ },
  "/integrations/excel": {
   "hash": "0991134638b1735b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/figma": {
+  "hash": "d56fa1362888ca76",
   "lastmod": "2026-11-12"
  },
  "/integrations/github": {
@@ -195,24 +363,92 @@
   "hash": "260e086fdb104df9",
   "lastmod": "2026-11-12"
  },
+ "/integrations/google-drive": {
+  "hash": "2f37e76733b0c808",
+  "lastmod": "2026-11-12"
+ },
  "/integrations/google-sheets": {
   "hash": "0bef19ba2093c574",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/hubspot": {
+  "hash": "c847314d4488fde1",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/jira": {
+  "hash": "1766d5eb5bccb00c",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/linear": {
+  "hash": "e403b8455b848a81",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/linkedin": {
+  "hash": "0febfd836312b34e",
   "lastmod": "2026-11-12"
  },
  "/integrations/notion": {
   "hash": "2cb777e726b61012",
   "lastmod": "2026-11-12"
  },
+ "/integrations/obsidian": {
+  "hash": "7084cd6f196f9dde",
+  "lastmod": "2026-11-12"
+ },
  "/integrations/outlook": {
   "hash": "1430620c505af178",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/salesforce": {
+  "hash": "f01aae7095518f45",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/shopify": {
+  "hash": "9415d74eca1d6a90",
   "lastmod": "2026-11-12"
  },
  "/integrations/slack": {
   "hash": "9a258f8e6ca42a56",
   "lastmod": "2026-11-12"
  },
+ "/integrations/stripe": {
+  "hash": "2671fb5d5579685e",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/twitter": {
+  "hash": "80e0f13d90957739",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/whatsapp": {
+  "hash": "cbfaa2c6d24034de",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/youtube": {
+  "hash": "fedfb59f4b0e4975",
+  "lastmod": "2026-11-12"
+ },
  "/personal-ai-agent": {
   "hash": "259b05a00ec21c49",
+  "lastmod": "2026-11-12"
+ },
+ "/routines/github-issue-triage": {
+  "hash": "7896ce1f7aec95a1",
+  "lastmod": "2026-11-12"
+ },
+ "/routines/meeting-prep-brief": {
+  "hash": "674e2e711257d116",
+  "lastmod": "2026-11-12"
+ },
+ "/routines/slack-channel-digest": {
+  "hash": "181643c354829b19",
+  "lastmod": "2026-11-12"
+ },
+ "/routines/weekly-calendar-preview": {
+  "hash": "811a2da2dc9782ab",
+  "lastmod": "2026-11-12"
+ },
+ "/routines/weekly-receipts-sweep": {
+  "hash": "0c5b9a698c03efae",
   "lastmod": "2026-11-12"
  },
  "/run-claude-code-24-7": {
@@ -227,6 +463,10 @@
   "hash": "46e20451369df33a",
   "lastmod": "2026-11-12"
  },
+ "/use-cases/competitor-monitoring": {
+  "hash": "1e1473bf75d72a9b",
+  "lastmod": "2026-11-12"
+ },
  "/use-cases/daily-briefing": {
   "hash": "edc00f9a907d3a30",
   "lastmod": "2026-11-12"
@@ -235,32 +475,96 @@
   "hash": "0d9d0ab9a39b6ac1",
   "lastmod": "2026-11-12"
  },
+ "/use-cases/file-organizer": {
+  "hash": "097662159ca49326",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/invoice-follow-up": {
+  "hash": "b04771a76403ff46",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/lead-research": {
+  "hash": "a7e596f43045f59b",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/market-research": {
+  "hash": "5c73f109ff429e0c",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/newsletter": {
+  "hash": "5f0a2d6d948c9560",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/social-media-posting": {
+  "hash": "990e340c68c94113",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/web-scraping": {
+  "hash": "708640b45069412e",
+  "lastmod": "2026-11-12"
+ },
  "/use-your-ai-subscription": {
   "hash": "2f4d107860c998d0",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/ai-agent-vs-chatbot": {
+  "hash": "80720e6090b54b34",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/chatgpt-agent": {
+  "hash": "97ca09dd1586666a",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/claude-cowork": {
+  "hash": "53c8664d46774085",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/lindy": {
+  "hash": "cca0e78c3fa2fc7d",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/manus": {
+  "hash": "26d615f1bf1488b5",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/openclaw": {
+  "hash": "51e0ad95ad110292",
   "lastmod": "2026-11-12"
  },
  "/vs/openclaw-vs-hermes-agent": {
   "hash": "0ab30934a4cdc444",
   "lastmod": "2026-11-12"
  },
+ "/vs/poke": {
+  "hash": "258a3a2e98a7daf2",
+  "lastmod": "2026-11-12"
+ },
  "/guides": {
-  "hash": "31ecfd6b4670a0fe",
+  "hash": "61fad26a061ddd4b",
   "lastmod": "2026-11-12"
  },
  "/alternatives": {
-  "hash": "a37861db49978c7b",
+  "hash": "c7d99dcfc4c9f7c3",
   "lastmod": "2026-11-12"
  },
  "/integrations": {
-  "hash": "dad7d62e970e2ffd",
+  "hash": "62d2288ebf978e4e",
   "lastmod": "2026-11-12"
  },
  "/use-cases": {
-  "hash": "09da8d7f756ef5aa",
+  "hash": "a7395fafcd1db09d",
+  "lastmod": "2026-11-12"
+ },
+ "/routines": {
+  "hash": "b041971112fb0e6c",
+  "lastmod": "2026-11-12"
+ },
+ "/glossary": {
+  "hash": "2e338e3b56b00e45",
   "lastmod": "2026-11-12"
  },
  "/tools": {
-  "hash": "663e1c9b9584eb10",
+  "hash": "894e26ee71820de1",
   "lastmod": "2026-11-12"
  }
 }

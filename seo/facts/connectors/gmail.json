@@ -13,317 +13,2725 @@
     {
       "name": "Modify email labels",
       "slug": "GMAIL_ADD_LABEL_TO_EMAIL",
-      "kind": "send"
+      "kind": "send",
+      "description": "Adds and/or removes specified Gmail labels for a message; ensure `message_id` and all `label_ids` are valid (use 'listLabels' for custom label IDs).",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Immutable ID of the message to modify. Gmail message IDs are hexadecimal strings (e.g., '1a2b3c4d5e6f7890'). IMPORTANT: Do NOT use UUIDs (32-character strings like '093ca4662b214d5eba8f4ceeaad63433'), thread IDs, or internal system IDs - these will cause 'Invalid id value' errors. Obtain valid messa"
+        },
+        {
+          "name": "add_label_ids",
+          "type": "array",
+          "required": false,
+          "about": "Label IDs to add (IDs, not display names). System labels: INBOX, SPAM, TRASH, UNREAD, STARRED, IMPORTANT, CATEGORY_PERSONAL, CATEGORY_SOCIAL, CATEGORY_PROMOTIONS, CATEGORY_UPDATES, CATEGORY_FORUMS. Use full CATEGORY_ prefix (e.g., 'CATEGORY_UPDATES' not 'UPDATES'). Custom labels: call 'listLabels' f"
+        },
+        {
+          "name": "remove_label_ids",
+          "type": "array",
+          "required": false,
+          "about": "Label IDs to remove (IDs, not display names). System labels: INBOX, SPAM, TRASH, UNREAD, STARRED, IMPORTANT, CATEGORY_PERSONAL, CATEGORY_SOCIAL, CATEGORY_PROMOTIONS, CATEGORY_UPDATES, CATEGORY_FORUMS. Use full CATEGORY_ prefix (e.g., 'CATEGORY_UPDATES' not 'UPDATES'). Custom labels: call 'listLabels"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch delete Gmail messages",
       "slug": "GMAIL_BATCH_DELETE_MESSAGES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently deletes multiple Gmail messages by ID, bypassing Trash. A successful request does not confirm individual messages existed or were deleted.",
+      "inputs": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "messageIds",
+          "type": "array",
+          "required": true,
+          "about": "List of Gmail message IDs to delete. Each ID must be a hexadecimal string (e.g., '18c5f5d1a2b3c4d5'). Obtain IDs from actions like GMAIL_FETCH_EMAILS or GMAIL_LIST_THREADS - do not use human-readable descriptions."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/"
+      ],
+      "tags": [
+        "gmail",
+        "destructiveHint",
+        "batch",
+        "messages"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch modify Gmail messages",
       "slug": "GMAIL_BATCH_MODIFY_MESSAGES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Adds or removes labels on up to 1,000 Gmail messages in one request, supporting operations such as archiving and marking messages read or unread. A successful response confirms request acceptance, not individual message status.",
+      "inputs": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "messageIds",
+          "type": "array",
+          "required": true,
+          "about": "List of message IDs to modify. Maximum 1,000 message IDs per request. Get message IDs from GMAIL_FETCH_EMAILS or GMAIL_LIST_THREADS actions. Accepts 'messageIds', 'ids', or 'message_ids' as the parameter name."
+        },
+        {
+          "name": "addLabelIds",
+          "type": "array",
+          "required": false,
+          "about": "List of label IDs to add to the messages. IMPORTANT: Use label IDs, NOT label display names. System labels use their name as ID: INBOX, STARRED, IMPORTANT, SENT, DRAFT, SPAM, TRASH, UNREAD, CATEGORY_PERSONAL, CATEGORY_SOCIAL, CATEGORY_PROMOTIONS, CATEGORY_UPDATES, CATEGORY_FORUMS. Custom labels MUST"
+        },
+        {
+          "name": "removeLabelIds",
+          "type": "array",
+          "required": false,
+          "about": "List of label IDs to remove from the messages. IMPORTANT: Use label IDs, NOT label display names. System labels use their name as ID: INBOX, STARRED, IMPORTANT, SENT, SPAM, TRASH, UNREAD. Custom labels MUST use their ID (format: 'Label_XXX', e.g., 'Label_1', 'Label_25'), NOT the display name (e.g., "
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "gmail",
+        "important",
+        "batch",
+        "labels",
+        "inbox",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create email draft",
       "slug": "GMAIL_CREATE_EMAIL_DRAFT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a Gmail draft with optional recipients, subject, plain or HTML body, attachments, and threading. When a requested thread cannot be fetched, the draft is created without threading; a provided subject is used instead of the thread subject.",
+      "inputs": [
+        {
+          "name": "cc",
+          "type": "array",
+          "required": false,
+          "about": "Carbon Copy (CC) recipients' email addresses. Each must be a valid email address (e.g., 'user@example.com') or display name format (e.g., 'John Doe <user@example.com>'). Plain names without email addresses are NOT valid. Optional for drafts (recipients can be added later before sending)."
+        },
+        {
+          "name": "bcc",
+          "type": "array",
+          "required": false,
+          "about": "Blind Carbon Copy (BCC) recipients' email addresses. Each must be a valid email address (e.g., 'user@example.com') or display name format (e.g., 'Bob Jones <user@example.com>'). Plain names without email addresses are NOT valid. Optional for drafts (recipients can be added later before sending)."
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false,
+          "about": "Email body content (plain text or HTML); `is_html` must be True if HTML. Optional - drafts can be created without a body and edited later before sending. Can also be provided as 'message_body'."
+        },
+        {
+          "name": "is_html",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to True if `body` is already formatted HTML. When False, plain text newlines are auto-converted to <br/> tags. Both modes result in HTML email; this flag controls whether the body content is treated as raw HTML or plain text that gets HTML formatting applied."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false,
+          "about": "Email subject line. Optional - drafts can be created without a subject and edited later before sending. When creating a draft reply to an existing thread (thread_id provided), leave this empty to stay in the same thread. Setting a subject will create a NEW thread instead."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of an existing Gmail thread to reply to; omit for new thread. If the thread ID is invalid or inaccessible, the draft will be created as a new thread instead of failing."
+        },
+        {
+          "name": "attachment",
+          "type": "",
+          "required": false,
+          "about": "File(s) to attach to the email. Accepts a single file or a list of files. Total message size including base64-encoded attachments must be under 25 MB; use shareable links (e.g., Google Drive) for larger files."
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "required": false,
+          "about": "Primary recipient's email address. Must be a valid email address (e.g., 'user@example.com') or display name format (e.g., 'John Doe <user@example.com>'). A plain name without an email address (e.g., 'John Doe') is NOT valid - the '@' symbol and domain are required. Optional for drafts (recipients ca"
+        },
+        {
+          "name": "extra_recipients",
+          "type": "array",
+          "required": false,
+          "about": "Additional 'To' recipients' email addresses (not Cc or Bcc). Each must be a valid email address (e.g., 'user@example.com'), display name format (e.g., 'Jane Doe <user@example.com>'), or 'me' for the authenticated user. Plain names without email addresses are NOT valid. Should only be used if recipie"
+        },
+        {
+          "name": "include_signature",
+          "type": "boolean",
+          "required": false,
+          "about": "Append the sender's Gmail signature (the 'Send mail as' signature configured in Gmail settings) to the message body, ahead of any quoted or forwarded content. Skipped when the body already ends with that signature, when no signature is configured, or when the connection lacks permission to read Gmai"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/contacts",
+        "https://www.googleapis.com/auth/contacts.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Gmail filter",
       "slug": "GMAIL_CREATE_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to create a new Gmail filter with specified criteria and actions. Use when the user wants to automatically organize incoming messages based on sender, subject, size, or other criteria. Note: you can only create a maximum of 1,000 filters per account.",
+      "inputs": [
+        {
+          "name": "action",
+          "type": "object",
+          "required": true,
+          "about": "REQUIRED. Action that the filter will perform on messages matching the criteria. At least one action field must be specified."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user for whom the filter will be created."
+        },
+        {
+          "name": "criteria",
+          "type": "object",
+          "required": true,
+          "about": "REQUIRED. Message matching criteria that determines which messages the filter will apply to. At least one criteria field must be specified."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "openWorldHint",
+        "filters",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create label",
       "slug": "GMAIL_CREATE_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a Gmail label and returns its label ID. For nested labels, it may create missing parent labels; on a name conflict it attempts to return the existing matching label.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the user in whose account the label will be created."
+        },
+        {
+          "name": "label_name",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED. The name for the new label. Must be unique within the account, non-blank, maximum length 225 characters, cannot contain commas (','), not only whitespace, and must not be a reserved system label. Reserved English system labels include: Inbox, Starred, Important, Sent, Draft, Drafts, Spam, "
+        },
+        {
+          "name": "text_color",
+          "type": "string",
+          "required": false,
+          "about": "Text color for the label. Gmail only accepts colors from a predefined palette of 102 specific hex values. Common color names like 'YELLOW', 'RED', 'BLUE', 'GREEN', 'ORANGE', 'PURPLE', 'PINK' are automatically mapped to the closest Gmail palette color. Provide either a common color name, a Gmail pale"
+        },
+        {
+          "name": "background_color",
+          "type": "string",
+          "required": false,
+          "about": "Background color for the label. Gmail only accepts colors from a predefined palette of 102 specific hex values. Common color names like 'YELLOW', 'RED', 'BLUE', 'GREEN', 'ORANGE', 'PURPLE', 'PINK' are automatically mapped to the closest Gmail palette color. Provide either a common color name, a Gmai"
+        },
+        {
+          "name": "label_list_visibility",
+          "type": "string",
+          "required": false,
+          "about": "Controls how the label is displayed in the label list in the Gmail sidebar. Valid values: 'labelShow' (always show), 'labelShowIfUnread' (show only if unread messages), 'labelHide' (hide from list)."
+        },
+        {
+          "name": "message_list_visibility",
+          "type": "string",
+          "required": false,
+          "about": "Controls how messages with this label are displayed in the message list. Valid values: 'show' or 'hide'. Note: These values are different from label_list_visibility - do NOT use 'labelShow' or 'labelHide' here."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.labels",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Draft",
       "slug": "GMAIL_DELETE_DRAFT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently deletes a specific Gmail draft using its ID with no recovery possible; verify the correct `draft_id` and obtain explicit user confirmation before calling. Ensure the draft exists and the user has necessary permissions for the given `user_id`.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user; 'me' is recommended."
+        },
+        {
+          "name": "draft_id",
+          "type": "string",
+          "required": true,
+          "about": "Immutable ID of the draft to delete. Must be obtained from GMAIL_LIST_DRAFTS or GMAIL_CREATE_EMAIL_DRAFT actions. Draft IDs typically have an 'r' prefix (e.g., 'r-1234567890' or 'r1234567890'). Draft IDs differ from message IDs used in GMAIL_BATCH_DELETE_MESSAGES — do not interchange. When multiple "
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "important",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Gmail filter",
       "slug": "GMAIL_DELETE_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to permanently delete a Gmail filter by its ID. Use when you need to remove an existing email filtering rule.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "filter_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the filter to be deleted. Filter IDs can be obtained from GMAIL_LIST_FILTERS action."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "filters"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete label from account (permanent)",
       "slug": "GMAIL_DELETE_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently DELETES a user-created Gmail label from the account (not from a message). WARNING: This action DELETES the label definition itself, removing it from all messages. System labels (INBOX, SENT, UNREAD, etc.) cannot be deleted. To add/remove labels from specific messages, use GMAIL_ADD_LABEL_TO_EMAIL action instead.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "label_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the user-created label to be permanently DELETED from the account. Must be a custom label ID (format: 'Label_<id>' e.g., 'Label_1', 'Label_42'). System labels (INBOX, SENT, DRAFT, UNREAD, STARRED, IMPORTANT, SPAM, TRASH, CATEGORY_*, etc.) cannot be deleted. WARNING: This action permanently DEL"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.labels"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete message",
       "slug": "GMAIL_DELETE_MESSAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently deletes a specific email message by its ID from a Gmail mailbox; for `user_id`, use 'me' for the authenticated user or an email address to which the authenticated user has delegated access.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address. The special value 'me' refers to the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the email message to delete."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/"
+      ],
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete thread",
       "slug": "GMAIL_DELETE_THREAD",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to immediately and permanently delete a specified thread and all its messages. This operation cannot be undone. Use threads.trash instead for reversible deletion.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Thread to delete."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address. The special value 'me' refers to the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/"
+      ],
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint",
+        "gmail"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch emails",
       "slug": "GMAIL_FETCH_EMAILS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists Gmail messages with query and label filtering, pagination, and optional message details. Individual detail fetches returning 404, 429, or 503 are skipped, so a page can contain fewer messages than the list result.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Gmail advanced search query (e.g., 'from:user subject:meeting'). Supported operators: 'from:', 'to:', 'subject:', 'label:', 'has:', 'is:', 'in:', 'category:', 'after:YYYY/MM/DD', 'before:YYYY/MM/DD', AND/OR/NOT. IMPORTANT - 'is:' vs 'label:' usage: Use 'is:' for special mail states: is:snoozed, is:u"
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user. Non-'me' addresses require domain-level delegation; without it, authentication or not-found errors result."
+        },
+        {
+          "name": "verbose",
+          "type": "boolean",
+          "required": false,
+          "about": "If false, uses optimized concurrent metadata fetching for faster performance (~75% improvement). If true, uses standard detailed message fetching. When false, only essential fields (subject, sender, recipient, time, labels) are guaranteed. Body content and attachment details require verbose=true eve"
+        },
+        {
+          "name": "ids_only",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, only returns message IDs from the list API without fetching individual message details. Fastest option for getting just message IDs and thread IDs."
+        },
+        {
+          "name": "label_ids",
+          "type": "array",
+          "required": false,
+          "about": "Filter by label IDs; only messages with all specified labels are returned (AND logic). Optional - omit or use empty list to fetch all messages without label filtering. System label IDs: 'INBOX', 'SPAM', 'TRASH', 'UNREAD', 'STARRED', 'IMPORTANT', 'CATEGORY_PRIMARY' (alias 'CATEGORY_PERSONAL'), 'CATEG"
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token for retrieving a specific page, obtained from a previous response's `nextPageToken`. Must be a valid opaque token string from a previous API response. Do not pass arbitrary values. Omit for the first page. Loop calls using nextPageToken until it is absent to avoid silently missing messages. re"
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of messages to retrieve per page. Default of 1 retrieves only a single message; set higher for practical use. Hard cap is 500 per page."
+        },
+        {
+          "name": "include_payload",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to include full message payload (headers, body, attachments); false for metadata only. payload may still be null even when true; use GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID for guaranteed complete content. When payload is present, bodies are base64url-encoded in payload.parts; replace '-'→'+' "
+        },
+        {
+          "name": "include_spam_trash",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to include messages from 'SPAM' and 'TRASH'."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch message by message ID",
       "slug": "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches a Gmail message by its message ID in the requested format and returns formatted message details. Available fields depend on the format.",
+      "inputs": [
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "about": "Format for message content. 'minimal': lightest (ID, thread ID, labels only). 'metadata': headers and message metadata without body content - ideal for summarization, analysis, or when you only need subject/sender/timestamp (recommended for most use cases). 'full': complete MIME structure with 50+ h"
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "The Gmail API message ID (hexadecimal string, typically 15-16 characters like '19b11732c1b578fd'). Must be obtained from Gmail API responses (e.g., List Messages, Search Messages). Do NOT use email subjects, dates, sender names, or custom identifiers. Do NOT use `threadId` (use GMAIL_FETCH_MESSAGE_B"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch Message by Thread ID",
       "slug": "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves messages from an accessible Gmail thread by thread ID, returning thread details and a messages array. Message order is not guaranteed; use messageTimestamp to identify oldest or newest messages and labelIds to filter drafts.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "Hexadecimal thread ID from Gmail API (e.g., '19bf77729bcb3a44'). Obtain from GMAIL_LIST_THREADS or GMAIL_FETCH_EMAILS. Prefixes like 'msg-f:' or 'thread-f:' are auto-stripped. Legacy Gmail web UI IDs (e.g., 'FMfcgzQfBZdVqKZcSVBhqwWLKWCtDdWQ') are NOT supported - use the API thread ID instead. Dedupl"
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Opaque page token for fetching a specific page of messages if results are paginated. Iterate calls by passing the returned `nextPageToken` until it is absent; stopping early will miss messages in long threads."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Forward email message",
       "slug": "GMAIL_FORWARD_MESSAGE",
-      "kind": "send"
+      "kind": "send",
+      "description": "Forwards an existing Gmail message to specified recipients, with optional additional text. The tool copies original message parts into a new message, but may alter MIME structure and attachment metadata.",
+      "inputs": [
+        {
+          "name": "cc",
+          "type": "array",
+          "required": false,
+          "about": "List of email addresses to CC."
+        },
+        {
+          "name": "bcc",
+          "type": "array",
+          "required": false,
+          "about": "List of email addresses to BCC."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Gmail message ID (hexadecimal string, e.g., '17f45ec49a9c3f1b'). Must contain only hex characters [0-9a-fA-F]. Obtain this from actions like 'List Messages' or 'Fetch Emails'."
+        },
+        {
+          "name": "recipients",
+          "type": "array",
+          "required": true,
+          "about": "List of email addresses to forward the message to."
+        },
+        {
+          "name": "additional_text",
+          "type": "string",
+          "required": false,
+          "about": "Optional additional text to include before the forwarded content."
+        },
+        {
+          "name": "include_signature",
+          "type": "boolean",
+          "required": false,
+          "about": "Append the sender's Gmail signature (the 'Send mail as' signature configured in Gmail settings) to the message body, ahead of any quoted or forwarded content. Skipped when the body already ends with that signature, when no signature is configured, or when the connection lacks permission to read Gmai"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.send"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Gmail attachment",
       "slug": "GMAIL_GET_ATTACHMENT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a Gmail message attachment by message and attachment IDs and returns a downloadable file using the supplied filename.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address ('me' for authenticated user)."
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "required": true,
+          "about": "Desired filename for the downloaded attachment. This is a required string field - do not pass null."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Immutable ID of the message containing the attachment. This is a required string field - do not pass null. Obtain the message_id from Gmail API responses (e.g., fetchEmails, listThreads)."
+        },
+        {
+          "name": "attachment_id",
+          "type": "string",
+          "required": true,
+          "about": "The internal Gmail attachment ID (NOT the filename). This is a system-generated token string like 'ANGjdJ8s...'. Obtain this ID from the 'attachmentId' field in the 'attachmentList' array returned by fetchEmails or fetchMessageByMessageId actions. Do NOT pass the filename (e.g., 'report.pdf'). Requi"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Auto-Forwarding Settings",
       "slug": "GMAIL_GET_AUTO_FORWARDING",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to get the auto-forwarding setting for the specified account. Use when you need to retrieve the current auto-forwarding configuration including enabled status, forwarding email address, and message disposition.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "mailbox_automation"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get contacts",
       "slug": "GMAIL_GET_CONTACTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists saved Google contacts with selectable fields and pagination, optionally including Other Contacts. Other Contacts are fetched on the first page; endpoint failures can result in partial results, and contact records may be sparse.",
+      "inputs": [
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token to retrieve a specific page of results, obtained from 'nextPageToken' in a previous response. Repeat calls with each successive `nextPageToken` until it is absent — stopping early silently omits contacts."
+        },
+        {
+          "name": "person_fields",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated person fields to retrieve for each contact (e.g., 'names,emailAddresses')."
+        },
+        {
+          "name": "resource_name",
+          "type": "string",
+          "required": false,
+          "about": "Identifier for the person resource whose connections are listed; use 'people/me' for the authenticated user."
+        },
+        {
+          "name": "include_other_contacts",
+          "type": "boolean",
+          "required": false,
+          "about": "Include 'Other Contacts' (interacted with but not explicitly saved) in addition to regular contacts. WARNING: 'Other Contacts' often have incomplete data - they may lack names, phone numbers, and other fields even when requested. These auto-generated contacts are created from email interactions and "
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/contacts",
+        "https://www.googleapis.com/auth/contacts.readonly",
+        "https://www.googleapis.com/auth/contacts.other.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Draft",
       "slug": "GMAIL_GET_DRAFT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a single Gmail draft by its ID. Use this to fetch and inspect draft content before sending via GMAIL_SEND_DRAFT. The format parameter controls the level of detail returned.",
+      "inputs": [
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "about": "Format for the draft message: 'minimal' (ID/labels only), 'full' (complete data with parsed payload), 'raw' (base64url-encoded RFC 2822 format), 'metadata' (ID/labels/headers only)."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value `me` can be used to indicate the authenticated user."
+        },
+        {
+          "name": "draft_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the draft to retrieve. Draft IDs are typically alphanumeric strings (e.g., 'r99885592323229922'). Use GMAIL_LIST_DRAFTS to retrieve valid draft IDs."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "gmail"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Gmail filter",
       "slug": "GMAIL_GET_FILTER",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve a specific Gmail filter by its ID. Use when you need to inspect the criteria and actions of an existing filter.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the filter to be fetched."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "filters"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get label details",
       "slug": "GMAIL_GET_LABEL",
-      "kind": "read"
+      "kind": "read",
+      "description": "Gets details for a specified Gmail label. Use this to retrieve label information including name, type, visibility settings, message/thread counts, and color.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the label to retrieve. Can be a system label (e.g., INBOX, SENT, DRAFT, UNREAD, STARRED, SPAM, TRASH) or a user-created label ID (e.g., Label_1, Label_42)."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.labels",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "labels"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Language Settings",
       "slug": "GMAIL_GET_LANGUAGE_SETTINGS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve the language settings for a Gmail user. Use when you need to determine the display language preference for the authenticated user or a specific Gmail account.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose language settings are to be retrieved, or the special value 'me' to indicate the currently authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "mailbox_automation"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get People",
       "slug": "GMAIL_GET_PEOPLE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a person's details by resource name or lists the authenticated user's Other Contacts, using a field mask to select the information returned. Other Contacts can be paginated and queried using a sync token for changes since a previous sync.",
+      "inputs": [
+        {
+          "name": "sources",
+          "type": "array",
+          "required": false,
+          "about": "Source types to include when retrieving other contacts. READ_SOURCE_TYPE_CONTACT supports basic fields (emailAddresses, metadata, names, phoneNumbers, photos). READ_SOURCE_TYPE_PROFILE supports extended fields (birthdays, genders, organizations, etc.) but requires READ_SOURCE_TYPE_CONTACT to also be"
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The number of 'Other Contacts' to return per page. Applicable only when `other_contacts` is true."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "An opaque token from a previous response to retrieve the next page of 'Other Contacts' results. Applicable only when `other_contacts` is true and paginating."
+        },
+        {
+          "name": "sync_token",
+          "type": "string",
+          "required": false,
+          "about": "A token from a previous 'Other Contacts' list call to retrieve only changes since the last sync; leave empty for an initial full sync. Applicable only when `other_contacts` is true."
+        },
+        {
+          "name": "person_fields",
+          "type": "string",
+          "required": false,
+          "about": "A comma-separated field mask to restrict which fields on the person (or persons) are returned. Consult the Google People API documentation for a comprehensive list of valid fields. Omitted fields are silently absent from the response — no error is raised. When `other_contacts` is true, only a restri"
+        },
+        {
+          "name": "resource_name",
+          "type": "string",
+          "required": false,
+          "about": "Resource name identifying the person for whom to retrieve information (like the authenticated user or a specific contact). Used only when `other_contacts` is false. Deleted or stale resource_names may return partial records with missing `emailAddresses`, `names`, or other fields."
+        },
+        {
+          "name": "other_contacts",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, retrieves 'Other Contacts' (people interacted with but not explicitly saved), ignoring `resource_name` and enabling pagination/sync. If false, retrieves information for the single person specified by `resource_name`."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/contacts",
+        "https://www.googleapis.com/auth/contacts.other.readonly",
+        "https://www.googleapis.com/auth/contacts.readonly",
+        "https://www.googleapis.com/auth/userinfo.profile"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Profile",
       "slug": "GMAIL_GET_PROFILE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves Gmail profile information (email address, aggregate messagesTotal/threadsTotal, historyId) for a user. messagesTotal counts individual emails; threadsTotal counts conversations; neither is per-label — use GMAIL_FETCH_EMAILS with label filters for label-specific counts. The returned historyId seeds incremental sync via GMAIL_LIST_HISTORY; if historyIdTooOld is returned, rescan with GMAIL_FETCH_EMAILS before resuming. Response may be wrapped under a top-level data field; unwrap before reading fields. A successful call confirms mailbox connectivity but not full mailbox access if granted scopes are narrow. Use the returned email address to dynamically identify the authenticated account rather than hard-coding it.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose profile is to be retrieved, or the special value 'me' to indicate the currently authenticated user. Prefer 'me' unless explicitly targeting another account; passing a raw email address that does not match the connected account may fail or access the wrong ma"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Vacation Settings",
       "slug": "GMAIL_GET_VACATION_SETTINGS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve vacation responder settings for a Gmail user. Use when you need to check if out-of-office auto-replies are configured and view their content.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose vacation settings are to be retrieved, or the special value 'me' to indicate the currently authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://mail.google.com/"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "mailbox_automation"
+      ],
+      "deprecated": false
     },
     {
       "name": "Import message",
       "slug": "GMAIL_IMPORT_MESSAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to import a message into the user's mailbox with standard email delivery scanning and classification. Use when you need to add an existing email to a Gmail account without sending it through SMTP. This method doesn't perform SPF checks, so it might not work for some spam messages.",
+      "inputs": [
+        {
+          "name": "raw",
+          "type": "string",
+          "required": true,
+          "about": "The entire email message in RFC 2822 format, base64url-encoded. This is the raw email message to import into the mailbox."
+        },
+        {
+          "name": "deleted",
+          "type": "boolean",
+          "required": false,
+          "about": "Mark the email as permanently deleted (not TRASH) and only visible in Google Vault to a Vault administrator. Only used for Google Workspace accounts."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "never_mark_spam",
+          "type": "boolean",
+          "required": false,
+          "about": "Ignore the Gmail spam classifier decision and never mark this email as SPAM in the mailbox."
+        },
+        {
+          "name": "internal_date_source",
+          "type": "string",
+          "required": false,
+          "about": "Source for Gmail's internal date of the message."
+        },
+        {
+          "name": "process_for_calendar",
+          "type": "boolean",
+          "required": false,
+          "about": "Process calendar invites in the email and add any extracted meetings to the Google Calendar for this user."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.insert",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "openWorldHint",
+        "messages",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Insert message into mailbox",
       "slug": "GMAIL_INSERT_MESSAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to insert a message into the user's mailbox similar to IMAP APPEND. Use when you need to add an email directly to a mailbox bypassing most scanning and classification. This does not send a message.",
+      "inputs": [
+        {
+          "name": "raw",
+          "type": "string",
+          "required": true,
+          "about": "The entire email message in RFC 2822 formatted and base64url encoded string. This is the raw message content that will be inserted into the mailbox."
+        },
+        {
+          "name": "deleted",
+          "type": "boolean",
+          "required": false,
+          "about": "Mark the email as permanently deleted (not TRASH) and only visible in Google Vault to a Vault administrator. Only used for Google Workspace accounts."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "internalDateSource",
+          "type": "string",
+          "required": false,
+          "about": "Source for Gmail's internal date of the message."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.insert",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "openWorldHint",
+        "messages",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List CSE identities",
       "slug": "GMAIL_LIST_CSE_IDENTITIES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists a page of client-side encrypted identities and their key-pair associations. A response indicating that CSE is not enabled is returned as an empty list.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The requester's primary email address. Use 'me' to indicate the authenticated user."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The number of identities to return. If not provided, the page size will default to 20 entries."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token indicating which page of identities to return."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.settings.sharing"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "security_encryption"
+      ],
+      "deprecated": false
     },
     {
       "name": "List CSE key pairs",
       "slug": "GMAIL_LIST_CSE_KEYPAIRS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists a page of client-side encryption key pairs, including public keys and enablement states. A response indicating that CSE is not enabled is returned as an empty list.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The requester's primary email address. Use 'me' to indicate the authenticated user."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The number of key pairs to return per page. If not provided, the page size will default to 20 entries."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token indicating which page of key pairs to return. Omit to return the first page."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.settings.sharing"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "security_encryption"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Drafts",
       "slug": "GMAIL_LIST_DRAFTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a paginated list of email drafts from a user's Gmail account. Use verbose=true to get full draft details including subject, body, sender, and timestamp. Draft ordering is non-guaranteed; iterate using page_token until it is absent to retrieve all drafts. Newly created drafts may not appear immediately. Rapid calls may trigger 403 userRateLimitExceeded or 429 errors; apply exponential backoff (1s, 2s, 4s) before retrying.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's mailbox ID; use 'me' for the authenticated user."
+        },
+        {
+          "name": "verbose",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, fetches full draft details including subject, sender, recipient, body, and timestamp. If false, returns only draft IDs (faster). Increases response payload size; tune max_results accordingly. Use verbose=true before destructive operations to confirm draft identity by subject, recipient, and"
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token from a previous response to retrieve a specific page of drafts. Ordering is non-guaranteed; continue paginating until page_token is absent in the response to retrieve all drafts."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of drafts to return per page."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Gmail filters",
       "slug": "GMAIL_LIST_FILTERS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list all Gmail filters (rules) in the mailbox. Use for security audits to detect malicious filter rules or before creating new filters to avoid duplicates.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user whose filters will be retrieved."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "filters"
+      ],
+      "deprecated": false
     },
     {
       "name": "List forwarding addresses",
       "slug": "GMAIL_LIST_FORWARDING_ADDRESSES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list all forwarding addresses for the specified Gmail account. Use when you need to retrieve the email addresses that are allowed to be used for forwarding messages.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user whose forwarding addresses will be retrieved."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "forwarding"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Gmail history",
       "slug": "GMAIL_LIST_HISTORY",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists Gmail mailbox change history since a known history ID for incremental sync, with optional label and history-type filters and pagination. An empty history list means no records matched the request, not necessarily that no mailbox changes occurred.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. Use 'me' to specify the authenticated user."
+        },
+        {
+          "name": "label_id",
+          "type": "string",
+          "required": false,
+          "about": "Only return history records involving messages with this label ID."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token to retrieve a specific page of results. If the response includes nextPageToken, loop requests using this parameter until no nextPageToken is returned; failing to paginate will silently miss changes."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of history records to return. Default is 100; max is 500."
+        },
+        {
+          "name": "history_types",
+          "type": "array",
+          "required": false,
+          "about": "Filter by specific history types. Allowed values: messageAdded, messageDeleted, labelAdded, labelRemoved."
+        },
+        {
+          "name": "start_history_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. Returns history records after this ID. If the ID is invalid or too old, the API returns 404. Perform a full sync in that case. Should be a numeric string. On 404 (historyIdTooOld) or 400 (invalidArgument), recover by fetching a fresh historyId via GMAIL_GET_PROFILE, then perform a one-time"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Gmail labels",
       "slug": "GMAIL_LIST_LABELS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves all system and user-created labels for a Gmail account in a single unpaginated response. Primary use: obtain internal label IDs (e.g., 'Label_123') required by other Gmail tools — display names cannot be used as label identifiers and cause silent failures or errors. System labels (INBOX, UNREAD, SPAM, TRASH, etc.) are case-sensitive and must be used exactly as returned; INBOX, SPAM, and TRASH are read-only and cannot be added/removed via label modification tools. The Gmail search 'label:' operator accepts display names, but label_ids parameters in tools like GMAIL_FETCH_EMAILS require internal IDs from this tool — mixing conventions yields zero results silently. Do not hardcode label IDs across sessions; refresh via this tool on conflict errors.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "Identifies the Gmail account (owner's email or 'me' for authenticated user) for which labels will be listed."
+        },
+        {
+          "name": "include_details",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, fetches detailed info for each label including message/thread counts (messagesTotal, messagesUnread, threadsTotal, threadsUnread). This requires additional API calls and may be slower for accounts with many labels. If false (default), returns basic label info (id, name, type) which is faste"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.labels",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Gmail messages (Deprecated)",
       "slug": "GMAIL_LIST_MESSAGES",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Use GMAIL_FETCH_EMAILS instead. Lists the messages in the user's mailbox. Use when you need to retrieve a list of email messages with optional filtering by labels or search query.",
+      "inputs": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": false,
+          "about": "Only return messages matching the specified query. Supports the same query format as the Gmail search box. For example, 'from:someuser@example.com is:unread'. Cannot be used when accessing the API using the gmail.metadata scope."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or 'me' to specify the authenticated user."
+        },
+        {
+          "name": "label_ids",
+          "type": "array",
+          "required": false,
+          "about": "Only return messages with labels that match all of the specified label IDs. Messages in a thread might have labels that other messages in the same thread don't have."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Page token to retrieve a specific page of results in the list."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of messages to return. Defaults to 100. The maximum allowed value is 500."
+        },
+        {
+          "name": "include_spam_trash",
+          "type": "boolean",
+          "required": false,
+          "about": "Include messages from SPAM and TRASH in the results. Default is false."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "messages",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "List send-as aliases",
       "slug": "GMAIL_LIST_SEND_AS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists the send-as aliases for a Gmail account, including the primary address and custom 'from' aliases. Use when you need to retrieve available sending addresses for composing emails.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user whose send-as aliases will be retrieved."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "send_as_aliases"
+      ],
+      "deprecated": false
     },
     {
       "name": "List S/MIME configs",
       "slug": "GMAIL_LIST_SMIME_INFO",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists S/MIME certificate configurations for a specified Gmail send-as alias. If Gmail reports that the feature is not enabled, returns an empty list with S/MIME marked disabled.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "send_as_email",
+          "type": "string",
+          "required": true,
+          "about": "The email address that appears in the 'From:' header for mail sent using this alias."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://www.googleapis.com/auth/gmail.settings.sharing"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "security_encryption"
+      ],
+      "deprecated": false
     },
     {
       "name": "List threads",
       "slug": "GMAIL_LIST_THREADS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a list of email threads from a Gmail account, identified by `user_id` (email address or 'me'), supporting filtering and pagination. Spam and trash are excluded by default unless explicitly targeted via `label:spam` or `label:trash` in the query.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Filter for threads, using Gmail search query syntax (e.g., 'from:user@example.com is:unread'). Supported operators include `from:`, `to:`, `subject:`, `label:`, `is:unread`, `has:attachment`, `after:`, `before:`. Dates must use `YYYY/MM/DD` format; date operators are UTC-based. Exact subject phrases"
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or 'me' to specify the authenticated Gmail account."
+        },
+        {
+          "name": "verbose",
+          "type": "boolean",
+          "required": false,
+          "about": "If false, returns threads with basic fields (id, snippet, historyId). If true, returns threads with complete message details including headers, body, attachments, and metadata for each message in the thread. Combining `verbose=true` with large `max_results` produces very large responses; keep `max_r"
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token from a previous response to retrieve a specific page of results; omit for the first page."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of threads to return. Hard cap is ~500 per call. For full mailbox coverage, loop using `nextPageToken` via `page_token` until absent."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Modify thread labels",
       "slug": "GMAIL_MODIFY_THREAD_LABELS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Adds or removes specified existing label IDs from a Gmail thread, affecting all its messages; ensure the thread ID is valid. To modify a single message only, use a message-level tool instead.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "Immutable ID of the thread to modify."
+        },
+        {
+          "name": "add_label_ids",
+          "type": "array",
+          "required": false,
+          "about": "List of label IDs to add to the thread. Must be valid label IDs that exist in the user's account. System labels use uppercase names (e.g., 'INBOX', 'STARRED', 'IMPORTANT', 'UNREAD', 'SPAM', 'TRASH', 'SENT', 'DRAFT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', '"
+        },
+        {
+          "name": "remove_label_ids",
+          "type": "array",
+          "required": false,
+          "about": "List of label IDs to remove from the thread. Must be valid label IDs that exist in the user's account. System labels use uppercase names (e.g., 'INBOX', 'STARRED', 'IMPORTANT', 'UNREAD', 'SPAM', 'TRASH', 'SENT', 'DRAFT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATE"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Trash thread",
       "slug": "GMAIL_MOVE_THREAD_TO_TRASH",
-      "kind": "write"
+      "kind": "write",
+      "description": "Moves the specified thread to the trash. Any messages that belong to the thread are also moved to the trash.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. The ID of the thread to trash. This moves all messages in the thread to trash."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "gmail",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Move to Trash",
       "slug": "GMAIL_MOVE_TO_TRASH",
-      "kind": "write"
+      "kind": "write",
+      "description": "Moves an existing, non-deleted email message to the trash for the specified user. Trashed messages are recoverable and still count toward storage quota until purged. Prefer this over GMAIL_BATCH_DELETE_MESSAGES when recovery may be needed. For bulk operations, use GMAIL_BATCH_MODIFY_MESSAGES or GMAIL_BATCH_DELETE_MESSAGES instead of repeated calls to this tool.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. The unique identifier of the email message to move to trash. This is a hexadecimal string that can be obtained from listing or fetching emails. Verify the correct message via subject/snippet before trashing to avoid affecting unrelated conversations."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Patch Label",
       "slug": "GMAIL_PATCH_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Patches the specified user-created label. System labels (e.g., INBOX, SENT, SPAM) cannot be modified and will be rejected.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the label to update."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "The display name of the label. At least one of 'name', 'messageListVisibility', 'labelListVisibility', or 'color' must be provided. Must be non-empty, unique among user labels, and must not contain `,`, `/`, or `.`."
+        },
+        {
+          "name": "color",
+          "type": "object",
+          "required": false,
+          "about": "The color to assign to the label. Color is only available for labels that have their `type` set to `user`. At least one of 'name', 'messageListVisibility', 'labelListVisibility', or 'color' must be provided. Must include both `backgroundColor` and `textColor` subfields; both values must come from Gm"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true,
+          "about": "The user's email address. The special value `me` can be used to indicate the authenticated user."
+        },
+        {
+          "name": "labelListVisibility",
+          "type": "string",
+          "required": false,
+          "about": "The visibility of the label in the label list in the Gmail web interface. At least one of 'name', 'messageListVisibility', 'labelListVisibility', or 'color' must be provided."
+        },
+        {
+          "name": "messageListVisibility",
+          "type": "string",
+          "required": false,
+          "about": "The visibility of messages with this label in the message list in the Gmail web interface. At least one of 'name', 'messageListVisibility', 'labelListVisibility', or 'color' must be provided."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.labels"
+      ],
+      "tags": [
+        "idempotentHint",
+        "important",
+        "labels",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Patch send-as alias",
       "slug": "GMAIL_PATCH_SEND_AS",
-      "kind": "send"
+      "kind": "send",
+      "description": "Patches a Gmail send-as alias, including its display name, reply-to address, signature, default status, or SMTP configuration. This tool declares support for service-account OAuth, not standard OAuth.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user."
+        },
+        {
+          "name": "smtp_msa",
+          "type": "object",
+          "required": false,
+          "about": "Configuration for SMTP relay service."
+        },
+        {
+          "name": "signature",
+          "type": "string",
+          "required": false,
+          "about": "An optional HTML signature that is included in messages composed with this alias in the Gmail web UI. This signature is added to new emails only."
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether this address is selected as the default 'From:' address in situations such as composing a new message or sending a vacation auto-reply. Setting this to true will make other send-as addresses non-default. Only true can be written to this field."
+        },
+        {
+          "name": "display_name",
+          "type": "string",
+          "required": false,
+          "about": "A name that appears in the 'From:' header for mail sent using this alias. For custom 'from' addresses, when empty, Gmail will populate the 'From:' header with the name used for the primary address. If the admin has disabled name updates, requests to update this field for the primary login will silen"
+        },
+        {
+          "name": "send_as_email",
+          "type": "string",
+          "required": true,
+          "about": "The send-as alias email address to update. This is the email address that appears in the 'From:' header."
+        },
+        {
+          "name": "treat_as_alias",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether Gmail should treat this address as an alias for the user's primary email address. This setting only applies to custom 'from' aliases."
+        },
+        {
+          "name": "reply_to_address",
+          "type": "string",
+          "required": false,
+          "about": "An optional email address that is included in a 'Reply-To:' header for mail sent using this alias. If empty, Gmail will not generate a 'Reply-To:' header."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://www.googleapis.com/auth/gmail.settings.sharing"
+      ],
+      "tags": [
+        "idempotentHint",
+        "important",
+        "openWorldHint",
+        "send_as_aliases",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Remove label (Deprecated)",
       "slug": "GMAIL_REMOVE_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently deletes an existing user-created Gmail label by ID and removes it from messages and threads where it is applied. This action is deprecated.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "label_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the user-created label to be permanently deleted; must exist and not be a system label."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.labels",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "Reply to email thread",
       "slug": "GMAIL_REPLY_TO_THREAD",
-      "kind": "send"
+      "kind": "send",
+      "description": "Sends a reply to a Gmail thread using its original subject and quoting the last returned message. Requires a thread ID and at least one recipient, and supports optional file attachments.",
+      "inputs": [
+        {
+          "name": "cc",
+          "type": "array",
+          "required": false,
+          "about": "Carbon Copy (CC) recipients' email addresses in format 'user@domain.com'. Each address must include both username and domain separated by '@'. At least one of cc, bcc, or recipient_email must be provided."
+        },
+        {
+          "name": "bcc",
+          "type": "array",
+          "required": false,
+          "about": "Blind Carbon Copy (BCC) recipients' email addresses in format 'user@domain.com'. Each address must include both username and domain separated by '@'. At least one of cc, bcc, or recipient_email must be provided."
+        },
+        {
+          "name": "is_html",
+          "type": "boolean",
+          "required": false,
+          "about": "Indicates if `message_body` is HTML; if True, body must be valid HTML, if False, body should not contain HTML tags. Mismatch causes recipients to see raw HTML tags as plain text."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "Identifier for the user sending the reply; 'me' refers to the authenticated user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Gmail thread for the reply. Must be a valid hexadecimal string, typically 15-16 characters long (e.g., '169eefc8138e68ca'). Prefixes like 'msg-f:' or 'thread-f:' are automatically stripped. Note: Format validation only checks the ID structure; the thread must also exist and be acce"
+        },
+        {
+          "name": "attachment",
+          "type": "",
+          "required": false,
+          "about": "File(s) to attach to the reply. Accepts a single file or a list of files. Total message size including attachments must stay under 25 MB (400 badRequest if exceeded); use Drive links for large files."
+        },
+        {
+          "name": "message_body",
+          "type": "string",
+          "required": false,
+          "about": "Content of the reply message, either plain text or HTML."
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "required": false,
+          "about": "Primary recipient's email address in format 'user@domain.com'. Must include both username and domain separated by '@'. Required if cc and bcc is not provided, else can be optional. Use extra_recipients if you want to send to multiple recipients."
+        },
+        {
+          "name": "extra_recipients",
+          "type": "array",
+          "required": false,
+          "about": "Additional 'To' recipients' email addresses in format 'user@domain.com' (not Cc or Bcc). Each address must include both username and domain separated by '@'. Should only be used if recipient_email is also provided."
+        },
+        {
+          "name": "include_signature",
+          "type": "boolean",
+          "required": false,
+          "about": "Append the sender's Gmail signature (the 'Send mail as' signature configured in Gmail settings) to the message body, ahead of any quoted or forwarded content. Skipped when the body already ends with that signature, when no signature is configured, or when the connection lacks permission to read Gmai"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/contacts",
+        "https://www.googleapis.com/auth/contacts.other.readonly",
+        "https://www.googleapis.com/auth/contacts.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Search People",
       "slug": "GMAIL_SEARCH_PEOPLE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Searches saved contacts and optionally Other Contacts by query, returning matching person records. When both sources are requested, results may be partial if one search fails.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "about": "Matches contact names, nicknames, email addresses, phone numbers, and organization fields."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum results to return; values >30 are capped to 30 by the API."
+        },
+        {
+          "name": "person_fields",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated fields to return (e.g., 'names,emailAddresses'). When 'other_contacts' is true, only 'emailAddresses', 'metadata', 'names', 'phoneNumbers' are allowed. For full field access including 'organizations', set 'other_contacts' to false."
+        },
+        {
+          "name": "other_contacts",
+          "type": "boolean",
+          "required": false,
+          "about": "When True, searches both saved contacts and 'Other Contacts' (people you've interacted with but not explicitly saved). Note: This restricts person_fields to only 'emailAddresses', 'metadata', 'names', 'phoneNumbers'. When False, searches only saved contacts but allows all person_fields including 'or"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/contacts",
+        "https://www.googleapis.com/auth/contacts.readonly",
+        "https://www.googleapis.com/auth/contacts.other.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Send Draft",
       "slug": "GMAIL_SEND_DRAFT",
-      "kind": "send"
+      "kind": "send",
+      "description": "Sends an existing Gmail draft immediately to the recipients already in its To, Cc, and Bcc headers. The draft's recipients and content cannot be changed by this action; confirm them before sending.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value `me` can be used to indicate the authenticated user."
+        },
+        {
+          "name": "draft_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the draft to send. Draft IDs are typically alphanumeric strings (e.g., 'r99885592323229922'). Important: Do not confuse draft_id with message_id - they are different identifiers. Use GMAIL_LIST_DRAFTS to retrieve valid draft IDs, or GMAIL_CREATE_EMAIL_DRAFT to create a new draft and get it"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "destructiveHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Send Email",
       "slug": "GMAIL_SEND_EMAIL",
-      "kind": "send"
+      "kind": "send",
+      "description": "Sends an email immediately through Gmail to specified To, Cc, or Bcc recipients, with a subject or body and optional attachments. Supports plain text or HTML and may append the configured Gmail signature; attachments are limited to 20 MiB in total before encoding.",
+      "inputs": [
+        {
+          "name": "cc",
+          "type": "array",
+          "required": false,
+          "about": "Carbon Copy (CC) recipients' email addresses. At least one of 'to'/'recipient_email', 'cc', or 'bcc' must be provided."
+        },
+        {
+          "name": "bcc",
+          "type": "array",
+          "required": false,
+          "about": "Blind Carbon Copy (BCC) recipients' email addresses. At least one of 'to'/'recipient_email', 'cc', or 'bcc' must be provided."
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false,
+          "about": "Email content (plain text or HTML). Either subject or body must be provided for the email to be sent. If HTML, `is_html` must be `True`."
+        },
+        {
+          "name": "is_html",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to `True` if the email body contains HTML tags."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false,
+          "about": "Subject line of the email. Either subject or body must be provided for the email to be sent."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address; the literal 'me' refers to the authenticated user."
+        },
+        {
+          "name": "attachment",
+          "type": "",
+          "required": false,
+          "about": "File(s) to attach. Accepts a single file or a list of files. IMPORTANT: mimetype MUST contain a '/' separator - single words like 'pdf' or 'new' are invalid. Gmail API limits: total message size must not exceed ~25 MB after base64 encoding. Omit or set to null for no attachment. Empty attachment obj"
+        },
+        {
+          "name": "from_email",
+          "type": "string",
+          "required": false,
+          "about": "Sender email address for the 'From' header. Provide the connected account's primary email address or a verified alias configured in Gmail's 'Send mail as' settings. When omitted, the action attempts to resolve the primary email address from the authenticated Gmail profile."
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "required": false,
+          "about": "Primary recipient's email address. You can also use 'to' as an alias for this parameter. At least one of 'to'/'recipient_email', 'cc', or 'bcc' must be provided. Use extra_recipients if you want to send to multiple recipients. Use the special value 'me' to send to your own authenticated email addres"
+        },
+        {
+          "name": "extra_recipients",
+          "type": "array",
+          "required": false,
+          "about": "Additional 'To' recipients' email addresses (not Cc or Bcc). Should only be used if recipient_email is also provided."
+        },
+        {
+          "name": "include_signature",
+          "type": "boolean",
+          "required": false,
+          "about": "Append the sender's Gmail signature (the 'Send mail as' signature configured in Gmail settings) to the message body, ahead of any quoted or forwarded content. Skipped when the body already ends with that signature, when no signature is configured, or when the connection lacks permission to read Gmai"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.send"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get IMAP Settings",
       "slug": "GMAIL_SETTINGS_GET_IMAP",
-      "kind": "write"
+      "kind": "write",
+      "description": "Retrieves the IMAP settings for a Gmail user account, including whether IMAP is enabled, auto-expunge behavior, expunge behavior, and maximum folder size.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address or the special value 'me' to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "mail_protocols"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get POP settings",
       "slug": "GMAIL_SETTINGS_GET_POP",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to retrieve POP settings for a Gmail account. Use when you need to check the current POP configuration including access window and message disposition.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "mail_protocols"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get send-as alias",
       "slug": "GMAIL_SETTINGS_SEND_AS_GET",
-      "kind": "send"
+      "kind": "send",
+      "description": "Tool to retrieve a specific send-as alias configuration for a Gmail user. Use when you need to get details about a send-as email address including display name, signature, SMTP settings, and verification status. Fails with HTTP 404 if the specified address is not a member of the send-as collection.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose send-as alias to retrieve, or the special value 'me' to indicate the authenticated user."
+        },
+        {
+          "name": "send_as_email",
+          "type": "string",
+          "required": true,
+          "about": "The send-as alias email address to retrieve. This is the email address that appears in the 'From:' header."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "send_as_aliases"
+      ],
+      "deprecated": false
     },
     {
       "name": "Stop watch notifications",
       "slug": "GMAIL_STOP_WATCH",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to stop receiving push notifications for a Gmail mailbox. Use when you need to disable watch notifications previously set up via the watch endpoint.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "watch",
+        "updateHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Untrash Message",
       "slug": "GMAIL_UNTRASH_MESSAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to remove a message from trash in Gmail. Use when you need to restore a previously trashed email message.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "message_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. The unique identifier of the email message to remove from trash. This is a hexadecimal string that can be obtained from listing or fetching emails."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "messages",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Untrash thread",
       "slug": "GMAIL_UNTRASH_THREAD",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to remove a thread from trash in Gmail. Use when you need to restore a deleted thread and its messages.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the thread to remove from trash."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "gmail",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Google Contact",
       "slug": "GMAIL_UPDATE_CONTACT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Replace selected fields on an existing saved Google contact.",
+      "inputs": [
+        {
+          "name": "person",
+          "type": "object",
+          "required": true,
+          "about": "Google Person resource containing metadata.sources and replacement values. metadata.sources must include a CONTACT source; include that source's etag for concurrency protection."
+        },
+        {
+          "name": "sources",
+          "type": "array",
+          "required": false,
+          "about": "Source types to include in the returned Person resource."
+        },
+        {
+          "name": "person_fields",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated field mask of Person fields to return after the update. Valid values: addresses, ageRanges, biographies, birthdays, calendarUrls, clientData, coverPhotos, emailAddresses, events, externalIds, genders, imClients, interests, locales, locations, memberships, metadata, miscKeywords, name"
+        },
+        {
+          "name": "resource_name",
+          "type": "string",
+          "required": true,
+          "about": "Saved contact resource name in people/{person_id} form."
+        },
+        {
+          "name": "update_person_fields",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated field mask of Person fields to replace. Valid values: addresses, biographies, birthdays, calendarUrls, clientData, emailAddresses, events, externalIds, genders, imClients, interests, locales, locations, memberships, miscKeywords, names, nicknames, occupations, organizations, phoneNum"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/contacts"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "contacts"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update draft",
       "slug": "GMAIL_UPDATE_DRAFT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates a Gmail draft by ID by replacing its message. The tool reads the existing draft to preserve omitted recipients, subject and body where applicable, but existing attachments are not preserved unless supplied again.",
+      "inputs": [
+        {
+          "name": "cc",
+          "type": "array",
+          "required": false,
+          "about": "Carbon Copy (CC) recipients' email addresses. Each must be a valid email address or display name format."
+        },
+        {
+          "name": "bcc",
+          "type": "array",
+          "required": false,
+          "about": "Blind Carbon Copy (BCC) recipients' email addresses. Each must be a valid email address or display name format."
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false,
+          "about": "Email body content (plain text or HTML); is_html must be True if HTML. If not provided, previous body is preserved. Can also be provided as 'message_body'."
+        },
+        {
+          "name": "is_html",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to True if body is already formatted HTML. When False, plain text newlines are auto-converted to <br/> tags."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false,
+          "about": "Email subject line. If not provided, previous subject is preserved."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "User's email address or 'me' for the authenticated user."
+        },
+        {
+          "name": "draft_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the draft to update. Must be a valid draft ID from GMAIL_LIST_DRAFTS or GMAIL_CREATE_EMAIL_DRAFT."
+        },
+        {
+          "name": "thread_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of an existing Gmail thread. If provided, the draft will be part of this thread."
+        },
+        {
+          "name": "attachment",
+          "type": "",
+          "required": false,
+          "about": "File(s) to attach to the draft. Accepts a single file or a list of files. Replaces any existing attachments."
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "required": false,
+          "about": "Primary recipient's email address. Must be a valid email address (e.g., 'user@example.com') or display name format (e.g., 'John Doe <user@example.com>'). Optional - if not provided, previous recipients are preserved."
+        },
+        {
+          "name": "extra_recipients",
+          "type": "array",
+          "required": false,
+          "about": "Additional 'To' recipients' email addresses. Each must be a valid email address or display name format. Should only be used if recipient_email is also provided."
+        },
+        {
+          "name": "include_signature",
+          "type": "boolean",
+          "required": false,
+          "about": "Append the sender's Gmail signature (the 'Send mail as' signature configured in Gmail settings) to the message body, ahead of any quoted or forwarded content. Skipped when the body already ends with that signature, when no signature is configured, or when the connection lacks permission to read Gmai"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "messages"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update IMAP settings",
       "slug": "GMAIL_UPDATE_IMAP_SETTINGS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update IMAP settings for a Gmail account. Use when you need to modify IMAP configuration such as enabling/disabling IMAP, setting auto-expunge behavior, or configuring folder size limits.",
+      "inputs": [
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether IMAP is enabled for the account."
+        },
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "autoExpunge",
+          "type": "boolean",
+          "required": false,
+          "about": "If this value is true, Gmail will immediately expunge a message when it is marked as deleted in IMAP. Otherwise, Gmail will wait for an update from the client before expunging messages marked as deleted."
+        },
+        {
+          "name": "maxFolderSize",
+          "type": "integer",
+          "required": false,
+          "about": "An optional limit on the number of messages that an IMAP folder may contain. Legal values are 0, 1000, 2000, 5000 or 10000. A value of zero is interpreted to mean that there is no limit."
+        },
+        {
+          "name": "expungeBehavior",
+          "type": "string",
+          "required": false,
+          "about": "The action that will be executed on a message when it is marked as deleted and expunged from the last visible IMAP folder. Possible values: 'expungeBehaviorUnspecified' (Unspecified behavior), 'archive' (Archive messages marked as deleted), 'trash' (Move messages marked as deleted to the trash), 'de"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "mail_protocols"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Label",
       "slug": "GMAIL_UPDATE_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates an existing Gmail label's name, visibility settings, or color to help organize the mailbox. Color is available for user labels and requires both a background and text color from Gmail's supported palette.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the label to update."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "The display name of the label."
+        },
+        {
+          "name": "color",
+          "type": "object",
+          "required": false,
+          "about": "Color settings for the label. Both backgroundColor and textColor must be provided together."
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value `me` can be used to indicate the authenticated user."
+        },
+        {
+          "name": "labelListVisibility",
+          "type": "string",
+          "required": false,
+          "about": "Visibility of the label in the label list (Gmail sidebar)."
+        },
+        {
+          "name": "messageListVisibility",
+          "type": "string",
+          "required": false,
+          "about": "Visibility of messages with this label in the message list."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.labels"
+      ],
+      "tags": [
+        "updateHint",
+        "important",
+        "openWorldHint",
+        "labels"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Language Settings",
       "slug": "GMAIL_UPDATE_LANGUAGE_SETTINGS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update the language settings for a Gmail user. Use when you need to change the display language preference for the authenticated user or a specific Gmail account. The returned displayLanguage may differ from the requested value if Gmail selects a close variant.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose language settings are to be updated, or the special value 'me' to indicate the currently authenticated user."
+        },
+        {
+          "name": "display_language",
+          "type": "string",
+          "required": true,
+          "about": "The language to display Gmail in, formatted as an RFC 3066 Language Tag (e.g., 'en-GB' for British English, 'fr' for French, 'ja' for Japanese, 'es' for Spanish, 'de' for German, 'en' for English). The set of languages supported by Gmail evolves over time. Note: Gmail may save a close variant if the"
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "settings"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update POP settings",
       "slug": "GMAIL_UPDATE_POP_SETTINGS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update POP settings for a Gmail account. Use when you need to configure POP access window or message disposition behavior.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "disposition",
+          "type": "string",
+          "required": false,
+          "about": "The action that will be executed on a message after it has been fetched via POP."
+        },
+        {
+          "name": "access_window",
+          "type": "string",
+          "required": false,
+          "about": "The range of messages which are accessible via POP."
+        }
+      ],
+      "scopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "mail_protocols"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update send-as alias",
       "slug": "GMAIL_UPDATE_SEND_AS",
-      "kind": "send"
+      "kind": "send",
+      "description": "Updates a Gmail send-as alias, including its display name, signature, reply-to address, or SMTP settings; Gmail sanitizes HTML signatures before saving. The tool declares support for service-account OAuth, not standard OAuth; non-primary addresses require domain-wide delegation.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": false,
+          "about": "The email address of the Gmail user whose send-as alias to update, or the special value 'me' to indicate the authenticated user."
+        },
+        {
+          "name": "smtp_msa",
+          "type": "object",
+          "required": false,
+          "about": "SMTP relay configuration for the send-as alias."
+        },
+        {
+          "name": "signature",
+          "type": "string",
+          "required": false,
+          "about": "Optional HTML signature for messages composed with this alias in Gmail web UI. Gmail sanitizes HTML before saving. Only added to new emails."
+        },
+        {
+          "name": "is_default",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to make this the default 'From:' address for composing messages and vacation auto-replies. Setting true makes the previous default false. Only legal writable value is true."
+        },
+        {
+          "name": "display_name",
+          "type": "string",
+          "required": false,
+          "about": "Name to appear in 'From:' header. For custom from addresses, Gmail populates with primary account name if empty. Admin restrictions may silently fail updates to primary login name."
+        },
+        {
+          "name": "send_as_email",
+          "type": "string",
+          "required": true,
+          "about": "The send-as alias email address to update. This is the email address that appears in the 'From:' header."
+        },
+        {
+          "name": "treat_as_alias",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether Gmail treats this address as an alias for the user's primary email. Only applies to custom from aliases."
+        },
+        {
+          "name": "reply_to_address",
+          "type": "string",
+          "required": false,
+          "about": "Optional email address for 'Reply-To:' header. Gmail omits header if empty."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic",
+        "https://www.googleapis.com/auth/gmail.settings.sharing"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "send_as_aliases"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Vacation Settings",
       "slug": "GMAIL_UPDATE_VACATION_SETTINGS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update vacation responder settings for a Gmail user. Use when you need to configure out-of-office auto-replies.",
+      "inputs": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": false,
+          "about": "The user's email address. The special value 'me' can be used to indicate the authenticated user."
+        },
+        {
+          "name": "endTime",
+          "type": "string",
+          "required": false,
+          "about": "An optional end time for sending auto-replies (epoch ms). When this is specified, Gmail will automatically reply only to messages that it receives before the end time. If both startTime and endTime are specified, startTime must precede endTime."
+        },
+        {
+          "name": "startTime",
+          "type": "string",
+          "required": false,
+          "about": "An optional start time for sending auto-replies (epoch ms). When this is specified, Gmail will automatically reply only to messages that it receives after the start time. If both startTime and endTime are specified, startTime must precede endTime."
+        },
+        {
+          "name": "enableAutoReply",
+          "type": "boolean",
+          "required": false,
+          "about": "Flag that controls whether Gmail automatically replies to messages."
+        },
+        {
+          "name": "responseSubject",
+          "type": "string",
+          "required": false,
+          "about": "Optional text to prepend to the subject line in vacation responses. In order to enable auto-replies, either the response subject or the response body must be nonempty."
+        },
+        {
+          "name": "responseBodyHtml",
+          "type": "string",
+          "required": false,
+          "about": "Response body in HTML format. Gmail will sanitize the HTML before storing it. If both response_body_plain_text and response_body_html are specified, response_body_html will be used."
+        },
+        {
+          "name": "restrictToDomain",
+          "type": "boolean",
+          "required": false,
+          "about": "Flag that determines whether responses are sent to recipients who are outside of the user's domain. This feature is only available for Google Workspace users."
+        },
+        {
+          "name": "restrictToContacts",
+          "type": "boolean",
+          "required": false,
+          "about": "Flag that determines whether responses are sent to recipients who are not in the user's list of contacts."
+        },
+        {
+          "name": "responseBodyPlainText",
+          "type": "string",
+          "required": false,
+          "about": "Response body in plain text format. If both response_body_plain_text and response_body_html are specified, response_body_html will be used."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.settings.basic"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "mailbox_automation"
+      ],
+      "deprecated": false
     },
     {
       "name": "Who Am I",
       "slug": "GMAIL_WHO_AM_I",
-      "kind": "write"
+      "kind": "write",
+      "description": "Return the identity (email, name) of the connected Gmail account.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "auth"
+      ],
+      "deprecated": false
     }
   ],
   "triggers": [],

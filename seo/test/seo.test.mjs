@@ -12,7 +12,9 @@ import { writeSitemaps, robotsTxt, SEARCH_BOTS } from '../sitemaps.mjs';
 import { scene, signature, altText } from '../art/scene.mjs';
 import { isRead, kindOf, parse } from '../scripts/fetch-composio.mjs';
 
-const growth = JSON.parse(fs.readFileSync(new URL('../growth.json', import.meta.url), 'utf8'));
+// a fixed calibration, so the tests check the gate's logic rather than today's numbers in seo/growth.json
+const live = JSON.parse(fs.readFileSync(new URL('../growth.json', import.meta.url), 'utf8'));
+const growth = { ...live, measure_day: 21, gate: { ...live.gate, seed_index_rate: { green: 0.6, at_day: 14 } }, caps: { max_share_of_indexed: 0.25, max_growth_vs_last: 2, per_day: 8 } };
 const kit = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..', 'public', 'landing', 'art');
 const hits = (text) => SUBSCRIPTION.filter(([re]) => re.test(text)).map(([, why]) => why);
 

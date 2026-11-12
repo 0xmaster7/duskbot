@@ -13,342 +13,3154 @@
     {
       "name": "Add Video to Playlist",
       "slug": "YOUTUBE_ADD_VIDEO_TO_PLAYLIST",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to add a video to a playlist by inserting a playlist item. Use when organizing videos into playlists or building curated collections.",
+      "inputs": [
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube video ID to add to the playlist (typically an 11-character string)."
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "about": "The position (zero-based index) where the video should be inserted in the playlist. Position 0 is the first position, position 1 is the second, etc. The position value must not exceed the current number of items in the playlist (if a playlist has 3 items, valid positions are 0-3). Specifying a posit"
+        },
+        {
+          "name": "playlistId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the playlist to add the video to. You can retrieve playlist IDs using the YOUTUBE_LIST_USER_PLAYLISTS action."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "playlists",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Bind Live Broadcast",
       "slug": "YOUTUBE_BIND_LIVE_BROADCAST",
-      "kind": "send"
+      "kind": "send",
+      "description": "Bind an owned live broadcast to a live stream, or unbind it when streamId is omitted.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique ID of the live broadcast to bind or unbind."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated liveBroadcast resource parts to include in the response. Valid values are 'id', 'snippet', 'contentDetails', and 'status'."
+        },
+        {
+          "name": "streamId",
+          "type": "string",
+          "required": false,
+          "about": "The unique ID of the live stream to bind. Omit this parameter to remove the broadcast's existing stream binding."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the content owner on whose behalf an authorized CMS user acts. Must be provided with onBehalfOfContentOwnerChannel."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the channel whose broadcast is being bound. Must be provided with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint",
+        "live"
+      ],
+      "deprecated": false
     },
     {
       "name": "Insert Channel Section",
       "slug": "YOUTUBE_CREATE_CHANNEL_SECTION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to create a new channel section for the authenticated user's YouTube channel. Use when organizing channel content into sections like featured playlists, recent uploads, or featured channels.",
+      "inputs": [
+        {
+          "name": "snippet",
+          "type": "object",
+          "required": true,
+          "about": "The snippet object contains details about the channel section including its type, title, and position."
+        },
+        {
+          "name": "contentDetails",
+          "type": "object",
+          "required": false,
+          "about": "Content details for the channel section."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "channels",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Insert Comment Reply",
       "slug": "YOUTUBE_CREATE_COMMENT_REPLY",
-      "kind": "send"
+      "kind": "send",
+      "description": "Tool to create a reply to an existing YouTube comment. Use when responding to user comments or engaging in conversations on videos.",
+      "inputs": [
+        {
+          "name": "parentId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the parent comment being replied to. This is the comment that the new reply will be attached to."
+        },
+        {
+          "name": "textOriginal",
+          "type": "string",
+          "required": true,
+          "about": "The text content of the reply comment. This cannot be empty and will be posted as a reply to the parent comment."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "comments",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Live Broadcast",
       "slug": "YOUTUBE_CREATE_LIVE_BROADCAST",
-      "kind": "send"
+      "kind": "send",
+      "description": "Create and schedule a live broadcast owned by the connected YouTube channel.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "Title of the live broadcast (1-100 characters)."
+        },
+        {
+          "name": "enableDvr",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether viewers can use DVR controls during the broadcast."
+        },
+        {
+          "name": "categoryId",
+          "type": "string",
+          "required": false,
+          "about": "YouTube video category ID for the broadcast."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Broadcast description, up to 5000 characters."
+        },
+        {
+          "name": "enableEmbed",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the broadcast may be played in an embedded player."
+        },
+        {
+          "name": "privacyStatus",
+          "type": "string",
+          "required": true,
+          "about": "Visibility of the live broadcast."
+        },
+        {
+          "name": "enableAutoStop",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the broadcast stops automatically after its bound stream becomes inactive."
+        },
+        {
+          "name": "enableAutoStart",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the broadcast starts automatically when its bound stream becomes active."
+        },
+        {
+          "name": "recordFromStart",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether YouTube starts recording automatically when the broadcast goes live."
+        },
+        {
+          "name": "scheduledEndTime",
+          "type": "string",
+          "required": false,
+          "about": "Optional ISO 8601 scheduled end time; it must be later than scheduledStartTime."
+        },
+        {
+          "name": "availabilityConfig",
+          "type": "object",
+          "required": false,
+          "about": "Optional global exclusions or region-specific availability for the upcoming broadcast."
+        },
+        {
+          "name": "scheduledStartTime",
+          "type": "string",
+          "required": true,
+          "about": "Future ISO 8601 date-time when the broadcast is scheduled to start; a timezone is required."
+        },
+        {
+          "name": "enableMonitorStream",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to enable the private monitor stream used for testing and broadcast delay."
+        },
+        {
+          "name": "enableClosedCaptions",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether HTTP POST closed captions are enabled. YouTube marks this setting as deprecated."
+        },
+        {
+          "name": "broadcastStreamDelayMs",
+          "type": "integer",
+          "required": false,
+          "about": "Monitor-stream broadcast delay in milliseconds. Requires enableMonitorStream=true."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For authorized YouTube CMS users, the content owner on whose behalf to create the broadcast."
+        },
+        {
+          "name": "selfDeclaredMadeForKids",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the channel owner designates this broadcast as made for kids."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "Channel linked to onBehalfOfContentOwner. Both CMS parameters must be supplied together."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "live",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create YouTube Live Stream",
       "slug": "YOUTUBE_CREATE_LIVE_STREAM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Create a YouTube live-stream ingestion resource and return its connection settings.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "Stream title, from 1 to 128 characters."
+        },
+        {
+          "name": "frame_rate",
+          "type": "string",
+          "required": true,
+          "about": "Frame rate of the inbound video."
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "required": true,
+          "about": "Resolution of the inbound video."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Optional stream description, up to 10000 characters."
+        },
+        {
+          "name": "is_reusable",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the stream can be bound to multiple broadcasts."
+        },
+        {
+          "name": "ingestion_type",
+          "type": "string",
+          "required": true,
+          "about": "Protocol used to send the stream to YouTube: rtmp, dash, or hls."
+        },
+        {
+          "name": "on_behalf_of_content_owner",
+          "type": "string",
+          "required": false,
+          "about": "For an authorized CMS user, the content owner on whose behalf to create the stream."
+        },
+        {
+          "name": "on_behalf_of_content_owner_channel",
+          "type": "string",
+          "required": false,
+          "about": "Channel linked to on_behalf_of_content_owner. Both CMS parameters must be supplied together."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "live",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Playlist",
       "slug": "YOUTUBE_CREATE_PLAYLIST",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to create a new YouTube playlist on the authenticated user's channel. Use when organizing videos into collections or building curated playlists.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The title of the new playlist. This is a required field."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "The playlist's description. Provides additional context about the playlist content."
+        },
+        {
+          "name": "privacyStatus",
+          "type": "string",
+          "required": false,
+          "about": "The playlist's privacy status. 'public' makes it visible to everyone, 'private' restricts access to the owner and specified users, 'unlisted' makes it accessible via link but not publicly listed. If not specified, defaults to YouTube's default setting."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "playlists",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete caption track",
       "slug": "YOUTUBE_DELETE_CAPTION_TRACK",
-      "kind": "write"
+      "kind": "write",
+      "description": "Permanently deletes an owned caption track after explicit confirmation with `confirmDelete: true`.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique YouTube caption track ID to delete. This is not the video ID."
+        },
+        {
+          "name": "confirmDelete",
+          "type": "boolean",
+          "required": true,
+          "about": "Explicit confirmation required to permanently delete the caption track. Must be true to proceed."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content owner for whom the request is made. Use only with a properly authorized content-owner account."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Channel Section",
       "slug": "YOUTUBE_DELETE_CHANNEL_SECTION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Deletes a YouTube channel section by ID, subject to permission. The result reports whether deletion succeeded; HTTP 400, 403, and 404 are returned as structured failures.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube channelSection ID for the resource that is being deleted. This is a required parameter."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "This parameter is intended exclusively for YouTube content partners. Indicates that the request's authorization credentials identify a YouTube CMS user acting on behalf of the content owner specified in the parameter value."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "channelSections"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Comment",
       "slug": "YOUTUBE_DELETE_COMMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Deletes a YouTube comment by ID, subject to authorization. The result reports whether deletion succeeded; HTTP 400, 403, and 404 are returned as structured failures.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The comment ID to delete. This is the unique identifier for the comment resource. The comment must be owned by the authenticated user or channel."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Live Broadcast",
       "slug": "YOUTUBE_DELETE_LIVE_BROADCAST",
-      "kind": "send"
+      "kind": "send",
+      "description": "Permanently delete an owned YouTube live broadcast after confirmation.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the YouTube live broadcast to permanently delete."
+        },
+        {
+          "name": "confirmDelete",
+          "type": "boolean",
+          "required": true,
+          "about": "Explicit confirmation for this permanent deletion. Must be true before the request is sent."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the content owner on whose behalf the request is made. Must be provided together with onBehalfOfContentOwnerChannel."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the channel whose live broadcast is being deleted. Must be provided together with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "live"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Playlist",
       "slug": "YOUTUBE_DELETE_PLAYLIST",
-      "kind": "write"
+      "kind": "write",
+      "description": "Delete a YouTube playlist owned by the authenticated user or channel after explicit confirmation. The result reports whether deletion succeeded; certain API errors are returned as structured failure results.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Specifies the YouTube playlist ID for the playlist being deleted. The playlist must be owned by the authenticated user/channel."
+        },
+        {
+          "name": "confirmDelete",
+          "type": "boolean",
+          "required": true,
+          "about": "Explicit boolean confirmation required to execute the deletion. Must be set to `true` to proceed with deletion. This is a safety measure to prevent accidental playlist deletions."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Indicates that the request's authorization credentials identify a YouTube CMS user acting on behalf of the content owner specified in the parameter value. This parameter is intended for YouTube content partners that own and manage many different YouTube channels."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "playlists"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Playlist Item",
       "slug": "YOUTUBE_DELETE_PLAYLIST_ITEM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to delete a playlist item (remove a video from a playlist). Use when removing specific videos from playlists.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube playlist item ID for the playlist item that is being deleted. This is the unique identifier for a specific video within a playlist (not the video ID itself)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "playlists"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Video",
       "slug": "YOUTUBE_DELETE_VIDEO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to delete a YouTube video owned by the authenticated user/channel. Use when you need to permanently remove a video from YouTube. Requires explicit confirmation via `confirmDelete: true` to prevent accidental deletions. The video must exist and be owned by the authenticated channel.",
+      "inputs": [
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube video ID (typically an 11-character string) to be deleted. The video must be owned by the authenticated user/channel."
+        },
+        {
+          "name": "confirmDelete",
+          "type": "boolean",
+          "required": true,
+          "about": "Explicit boolean confirmation required to execute the deletion. Must be set to `true` to proceed with deletion. This is a safety measure to prevent accidental video deletions."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Optional parameter used by YouTube content partners to indicate the request is being made on behalf of a content owner whose content is being managed. This parameter is intended for YouTube content partners that own and manage many different YouTube channels."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "openWorldHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Channel Activities",
       "slug": "YOUTUBE_GET_CHANNEL_ACTIVITIES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Gets recent activities from a YouTube channel including video uploads, playlist additions, likes, and other channel events.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of activity resource properties to include (e.g., 'snippet', 'contentDetails', 'id')."
+        },
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube channel ID to retrieve activities for. Channel IDs typically start with 'UC'."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token from a previous response to get the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of activities to return."
+        },
+        {
+          "name": "publishedAfter",
+          "type": "string",
+          "required": false,
+          "about": "Return activities published after this date-time (RFC 3339 format: YYYY-MM-DDTHH:MM:SSZ)."
+        },
+        {
+          "name": "publishedBefore",
+          "type": "string",
+          "required": false,
+          "about": "Return activities published before this date-time (RFC 3339 format: YYYY-MM-DDTHH:MM:SSZ)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHintImportant"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get channel ID by handle",
       "slug": "YOUTUBE_GET_CHANNEL_ID_BY_HANDLE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves the YouTube Channel ID for a specific YouTube channel handle.",
+      "inputs": [
+        {
+          "name": "channel_handle",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube channel handle (e.g., '@Google' or 'Google'). Accepts handles with or without the '@' prefix. Also accepts full YouTube channel URLs (e.g., 'https://www.youtube.com/@Google'), from which the handle will be automatically extracted."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Channel Statistics",
       "slug": "YOUTUBE_GET_CHANNEL_STATISTICS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Gets detailed statistics for YouTube channels including subscriber counts, view counts, and video counts. Channels can be identified using their ID, handle (e.g., @Google), or username.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of YouTube channel IDs (e.g., 'UCddiUEpeqJcYeBxX1IVBKvQ'). Channel IDs typically start with 'UC'. The YouTube Data API v3 supports up to 50 channel IDs per request; if more than 50 IDs are provided, they will be automatically split into multiple batches and the results will be m"
+        },
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to retrieve the channel owned by the authenticated user. This is a boolean filter parameter. At least one of 'id', 'forHandle', 'forUsername', or 'mine' must be provided. Cannot be combined with other filter parameters."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of channel resource properties to include. Use 'statistics' for subscriber count."
+        },
+        {
+          "name": "forHandle",
+          "type": "string",
+          "required": false,
+          "about": "YouTube channel handle (e.g., '@Google' or 'GoogleDevelopers'). The '@' symbol is optional. Use this parameter when you know the channel's handle but not its ID. At least one of 'id', 'forHandle', 'forUsername', or 'mine' must be provided."
+        },
+        {
+          "name": "forUsername",
+          "type": "string",
+          "required": false,
+          "about": "YouTube username to identify the channel. Use this parameter when you know the channel's legacy username but not its ID. At least one of 'id', 'forHandle', 'forUsername', or 'mine' must be provided."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHintImportant"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Playlists by ID",
       "slug": "YOUTUBE_GET_PLAYLISTS_BY_ID",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves one or more playlists by their YouTube playlist IDs.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code used for localized resource metadata when available."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated YouTube playlist IDs to retrieve."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated playlist resource parts to include. Common values are id, snippet, contentDetails, status, player, and localizations."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token identifying the result page to retrieve. Use nextPageToken or prevPageToken from an earlier response."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of matching playlists to return, from 0 to 50. The provider default is 5."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the content owner on whose behalf the authenticated CMS user acts."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the channel whose playlists are requested. Use with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Video Details Batch",
       "slug": "YOUTUBE_GET_VIDEO_DETAILS_BATCH",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves multiple YouTube video resource parts in a single batch call. Use when you need cohort-level metrics for many videos to reduce quota usage and latency.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language for localized metadata (snippet.localized); IETF language tag, e.g., 'en'."
+        },
+        {
+          "name": "id",
+          "type": "array",
+          "required": true,
+          "about": "List of YouTube video IDs to retrieve. At least one video ID is required. Accepts a list or comma-separated string. Also accepts 'videoIds' as an alias. The YouTube API limits each request to 50 video IDs; if more are provided, they will be automatically split into multiple requests and the results "
+        },
+        {
+          "name": "parts",
+          "type": "array",
+          "required": false,
+          "about": "Video resource properties to include. At least one part is required. Accepts a list of parts or a comma-separated string. Also accepts 'part' (singular) as an alias. Valid parts: snippet, contentDetails, statistics, status, player, topicDetails, recordingDetails, fileDetails, processingDetails, sugg"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Video Rating",
       "slug": "YOUTUBE_GET_VIDEO_RATING",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves the ratings that the authorized user gave to a list of specified videos. Use when you need to check if a user has liked or disliked specific videos.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "A comma-separated list of the YouTube video ID(s) for the resource(s) for which rating data is being retrieved. Video IDs are typically 11-character strings (e.g., 'dQw4w9WgXcQ')."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. This parameter allows authentication on behalf of a specified content owner. Use the content owner's channel ID."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "List captions",
       "slug": "YOUTUBE_LIST_CAPTION_TRACK",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a list of caption tracks for a YouTube video. Returns an empty items list if no captions are available. Raises ExecutionFailed if the video ID is invalid or not found.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Specifies a comma-separated list of one or more caption resource parts that the API response will include. Valid parts are 'id' and 'snippet'."
+        },
+        {
+          "name": "video_id",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube video ID for which the API should return caption tracks."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Channels",
       "slug": "YOUTUBE_LIST_CHANNELS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists YouTube channels by ID, handle, username, or ownership status, returning channel metadata, statistics, and content details. If multiple filters are supplied, only the first in ID, handle, username, owned, then managed order is used.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code (BCP-47) for localized channel metadata. Instructs the API to return localized resource metadata for the specified language when available."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of YouTube channel IDs to retrieve (e.g., 'UCddiUEpeqJcYeBxX1IVBKvQ'). Channel IDs typically start with 'UC'. At least one filter parameter (id, forHandle, forUsername, mine, or managedByMe) must be provided. Do NOT pass 'mine' as a value here - use the 'mine' boolean parameter "
+        },
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to retrieve channels owned by the authenticated user. This is a boolean filter parameter. At least one filter parameter must be provided. Cannot be combined with other filter parameters."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of channel resource properties to include in the response. Valid values: auditDetails, brandingSettings, contentDetails, contentOwnerDetails, id, localizations, snippet, statistics, status, topicDetails. Multiple parts can be requested (e.g., 'snippet,statistics')."
+        },
+        {
+          "name": "forHandle",
+          "type": "string",
+          "required": false,
+          "about": "YouTube channel handle to retrieve (e.g., '@Google' or 'GoogleDevelopers'). The '@' symbol is optional. Use this when you know the channel's handle but not its ID. At least one filter parameter must be provided."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for retrieving a specific page of results. Use the nextPageToken or prevPageToken from a previous response."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of channels to return per page. Acceptable values are 0 to 50, inclusive. Default is 5."
+        },
+        {
+          "name": "forUsername",
+          "type": "string",
+          "required": false,
+          "about": "YouTube username to identify the channel. Use this for legacy usernames. At least one filter parameter must be provided."
+        },
+        {
+          "name": "managedByMe",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to retrieve channels managed by the authenticated user (YouTube content partners only). At least one filter parameter must be provided."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. Indicates that the request is being made on behalf of the specified content owner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner-channel-audit"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "channels"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Channel Sections",
       "slug": "YOUTUBE_LIST_CHANNEL_SECTIONS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve channel sections from YouTube. Use when you need to get the layout sections of a channel's homepage. Channel sections organize content into categories like playlists, uploads, or featured channels.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Deprecated parameter for localized metadata. Instructs the API to return localized resource metadata in a specific language."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of channel section IDs to retrieve. Must use exactly one filter parameter: channelId, id, or mine."
+        },
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "When set to true, retrieves channel sections for the authenticated user's channel. Must use exactly one filter parameter: channelId, id, or mine."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated list of channelSection resource properties to include in the response. Valid values: 'contentDetails', 'id', 'snippet'. At least one value must be specified."
+        },
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": false,
+          "about": "Retrieves channel sections for a specific YouTube channel ID (e.g., 'UCddiUEpeqJcYeBxX1IVBKvQ'). Must use exactly one filter parameter: channelId, id, or mine."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. Indicates that the request's authorization credentials identify a YouTube CMS user acting on behalf of the content owner specified in the parameter value."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "channelSections"
+      ],
+      "deprecated": false
     },
     {
       "name": "List channel videos",
       "slug": "YOUTUBE_LIST_CHANNEL_VIDEOS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists videos from a YouTube channel identified by channel ID, handle, supported channel URL, or the authenticated user's channel. Results are paginated, with 1–50 videos per page. An empty result can mean the channel ID was not found or that no uploads playlist was available.",
+      "inputs": [
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to list videos from the authenticated user's channel. When true, channelId is automatically set to 'me'. Either channelId or mine must be provided."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "This parameter specifies which parts of the playlist item resource to return. The snippet includes basic video details like ID, title, description, and thumbnails."
+        },
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": false,
+          "about": "The YouTube channel identifier (exactly 24 characters for UC IDs). Accepts: (1) channel ID starting with 'UC' followed by 22 characters (e.g., 'UC_x5XG1OV2P6uZZ5FSM9Ttw'), (2) channel handle starting with '@' (e.g., '@Google'), (3) 'me' for the authenticated user's channel, or (4) YouTube channel UR"
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination; use `nextPageToken` from a previous response for the next page, or `prevPageToken` for the previous page. Page tokens are opaque, ephemeral values that must come directly from a previous LIST_CHANNEL_VIDEOS response and cannot be constructed or reused across different queries."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "The maximum number of videos to return per page."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Comments",
       "slug": "YOUTUBE_LIST_COMMENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List individual YouTube comments by comment ID or replies to a top-level comment by parent ID. Results are paginated when listing replies and may include author, text, timestamps, and engagement details.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of comment IDs to retrieve. Mutually exclusive with 'parentId'. Use when you have specific comment IDs to fetch. Typically obtained from commentThreads.list or comments.list responses."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of comment resource properties that the API response will include. Valid parts: 'id' (comment ID only), 'snippet' (detailed comment data including author, text, like count, timestamps). Use 'snippet' for full comment details."
+        },
+        {
+          "name": "parentId",
+          "type": "string",
+          "required": false,
+          "about": "ID of the parent comment for which replies should be retrieved. Mutually exclusive with 'id'. Use to fetch all replies to a specific top-level comment. Parent comment IDs are obtained from commentThreads.list responses."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination; use nextPageToken from a previous response to retrieve the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of comments to return per page. Must be between 1 and 100. Note: This parameter is incompatible with the 'id' filter parameter."
+        },
+        {
+          "name": "textFormat",
+          "type": "string",
+          "required": false,
+          "about": "Format for text fields in the response. 'html' preserves HTML formatting including links (default). 'plainText' returns plain text without formatting."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Comment Threads (Deprecated)",
       "slug": "YOUTUBE_LIST_COMMENT_THREADS",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Use YOUTUBE_LIST_COMMENT_THREADS2 instead. List comment threads from YouTube videos or channels for qualitative analysis and reporting. Returns top-level comments with optional replies (up to 5 per thread). Use the 'videoId' parameter to retrieve comments on a specific video (most common use case).",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of comment thread IDs to retrieve. Mutually exclusive with 'videoId' and 'allThreadsRelatedToChannelId'. Use when you have specific comment thread IDs to fetch."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of commentThread resource parts. 'snippet' includes top-level comment metadata (authorDisplayName, textDisplay, likeCount, publishedAt, etc.). 'replies' includes up to 5 reply comments if present. Valid parts: snippet, replies, id."
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "about": "Sorting order for comment threads. 'time' returns newest first (default). 'relevance' returns most relevant first (based on popularity and engagement)."
+        },
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": false,
+          "about": "Returns comment threads associated with the specified video ID. Mutually exclusive with 'id' and 'allThreadsRelatedToChannelId'. This is the primary use case for retrieving comments on a specific video."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination; use nextPageToken from a previous response to retrieve the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of comment threads to return per page. Must be between 1 and 100."
+        },
+        {
+          "name": "textFormat",
+          "type": "string",
+          "required": false,
+          "about": "Format for text fields in the response. 'html' preserves HTML formatting (default). 'plainText' returns plain text without formatting."
+        },
+        {
+          "name": "searchTerms",
+          "type": "string",
+          "required": false,
+          "about": "Filter comment threads to only those matching the search query. Only works with 'allThreadsRelatedToChannelId' parameter."
+        },
+        {
+          "name": "allThreadsRelatedToChannelId",
+          "type": "string",
+          "required": false,
+          "about": "Returns all comment threads associated with the specified channel ID (comments on the channel page itself, not video comments). Mutually exclusive with 'videoId' and 'id'. Requires OAuth authorization."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "comments",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "List Comment Threads",
       "slug": "YOUTUBE_LIST_COMMENT_THREADS2",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve comment threads from YouTube videos or channels matching API request parameters. Use when you need to fetch comments with filtering by video, channel, or specific thread IDs.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of comment thread IDs to retrieve. Use this to fetch specific comment threads by their IDs. Mutually exclusive with 'allThreadsRelatedToChannelId', 'channelId', and 'videoId'."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated list of commentThread resource properties to include in the API response. Valid values: 'id' (thread ID only), 'snippet' (top-level comment metadata including authorDisplayName, textDisplay, likeCount, publishedAt), 'replies' (up to 5 reply comments if present). Most common: 'snippet"
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "about": "Sorting order for comment threads. 'time' returns newest first (default), 'relevance' returns most relevant first based on popularity and engagement."
+        },
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": false,
+          "about": "Returns comment threads associated with the specified video ID. This is the most common use case for retrieving comments on a specific video. Mutually exclusive with 'allThreadsRelatedToChannelId', 'channelId', and 'id'."
+        },
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": false,
+          "about": "Returns comment threads for the specified channel ID. This retrieves comments about the channel itself, not comments on the channel's videos. Mutually exclusive with 'allThreadsRelatedToChannelId', 'videoId', and 'id'."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination. Use the 'nextPageToken' value from a previous response to retrieve the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of comment threads to return per page. Must be between 1 and 100. Default is 20 if not specified."
+        },
+        {
+          "name": "textFormat",
+          "type": "string",
+          "required": false,
+          "about": "Format for text fields in the response. 'html' preserves HTML formatting (default), 'plainText' returns plain text without formatting."
+        },
+        {
+          "name": "searchTerms",
+          "type": "string",
+          "required": false,
+          "about": "Filter comment threads to only those matching the search query. Only works with 'allThreadsRelatedToChannelId' parameter and cannot be used with other filter parameters."
+        },
+        {
+          "name": "moderationStatus",
+          "type": "string",
+          "required": false,
+          "about": "Filter comment threads by moderation status. Only valid for comments on channel's own videos when authorized as the channel owner. 'heldForReview' shows comments held for review, 'likelySpam' shows comments marked as likely spam, 'published' shows published comments."
+        },
+        {
+          "name": "allThreadsRelatedToChannelId",
+          "type": "string",
+          "required": false,
+          "about": "Returns all comment threads associated with the specified channel ID. This includes comments on the channel page itself, not video comments. Mutually exclusive with 'channelId', 'videoId', and 'id'. Requires OAuth authorization."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "List I18n Languages",
       "slug": "YOUTUBE_LIST_I18N_LANGUAGES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Returns a list of application languages that the YouTube website supports. Use this when you need to retrieve all available language options for YouTube's interface or to localize content.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "The hl parameter specifies the language that should be used for text values in the API response. The default value is en_US. Use BCP-47 language codes (e.g., 'en_US', 'es', 'fr', 'de', 'ja'). This affects how the language names are displayed in the response."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "The part parameter specifies the i18nLanguage resource properties that the API response will include. Set this parameter to 'snippet' to retrieve the i18nLanguage resource's snippet property, which contains the language code (hl) and human-readable name."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHintImportant"
+      ],
+      "deprecated": false
     },
     {
       "name": "List I18n Regions",
       "slug": "YOUTUBE_LIST_I18N_REGIONS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve a list of content regions that the YouTube website supports. Returns region codes (ISO 3166-1 alpha-2) and localized region names. Use when you need to identify available geographic regions for content filtering or display.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code that specifies the language for text values in the API response (e.g., 'en_US', 'es', 'fr'). Affects the human-readable names returned in the response. If not specified, defaults to 'en_US'."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "The part parameter specifies the i18nRegion resource properties that the API response will include. Must be set to 'snippet' to retrieve region code and name information."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List YouTube Job Reports",
       "slug": "YOUTUBE_LIST_JOB_REPORTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List one page of generated job-report metadata and return a next-page token.",
+      "inputs": [
+        {
+          "name": "jobId",
+          "type": "string",
+          "required": true,
+          "about": "Reporting job ID whose generated reports should be listed."
+        },
+        {
+          "name": "pageSize",
+          "type": "integer",
+          "required": false,
+          "about": "Requested number of reports in this page. Must be at least 1."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token from a previous response's nextPageToken."
+        },
+        {
+          "name": "createdAfter",
+          "type": "string",
+          "required": false,
+          "about": "Return reports created after this RFC 3339 UTC timestamp."
+        },
+        {
+          "name": "startTimeBefore",
+          "type": "string",
+          "required": false,
+          "about": "Return reports whose covered period starts before this RFC 3339 UTC timestamp."
+        },
+        {
+          "name": "startTimeAtOrAfter",
+          "type": "string",
+          "required": false,
+          "about": "Return reports whose covered period starts at or after this RFC 3339 UTC timestamp."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Content owner ID to act for. Omit to use the connected user's channel."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "reporting"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Live Broadcasts",
       "slug": "YOUTUBE_LIST_LIVE_BROADCASTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List the connected channel's live broadcasts by lifecycle status, ID, or ownership.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated broadcast IDs to retrieve. Specify exactly one of broadcastStatus, id, or mine."
+        },
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to return broadcasts owned by the authenticated user. Specify exactly one of broadcastStatus, id, or mine."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated liveBroadcast resource parts to include. Valid values are 'id', 'snippet', 'contentDetails', 'monetizationDetails', and 'status'."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Page token from nextPageToken or prevPageToken in an earlier response."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum broadcasts to return, from 0 to 50. The provider default is 5."
+        },
+        {
+          "name": "broadcastType",
+          "type": "string",
+          "required": false,
+          "about": "Filter by broadcast type. This can only be used with broadcastStatus or mine; the provider default is 'event'."
+        },
+        {
+          "name": "broadcastStatus",
+          "type": "string",
+          "required": false,
+          "about": "Return broadcasts with this lifecycle status. Specify exactly one of broadcastStatus, id, or mine."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content owner for whom an authorized CMS user is acting."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "Channel linked to onBehalfOfContentOwner. This must be supplied together with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "live"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Live Chat Messages",
       "slug": "YOUTUBE_LIST_LIVE_CHAT_MESSAGES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list live chat messages for a specific chat. Use for monitoring live chat during broadcasts or retrieving chat history. Returns messages with author details, timestamps, and message types (text, Super Chat, moderation events).",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code for localized currency display in Super Chat events. Uses BCP 47 format (e.g., 'en', 'es', 'ja')."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of liveChatMessage resource parts that the API response will include. Valid parts: 'id' (message ID), 'snippet' (message content, type, timestamp), 'authorDetails' (author channel info, badges, profile image)."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token that identifies a specific page in the result set. Use nextPageToken from previous response for pagination. Required for retrieving subsequent messages in an active chat."
+        },
+        {
+          "name": "liveChatId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the chat whose messages will be returned. Must be obtained from a liveBroadcast resource's snippet.liveChatId property."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of messages to return. Valid values: 200-2000. Default: 500. Use lower values for more frequent polling."
+        },
+        {
+          "name": "profileImageSize",
+          "type": "integer",
+          "required": false,
+          "about": "Size of user profile pictures in pixels. Valid values: 16-720. Default: 88. Higher values provide better image quality."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "live",
+        "chat"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Live Streams",
       "slug": "YOUTUBE_LIST_LIVE_STREAMS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists live streams owned by the connected channel or selected by stream ID.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated live stream IDs to retrieve. Omit mine or set it to false when using this filter."
+        },
+        {
+          "name": "mine",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to list streams owned by the authenticated user. Defaults to true and cannot be combined with id."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated liveStream resource parts to include. Valid values are id, snippet, cdn, and status."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token identifying the result page to retrieve. Use a nextPageToken or prevPageToken from an earlier response."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of live streams to return per page, from 0 to 50."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the content owner on whose behalf the authenticated CMS user acts."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the channel whose streams are requested. Use with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "live"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Most Popular Videos",
       "slug": "YOUTUBE_LIST_MOST_POPULAR_VIDEOS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list the current most-popular (charts/trending) YouTube videos for a region and/or category via videos.list(chart=mostPopular). Use when you need to retrieve YouTube's official trending or most popular videos, not keyword-search approximations.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of video resource parts that the API response will include. Valid parts: 'id', 'snippet' (title, description, thumbnails), 'contentDetails' (duration, definition, dimension), 'statistics' (view count, like count, comment count), 'status' (upload status, privacy status), 'player'"
+        },
+        {
+          "name": "chart",
+          "type": "string",
+          "required": false,
+          "about": "Identifies the chart to retrieve. The only supported value is 'mostPopular', which returns the most popular videos on YouTube."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination; use 'nextPageToken' from a previous response to retrieve the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of items to return per page. Must be between 1 and 50."
+        },
+        {
+          "name": "regionCode",
+          "type": "string",
+          "required": false,
+          "about": "ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'JP') for regional chart selection. Returns trending videos specific to that region. If not specified, uses the default region based on the API key or user location."
+        },
+        {
+          "name": "videoCategoryId",
+          "type": "string",
+          "required": false,
+          "about": "YouTube video category ID to restrict the chart to a specific category. Not all categories support mostPopular charts - the API returns 404 for unsupported categories. Known working IDs include: 1 (Film & Animation), 10 (Music), 20 (Gaming), 24 (Entertainment), 25 (News & Politics), 28 (Science & Te"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Playlist Images",
       "slug": "YOUTUBE_LIST_PLAYLIST_IMAGES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves playlist images by playlist ID or playlist image IDs, including custom playlist thumbnails.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Specifies comma-separated playlist image IDs to retrieve. Must specify either this or 'parent' parameter."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of one or more playlistImage resource properties that the API response will include. Valid value: 'snippet'."
+        },
+        {
+          "name": "parent",
+          "type": "string",
+          "required": false,
+          "about": "Specifies the unique ID of the playlist for which you want to retrieve images. Must specify either this or 'id' parameter."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination; use nextPageToken from a previous response to retrieve the next page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of images to return. Must be between 0 and 50."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. Identifies a CMS user acting on behalf of a specified content owner."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. Specifies the YouTube channel ID for the request."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "playlists"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Playlist Items",
       "slug": "YOUTUBE_LIST_PLAYLIST_ITEMS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list videos in a playlist, with pagination support. Use when walking through a channel's uploads playlist to enumerate all videos.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of playlistItem resource parts to include in the response. Valid values: 'snippet', 'contentDetails', 'id', 'status'."
+        },
+        {
+          "name": "fields",
+          "type": "string",
+          "required": false,
+          "about": "Selector specifying which fields to include in a partial response."
+        },
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": false,
+          "about": "Filter results to only those containing the specified video ID."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "The token for the page of results to retrieve. Obtained from a previous call's nextPageToken."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "The maximum number of items to return per page. Must be between 0 and 50."
+        },
+        {
+          "name": "playlistId",
+          "type": "string",
+          "required": true,
+          "about": "The unique playlist ID. Common formats: 'PL...' for user-created playlists, 'UU...' for channel uploads (derived from channel ID by replacing 'UC' with 'UU'). Do NOT pass channel IDs (starting with 'UC') directly."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Note: For YouTube content partners. Authorize using a properly scoped account."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Rated Videos",
       "slug": "YOUTUBE_LIST_RATED_VIDEOS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List up to the 1,000 most recent videos liked or disliked by the authenticated YouTube user.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated video resource parts to include: brandPartner, contentDetails, fileDetails, id, liveStreamingDetails, localizations, paidProductPlacementDetails, player, processingDetails, recordingDetails, snippet, statistics, status, suggestions, or topicDetails."
+        },
+        {
+          "name": "rating",
+          "type": "string",
+          "required": true,
+          "about": "Return videos that the authenticated user rated with this value: like or dislike."
+        },
+        {
+          "name": "max_width",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum width, from 72 through 8192 pixels, of the embedded player returned in the player part."
+        },
+        {
+          "name": "max_height",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum height, from 72 through 8192 pixels, of the embedded player returned in the player part."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token from nextPageToken or prevPageToken for the page to retrieve."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of videos to return, from 1 through 50."
+        },
+        {
+          "name": "content_owner_id",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content partner owner ID on whose behalf to make the request."
+        },
+        {
+          "name": "localization_language",
+          "type": "string",
+          "required": false,
+          "about": "Language code used to localize text in the returned video metadata; sent to YouTube as hl."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "List YouTube Reporting Jobs",
       "slug": "YOUTUBE_LIST_REPORTING_JOBS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List one page of bulk-report jobs and return a token for the next page.",
+      "inputs": [
+        {
+          "name": "pageSize",
+          "type": "integer",
+          "required": false,
+          "about": "Requested number of jobs in this page. Must be at least 1."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token from a previous response's nextPageToken."
+        },
+        {
+          "name": "includeSystemManaged",
+          "type": "boolean",
+          "required": false,
+          "about": "Include provider-managed jobs that cannot be modified or deleted."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Content owner external ID to act for. Omit to use the connected channel."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "reporting"
+      ],
+      "deprecated": false
     },
     {
       "name": "List YouTube Report Types",
       "slug": "YOUTUBE_LIST_REPORT_TYPES",
-      "kind": "read"
+      "kind": "read",
+      "description": "List report types available for YouTube bulk reporting jobs.",
+      "inputs": [
+        {
+          "name": "pageSize",
+          "type": "integer",
+          "required": false,
+          "about": "Requested number of report types in this page. Must be at least 1."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token from a previous response's nextPageToken."
+        },
+        {
+          "name": "includeSystemManaged",
+          "type": "boolean",
+          "required": false,
+          "about": "Include system-managed report types available to eligible content owners."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "Content owner ID to act for. Omit to use the connected user's channel."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "reporting"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Super Chat Events",
       "slug": "YOUTUBE_LIST_SUPER_CHAT_EVENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists Super Chat events for a channel, showing supporter purchases during live streams. Returns Super Chat and Super Sticker events from the past 30 days. Use to track and acknowledge supporter contributions.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code for formatting the displayString according to language conventions. Use a valid BCP 47 language tag (e.g., 'en', 'es', 'ja'). Defaults to 'en' if not specified. The displayString shows the purchase amount and currency formatted for the specified locale."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of superChatEvent resource parts to include in the response. Valid values: 'id' (returns the unique event ID), 'snippet' (returns metadata including supporter details, comment text, amount, currency, and display string). Use 'id,snippet' to get both."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination. Use the nextPageToken value from a previous response to retrieve the next page of results. Omit this parameter for the first request."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of Super Chat events to return per page. Must be between 1 and 50 (inclusive). Default is 5."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "live",
+        "monetization"
+      ],
+      "deprecated": false
     },
     {
       "name": "List user playlists",
       "slug": "YOUTUBE_LIST_USER_PLAYLISTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves playlists owned by the authenticated user, implicitly using mine=True.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Specifies a comma-separated list of one or more playlist resource properties to include in the response. Common values are 'snippet', 'id', and 'contentDetails'."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for pagination to retrieve a specific page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of playlists to return."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List user subscriptions",
       "slug": "YOUTUBE_LIST_USER_SUBSCRIPTIONS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves the authenticated user's YouTube channel subscriptions, allowing specification of response parts and pagination.",
+      "inputs": [
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Specifies the comma-separated subscription resource parts to include. Valid parts are `id`, `snippet`, `contentDetails`, and `subscriberSnippet`."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Token for a specific page of results, obtained from a previous response. Omit for the first page."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of subscription items to return per page."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Video Abuse Report Reasons",
       "slug": "YOUTUBE_LIST_VIDEO_ABUSE_REPORT_REASONS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve a list of abuse report reasons that can be used to report abusive videos on YouTube. Use when you need to display available reporting categories or before calling videos.reportAbuse. Returns localized reason labels and optional secondary categorizations.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code for text displayed in the API response (BCP-47 format, e.g., 'en_US', 'fr_FR', 'ja_JP'). Specifies the language for label text in the snippet. Default value: en_US"
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of videoAbuseReportReason resource parts to include in the response. Valid values: 'id' (the unique ID of the reason) and 'snippet' (localized label text and secondary reasons). Use 'snippet' to get human-readable reason descriptions."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "safety"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Video Categories",
       "slug": "YOUTUBE_LIST_VIDEO_CATEGORIES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list YouTube video categories that can be associated with videos. Use when you need to retrieve available video categories for a specific region or get details about specific category IDs.",
+      "inputs": [
+        {
+          "name": "hl",
+          "type": "string",
+          "required": false,
+          "about": "Language code for text values in the API response (e.g., 'en_US', 'es_ES'). Defaults to 'en_US' if not specified."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of video category IDs for the resources being retrieved. Returns only the specified categories."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "The part parameter specifies the videoCategory resource properties that the API response will include. Set the parameter value to 'snippet'."
+        },
+        {
+          "name": "regionCode",
+          "type": "string",
+          "required": false,
+          "about": "ISO 3166-1 alpha-2 country code (e.g., 'US', 'GB', 'JP') to return categories available in that region. Either 'id' or 'regionCode' must be specified."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "Download YouTube caption track",
       "slug": "YOUTUBE_LOAD_CAPTIONS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Downloads a specific YouTube caption track, which must be owned by the authenticated user, and returns its content as text. Note: This action requires you to own the video (YouTube Data API v3 restriction). Non-owned videos will return 403 Forbidden errors, including many auto-generated caption tracks.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique caption track ID assigned by YouTube. This is NOT the video ID. To obtain this ID, first call YOUTUBE_LIST_CAPTION_TRACK with a video_id to get the list of available caption tracks and their IDs."
+        },
+        {
+          "name": "tfmt",
+          "type": "string",
+          "required": false,
+          "about": "Desired format for the caption track. Supported formats: 'srt' (SubRip), 'sbv' (SubViewer), 'vtt' (WebVTT)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Mark Comment as Spam",
       "slug": "YOUTUBE_MARK_COMMENT_AS_SPAM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to mark one or more YouTube comments as spam. Use when moderating comments to flag spam content. Note: This endpoint is deprecated but still functional according to YouTube API documentation.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated list of comment IDs to mark as spam. Each ID should be a valid YouTube comment ID. Multiple IDs can be marked as spam in a single request by separating them with commas."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "moderation",
+        "comments",
+        "updateHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Multipart upload video",
       "slug": "YOUTUBE_MULTIPART_UPLOAD_VIDEO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Uploads a video to YouTube using multipart upload in a single request. Use when you want to upload both metadata and video file together. This action uploads the video file and metadata in one request, unlike resumable upload which requires two steps.",
+      "inputs": [
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "about": "List of keyword tags (strings) for the video, used to improve discoverability."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The title for the video."
+        },
+        {
+          "name": "videoFile",
+          "type": "object",
+          "required": true,
+          "about": "Video file to upload to YouTube."
+        },
+        {
+          "name": "categoryId",
+          "type": "string",
+          "required": true,
+          "about": "YouTube category ID (e.g., '22' for People & Blogs). Can be provided as a string or integer."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true,
+          "about": "Detailed description of the video content."
+        },
+        {
+          "name": "privacyStatus",
+          "type": "string",
+          "required": true,
+          "about": "Privacy status: 'public', 'private' (uploader/specified users only), or 'unlisted' (link accessible, not publicly listed)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "videos",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Post Comment on Video",
       "slug": "YOUTUBE_POST_COMMENT",
-      "kind": "send"
+      "kind": "send",
+      "description": "Tool to post a new top-level comment on a YouTube video. Use when creating comments to engage with video content or respond to user requests.",
+      "inputs": [
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the video to comment on. This is required to create a top-level comment on a video."
+        },
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the channel that uploaded the video. This is required for creating comments."
+        },
+        {
+          "name": "textOriginal",
+          "type": "string",
+          "required": true,
+          "about": "The text content of the comment. This is the actual comment message that will be posted on the video."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "comments",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Query YouTube Analytics",
       "slug": "YOUTUBE_QUERY_ANALYTICS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Query a channel or content owner's YouTube Analytics result table.",
+      "inputs": [
+        {
+          "name": "ids",
+          "type": "string",
+          "required": true,
+          "about": "Channel or content owner to report on, such as 'channel==MINE', 'channel==CHANNEL_ID', or 'contentOwner==OWNER_NAME'."
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated dimensions or metrics used to sort rows. Prefix a field with '-' for descending order."
+        },
+        {
+          "name": "endDate",
+          "type": "string",
+          "required": true,
+          "about": "Last requested date, in YYYY-MM-DD format. The API may return data only through the latest date for which all requested metrics are available."
+        },
+        {
+          "name": "filters",
+          "type": "string",
+          "required": false,
+          "about": "Filters joined with semicolons, such as 'video==VIDEO_ID;country==IT'."
+        },
+        {
+          "name": "metrics",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated YouTube Analytics metrics to return, such as 'views' or 'likes,dislikes'."
+        },
+        {
+          "name": "startDate",
+          "type": "string",
+          "required": true,
+          "about": "First date to include, in YYYY-MM-DD format."
+        },
+        {
+          "name": "dimensions",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated dimensions used to group the report rows, such as 'day' or 'ageGroup,gender'."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of report rows to return. Must be at least 1."
+        },
+        {
+          "name": "startIndex",
+          "type": "integer",
+          "required": false,
+          "about": "One-based index of the first row to return. Use with maxResults for offset pagination."
+        },
+        {
+          "name": "includeHistoricalChannelData",
+          "type": "boolean",
+          "required": false,
+          "about": "For content owner reports, include watch-time and view data from before channels were linked to the content owner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHintImportant",
+        "analytics"
+      ],
+      "deprecated": false
     },
     {
       "name": "Rate Video",
       "slug": "YOUTUBE_RATE_VIDEO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to add a like or dislike rating to a YouTube video, or remove an existing rating. Use when you need to rate videos on behalf of the authenticated user.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube video ID to rate or remove rating from (typically an 11-character string like 'dQw4w9WgXcQ')."
+        },
+        {
+          "name": "rating",
+          "type": "string",
+          "required": true,
+          "about": "The rating to apply to the video. Use 'like' to approve, 'dislike' to disapprove, or 'none' to remove any existing rating."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "videos",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Report Video for Abuse",
       "slug": "YOUTUBE_REPORT_VIDEO_ABUSE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to report a YouTube video for containing abusive content. Use when you need to flag videos that violate YouTube's community guidelines or contain harmful content.",
+      "inputs": [
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "Identifies the video that is being reported for containing abusive content. Set the value to that video's YouTube video ID (typically an 11-character string)."
+        },
+        {
+          "name": "comments",
+          "type": "string",
+          "required": false,
+          "about": "Provides any additional information that the reporter wants to add."
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "required": false,
+          "about": "Identifies a language spoken by the reporter (e.g., 'en' for English, 'es' for Spanish)."
+        },
+        {
+          "name": "reasonId",
+          "type": "string",
+          "required": true,
+          "about": "Specifies the reason that the video is being reported for containing abusive content. Valid values: N (Sex or nudity), V (Violent, hateful, or dangerous), C (Child abuse), M (Medical misinformation), E (Violent extremism), H (Harassment or bullying)."
+        },
+        {
+          "name": "secondaryReasonId",
+          "type": "string",
+          "required": false,
+          "about": "Specifies the secondary reason. A secondary reason provides a more specific description of the objectionable content than the primary reason."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "safety",
+        "moderation",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Search YouTube",
       "slug": "YOUTUBE_SEARCH_YOU_TUBE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Searches YouTube for videos, channels, or playlists using a query term, returning structured search results.",
+      "inputs": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true,
+          "about": "Search query term. Supports: - Basic text: 'machine learning' - Exact phrases: '\"exact phrase\"' - Exclusions: 'python -snake' - Multiple terms: 'AI OR ML' - Channel search: '@channelhandle' or channel name"
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "The part parameter specifies properties to include in the response. For the search.list endpoint, only 'snippet' is a valid value. The 'id' object is always returned automatically with every search result (no quota cost). Note: 'statistics', 'contentDetails', etc. are only available on the videos.li"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "about": "Restricts search to 'video', 'channel', or 'playlist'; comma-separate for multiple types (e.g., 'video,channel')."
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "about": "Sort order for YouTube search results."
+        },
+        {
+          "name": "pageToken",
+          "type": "string",
+          "required": false,
+          "about": "Pagination token from a previous response's 'nextPageToken' or 'prevPageToken', used to retrieve a specific page of results."
+        },
+        {
+          "name": "maxResults",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of items to return per page."
+        },
+        {
+          "name": "regionCode",
+          "type": "string",
+          "required": false,
+          "about": "Return search results for videos viewable in the specified country. ISO 3166-1 alpha-2 country code."
+        },
+        {
+          "name": "publishedAfter",
+          "type": "string",
+          "required": false,
+          "about": "Filter results to only include resources created at or after the specified time. RFC 3339 formatted date-time."
+        },
+        {
+          "name": "publishedBefore",
+          "type": "string",
+          "required": false,
+          "about": "Filter results to only include resources created before or at the specified time. RFC 3339 formatted date-time."
+        },
+        {
+          "name": "relevanceLanguage",
+          "type": "string",
+          "required": false,
+          "about": "Return results most relevant to the specified language. ISO 639-1 two-letter language code (use 'zh-Hans' for simplified Chinese, 'zh-Hant' for traditional Chinese)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Set Comment Moderation Status",
       "slug": "YOUTUBE_SET_COMMENT_MODERATION_STATUS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to set the moderation status of one or more YouTube comments. Use when moderating comments to hold for review, publish, or reject them. Optionally ban the comment author when rejecting.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated list of IDs that identify the comments for which you are updating the moderation status. These are comment IDs, not comment thread IDs."
+        },
+        {
+          "name": "banAuthor",
+          "type": "boolean",
+          "required": false,
+          "about": "If set to true, the author of the comment gets added to the ban list. This parameter is only valid when moderationStatus is set to 'rejected'. Default is false."
+        },
+        {
+          "name": "moderationStatus",
+          "type": "string",
+          "required": true,
+          "about": "Identifies the new moderation status of the specified comments. 'heldForReview' holds the comment for review, 'published' makes the comment visible, 'rejected' removes the comment from public view."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "moderation",
+        "comments",
+        "updateHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Subscribe to channel",
       "slug": "YOUTUBE_SUBSCRIBE_CHANNEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Subscribes the authenticated user to a YouTube channel by channel ID. An existing subscription is treated as success, but its actual subscription details may not be available in the result.",
+      "inputs": [
+        {
+          "name": "channelId",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier (ID) of the YouTube channel to subscribe to (typically starts with 'UC')."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Transition Live Broadcast",
       "slug": "YOUTUBE_TRANSITION_LIVE_BROADCAST",
-      "kind": "send"
+      "kind": "send",
+      "description": "Transition an owned live broadcast with the required active bound stream.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Unique ID of the live broadcast to transition."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": true,
+          "about": "Comma-separated liveBroadcast resource parts to include in the response. Valid values are id, snippet, contentDetails, and status."
+        },
+        {
+          "name": "broadcastStatus",
+          "type": "string",
+          "required": true,
+          "about": "Target lifecycle status. 'testing' and 'live' require an active bound stream; 'testing' also requires an enabled monitor stream. 'complete' irreversibly ends the broadcast."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the content owner on whose behalf the authorized CMS user acts."
+        },
+        {
+          "name": "onBehalfOfContentOwnerChannel",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners, the channel whose broadcast is transitioned. Must be supplied with onBehalfOfContentOwner."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "live"
+      ],
+      "deprecated": false
     },
     {
       "name": "Unsubscribe from channel",
       "slug": "YOUTUBE_UNSUBSCRIBE_CHANNEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to unsubscribe the authenticated user from a YouTube channel by deleting a subscription. Use when you need to remove an existing subscription. The subscription ID can be obtained from the `YOUTUBE_LIST_USER_SUBSCRIPTIONS` tool.",
+      "inputs": [
+        {
+          "name": "subscriptionId",
+          "type": "string",
+          "required": true,
+          "about": "The unique subscription ID to delete. This ID can be obtained from the `YOUTUBE_LIST_USER_SUBSCRIPTIONS` tool. The subscription must belong to the authenticated user."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "subscriptions"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update caption track",
       "slug": "YOUTUBE_UPDATE_CAPTION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates a YouTube caption track's metadata such as name, language, or draft status. Use this to modify existing caption track properties without uploading new caption content. Note: Only properties specified in the snippet will be updated; unspecified properties retain their current values.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique caption track ID assigned by YouTube. This is NOT the video ID. To obtain this ID, call YOUTUBE_LIST_CAPTION_TRACK with a video_id to get the list of available caption tracks and their IDs."
+        },
+        {
+          "name": "snippet",
+          "type": "object",
+          "required": true,
+          "about": "Snippet object containing the caption properties to update. Only specified fields will be updated."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update channel",
       "slug": "YOUTUBE_UPDATE_CHANNEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates a channel's metadata including branding settings and localizations. Only brandingSettings, invideoPromotion, and localizations properties can be updated. Requires the channel to be owned by the authenticated user.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The channel ID being updated. This is the unique YouTube channel identifier that typically starts with 'UC'."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of channel resource properties to update. Must include at least one of: brandingSettings, invideoPromotion, or localizations. The 'part' parameter identifies the properties that the write operation will set."
+        },
+        {
+          "name": "localizations",
+          "type": "object",
+          "required": false,
+          "about": "Translated metadata for the channel, keyed by BCP-47 language code (e.g., 'es' for Spanish, 'fr' for French). Each value contains localized title and description."
+        },
+        {
+          "name": "brandingSettings",
+          "type": "object",
+          "required": false,
+          "about": "Container for channel branding settings."
+        },
+        {
+          "name": "invideoPromotion",
+          "type": "object",
+          "required": false,
+          "about": "The invideoPromotion object encapsulates information about a promotional campaign associated with the channel. It includes details about promoted items and their timing."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For authorized requests only. Allows content partners to act on behalf of the specified channel owner. The content owner must already be linked to the channel."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtubepartner-channel-audit"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "channels"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Channel Section",
       "slug": "YOUTUBE_UPDATE_CHANNEL_SECTION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update an existing YouTube channel section by ID. Use when modifying section properties like title, position, or featured content.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID that YouTube uses to uniquely identify the channel section to update. This is a required field."
+        },
+        {
+          "name": "snippet",
+          "type": "object",
+          "required": false,
+          "about": "Snippet details for the channel section update."
+        },
+        {
+          "name": "contentDetails",
+          "type": "object",
+          "required": false,
+          "about": "Content details for the channel section."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "channelSections"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Comment",
       "slug": "YOUTUBE_UPDATE_COMMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to modify the text of an existing YouTube comment. Use when updating or correcting a previously posted comment.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique ID of the comment to update. This identifies which specific comment should be modified."
+        },
+        {
+          "name": "textOriginal",
+          "type": "string",
+          "required": true,
+          "about": "The new text content for the comment. This will replace the existing comment text."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Playlist",
       "slug": "YOUTUBE_UPDATE_PLAYLIST",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to modify an existing YouTube playlist's metadata (title, description, privacy status). Use when updating playlist information for the authenticated user's channel.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The playlist's unique YouTube ID. This identifies which playlist to update."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "The part parameter specifies a comma-separated list of playlist resource properties that the API response will include. Valid values: contentDetails, id, localizations, player, snippet, status. If not provided, defaults will be determined based on which fields are being updated."
+        },
+        {
+          "name": "status",
+          "type": "object",
+          "required": false,
+          "about": "Information about the playlist's privacy and podcast status."
+        },
+        {
+          "name": "snippet",
+          "type": "object",
+          "required": true,
+          "about": "The snippet object contains basic details about the playlist, including title and description. At minimum, title is required."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "This parameter is intended exclusively for YouTube content partners. The onBehalfOfContentOwner parameter indicates that the request's authorization credentials identify a YouTube CMS user who is acting on behalf of the content owner specified in the parameter value."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "playlists"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Playlist Item",
       "slug": "YOUTUBE_UPDATE_PLAYLIST_ITEM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to modify a playlist item's properties such as position or note. Use when reordering videos in a playlist or updating item metadata.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the playlist item to update. This is the unique identifier for the playlist item resource."
+        },
+        {
+          "name": "part",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated list of playlistItem resource properties to include in the API response. Valid values: id, snippet, contentDetails, status. Note: Properties included in the part parameter will have their existing values overwritten."
+        },
+        {
+          "name": "status",
+          "type": "object",
+          "required": false,
+          "about": "Status object for updating playlist item privacy."
+        },
+        {
+          "name": "snippet",
+          "type": "object",
+          "required": true,
+          "about": "The snippet object contains basic details about the playlist item that can be modified."
+        },
+        {
+          "name": "contentDetails",
+          "type": "object",
+          "required": false,
+          "about": "Content details containing additional modifiable properties."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "For YouTube content partners only. Indicates the content owner on whose behalf the request is being made."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "playlists"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update thumbnail",
       "slug": "YOUTUBE_UPDATE_THUMBNAIL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Sets the custom thumbnail for a YouTube video using an image from a URL. Requirements: - The authenticated user must own the video or have permission to edit it - The YouTube channel must be verified (phone verification required) to upload custom thumbnails - Image must be JPG, PNG, or GIF; under 2MB; recommended 1280x720 resolution (16:9 aspect ratio)",
+      "inputs": [
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the YouTube video for which to update the thumbnail."
+        },
+        {
+          "name": "thumbnailUrl",
+          "type": "string",
+          "required": true,
+          "about": "Publicly accessible URL of the new thumbnail image. Must be JPG, GIF, or PNG; under 2MB. Recommended: 16:9 aspect ratio, 1280x720 resolution (minimum 640px width)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.upload"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update video",
       "slug": "YOUTUBE_UPDATE_VIDEO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates metadata for a YouTube video identified by videoId, which must exist; an empty list for tags removes all existing tags.",
+      "inputs": [
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "about": "New tags as a list of strings. Must be an actual list/array like ['tag1', 'tag2'], NOT a JSON string. Replaces all existing tags. An empty list removes all tags. No change if omitted or `None`. YouTube restrictions: (1) Angle brackets < > are forbidden and will be removed automatically. (2) Total ch"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "New video title as a string. Must be a text string, not a number. Maximum 100 characters. No change if omitted or `None`."
+        },
+        {
+          "name": "video_id",
+          "type": "string",
+          "required": true,
+          "about": "The video's unique YouTube ID (string). Typically an 11-character alphanumeric string found in the video URL (e.g., 'dQw4w9WgXcQ')."
+        },
+        {
+          "name": "category_id",
+          "type": "string",
+          "required": false,
+          "about": "New YouTube category ID as a string. No change if omitted or `None`. Numeric values will be converted to strings."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "New video description as a string. Maximum 5000 bytes (not characters). Multibyte UTF-8 characters like emojis (4 bytes each) and accented letters (2 bytes each) count more than ASCII characters. No change if omitted or `None`."
+        },
+        {
+          "name": "privacy_status",
+          "type": "string",
+          "required": false,
+          "about": "New privacy status. No change if omitted or `None`."
+        },
+        {
+          "name": "composio_execution_message",
+          "type": "string",
+          "required": false,
+          "about": "Internal field for execution messages about input processing."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.upload"
+      ],
+      "tags": [
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upload caption media",
       "slug": "YOUTUBE_UPLOAD_CAPTION_MEDIA",
-      "kind": "write"
+      "kind": "write",
+      "description": "Replaces the media bytes of an existing YouTube caption track.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The YouTube caption track ID whose media will be replaced."
+        },
+        {
+          "name": "captionFile",
+          "type": "object",
+          "required": true,
+          "about": "Caption file to upload, up to 100 MB. YouTube supports text/xml, application/octet-stream, and other MIME types via */*."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content owner for whom the request is made. Use only with a properly authorized content-owner account."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upload caption track",
       "slug": "YOUTUBE_UPLOAD_CAPTION_TRACK",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a caption track for an owned video and uploads its caption media.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "object",
+          "required": true,
+          "about": "Caption file to upload, up to 100 MB. YouTube accepts text/xml, application/octet-stream, and other supported caption formats."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Viewer-visible caption track name, up to 150 characters."
+        },
+        {
+          "name": "isDraft",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the new caption track is hidden from viewers as a draft."
+        },
+        {
+          "name": "videoId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the owned YouTube video that will receive the caption track."
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "required": true,
+          "about": "BCP-47 language tag for the caption track, such as en or es."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content owner for whom the request is made. Use only with a properly authorized content-owner account."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint",
+        "videos"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upload channel banner",
       "slug": "YOUTUBE_UPLOAD_CHANNEL_BANNER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Upload banner media and return its URL without applying it to the channel. Apply the returned URL with a channels.update request that sets brandingSettings.image.bannerExternalUrl.",
+      "inputs": [
+        {
+          "name": "bannerFile",
+          "type": "object",
+          "required": true,
+          "about": "JPEG or PNG channel banner image to upload, up to 6 MiB. The image must use a 16:9 aspect ratio and be at least 2048x1152 pixels."
+        },
+        {
+          "name": "onBehalfOfContentOwner",
+          "type": "string",
+          "required": false,
+          "about": "YouTube content owner for whom the request is made. Use only with a properly authorized content-owner account."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint",
+        "channels"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upload video",
       "slug": "YOUTUBE_UPLOAD_VIDEO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Uploads a video file to a YouTube channel; the video file must be in a YouTube-supported format.",
+      "inputs": [
+        {
+          "name": "tags",
+          "type": "array",
+          "required": true,
+          "about": "List of keyword tags (strings) for the video, used to improve discoverability."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The title for the video."
+        },
+        {
+          "name": "categoryId",
+          "type": "string",
+          "required": true,
+          "about": "YouTube category ID (e.g., '22' for People & Blogs). Can be provided as a string or integer. See YouTube Data API docs for a full list of category IDs."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true,
+          "about": "Detailed description of the video content, optionally including keywords and context."
+        },
+        {
+          "name": "privacyStatus",
+          "type": "string",
+          "required": true,
+          "about": "Privacy status."
+        },
+        {
+          "name": "videoFilePath",
+          "type": "object",
+          "required": true,
+          "about": "Video file to upload to YouTube."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtubepartner"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "videos",
+        "createHint"
+      ],
+      "deprecated": false
     }
   ],
   "triggers": [],

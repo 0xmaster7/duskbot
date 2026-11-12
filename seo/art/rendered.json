@@ -65,6 +65,7 @@
  "integrations--figma": "1cdc84ee0cd43cef",
  "integrations--github": "3d8d20b4b97701c2",
  "integrations--gmail": "716371647f65b0e2",
+ "integrations--gmail--create-email-draft": "bf752f1a638d1679",
  "integrations--google-calendar": "07b460daf7ad92c7",
  "integrations--google-drive": "313ab8170dd905f3",
  "integrations--google-sheets": "4d3e3729f3e2ffad",

@@ -21,6 +21,8 @@ export const TYPES = {
   routine: { kind: 'routine', hub: 'routines', words: 280, needs: ['routine', 'knobs', 'fails'] },
   glossary: { kind: 'glossary', hub: 'glossary', words: 200, needs: ['definition', 'example'] },
   tool: { kind: 'tool', hub: 'tools', words: 280, needs: ['tool', 'method'] },
+  // one composio action of a connected app: /integrations/<app>/<action>, listed on its app's page (seo/scripts/plan-actions.mjs)
+  action: { kind: 'action', hub: 'integrations', words: 320, needs: ['action', 'what', 'uses', 'routine', 'steps', 'watch'] },
 };
 
 // the index pages. each lists its live pages in groups, and only exists while at least one of them is live
@@ -70,7 +72,7 @@ export function loadRecords() {
         throw new Error(`seo/pages/${type}/${file}: ${err.message}`);
       }
       if (rec.type !== type) throw new Error(`seo/pages/${type}/${file}: type is "${rec.type}" but the file sits in ${type}/`);
-      if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(rec.path || '')) throw new Error(`seo/pages/${type}/${file}: path "${rec.path}" is not a lowercase /address`);
+      if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*){0,2}$/.test(rec.path || '')) throw new Error(`seo/pages/${type}/${file}: path "${rec.path}" is not a lowercase /address`);
       out.push({ ...rec, kind: TYPES[type].kind, hub: TYPES[type].hub, file: `seo/pages/${type}/${file}` });
     }
   }

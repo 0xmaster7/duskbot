@@ -14,242 +14,2014 @@
     {
       "name": "Archive issue",
       "slug": "LINEAR_ARCHIVE_ISSUE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives an existing Linear issue by its UUID or shorthand identifier, removing it from active views while preserving its data for future reference.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Linear issue to be archived. Must be in one of two formats: (1) UUID format: a 36-character string with hyphens (e.g., 'c5748ccf-c67f-4af4-bd74-fe513dc4c054'), or (2) Shorthand identifier: team key (alphanumeric, must start with a letter, 1-10 chars) followed by hyphen and issue number (e."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "idempotentHint",
+        "issues"
+      ],
+      "deprecated": false
     },
     {
       "name": "Archive Project",
       "slug": "LINEAR_ARCHIVE_PROJECT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives an existing Linear project by its UUID, removing it from active views. Use this action when you need to mark a completed or obsolete project as archived. Archiving is reversible (projects can be unarchived later), but confirm the project name with the user before executing, especially in bulk operations.",
+      "inputs": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the Linear project to be archived. Must be a 36-character UUID string with hyphens (e.g., 'a1b2c3d4-e5f6-7890-1234-567890abcdef'). Use LINEAR_LIST_LINEAR_PROJECTS or LINEAR_GET_LINEAR_PROJECT to retrieve valid project UUIDs."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "Archive Project Update",
       "slug": "LINEAR_ARCHIVE_PROJECT_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives a project update in Linear, hiding it from the default view while preserving its data. Use this action when you need to clean up old or obsolete project status updates without permanently deleting them. Archived updates can be unarchived later if needed. This action is irreversible only in the sense that the project update will be hidden from active views until explicitly unarchived.",
+      "inputs": [
+        {
+          "name": "project_update_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project update to archive. Must be a valid Linear project update UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. Once archived, the project update will be hidden from the default view but can still be accessed or unarchived later."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "idempotentHint",
+        "openWorldHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create attachment",
       "slug": "LINEAR_CREATE_ATTACHMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new attachment and associates it with a specific, existing Linear issue.",
+      "inputs": [
+        {
+          "name": "url",
+          "type": "string",
+          "required": true,
+          "about": "URL of the attachment's content (e.g., file, webpage, online resource)."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "Title for the attachment."
+        },
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the existing Linear issue to which the attachment will be added. Accepts either UUID format (e.g., '590a1127-f98b-49fc-ba74-2df8751c089e') or issue key format (e.g., 'GHO-300', 'ENG-123')."
+        },
+        {
+          "name": "subtitle",
+          "type": "string",
+          "required": false,
+          "about": "Optional subtitle or short description for the attachment."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Add reaction to comment",
       "slug": "LINEAR_CREATE_COMMENT_REACTION",
-      "kind": "send"
+      "kind": "send",
+      "description": "Tool to add a reaction to an existing Linear comment. Use when you want to programmatically react to a comment on an issue.",
+      "inputs": [
+        {
+          "name": "emoji",
+          "type": "string",
+          "required": true,
+          "about": "Emoji for the reaction. Supports Unicode emojis or shortcodes like ':thumbsup:'."
+        },
+        {
+          "name": "comment_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the existing Linear comment to add the reaction to."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create a comment",
       "slug": "LINEAR_CREATE_LINEAR_COMMENT",
-      "kind": "send"
+      "kind": "send",
+      "description": "Creates a new comment on a specified Linear issue. This action modifies shared workspace data and is not reversible — confirm the target issue and comment content before executing.",
+      "inputs": [
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "about": "Non-empty comment content, in plain text or Markdown. Must not be whitespace-only."
+        },
+        {
+          "name": "issueId",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Linear issue to add the comment to. Must be in one of two formats: (1) UUID format: a 36-character string with hyphens (e.g., 'c5748ccf-c67f-4af4-bd74-fe513dc4c054'), or (2) Shorthand identifier: team key (alphanumeric, must start with a letter, 1-10 chars) followed by hyphen and issue num"
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create linear issue",
       "slug": "LINEAR_CREATE_LINEAR_ISSUE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates an issue in a specified Linear team with a title and optional project, description, assignee, state, priority, cycle, due date, and other properties. Returns the created issue's ID and URL.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The title of the new issue."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the team responsible for this issue. IMPORTANT: You must use a valid team UUID that exists in your Linear workspace and that the authenticated user has access to. Use the LINEAR_GET_ALL_LINEAR_TEAMS action to retrieve the list of available teams and their UUIDs. Do not use team keys (like 'I"
+        },
+        {
+          "name": "cycle_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the cycle (sprint) to assign this issue to. Cycles are time-bound periods used to organize and prioritize work. Only applicable if the team has cycles feature enabled. Must be a valid UUID format. Must belong to the same team as team_id."
+        },
+        {
+          "name": "due_date",
+          "type": "string",
+          "required": false,
+          "about": "The target completion date for the issue in ISO8601 datetime format or YYYY-MM-DD TimelessDate format (e.g., '2024-12-31' or '2024-12-31T23:59:59Z')"
+        },
+        {
+          "name": "estimate",
+          "type": "integer",
+          "required": false,
+          "about": "The estimated complexity or effort for the issue, represented as a numerical point value (e.g., 1, 2, 3, 5, 8). The specific scale used (e.g., Fibonacci, Linear, T-shirt sizes mapped to numbers) is defined by the team's settings. This field only applies if the estimates feature is enabled for the te"
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "required": false,
+          "about": "Priority of the issue. 0 indicates no priority, 1 is Urgent, 2 is High, 3 is Normal, and 4 is Low."
+        },
+        {
+          "name": "state_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state to assign to the issue (must be a valid UUID format, not a state name like 'backlog' or 'done') Must belong to the same team as team_id — cross-team state UUIDs will be rejected."
+        },
+        {
+          "name": "label_ids",
+          "type": "array",
+          "required": false,
+          "about": "A list of UUIDs for labels to be added to this issue. EXCLUSIVE GROUP CONSTRAINT: Linear organizes labels into groups where only ONE label per group can be applied. STEP-BY-STEP: (1) Call LINEAR_LIST_LINEAR_LABELS with team_id to get available labels. (2) FILTER OUT any labels where is_group=true (t"
+        },
+        {
+          "name": "parent_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of an existing issue to set as the parent of this new issue, creating a sub-issue relationship (must be a valid UUID format)"
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the project to associate with this issue. Must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx with 8-4-4-4-12 hex characters). IMPORTANT: The project must belong to the same team specified in team_id - Linear requires projects and issues to be in the same team. Use the LIST_LIN"
+        },
+        {
+          "name": "assignee_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the user to assign to this issue (must be a valid UUID format) User must be a member of the team specified in team_id."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "A detailed description of the issue, which can include markdown formatting."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create issue relation",
       "slug": "LINEAR_CREATE_LINEAR_ISSUE_RELATION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Create a relationship between two Linear issues using the issueRelationCreate mutation. Use this to establish connections like 'blocks', 'duplicate', or 'related' between issues.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the primary issue in the relationship. Must be a valid Linear issue UUID (e.g., 'c5748ccf-c67f-4af4-bd74-fe513dc4c054'). Use LINEAR_LIST_LINEAR_ISSUES or LINEAR_GET_LINEAR_ISSUE to retrieve valid issue UUIDs."
+        },
+        {
+          "name": "relation_type",
+          "type": "string",
+          "required": true,
+          "about": "Type of relationship between the two issues. Options: 'blocks' (this issue blocks the related issue), 'duplicate' (this issue is a duplicate of the related issue), 'related' (general relationship between issues)."
+        },
+        {
+          "name": "related_issue_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the related issue. Must be a valid Linear issue UUID (e.g., '71bc4480-3aa1-4c56-b657-827996658662'). Use LINEAR_LIST_LINEAR_ISSUES or LINEAR_GET_LINEAR_ISSUE to retrieve valid issue UUIDs."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "idempotentHint",
+        "issues",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create a label",
       "slug": "LINEAR_CREATE_LINEAR_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a label for a specified Linear team, or returns an existing exact-name match found in the team's initial label results. The response includes an execution message when an existing label is returned.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Name of the new label, displayed in the Linear UI. Must be unique within the team."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": true,
+          "about": "Hexadecimal color code (e.g., '#FF0000') for the label's appearance in the UI."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the team for which this label will be created."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Optional detailed description for the label, providing context on its use."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Project",
       "slug": "LINEAR_CREATE_LINEAR_PROJECT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new Linear project with specified name and team associations.",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "Optional icon for the project. Must be a valid icon name string from Linear's icon set (case-sensitive). Does NOT accept unicode emoji characters. Verified valid icon names include: 'Project', 'Rocket', 'Bug', 'Team', 'Calendar', 'Home'. Linear offers ~70 icon designs; invalid names will cause an IN"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The name of the project. This is the only required field. Linear permits duplicate project names within a team; uniqueness must be enforced externally if required."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false,
+          "about": "Optional color for the project (hex color code)."
+        },
+        {
+          "name": "lead_id",
+          "type": "string",
+          "required": false,
+          "about": "Optional ID (UUID) of the user who will lead this project. User IDs can be obtained using the LINEAR_LIST_LINEAR_USERS action or from the team members returned by LINEAR_GET_ALL_LINEAR_TEAMS. Must be a valid UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "required": false,
+          "about": "Priority level of the project. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low."
+        },
+        {
+          "name": "team_ids",
+          "type": "array",
+          "required": true,
+          "about": "List of team IDs (UUIDs) that this project will be associated with. At least one valid team ID is required. Team IDs can be obtained using the LINEAR_GET_ALL_LINEAR_TEAMS action. Must be valid UUIDs in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+        },
+        {
+          "name": "start_date",
+          "type": "string",
+          "required": false,
+          "about": "Optional planned start date. Accepts various formats including YYYY-MM-DD, ISO datetime strings (e.g., 2024-01-15T10:30:00Z), or Unix timestamps. Will be normalized to YYYY-MM-DD format for the API. Use YYYY-MM-DD format only; ISO datetime strings and Unix timestamps cause validation failures despit"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Optional description for the project. Supports markdown formatting. Maximum 255 characters (API limit: 255 accepted, 256 rejected)."
+        },
+        {
+          "name": "target_date",
+          "type": "string",
+          "required": false,
+          "about": "Optional planned completion date. Accepts various formats including YYYY-MM-DD, ISO datetime strings (e.g., 2024-06-30T23:59:59Z), or Unix timestamps. Will be normalized to YYYY-MM-DD format for the API. Use YYYY-MM-DD format only; ISO datetime strings and Unix timestamps cause validation failures d"
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Project Milestone",
       "slug": "LINEAR_CREATE_PROJECT_MILESTONE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to create a project milestone in Linear with a name and optional target date and sort order. Use when you need to add milestones to track progress within a project.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The name/title of the milestone. This is a required field."
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the project to which this milestone belongs. Must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Use LINEAR_LIST_LINEAR_PROJECTS or LINEAR_GET_LINEAR_PROJECT to find valid project UUIDs."
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "about": "Optional sort order number for the milestone. Lower numbers appear first. This determines the display order of milestones within a project."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Optional description for the milestone. Supports markdown formatting."
+        },
+        {
+          "name": "target_date",
+          "type": "string",
+          "required": false,
+          "about": "Optional target date for the milestone in YYYY-MM-DD format. Accepts date strings in the format YYYY-MM-DD only (e.g., '2024-06-30'). ISO datetime strings or Unix timestamps are not supported by Linear's projectMilestoneCreate mutation."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "projects",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Project Update",
       "slug": "LINEAR_CREATE_PROJECT_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to create a project status update post for a Linear project. Use when you need to post progress updates, status reports, or announcements for a project.",
+      "inputs": [
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "about": "The body content of the project update. Supports markdown formatting. This is the main content describing the project status, progress, blockers, and next steps."
+        },
+        {
+          "name": "health",
+          "type": "string",
+          "required": false,
+          "about": "Health status for a project update in Linear."
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project to create an update for. Must be a valid Linear project UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. Use LINEAR_LIST_LINEAR_PROJECTS or LINEAR_GET_LINEAR_PROJECT to retrieve valid project UUIDs."
+        },
+        {
+          "name": "is_diff_hidden",
+          "type": "boolean",
+          "required": false,
+          "about": "Optional flag to control whether the diff (changes since last update) should be hidden in the update. If true, the diff will not be displayed. If false or not provided, the diff will be shown by default."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "projects",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Team",
       "slug": "LINEAR_CREATE_TEAM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new team in Linear with the specified name and key. Use this action when you need to create a new organizational unit or work group in a Linear workspace. Teams are fundamental organizational structures in Linear that group issues, projects, and members together. Once created, the team's key becomes the prefix for all issues created within that team (e.g., 'ENG-123'). IMPORTANT: The key must be unique across the workspace and cannot be changed after creation.",
+      "inputs": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "about": "The unique key/slug for the team. This is used as a short identifier in issue identifiers (e.g., 'ENG-123' for the Engineering team). Must be 2-5 uppercase letters, alphanumeric only. Once set, the key becomes the prefix for all issues in this team."
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "Optional icon for the team. Must be a valid icon name string from Linear's icon set (case-sensitive). Does NOT accept unicode emoji characters. Common valid icon names include: 'Team', 'Users', 'Bolt', 'Rocket', 'Bug', 'Shield', 'Terminal', 'Chip'. Invalid names will cause an INVALID_INPUT error."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "The name of the team. This is the primary identifier visible to users in the Linear workspace. Team names should be descriptive and help identify the team's purpose or area of responsibility."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false,
+          "about": "Optional color for the team (hex color code without the # prefix, or with the # prefix). Used for visual identification in the Linear interface."
+        },
+        {
+          "name": "private",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the team should be private. Private teams are only visible to team members. Default is False (public team visible to all workspace members)."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "Optional description of the team's purpose, responsibilities, or scope. Supports markdown formatting. Helps team members understand the team's role in the organization."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "createHint",
+        "openWorldHint",
+        "teams"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete issue",
       "slug": "LINEAR_DELETE_LINEAR_ISSUE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives an existing Linear issue by its ID, which is Linear's standard way of deleting issues; the operation is idempotent. Archiving is permanent with no built-in undo — confirm the issue identifier and title with the user before executing, especially in bulk operations.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Linear issue to be archived. Must be in one of two formats: (1) UUID format: a 36-character string with hyphens (e.g., 'c5748ccf-c67f-4af4-bd74-fe513dc4c054'), or (2) Shorthand identifier: team key (alphanumeric, must start with a letter, 1-10 chars) followed by hyphen and issue number (e."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get all teams (Deprecated)",
       "slug": "LINEAR_GET_ALL_LINEAR_TEAMS",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Use ListLinearTeams instead (returns paginated payloads with members and projects); this tool returns simpler id/name-level data for all teams visible to the connected workspace with no server-side filtering. Match teams on stable team id, not display name, as names are not guaranteed unique. Partial results reflect workspace permission scope, not tool failure. Skip this call if team_id values are already known.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of teams to return per page. Use with `after` to paginate through all teams."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "Download issue files",
       "slug": "LINEAR_GET_ATTACHMENT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Downloads a Linear Attachment record or a private upload embedded in issue/comment Markdown; `file_name` must include the correct extension.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": false,
+          "about": "The Linear issue identifier containing an Attachment record. Required with `attachment_id`; omit when using `upload_url`."
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "required": true,
+          "about": "The desired name for the downloaded file, including its extension."
+        },
+        {
+          "name": "upload_url",
+          "type": "string",
+          "required": false,
+          "about": "An `https://uploads.linear.app/...` URL embedded in an issue description or comment body. Use this to download inline screenshots and other uploaded files that are not present in the issue's attachments list."
+        },
+        {
+          "name": "attachment_id",
+          "type": "string",
+          "required": false,
+          "about": "The ID of an Attachment record returned by LINEAR_GET_LINEAR_ISSUE. Required with `issue_id`; omit when using `upload_url`."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get a comment",
       "slug": "LINEAR_GET_COMMENT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a single Linear comment by its unique ID. Returns comprehensive details including the comment body, author, timestamps, associated issue, and thread information. Use this action when you need to fetch details about a specific comment, such as when displaying comment information, checking comment status, or retrieving comment content for processing. The comment ID can be obtained from issue queries, comment lists, or comment creation responses.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the comment to retrieve. Must be a valid UUID format comment ID."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get current user",
       "slug": "LINEAR_GET_CURRENT_USER",
-      "kind": "read"
+      "kind": "read",
+      "description": "Gets the currently authenticated Linear user's ID, name, email, and other profile information. The account behind the token may be a bot or service account; the user ID is returned under user.id.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get cycles by team ID",
       "slug": "LINEAR_GET_CYCLES_BY_TEAM_ID",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists cycles for a specified Linear team ID, including progress, creation and end times, and history. Results are paginated; follow page_info cursors to retrieve subsequent pages.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` value from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of cycles to return per page. Maximum 250. Use with `after` to paginate through all cycles."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "The team's unique identifier. Must be a valid UUID (e.g., 'd282d590-8462-4390-8ef9-98f5ac2190b0'), not a human-readable name or slug; use LINEAR_GET_ALL_LINEAR_TEAMS to resolve if unknown."
+        }
+      ],
+      "scopes": [
+        "read",
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get create issue default params",
       "slug": "LINEAR_GET_ISSUE_DEFAULTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches a Linear team's default issue estimate and state, useful for pre-filling new issue forms.",
+      "inputs": [
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Linear team. Must be a valid UUID."
+        }
+      ],
+      "scopes": [
+        "issues:create"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Linear issue",
       "slug": "LINEAR_GET_LINEAR_ISSUE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a Linear issue by UUID or shorthand identifier, including its details, parent, cycle, attachments, comments and subscribers. Optional related fields may be null; certain issue-not-found errors return a null issue with an explanatory message.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Linear issue. Must be in one of two formats: (1) UUID format: a 36-character string with hyphens (e.g., 'c5748ccf-c67f-4af4-bd74-fe513dc4c054'), or (2) Shorthand identifier: team key (alphanumeric, must start with a letter, 1-10 chars) followed by hyphen and issue number (e.g., 'ENG-123', "
+        }
+      ],
+      "scopes": [
+        "read",
+        "write"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Linear project",
       "slug": "LINEAR_GET_LINEAR_PROJECT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a single Linear project by its unique identifier. Use when verifying a newly created or updated project, or when fetching detailed project information by ID.",
+      "inputs": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the Linear project to retrieve."
+        },
+        {
+          "name": "include_teams",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include teams associated with the project in the response."
+        },
+        {
+          "name": "include_members",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include project members in the response."
+        },
+        {
+          "name": "include_initiatives",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include related initiatives in the response."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Project Update",
       "slug": "LINEAR_GET_PROJECT_UPDATE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a specific project update by its unique identifier. Use when you need to fetch details about a specific project status update, including the update content, health status, timestamps, and associated project information. This action is useful when verifying a newly created project update or retrieving historical project update information.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project update to retrieve. Must be a valid Linear project update UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "List comments",
       "slug": "LINEAR_LIST_COMMENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists comments from Linear workspace accessible to the authenticated user. Use this action when you need to retrieve comments for analysis, reporting, or tracking discussions across issues. The response includes comment content, timestamps, author information, and associated issue details. Supports pagination for large result sets.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for forward pagination. Use the exact endCursor value from the previous response's page_info to fetch the next page of comments. Do not modify the cursor value."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of comments to return per page. Maximum 250. Use pagination to retrieve more comments by passing page_info.endCursor as the after parameter in subsequent requests."
+        },
+        {
+          "name": "before",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for backward pagination. Use the exact startCursor value from the previous response's page_info to fetch the previous page of comments."
+        },
+        {
+          "name": "includeArchived",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include archived comments in the results. Defaults to false."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "List issue drafts",
       "slug": "LINEAR_LIST_ISSUE_DRAFTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists the connected user's issue drafts for review or editing. Results are paginated; check page_info.hasNextPage for additional drafts.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `pageInfo` to fetch the next set of drafts."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of draft issues to return."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List issues by team ID",
       "slug": "LINEAR_LIST_ISSUES_BY_TEAM_ID",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to list all issues for a specific Linear team, scoped by team ID. Use when you need to retrieve issues belonging to a particular team without fetching workspace-wide issues. This is more efficient than workspace-wide listing followed by client-side filtering.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Opaque pagination cursor for fetching the next page of results. MUST be the exact `end_cursor` value from a previous response's `page_info`. Cannot use issue IDs, UUIDs, or arbitrary strings. Omit for the first page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of issues to return per page (forward pagination). Must be between 1 and 250."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the Linear team whose issues you want to list. This is the team's ID, not the team's name or key."
+        },
+        {
+          "name": "include_archived",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include archived issues in the results. Default is false (only active issues are returned)."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get all cycles",
       "slug": "LINEAR_LIST_LINEAR_CYCLES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists cycles across the Linear account without filters, including team IDs and scheduled end times. Results are paginated; use page_info.endCursor and hasNextPage to retrieve subsequent pages.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of cycles to return per page. Use with `after` to paginate through all cycles."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Linear issues",
       "slug": "LINEAR_LIST_LINEAR_ISSUES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists non-archived Linear issues with optional project and assignee filters, returning a paginated issues array and page_info. Issues include due dates; optional transition history includes completion timestamps and may be truncated or report per-issue errors.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination (opaque string). Use the exact `endCursor` value from the previous response's `page_info` to fetch the next set of issues. Do not modify, prefix, or transform the cursor value in any way."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of issues to return. Maximum 250 per page. To retrieve all issues, loop using page_info.hasNextPage and pass page_info.endCursor as after until hasNextPage is false."
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": false,
+          "about": "ID of the project to filter issues by. If provided, only issues belonging to this project will be returned. Must be a valid project ID that exists and is accessible to the authenticated user."
+        },
+        {
+          "name": "assignee_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the user to filter issues by assignee. Use 'me' to filter by the current authenticated user, or provide a valid Linear user UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Use LINEAR_GET_CURRENT_USER to get your own ID, or LINEAR_LIST_LINEAR_USERS to retrieve other user UUIDs. Note: 'me"
+        },
+        {
+          "name": "original_cursor",
+          "type": "string",
+          "required": false,
+          "about": "The original cursor value before it was reset."
+        },
+        {
+          "name": "include_transitions",
+          "type": "boolean",
+          "required": false,
+          "about": "When true, includes the full status transition history for each issue, along with timestamps and computed time-in-state durations. When false (default), the tool returns the standard limited issue object with no transition data. Enabling this increases response size and GraphQL query complexity — wh"
+        },
+        {
+          "name": "cursor_was_corrupted",
+          "type": "boolean",
+          "required": false,
+          "about": "Indicates whether the pagination cursor was corrupted and reset."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get labels",
       "slug": "LINEAR_LIST_LINEAR_LABELS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves paginated Linear issue labels for a specified team or across the workspace. Use page_info.hasNextPage and page_info.endCursor to fetch further pages.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` value from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of labels to return per page. Maximum 250. Use with `after` to paginate through all labels."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": false,
+          "about": "The unique identifier of the team for which to retrieve labels. If provided, returns labels scoped to that specific team. If omitted, returns all labels across the workspace. Workspace-wide label IDs (returned when team_id is omitted) may not be valid for team-scoped mutations like LINEAR_CREATE_LIN"
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List linear projects",
       "slug": "LINEAR_LIST_LINEAR_PROJECTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves all projects from the Linear account. Returns a flat array (not a GraphQL connection) with fields id and name; use LINEAR_RUN_QUERY_OR_MUTATION for progress, state, issues, or team linkage. No server-side filtering: all workspace projects are returned regardless of team or name — filter client-side. Multiple projects can share identical names; always confirm project_id before downstream use. Results are permission-scoped to the connected user. Pagination: loop while page_info.hasNextPage is true, passing page_info.endCursor as after, or results will be silently truncated. HTTP 429 may occur in large workspaces; apply exponential backoff between calls.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of projects to return per page. Use with `after` to paginate through all projects."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Linear states",
       "slug": "LINEAR_LIST_LINEAR_STATES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves all workflow states for a specified team in Linear, representing the stages an issue progresses through in that team's workflow. Returned state IDs are team-scoped — never reuse a stateId across different teams, as this causes validation errors or 'Entity not found' failures in tools like LINEAR_UPDATE_ISSUE. State names (e.g., 'Done', 'In Progress') are non-unique across teams; always resolve names to IDs via this tool for the specific team_id before using them in filters or mutations. Uses cursor-based pagination via pageInfo.hasNextPage and endCursor; iterate until hasNextPage is false to avoid missing states in large workspaces. Always fetch fresh state IDs rather than hardcoding or reusing stale values.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` value from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of states to return per page. Maximum 250. Use with `after` to paginate through all states."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of a team in your Linear workspace. Must be a valid UUID (e.g., '2a6e9b1b-19cd-4e30-b5bd-7b34dc491c7e'). To find valid team IDs, first use the 'Get all teams' or 'Get teams' action to list teams in your workspace."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get teams",
       "slug": "LINEAR_LIST_LINEAR_TEAMS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists visible Linear teams with their members and project IDs, with pagination for teams but not nested members or projects. An optional project ID filters each team's projects rather than the teams themselves.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` value from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of teams to return per page. Maximum 250. Use with `after` to paginate through all teams."
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": false,
+          "about": "Optional project ID to filter teams' associated projects. If provided, only projects matching this ID will be included in each team's 'projects' list. If not provided, all projects for each team will be returned. Filtering is applied per-team after fetch; a project_id belonging to a different team s"
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Linear users",
       "slug": "LINEAR_LIST_LINEAR_USERS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists workspace users with IDs, names, emails, and active status. Results are paginated; use the returned cursor to retrieve subsequent pages.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `page_info` to fetch the next set of users."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of users to return. In large workspaces, check `page_info.hasNextPage` and paginate using `after`; omitting pagination silently drops users beyond this limit."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List project updates",
       "slug": "LINEAR_LIST_PROJECT_UPDATES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves all project updates from the Linear workspace. Project updates are status posts written by team members to communicate project progress, blockers, and health. Use when you need to fetch project update history, track project health over time, or review team communication. Returns a paginated list with fields including id, body, health, createdAt, url, user, and project. Results are permission-scoped to the connected user — only updates from accessible projects are returned. Pagination: loop while page_info.hasNextPage is true, passing page_info.endCursor as after, or results will be silently truncated. HTTP 429 may occur in large workspaces; apply exponential backoff between calls.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `endCursor` from the previous response's `page_info` to fetch the next page."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of project updates to return per page. Use with `after` to paginate through all updates."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "Remove label from Linear issue",
       "slug": "LINEAR_REMOVE_ISSUE_LABEL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Removes a specified label from a Linear issue using the issue and label IDs, and returns the updated issue and labels. If the label is absent, the label set is unchanged. The operation replaces the fetched label set, so concurrent label changes may be overwritten.",
+      "inputs": [
+        {
+          "name": "issue_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Linear issue from which to remove the label. Verify this is the correct issue before executing; wrong IDs can silently remove labels from unintended issues without error."
+        },
+        {
+          "name": "label_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the label to remove. The operation is successful without change if this label isn't on the issue."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Remove reaction from comment",
       "slug": "LINEAR_REMOVE_REACTION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to remove a reaction on a comment. Use when you have a reaction ID and need to delete it.",
+      "inputs": [
+        {
+          "name": "reaction_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the reaction to delete."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Resolve comment",
       "slug": "LINEAR_RESOLVE_COMMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Marks a Linear comment as resolved. This action is used when a comment thread or discussion has been addressed and should be marked as complete. Use this action when you need to resolve a comment after addressing the feedback or discussion it represents. The comment remains visible but is marked as resolved with a timestamp and the resolving user's information.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the comment to resolve. Must be a valid UUID format (e.g., 'c5ac5ead-ae3b-4d54-8c5b-9ca103896021'). Use LIST_LINEAR_ISSUES or GET_LINEAR_ISSUE to retrieve issue comments and their IDs."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "idempotentHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "Run Query or Mutation",
       "slug": "LINEAR_RUN_QUERY_OR_MUTATION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Execute a Linear GraphQL query or mutation to retrieve or change accessible data. Use it for custom filtering, schema introspection, or operations without a dedicated action. When an operation partially succeeds, the response can include both data and errors.",
+      "inputs": [
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "about": "Variables for the GraphQL operation as a JSON object. Optional - omit this field or use {} if no variables are needed.\n\n        RULES:\n        - Keys must match variable names in query (without '$' prefix)\n        - Types must align with query definition (String/Int/Boolean/ID/DateTime/arrays)\n     "
+        },
+        {
+          "name": "query_or_mutation",
+          "type": "string",
+          "required": true,
+          "about": "$51"
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "important",
+        "createHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Search Linear issues",
       "slug": "LINEAR_SEARCH_ISSUES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Searches Linear issues by full-text query, with pagination and an option to include archived issues.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the endCursor from the previous response's page_info to fetch the next page of results."
+        },
+        {
+          "name": "first",
+          "type": "integer",
+          "required": false,
+          "about": "Number of issues to return per page. Must be between 1 and 50. Defaults to 25."
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "about": "The search query text. Searches across issue identifier (e.g., 'ENG-123'), title, and description fields. This is a full-text search only; structured filtering by team, project, assignee, state, or labels is NOT supported on this endpoint. Use LIST_ISSUES_BY_TEAM_ID for filtered queries."
+        },
+        {
+          "name": "include_archived",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include archived issues in search results. Defaults to false (only active issues)."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "issues"
+      ],
+      "deprecated": false
     },
     {
       "name": "Unarchive Project Update",
       "slug": "LINEAR_UNARCHIVE_PROJECT_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Unarchive a previously archived project update in Linear. Use this action when you need to restore an archived project update to make it visible and active again. Archived project updates are hidden from normal views but can be restored using this action. Use when a project update was archived by mistake or needs to be brought back into active use.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project update to unarchive. Must be a valid Linear project update UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "idempotentHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "Unresolve a comment",
       "slug": "LINEAR_UNRESOLVE_COMMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Unresolves a previously resolved Linear comment, marking it as requiring attention again. Use this action when you need to reopen a comment thread that was previously marked as resolved. This is useful when additional discussion is needed or the resolution was premature.",
+      "inputs": [
+        {
+          "name": "comment_id",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the comment to unresolve."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "idempotentHint",
+        "comments"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update issue",
       "slug": "LINEAR_UPDATE_ISSUE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates an existing Linear issue by ID, requiring at least one field to modify; supplied fields overwrite existing values and labels replace the label set. A team move combined with a state, project, or cycle update runs in two phases, so an error may leave the first phase applied.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "New title for the issue."
+        },
+        {
+          "name": "teamId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the team to move the issue to. Use this to transfer an issue from one team to another. The team must exist in your workspace and you must have access to it. Use the GET_ALL_LINEAR_TEAMS or LIST_LINEAR_TEAMS action to get valid team IDs."
+        },
+        {
+          "name": "cycleId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the cycle (sprint) to assign this issue to. Must be a valid UUID in the format 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'. IMPORTANT: Cycles are team-scoped in Linear. The cycle must belong to the same team as the issue, otherwise the API will reject the request with an error. Use GET_CYCLES_BY_"
+        },
+        {
+          "name": "dueDate",
+          "type": "string",
+          "required": false,
+          "about": "New due date in ISO8601 datetime format or YYYY-MM-DD TimelessDate format (e.g., '2024-12-31' or '2024-12-31T23:59:59Z')"
+        },
+        {
+          "name": "issueId",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the issue to update. Accepts either UUID format (e.g., 'd282c513-3265-4513-9099-abc0123def45') or issue key format (e.g., 'ENG-123', 'BLA-456')."
+        },
+        {
+          "name": "stateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state to transition the issue to. Must be a valid UUID in the format 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479'). Do NOT use state names like 'To Do', 'In Progress', or 'Done'. IMPORTANT: Workflow states are team-scoped in Linear. The st"
+        },
+        {
+          "name": "estimate",
+          "type": "integer",
+          "required": false,
+          "about": "Estimate points for the issue (e.g., 1, 2, 3, 5, 8). Teams may use different estimation types: exponential, fibonacci, linear, or t-shirt sizing."
+        },
+        {
+          "name": "labelIds",
+          "type": "array",
+          "required": false,
+          "about": "List of label identifiers to set; replaces all existing labels. An empty list removes all labels."
+        },
+        {
+          "name": "parentId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of an existing issue to set as this issue's parent (making this issue a sub-issue). The parent issue must not create a circular dependency (e.g., the parent cannot be this issue itself or one of its descendants), and you must have access to it. Sub-issues can be assigned to any team in the work"
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "required": false,
+          "about": "Priority: 0 (No), 1 (Urgent), 2 (High), 3 (Normal), 4 (Low)."
+        },
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the project to associate the issue with. Must be a valid UUID in the format 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'. IMPORTANT: Projects are team-scoped in Linear. The project must belong to the same team as the issue, otherwise the API will reject the request with an error. Use LINEAR_LIST_L"
+        },
+        {
+          "name": "assigneeId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the user to assign to the issue. Must be a valid user UUID from your Linear workspace (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Use LIST_LINEAR_USERS to get valid user IDs. Do NOT use placeholder values like '<DATE_TIME>' or '{USER_ID}'."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "New Markdown description for the issue."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update a comment",
       "slug": "LINEAR_UPDATE_LINEAR_COMMENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update an existing Linear comment's body text. Use when you need to edit or modify the content of a previously created comment.",
+      "inputs": [
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "about": "New comment content, in plain text or Markdown format."
+        },
+        {
+          "name": "comment_id",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the comment to update."
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Project",
       "slug": "LINEAR_UPDATE_LINEAR_PROJECT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update an existing Linear project. Use when you need to modify project properties like name, description, state, dates, or lead. All fields except project_id are optional - only provide the fields you want to update.",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "Icon identifier for the project."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "New name for the project."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false,
+          "about": "Color for the project (hex color code)."
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "required": false,
+          "about": "The state of the project. Standard values: 'backlog', 'planned', 'started', 'completed', 'canceled'. Note: Some workspaces may have custom states configured."
+        },
+        {
+          "name": "lead_id",
+          "type": "string",
+          "required": false,
+          "about": "The UUID of the user who will lead this project. Must be a valid Linear user UUID. Use the LIST_LINEAR_USERS action to get valid user IDs."
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "required": false,
+          "about": "Priority level of the project. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low."
+        },
+        {
+          "name": "status_id",
+          "type": "string",
+          "required": false,
+          "about": "The UUID of the project status to set. Must be a valid Linear project status UUID."
+        },
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project to update. This is the internal Linear ID, not the project slug or name."
+        },
+        {
+          "name": "start_date",
+          "type": "string",
+          "required": false,
+          "about": "New planned start date. Accepts various formats including YYYY-MM-DD, ISO datetime strings (e.g., 2024-01-15T10:30:00Z), or Unix timestamps. Will be normalized to YYYY-MM-DD format for the API."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "New description for the project. Supports plain text."
+        },
+        {
+          "name": "target_date",
+          "type": "string",
+          "required": false,
+          "about": "New planned completion date. Accepts various formats including YYYY-MM-DD, ISO datetime strings (e.g., 2024-06-30T23:59:59Z), or Unix timestamps. Will be normalized to YYYY-MM-DD format for the API."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Project Update",
       "slug": "LINEAR_UPDATE_PROJECT_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update an existing Linear project update post. Use this action when you need to modify a project update's content, health status, or diff visibility settings. All fields except the update ID are optional - only provide the fields you want to update. Changes are immediately visible to all team members viewing the project.",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the project update to update. Must be a valid Linear project update UUID in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false,
+          "about": "The new body content of the project update. Supports markdown formatting. This is the main content describing the project status, progress, blockers, and next steps."
+        },
+        {
+          "name": "health",
+          "type": "string",
+          "required": false,
+          "about": "Health status for a project update in Linear."
+        },
+        {
+          "name": "is_diff_hidden",
+          "type": "boolean",
+          "required": false,
+          "about": "Optional flag to control whether the diff (changes since last update) should be hidden in the update. If true, the diff will not be displayed."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "projects"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Team",
       "slug": "LINEAR_UPDATE_TEAM",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates an existing Linear team's settings, including its name, key, cycle settings, and workflow state configuration. At least one update field must be provided.",
+      "inputs": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": false,
+          "about": "New unique key/slug for the team. This is used in issue identifiers (e.g., 'ENG' for 'ENG-123'). Must be uppercase letters only, typically 2-5 characters."
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "New icon identifier for the team. Must be a valid Linear icon name (e.g., 'Chip', 'Database', 'Rocket', 'Code', 'Palette'), not an emoji."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "New name for the team."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false,
+          "about": "New color for the team (hex color code)."
+        },
+        {
+          "name": "private",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the team is private (visible only to members) or public (visible to all workspace members)."
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the team to update. This is the internal Linear team ID, not the team key or name. Use LINEAR_GET_ALL_LINEAR_TEAMS or LINEAR_LIST_LINEAR_TEAMS to get valid team IDs."
+        },
+        {
+          "name": "timezone",
+          "type": "string",
+          "required": false,
+          "about": "Timezone for the team (e.g., 'America/Los_Angeles', 'Europe/London', 'UTC')."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "New description for the team. Supports plain text."
+        },
+        {
+          "name": "cycleDuration",
+          "type": "integer",
+          "required": false,
+          "about": "Duration of cycles (sprints) in weeks for this team."
+        },
+        {
+          "name": "cycleStartDay",
+          "type": "integer",
+          "required": false,
+          "about": "Day of the week when cycles (sprints) start for this team. 0 = Monday, 1 = Tuesday, ..., 6 = Sunday."
+        },
+        {
+          "name": "triageEnabled",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether triage mode is enabled for this team. When enabled, new issues go into a triage state first."
+        },
+        {
+          "name": "autoClosePeriod",
+          "type": "number",
+          "required": false,
+          "about": "Number of months after which inactive issues in certain states are automatically closed. Set to 0 to disable auto-closing."
+        },
+        {
+          "name": "autoCloseStateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state to transition issues to when they are auto-closed."
+        },
+        {
+          "name": "autoArchivePeriod",
+          "type": "number",
+          "required": false,
+          "about": "Number of months after which completed issues are automatically archived. Set to 0 to disable auto-archiving."
+        },
+        {
+          "name": "cycleCooldownTime",
+          "type": "integer",
+          "required": false,
+          "about": "Cooldown period in minutes at the end of each cycle before the next cycle starts."
+        },
+        {
+          "name": "cycleLockToActive",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to lock issues to the active cycle, preventing them from being moved to other cycles."
+        },
+        {
+          "name": "upcomingCycleCount",
+          "type": "integer",
+          "required": false,
+          "about": "Number of upcoming cycles to create automatically. Must be one of: 1, 2, 3, 4, 6, 8, 10, 12, 15."
+        },
+        {
+          "name": "draftWorkflowStateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state for draft issues in this team."
+        },
+        {
+          "name": "mergeWorkflowStateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state for merged issues."
+        },
+        {
+          "name": "startWorkflowStateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state that marks when work on an issue starts."
+        },
+        {
+          "name": "reviewWorkflowStateId",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the workflow state for issues under review."
+        },
+        {
+          "name": "cycleIssueAutoAssignStarted",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to automatically assign started issues to the current cycle."
+        },
+        {
+          "name": "cycleIssueAutoAssignCompleted",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to automatically assign completed issues to the current cycle."
+        }
+      ],
+      "scopes": [
+        "write"
+      ],
+      "tags": [
+        "important",
+        "updateHint",
+        "openWorldHint",
+        "teams"
+      ],
+      "deprecated": false
     },
     {
       "name": "Validate credential",
       "slug": "LINEAR_VALIDATE_CREDENTIAL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Validates the Linear API credentials by checking if the authentication token can successfully query the current user. Use this action when you need to verify that API credentials are valid before performing other operations, or to confirm that authentication is working correctly. This is particularly useful for connection testing, credential verification flows, or troubleshooting authentication issues.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": [
+        "read"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "authentication"
+      ],
+      "deprecated": false
     },
     {
       "name": "Who Am I",
       "slug": "LINEAR_WHO_AM_I",
-      "kind": "write"
+      "kind": "write",
+      "description": "Return the identity (name, email) of the connected Linear account.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "auth"
+      ],
+      "deprecated": false
     }
   ],
   "triggers": [],

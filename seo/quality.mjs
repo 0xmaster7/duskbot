@@ -41,6 +41,7 @@ const NEEDS = {
   routine: (r) => [r.knobs?.length >= 3 || 'needs at least 3 ways to make it yours', r.fails?.length >= 2 || 'needs at least 2 ways it goes wrong'],
   guide: (r) => [r.sections?.length >= 3 || 'needs at least 3 sections', (r.sources?.length >= 1) || 'needs at least 1 source'],
   glossary: () => [],
+  action: (r) => [r.uses?.length >= 3 || 'needs at least 3 uses', r.steps?.length >= 3 || 'needs at least 3 steps', r.watch?.length >= 2 || 'needs at least 2 limits', r.routine?.message?.length > 80 || 'the routine message is too short', /^\/integrations\/[a-z0-9-]+\/[a-z0-9-]+$/.test(r.path) || 'an action lives at /integrations/<app>/<action>'],
   tool: (r) => [fs.existsSync(path.join(path.dirname(new URL(import.meta.url).pathname), 'tools', `${r.tool}.html`)) || `no seo/tools/${r.tool}.html`],
 };
 
@@ -94,12 +95,19 @@ export function checkPages({ rendered, records, site, TYPES, hubPages, check = f
     const seen = new Map();
     for (const r of records) { const v = (r[field] || '').toLowerCase(); if (!v) continue; if (seen.has(v)) problems.push(`${r.path} and ${seen.get(v)} share a ${field}`); seen.set(v, r.path); }
   }
-  // no two pages too alike
-  const list = [...own.entries()];
-  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+  // no two pages too alike. pages are compared within their kind and with every page that shares an app, which is where
+  // near-copies come from; that keeps the check fast at thousands of pages (all pairs would be millions)
+  const FAIL = 0.4, WARN = 0.25;
+  const list = [...own.entries()], buckets = new Map();
+  const put = (key, i) => { if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(i); };
+  list.forEach(([r], i) => { put(`kind:${r.kind}`, i); for (const c of r.connectors || []) put(`app:${c}`, i); });
+  const done = new Set();
+  for (const ids of buckets.values()) for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
+    const i = ids[x], j = ids[y], key = i < j ? `${i}:${j}` : `${j}:${i}`;
+    if (done.has(key)) continue; done.add(key);
     const sim = jaccard(list[i][1], list[j][1]);
-    if (sim > 0.5) problems.push(`${list[i][0].path} and ${list[j][0].path} are ${Math.round(sim * 100)}% alike (word 5-grams); merge them or give one more of its own`);
-    else if (sim > 0.3) warnings.push(`${list[i][0].path} and ${list[j][0].path} are ${Math.round(sim * 100)}% alike`);
+    if (sim > FAIL) problems.push(`${list[i][0].path} and ${list[j][0].path} are ${Math.round(sim * 100)}% alike (word 5-grams); merge them or give one more of its own`);
+    else if (sim > WARN) warnings.push(`${list[i][0].path} and ${list[j][0].path} are ${Math.round(sim * 100)}% alike`);
   }
   for (const { h, html } of hubPages) {
     if ((html.match(/<h1[\s>]/g) || []).length !== 1) problems.push(`${h.at}: not exactly one h1`);

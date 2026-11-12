@@ -303,7 +303,8 @@ const built = [];
 function write(address, html, { index = true, group = 'core', lastmodKey } = {}) {
   const file = address === '/' ? path.join(site, 'index.html') : address.endsWith('.html') ? path.join(site, address) : path.join(site, address, 'index.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, html);
+  // an unchanged page is left alone, so a build of thousands of pages only touches what changed
+  if (!fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== html) fs.writeFileSync(file, html);
   built.push({ address, index, group, lastmodKey: lastmodKey || html });
 }
 const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();

@@ -1,0 +1,54 @@
+{
+  "path": "/integrations/gmail/create-email-draft",
+  "type": "action",
+  "title": "Draft Gmail replies with AI and send them yourself",
+  "nav": "create email draft",
+  "h1": "draft gmail replies with ai, then send them yourself",
+  "description": "Have a bot write Gmail drafts in your voice, in the right thread, with attachments. What it needs, what it can't do, and a routine to copy.",
+  "keyword": "ai draft gmail replies",
+  "keywords": ["ai email draft gmail", "chatgpt draft gmail reply", "claude write gmail drafts", "auto draft email replies"],
+  "answer": "a bot can save a reply into your gmail drafts, in the same thread as the email it answers, with your signature and any attachment it needs. nothing is sent: the draft waits in gmail for you to read, edit and send. it's the safest way to hand email to ai, because the worst a bad draft can do is sit there until you delete it.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent, against dusk bot docs and the composio gmail catalog", "at": "2026-11-12" },
+  "tags": ["email", "gmail", "drafts", "replies"],
+  "connectors": ["gmail"],
+  "related": ["/integrations/gmail", "/use-cases/email-triage", "/guides/claude-code-for-email"],
+  "art": { "logo": "gmail", "label": "Gmail", "props": ["s-mailbox", "s-notebook"], "bubble": "draft ready" },
+  "og_line": "replies in your drafts, sent by you.",
+  "action": { "toolkit": "gmail", "slug": "GMAIL_CREATE_EMAIL_DRAFT" },
+  "what": "the bot writes an email and saves it in your gmail drafts folder instead of sending it. it can put the draft inside an existing conversation, so it shows up as a reply to the right message, and it can add people on cc, attach a file and add your gmail signature.\n\nif it can't find the conversation you meant, gmail still saves the draft, just as a new email. that's worth knowing when you search your drafts later.",
+  "uses": [
+    "answer the three clients who wrote overnight, so you only have to read and press send",
+    "turn your notes from a call into a follow-up email with the agreed next steps",
+    "reply to a supplier with the invoice attached, pulled from the email they sent you last week",
+    "prepare a polite \"no\" to an invitation, in your words, for you to soften or send"
+  ],
+  "routine": {
+    "message": "every weekday at 9, look at emails from people at @acme.com that came in since yesterday and still have no reply from me. for each one, read the whole thread and save a short reply in my gmail drafts, in that thread, in my voice: friendly, no exclamation marks, sign off with just my first name. then tell me here which drafts you made, one line each. never send anything.",
+    "when": "weekdays at 9:00",
+    "needs": "gmail connected, with read and write access for this bot",
+    "output": "3 drafts in gmail\n\n1. dana (acme): re: q3 quote, says we can do the 15th.\n2. lee (acme): re: invoice 1042, attached the corrected pdf.\n3. omar (acme): re: kickoff, proposes tuesday or wednesday at 10.\n\nnothing sent."
+  },
+  "steps": [
+    "connect gmail in **Connected apps** and let this bot use it with read and write access. drafting is a change, so a read-only bot can't save drafts.",
+    "tell the bot how you write once: \"short, warm, no exclamation marks, first name only\". it keeps that in its memory.",
+    "ask for one draft first, read it in gmail, and tell the bot what to fix (\"shorter\", \"don't apologise\"). it notes the correction.",
+    "when the drafts look right, turn the request into a routine like the one above, and keep sending in your own hands."
+  ],
+  "watch": [
+    "a draft can land outside its thread if the bot can't open the conversation; it then saves as a new email with the subject you gave it.",
+    "drafts aren't free of risk: anything with your name on it can be sent by mistake. read before you press send.",
+    "the bot doesn't see what you write in other apps or say in person, so a draft can miss context. say it once and it will keep a note.",
+    "it doesn't send, and that's on purpose here. sending is a separate action that asks you first."
+  ],
+  "faq": [
+    { "q": "will it send the draft by itself?", "a": "no. this action only saves a draft. sending is a different action, and it asks you first by default." },
+    { "q": "can it reply inside the same gmail thread?", "a": "yes. it reads the thread and saves the draft into it, so it shows as a reply. if the thread can't be found, the draft is saved as a new email." },
+    { "q": "does it add my signature?", "a": "it can. tell it to include your gmail signature, the one set up under send mail as in gmail's settings." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: memory", "url": "/docs/memory" },
+    { "label": "dusk bot docs: a bot's computer, asking first", "url": "/docs/computer" }
+  ]
+}

@@ -14,302 +14,2268 @@
     {
       "name": "Add multiple content blocks (bulk, user-friendly)",
       "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Bulk-add content blocks as children of a Notion page or supported parent block, optionally after an existing child. Accepts simplified or full block formats and parses markdown in simplified text; long text handling varies by format, and simplified text segments may be truncated.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Block ID to insert content AFTER (as siblings). Use this to add content after a heading: set parent_block_id to the PAGE ID and 'after' to the HEADING block ID. The new blocks appear immediately after this block at the same nesting level. If omitted, blocks are appended to the end of the parent's ch"
+        },
+        {
+          "name": "content_blocks",
+          "type": "array",
+          "required": true,
+          "about": "⚠️ CRITICAL: Notion API enforces 2000 char limit per text.content field. Content >2000 chars auto-splits.\nList of blocks to add (max 100). Each item can be in EITHER format:\nA) Unwrapped (recommended): {'content': 'text', 'block_property': 'paragraph'}\nB) Wrapped: {'content_block': {'content': 'text"
+        },
+        {
+          "name": "parent_block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent page or block where content will be added AS CHILDREN (nested inside). ⚠️ COMMON MISTAKE: To add content AFTER a block (as siblings), use the page ID as parent_block_id and specify the block ID in the 'after' parameter. Using a heading block ID here will fail because headings "
+        }
+      ],
+      "scopes": [
+        "Insert content"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Add single content block to Notion page (Deprecated)",
       "slug": "NOTION_ADD_PAGE_CONTENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Adds content to a Notion page or parent block using simplified content or a full block object, optionally after an existing child. Notion limits rich-text content to 2,000 characters per text object; the integration needs access and insert-content capability. DEPRECATED: Use add_multiple_page_content for bulk operations.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Identifier of an existing block. The new content block will be appended immediately after this block. If omitted or null, the new block is appended to the end of the parent's children list."
+        },
+        {
+          "name": "content_block",
+          "type": "",
+          "required": true,
+          "about": "⚠️ CRITICAL: Notion API enforces a HARD LIMIT of 2000 characters per text.content field in rich_text arrays. Content exceeding 2000 chars will be AUTOMATICALLY split into multiple blocks.\n\nSHORTCUT: You can pass a plain 'content' string at the top level (alongside page_id) and it will be auto-wrappe"
+        },
+        {
+          "name": "parent_block_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the parent page or block to which the new content block will be added. Parent must be one of: Page, Toggle, To-do, Bulleted/Numbered List Item, Callout, or Quote. Ensure your integration has access to this block. Use other Notion actions to obtain valid IDs. Alternative field names 'pa"
+        }
+      ],
+      "scopes": [
+        "Insert content"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Append raw Notion blocks (advanced API)",
       "slug": "NOTION_APPEND_BLOCK_CHILDREN",
-      "kind": "write"
+      "kind": "write",
+      "description": "Appends raw Notion blocks to a parent page or block, at the end or after an existing child. Oversized text in supported top-level text blocks is split into rich-text items within the same block. DEPRECATED: Use NOTION_APPEND_TEXT_BLOCKS, NOTION_APPEND_TASK_BLOCKS, NOTION_APPEND_CODE_BLOCKS, NOTION_APPEND_MEDIA_BLOCKS, NOTION_APPEND_LAYOUT_BLOCKS, or NOTION_APPEND_TABLE_BLOCKS instead.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block. Must be a valid child block ID of the parent block. If omitted, blocks are appended at the end. Do not use placeholder values like '<block_id>' or invalid IDs."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the parent block or page to append children to. Must be a valid Notion block/page ID in UUID format (with or without hyphens). Use NOTION_FETCH_DATA to find valid page IDs. Do not use placeholder values."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "$51"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "createHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Append code blocks (code, quote, equation)",
       "slug": "NOTION_APPEND_CODE_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append code and technical blocks (code, quote, equation) to a Notion page. Use for: - Code snippets and programming examples (code) - Citations and highlighted quotes (quote) - Mathematical formulas and equations (equation) Supported block types: - code: Code with syntax highlighting (70+ languages including Python, JavaScript, Go, Rust, etc.) - quote: Block quotes for citations - equation: LaTeX/KaTeX mathematical expressions ⚠️ Code content is limited to 2000 characters per text.content field. For longer code, split into multiple code blocks. For other block types, use specialized actions: - append_text_blocks: paragraphs, headings, lists - append_task_blocks: to-do, toggle, callout - append_media_blocks: image, video, audio, files - append_layout_blocks: divider, columns, TOC - append_table_blocks: tables",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent block or page to append children to."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "Array of code/technical block objects to append. Supported types:\n- code: Code snippet with syntax highlighting (supports 70+ languages)\n- quote: Block quote for citations or highlighted text\n- equation: Mathematical equation using LaTeX/KaTeX syntax\n\n⚠️ Code content limited to 2000 characters per r"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "code",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append layout blocks (divider, TOC, columns)",
       "slug": "NOTION_APPEND_LAYOUT_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append layout blocks (divider, TOC, breadcrumb, columns) to a Notion page. Supported types: - divider: Horizontal line separator - table_of_contents: Auto-generated from headings - breadcrumb: Page hierarchy navigation - column_list: Multi-column layout (requires 2+ columns, each with 1+ child block) For multi-column layouts, create column_list with column children in one request. Each column must contain at least 1 child block. For other blocks, use: append_text_blocks, append_task_blocks, append_code_blocks, append_media_blocks, or append_table_blocks.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent block or page to append children to."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "Array of layout/structural block objects to append. Supported types:\n- divider: Horizontal line separator\n- table_of_contents: Auto-generated TOC from headings\n- breadcrumb: Navigation breadcrumb (auto-generated)\n- column_list: Container with at least 2 columns, each column must have at least 1 chil"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "layout",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append media blocks (image, video, audio, files)",
       "slug": "NOTION_APPEND_MEDIA_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append media blocks (image, video, audio, file, pdf, embed, bookmark) to a Notion page. Use for: - Images and screenshots (image) - YouTube/Vimeo videos or direct video URLs (video) - Audio files and podcasts (audio) - File downloads (file) - PDF documents (pdf) - Embedded content from Twitter, Figma, CodePen, etc. (embed) - Link previews with metadata (bookmark) All media blocks require external URLs. For other block types, use specialized actions: - append_text_blocks: paragraphs, headings, lists - append_task_blocks: to-do, toggle, callout - append_code_blocks: code, quote, equation - append_layout_blocks: divider, columns, TOC - append_table_blocks: tables",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent block or page to append children to."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "Array of media block objects to append. Supported types:\n- image: Image from external URL\n- video: Video from YouTube, Vimeo, or direct URL\n- audio: Audio file from external URL\n- file: Generic file download link\n- pdf: PDF document (rendered inline)\n- embed: Embed from supported services (Twitter, "
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "media",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append table blocks",
       "slug": "NOTION_APPEND_TABLE_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append table blocks to a Notion page. Use for structured tabular data like spreadsheets, comparison charts, and status trackers. Example: { \"table_width\": 3, \"has_column_header\": true, \"rows\": [ {\"cells\": [[{\"type\": \"text\", \"text\": {\"content\": \"Col1\"}}], [...], [...]]} ] } ⚠️ Cell content limited to 2000 chars per text.content field.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "tables",
+          "type": "array",
+          "required": true,
+          "about": "Array of tables to append. Each table includes:\n- table_width: Number of columns (1-100)\n- has_column_header: Style first row as header (optional, default false)\n- has_row_header: Style first column as header (optional, default false)\n- rows: Array of row objects (at least one required)\n\nEach row co"
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent block or page to append children to."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "tables",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append task blocks (to-do, toggle, callout)",
       "slug": "NOTION_APPEND_TASK_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append to-do, toggle, and callout blocks to a Notion page or block that supports children. Text content is limited to 2,000 characters per text item, with at most 100 blocks per request.",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent page or block to append children to. Must be a page_id or a block type that supports children (e.g., toggle, paragraph, bulleted_list_item, numbered_list_item, quote, callout, to_do). Some block types like divider, breadcrumb, equation do NOT support children."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "Array of task/interactive block objects to append. Supported types:\n- to_do: Checkbox task item (can be checked/unchecked)\n- toggle: Collapsible section (click to expand/collapse)\n- callout: Highlighted box with emoji icon (for important notes)\n\n⚠️ Text content limited to 2000 characters per rich_te"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "tasks",
+        "updateHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append text blocks (paragraphs, headings, lists)",
       "slug": "NOTION_APPEND_TEXT_BLOCKS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Append text blocks (paragraphs, headings, lists) to a Notion page. This is the most commonly used action for adding content to Notion. Use for: documentation, notes, articles, outlines, lists. Supported block types: - paragraph: Regular text - heading_1, heading_2, heading_3: Section headers - bulleted_list_item: Bullet points - numbered_list_item: Numbered lists ⚠️ Text content is limited to 2000 characters per text.content field. For other block types, use specialized actions: - append_task_blocks: to-do, toggle, callout - append_code_blocks: code, quote, equation - append_media_blocks: image, video, audio, files - append_layout_blocks: divider, columns, TOC - append_table_blocks: tables",
+      "inputs": [
+        {
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "about": "Optional UUID of an existing child block. New blocks will be inserted after this block."
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the parent block or page to append children to."
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "required": true,
+          "about": "Array of text block objects to append (also accepts 'blocks' as parameter name). Supported types:\n- paragraph: Regular text paragraph\n- heading_1, heading_2, heading_3: Section headings\n- bulleted_list_item: Bullet point\n- numbered_list_item: Numbered list item\n\n⚠️ Text content limited to 2000 chara"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "blocks",
+        "text",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Archive Notion Page",
       "slug": "NOTION_ARCHIVE_NOTION_PAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives (moves to trash) or unarchives (restores from trash) a specified Notion page. Limitation: Workspace-level pages (top-level pages with no parent page or database) cannot be archived via the API and must be archived manually in the Notion UI.",
+      "inputs": [
+        {
+          "name": "archive",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to `true` to move the page to trash (archive), or `false` to restore it from trash (unarchive). Defaults to `true`."
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the Notion page to be archived or unarchived. Must be a page ID, not a database ID. Note: Workspace-level pages (pages that sit at the root of your workspace with no parent page or database) cannot be archived via the API - only pages nested under other pages or datab"
+        }
+      ],
+      "scopes": [
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create comment",
       "slug": "NOTION_CREATE_COMMENT",
-      "kind": "send"
+      "kind": "send",
+      "description": "Adds a comment to a Notion page (via `parent_page_id`) OR to an existing discussion thread (via `discussion_id`); cannot create new discussion threads on specific blocks (inline comments).",
+      "inputs": [
+        {
+          "name": "comment",
+          "type": "object",
+          "required": true,
+          "about": "Content of the comment as a NotionRichText object or a JSON string. Simplest form: {'content': 'Looks good!'} or {'text': 'Looks good!'} (both 'content' and 'text' are accepted as the field name). Can also be passed as a JSON string: '{\"content\": \"Looks good!\"}'. Optional styling fields: bold, itali"
+        },
+        {
+          "name": "discussion_id",
+          "type": "string",
+          "required": false,
+          "about": "The ID of an existing discussion thread to which the comment will be added. This is required if `parent_page_id` is not provided. Must be a valid UUID (32 hex characters with or without hyphens)."
+        },
+        {
+          "name": "parent_page_id",
+          "type": "string",
+          "required": false,
+          "about": "The ID of the Notion page where the comment will be added. This is required if `discussion_id` is not provided. Must be a valid UUID (32 hex characters with or without hyphens). Page IDs can be obtained using other Notion actions that fetch page details or list pages."
+        }
+      ],
+      "scopes": [
+        "comment:write"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Notion Database",
       "slug": "NOTION_CREATE_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new Notion database as a subpage under a specified parent page with a defined properties schema. IMPORTANT NOTES: - The parent page MUST be shared with your integration, otherwise you'll get a 404 error - If you encounter conflict errors (409), retry the request as Notion may experience temporary save conflicts - For relation properties, you MUST provide the database_id of the related database - Parent ID must be a valid UUID format (with or without hyphens), not a template variable Use this action exclusively for creating new databases.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The desired title for the new database. This text will be automatically converted into Notion's rich text format when the database is created."
+        },
+        {
+          "name": "parent_id",
+          "type": "string",
+          "required": true,
+          "about": "**CRITICAL: MUST BE A PAGE ID, NOT A DATABASE ID.** Databases can only be created as children of pages, not as children of other databases. Using a database ID will result in an API error: 'Can't create databases parented by a database.' HOW TO IDENTIFY PAGE vs DATABASE: Use NOTION_SEARCH_NOTION_PAG"
+        },
+        {
+          "name": "properties",
+          "type": "array",
+          "required": false,
+          "about": "Optional list defining the schema (columns) for the new database. Each item is an object with 'name' and 'type'. If not provided, Notion creates a default database with a single 'Name' column of type 'title'. When provided, the list must include at least one property of type 'title'. Common supporte"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Notion file upload",
       "slug": "NOTION_CREATE_FILE_UPLOAD",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a Notion FileUpload object for a direct, multipart, or external URL upload. Direct uploads require subsequent steps to send file contents and attach the uploaded file.",
+      "inputs": [
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "about": "Upload mode: 'single_part' for direct upload (default, up to 20 MB), 'multi_part' for chunked uploads (requires paid Notion workspace), or 'external_url' to import from a public URL. Note: Free workspaces are limited to 5 MB files and cannot use multi_part mode."
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "required": false,
+          "about": "Human-readable file name with extension. Required for external_url; for multi_part, supply to infer extension or pair with content_type; optional for single-part. Supported extensions: Audio (.aac, .adts, .mid, .midi, .mp3, .mpga, .m4a, .m4b, .mp4, .oga, .ogg, .wav, .wma); Document (.pdf, .txt, .jso"
+        },
+        {
+          "name": "content_type",
+          "type": "string",
+          "required": false,
+          "about": "MIME type of the file. Required in multi_part if filename lacks extension; optional for single-part."
+        },
+        {
+          "name": "external_url",
+          "type": "string",
+          "required": false,
+          "about": "Public HTTPS URL to import. Required when mode='external_url'. Must expose Content-Type and Content-Length."
+        },
+        {
+          "name": "number_of_parts",
+          "type": "integer",
+          "required": false,
+          "about": "Total parts for a multi-part upload; required when mode='multi_part'."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "file",
+        "upload",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Notion page",
       "slug": "NOTION_CREATE_NOTION_PAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new page in a Notion workspace under a specified parent page or database. Supports creating pages with markdown content using the native markdown parameter, or as an empty page that can be populated later. PREREQUISITES: - Parent page/database must exist and be accessible in your Notion workspace - Use search_pages or list_databases first to obtain valid parent IDs LIMITATIONS: - Cannot create root-level pages (must have a parent) - May encounter conflicts if creating pages too quickly - Title-based parent search is less reliable than using UUIDs - The markdown parameter is mutually exclusive with children/content parameters",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "An emoji to be used as the icon for the new page. Must be a single emoji character. If the title starts with this emoji, it will be stripped from the title text to prevent duplication."
+        },
+        {
+          "name": "cover",
+          "type": "string",
+          "required": false,
+          "about": "The URL of an image to be used as the cover for the new page. The URL must be publicly accessible."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The title of the new page to be created. If an icon emoji is provided and the title starts with the same emoji, it will be automatically removed from the title to avoid duplication."
+        },
+        {
+          "name": "markdown",
+          "type": "string",
+          "required": false,
+          "about": "Page content as Notion-flavored Markdown. When provided, the page will be created from this markdown string. If properties.title is omitted, the first # h1 heading will be extracted as the page title. This parameter is mutually exclusive with children and content parameters."
+        },
+        {
+          "name": "parent_id",
+          "type": "string",
+          "required": true,
+          "about": "CRITICAL: Must be either: 1) A valid Notion UUID in dashed format (8-4-4-4-12 hex characters like '59833787-2cf9-4fdf-8782-e53db20768a5') or dashless format (32 hex characters like '598337872cf94fdf8782e53db20768a5') of an existing Notion page or database. 2) The exact title of an existing page/data"
+        }
+      ],
+      "scopes": [
+        "insert_content"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Notion view",
       "slug": "NOTION_CREATE_VIEW",
-      "kind": "write"
+      "kind": "write",
+      "description": "Create a Notion view.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "about": "Name of the view."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "about": "Type of view to create."
+        },
+        {
+          "name": "sorts",
+          "type": "array",
+          "required": false,
+          "about": "View sorts."
+        },
+        {
+          "name": "filter",
+          "type": "object",
+          "required": false,
+          "about": "View filter in Notion data source query format."
+        },
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": false,
+          "about": "Dashboard view ID to add this view to as a widget."
+        },
+        {
+          "name": "position",
+          "type": "object",
+          "required": false,
+          "about": "Position in the database view tab bar."
+        },
+        {
+          "name": "placement",
+          "type": "object",
+          "required": false,
+          "about": "Widget placement for dashboard views."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": false,
+          "about": "Database ID to create a top-level database view in."
+        },
+        {
+          "name": "configuration",
+          "type": "object",
+          "required": false,
+          "about": "View presentation configuration."
+        },
+        {
+          "name": "quick_filters",
+          "type": "object",
+          "required": false,
+          "about": "Pinned quick filters for the view."
+        },
+        {
+          "name": "data_source_id",
+          "type": "string",
+          "required": true,
+          "about": "Data source ID this view is scoped to."
+        },
+        {
+          "name": "create_database",
+          "type": "object",
+          "required": false,
+          "about": "Create a linked database block on a page and add the view to it."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "createHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Notion view query",
       "slug": "NOTION_CREATE_VIEW_QUERY",
-      "kind": "write"
+      "kind": "write",
+      "description": "Create a Notion view query and return the first page of page references.",
+      "inputs": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view to query."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of results to return."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete a block",
       "slug": "NOTION_DELETE_BLOCK",
-      "kind": "write"
+      "kind": "write",
+      "description": "Archives a Notion block, page, or database by ID, moving it to Trash for possible later restoration. The connection requires update content capability; an archived ancestor may need to be restored before a descendant can be archived.",
+      "inputs": [
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the block, page, or database to be deleted (archived). Must be a valid Notion block/page/database ID in UUID format (with or without hyphens). IMPORTANT: Workspace-level pages (top-level pages not contained within other pages or databases) cannot be archived via the API - only pages th"
+        }
+      ],
+      "scopes": [
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Notion view",
       "slug": "NOTION_DELETE_VIEW",
-      "kind": "write"
+      "kind": "write",
+      "description": "Delete a Notion view.",
+      "inputs": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view to delete."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "destructiveHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Notion view query",
       "slug": "NOTION_DELETE_VIEW_QUERY",
-      "kind": "write"
+      "kind": "write",
+      "description": "Delete a cached Notion view query.",
+      "inputs": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view."
+        },
+        {
+          "name": "query_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the cached Notion view query."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "destructiveHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Duplicate page",
       "slug": "NOTION_DUPLICATE_PAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Duplicates a Notion page under a specified parent page or database, copying supported content and writable properties. Page parents receive only the title property; some blocks and properties are skipped, block retrieval may be incomplete, and failure can leave a partial copy.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "An optional new title for the duplicated page. If not provided, the title of the original page will be used, prefixed with 'Copy of'."
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID v4) of the Notion page to be duplicated. Ensure this page exists and is accessible."
+        },
+        {
+          "name": "parent_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID v4) of the Notion page or database that will serve as the parent for the duplicated page. If a database ID is provided, the new page is created as a row in that database with properties preserved. If a page ID is provided, the new page is created as a child page with only"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch All Notion Block Contents",
       "slug": "NOTION_FETCH_ALL_BLOCK_CONTENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches child blocks of a Notion block or page across result pages, with optional recursive expansion. Recursive results may be partial due to depth or block limits or inaccessible nested blocks; limit information is returned when recursion is used.",
+      "inputs": [
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": false,
+          "about": "Identifier (UUID) of the parent Notion block or page whose children to list. Pages are blocks in Notion. Accepts UUIDs with or without hyphens (e.g., 'c02fc1d3-db8b-45c5-a222-27595b15aea7' or 'c02fc1d3db8b45c5a22227595b15aea7'). Either block_id or page_url must be provided. The block must be shared "
+        },
+        {
+          "name": "page_url",
+          "type": "string",
+          "required": false,
+          "about": "Notion page URL from which to extract the page/block ID. Either block_id or page_url must be provided. NOTE: Database view URLs (those containing '?v=' parameter) are NOT supported. Database views are filtered views of a database and do not have block children. To access database content, use the NO"
+        },
+        {
+          "name": "max_depth",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum recursion depth when recursive=true. Prevents excessive nesting traversal. Defaults to 10. Set higher for deeply nested structures, lower for faster results."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of child blocks to return per request. Defaults to 100, with a maximum of 100 as per Notion API limits."
+        },
+        {
+          "name": "recursive",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, fetches nested children for blocks with 'has_children' set to true, appending all descendants to the output list. Subject to max_depth and max_blocks limits."
+        },
+        {
+          "name": "max_blocks",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum total blocks to return when recursive=true. Prevents runaway fetches on extremely large block trees. Defaults to 5000. When limit is reached, blocks fetched so far are returned with a warning in the response."
+        }
+      ],
+      "scopes": [
+        "read:content"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch Notion Block Children",
       "slug": "NOTION_FETCH_BLOCK_CONTENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a paginated list of direct child blocks for a Notion block or page. Use returned block IDs to access nested content; for an unsupported block-type error, the result is an empty list with an explanatory message.",
+      "inputs": [
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the parent Notion block or page whose children are to be fetched. Accepts both hyphenated (e.g., 'c02fc1d3-db8b-45c5-a222-27595b15aea7') and non-hyphenated (e.g., 'c02fc1d3db8b45c5a22227595b15aea7') UUID formats. Notion's API does not support special identifiers like 'root' or 'top-level' - "
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The maximum number of child blocks to return in a single response. The actual number of results may be lower if there are fewer child blocks available or if the end of the list is reached. Maximum allowed value is 100. If unspecified, Notion's default page size will be used."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Pagination cursor from next_cursor in a previous API response. When paginating through results, pass the next_cursor value from the previous response here to fetch the next page. Must be a valid UUID format or cursor string returned by Notion's API. If omitted, returns the first page of results."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch Notion block metadata",
       "slug": "NOTION_FETCH_BLOCK_METADATA",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches metadata for a Notion block (including pages, which are special blocks) using its UUID. Returns block type, properties, and basic info but not child content. Prerequisites: 1) Block/page must be shared with your integration, 2) Use valid block_id from API responses (not URLs). For child blocks, use fetch_block_contents instead. Common 404 errors mean the block isn't accessible to your integration.",
+      "inputs": [
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique UUID identifier for the Notion block to be retrieved. Must be a valid 32-character UUID (with or without hyphens). Pages in Notion are also blocks, so page IDs work here too. Important: The block/page must be shared with your integration. To find valid block IDs, use actions like search_p"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch comments",
       "slug": "NOTION_FETCH_COMMENTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches a page of unresolved comments for a specified Notion block or page ID. The block or page must be shared with the integration, which must have Read comments capability enabled.",
+      "inputs": [
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": false,
+          "about": "Identifier for a Notion page from which to fetch comments. This is an alias for block_id since pages are blocks in Notion. Provide either page_id or block_id, but not both. IMPORTANT: The page must be shared with your Notion integration - if not shared, you will receive a 404 error. To find IDs, use"
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": false,
+          "about": "Identifier for a Notion block from which to fetch comments. In Notion, pages are technically blocks, so you can pass a page ID here as well. Provide either block_id or page_id, but not both. IMPORTANT: The block/page must be shared with your Notion integration - if not shared, you will receive a 404"
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The number of comments to return in a single response page. Must be between 1 and 100, inclusive. Default is 100."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "A pagination cursor. If provided, the response will contain the page of results starting after this cursor. If omitted, the first page of results is returned."
+        }
+      ],
+      "scopes": [
+        "insert_content"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "comment"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch Notion Data",
       "slug": "NOTION_FETCH_DATA",
-      "kind": "read"
+      "kind": "read",
+      "description": "Search accessible Notion pages and/or databases by title or list them without a query. Returns one page of results with simplified IDs, titles and types, plus a cursor when more results are available; simplified titles use only the first rich-text segment.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "An optional search query to filter pages and/or databases by their title or content. If not provided (None or empty string), all accessible items matching the selected type (pages, databases, or both) are returned."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The maximum number of items per page (1-100). IMPORTANT: Notion API enforces a hard maximum of 100 items per request - values above 100 will be automatically capped to 100. To retrieve more than 100 items, use pagination by passing the returned 'next_cursor' value in subsequent requests. Defaults to"
+        },
+        {
+          "name": "fetch_type",
+          "type": "string",
+          "required": true,
+          "about": "Specifies what type of Notion data to fetch. Use 'pages' to fetch only pages, 'databases' to fetch only databases, or 'all' to fetch both pages and databases."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Pagination cursor to fetch the next page of results. Pass the 'next_cursor' value from a previous response to retrieve the next page. When null or not provided, the first page is returned."
+        },
+        {
+          "name": "original_page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The original page size value before it was capped."
+        },
+        {
+          "name": "page_size_was_capped",
+          "type": "boolean",
+          "required": false,
+          "about": "Indicates whether the page size was capped to the maximum allowed value."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "Data",
+        "Utility",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch Database",
       "slug": "NOTION_FETCH_DATABASE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Fetches a Notion database's structural metadata (properties, title, etc.) via its `database_id`, not the data entries; `database_id` must reference an existing database.",
+      "inputs": [
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. The unique identifier of the Notion database in UUID format (e.g., '2ec43c10-7ecd-8159-a8f4-ff16630df66c') or unhyphenated 32-char hex (e.g., '2ec43c107ecd8159a8f4ff16630df66c'). Must be a DATABASE ID, not a page ID. Linked databases are NOT supported - use the original source database ID."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Fetch database row",
       "slug": "NOTION_FETCH_ROW",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a Notion database row's properties and metadata; use fetch_block_contents for page content blocks.",
+      "inputs": [
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the Notion page (which represents a row in a database) to retrieve. Must be a page ID, not a database ID. Each row in a Notion database is a page. Use actions like NOTION_FETCH_DATA or NOTION_QUERY_DATABASE to get page IDs from databases."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get About Me (Deprecated)",
       "slug": "NOTION_GET_ABOUT_ME",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Use GetAboutUser instead. Retrieves the User object for the bot associated with the current Notion integration token, typically to obtain the bot's user ID for other API operations.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "Get about user",
       "slug": "NOTION_GET_ABOUT_USER",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves detailed information about a specific Notion user, such as their name, avatar, and email, based on their unique user ID.",
+      "inputs": [
+        {
+          "name": "user_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Notion user whose details are to be retrieved. This ID is used to fetch specific user information."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get page markdown",
       "slug": "NOTION_GET_PAGE_MARKDOWN",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieve a Notion page as Notion-flavored Markdown in a single API call without recursive block-children fetching. The response indicates whether content was truncated and identifies blocks that could not be rendered.",
+      "inputs": [
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the Notion page to retrieve as markdown. Accepts both hyphenated (8-4-4-4-12) and unhyphenated (32 characters) UUID formats. This endpoint retrieves the full page content rendered as Notion-flavored Markdown in a single API call, avoiding the need for recursive block-children fetching. I"
+        },
+        {
+          "name": "include_transcript",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to include meeting note transcripts in the markdown response. Defaults to false if not specified."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "page"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get page property",
       "slug": "NOTION_GET_PAGE_PROPERTY_ACTION",
-      "kind": "read"
+      "kind": "read",
+      "description": "Call this to get a specific property from a Notion page when you have a valid `page_id` and `property_id`; handles pagination for properties returning multiple items.",
+      "inputs": [
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Notion page (e.g., '067dd719-a912-471e-a9a3-ac10710e78b4') from which to retrieve the property. Use the 'NOTION_FETCH_DATA' action or similar to discover available page IDs and their titles."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "For paginated property types (e.g., 'relation', 'rollup', 'rich_text' if content is extensive), this specifies the number of items to return per request. If omitted, Notion's default page size for the property is used."
+        },
+        {
+          "name": "property_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier or name of the property to retrieve. For 'title' properties, the ID is always 'title'. For other properties, this can be the property's name as displayed in Notion (e.g., 'Status', 'Assignee') or its unique programmatic ID (e.g., 'N%3A%5B%7C', 'prop_id_example'). Property IDs/names can be"
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "For paginated properties, if a previous request's response indicated `has_more: true`, provide the `next_cursor` value here to fetch the subsequent set of items. Omit if fetching the first page."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get plugin",
       "slug": "NOTION_GET_PLUGIN",
-      "kind": "read"
+      "kind": "read",
+      "description": "Get a temporary download URL for one Notion Agent Skills plugin.",
+      "inputs": [
+        {
+          "name": "plugin_id",
+          "type": "string",
+          "required": true,
+          "about": "Plugin ID returned by NOTION_LIST_PLUGINS."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Notion view query results",
       "slug": "NOTION_GET_VIEW_QUERY_RESULTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Get a page of results from a cached Notion view query.",
+      "inputs": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view."
+        },
+        {
+          "name": "query_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the cached Notion view query."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of results to return."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Opaque next_cursor from a previous query page."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Insert row database",
       "slug": "NOTION_INSERT_ROW_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a page (row) in a specified Notion database with optional properties and child blocks. The database must be shared with the integration and cannot have multiple data sources; long child-block text segments may be truncated, and additional blocks are appended after page creation.",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "Emoji to be used as the page icon. Must be a single emoji character."
+        },
+        {
+          "name": "cover",
+          "type": "string",
+          "required": false,
+          "about": "URL of an external image to set as the page cover. The URL must point to a publicly accessible image."
+        },
+        {
+          "name": "properties",
+          "type": "array",
+          "required": false,
+          "about": "$52"
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier (UUID) of the Notion database where the new page (row) will be inserted. Can be provided with or without hyphens (e.g., '59833787-2cf9-4fdf-8782-e53db20768a5' or '598337872cf94fdf8782e53db20768a5'). This ID must correspond to an existing database that has been explicitly shared with your "
+        },
+        {
+          "name": "child_blocks",
+          "type": "array",
+          "required": false,
+          "about": "A list of `NotionRichText` objects defining content blocks (e.g., paragraphs, headings, media) to append to the new page's body. Accepts either a list of objects OR a JSON-encoded string representing a list. If omitted, the page body will be empty. \n\n**Supported block types:** paragraph, heading_1, "
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Insert Row From Natural Language",
       "slug": "NOTION_INSERT_ROW_FROM_NL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new row (page) in a Notion database from a natural language description. Fetches the database schema at runtime, uses an LLM to generate the correctly-formatted property payload, and creates the page.",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "Optional emoji icon for the page."
+        },
+        {
+          "name": "cover",
+          "type": "string",
+          "required": false,
+          "about": "Optional cover image URL for the page."
+        },
+        {
+          "name": "nl_query",
+          "type": "string",
+          "required": true,
+          "about": "Natural language description of the row to create. Example: 'Add task: Review PR #14143, priority High, status In Progress, due tomorrow'."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "Notion database UUID where the new row will be inserted. Can be provided with or without hyphens."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List data source templates",
       "slug": "NOTION_LIST_DATA_SOURCE_TEMPLATES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists a page of accessible templates for a Notion data source, including their IDs and names. Use the returned cursor to retrieve further pages.",
+      "inputs": [
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of templates to return per page (1–100). Defaults to 100 if omitted."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Cursor for pagination. Use the `next_cursor` value from a previous response to retrieve the next page."
+        },
+        {
+          "name": "data_source_id",
+          "type": "string",
+          "required": true,
+          "about": "Data source ID (UUIDv4). Path parameter identifying the data source to list templates from."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Notion file uploads",
       "slug": "NOTION_LIST_FILE_UPLOADS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve file uploads for the current bot integration, sorted by most recent first. Use when you need to list all file uploads or paginate through file upload history.",
+      "inputs": [
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Controls how many items the response includes from the complete list. Maximum 100, default 100. The actual response may contain fewer results than requested."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Accepts a next_cursor value from a previous response. Treat as an opaque value to retrieve subsequent result pages. If omitted, begins from the list's start."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "file_uploads"
+      ],
+      "deprecated": false
     },
     {
       "name": "List plugins",
       "slug": "NOTION_LIST_PLUGINS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List one cursor page of Agent Skills plugins shared with the connected Notion integration. Follow next_cursor until has_more is false.",
+      "inputs": [
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of plugins to return from 1 through 100."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Opaque next_cursor from the previous response."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List users",
       "slug": "NOTION_LIST_USERS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves a paginated list of users (excluding guests) from the Notion workspace; the number of users returned per page may be less than the requested `page_size`.",
+      "inputs": [
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The desired number of users to retrieve per page. The maximum value is 100."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "If omitted, retrieves the first page of users. Use the 'next_cursor' value from a previous response to get the next page."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Notion views",
       "slug": "NOTION_LIST_VIEWS",
-      "kind": "read"
+      "kind": "read",
+      "description": "List Notion views for a database or data source.",
+      "inputs": [
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of view references to return. Maximum 100."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": false,
+          "about": "Database ID to list views for. At least one of database_id or data_source_id is required."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Opaque next_cursor from a previous response."
+        },
+        {
+          "name": "data_source_id",
+          "type": "string",
+          "required": false,
+          "about": "Data source ID to list views for. At least one of database_id or data_source_id is required."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Move Page",
       "slug": "NOTION_MOVE_PAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Moves a Notion page to a new parent page or database data source. For a database destination, provide the data source ID.",
+      "inputs": [
+        {
+          "name": "parent",
+          "type": "",
+          "required": true,
+          "about": "Parent destination for the page. Use type='page_id' with page_id to move under another page (the page_id must reference a page, not a database). Use type='data_source_id' with data_source_id to move into a database. Common mistake: Using type='page_id' with a database ID will fail - databases requir"
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the page to move. UUID format with or without dashes is supported."
+        }
+      ],
+      "scopes": [
+        "update_content"
+      ],
+      "tags": [
+        "important",
+        "updateHint",
+        "idempotentHint",
+        "openWorldHint",
+        "page"
+      ],
+      "deprecated": false
     },
     {
       "name": "Query database",
       "slug": "NOTION_QUERY_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Query a shared Notion database for paginated entries, with sorting by database properties or page timestamps. Supply a database UUID and use the returned cursor to retrieve further results.",
+      "inputs": [
+        {
+          "name": "sorts",
+          "type": "array",
+          "required": false,
+          "about": "List of sort rules to order the database query results. Each sort rule must specify: 'property_name' (name of database property or timestamp field) and 'ascending' (True/False). For database properties: names must match exactly (case-sensitive). For timestamps: use 'created_time' or 'last_edited_tim"
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of items (database rows/pages) to return per request. Valid range: 1-100. Default is 100. The API may return fewer items than requested if that's all that's available."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the Notion DATABASE to query (32-character hex string, optionally with hyphens). Query parameters (e.g., ?v=viewid) from Notion URLs are automatically stripped. IMPORTANT: This must be a DATABASE ID, not a page ID. Pages and databases are different object types in Notion. A database is a"
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "An opaque pagination cursor for fetching the next page of results. Use the exact 'next_cursor' field from a previous query response. If omitted, returns the first page."
+        }
+      ],
+      "scopes": [
+        "databases.read"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Query database with filter",
       "slug": "NOTION_QUERY_DATABASE_WITH_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to query a Notion database with server-side filtering, sorting, and pagination. Use when you need to retrieve a subset of rows by property, date, status, or other conditions.",
+      "inputs": [
+        {
+          "name": "sorts",
+          "type": "array",
+          "required": false,
+          "about": "List of sort criteria in order of precedence. Use PropertySort for database properties (with property field) and TimestampSort for system timestamps (with timestamp='created_time' or 'last_edited_time'). IMPORTANT: To sort by page creation or last edited time, you MUST use the TimestampSort format w"
+        },
+        {
+          "name": "filter",
+          "type": "object",
+          "required": false,
+          "about": "$53"
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of items to return (1–100). Defaults to 100 if omitted."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the Notion database to query (32 character hex string, with hyphens or without). IMPORTANT: This must be a DATABASE ID, not a page ID. Page IDs and database IDs are different things. If you have a page URL/ID, that is NOT the same as the database ID - inline databases within pages have t"
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Cursor from a prior response's `next_cursor` for fetching the next page. Use the exact cursor value returned by Notion."
+        },
+        {
+          "name": "composio_execution_message",
+          "type": "string",
+          "required": false,
+          "about": "Internal message about any automatic conversions made during execution."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Query data source",
       "slug": "NOTION_QUERY_DATA_SOURCE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Query a Notion data source for pages or child data sources using filters, sorts, and optional property selection. Results support cursor pagination, with a requested page size of 1 to 100.",
+      "inputs": [
+        {
+          "name": "sorts",
+          "type": "array",
+          "required": false,
+          "about": "List of sort criteria in order of precedence. Use PropertySort for property fields or TimestampSort for creation/edit times."
+        },
+        {
+          "name": "filter",
+          "type": "object",
+          "required": false,
+          "about": "Filter object to limit returned entries. Supports single-property filters or compound filters using 'and'/'or'."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of items to return (1-100). Defaults to 100 if omitted."
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "Cursor from a prior response's `next_cursor` for fetching the next page."
+        },
+        {
+          "name": "data_source_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the Notion data source to query (with or without hyphens). URI prefixes like 'collection://' are automatically stripped."
+        },
+        {
+          "name": "filter_properties",
+          "type": "array",
+          "required": false,
+          "about": "List of property IDs to include in each returned item; maps to the `filter_properties[]` query parameter."
+        }
+      ],
+      "scopes": [
+        "read_content"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Replace page content (with backup)",
       "slug": "NOTION_REPLACE_PAGE_CONTENT",
-      "kind": "write"
+      "kind": "write",
+      "description": "Replaces a page's child blocks by optionally backing up current content, archiving existing children, and appending new children in batches. The workflow is not atomic and failures can leave partial changes; backups omit some block types and nested content.",
+      "inputs": [
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "about": "If True, returns what would be deleted and appended without making any changes. Use to preview the operation."
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the page whose content will be replaced. Must be a valid Notion page ID in UUID format (with or without hyphens)."
+        },
+        {
+          "name": "new_children",
+          "type": "array",
+          "required": true,
+          "about": "Array of block objects to append to the page after clearing existing content. Supported types: paragraph, heading_1/2/3, bulleted_list_item, numbered_list_item, to_do, toggle, callout, code, quote, equation, image, video, audio, file, pdf, embed, bookmark, divider, table_of_contents, breadcrumb, col"
+        },
+        {
+          "name": "backup_parent",
+          "type": "object",
+          "required": false,
+          "about": "Parent specification for backup page creation."
+        },
+        {
+          "name": "create_backup",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to create a backup page with the current content before replacing it. Strongly recommended when replacing important content."
+        },
+        {
+          "name": "backup_title_suffix",
+          "type": "string",
+          "required": false,
+          "about": "Suffix to append to the original page title when creating a backup page."
+        },
+        {
+          "name": "archive_existing_children",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to delete (archive) existing child blocks before appending new content. Set to False to keep existing content and only append new blocks."
+        }
+      ],
+      "scopes": [
+        "insert_content",
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "createHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Retrieve Comment",
       "slug": "NOTION_RETRIEVE_COMMENT",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve a specific comment by its ID. Use when you have a comment ID and need to fetch its details.",
+      "inputs": [
+        {
+          "name": "comment_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier for the comment to retrieve."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "comment",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Retrieve Database Property",
       "slug": "NOTION_RETRIEVE_DATABASE_PROPERTY",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve a specific property object of a Notion database. Use when you need to get details about a single database column/property.",
+      "inputs": [
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier for the database."
+        },
+        {
+          "name": "property_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier for the property. This can be the property ID (e.g., 'GZtn') or the property name (e.g., 'Status'). Supports URL-encoded values (e.g., 'kD%5ER' decodes to 'kD^R'). Property name matching is case-sensitive but supports Unicode normalization for characters that can be represented in multipl"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "database",
+        "property",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Retrieve Notion file upload",
       "slug": "NOTION_RETRIEVE_FILE_UPLOAD",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to retrieve details of a Notion File Upload object by its identifier. Use when you need to check the status or details of an existing file upload.",
+      "inputs": [
+        {
+          "name": "file_upload_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier (UUID) of the file upload to retrieve."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "file_uploads"
+      ],
+      "deprecated": false
     },
     {
       "name": "Retrieve page",
       "slug": "NOTION_RETRIEVE_PAGE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieve a Notion page's properties and metadata by page ID, rather than its block content. The input must be a UUID, not a full page URL.",
+      "inputs": [
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "The UUID of the Notion page to retrieve. Accepts both hyphenated (8-4-4-4-12) and unhyphenated (32 characters) UUID formats. IMPORTANT: Must be a PAGE ID, not a database ID. If you have a database ID, use NOTION_FETCH_DATABASE instead. This endpoint returns page properties and metadata, not page con"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "page"
+      ],
+      "deprecated": false
     },
     {
       "name": "Retrieve Notion view",
       "slug": "NOTION_RETRIEVE_VIEW",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieve a Notion view and its configuration.",
+      "inputs": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view to retrieve."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "views"
+      ],
+      "deprecated": false
     },
     {
       "name": "Search Notion pages and databases",
       "slug": "NOTION_SEARCH_NOTION_PAGE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Search Notion pages and databases by title, with an object-type filter that defaults to pages. Search indexing can lag and results may be incomplete; an empty query can help find accessible items, and optional client-side property filtering reduces page response size.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Text to search for in page and database titles. Use specific search terms to find items by title (primary approach). Note: Notion's search has known limitations - indexing is not immediate and recently shared items may not appear. If a specific query returns empty results, try an empty query as a fa"
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "required": false,
+          "about": "Specifies the sort direction for the results. Required if `timestamp` is provided. Valid values are `ascending` or `descending`."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "The number of items to include in the response. Must be an integer between 1 and 100, inclusive. Defaults to 25."
+        },
+        {
+          "name": "timestamp",
+          "type": "string",
+          "required": false,
+          "about": "The timestamp field to sort the results by. Currently, the only supported value is `last_edited_time`. If provided, `direction` must also be specified."
+        },
+        {
+          "name": "filter_value",
+          "type": "string",
+          "required": false,
+          "about": "Filters results by object type: 'page' or 'database'. Note: When searching databases, Notion's search may not find recently shared or newly created databases due to indexing delays. If specific database searches return empty results, try an empty query with filter_value='database' as a fallback to l"
+        },
+        {
+          "name": "start_cursor",
+          "type": "string",
+          "required": false,
+          "about": "An opaque cursor value from a previous response's `next_cursor` field. Must be exactly as returned by the API - do not pass page IDs, database IDs, or any other identifiers. If `None`, empty, or invalid, results start from the beginning."
+        },
+        {
+          "name": "filter_property",
+          "type": "string",
+          "required": false,
+          "about": "The property to filter the search results by. Currently, the only supported value is `object`, which filters by the type specified in `filter_value`. Defaults to `object`."
+        },
+        {
+          "name": "filter_properties",
+          "type": "array",
+          "required": false,
+          "about": "List of property names to include in the response for page results. When specified, only these properties will be returned in each page's 'properties' object, reducing response size. Useful for database pages with many custom properties. If not specified, all properties are returned. Note: This filt"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Send file upload",
       "slug": "NOTION_SEND_FILE_UPLOAD",
-      "kind": "send"
+      "kind": "send",
+      "description": "Tool to transmit file contents to Notion for a file upload object. Use after creating a file upload object to send the actual file data.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "object",
+          "required": true,
+          "about": "File information including name and mimetype. FileInfo object where 'name' is the filename (e.g., 'document.pdf', 'test.txt')."
+        },
+        {
+          "name": "part_number",
+          "type": "integer",
+          "required": false,
+          "about": "Required when the file upload mode is 'multi_part'. Indicates which part is being sent (parts are numbered starting from 1). For single-part uploads, omit this parameter."
+        },
+        {
+          "name": "file_upload_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the file upload object to send data for. This ID is obtained from the Create File Upload action."
+        },
+        {
+          "name": "file_content_base64",
+          "type": "string",
+          "required": false,
+          "about": "Optional base64-encoded file content. If provided, this will be used instead of downloading from S3 or reading from file_path. Useful for direct file content submission."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "file_uploads",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update block",
       "slug": "NOTION_UPDATE_BLOCK",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates existing Notion block's text content. ⚠️ CRITICAL: Content limited to 2000 chars. Cannot change block type or archive blocks. Content exceeding 2000 chars will fail with validation error. For longer content, split across multiple blocks using add_multiple_page_content.",
+      "inputs": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": true,
+          "about": "The new text content for the block. Replaces existing text content entirely. ⚠️ CRITICAL: Notion API enforces a HARD LIMIT of 2000 characters per text.content field. Content exceeding 2000 chars will cause a validation error. For longer content, split across multiple blocks using append_block_childr"
+        },
+        {
+          "name": "block_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Notion block to be updated. Must be a valid UUID (with or without dashes). To find a block's ID, other Notion actions that list or retrieve blocks can be used. For updating content within a page (which is also a block), its ID can be obtained using actions like `NOTION_FETCH_DATA` "
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "required": false,
+          "about": "Programming language for code blocks. Required when block_type='code'. Supported values include: 'abap', 'arduino', 'bash', 'basic', 'c', 'clojure', 'coffeescript', 'c++', 'c#', 'css', 'dart', 'diff', 'docker', 'elixir', 'elm', 'erlang', 'flow', 'fortran', 'f#', 'gherkin', 'glsl', 'go', 'graphql', '"
+        },
+        {
+          "name": "block_type",
+          "type": "string",
+          "required": false,
+          "about": "The type of the block being updated. If not provided, the action will automatically detect the block type by fetching the block first (adds 1 extra API call). If provided, it must match the EXISTING block's type - you cannot change a block's type. Supported types: 'paragraph', 'heading_1', 'heading_"
+        },
+        {
+          "name": "additional_properties",
+          "type": "object",
+          "required": false,
+          "about": "Optional dictionary of type-specific properties. Common examples: 'checked' (boolean) for to_do blocks to mark complete/incomplete, 'color' (string like 'blue_background', 'gray', 'red') for text styling, 'is_toggleable' (boolean) for heading blocks to make them collapsible, 'icon' (object with 'typ"
+        }
+      ],
+      "scopes": [
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Page",
       "slug": "NOTION_UPDATE_PAGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Update page properties, icon, cover, or archive status. IMPORTANT: Property names are workspace-specific and case-sensitive. Use NOTION_FETCH_ROW or NOTION_FETCH_DATABASE first to discover exact property names and valid select/status options. Common errors: - \"X is not a property that exists\": Discover properties with NOTION_FETCH_ROW - \"Invalid status option\": Check valid options with NOTION_FETCH_DATABASE - \"should be defined\": Wrap values: {'Field': {'type': value}} Property formats: title/rich_text use {'text': {'content': 'value'}}, select/status use {'name': 'option'}",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "object",
+          "required": false,
+          "about": "Page icon object. At least one of properties, archived, icon, or cover is required."
+        },
+        {
+          "name": "cover",
+          "type": "object",
+          "required": false,
+          "about": "Page cover image. Must contain either 'external' (with url) or 'file_upload' key. Empty dicts are treated as no-op. At least one of properties, archived, icon, or cover is required."
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier for the Notion page to be updated. Use 'page_id' as the parameter name (not 'id')."
+        },
+        {
+          "name": "archived",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to archive (trash) the page, false to restore. Note: Workspace-level pages (pages in the sidebar that are not inside a database or another page) may not be archivable via the API depending on workspace configuration. Setting archived=true on an already-archived page or a page with an arc"
+        },
+        {
+          "name": "properties",
+          "type": "object",
+          "required": false,
+          "about": "Dictionary mapping property names to property value objects. IMPORTANT: Property names are workspace-specific and case-sensitive. Before updating, use NOTION_FETCH_ROW (for database pages) or NOTION_FETCH_DATABASE to discover the exact property names available in your database. Common properties lik"
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "page",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update page markdown",
       "slug": "NOTION_UPDATE_PAGE_MARKDOWN",
-      "kind": "write"
+      "kind": "write",
+      "description": "Apply synchronous targeted edits or replace a Notion page using Markdown.",
+      "inputs": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "about": "Use update_content for targeted edits or replace_content for a full replacement."
+        },
+        {
+          "name": "page_id",
+          "type": "string",
+          "required": true,
+          "about": "UUID of the Notion page to update."
+        },
+        {
+          "name": "update_content",
+          "type": "object",
+          "required": false,
+          "about": "Targeted search-and-replace command, required only for type update_content."
+        },
+        {
+          "name": "replace_content",
+          "type": "object",
+          "required": false,
+          "about": "Full replacement command, required only for type replace_content."
+        }
+      ],
+      "scopes": [
+        "update_content"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "page"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Database Row (Page)",
       "slug": "NOTION_UPDATE_ROW_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates a specific row/page within a Notion database by its page UUID (row_id). IMPORTANT CLARIFICATION: This action updates INDIVIDUAL ROWS (pages) in a database, NOT the database structure. - To update a ROW/PAGE: Use THIS action with `row_id` (the page UUID) - To update DATABASE SCHEMA (columns, properties, title): Use NOTION_UPDATE_SCHEMA_DATABASE with `database_id` REQUIRED: `row_id` is MANDATORY. This is the UUID of the specific page/row to update. Do NOT pass `database_id` to this action - that parameter does not exist here. Common issues: (1) Use UUID from page URL, not the full URL (2) Ensure page is shared with integration (3) Match property names exactly as in database (4) Use 'status' type for Status properties, not 'select' (5) Retry on 409 Conflict errors (concurrent updates) Supports updating properties, icon, cover, or archiving the row.",
+      "inputs": [
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "about": "The emoji to be used as the icon for the page. Must be a single emoji character (e.g., '😻', '🤔'). Empty strings or whitespace-only values are ignored."
+        },
+        {
+          "name": "cover",
+          "type": "string",
+          "required": false,
+          "about": "URL of an external image to be used as the cover for the page (e.g., 'https://google.com/image.png'). Empty strings or whitespace-only values are ignored."
+        },
+        {
+          "name": "row_id",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED: The page UUID of the database row to update. This is a PAGE ID (not a database ID). A database row in Notion is actually a page - use the page's UUID here. Format: 32-character UUID with hyphens (e.g., '59833787-2cf9-4fdf-8782-e53db20768a5'). NOT a URL or page title. Find this ID in the pa"
+        },
+        {
+          "name": "delete_row",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the row (page) will be archived, effectively deleting it from the active view. If the page is already archived, the action will return success with the current page state. If false, the row will be updated with other provided data."
+        },
+        {
+          "name": "properties",
+          "type": "array",
+          "required": false,
+          "about": "List of properties to update. Each property requires: (1) 'name' - exact property name as shown in Notion, (2) 'type' - the property type (title, rich_text, number, select, status, multi_select, date, people, relation, checkbox, url, email, phone_number, files), (3) 'value' - formatted according to "
+        }
+      ],
+      "scopes": [
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "destructiveHint",
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update database schema",
       "slug": "NOTION_UPDATE_SCHEMA_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates an existing Notion database's schema including title, description, and/or properties (columns). IMPORTANT NOTES: - At least one update (title, description, or properties) must be provided - The database must be shared with your integration - Property names are case-sensitive and must match exactly - When changing a property to 'relation' type, you MUST provide the database_id of the target database - Removing properties will permanently delete that column and its data - Use NOTION_FETCH_DATA first to get the exact property names and database structure Common errors: - 'database_id' missing: Ensure you're passing the database_id parameter (not page_id) - 'data_source_id' undefined: When changing to relation type, database_id is required in PropertySchemaUpdate - Property name mismatch: Names must match exactly including case and special characters",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "New title for the database. Leave as None or omit to keep the existing title unchanged. This updates the database name visible in Notion. At least one of (title, description, or properties) must be provided."
+        },
+        {
+          "name": "properties",
+          "type": "array",
+          "required": false,
+          "about": "List of property (column) updates for the database schema. At least one of (title, description, or properties) must be provided. Each PropertySchemaUpdate must specify: \n1) 'name': The EXACT case-sensitive name of the existing property\n2) One of these actions:\n   - 'rename': Change the property name"
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED: The UUID identifier of the Notion database to update. IMPORTANT: This must be a DATABASE ID, not a page ID. Page IDs and database IDs are both UUIDs but they are NOT interchangeable - passing a page ID will result in an error. Use NOTION_FETCH_DATA with get_databases=true to get available "
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "about": "New description for the database. Leave as None or omit to keep the existing description unchanged. This updates the description text shown below the database title. At least one of (title, description, or properties) must be provided."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Notion view",
       "slug": "NOTION_UPDATE_VIEW",
-      "kind": "write"
+      "kind": "write",
+      "description": "Update a Notion view.",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "about": "New name for the view."
+        },
+        {
+          "name": "sorts",
+          "type": "array",
+          "required": false,
+          "about": "View sorts. Set null explicitly to clear existing sorts."
+        },
+        {
+          "name": "filter",
+          "type": "object",
+          "required": false,
+          "about": "View filter. Set null explicitly to clear an existing filter."
+        },
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Notion view to update."
+        },
+        {
+          "name": "configuration",
+          "type": "object",
+          "required": false,
+          "about": "View presentation configuration."
+        },
+        {
+          "name": "quick_filters",
+          "type": "object",
+          "required": false,
+          "about": "Quick filters. Set null explicitly to clear all quick filters."
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upsert database rows",
       "slug": "NOTION_UPSERT_ROW_DATABASE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Upserts Notion database rows in bulk by querying a filter for each item, then creating a row if none is returned or updating a match. Only the first query page is examined; multiple matches can update the first or produce an error, with per-item results.",
+      "inputs": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "about": "Array of items to upsert. Each item contains match criteria and create/update payloads."
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": false,
+          "about": "Options controlling upsert behavior."
+        },
+        {
+          "name": "database_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the Notion database (legacy). If provided without data_source_id, will attempt to resolve to data_source_id. Only safe for single-source databases."
+        },
+        {
+          "name": "data_source_id",
+          "type": "string",
+          "required": false,
+          "about": "UUID of the Notion data source (preferred). Required if database_id is not provided."
+        }
+      ],
+      "scopes": [
+        "insert_content",
+        "read_content",
+        "update_content"
+      ],
+      "tags": [
+        "important",
+        "createHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Who Am I",
       "slug": "NOTION_WHO_AM_I",
-      "kind": "write"
+      "kind": "write",
+      "description": "Return the identity (workspace, owner) of the connected Notion account.",
+      "inputs": [
+        {
+          "name": "0",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "1",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "2",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "3",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "4",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "5",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "6",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "7",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "8",
+          "type": "",
+          "required": false,
+          "about": ""
+        },
+        {
+          "name": "9",
+          "type": "",
+          "required": false,
+          "about": ""
+        }
+      ],
+      "scopes": "$undefined",
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "idempotentHint",
+        "auth"
+      ],
+      "deprecated": false
     }
   ],
   "triggers": [],

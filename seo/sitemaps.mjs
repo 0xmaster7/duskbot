@@ -29,9 +29,11 @@ export function writeSitemaps({ site, SITE_URL, built, cohorts, today = localDay
   const order = ['core', 'hubs', ...cohorts.map((c) => c.id)];
   for (const g of groups.keys()) if (!order.includes(g)) throw new Error(`a page is in sitemap group ${g}, which is not a cohort in seo/release.json`);
   const files = [];
-  for (const g of order.filter((x) => groups.has(x))) {
-    const list = groups.get(g).sort((a, b) => a.address.localeCompare(b.address));
-    const name = g === 'core' || g === 'hubs' ? g : `cohort-${g}`;
+  // a sitemap holds at most 50,000 addresses; files are cut at 40,000 to stay well inside that and the 50 mb limit
+  const SHARD = 40000;
+  for (const g of order.filter((x) => groups.has(x))) for (let i = 0, all = groups.get(g).sort((a, b) => a.address.localeCompare(b.address)); i < all.length; i += SHARD) {
+    const list = all.slice(i, i + SHARD);
+    const name = (g === 'core' || g === 'hubs' ? g : `cohort-${g}`) + (i ? `-${i / SHARD + 1}` : '');
     fs.writeFileSync(path.join(dir, `${name}.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${list.map((p) => `  <url><loc>${SITE_URL}${p.address}</loc><lastmod>${next[p.address].lastmod}</lastmod></url>`).join('\n')}\n</urlset>\n`);
     files.push([name, list.reduce((m, p) => (next[p.address].lastmod > m ? next[p.address].lastmod : m), '')]);
   }

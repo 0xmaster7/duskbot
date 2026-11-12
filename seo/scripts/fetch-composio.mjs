@@ -32,6 +32,29 @@ export function isSend(slug, toolkit) {
 export const kindOf = (slug, toolkit) => (isRead(slug, toolkit) ? 'read' : isSend(slug, toolkit) ? 'send' : 'write');
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&nbsp;/g, ' ');
 
+function actionDetails(html, prefix) {
+  const out = new Map();
+  let stream = '';
+  for (const [, chunk] of html.matchAll(/self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)/g)) { try { stream += JSON.parse(`"${chunk}"`); } catch {} }
+  const re = new RegExp(`\\{"slug":"(${prefix}[A-Z0-9_]+)","name":`, 'g');
+  for (const m of stream.matchAll(re)) {
+    if (out.has(m[1]) && out.get(m[1]).input_parameters) continue;
+    const obj = readObject(stream, m.index);
+    if (obj && obj.input_parameters) out.set(m[1], obj);
+  }
+  return out;
+}
+// reads one json object starting at i, by matching braces outside strings
+function readObject(text, i) {
+  let depth = 0, inStr = false;
+  for (let j = i; j < text.length; j++) {
+    const c = text[j];
+    if (inStr) { if (c === '\\') j++; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true; else if (c === '{') depth++; else if (c === '}' && --depth === 0) { try { return JSON.parse(text.slice(i, j + 1)); } catch { return null; } }
+  }
+  return null;
+}
+
 export function parse(html, slug) {
   const lines = decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, '\n'))
     .split('\n').map((l) => l.trim()).filter(Boolean);
@@ -50,6 +73,18 @@ export function parse(html, slug) {
   const seen = new Set(), unique = pairs.filter((p) => !seen.has(p.slug) && seen.add(p.slug));
   const tools = unique.slice(0, nTools).map((t) => ({ ...t, kind: kindOf(t.slug, slug) }));
   const triggers = unique.slice(nTools).map(({ name, slug: s }) => ({ name, slug: s }));
+  // the page also carries each action's own record (what it does, its inputs, the permissions it asks for, hints like
+  // readOnlyHint or destructiveHint, whether it is deprecated) as next.js stream data; read it where it is there
+  const details = actionDetails(html, prefix);
+  for (const t of tools) {
+    const d = details.get(t.slug);
+    if (!d) continue;
+    t.description = d.description || '';
+    t.inputs = Object.entries(d.input_parameters || {}).map(([name, v]) => ({ name, type: v.type || '', required: v.required === true, about: String(v.description || '').replace(/\$undefined/g, '').slice(0, 300) }));
+    t.scopes = d.scopes || [];
+    t.tags = d.tags || [];
+    t.deprecated = d.is_deprecated === true || /deprecated/i.test(t.name);
+  }
   return {
     toolkit: slug, name, version, description,
     managed_sign_in: authBlock.includes('Composio-managed OAuth available'),

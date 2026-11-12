@@ -75,3 +75,6 @@
 /* below the three columns the docs put "on this page" above the article; a guide opens with its answer instead */
 @media (max-width: 1180px) { .seo .doc-toc { display: none; } }
 .seo-top .seo-meta { margin-top: 18px; }
+.seo-actions { columns: 2; column-gap: 24px; padding-left: 1.1em; }
+.seo-actions li { break-inside: avoid; margin: 4px 0; }
+@media (max-width: 760px) { .seo-actions { columns: 1; } }

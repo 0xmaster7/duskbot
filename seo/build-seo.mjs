@@ -51,8 +51,12 @@ export function buildSeo(ctx) {
   const p = plan();
   const { config, records, hubs, preview } = p;
   // integration pages carry the catalog they were built from as a source
-  for (const r of records) if (r.kind === 'integration' && r.app?.toolkit) {
-    const f = connector(r.app.toolkit);
+  for (const r of records) if (r.kind === 'action') {
+    const app = records.find((o) => o.kind === 'integration' && o.app?.toolkit === r.action.toolkit);
+    if (app) r.parent = { path: app.path, nav: app.nav || app.h1 };
+  }
+  for (const r of records) if ((r.kind === 'integration' && r.app?.toolkit) || r.kind === 'action') {
+    const f = connector(r.kind === 'action' ? r.action.toolkit : r.app.toolkit);
     r.sources = [...(r.sources || []).filter((s) => s.url !== f.source), { label: `composio, ${f.name} toolkit (catalog version ${f.version})`, url: f.source, checked: f.fetched_at }];
   }
   const scenes = writeScenes(site, records);
@@ -70,7 +74,7 @@ export function buildSeo(ctx) {
     const { body, related } = t.page(r);
     const hub = HUBS[r.hub];
     const updated = r.updated || r.verified;
-    const jsonld = [crumb([['Dusk Bot', '/'], [hub.nav[0].toUpperCase() + hub.nav.slice(1), hub.at], [r.nav || r.h1, r.path]]),
+    const jsonld = [crumb([['Dusk Bot', '/'], [hub.nav[0].toUpperCase() + hub.nav.slice(1), hub.at], ...(r.parent ? [[r.parent.nav, r.parent.path]] : []), [r.nav || r.h1, r.path]]),
       { '@context': 'https://schema.org', '@type': 'Article', headline: r.h1, description: r.description, image: `${SITE_URL}/art/seo/${sceneId(r.path)}.webp`,
         datePublished: r.state.live_at || r.created || updated, dateModified: updated, author: org, publisher: org, mainEntityOfPage: `${SITE_URL}${r.path}` }];
     const html = layout({ title: r.title, description: r.description, body, page: r.path.slice(1), at: r.path, section: r.hub, kind: `p-doc p-seo p-seo-${r.kind}`,

@@ -70,7 +70,9 @@ export function templates(ctx) {
       } else can = section(`what a bot can do with ${app.name}`, md(app.intro));
       const steps = app.toolkit ? `<ol class="seo-steps seo-boiler"><li>open <b>Connected apps</b> in the sidebar.</li><li>pick ${esc(app.name)} and sign in on ${esc(app.name)}'s own page, so your password goes to them and never to a bot.</li><li>choose which bots may use it, and whether each may only read or may also change things. your bookkeeper doesn't need your ${esc(app.name)}.</li><li>ask in plain words. reading and drafting happen freely; sending asks you first.</li></ol>` : '';
       const routines = r.routines.map((x) => `<div class="seo-routine"><h3>${esc(x.name)}</h3>${copyBox(x.message)}<p class="seo-runs"><span>${esc(x.when)}</span>${x.output ? ` · ${inline(x.output)}` : ''}</p></div>`).join('');
-      return `${can}\n${section(`connect ${app.name}`, `${steps}${app.setup ? md(app.setup) : ''}`)}\n${section('routines to copy', `${r.routines_intro ? md(r.routines_intro) : ''}${routines}`)}\n${section('what it asks you first', md(r.asks))}\n${section('what it cannot do', list(r.cannot))}\n${sections(r)}`;
+      const acts = records.filter((o) => o.kind === 'action' && o.action?.toolkit === app.toolkit && o.built && (preview || o.indexable || !r.indexable));
+      const more = acts.length ? section(`more things a bot can do in ${app.name}`, `<ul class="seo-actions">${acts.map((o) => `<li><a href="${o.path}">${esc(o.nav || o.h1)}</a></li>`).join('')}</ul>`) : '';
+      return `${can}\n${more}\n${section(`connect ${app.name}`, `${steps}${app.setup ? md(app.setup) : ''}`)}\n${section('routines to copy', `${r.routines_intro ? md(r.routines_intro) : ''}${routines}`)}\n${section('what it asks you first', md(r.asks))}\n${section('what it cannot do', list(r.cannot))}\n${sections(r)}`;
     },
 
     usecase: (r) => `${section('the routine', `${r.routine.intro ? md(r.routine.intro) : ''}${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>${r.routine.output ? `<p class="code-label">what comes back looks like this (an example, not a real inbox)</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>` : ''}`)}\n${sections(r)}\n${section('the guard rails', list(r.safeguards))}`,
@@ -81,6 +83,36 @@ export function templates(ctx) {
 
     glossary: (r) => `${section('in one line', `<p class="seo-def">${inline(r.definition)}</p>`)}\n${section('an example', md(r.example))}\n${sections(r)}`,
 
+    // one app action. the facts (what composio says it does, its inputs, the permissions it asks for, how dusk bot treats
+    // it) come from seo/facts/connectors; the words (what it's for, a routine, steps, limits) are the record's own. three
+    // layouts, picked from the address, so pages of one app don't read as one page with the name swapped
+    action: (r) => {
+      const f = connector(r.action.toolkit), t = f.tools.find((x) => x.slug === r.action.slug);
+      if (!t) throw new Error(`${r.file}: ${r.action.slug} is not a ${r.action.toolkit} action`);
+      if (t.deprecated) throw new Error(`${r.file}: ${r.action.slug} is deprecated`);
+      const app = records.find((o) => o.kind === 'integration' && o.app?.toolkit === r.action.toolkit);
+      const appName = app?.app.name || f.name;
+      const kindWords = { read: 'a read: it looks and changes nothing', write: 'a change: it alters something in ' + esc(appName) + ', and the sending setting does not cover it', send: 'a send: it reaches people or moves money, so it waits for your <b>Allow</b> (unless you set a daily amount, or the bot is on <b>Full access</b> with no sending rule, which lets it send up to 25 a day)' }[t.kind];
+      const inputs = (t.inputs || []).filter((i) => i.name !== 'user_id').slice(0, 10);
+      const variant = [...r.path].reduce((n, c) => n + c.charCodeAt(0), 0) % 3;
+      const H = [
+        { what: 'what it does', uses: 'when you would use it', try: 'try it', steps: 'set it up', needs: 'what it needs from you', rules: 'how dusk bot handles it', watch: 'where it stops' },
+        { what: `${t.name.toLowerCase()}, in plain words`, uses: 'good jobs for it', try: 'a routine to copy', steps: 'how to start', needs: 'the details it works from', rules: 'before it runs', watch: 'limits worth knowing' },
+        { what: 'the short version', uses: 'where it helps', try: 'send this to your bot', steps: 'step by step', needs: 'inputs', rules: 'permissions and asking first', watch: 'what can go wrong' },
+      ][variant];
+      const part = {
+        what: section(H.what, md(r.what)),
+        uses: section(H.uses, list(r.uses)),
+        try: section(H.try, `${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>${r.routine.output ? `<p class="code-label">what comes back looks like this (an example)</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>` : ''}`),
+        steps: section(H.steps, `<ol class="seo-steps">${r.steps.map((x) => `<li>${inline(x)}</li>`).join('')}</ol>`),
+        needs: inputs.length ? section(H.needs, `${table(['input', 'required', 'what it is'], inputs.map((i) => [`<code>${esc(i.name)}</code>`, i.required ? 'yes' : 'no', esc(i.about.split(/(?<=\.)\s/)[0] || i.type)]))}<p class="seo-fact">from composio's catalog for ${esc(appName)} (action <code>${esc(t.slug)}</code>, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((x) => x.url === f.source) + 1])}). your bot fills these in from what you tell it.</p>`) : '',
+        rules: section(H.rules, `<p>dusk bot counts <b>${esc(t.name)}</b> as ${kindWords}.${t.kind === 'read' ? ' a bot you allow only to read can use it.' : ' a bot you allow only to read can never call it.'}</p>${(t.scopes || []).length ? `<p class="seo-fact">the permissions ${esc(appName)} asks for to run it: ${t.scopes.slice(0, 4).map((x) => `<code>${esc(x.replace(/^https:\/\/www\.googleapis\.com\/auth\//, ''))}</code>`).join(', ')}.</p>` : ''}${r.rules ? md(r.rules) : ''}`),
+        watch: section(H.watch, list(r.watch)),
+      };
+      const order = [['what', 'uses', 'try', 'steps', 'needs', 'rules', 'watch'], ['what', 'try', 'uses', 'rules', 'steps', 'watch', 'needs'], ['uses', 'what', 'steps', 'try', 'watch', 'rules', 'needs']][variant];
+      return order.map((k) => part[k]).join('\n') + sections(r);
+    },
+
     tool: (r) => {
       const file = path.join(seoDir, 'tools', `${r.tool}.html`);
       return `<div class="seo-tool">${fs.readFileSync(file, 'utf8')}</div>\n${section('how it works out the numbers', md(r.method))}\n${sections(r)}`;
@@ -88,10 +120,12 @@ export function templates(ctx) {
   };
 
   function sidebar(r, hub) {
-    const sibs = records.filter((o) => o.hub === r.hub && o.built && (preview || o.indexable || !r.indexable));
+    const same = (o) => (r.kind === 'action' ? (o.kind === 'action' && o.action?.toolkit === r.action.toolkit) || (o.kind === 'integration' && o.app?.toolkit === r.action.toolkit) : o.kind !== 'action');
+    const sibs = records.filter((o) => o.hub === r.hub && same(o) && o.built && (preview || o.indexable || !r.indexable));
     const near = related(r).map((o) => o.path);
     const shown = sibs.length > config.sidebar_max ? sibs.filter((o) => o === r || near.includes(o.path)).concat(sibs.filter((o) => o !== r && !near.includes(o.path))).slice(0, config.sidebar_max) : sibs;
-    const groups = hub.groups.map((g) => [g, shown.filter((o) => g.types.includes(o.type))]).filter(([, l]) => l.length);
+    const groups = r.kind === 'action' ? [[{ title: 'this app' }, shown.filter((o) => o.kind === 'integration')], [{ title: 'its actions' }, shown.filter((o) => o.kind === 'action')]].filter(([, l]) => l.length)
+      : hub.groups.map((g) => [g, shown.filter((o) => g.types.includes(o.type))]).filter(([, l]) => l.length);
     return groups.map(([g, l]) => `<div role="group" aria-label="${esc(g.title)}"><p class="nh" aria-hidden="true">${esc(g.title)}</p><ul>${l.map((o) => `<li><a href="${o.path}"${o === r ? ' aria-current="page"' : ''}>${esc(o.nav || o.h1)}</a></li>`).join('')}</ul></div>`).join('')
       + `<p class="seo-all"><a href="${hub.at}">every page in ${esc(hub.nav)}</a></p>`;
   }
@@ -107,7 +141,7 @@ export function templates(ctx) {
 <aside class="docs-side"><nav class="docs-nav" aria-label="${esc(hub.nav)}">${sidebar(r, hub)}</nav></aside>
 <details class="docs-jump"><summary><span>${esc(hub.nav)}</span><b>${esc(r.nav || r.h1)}</b>${icon('chevron-down')}</summary><nav class="docs-nav" aria-label="${esc(hub.nav)}, every page">${sidebar(r, hub)}</nav></details>
 <article class="doc prose seo-page">
-<p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="${hub.at}">${esc(hub.nav)}</a></p>
+<p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="${hub.at}">${esc(hub.nav)}</a>${r.parent ? `<span aria-hidden="true">/</span><a href="${r.parent.path}">${esc(r.parent.nav)}</a>` : ''}</p>
 <header class="seo-top"><h1>${esc(r.h1)}</h1>
 <p class="lede seo-answer">${inline(r.answer)}</p>
 <p class="seo-meta seo-boiler">by <a href="${config.author_url}">${esc(config.byline)}</a> · checked <time datetime="${updated}">${day(updated)}</time> · <a href="#how-made">how we made this</a></p></header>

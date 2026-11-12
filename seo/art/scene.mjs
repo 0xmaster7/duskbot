@@ -39,6 +39,7 @@ const POOLS = {
   routine: ['s-clock', 'p-mug', 'p-newspaper', 'p-receipt', 's-mailbox'],
   glossary: ['s-books', 's-notebook', 'p-magnifier'],
   tool: ['s-coins', 'p-chart', 's-button', 's-computer'],
+  action: ['p-magnifier', 'p-folder', 's-notebook', 'p-chart', 's-mailbox', 'p-bubbles', 'p-megaphone', 's-parcel', 's-key', 's-plug'],
 };
 const GROUNDS = {
   meadow: { words: 'a grassy meadow', rows: ['#c9f63f', '#b9ea35', '#a9de33'], dots: ['#ffc4dd', '#ffffff', '#fff3a0'] },

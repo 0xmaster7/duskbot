@@ -13,292 +13,3497 @@
     {
       "name": "Add Sheet to Existing Spreadsheet",
       "slug": "GOOGLESHEETS_ADD_SHEET",
-      "kind": "write"
+      "kind": "write",
+      "description": "Add a GRID sheet with rows and columns to an existing spreadsheet. This action does not create chart-only or DATA_SOURCE sheets. Use properties to configure the GRID sheet's dimensions, tab color, position, visibility, and text direction. Notes: - Sheet names must be unique; use forceUnique=true to auto-append suffix (_2, _3) if name exists - For tab colors, use EITHER rgbColor OR themeColor, not both - Avoid 'index' when creating sheets in parallel (causes errors)",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "The name for the new sheet tab. Must be unique within the spreadsheet. Example: \"Q3 Report\", \"Sales Data 2025\". This is a convenience parameter - alternatively, you can set this via properties.title. Note: sheet_name is also accepted as an alias for title."
+        },
+        {
+          "name": "properties",
+          "type": "object",
+          "required": false,
+          "about": "Advanced GRID sheet properties such as dimensions, tab color, position, visibility, and text direction. For simple cases, use the title parameter directly."
+        },
+        {
+          "name": "force_unique",
+          "type": "boolean",
+          "required": false,
+          "about": "When True (default), automatically ensures the sheet name is unique by appending a numeric suffix (e.g., '_2', '_3') if the requested name already exists. This makes the action resilient to retries and parallel workflows. When False, the action fails with an error if a sheet with the same name alrea"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "REQUIRED. Cannot be empty. The ID of the target spreadsheet where the new sheet will be added. This is the long alphanumeric string in the Google Sheet URL (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'). Use 'Search Spreadsheets' action to find the spreadsheet ID by name if you don't have it"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "googlesheets",
+        "sheet",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Aggregate Column Data",
       "slug": "GOOGLESHEETS_AGGREGATE_COLUMN_DATA",
-      "kind": "write"
+      "kind": "write",
+      "description": "Aggregates data from a column in a Google Sheet, either across all rows or rows matching column-value filters. Supports sum, average, count, minimum, maximum, and percentage.",
+      "inputs": [
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "about": "The mathematical operation to perform on the target column values."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": true,
+          "about": "The name of the specific sheet within the spreadsheet. Matching is case-insensitive. If no exact match is found, partial matches will be attempted (e.g., 'overview' will match 'Overview 2025')."
+        },
+        {
+          "name": "search_value",
+          "type": "string",
+          "required": false,
+          "about": "The exact value to search for in the search column. Case-sensitive by default. If not provided (or if search_column is not provided), all rows in the target column will be aggregated without filtering."
+        },
+        {
+          "name": "search_column",
+          "type": "string",
+          "required": false,
+          "about": "The column to search in for filtering rows. Can be a letter (e.g., 'A', 'B') or column name from header row (e.g., 'Region', 'Department'). If not provided, all rows in the target column will be aggregated without filtering."
+        },
+        {
+          "name": "target_column",
+          "type": "string",
+          "required": true,
+          "about": "The column to aggregate data from. Can be a letter (e.g., 'C', 'D') or column name from header row (e.g., 'Sales', 'Revenue')."
+        },
+        {
+          "name": "case_sensitive",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the search should be case-sensitive."
+        },
+        {
+          "name": "has_header_row",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the first row contains column headers. If True, column names can be used for search_column and target_column."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet."
+        },
+        {
+          "name": "percentage_total",
+          "type": "number",
+          "required": false,
+          "about": "For percentage operation, the total value to calculate percentage against. If not provided, uses sum of all values in target column."
+        },
+        {
+          "name": "additional_filters",
+          "type": "array",
+          "required": false,
+          "about": "Extra column=value conditions applied with AND logic on top of search_column/search_value. Use this to filter on multiple columns simultaneously. Example: [{\"column\": \"Region\", \"value\": \"APAC\"}] combined with search_column=Product/search_value=Beacon returns only rows where Product=Beacon AND Region"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append Dimension",
       "slug": "GOOGLESHEETS_APPEND_DIMENSION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to append new rows or columns to a sheet, increasing its size. Use when you need to add empty rows or columns to an existing sheet.",
+      "inputs": [
+        {
+          "name": "length",
+          "type": "integer",
+          "required": true,
+          "about": "The number of rows or columns to append."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The numeric ID of the sheet (not the sheet name). This is a non-negative integer found in the sheet's URL as the 'gid' parameter (e.g., gid=0) or in the sheet properties. The first sheet in a spreadsheet typically has sheet_id=0."
+        },
+        {
+          "name": "dimension",
+          "type": "string",
+          "required": true,
+          "about": "Specifies whether to append rows or columns."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges of the spreadsheet to include in the response."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be included in the response (if includeSpreadsheetInResponse is true)."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "True if the updated spreadsheet should be included in the response."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "spreadsheets",
+        "dimensions",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Auto-Resize Rows or Columns",
       "slug": "GOOGLESHEETS_AUTO_RESIZE_DIMENSIONS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Auto-fit column widths or row heights for a dimension range using batchUpdate.autoResizeDimensions. Use when you need to automatically adjust row heights or column widths to fit content after writing data.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric ID of the sheet to resize. Either sheet_id or sheet_name must be provided. If both are provided, sheet_name takes precedence and will be resolved to sheet_id."
+        },
+        {
+          "name": "dimension",
+          "type": "string",
+          "required": true,
+          "about": "The dimension to auto-resize. Use 'ROWS' to auto-fit row heights or 'COLUMNS' to auto-fit column widths."
+        },
+        {
+          "name": "end_index",
+          "type": "integer",
+          "required": true,
+          "about": "The zero-based end index of the dimension range to resize (exclusive). Must be greater than start_index. For example, to resize columns A-C, use start_index=0 and end_index=3."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The name of the sheet to resize. Either sheet_id or sheet_name must be provided. Using sheet_name is recommended as it's more intuitive. If both sheet_id and sheet_name are provided, sheet_name takes precedence."
+        },
+        {
+          "name": "start_index",
+          "type": "integer",
+          "required": true,
+          "about": "The zero-based start index of the dimension range to resize (inclusive). For columns, 0 = column A. For rows, 0 = row 1."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet containing the sheet to resize."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "updateHint",
+        "idempotentHint",
+        "dimensions"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch Clear Values By Data Filter",
       "slug": "GOOGLESHEETS_BATCH_CLEAR_VALUES_BY_DATA_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Clears one or more ranges of values from a spreadsheet using data filters. The caller must specify the spreadsheet ID and one or more DataFilters. Ranges matching any of the specified data filters will be cleared. Only values are cleared -- all other properties of the cell (such as formatting, data validation, etc..) are kept.",
+      "inputs": [
+        {
+          "name": "dataFilters",
+          "type": "array",
+          "required": true,
+          "about": "The DataFilters used to determine which ranges to clear."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "spreadsheets",
+        "values",
+        "destructiveHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch get spreadsheet",
       "slug": "GOOGLESHEETS_BATCH_GET",
-      "kind": "write"
+      "kind": "write",
+      "description": "Retrieves values from specified cell ranges in a Google Spreadsheet. If ranges are omitted or empty after filtering blank entries, it retrieves data from the first sheet.",
+      "inputs": [
+        {
+          "name": "ranges",
+          "type": "array",
+          "required": false,
+          "about": "A list of cell ranges in A1 notation from which to retrieve data. If this list is omitted, empty, or contains only empty strings, all data from the first sheet of the spreadsheet will be fetched. Empty strings in the list are automatically filtered out. Supported formats: (1) Bare sheet name like 'S"
+        },
+        {
+          "name": "majorDimension",
+          "type": "string",
+          "required": false,
+          "about": "The major dimension for organizing data in results."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet from which data will be retrieved. This is the ID found in the spreadsheet URL after /d/. You can provide either the spreadsheet ID directly or a full Google Sheets URL (the ID will be extracted automatically)."
+        },
+        {
+          "name": "valueRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "How values should be rendered in the output. FORMATTED_VALUE: Values are calculated and formatted (default). UNFORMATTED_VALUE: Values are calculated but not formatted. FORMULA: Values are not calculated; the formula is returned instead."
+        },
+        {
+          "name": "dateTimeRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "How dates and times should be rendered in the output. SERIAL_NUMBER: Dates are returned as serial numbers (default). FORMATTED_STRING: Dates returned as formatted strings."
+        },
+        {
+          "name": "empty_strings_filtered",
+          "type": "boolean",
+          "required": false,
+          "about": "Indicates whether empty strings were filtered from the response."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch update spreadsheet (Deprecated)",
       "slug": "GOOGLESHEETS_BATCH_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Deprecated: Writes values to one range in a Google Sheet, or appends rows when no start cell is given. It may expand the sheet grid; if a recognized default sheet name is not found, it uses the first sheet instead.",
+      "inputs": [
+        {
+          "name": "values",
+          "type": "array",
+          "required": true,
+          "about": "A 2D array of cell values where each inner array represents a row. Values can be strings, numbers, booleans, or None/null for empty cells. Ensure columns are properly aligned across rows."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": true,
+          "about": "The name of the specific sheet (tab) within the spreadsheet to update (required, separate from cell reference). Case-insensitive matching is supported (e.g., 'sheet1' will match 'Sheet1'). Note: Default sheet names are locale-dependent (e.g., 'Sheet1' in English, 'Foglio1' in Italian, 'Hoja 1' in Sp"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet to be updated. Must be an alphanumeric string (with hyphens and underscores allowed) typically 44 characters long. Can be found in the spreadsheet URL between '/d/' and '/edit'. Example: 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKv"
+        },
+        {
+          "name": "value_input_option",
+          "type": "string",
+          "required": false,
+          "about": "How input data should be interpreted. 'USER_ENTERED': Values are parsed as if typed by a user (e.g., strings may become numbers/dates, formulas are calculated). 'RAW': Values are stored exactly as provided without parsing (e.g., '123' stays as string, '=SUM(A1:B1)' is not calculated)."
+        },
+        {
+          "name": "first_cell_location",
+          "type": "string",
+          "required": false,
+          "about": "The starting cell for the update range, specified as a single cell in A1 notation WITHOUT sheet prefix (e.g., 'A1', 'B2', 'AA931'). The update will extend from this cell to the right and down based on the provided values. Sheet name must be provided separately in the 'sheet_name' field. If omitted o"
+        },
+        {
+          "name": "include_values_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "If set to True, the response will include the updated values in the 'spreadsheet.responses[].updatedData' field. The updatedData object contains 'range' (A1 notation), 'majorDimension' (ROWS), and 'values' (2D array of the actual cell values after the update)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "updateHint",
+        "deprecated",
+        "createHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Batch Update Values by Data Filter",
       "slug": "GOOGLESHEETS_BATCH_UPDATE_VALUES_BY_DATA_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update values in ranges matching data filters. Use when you need to update specific data in a Google Sheet based on criteria rather than fixed cell ranges.",
+      "inputs": [
+        {
+          "name": "data",
+          "type": "array",
+          "required": true,
+          "about": "The new values to apply to the spreadsheet. If more than one range is matched by the specified DataFilter the specified values are applied to all of those ranges. Can be provided as a JSON string or as a list of DataFilterValueRange objects."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        },
+        {
+          "name": "valueInputOption",
+          "type": "string",
+          "required": true,
+          "about": "How the input data should be interpreted. RAW: Values are stored exactly as entered, without parsing. USER_ENTERED: Values are parsed as if typed by a user (numbers stay numbers, strings prefixed with '=' become formulas, etc.). INPUT_VALUE_OPTION_UNSPECIFIED: Default input value option is not speci"
+        },
+        {
+          "name": "includeValuesInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the values of the cells that were updated. By default, responses do not include the updated values."
+        },
+        {
+          "name": "responseValueRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how values in the response should be rendered. The default render option is FORMATTED_VALUE."
+        },
+        {
+          "name": "responseDateTimeRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how dates, times, and durations in the response should be rendered. This is ignored if responseValueRenderOption is FORMATTED_VALUE. The default dateTime render option is SERIAL_NUMBER."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "googlesheets",
+        "sheets",
+        "update",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Clear Basic Filter",
       "slug": "GOOGLESHEETS_CLEAR_BASIC_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to clear the basic filter from a sheet. Use when you need to remove an existing basic filter from a specific sheet within a Google Spreadsheet.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The ID of the sheet on which the basic filter should be cleared."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Only applicable when include_spreadsheet_in_response is true."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned in the response. Only applicable when include_spreadsheet_in_response is true."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the spreadsheet resource."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "googlesheets",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Clear spreadsheet values",
       "slug": "GOOGLESHEETS_CLEAR_VALUES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Clears cell content (preserving formatting and notes) from a specified A1 notation range in a Google Spreadsheet; the range must correspond to an existing sheet and cells.",
+      "inputs": [
+        {
+          "name": "range",
+          "type": "string",
+          "required": true,
+          "about": "The A1 notation of the range to clear values from (e.g., 'Sheet1!A1:B2', 'MySheet!C:C', or 'A1:D5'). If the sheet name is omitted (e.g., 'A1:B2'), the operation applies to the first visible sheet."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet from which to clear values. This ID can be found in the URL of the spreadsheet."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "destructiveHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create Chart in Google Sheets",
       "slug": "GOOGLESHEETS_CREATE_CHART",
-      "kind": "write"
+      "kind": "write",
+      "description": "Create a chart in a Google Sheets spreadsheet using a specified data range and chart type, or an optional full chart specification. The chart type and data range are required even when supplying a chart specification.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "Optional title for the chart."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The numeric sheetId (not the sheet name/title) of the worksheet where the chart will be created. This is a unique integer identifier for the sheet within the spreadsheet. The first/default sheet typically has sheetId=0. IMPORTANT: Use 'Get Spreadsheet Info' action to retrieve valid sheetIds - look f"
+        },
+        {
+          "name": "subtitle",
+          "type": "string",
+          "required": false,
+          "about": "Optional subtitle for the chart."
+        },
+        {
+          "name": "chart_spec",
+          "type": "object",
+          "required": false,
+          "about": "Optional full ChartSpec object to send to the Google Sheets API. Use this to support ALL chart types and advanced options. Must set exactly one of: basicChart, pieChart, bubbleChart, candlestickChart, histogramChart, treemapChart, waterfallChart, orgChart, scorecardChart. See https://developers.goog"
+        },
+        {
+          "name": "chart_type",
+          "type": "string",
+          "required": true,
+          "about": "Type of chart to create. Supported types: BAR, LINE, AREA, COLUMN, SCATTER, COMBO, STEPPED_AREA, PIE, HISTOGRAM, BUBBLE, CANDLESTICK, TREEMAP, WATERFALL, ORG, SCORECARD. Case-insensitive and whitespace-tolerant."
+        },
+        {
+          "name": "data_range",
+          "type": "string",
+          "required": true,
+          "about": "A single contiguous range of data for the chart in A1 notation (e.g., 'A1:C10' or 'Sheet1!B2:D20'). Must be a single continuous range - comma-separated multi-ranges (e.g., 'A1:A10,C1:C10') are not supported. When chart_spec is not provided, the first column is used as the domain/labels and the remai"
+        },
+        {
+          "name": "x_axis_title",
+          "type": "string",
+          "required": false,
+          "about": "Optional title for the X-axis."
+        },
+        {
+          "name": "y_axis_title",
+          "type": "string",
+          "required": false,
+          "about": "Optional title for the Y-axis."
+        },
+        {
+          "name": "background_red",
+          "type": "number",
+          "required": false,
+          "about": "Red component of chart background color (0.0-1.0). If not specified, uses default."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet where the chart will be created. Must be the actual spreadsheet ID from the URL (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'), NOT the spreadsheet name or title. Find it in the URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/"
+        },
+        {
+          "name": "background_blue",
+          "type": "number",
+          "required": false,
+          "about": "Blue component of chart background color (0.0-1.0). If not specified, uses default."
+        },
+        {
+          "name": "legend_position",
+          "type": "string",
+          "required": false,
+          "about": "Position of the chart legend. Options: BOTTOM_LEGEND, TOP_LEGEND, LEFT_LEGEND, RIGHT_LEGEND, NO_LEGEND."
+        },
+        {
+          "name": "background_green",
+          "type": "number",
+          "required": false,
+          "about": "Green component of chart background color (0.0-1.0). If not specified, uses default."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create a Google Sheet",
       "slug": "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-      "kind": "write"
+      "kind": "write",
+      "description": "Creates a new Google Spreadsheet in Drive with an optional title and folder ID or exact folder name. Multiple matching folders return choices before creation; if moving a created spreadsheet to the requested folder fails, the response reports partial success.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "about": "The title for the new Google Sheet. If omitted, Google will create a spreadsheet with a default name like 'Untitled spreadsheet'."
+        },
+        {
+          "name": "folder_id",
+          "type": "string",
+          "required": false,
+          "about": "Google Drive folder ID where the spreadsheet should be created. If provided, the spreadsheet will be moved to this folder after creation. Takes precedence over folder_name."
+        },
+        {
+          "name": "folder_name",
+          "type": "string",
+          "required": false,
+          "about": "Google Drive folder name where the spreadsheet should be created. If provided and folder_id is not provided, the action will search for a folder with this exact name. If multiple folders match, you'll receive a list to choose from. If no folder matches, an error is returned."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "important",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create spreadsheet column",
       "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_COLUMN",
-      "kind": "write"
+      "kind": "write",
+      "description": "Inserts a new column in a Google Spreadsheet at a specified index. Select the target sheet by numeric ID or name; if neither is provided, sheet ID 0 is used.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric identifier of the specific sheet (tab) within the spreadsheet. Defaults to 0 (the first sheet) if neither sheet_id nor sheet_name is provided. Use GOOGLESHEETS_GET_SHEET_NAMES or GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE to obtain the sheet_id from a sheet name."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The name (title) of the sheet/tab where the column will be added. If provided, the action will look up the sheet_id automatically. If both sheet_id and sheet_name are provided, sheet_id takes precedence."
+        },
+        {
+          "name": "insert_index",
+          "type": "integer",
+          "required": false,
+          "about": "The 0-based index at which the new column will be inserted. For example, an index of 0 inserts the column before the current first column (A), and an index of 1 inserts it between the current columns A and B."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet where the column will be created."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges of the spreadsheet to include in the response. Only used if includeSpreadsheetInResponse is true."
+        },
+        {
+          "name": "inherit_from_before",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the new column inherits properties (e.g., formatting, width) from the column immediately to its left (the preceding column). If false (default), it inherits from the column immediately to its right (the succeeding column). This is ignored if there is no respective preceding or succeeding co"
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, grid data will be included in the response (only used if includeSpreadsheetInResponse is true)."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, the updated spreadsheet will be included in the response. Defaults to true if not specified."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create spreadsheet row",
       "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_ROW",
-      "kind": "write"
+      "kind": "write",
+      "description": "Inserts a new, empty row into a specified sheet of a Google Spreadsheet at a given index, optionally inheriting formatting from the row above.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric identifier of the sheet (tab) within the spreadsheet where the row will be inserted. This ID (gid) is found in the URL of the spreadsheet (e.g., '0' for the first sheet). Either sheet_id or sheet_name must be provided."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The human-readable name of the sheet (tab) within the spreadsheet where the row will be inserted (e.g., 'Sheet1'). Either sheet_id or sheet_name must be provided. If both are provided, sheet_id takes precedence."
+        },
+        {
+          "name": "insert_index",
+          "type": "integer",
+          "required": false,
+          "about": "The 0-based index at which the new row should be inserted. For example, an index of 0 inserts the row at the beginning of the sheet. If the index is greater than the current number of rows, the row is appended."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet. Can be provided as the ID (e.g., '1qpyC0XzHc_-_d824s2VfopkHh7D0jW4aXCS1D_AlGA') or as a full URL (the ID will be extracted automatically)."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Only meaningful when include_spreadsheet_in_response is True. Use A1 notation (e.g., ['Sheet1!A1:D10'])."
+        },
+        {
+          "name": "inherit_from_before",
+          "type": "boolean",
+          "required": false,
+          "about": "If True, the newly inserted row will inherit formatting and properties from the row immediately preceding its insertion point. If False, it will have default formatting."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "If True, grid data will be included in the response spreadsheet. Only meaningful when include_spreadsheet_in_response is True. Default is False."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "If True, the response will include the full updated Spreadsheet resource. Default behavior includes the spreadsheet when this parameter is not specified."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Chart from Google Sheets",
       "slug": "GOOGLESHEETS_DELETE_CHART",
-      "kind": "write"
+      "kind": "write",
+      "description": "Delete an existing chart from a Google Sheets spreadsheet. Use this action when you need to remove a chart that is no longer needed or needs to be replaced. This action is irreversible — once a chart is deleted, it cannot be recovered. The chart data source (the cells containing the data) remains unchanged; only the chart visualization is removed.",
+      "inputs": [
+        {
+          "name": "chart_id",
+          "type": "integer",
+          "required": true,
+          "about": "The unique numeric identifier of the chart to delete (also known as objectId or chartId). This is the chart's ID within the spreadsheet, not the sheet ID. You can retrieve chart IDs using the 'Get Spreadsheet Info' action - look for sheets[].charts[].chartId in the response. Each chart has a unique "
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet containing the chart to delete. Must be the actual spreadsheet ID from the URL (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'), NOT the spreadsheet name or title. Find it in the URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/e"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+        "spreadsheet"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Dimension (Rows/Columns)",
       "slug": "GOOGLESHEETS_DELETE_DIMENSION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to delete specified rows or columns from a sheet in a Google Spreadsheet. Use when you need to remove a range of rows or columns.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The unique numeric ID of the sheet (not the index/position). This ID is assigned by Google Sheets and does not change when sheets are reordered. Use GOOGLESHEETS_GET_SPREADSHEET_INFO to find the sheet ID, or use sheet_name instead. Either sheet_id or sheet_name must be provided."
+        },
+        {
+          "name": "dimension",
+          "type": "string",
+          "required": false,
+          "about": "The dimension to delete (ROWS or COLUMNS)."
+        },
+        {
+          "name": "end_index",
+          "type": "integer",
+          "required": false,
+          "about": "The zero-based end index of the range to delete, exclusive. Must be greater than start_index and at most equal to the sheet's current row/column count. Note: Cannot delete all rows or columns from a sheet - at least one row and one column must remain."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The name/title of the sheet from which to delete the dimension. Using sheet_name is recommended as it's more intuitive than sheet_id. Either sheet_id or sheet_name must be provided."
+        },
+        {
+          "name": "start_index",
+          "type": "integer",
+          "required": false,
+          "about": "The zero-based start index of the range to delete, inclusive. Must be less than end_index and within the sheet's current row/column count. Note: Cannot delete all rows or columns from a sheet - at least one row and one column must remain."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges of cells included in the response spreadsheet."
+        },
+        {
+          "name": "delete_dimension_request",
+          "type": "object",
+          "required": false,
+          "about": "The details for the delete dimension request object."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned. This parameter is ignored if a field mask was set in the request."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the spreadsheet resource."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "destructive",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Delete Sheet",
       "slug": "GOOGLESHEETS_DELETE_SHEET",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to delete a sheet (worksheet) from a spreadsheet. Use when you need to remove a specific sheet from a Google Sheet document.",
+      "inputs": [
+        {
+          "name": "sheetId",
+          "type": "integer",
+          "required": true,
+          "about": "The ID of the sheet to delete. Note: A spreadsheet must contain at least one sheet, so you cannot delete the last remaining sheet. If the sheet is of DATA_SOURCE type, the associated DataSource is also deleted."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet from which to delete the sheet."
+        },
+        {
+          "name": "responseRanges",
+          "type": "array",
+          "required": false,
+          "about": "Limits which ranges are returned when includeSpreadsheetInResponse is true. Only meaningful if includeSpreadsheetInResponse is set to true. Ranges should be in A1 notation (e.g., 'Sheet1!A1:B10')."
+        },
+        {
+          "name": "responseIncludeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned in the response spreadsheet. Only meaningful when includeSpreadsheetInResponse is true and no field mask is set on the request."
+        },
+        {
+          "name": "includeSpreadsheetInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the spreadsheet resource should be returned in the response. If true, the response includes the updated spreadsheet resource with all its sheets, properties, and metadata."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "important",
+        "googlesheets",
+        "sheet",
+        "destructiveHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Execute SQL on Spreadsheet",
       "slug": "GOOGLESHEETS_EXECUTE_SQL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Deprecated SQL facade for selecting, inserting, updating, and deleting data in automatically detected spreadsheet tables, including limited WITH queries; discovery reads at most 10,000 rows per sheet. For detected header-based tables, the first data row is skipped and update/delete row targeting can be offset.",
+      "inputs": [
+        {
+          "name": "sql",
+          "type": "string",
+          "required": true,
+          "about": "Complete SQL query to execute. Must begin with SELECT, INSERT, UPDATE, DELETE, or WITH. Supports Common Table Expressions (CTEs) using WITH clause for complex queries. Note: WITH clauses require the sqlglot library for full support; simple SELECT/INSERT/UPDATE/DELETE operations work without it. Use "
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "about": "Preview changes without applying them (for write operations)"
+        },
+        {
+          "name": "delete_method",
+          "type": "string",
+          "required": false,
+          "about": "For DELETE operations: 'clear' preserves row structure, 'remove_rows' shifts data up"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique alphanumeric ID of the Google Spreadsheet extracted from the URL. Format: A long string of letters, numbers, hyphens, and underscores (typically 44 characters). Find it in the URL: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit. Must be a valid ID - values like 'auto' are NO"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/spreadsheets.readonly"
+      ],
+      "tags": [
+        "openWorldHint",
+        "sql-facade",
+        "createHint",
+        "updateHint",
+        "destructiveHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Export Drive Spreadsheet",
       "slug": "GOOGLESHEETS_EXPORT_DRIVE_FILE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Export an entire native spreadsheet as XLSX, ODS, PDF, ZIP, CSV, or TSV; use Export Sheet as PDF for print layout and range controls.",
+      "inputs": [
+        {
+          "name": "file_id",
+          "type": "string",
+          "required": true,
+          "about": "Opaque Drive file ID of a native Google Sheets spreadsheet, not its title or URL."
+        },
+        {
+          "name": "mime_type",
+          "type": "string",
+          "required": true,
+          "about": "Official Drive export MIME type for spreadsheets: XLSX, ODS, PDF, zipped HTML, CSV, or TSV. CSV and TSV export only the first sheet."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "important",
+        "file"
+      ],
+      "deprecated": false
     },
     {
       "name": "Export Sheet as PDF",
       "slug": "GOOGLESHEETS_EXPORT_SHEET_AS_PDF",
-      "kind": "write"
+      "kind": "write",
+      "description": "Render one sheet tab or rectangular range as PDF with orientation, gridline, margin, and fit-to-width controls.",
+      "inputs": [
+        {
+          "name": "portrait",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to use portrait orientation, mapped to portrait."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "Numeric ID of the sheet tab to export (the gid in a Sheets URL), not the tab title or spreadsheet ID."
+        },
+        {
+          "name": "top_margin",
+          "type": "number",
+          "required": false,
+          "about": "Top margin passed to the sample-backed top_margin control. Google does not formally document its unit or accepted range."
+        },
+        {
+          "name": "left_margin",
+          "type": "number",
+          "required": false,
+          "about": "Left margin passed to the sample-backed left_margin control. Google does not formally document its unit or accepted range."
+        },
+        {
+          "name": "fit_to_width",
+          "type": "boolean",
+          "required": false,
+          "about": "Value for the sample-backed fitw PDF print control."
+        },
+        {
+          "name": "print_titles",
+          "type": "boolean",
+          "required": false,
+          "about": "Value for the sample-backed printtitle PDF print control."
+        },
+        {
+          "name": "right_margin",
+          "type": "number",
+          "required": false,
+          "about": "Right margin passed to the sample-backed right_margin control. Google does not formally document its unit or accepted range."
+        },
+        {
+          "name": "bottom_margin",
+          "type": "number",
+          "required": false,
+          "about": "Bottom margin passed to the sample-backed bottom_margin control. Google does not formally document its unit or accepted range."
+        },
+        {
+          "name": "end_row_index",
+          "type": "integer",
+          "required": false,
+          "about": "Sample-backed r2 range control. It must exceed start_row_index; Google does not formally document this browser-route key."
+        },
+        {
+          "name": "show_gridlines",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to show sheet gridlines in the PDF."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "Google Sheets spreadsheet ID or original docs.google.com Sheets URL, not the spreadsheet title. Published /d/e/ URLs are not supported."
+        },
+        {
+          "name": "show_sheet_name",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to print the sheet name, mapped to sheetnames."
+        },
+        {
+          "name": "start_row_index",
+          "type": "integer",
+          "required": false,
+          "about": "Sample-backed r1 range control. Supply it with all other range indices; Google does not formally document this browser-route key."
+        },
+        {
+          "name": "end_column_index",
+          "type": "integer",
+          "required": false,
+          "about": "Sample-backed c2 range control. It must exceed start_column_index; Google does not formally document this browser-route key."
+        },
+        {
+          "name": "repeat_frozen_rows",
+          "type": "boolean",
+          "required": false,
+          "about": "Value for the sample-backed fzr PDF print control."
+        },
+        {
+          "name": "start_column_index",
+          "type": "integer",
+          "required": false,
+          "about": "Sample-backed c1 range control. Supply it with all other range indices; Google does not formally document this browser-route key."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/spreadsheets.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "important",
+        "file"
+      ],
+      "deprecated": false
     },
     {
       "name": "Find and Replace in Spreadsheet",
       "slug": "GOOGLESHEETS_FIND_REPLACE",
-      "kind": "read"
+      "kind": "read",
+      "description": "Finds and replaces text across cells in a Google Spreadsheet, scoped to a sheet, range, or all sheets; if no scope is specified, it searches all sheets. Formula cells can be included explicitly when fixing formula references or patterns.",
+      "inputs": [
+        {
+          "name": "find",
+          "type": "string",
+          "required": true,
+          "about": "The text to find. Can be a literal string or a regular expression pattern."
+        },
+        {
+          "name": "range",
+          "type": "string",
+          "required": false,
+          "about": "A1 notation range string to search within (e.g., 'A1:B10', 'Sheet1!A1:B10'). When using A1 notation with a sheet name, you must also provide range_sheet_id to specify the numeric sheet ID (the API requires numeric IDs). Alternatively, use the GridRange parameters (range_sheet_id with optional row/co"
+        },
+        {
+          "name": "replace",
+          "type": "string",
+          "required": true,
+          "about": "The text to replace the found instances with."
+        },
+        {
+          "name": "sheetId",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric ID of the sheet to search the entire sheet (e.g., 0 for the first sheet). Mutually exclusive with sheet_name, range/range_sheet_id parameters, and all_sheets. You must specify exactly one scope: either sheet_id (entire sheet), sheet_name, range/range_sheet_id (specific range), or all_she"
+        },
+        {
+          "name": "allSheets",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to search across all sheets in the spreadsheet. Mutually exclusive with sheet_id and range parameters."
+        },
+        {
+          "name": "matchCase",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the search should be case-sensitive."
+        },
+        {
+          "name": "sheetName",
+          "type": "string",
+          "required": false,
+          "about": "The name/title of the sheet (tab) to search within (e.g., 'Sheet1', 'Sales Data'). The sheet name will be resolved to its numeric sheet ID. Mutually exclusive with sheet_id, range/range_sheet_id parameters, and all_sheets."
+        },
+        {
+          "name": "endRowIndex",
+          "type": "integer",
+          "required": false,
+          "about": "The end row (0-indexed, exclusive) of the range. Only used when range_sheet_id is provided without a 'range' parameter."
+        },
+        {
+          "name": "rangeSheetId",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric sheet ID for a GridRange-based search. Required when using the 'range' parameter with A1 notation. Can also be used alone or with row/column index parameters to define a specific range. Mutually exclusive with sheet_id and all_sheets."
+        },
+        {
+          "name": "searchByRegex",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to treat the find text as a regular expression."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        },
+        {
+          "name": "startRowIndex",
+          "type": "integer",
+          "required": false,
+          "about": "The start row (0-indexed, inclusive) of the range. Only used when range_sheet_id is provided without a 'range' parameter."
+        },
+        {
+          "name": "endColumnIndex",
+          "type": "integer",
+          "required": false,
+          "about": "The end column (0-indexed, exclusive) of the range. Column A = 0, B = 1, etc. Only used when range_sheet_id is provided without a 'range' parameter."
+        },
+        {
+          "name": "includeFormulas",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include cells with formulas in the search. If true, formulas are searched and can be replaced. If false, only cell values (not formulas) are searched. If not specified, the default API behavior applies (both formulas and values are searched)."
+        },
+        {
+          "name": "matchEntireCell",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to match only cells that contain the entire search term."
+        },
+        {
+          "name": "startColumnIndex",
+          "type": "integer",
+          "required": false,
+          "about": "The start column (0-indexed, inclusive) of the range. Column A = 0, B = 1, etc. Only used when range_sheet_id is provided without a 'range' parameter."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "googlesheets",
+        "find",
+        "replace",
+        "important",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Find worksheet by title (Deprecated)",
       "slug": "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Finds a worksheet by its case-sensitive title within a Google Spreadsheet, after trimming input whitespace and decoding Unicode escapes. Returns a found boolean and matched worksheet metadata, or indicates no match.",
+      "inputs": [
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet from the URL (e.g., https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit). Important: This is NOT the spreadsheet's display name/title. It is the long alphanumeric string (typically 40-45 characters) from the URL containing only letters, number"
+        },
+        {
+          "name": "worksheet_title",
+          "type": "string",
+          "required": true,
+          "about": "The exact, case-sensitive title of the worksheet (tab name) to find."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "Format cell",
       "slug": "GOOGLESHEETS_FORMAT_CELL",
-      "kind": "write"
+      "kind": "write",
+      "description": "Formats a specified cell range in a Google Sheets worksheet. It always applies text style, font size and background color defaults unless supplied; a sheet prefix in an A1 range is ignored, so select the worksheet separately.",
+      "inputs": [
+        {
+          "name": "red",
+          "type": "number",
+          "required": false,
+          "about": "Red component of the background color (0.0-1.0)."
+        },
+        {
+          "name": "blue",
+          "type": "number",
+          "required": false,
+          "about": "Blue component of the background color (0.0-1.0)."
+        },
+        {
+          "name": "bold",
+          "type": "boolean",
+          "required": false,
+          "about": "Apply bold formatting."
+        },
+        {
+          "name": "green",
+          "type": "number",
+          "required": false,
+          "about": "Green component of the background color (0.0-1.0)."
+        },
+        {
+          "name": "range",
+          "type": "string",
+          "required": false,
+          "about": "OPTION 1: Cell range in A1 notation (RECOMMENDED). Supports: single cells ('A1', 'F9'), cell ranges ('A1:B5'), entire columns ('A', 'I:J'), entire rows ('1', '1:5'). Also accepts sheet-prefixed ranges ('Sheet1!A1', 'Instagram Calendar!A1:E1') for convenience - if provided, the sheet prefix is stripp"
+        },
+        {
+          "name": "italic",
+          "type": "boolean",
+          "required": false,
+          "about": "Apply italic formatting."
+        },
+        {
+          "name": "fontSize",
+          "type": "integer",
+          "required": false,
+          "about": "Font size in points."
+        },
+        {
+          "name": "text_link",
+          "type": "string",
+          "required": false,
+          "about": "Cell-level text link URI. Must include a URI scheme, such as 'https://' or 'mailto:'."
+        },
+        {
+          "name": "underline",
+          "type": "boolean",
+          "required": false,
+          "about": "Apply underline formatting."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The worksheet name/title (e.g., 'Sheet1', 'Q3 Report'). Provide either this field OR worksheet_id, not both. If both are provided, sheet_name takes precedence and will be resolved to worksheet_id."
+        },
+        {
+          "name": "text_color",
+          "type": "string",
+          "required": false,
+          "about": "Text color as 6-digit hex."
+        },
+        {
+          "name": "font_family",
+          "type": "string",
+          "required": false,
+          "about": "Font family."
+        },
+        {
+          "name": "padding_top",
+          "type": "integer",
+          "required": false,
+          "about": "Top padding in pixels."
+        },
+        {
+          "name": "border_color",
+          "type": "string",
+          "required": false,
+          "about": "Border color as 6-digit hex."
+        },
+        {
+          "name": "border_style",
+          "type": "string",
+          "required": false,
+          "about": "Border styles supported by Google Sheets."
+        },
+        {
+          "name": "padding_left",
+          "type": "integer",
+          "required": false,
+          "about": "Left padding in pixels."
+        },
+        {
+          "name": "worksheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The worksheet identifier. Accepts EITHER: (1) The sheetId from the Google Sheets API (a large number like 1534097477, obtainable via GOOGLESHEETS_GET_SPREADSHEET_INFO), OR (2) The 0-based positional index of the worksheet (0 for first sheet, 1 for second, etc.). The action will first try to match by"
+        },
+        {
+          "name": "end_row_index",
+          "type": "integer",
+          "required": false,
+          "about": "OPTION 2: 0-based index of the row AFTER the last row (exclusive). Required if 'range' is not provided. Must provide ALL four index fields together."
+        },
+        {
+          "name": "padding_right",
+          "type": "integer",
+          "required": false,
+          "about": "Right padding in pixels."
+        },
+        {
+          "name": "strikethrough",
+          "type": "boolean",
+          "required": false,
+          "about": "Apply strikethrough formatting."
+        },
+        {
+          "name": "wrap_strategy",
+          "type": "string",
+          "required": false,
+          "about": "How text wraps within cells."
+        },
+        {
+          "name": "padding_bottom",
+          "type": "integer",
+          "required": false,
+          "about": "Bottom padding in pixels."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Google Sheets spreadsheet."
+        },
+        {
+          "name": "text_direction",
+          "type": "string",
+          "required": false,
+          "about": "Text direction in a cell."
+        },
+        {
+          "name": "start_row_index",
+          "type": "integer",
+          "required": false,
+          "about": "OPTION 2: 0-based row index (row 1 = index 0, row 9 = index 8). Required if 'range' is not provided. Must provide ALL four index fields together."
+        },
+        {
+          "name": "background_alpha",
+          "type": "number",
+          "required": false,
+          "about": "Background alpha from 0.0 to 1.0."
+        },
+        {
+          "name": "background_color",
+          "type": "string",
+          "required": false,
+          "about": "Background color as 6-digit hex."
+        },
+        {
+          "name": "end_column_index",
+          "type": "integer",
+          "required": false,
+          "about": "OPTION 2: 0-based index of the column AFTER the last column (exclusive). Required if 'range' is not provided. Must provide ALL four index fields together."
+        },
+        {
+          "name": "number_format_type",
+          "type": "string",
+          "required": false,
+          "about": "How number values should be represented to the user."
+        },
+        {
+          "name": "start_column_index",
+          "type": "integer",
+          "required": false,
+          "about": "OPTION 2: 0-based column index (A = 0, B = 1, F = 5). Required if 'range' is not provided. Must provide ALL four index fields together."
+        },
+        {
+          "name": "vertical_alignment",
+          "type": "string",
+          "required": false,
+          "about": "Vertical alignment of text in a cell."
+        },
+        {
+          "name": "text_rotation_angle",
+          "type": "integer",
+          "required": false,
+          "about": "Text rotation angle from -90 to 90."
+        },
+        {
+          "name": "horizontal_alignment",
+          "type": "string",
+          "required": false,
+          "about": "Horizontal alignment of text in a cell."
+        },
+        {
+          "name": "number_format_pattern",
+          "type": "string",
+          "required": false,
+          "about": "Optional number/date pattern."
+        },
+        {
+          "name": "hyperlink_display_type",
+          "type": "string",
+          "required": false,
+          "about": "How a hyperlink should be displayed in a cell."
+        },
+        {
+          "name": "text_rotation_vertical",
+          "type": "boolean",
+          "required": false,
+          "about": "Make text read top to bottom."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "idempotentHint",
+        "openWorldHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch Get Spreadsheet Values (Deprecated)",
       "slug": "GOOGLESHEETS_GET_BATCH_VALUES",
-      "kind": "read"
+      "kind": "read",
+      "description": "DEPRECATED: Use GOOGLESHEETS_BATCH_GET instead. Tool to return one or more ranges of values from a spreadsheet. Use when you need to retrieve data from multiple ranges in a single request.",
+      "inputs": [
+        {
+          "name": "ranges",
+          "type": "array",
+          "required": true,
+          "about": "The A1 notation or R1C1 notation of the ranges to retrieve values from. Specify one or more ranges (e.g., ['Sheet1!A1:B10', 'Sheet2!C1:D5']). For sheet names with spaces or special characters, wrap in single quotes (e.g., \"'My Sheet'!A1:B10\")."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to retrieve data from. This is the unique identifier found in the spreadsheet URL between '/d/' and '/edit' (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms')."
+        },
+        {
+          "name": "major_dimension",
+          "type": "string",
+          "required": false,
+          "about": "The major dimension for results."
+        },
+        {
+          "name": "value_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How values should be rendered in the output."
+        },
+        {
+          "name": "date_time_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How dates, times, and durations should be represented in the output."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/spreadsheets.readonly"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "readOnlyHint",
+        "batch",
+        "cell_values",
+        "deprecated"
+      ],
+      "deprecated": true
     },
     {
       "name": "Get conditional format rules",
       "slug": "GOOGLESHEETS_GET_CONDITIONAL_FORMAT_RULES",
-      "kind": "read"
+      "kind": "read",
+      "description": "List conditional formatting rules for each sheet (or a selected sheet) in a normalized, easy-to-edit form. Use when you need to view, audit, or prepare to modify conditional format rules.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "Optional filter: return rules only for the sheet with this exact numeric sheetId. If not provided, returns rules for all sheets. If both sheet_title and sheet_id are provided, sheet_id takes precedence."
+        },
+        {
+          "name": "sheet_title",
+          "type": "string",
+          "required": false,
+          "about": "Optional filter: return rules only for the sheet with this exact title. If not provided, returns rules for all sheets."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "Unique identifier of the Google Spreadsheet, typically found in its URL."
+        },
+        {
+          "name": "exclude_tables_in_banded_ranges",
+          "type": "boolean",
+          "required": false,
+          "about": "True if tables should be excluded in the banded ranges. False if not set."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Data Validation Rules",
       "slug": "GOOGLESHEETS_GET_DATA_VALIDATION_RULES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to extract data validation rules from a Google Sheets spreadsheet. Use when you need to understand dropdown lists, allowed values, custom formulas, or other validation constraints for cells.",
+      "inputs": [
+        {
+          "name": "ranges",
+          "type": "array",
+          "required": false,
+          "about": "Optional list of A1 ranges to scan. If omitted, the entire sheet(s) will be scanned. WARNING: Scanning entire large sheets may be slow."
+        },
+        {
+          "name": "sheetId",
+          "type": "integer",
+          "required": false,
+          "about": "Optional sheet ID to filter by. If omitted, all sheets will be scanned."
+        },
+        {
+          "name": "sheetTitle",
+          "type": "string",
+          "required": false,
+          "about": "Optional sheet title to filter by. If omitted, all sheets will be scanned."
+        },
+        {
+          "name": "includeEmpty",
+          "type": "boolean",
+          "required": false,
+          "about": "If true, include cells without validation rules in the output. Default is false."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to request."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "spreadsheet",
+        "validation",
+        "schema",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Drive File Metadata",
       "slug": "GOOGLESHEETS_GET_DRIVE_FILE_METADATA",
-      "kind": "read"
+      "kind": "read",
+      "description": "Get JSON metadata for one Drive file without downloading its content.",
+      "inputs": [
+        {
+          "name": "fields",
+          "type": "string",
+          "required": false,
+          "about": "Google partial-response field mask for any valid Drive File fields, for example id,name,mimeType,modifiedTime or permissions(id,emailAddress,role). Omit for Drive's default metadata projection; use * only when the larger response is needed."
+        },
+        {
+          "name": "fileId",
+          "type": "string",
+          "required": true,
+          "about": "Opaque Drive file ID to inspect, not a file name. A Google Sheets spreadsheet ID is also its Drive file ID."
+        },
+        {
+          "name": "includeLabels",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated Drive label IDs to include in labelInfo. Include labelInfo in fields when using a custom projection."
+        },
+        {
+          "name": "supportsAllDrives",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether the caller supports both My Drive and shared-drive files. Defaults to true so a valid shared-drive file ID works."
+        },
+        {
+          "name": "includePermissionsForView",
+          "type": "string",
+          "required": false,
+          "about": "Set to published to include permissions for the published view. Include permissions in fields when using a custom projection."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.metadata",
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "important",
+        "file"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get sheet names",
       "slug": "GOOGLESHEETS_GET_SHEET_NAMES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists all worksheet names from a specified Google Spreadsheet (which must exist), useful for discovering sheets before further operations.",
+      "inputs": [
+        {
+          "name": "exclude_hidden",
+          "type": "boolean",
+          "required": false,
+          "about": "When True, hidden sheets will be excluded from the results. When False (default), all sheets including hidden ones are returned. Hidden sheets are sheets that have been hidden via the 'Hide sheet' option in Google Sheets UI."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet (alphanumeric string, typically 44 characters). Extract only the ID portion from URLs - do not include leading/trailing slashes, '/edit' suffixes, query parameters, or URL fragments. From 'https://docs.google.com/spreadsheets/d/1qpyC0XzvTcKT6EISywY/edi"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Spreadsheet by Data Filter",
       "slug": "GOOGLESHEETS_GET_SPREADSHEET_BY_DATA_FILTER",
-      "kind": "read"
+      "kind": "read",
+      "description": "Returns the spreadsheet at the given ID, filtered by the specified data filters. Use this tool when you need to retrieve specific subsets of data from a Google Sheet based on criteria like A1 notation, developer metadata, or grid ranges. Important: This action is designed for filtered data retrieval. While it accepts empty filters and returns full metadata in that case, GOOGLESHEETS_GET_SPREADSHEET_INFO is the recommended action for unfiltered spreadsheet retrieval.",
+      "inputs": [
+        {
+          "name": "dataFilters",
+          "type": "array",
+          "required": false,
+          "about": "The DataFilters used to select which ranges to retrieve. Supports A1 notation (e.g., 'Sheet1!A1:B2'), developer metadata lookup, or grid range filters. If empty or omitted, returns full spreadsheet metadata. Recommended: Use GOOGLESHEETS_GET_SPREADSHEET_INFO for unfiltered retrieval as it is the ded"
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to request."
+        },
+        {
+          "name": "includeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned. Ignored if a field mask is set."
+        },
+        {
+          "name": "excludeTablesInBandedRanges",
+          "type": "boolean",
+          "required": false,
+          "about": "True if tables should be excluded in the banded ranges. False if not set."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "important",
+        "spreadsheet",
+        "filter",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get spreadsheet info",
       "slug": "GOOGLESHEETS_GET_SPREADSHEET_INFO",
-      "kind": "read"
+      "kind": "read",
+      "description": "Retrieves metadata for a Google Spreadsheet using its ID. By default, returns essential information (ID, title, sheet properties) to avoid payload size issues. Use the fields parameter for comprehensive metadata or specific fields.",
+      "inputs": [
+        {
+          "name": "fields",
+          "type": "string",
+          "required": false,
+          "about": "Optional. Field mask specifying which fields to return. Uses Google's field mask syntax (comma-separated, dot-notation for nested fields). If not specified, a default mask returning common fields (spreadsheet ID, title, sheet properties) is applied to avoid payload size issues. For full metadata, us"
+        },
+        {
+          "name": "ranges",
+          "type": "array",
+          "required": false,
+          "about": "Optional. The ranges to retrieve from the spreadsheet, specified using A1 notation (e.g., 'Sheet1!A1:D5', 'Sheet2!A1:C4'). Multiple ranges can be requested simultaneously. If not specified, metadata for the entire spreadsheet is returned without grid data."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": false,
+          "about": "Required. The Google Sheets spreadsheet ID or full URL. Accepts either the ID alone (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms') or a full Google Sheets URL (e.g., 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit'). The ID will be automatically extr"
+        },
+        {
+          "name": "include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "Optional. If true, grid data will be returned. This parameter is ignored if a field mask was set in the request. When false or not specified, only metadata is returned without cell values."
+        },
+        {
+          "name": "exclude_tables_in_banded_ranges",
+          "type": "boolean",
+          "required": false,
+          "about": "Optional. If true, tables within banded ranges will be omitted from the response. Default is false when not specified."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get Table Schema",
       "slug": "GOOGLESHEETS_GET_TABLE_SCHEMA",
-      "kind": "read"
+      "kind": "read",
+      "description": "Deprecated: Retrieves an inferred schema for a detected table in a Google Spreadsheet, including column names and types estimated from sampled data.",
+      "inputs": [
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "Sheet/tab name if table_name is ambiguous across multiple sheets"
+        },
+        {
+          "name": "table_name",
+          "type": "string",
+          "required": true,
+          "about": "Table name from LIST_TABLES response OR the visible Google Sheets tab name (e.g., 'Sales Data', 'Projections'). Use 'auto' to analyze the largest/most prominent table."
+        },
+        {
+          "name": "sample_size",
+          "type": "integer",
+          "required": false,
+          "about": "Number of rows to sample for type inference"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet. Must be a valid Google Sheets ID (typically a 44-character alphanumeric string). Do NOT use 'auto' - only 'table_name' supports auto-detection. You can get this ID from the spreadsheet URL or from SEARCH_SPREADSHEETS action."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "sql-facade"
+      ],
+      "deprecated": true
     },
     {
       "name": "Insert Dimension in Google Sheet",
       "slug": "GOOGLESHEETS_INSERT_DIMENSION",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to insert new rows or columns into a sheet at a specified location. Use when you need to add empty rows or columns within an existing Google Sheet.",
+      "inputs": [
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges of the spreadsheet to include in the response."
+        },
+        {
+          "name": "insert_dimension",
+          "type": "object",
+          "required": true,
+          "about": "The details for the insert dimension request."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be included in the response (if includeSpreadsheetInResponse is true)."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "True if the updated spreadsheet should be included in the response."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "sheets",
+        "dimension",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Charts in Google Sheets",
       "slug": "GOOGLESHEETS_LIST_CHARTS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Lists all charts in a Google Sheets spreadsheet across all sheets, returning chart_id, sheet metadata, chart type, title, and position. Use this action when you need to discover what charts exist in a spreadsheet, retrieve chart IDs for update or delete operations, or inspect chart configurations. The default field mask in GOOGLESHEETS_GET_SPREADSHEET_INFO omits chart data, making this dedicated action necessary for chart discovery.",
+      "inputs": [
+        {
+          "name": "chart_id",
+          "type": "integer",
+          "required": false,
+          "about": "Optional. Filter to a specific chart by its numeric chart ID. When provided, returns only the matching chart if it exists in the spreadsheet."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "Optional. Filter results to a single sheet's charts by providing the numeric sheet ID (not the sheet name). When omitted, returns charts from all sheets in the spreadsheet."
+        },
+        {
+          "name": "include_spec",
+          "type": "boolean",
+          "required": false,
+          "about": "When true, include the full ChartSpec dictionary for each chart (contains all chart configuration details including series, axes, colors, etc.). When false (default), return only a compact summary with chart_id, type, title, and position. Set to false to keep responses small."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "Required. The Google Sheets spreadsheet ID or full URL. Accepts either the ID alone (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms') or a full Google Sheets URL (e.g., 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit'). The ID will be automatically extr"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "readOnlyHint",
+        "openWorldHint",
+        "chart"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Drive Changes",
       "slug": "GOOGLESHEETS_LIST_DRIVE_CHANGES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Start a Drive change monitor or list one page after an existing token.",
+      "inputs": [
+        {
+          "name": "spaces",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated Drive spaces to query. Each value must be drive or appDataFolder."
+        },
+        {
+          "name": "drive_id",
+          "type": "string",
+          "required": false,
+          "about": "Shared-drive ID whose change feed to read. When supplied, supports_all_drives and include_items_from_all_drives are forced true."
+        },
+        {
+          "name": "page_size",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum changes to return in this page (1-1000). Drive can return fewer changes than requested."
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Opaque token from Drive changes.getStartPageToken or the previous response's next_page_token. Omit it to start monitoring now; the action returns a fresh checkpoint without listing historical changes."
+        },
+        {
+          "name": "include_labels",
+          "type": "string",
+          "required": false,
+          "about": "Comma-separated Drive label IDs whose data should be included in each changed file's labelInfo."
+        },
+        {
+          "name": "include_removed",
+          "type": "boolean",
+          "required": false,
+          "about": "Include changes representing deletion or loss of access. Keep true for a complete incremental sync."
+        },
+        {
+          "name": "supports_all_drives",
+          "type": "boolean",
+          "required": false,
+          "about": "Declare support for My Drive and shared drives. Automatically true when drive_id is supplied."
+        },
+        {
+          "name": "restrict_to_my_drive",
+          "type": "boolean",
+          "required": false,
+          "about": "Restrict results to the My Drive hierarchy, excluding app data and shared files not added to My Drive."
+        },
+        {
+          "name": "include_corpus_removals",
+          "type": "boolean",
+          "required": false,
+          "about": "Include the current file resource when it remains accessible even though it was removed from this change corpus. When true, include_removed is forced true."
+        },
+        {
+          "name": "include_permissions_for_view",
+          "type": "string",
+          "required": false,
+          "about": "Set to published to include permissions for the published view; no other value is supported."
+        },
+        {
+          "name": "include_items_from_all_drives",
+          "type": "boolean",
+          "required": false,
+          "about": "Include items from My Drive and shared drives. Automatically true when drive_id is supplied."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.metadata",
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "idempotentHint",
+        "openWorldHint",
+        "important",
+        "changes"
+      ],
+      "deprecated": false
     },
     {
       "name": "List Tables in Spreadsheet",
       "slug": "GOOGLESHEETS_LIST_TABLES",
-      "kind": "read"
+      "kind": "read",
+      "description": "Deprecated: Lists heuristically detected tables in a Google Spreadsheet. It scans up to the first 1,000 rows and skips sheets with more than 2,000 rows or 100 columns.",
+      "inputs": [
+        {
+          "name": "min_rows",
+          "type": "integer",
+          "required": false,
+          "about": "Minimum number of data rows to consider a valid table"
+        },
+        {
+          "name": "min_columns",
+          "type": "integer",
+          "required": false,
+          "about": "Minimum number of columns to consider a valid table"
+        },
+        {
+          "name": "min_confidence",
+          "type": "number",
+          "required": false,
+          "about": "Minimum confidence score (0.0-1.0) to consider a valid table"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The actual Google Spreadsheet ID (not a placeholder or spreadsheet name). Find it in the spreadsheet URL: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit. It is the alphanumeric string between '/d/' and '/edit' (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'). IMPORTANT: Do NOT pa"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Look up spreadsheet row",
       "slug": "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW",
-      "kind": "read"
+      "kind": "read",
+      "description": "Finds the first row in a specified A1 range or the first sheet where a cell matches the query after Unicode and invisible-character normalization. Matching is case-insensitive and trims surrounding whitespace by default; both behaviors are configurable.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "about": "Exact text value to find; matches the entire content of a cell in a row."
+        },
+        {
+          "name": "range",
+          "type": "string",
+          "required": false,
+          "about": "A1 notation range to search within. Supports cell ranges (e.g., 'Sheet1!A1:D5'), column-only ranges (e.g., 'Sheet1!A:Z'), and row-only ranges (e.g., 'Sheet1!1:1'). Defaults to the first sheet if omitted. IMPORTANT: Sheet names with spaces must be single-quoted (e.g., \"'My Sheet'!A1:Z\"). Bare sheet n"
+        },
+        {
+          "name": "case_sensitive",
+          "type": "boolean",
+          "required": false,
+          "about": "If `True`, the query string search is case-sensitive."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "Identifier of the Google Spreadsheet to search."
+        },
+        {
+          "name": "value_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How cell values are rendered in the returned row data. unformatted: raw values without display formatting — dates appear as serial numbers, e.g. 46009.47 (default, keeps consistency with UPSERT). formatted: display-formatted values — dates appear as strings, e.g. '2025-12-18'. formula: raw formulas "
+        },
+        {
+          "name": "normalize_whitespace",
+          "type": "boolean",
+          "required": false,
+          "about": "If `True`, strips leading and trailing whitespace from cell values before matching. This helps match cells like ' TOTAL ' or 'TOTAL ' when searching for 'TOTAL'."
+        },
+        {
+          "name": "date_time_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How dates and times are represented. FORMATTED_STRING: human-readable strings (e.g. '2025-12-18 11:17'). SERIAL_NUMBER: Excel-style serial numbers. Works with all value_render_option settings."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Move or Resize Chart in Google Sheets",
       "slug": "GOOGLESHEETS_MOVE_CHART",
-      "kind": "write"
+      "kind": "write",
+      "description": "Move or resize an existing chart on a Google Sheets spreadsheet. Use this action when you need to reposition a chart to a different location on the same or different sheet, move it to a brand-new sheet, or change its size. This action wraps the updateEmbeddedObjectPosition batchUpdate request type and supports three positioning modes: moving to a new sheet, moving to an existing sheet, or repositioning via pixel-perfect overlay coordinates.",
+      "inputs": [
+        {
+          "name": "chart_id",
+          "type": "integer",
+          "required": true,
+          "about": "The unique numeric identifier of the chart to move within the spreadsheet. This is the chartId value (also known as objectId) returned when the chart was created or can be retrieved using GOOGLESHEETS_LIST_CHARTS or 'Get Spreadsheet Info' action (look for sheets[].charts[].chartId in the response). "
+        },
+        {
+          "name": "new_sheet",
+          "type": "boolean",
+          "required": false,
+          "about": "Set to true to move the chart to a brand-new sheet. Google Sheets will automatically create and name the new sheet. This is mutually exclusive with target_sheet_id and anchor_sheet_id."
+        },
+        {
+          "name": "width_pixels",
+          "type": "integer",
+          "required": false,
+          "about": "Width of the chart in pixels. Only valid when anchor_sheet_id is provided. If omitted, Google Sheets preserves the existing width."
+        },
+        {
+          "name": "height_pixels",
+          "type": "integer",
+          "required": false,
+          "about": "Height of the chart in pixels. Only valid when anchor_sheet_id is provided. If omitted, Google Sheets preserves the existing height."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet containing the chart to move. Must be the actual spreadsheet ID from the URL (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'), NOT the spreadsheet name or title. Find it in the URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edi"
+        },
+        {
+          "name": "anchor_sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric sheetId of the sheet to anchor the chart onto when repositioning via overlay coordinates. Required if any of anchor_row_index, anchor_column_index, offset_x_pixels, offset_y_pixels, width_pixels, or height_pixels is provided. This is mutually exclusive with new_sheet and target_sheet_id."
+        },
+        {
+          "name": "offset_x_pixels",
+          "type": "integer",
+          "required": false,
+          "about": "Horizontal pixel offset from the anchor cell. Only valid when anchor_sheet_id is provided. If omitted, Google Sheets preserves the existing horizontal offset."
+        },
+        {
+          "name": "offset_y_pixels",
+          "type": "integer",
+          "required": false,
+          "about": "Vertical pixel offset from the anchor cell. Only valid when anchor_sheet_id is provided. If omitted, Google Sheets preserves the existing vertical offset."
+        },
+        {
+          "name": "target_sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric sheetId of an existing sheet to move the chart to. The chart's anchor position on that sheet will remain unchanged. This is mutually exclusive with new_sheet and anchor_sheet_id. Use 'Get Spreadsheet Info' to retrieve valid sheetIds."
+        },
+        {
+          "name": "anchor_row_index",
+          "type": "integer",
+          "required": false,
+          "about": "The 0-based row index of the anchor cell for overlay positioning. Required if anchor_sheet_id is set. Must be used together with anchor_column_index."
+        },
+        {
+          "name": "anchor_column_index",
+          "type": "integer",
+          "required": false,
+          "about": "The 0-based column index of the anchor cell for overlay positioning. Required if anchor_sheet_id is set. Must be used together with anchor_row_index."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "updateHint",
+        "idempotentHint",
+        "openWorldHint",
+        "chart"
+      ],
+      "deprecated": false
     },
     {
       "name": "Move Spreadsheet to Folder",
       "slug": "GOOGLESHEETS_MOVE_SPREADSHEET_TO_FOLDER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Move an existing Google Spreadsheet to a different Google Drive folder.",
+      "inputs": [
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the existing Google Spreadsheet to move."
+        },
+        {
+          "name": "destination_folder_id",
+          "type": "string",
+          "required": true,
+          "about": "ID of the Google Drive folder that should become the spreadsheet's parent."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.metadata"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "spreadsheet",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Mutate conditional format rules",
       "slug": "GOOGLESHEETS_MUTATE_CONDITIONAL_FORMAT_RULES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Add, update, delete, or reorder conditional format rules on a Google Sheet. Use when you need to create, modify, or remove conditional formatting without manually building batchUpdate requests. Supports four operations: ADD (create new rule), UPDATE (replace existing rule), DELETE (remove rule), MOVE (reorder rules by changing index).",
+      "inputs": [
+        {
+          "name": "rule",
+          "type": "object",
+          "required": false,
+          "about": "Conditional format rule specification."
+        },
+        {
+          "name": "index",
+          "type": "integer",
+          "required": false,
+          "about": "Zero-based index for the operation. Required for UPDATE, DELETE, MOVE. Optional for ADD (defaults to end of list)."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The unique numeric identifier of the sheet/tab to modify (NOT a zero-based index). This is a specific ID assigned by Google Sheets when the sheet is created, not the position of the sheet. You MUST first call GOOGLESHEETS_GET_SPREADSHEET_INFO to retrieve the actual sheetId values from the 'sheets' a"
+        },
+        {
+          "name": "new_index",
+          "type": "integer",
+          "required": false,
+          "about": "Destination index for MOVE operation. Required when operation is MOVE."
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "about": "Operation type: ADD (add new rule), UPDATE (replace rule), DELETE (remove rule), MOVE (change rule order/index)."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet containing the sheet to modify. Found in the Google Sheets URL between '/d/' and '/edit'."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "googlesheets",
+        "formatting",
+        "important",
+        "createHint",
+        "updateHint",
+        "destructiveHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Query Spreadsheet Table",
       "slug": "GOOGLESHEETS_QUERY_TABLE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Executes SQL-like SELECT queries against detected tables in a native Google spreadsheet, with filtering, sorting, and limits. Sheet names can refer to the first detected table; detection and query processing are heuristic, and results may omit rows. DEPRECATED: Use GOOGLESHEETS_VALUES_GET or GOOGLESHEETS_BATCH_GET for table reads, and GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW for row lookup or filtering.",
+      "inputs": [
+        {
+          "name": "sql",
+          "type": "string",
+          "required": true,
+          "about": "SQL SELECT query. The table name is the Google Sheets tab/sheet name (visible at the bottom of the spreadsheet). Use GOOGLESHEETS_LIST_TABLES to discover available table names if unknown. Supported: SELECT cols FROM table WHERE conditions ORDER BY col LIMIT n. Table names must be quoted with double "
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of a native Google Sheets file. Found in the spreadsheet URL after /d/ (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'). Only native Google Sheets files (MIME type: application/vnd.google-apps.spreadsheet) are supported. Files uploaded to Google Drive that are not native "
+        },
+        {
+          "name": "include_formulas",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to return formula text instead of calculated values for formula columns"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "openWorldHint",
+        "readOnlyHint",
+        "sql-facade"
+      ],
+      "deprecated": true
     },
     {
       "name": "Search Developer Metadata",
       "slug": "GOOGLESHEETS_SEARCH_DEVELOPER_METADATA",
-      "kind": "read"
+      "kind": "read",
+      "description": "Tool to search for developer metadata in a spreadsheet. Use when you need to find specific metadata entries based on filters.",
+      "inputs": [
+        {
+          "name": "dataFilters",
+          "type": "array",
+          "required": true,
+          "about": "The data filters describing the criteria used to determine which DeveloperMetadata entries to return."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to retrieve metadata from."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "developerMetadata",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Search Spreadsheets",
       "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
-      "kind": "read"
+      "kind": "read",
+      "description": "Search for Google spreadsheets accessible in Drive by name, content, dates, and other filters, including starred and shared-with-me status. Results are paginated, with up to 1,000 items per page; shared drives are included by default and searches across them may be incomplete.",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "about": "Search query to filter spreadsheets. Behavior depends on the 'search_type' parameter. For advanced searches, use Google Drive query syntax with fields like 'name contains', 'fullText contains', or boolean filters like 'sharedWithMe = true'. DO NOT use spreadsheet IDs as search terms. Leave empty to "
+        },
+        {
+          "name": "order_by",
+          "type": "string",
+          "required": false,
+          "about": "Sort order (comma-separated list for multi-field sorting). Valid fields: createdTime, folder, modifiedByMeTime, modifiedTime, name, name_natural, quotaBytesUsed, recency, sharedWithMeTime, starred, viewedByMeTime. Append ' desc' for descending order (default is ascending). Examples: 'modifiedTime de"
+        },
+        {
+          "name": "page_token",
+          "type": "string",
+          "required": false,
+          "about": "Token for retrieving the next page of results. Use the 'next_page_token' value from a previous response to get subsequent pages. Leave empty to get the first page."
+        },
+        {
+          "name": "max_results",
+          "type": "integer",
+          "required": false,
+          "about": "Maximum number of spreadsheets to return (1-1000). Defaults to 10."
+        },
+        {
+          "name": "search_type",
+          "type": "string",
+          "required": false,
+          "about": "How to search: 'name' searches filenames only (prefix matching from the START of filenames), 'content' uses fullText search which searches file content, name, description, and metadata (Google Drive API limitation: cannot search content exclusively without also matching filenames), 'both' explicitly"
+        },
+        {
+          "name": "starred_only",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to return only starred spreadsheets. Defaults to False."
+        },
+        {
+          "name": "created_after",
+          "type": "string",
+          "required": false,
+          "about": "Return spreadsheets created after this date. Use RFC 3339 format like '2024-01-01T00:00:00Z'."
+        },
+        {
+          "name": "modified_after",
+          "type": "string",
+          "required": false,
+          "about": "Return spreadsheets modified after this date. Use RFC 3339 format like '2024-01-01T00:00:00Z'."
+        },
+        {
+          "name": "shared_with_me",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to return only spreadsheets shared with the current user. Defaults to False."
+        },
+        {
+          "name": "include_trashed",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include spreadsheets in trash. Defaults to False."
+        },
+        {
+          "name": "include_shared_drives",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include spreadsheets from shared drives you have access to. Defaults to True."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.appdata",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.meet.readonly",
+        "https://www.googleapis.com/auth/drive.metadata",
+        "https://www.googleapis.com/auth/drive.metadata.readonly",
+        "https://www.googleapis.com/auth/drive.photos.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+      ],
+      "tags": [
+        "find",
+        "openWorldHint",
+        "query",
+        "readOnlyHint",
+        "search",
+        "important"
+      ],
+      "deprecated": false
     },
     {
       "name": "Set Basic Filter",
       "slug": "GOOGLESHEETS_SET_BASIC_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to set a basic filter on a sheet in a Google Spreadsheet. Use when you need to filter or sort data within a specific range on a sheet.",
+      "inputs": [
+        {
+          "name": "filter",
+          "type": "object",
+          "required": true,
+          "about": "The filter to set."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet."
+        },
+        {
+          "name": "responseRanges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Meaningful only if includeSpreadsheetInResponse is true."
+        },
+        {
+          "name": "responseIncludeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned. Meaningful only if includeSpreadsheetInResponse is true. Ignored if a field mask was set in the request."
+        },
+        {
+          "name": "includeSpreadsheetInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the updated spreadsheet resource appears in the response. Default is false."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "googlesheets",
+        "filter",
+        "important",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Set Data Validation Rule",
       "slug": "GOOGLESHEETS_SET_DATA_VALIDATION_RULE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to set or clear data validation rules (including dropdowns) on a range in Google Sheets. Use when you need to apply dropdown lists, range-based dropdowns, or custom formula validation to cells.",
+      "inputs": [
+        {
+          "name": "mode",
+          "type": "string",
+          "required": true,
+          "about": "Operation mode: 'SET' applies a validation rule to the range, 'CLEAR' removes any existing validation from the range."
+        },
+        {
+          "name": "strict",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to reject invalid data (true) or show a warning (false). Default is true."
+        },
+        {
+          "name": "values",
+          "type": "array",
+          "required": false,
+          "about": "List of allowed values for dropdown. Required when validation_type='ONE_OF_LIST'. Each item becomes a dropdown option."
+        },
+        {
+          "name": "formula",
+          "type": "string",
+          "required": false,
+          "about": "Custom formula for validation. Required when validation_type='CUSTOM_FORMULA'. Formula should evaluate to TRUE/FALSE. Example: '=A1>10'."
+        },
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The unique sheet ID (numeric identifier) where the validation rule will be applied. The first sheet created in a spreadsheet typically has ID 0, while additional sheets get unique IDs (e.g., 1534097477). If a sheet is deleted, its ID is never reused - so if the original first sheet (ID 0) was delete"
+        },
+        {
+          "name": "end_row_index",
+          "type": "integer",
+          "required": true,
+          "about": "Ending row index (0-based, exclusive) for the validation range. To apply to row 1 only, use start_row_index=0 and end_row_index=1."
+        },
+        {
+          "name": "input_message",
+          "type": "string",
+          "required": false,
+          "about": "Optional message shown to the user when they select the cell. Helpful hint about what values are expected."
+        },
+        {
+          "name": "show_custom_ui",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to show a dropdown UI for list-based validation. Default is true. Set to true for dropdown lists."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet. Can be found in the spreadsheet URL between '/d/' and '/edit'."
+        },
+        {
+          "name": "source_range_a1",
+          "type": "string",
+          "required": false,
+          "about": "Source range in A1 notation for dropdown values. Required when validation_type='ONE_OF_RANGE'. Example: 'Sheet1!A1:A10' or 'A1:A10'."
+        },
+        {
+          "name": "start_row_index",
+          "type": "integer",
+          "required": true,
+          "about": "Starting row index (0-based, inclusive) for the validation range. Row 1 is index 0."
+        },
+        {
+          "name": "validation_type",
+          "type": "string",
+          "required": false,
+          "about": "Type of validation rule to apply. Required when mode='SET'. Dropdown types: 'ONE_OF_LIST' (dropdown from list), 'ONE_OF_RANGE' (dropdown from range). Number validations: 'NUMBER_GREATER', 'NUMBER_GREATER_THAN_EQ', 'NUMBER_LESS', 'NUMBER_LESS_THAN_EQ', 'NUMBER_EQ', 'NUMBER_NOT_EQ', 'NUMBER_BETWEEN', "
+        },
+        {
+          "name": "condition_values",
+          "type": "array",
+          "required": false,
+          "about": "Generic list of condition values for validation types that require specific values (e.g., NUMBER_GREATER requires one value, NUMBER_BETWEEN requires two values, TEXT_CONTAINS requires one value). For simple validations like TEXT_IS_EMAIL, BLANK, NOT_BLANK, BOOLEAN, DATE_IS_VALID, this can be omitted"
+        },
+        {
+          "name": "end_column_index",
+          "type": "integer",
+          "required": true,
+          "about": "Ending column index (0-based, exclusive) for the validation range. To apply to column A only, use start_column_index=0 and end_column_index=1."
+        },
+        {
+          "name": "start_column_index",
+          "type": "integer",
+          "required": true,
+          "about": "Starting column index (0-based, inclusive) for the validation range. Column A is index 0."
+        },
+        {
+          "name": "filtered_rows_included",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to apply validation to rows hidden by filters. Default is false. Set to true to ensure validation applies to both visible and filtered rows."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "googlesheets",
+        "validation",
+        "important",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Create sheet from JSON",
       "slug": "GOOGLESHEETS_SHEET_FROM_JSON",
-      "kind": "write"
+      "kind": "write",
+      "description": "DEPRECATED: Creates a new Google Spreadsheet and populates its first worksheet from JSON rows; an empty list creates an empty worksheet. Headers use keys from the first row followed by additional keys found in later rows.",
+      "inputs": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "about": "The desired title for the new Google Spreadsheet."
+        },
+        {
+          "name": "sheet_json",
+          "type": "array",
+          "required": true,
+          "about": "A list of dictionaries representing the rows of the sheet. Each dictionary must have the same set of keys, which will form the header row. Values can be strings, numbers, booleans, or null (represented as empty cells). An empty list [] is allowed and will create a spreadsheet with an empty worksheet"
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": true,
+          "about": "The name for the first worksheet within the newly created spreadsheet. This name will appear as a tab at the bottom of the sheet."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "openWorldHint",
+        "createHint",
+        "updateHint"
+      ],
+      "deprecated": true
     },
     {
       "name": "Sort Range",
       "slug": "GOOGLESHEETS_SORT_RANGE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Sorts data within a specified range in a Google Sheet based on one or more sort criteria. Use this action when you need to reorder rows in a range by column values, with support for multi-level (cascading) sorts.",
+      "inputs": [
+        {
+          "name": "range",
+          "type": "object",
+          "required": true,
+          "about": "The range to sort. All cells in this range will be reordered based on the sort specifications."
+        },
+        {
+          "name": "sortSpecs",
+          "type": "array",
+          "required": true,
+          "about": "The sort order per column. Later specifications are used when values are equal in the earlier specifications (cascading sort). At least one sort specification is required."
+        },
+        {
+          "name": "responseRanges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Meaningful only if includeSpreadsheetInResponse is true."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet."
+        },
+        {
+          "name": "responseIncludeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned. Meaningful only if includeSpreadsheetInResponse is true."
+        },
+        {
+          "name": "includeSpreadsheetInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the updated spreadsheet resource appears in the response. Default is false."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "updateHint",
+        "idempotentHint",
+        "openWorldHint",
+        "sort"
+      ],
+      "deprecated": false
     },
     {
       "name": "Copy Sheet to Another Spreadsheet",
       "slug": "GOOGLESHEETS_SPREADSHEETS_SHEETS_COPY_TO",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to copy a single sheet from a spreadsheet to another spreadsheet. Use when you need to duplicate a sheet into a different spreadsheet.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": true,
+          "about": "The ID of the sheet to copy."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet containing the sheet to copy."
+        },
+        {
+          "name": "destination_spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to copy the sheet to."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "sheets",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Append Values to Spreadsheet",
       "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to append values to a spreadsheet. Use when you need to add new data to the end of an existing table in a Google Sheet.",
+      "inputs": [
+        {
+          "name": "range",
+          "type": "string",
+          "required": true,
+          "about": "A1 notation range used to locate a logical table. New rows are appended after the last row of that table within this range. First call GOOGLESHEETS_GET_SHEET_NAMES with this exact spreadsheet_id and use one of the returned sheet names; sheet names are case-sensitive and default names like 'Sheet1' a"
+        },
+        {
+          "name": "values",
+          "type": "array",
+          "required": true,
+          "about": "2D array of values to append. Typically, each inner list is a ROW (majorDimension=ROWS). Use null/None for empty cells."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The spreadsheet ID (typically 44 characters containing letters, numbers, hyphens, and underscores). Found in the URL between /d/ and /edit. NOT the sheet name (tab name) - that belongs in the 'range' parameter."
+        },
+        {
+          "name": "majorDimension",
+          "type": "string",
+          "required": false,
+          "about": "How to interpret the 2D values array. Use ROWS for row-wise data (most common for appends). Use COLUMNS for column-wise data. Example: if A1=1,B1=2,A2=3,B2=4 then majorDimension=ROWS yields [[1,2],[3,4]] and majorDimension=COLUMNS yields [[1,3],[2,4]]."
+        },
+        {
+          "name": "insertDataOption",
+          "type": "string",
+          "required": false,
+          "about": "How the input data should be inserted."
+        },
+        {
+          "name": "valueInputOption",
+          "type": "string",
+          "required": true,
+          "about": "How the input data should be interpreted."
+        },
+        {
+          "name": "includeValuesInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the values of the cells that were appended. By default, responses do not include the updated values."
+        },
+        {
+          "name": "responseValueRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how values in the response should be rendered. The default render option is FORMATTED_VALUE."
+        },
+        {
+          "name": "responseDateTimeRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how dates, times, and durations in the response should be rendered. This is ignored if responseValueRenderOption is FORMATTED_VALUE. The default dateTime render option is SERIAL_NUMBER."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "googlesheets",
+        "values",
+        "important",
+        "updateHint",
+        "createHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch Clear Spreadsheet Values",
       "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to clear one or more ranges of values from a spreadsheet. Use when you need to remove data from specific cells or ranges while keeping formatting and other properties intact.",
+      "inputs": [
+        {
+          "name": "ranges",
+          "type": "array",
+          "required": true,
+          "about": "The ranges to clear, in A1 notation (e.g., 'Sheet1!A1:B2') or R1C1 notation. Each range should be a clean string without surrounding brackets or extra quotes. Valid examples: 'Sheet1!A1:B2', 'A1:Z100', 'Sheet1'. Invalid examples: \"['Sheet1!A1:B2']\", '[Sheet1!A1]'."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update. Can be either a spreadsheet ID or a full Google Sheets URL (the ID will be extracted automatically)."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "spreadsheets",
+        "values",
+        "destructiveHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch Get Spreadsheet Values by Data Filter",
       "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_GET_BY_DATA_FILTER",
-      "kind": "write"
+      "kind": "write",
+      "description": "Retrieves one or more ranges of values from a Google Spreadsheet using data filters. Each filter specifies an A1 range or a grid range.",
+      "inputs": [
+        {
+          "name": "dataFilters",
+          "type": "array",
+          "required": true,
+          "about": "Required. An array of data filter objects used to match ranges of values to retrieve. Each filter can specify either 'a1Range' (e.g., 'Sheet1!A1:B5') or 'gridRange'. Must be provided as a list, e.g., [{'a1Range': 'Sheet1!A1:B5'}]. A single filter object will be automatically wrapped in a list."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to retrieve data from. This is the unique identifier found in the spreadsheet URL (e.g., in 'https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit', the ID is the SPREADSHEET_ID part). Typical Google Sheets IDs are approximately 44 characters long and contain alphanume"
+        },
+        {
+          "name": "majorDimension",
+          "type": "string",
+          "required": false,
+          "about": "The major dimension that results should use. For example, if the spreadsheet data is: A1=1,B1=2,A2=3,B2=4, then a request that selects that range and sets majorDimension=ROWS returns [[1,2],[3,4]], whereas a request that sets majorDimension=COLUMNS returns [[1,3],[2,4]]."
+        },
+        {
+          "name": "valueRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "How values should be represented in the output. The default render option is FORMATTED_VALUE."
+        },
+        {
+          "name": "dateTimeRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "How dates, times, and durations should be represented in the output. This is ignored if valueRenderOption is FORMATTED_VALUE. The default dateTime render option is SERIAL_NUMBER."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets"
+      ],
+      "tags": [
+        "important",
+        "googlesheets",
+        "spreadsheets",
+        "values",
+        "readOnlyHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Chart in Google Sheets",
       "slug": "GOOGLESHEETS_UPDATE_CHART",
-      "kind": "write"
+      "kind": "write",
+      "description": "Updates an existing chart in a Google Sheets spreadsheet by replacing its chart specification. The specification can change its title, chart type, data ranges, colors, axes, and other visual settings without moving or resizing the chart.",
+      "inputs": [
+        {
+          "name": "chart_id",
+          "type": "integer",
+          "required": true,
+          "about": "The unique numeric identifier of the chart to update within the spreadsheet. This is the chartId value returned when the chart was created or can be retrieved using the 'Get Spreadsheet Info' action (look for sheets[].charts[].chartId in the response). The chart must already exist in the specified s"
+        },
+        {
+          "name": "chart_spec",
+          "type": "object",
+          "required": true,
+          "about": "The complete ChartSpec object defining the updated chart specification. This replaces the chart's existing specification but does not move or resize the chart. Must set exactly one chart type field: basicChart, pieChart, bubbleChart, candlestickChart, histogramChart, treemapChart, waterfallChart, or"
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Sheets spreadsheet containing the chart to update. Must be the actual spreadsheet ID from the URL (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'), NOT the spreadsheet name or title. Find it in the URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/e"
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "updateHint",
+        "openWorldHint",
+        "idempotentHint",
+        "spreadsheet"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Dimension Properties (Hide/Unhide & Resize)",
       "slug": "GOOGLESHEETS_UPDATE_DIMENSION_PROPERTIES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to hide/unhide rows or columns and set row heights or column widths. Use when you need to change visibility or pixel sizing of dimensions in a Google Sheet.",
+      "inputs": [
+        {
+          "name": "sheet_id",
+          "type": "integer",
+          "required": false,
+          "about": "The numeric ID of the sheet (tab). Either sheet_id or sheet_name must be provided. If both are provided, sheet_name will be resolved to sheet_id and override this value."
+        },
+        {
+          "name": "dimension",
+          "type": "string",
+          "required": true,
+          "about": "Whether to update rows or columns."
+        },
+        {
+          "name": "end_index",
+          "type": "integer",
+          "required": true,
+          "about": "The zero-based end index (exclusive) of the dimension range to update. For example, to update rows 5-9, use start_index=5 and end_index=10."
+        },
+        {
+          "name": "pixel_size",
+          "type": "integer",
+          "required": false,
+          "about": "The height (for rows) or width (for columns) in pixels. Must be a positive integer. At least one of hidden_by_user or pixel_size must be provided."
+        },
+        {
+          "name": "sheet_name",
+          "type": "string",
+          "required": false,
+          "about": "The name of the sheet (tab). If provided, this will be resolved to the numeric sheet_id using GOOGLESHEETS_GET_SPREADSHEET_INFO. Either sheet_id or sheet_name must be provided."
+        },
+        {
+          "name": "start_index",
+          "type": "integer",
+          "required": true,
+          "about": "The zero-based start index (inclusive) of the dimension range to update. For rows, 0 is the first row; for columns, 0 is column A."
+        },
+        {
+          "name": "hidden_by_user",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to hide (true) or unhide (false) the specified rows/columns. At least one of hidden_by_user or pixel_size must be provided."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        },
+        {
+          "name": "response_ranges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet (only if includeSpreadsheetInResponse is true)."
+        },
+        {
+          "name": "response_include_grid_data",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include grid data in the response (only if includeSpreadsheetInResponse is true)."
+        },
+        {
+          "name": "include_spreadsheet_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "Whether to include the updated spreadsheet in the response."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "idempotentHint",
+        "dimension"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Sheet Properties",
       "slug": "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update properties of a sheet (worksheet) within a Google Spreadsheet, such as its title, index, visibility, tab color, or grid properties. Use this when you need to modify the metadata or appearance of a specific sheet.",
+      "inputs": [
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet containing the sheet to update."
+        },
+        {
+          "name": "responseRanges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Meaningful only if includeSpreadsheetInResponse is true. Ranges should be in A1 notation (e.g., 'Sheet1!A1:B2')."
+        },
+        {
+          "name": "updateSheetProperties",
+          "type": "object",
+          "required": true,
+          "about": "The details of the sheet properties to update."
+        },
+        {
+          "name": "responseIncludeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "True if grid data should be returned. Meaningful only if includeSpreadsheetInResponse is true. When true, the response will include cell data for the specified ranges."
+        },
+        {
+          "name": "includeSpreadsheetInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the spreadsheet resource. When true, the response will include the full updated spreadsheet."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "googlesheets",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update Spreadsheet Properties",
       "slug": "GOOGLESHEETS_UPDATE_SPREADSHEET_PROPERTIES",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to update SPREADSHEET-LEVEL properties such as the spreadsheet's title, locale, time zone, or auto-recalculation settings. Use when you need to modify the overall configuration of a Google Spreadsheet. NOTE: To update individual SHEET properties (like renaming a specific sheet/tab), use GOOGLESHEETS_UPDATE_SHEET_PROPERTIES instead.",
+      "inputs": [
+        {
+          "name": "fields",
+          "type": "string",
+          "required": true,
+          "about": "Field mask specifying which properties to update (comma-separated for multiple fields). Supports nested paths using dot notation (e.g., 'iterativeCalculationSettings.maxIterations') per Protocol Buffers FieldMask specification. The root 'properties' is implied and must not be included. Special case:"
+        },
+        {
+          "name": "properties",
+          "type": "object",
+          "required": true,
+          "about": "The spreadsheet-level properties to update (e.g., title, locale, timeZone, autoRecalc). At least one field within properties must be set. NOTE: To update individual sheet/tab properties (like renaming a specific sheet), use GOOGLESHEETS_UPDATE_SHEET_PROPERTIES instead."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update."
+        },
+        {
+          "name": "responseRanges",
+          "type": "array",
+          "required": false,
+          "about": "Limits the ranges included in the response spreadsheet. Only meaningful if includeSpreadsheetInResponse is true. Ranges should be in A1 notation (e.g., 'Sheet1!A1:B2')."
+        },
+        {
+          "name": "responseIncludeGridData",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if grid data (cell values) should be included in the response. Only meaningful if includeSpreadsheetInResponse is true. When true, the response will include cell data for the specified ranges or entire spreadsheet."
+        },
+        {
+          "name": "includeSpreadsheetInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the full spreadsheet resource. When true, the response will include the entire updated spreadsheet with all sheets, properties, and metadata."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive"
+      ],
+      "tags": [
+        "important",
+        "spreadsheet",
+        "properties",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Batch update spreadsheet values",
       "slug": "GOOGLESHEETS_UPDATE_VALUES_BATCH",
-      "kind": "write"
+      "kind": "write",
+      "description": "Tool to set values in one or more ranges of a spreadsheet. Use when you need to update multiple ranges in a single operation for better performance.",
+      "inputs": [
+        {
+          "name": "data",
+          "type": "array",
+          "required": true,
+          "about": "The new values to apply to the spreadsheet. Each ValueRange specifies a range and the values to write to that range. Multiple ranges can be updated in a single request."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet to update. This ID can be found in the URL of the spreadsheet (e.g., https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit). Must be a valid Google Sheets spreadsheet ID."
+        },
+        {
+          "name": "valueInputOption",
+          "type": "string",
+          "required": true,
+          "about": "How the input data should be interpreted. RAW: Values are stored exactly as entered, without parsing. USER_ENTERED: Values are parsed as if typed by a user (numbers stay numbers, strings prefixed with '=' become formulas, etc.). INPUT_VALUE_OPTION_UNSPECIFIED: Default input value option is not speci"
+        },
+        {
+          "name": "includeValuesInResponse",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the values of the cells that were updated. By default, responses do not include the updated values."
+        },
+        {
+          "name": "responseValueRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how values in the response should be rendered. Only used if includeValuesInResponse is true. FORMATTED_VALUE (default): Values are formatted as displayed in the UI. UNFORMATTED_VALUE: Values are unformatted. FORMULA: Formulas are not evaluated."
+        },
+        {
+          "name": "responseDateTimeRenderOption",
+          "type": "string",
+          "required": false,
+          "about": "Determines how dates, times, and durations in the response should be rendered. Only used if includeValuesInResponse is true. SERIAL_NUMBER (default): Dates are returned as numbers. FORMATTED_STRING: Dates are returned as formatted strings."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets"
+      ],
+      "tags": [
+        "important",
+        "openWorldHint",
+        "updateHint",
+        "batch",
+        "cell_values"
+      ],
+      "deprecated": false
     },
     {
       "name": "Upsert Rows (Smart Update/Insert)",
       "slug": "GOOGLESHEETS_UPSERT_ROWS",
-      "kind": "write"
+      "kind": "write",
+      "description": "Upserts rows in a Google Sheet by matching a key column: updates matching rows and appends new ones. It maps columns by header name, adds missing columns, and supports partial updates.",
+      "inputs": [
+        {
+          "name": "rows",
+          "type": "array",
+          "required": true,
+          "about": "2D array of data rows to upsert. IMPORTANT: If 'headers' is NOT provided, the FIRST row is treated as column headers and remaining rows as data - so you need at least 2 rows (1 header + 1 data). If 'headers' IS provided separately, then ALL rows in this array are treated as data rows. Each row shoul"
+        },
+        {
+          "name": "headers",
+          "type": "array",
+          "required": false,
+          "about": "List of column names for the data. These will be matched against sheet headers. If a column doesn't exist in the sheet, it will be added automatically. Order doesn't need to match sheet order. Can be auto-derived from the first row in 'rows' if not provided. Example inputs: ['Email', 'Phone', 'Statu"
+        },
+        {
+          "name": "keyColumn",
+          "type": "string",
+          "required": false,
+          "about": "The column NAME (header text) to use as unique identifier for matching rows. Must be an actual header name from the sheet (e.g., 'Email', 'Lead ID', 'SKU'), NOT a column letter (e.g., 'A', 'B', 'C'). If you provide a column letter like 'A', it will be automatically converted to the header name at th"
+        },
+        {
+          "name": "sheetName",
+          "type": "string",
+          "required": true,
+          "about": "The name of the sheet/tab within the spreadsheet. Note: Google Sheets creates default sheets with localized names based on account language (e.g., 'Sheet1' for English, '工作表1' for Chinese, 'Hoja1' for Spanish, 'Feuille1' for French, 'Planilha1' for Portuguese, 'Лист1' for Russian). If you specify a "
+        },
+        {
+          "name": "strictMode",
+          "type": "boolean",
+          "required": false,
+          "about": "Controls how rows with mismatched column counts are handled. When True (default), an error is returned if any row has more values than headers - the error message shows exactly which rows are affected and what values would need to be removed. When False, extra values are silently truncated to match "
+        },
+        {
+          "name": "tableStart",
+          "type": "string",
+          "required": false,
+          "about": "Cell where the table starts (where headers are located). Defaults to 'A1'. Use this if your table is offset (e.g., 'C5', 'D10')."
+        },
+        {
+          "name": "spreadsheetId",
+          "type": "string",
+          "required": true,
+          "about": "The ID of the spreadsheet. Must be a non-empty string, typically a 44-character alphanumeric string found in the spreadsheet URL."
+        },
+        {
+          "name": "key_column_index",
+          "type": "",
+          "required": false,
+          "about": "The 0-based column index to use as unique identifier for matching rows. Alternative to 'key_column' - will be converted to column name using headers. If neither 'key_column' nor 'key_column_index' is provided, defaults to 0 (first column). Example: 0 for first column, 1 for second column."
+        },
+        {
+          "name": "normalization_message",
+          "type": "string",
+          "required": false,
+          "about": "Internal field to track input normalization (e.g., row truncation). Not part of API."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
+      "tags": [
+        "googlesheets",
+        "upsert",
+        "dedupe",
+        "important",
+        "createHint",
+        "updateHint"
+      ],
+      "deprecated": false
     },
     {
       "name": "Get spreadsheet values",
       "slug": "GOOGLESHEETS_VALUES_GET",
-      "kind": "write"
+      "kind": "write",
+      "description": "Returns a range of values from a spreadsheet. Use when you need to read data from specific cells or ranges in a Google Sheet.",
+      "inputs": [
+        {
+          "name": "range",
+          "type": "string",
+          "required": true,
+          "about": "The A1 notation or R1C1 notation of the range to retrieve values from. If the sheet name contains spaces or special characters, wrap the sheet name in single quotes (e.g., \"'My Sheet'!A1:B2\"). Without single quotes, the API will return a 400 error for sheet names with spaces. Examples: 'Sheet1!A1:B3"
+        },
+        {
+          "name": "end_row",
+          "type": "integer",
+          "required": false,
+          "about": "1-based row number to stop reading at (inclusive). Use with start_row for pagination to avoid large response errors. Example: start_row=501, end_row=1000 fetches rows 501-1000."
+        },
+        {
+          "name": "start_row",
+          "type": "integer",
+          "required": false,
+          "about": "1-based row number to start reading from (inclusive). Use with end_row for pagination to avoid large response errors. Example: start_row=1, end_row=500 fetches the first 500 rows."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet from which to retrieve values. This is the long alphanumeric string found in the spreadsheet URL between '/d/' and '/edit' (e.g., '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'). WARNING: Do NOT use the spreadsheet name or title (e.g., 'My Sales Report"
+        },
+        {
+          "name": "major_dimension",
+          "type": "string",
+          "required": false,
+          "about": "The major dimension for results."
+        },
+        {
+          "name": "value_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How values should be rendered in the output. FORMATTED_VALUE: Values are calculated and formatted (default). UNFORMATTED_VALUE: Values are calculated but not formatted. FORMULA: Values are not calculated; the formula is returned instead."
+        },
+        {
+          "name": "date_time_render_option",
+          "type": "string",
+          "required": false,
+          "about": "How dates, times, and durations should be represented in the output. SERIAL_NUMBER: Dates are returned as serial numbers (default). FORMATTED_STRING: Dates returned as formatted strings."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/spreadsheets.readonly"
+      ],
+      "tags": [
+        "readOnlyHint",
+        "openWorldHint",
+        "important",
+        "cell_values"
+      ],
+      "deprecated": false
     },
     {
       "name": "Update spreadsheet values",
       "slug": "GOOGLESHEETS_VALUES_UPDATE",
-      "kind": "write"
+      "kind": "write",
+      "description": "Sets or overwrites values in a Google Spreadsheet range, adjusting the range to fit the supplied values and potentially expanding the sheet by default. Unmatched common default sheet names may resolve to the first sheet.",
+      "inputs": [
+        {
+          "name": "range",
+          "type": "string",
+          "required": true,
+          "about": "The A1 notation of the range to update values in (e.g., 'Sheet1!A1:C2', 'MySheet!C:C', or 'A1:D5'). Wrap sheet names containing spaces or special characters in single quotes; escape an apostrophe within a quoted sheet name by doubling it (e.g., \"'[Draft] Fall''26'!A1:B2\"). Must be actual cell refere"
+        },
+        {
+          "name": "values",
+          "type": "array",
+          "required": true,
+          "about": "The data to write. This is an array of arrays, the outer array representing all the data and each inner array representing a major dimension. Each item in the inner array corresponds with one cell."
+        },
+        {
+          "name": "spreadsheet_id",
+          "type": "string",
+          "required": true,
+          "about": "The unique identifier of the Google Spreadsheet to update. This ID can be found in the URL of the spreadsheet (e.g., https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit). Must be a non-empty string."
+        },
+        {
+          "name": "major_dimension",
+          "type": "string",
+          "required": false,
+          "about": "The major dimension of the values. ROWS (default) means each inner array is a row of values. COLUMNS means each inner array is a column of values. Defaults to ROWS if unspecified."
+        },
+        {
+          "name": "auto_expand_sheet",
+          "type": "boolean",
+          "required": false,
+          "about": "If True (default), automatically expands the sheet's dimensions (adds columns/rows) when the target range exceeds the current grid limits. If False, the operation will fail with an error if the range exceeds grid limits."
+        },
+        {
+          "name": "value_input_option",
+          "type": "string",
+          "required": true,
+          "about": "How the input data should be interpreted. RAW: Values are stored exactly as entered, without parsing (dates, formulas, etc. remain as strings). USER_ENTERED: Values are parsed as if typed by a user (numbers stay numbers, strings prefixed with '=' become formulas, etc.)."
+        },
+        {
+          "name": "include_values_in_response",
+          "type": "boolean",
+          "required": false,
+          "about": "Determines if the update response should include the values of the cells that were updated. By default, responses do not include the updated values."
+        },
+        {
+          "name": "response_value_render_option",
+          "type": "string",
+          "required": false,
+          "about": "Determines how values in the response should be rendered. Only used if includeValuesInResponse is true. FORMATTED_VALUE (default): Values are formatted as displayed in the UI. UNFORMATTED_VALUE: Values are unformatted (numbers, booleans, formulas). FORMULA: Formulas are not evaluated and remain as t"
+        },
+        {
+          "name": "response_datetime_render_option",
+          "type": "string",
+          "required": false,
+          "about": "Determines how dates, times, and durations in the response should be rendered. Only used if includeValuesInResponse is true. SERIAL_NUMBER (default): Dates are returned as numbers. FORMATTED_STRING: Dates are returned as strings formatted per the cell's locale."
+        }
+      ],
+      "scopes": [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/spreadsheets"
+      ],
+      "tags": [
+        "updateHint",
+        "idempotentHint",
+        "openWorldHint",
+        "important",
+        "cell_values"
+      ],
+      "deprecated": false
     }
   ],
   "triggers": [],
