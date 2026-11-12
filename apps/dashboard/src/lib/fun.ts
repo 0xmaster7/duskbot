@@ -44,10 +44,10 @@ export function markInvestedNote(account: string): void {
   try { localStorage.setItem(INVESTED_KEY(account), "1"); } catch {}
 }
 
-/** the invested card's headline, in their own number */
+/** the invested card's headline: what they've built, never a count */
 export function investedLine(facts: InvestedFacts): string {
   const by = investedBy(facts) ?? "bots";
-  if (by === "bots") return `${facts.bots} bots and counting.`;
-  if (by === "routines") return `${facts.routines} routines set up.`;
-  return `${facts.messages.toLocaleString("en-US")} messages sent.`;
+  if (by === "bots") return "a good crew of bots.";
+  if (by === "routines") return "your routines are doing real work.";
+  return "your bots carry a heavy workload.";
 }

@@ -32,7 +32,7 @@ it("shows the invested note once per account, only past a threshold and only wit
   markInvestedNote("acct_a");
   expect(investedNoteDue("acct_a", invested, false)).toBe(false);
   expect(investedNoteDue("acct_b", { bots: 0, messages: 50, routines: 0 }, false)).toBe(true);
-  expect(investedLine({ bots: 0, messages: 1200, routines: 0 })).toBe("1,200 messages sent.");
-  expect(investedLine({ bots: 4, messages: 0, routines: 0 })).toBe("4 bots and counting.");
-  expect(investedLine({ bots: 0, messages: 0, routines: 3 })).toBe("3 routines set up.");
+  expect(investedLine({ bots: 0, messages: 1200, routines: 0 })).toBe("your bots carry a heavy workload.");
+  expect(investedLine({ bots: 4, messages: 0, routines: 0 })).toBe("a good crew of bots.");
+  expect(investedLine({ bots: 0, messages: 0, routines: 3 })).toBe("your routines are doing real work.");
 });

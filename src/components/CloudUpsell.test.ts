@@ -53,20 +53,20 @@ describe("the sidebar Dusk Cloud card", () => {
     f.state.bots = bots(3);
     const html = await launch();
     expect(html).toContain("data-invested");
-    expect(html).toContain("3 bots and counting");
+    expect(html).toContain("good crew of bots");
     expect(html).toContain("Dusk Cloud keeps them working 24/7, even when your Mac is off.");
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
     expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
     expect(f.state.config.onboarding.hintsSeen).toContain("cloud-invested-v1");
-    expect(await settle(), "holds for the rest of the launch").toContain("3 bots and counting");
+    expect(await settle(), "holds for the rest of the launch").toContain("good crew of bots");
     expect(await launch(), "the next launch is back to the plain card").not.toContain("data-invested");
   });
 
   it("quotes messages and routines too", async () => {
     f.state.bots = [...bots(1, 25), ...bots(1, 25)];
-    expect(await launch()).toContain("50 messages sent");
+    expect(await launch()).toContain("heavy workload");
     f.state.bots = bots(1); f.state.config.onboarding.hintsSeen = []; storage.clear(); f.state.routines = [{ id: "a" }, { id: "b" }, { id: "c" }];
-    expect(await launch()).toContain("3 routines set up");
+    expect(await launch()).toContain("routines are doing real work");
   });
 
   it("Get Dusk Cloud opens Add a Cloud as app_invested; closing snoozes the card like any other", async () => {

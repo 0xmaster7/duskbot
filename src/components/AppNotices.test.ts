@@ -476,7 +476,7 @@ describe("the invested pitch", () => {
   it("is never a corner notice: it lives in the sidebar card (CloudUpsell.test.ts)", async () => {
     f.state.bots = bots(3);
     const html = await launch();
-    expect(html).not.toContain("bots and counting");
+    expect(html).not.toContain("good crew of bots");
     expect(html).not.toContain('data-notice="cloud-invested"');
     expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
   });
