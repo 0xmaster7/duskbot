@@ -63,7 +63,7 @@ test("only Verified passes; a missing Hello is unavailable; an offered prompt th
 test("the helper gets its inputs through the environment, hidden, from the system PowerShell", async () => {
   const { spawn, calls } = fakeSpawn(["availability=0", "parented=1", "result=0"]);
   const output = await runWindowsHello({ hwnd: "123", reason: "x'; rm -rf /", spawn, env: { SystemRoot: "C:\\Windows" } });
-  assert.deepEqual({ ...output, timedOut: output.timedOut }, { availability: 0, result: 0, parented: true, error: false, timedOut: false });
+  assert.deepEqual({ ...output, timedOut: output.timedOut }, { availability: 0, result: 0, parented: true, error: false, stage: null, timedOut: false });
   const [{ file, args, options }] = calls;
   assert.equal(file, "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe");
   assert.deepEqual(args.slice(0, -1), ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand"]);
@@ -91,7 +91,7 @@ const onWindows = process.platform === "win32";
 
 test("on a real Windows: the availability probe answers cleanly", { skip: !onWindows && "Windows only" }, async () => {
   const output = await runWindowsHello({ mode: "check", timeoutMs: 90_000 });
-  console.log(`availability probe: availability=${output.availability} error=${output.error} timedOut=${output.timedOut}`);
+  console.log(`availability probe: availability=${output.availability} error=${output.stage} timedOut=${output.timedOut}`);
   assert.equal(output.error, false);
   assert.equal(output.timedOut, false);
   assert.ok(Object.values(AVAILABILITY).includes(output.availability));
@@ -100,7 +100,7 @@ test("on a real Windows: the availability probe answers cleanly", { skip: !onWin
 
 test("on a real Windows: the parented verification call reaches WinRT and completes", { skip: !onWindows && "Windows only" }, async () => {
   const output = await runWindowsHello({ mode: "force-verify", reason: "Dusk Bot CI check", timeoutMs: 90_000 });
-  console.log(`forced verification: availability=${output.availability} parented=${output.parented} result=${output.result} error=${output.error}`);
+  console.log(`forced verification: availability=${output.availability} parented=${output.parented} result=${output.result} error=${output.stage}`);
   assert.equal(output.error, false);
   assert.ok(Object.values(RESULT).includes(output.result));
   if (process.env.CI) assert.equal(helloOutcome(output), "unavailable");

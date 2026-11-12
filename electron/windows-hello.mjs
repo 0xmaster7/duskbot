@@ -134,7 +134,8 @@ export function parseHelloOutput(text) {
     const match = new RegExp(`^${key}=(-?\\d+)\\s*$`, "m").exec(text);
     return match ? Number(match[1]) : null;
   };
-  return { availability: read("availability"), result: read("result"), parented: read("parented") === 1, error: /^error=/m.test(text) };
+  const stage = /^error=([\w-]+)\s*$/m.exec(text)?.[1] ?? null;
+  return { availability: read("availability"), result: read("result"), parented: read("parented") === 1, error: /^error=/m.test(text), stage };
 }
 
 /**
