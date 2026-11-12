@@ -99,7 +99,7 @@ export function SettingRow({
   return (
     <div role="group" aria-labelledby={titleId} data-setting-row="" className={cn("px-4 in-data-[settings-look=simple]:rounded-lg in-data-[settings-look=simple]:px-2 in-data-[settings-look=simple]:py-1.5", className)}>
       <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-[18px] in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-2 in-data-[settings-look=simple]:gap-y-1.5">
-        {icon && <PixelIcon name={icon} className="hidden self-center in-data-[settings-look=simple]:block" />}
+        {icon && <PixelIcon name={icon} size={24} className="hidden self-center in-data-[settings-look=simple]:block" />}
         <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
           <div id={titleId} data-setting-title="" className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>
           {subtitle && <div data-setting-hint="" className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{subtitle}</div>}

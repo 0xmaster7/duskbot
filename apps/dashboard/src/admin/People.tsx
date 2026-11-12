@@ -7,17 +7,23 @@ import { useNow } from "../lib/now";
 import { useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, n, SearchBox, stamp } from "./ui";
 import { AnimatePresence } from "../ui/motion";
-import { Avatar, Chip, RangePicker, duration, personName, rangeOf, where, type Range } from "./kit";
+import { Avatar, CHANNEL, Chip, RangePicker, duration, personName, rangeOf, usd, where, type Range } from "./kit";
+import { Platform, deviceEmoji, flagOf } from "./person";
 
 interface Person {
   id: string; seed: string; account: { id: string; email: string; name: string | null } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
   firstSeen: number | null; lastSeen: number | null; timeToSignupMs: number | null; visits: number; pageviews: number; source: string; channel: string; campaign: string | null;
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
+type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app" | "reply" | "cloud" | "upsell" | "error" | "feedback" | "returned";
+interface Step { at: number; kind: StepKind; surface: "site" | "account" | "app" | "server"; name: string; path: string | null; detail: string | null; amountCents: number | null; gapMs?: number }
+interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
 interface Profile {
   id: string; seed: string; account: { id: string; email: string; name: string | null; createdAt: number } | null; customer: boolean; paidAt: number | null; visitors: number; installs: number;
-  summary: { visits: number; pageviews: number; firstSeen: number; lastSeen: number; source: string; channel: string; campaign: string | null; device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string } | null;
-  timeline: Array<{ at: number; name: string; surface: "site" | "account" | "app" | "server"; props: Record<string, string | number | boolean>; page: string | null; source: string | null; country: string | null; device: string | null; app: { platform?: string; version?: string } | null }>;
+  where: { device: string | null; os: string | null; browser: string | null; country: string | null; region: string | null; city: string | null };
+  firstSource: { at: number; source: string; channel: string; campaign: string | null; referrer: string | null; ref: string | null } | null;
+  stats: { firstSeen: number | null; visits: number; pageviews: number; spentCents: number; refundedCents: number; payments: number; firstPaidAt: number | null; timeToPayMs: number | null };
+  sessions: Session[];
 }
 
 const FILTERS = [{ value: "all", label: "everyone" }, { value: "signups", label: "signed up" }, { value: "customers", label: "customers" }] as const;
@@ -55,10 +61,10 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
                       {person.customer ? <span className="tag !h-[22px] !px-2 text-accent-ink">customer</span> : person.account ? <span className="tag !h-[22px] !px-2">signed up</span> : null}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1.5">
-                      <Chip>{where(person.country, person.city)}</Chip>
+                      <Chip>{person.country && <span aria-hidden className="me-1">{flagOf(person.country)}</span>}{where(person.country, person.city)}</Chip>
                       {person.device && <Chip>{person.device}</Chip>}
-                      {person.os && person.os !== "other" && <Chip>{person.os}</Chip>}
-                      {person.browser && person.browser !== "other" && <Chip>{person.browser}</Chip>}
+                      {person.os && person.os !== "other" && <Chip><Platform kind="os" value={person.os} /></Chip>}
+                      {person.browser && person.browser !== "other" && <Chip><Platform kind="browser" value={person.browser} /></Chip>}
                     </span>
                   </span>
                 </span>
@@ -75,57 +81,109 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
   );
 }
 
-const WHAT: Record<string, (item: Profile["timeline"][number]) => string> = {
-  site_view: (i) => `opened ${i.page ?? "a page"}`, site_goal: (i) => String(i.props.goal ?? "goal").replace(/_/g, " ") + (i.props.to ? ` (${i.props.to})` : ""),
-  identify: (i) => i.props.via === "app" ? "signed in to the app" : "signed in on the site", signup: () => "made an account", sign_in: (i) => `signed in (${i.props.kind ?? "web"})`,
-  page_view: (i) => `account page ${i.props.path ?? ""}`, onboarding_step: (i) => `onboarding: ${i.props.step}`, onboarding_done: () => "finished onboarding", plan_chosen: (i) => `picked ${i.props.plan}`,
-  app_paired: (i) => `paired an app${i.props.platform ? ` (${i.props.platform})` : ""}`, app_open: (i) => `opened the ${i.props.kind ?? "desktop"} app`, app_screen: (i) => `app: ${i.props.screen}`,
-  app_feature: (i) => String(i.props.feature ?? "a feature").replace(/_/g, " "), app_messages: (i) => `${i.props.sent ?? 0} messages, ${i.props.replies ?? 0} replies`,
-  app_error: (i) => `app error ${i.props.kind ?? ""} ${i.props.code ?? ""}`, app_pair_failed: (i) => `pairing failed: ${i.props.reason ?? "unknown"}`, app_active: () => "used the app",
-  first_bot_reply: () => "first bot reply", checkout_paid: () => "paid", cloud_state: (i) => `cloud ${i.props.from} to ${i.props.to}`, app_close: (i) => `closed the app after ${duration(Number(i.props.ms) || 0)}`,
-};
-const SURFACE: Record<string, string> = { site: "bg-sky", account: "bg-lime", app: "bg-lemon", server: "bg-card-2" };
+const ICON: Record<StepKind, string> = { view: "📄", goal: "🎯", paid: "💰", refund: "↩️", checkout: "🛒", signup: "🧑‍💻", signin: "🔑", onboarding: "🧭", plan: "🧾", paired: "📲",
+  install: "💾", app: "🖥️", reply: "🤖", cloud: "☁️", upsell: "✨", error: "⚠️", feedback: "⭐", returned: "🔁" };
+const CHANNEL_ICON: Record<string, string> = { direct: "🔗", search: "🔎", social: "💬", ai: "🤖", referral: "🤝", email: "✉️", paid: "📣" };
+const day = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(new Date(t).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) }).toLowerCase();
+const clock = (t: number) => new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+
+function sessionLabel(session: Session): { icon: string; text: string } {
+  if (session.surface === "app") {
+    const phone = session.steps.some((step) => step.detail === "ios" || step.detail === "android" || step.name.includes("phone"));
+    return { icon: phone ? "📱" : "🖥️", text: phone ? "phone app" : "desktop app" };
+  }
+  if (session.surface === "server") return { icon: "🧾", text: "account and billing" };
+  const source = session.source ?? "direct";
+  return { icon: CHANNEL_ICON[session.channel ?? "direct"] ?? "🔗", text: `${source}${session.campaign ? `, ${session.campaign}` : ""}` };
+}
+
+function StepText({ step }: { step: Step }) {
+  const where = step.path ? <span className="text-ink-4"> on <span className="font-mono text-12 text-ink-3">{step.path}</span></span> : null;
+  const detail = step.detail ? <span className="text-ink-4"> · {step.detail.replace(/_/g, " ")}</span> : null;
+  const amount = step.amountCents !== null ? <span className={cx("font-mono font-medium num", step.kind === "checkout" ? "text-ink-2" : "text-coral-deep")}> {usd(step.amountCents)}</span> : null;
+  switch (step.kind) {
+    case "view": return <>{step.surface === "app" ? "opened" : "viewed"} <span className="font-mono text-12 text-ink">{step.path}</span></>;
+    case "goal": case "upsell": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}</>;
+    case "paid": case "refund": return <>{step.name}{amount}{detail}</>;
+    case "checkout": return <>{step.name}{amount}{detail}</>;
+    case "returned": return <>returned{step.gapMs ? <span className="text-ink-4"> after {duration(step.gapMs)}</span> : null}</>;
+    case "error": return <><span className="text-bad">{step.name}</span>{where}{detail}</>;
+    default: return <>{step.name}{detail}</>;
+  }
+}
+
+function Stat({ label, value, note, money }: { label: string; value: ReactNode; note?: ReactNode; money?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-[16px] bg-card px-3.5 py-3">
+      <div className="text-12 font-medium text-ink-3">{label}</div>
+      <div className={cx("mt-1 truncate text-[17px] font-medium leading-6", money ? "font-mono text-coral-deep num" : "text-ink")}>{value}</div>
+      <div className="mt-0.5 h-[18px] truncate text-12 leading-[18px] text-ink-4">{note}</div>
+    </div>
+  );
+}
 
 function ProfileDialog({ id, onClose }: { id: string; onClose(): void }) {
   const { data, error, reload } = useAdmin<Profile>(`/journeys/${encodeURIComponent(id)}`);
   const name = data ? personName(data.seed, data.account?.email) : "loading";
-  const days = new Map<string, Profile["timeline"]>();
-  for (const item of data?.timeline ?? []) { const key = new Date(item.at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).toLowerCase(); (days.get(key) ?? days.set(key, []).get(key)!).push(item); }
+  const first = data?.firstSource;
+  const place = data?.where;
   return (
-    <Modal open onClose={onClose} title={name} wide>
+    <Modal open onClose={onClose} title={name} wide="xl">
       {error && <Failed error={error} retry={reload} />}
       {!data && !error && <Loading rows={5} />}
-      {data && (
+      {data && place && (
         <div className="text-ink-2">
           <div className="flex items-center gap-3">
-            <Avatar seed={data.seed} size={40} customer={data.customer} />
+            <Avatar seed={data.seed} size={44} customer={data.customer} />
             <div className="min-w-0">
-              <div className="flex flex-wrap gap-1.5">
-                {data.customer && <span className="tag text-accent-ink">customer</span>}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {data.customer && <span className="inline-flex h-6 items-center rounded-full bg-coral-soft px-2.5 text-12 text-coral-deep">customer</span>}
                 {data.account ? <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="tag">account</Link> : <span className="tag">anonymous</span>}
+                {data.account?.name && <span className="text-13 text-ink-3">{data.account.name}</span>}
                 {data.installs > 0 && <span className="tag">{data.installs} app install{data.installs === 1 ? "" : "s"}</span>}
               </div>
-              {data.summary && <p className="mt-1.5 text-13">first came from <span className="text-ink">{data.summary.source}</span>{data.summary.campaign ? ` (${data.summary.campaign})` : ""}, {where(data.summary.country, data.summary.city)}, {data.summary.device ?? "unknown device"}. {n(data.summary.visits)} visit{data.summary.visits === 1 ? "" : "s"}, {n(data.summary.pageviews)} page{data.summary.pageviews === 1 ? "" : "s"}.</p>}
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-13">
+                <span>{place.country && <span aria-hidden>{flagOf(place.country)} </span>}{where(place.country, place.city)}</span>
+                {place.device && <span><span aria-hidden>{deviceEmoji(place.device)} </span>{place.device}</span>}
+                <Platform kind="os" value={place.os} />
+                <Platform kind="browser" value={place.browser} />
+              </p>
             </div>
           </div>
-          <div className="mt-5 max-h-[52dvh] overflow-y-auto pe-1">
-            {[...days].map(([day, items]) => (
-              <section key={day} className="mb-4">
-                <h3 className="t-meta sticky top-0 bg-pop py-1">{day}</h3>
-                <ol className="mt-1 flex flex-col">
-                  {items.map((item, i) => (
-                    <li key={`${item.at}-${i}`} className="grid grid-cols-[52px_64px_minmax(0,1fr)] items-baseline gap-3 py-1.5 text-13">
-                      <span className="font-mono text-12 text-ink-4">{new Date(item.at).toTimeString().slice(0, 5)}</span>
-                      <span className={cx("justify-self-start rounded-full px-2 py-0.5 text-[11.5px] text-ink", SURFACE[item.surface])}>{item.surface}</span>
-                      <span className="min-w-0 truncate text-ink">{(WHAT[item.name] ?? ((x) => x.name.replace(/_/g, " ")))(item)}{item.name === "site_view" && item.source && item.source !== "direct" ? <span className="text-ink-4"> from {item.source}</span> : null}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            ))}
-            {!data.timeline.length && <p className="text-13">nothing recorded.</p>}
+          <div className="mt-5 grid grid-cols-4 gap-2 max-md:grid-cols-2">
+            <Stat label="first source" value={first ? <><span aria-hidden>{CHANNEL_ICON[first.channel] ?? "🔗"} </span>{first.source}</> : "unknown"}
+              note={first ? first.campaign ?? (first.ref && first.ref !== first.source ? `ref ${first.ref}` : first.referrer ?? CHANNEL[first.channel] ?? first.channel) : "no site visit recorded"} />
+            <Stat label="visits" value={n(data.stats.visits)} note={`${n(data.stats.pageviews)} page${data.stats.pageviews === 1 ? "" : "s"}`} />
+            <Stat label="total spent" value={usd(data.stats.spentCents)} money
+              note={data.stats.refundedCents ? `after ${usd(data.stats.refundedCents)} refunded` : data.stats.payments ? `${n(data.stats.payments)} payment${data.stats.payments === 1 ? "" : "s"}` : "nothing yet"} />
+            <Stat label="time to first payment" value={data.stats.timeToPayMs !== null ? duration(data.stats.timeToPayMs) : "-"} note={data.stats.firstPaidAt ? `paid ${day(data.stats.firstPaidAt)}` : "not paid yet"} />
           </div>
-          <p className="mt-3 text-12 text-ink-4">since {stamp(data.summary?.firstSeen ?? data.account?.createdAt ?? null)}. a person's site visits join their account when they sign in on the same domain; app use joins when the app signs in.</p>
+          <div className="mt-5 max-h-[52dvh] overflow-y-auto pe-1">
+            {data.sessions.map((session) => {
+              const label = sessionLabel(session);
+              return (
+                <section key={session.start} className="mb-4">
+                  <h3 className="sticky top-0 z-[1] flex flex-wrap items-center gap-x-2 bg-pop py-1.5 text-13 font-medium text-ink">
+                    <span>{day(session.start)}, {clock(session.start)}</span>
+                    <span className="text-ink-4" aria-hidden>·</span>
+                    <span className="text-ink-2"><span aria-hidden>{label.icon} </span>{label.text}</span>
+                    {session.ms >= 1000 && <><span className="text-ink-4" aria-hidden>·</span><span className="font-mono text-12 text-ink-3 num">{duration(session.ms)}</span></>}
+                  </h3>
+                  <ol className="flex flex-col">
+                    {session.steps.map((step, i) => (
+                      <li key={`${step.at}-${i}`} className="grid grid-cols-[64px_22px_minmax(0,1fr)] items-baseline gap-2 rounded-[10px] py-1.5 text-13">
+                        <span className="font-mono text-12 text-ink-4 num">{clock(step.at)}</span>
+                        <span aria-hidden className="text-center">{step.kind === "app" && (step.detail === "ios" || step.detail === "android") ? "📱" : ICON[step.kind]}</span>
+                        <span className="min-w-0 break-words text-ink"><StepText step={step} /></span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              );
+            })}
+            {!data.sessions.length && <p className="text-13">nothing recorded.</p>}
+          </div>
+          <p className="mt-3 text-12 text-ink-4">since {stamp(data.stats.firstSeen ?? data.account?.createdAt ?? null)}. a person's site visits join their account when they sign in on the same domain; app use joins when the app signs in. a new session starts after 30 quiet minutes.</p>
         </div>
       )}
     </Modal>

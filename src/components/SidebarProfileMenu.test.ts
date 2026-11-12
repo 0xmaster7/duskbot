@@ -329,7 +329,7 @@ describe("Simple mode's account menu", () => {
     expect(groups(items)).toEqual([
       ["usage", "phone-app", "support", "settings"],
       ["archived"],
-      ["place", "switch-place", "account"],
+      ["place", "account"],
     ]);
     expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about", "update"]);
   });
@@ -410,7 +410,7 @@ describe("Simple mode's account menu", () => {
       ["cloud-move"],
       ["usage", "phone-app", "support", "settings"],
       ["archived"],
-      ["place", "switch-place", "account"],
+      ["place", "account"],
     ]);
     expect(groups(build({ move, update, updateTop: { label: "update ready", action: "restart" } })).slice(0, 2)).toEqual([["cloud-move"], ["update"]]);
     expect(groups(build({ move: [] }))[0]).toEqual(["usage", "phone-app", "support", "settings"]);
@@ -444,14 +444,13 @@ describe("Simple mode's account menu", () => {
     expect(renderToStaticMarkup(createElement(InitialsAvatar, { initials: "AL", size: 50 }))).toContain("font-size:19px");
   });
 
-  it("ticks the current place and switches through the same native menu as the server pill", () => {
+  it("ticks the current place, which opens the same native list as the top row's place button; no second switch to…", () => {
     const here = place();
     const items = placeMenuItems(here, { owner: null, onCloudSettings: noop });
-    expect(items.map((item) => [item.key, item.label])).toEqual([["place", "This computer"], ["switch-place", "switch to…"]]);
+    expect(items.map((item) => [item.key, item.label])).toEqual([["place", "This computer"]]);
     expect(items[0]!.trailing).toBeTruthy();
     items[0]!.onSelect();
-    items[1]!.onSelect();
-    expect(here.openMenu).toHaveBeenCalledTimes(2);
+    expect(here.openMenu).toHaveBeenCalledTimes(1);
   });
 
   it("names My Cloud and opens its settings when it is the window's only place, and offers nothing without either", () => {

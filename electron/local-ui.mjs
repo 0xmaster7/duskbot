@@ -9,6 +9,9 @@ import path from "node:path";
 const SERVER_PATH = /^\/(?:api|\.well-known)(?:\/|$)/;
 /** Requests a page makes for its own files; an API call is a Fetch, XHR or EventSource and is never paused. */
 const FILE_TYPES = Object.freeze(["Script", "Stylesheet", "Image", "Font", "Other"]);
+/** Where this app's sounds and videos live: the bundle's /assets, and in development Vite's source and dependency paths.
+ * Media elsewhere (a bot's files under /api) never pauses. */
+const MEDIA_PATHS = Object.freeze(["/assets/*", "/src/*", "/@fs/*", "/node_modules/*"]);
 /** Pages with an entry of their own, as server/static-files.ts serves them. */
 const PAGES = Object.freeze({ "/": "/index.html", "/rail": "/rail.html" });
 
@@ -46,7 +49,7 @@ export function uiPatterns(origins) {
   return origins.flatMap((origin) => [
     { urlPattern: `${origin}/*`, resourceType: "Document", requestStage: "Response" },
     ...FILE_TYPES.map((resourceType) => ({ urlPattern: `${origin}/*`, resourceType, requestStage: "Request" })),
-    { urlPattern: `${origin}/assets/*`, resourceType: "Media", requestStage: "Request" },
+    ...MEDIA_PATHS.map((at) => ({ urlPattern: `${origin}${at}`, resourceType: "Media", requestStage: "Request" })),
   ]);
 }
 
@@ -101,24 +104,55 @@ export function bundleSource(dir, { read = readFile, info = stat } = {}) {
   };
 }
 
+/** Requests to the dev server at once. A page asks for hundreds of modules together; one connection each, against a
+ * Vite still busy optimizing, overflowed its listen backlog (128 on macOS) and the rest were reset, so those modules
+ * went to the place's server, which has no /src, and the app's import failed. */
+const DEV_CONNECTIONS = 6;
+const DEV_TRIES = 4;
+const HOP_HEADERS = new Set(["content-encoding", "content-length", "transfer-encoding", "connection", "keep-alive"]);
+
 /** `pnpm dev:app`: the files come from the Vite dev server, which also answers a page path with its own index. */
-export function devSource(devOrigin, { fetch: fetchImpl = fetch } = {}) {
+export function devSource(devOrigin, { fetch: fetchImpl = fetch, connections = DEV_CONNECTIONS, tries = DEV_TRIES, pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {}) {
   const origin = originOf(devOrigin);
+  let busy = 0;
+  const waiting = [];
+  const take = () => (busy < connections ? (busy += 1, Promise.resolve()) : new Promise((resolve) => waiting.push(resolve)));
+  const give = () => { const next = waiting.shift(); if (next) next(); else busy -= 1; };
+
+  /** Vite's answer, read whole while holding a connection; a dropped connection is asked again. */
+  async function ask(target, accept) {
+    for (let attempt = 1; ; attempt += 1) {
+      await take();
+      try {
+        const response = await fetchImpl(target, { headers: { accept }, redirect: "manual", signal: AbortSignal.timeout(30_000) });
+        const headers = {};
+        for (const [name, value] of response.headers) if (!HOP_HEADERS.has(name)) headers[name] = value;
+        return { status: response.status, headers, body: Buffer.from(await response.arrayBuffer()) };
+      } catch (error) {
+        if (attempt >= tries) throw error;
+      } finally { give(); }
+      await pause(100 * 2 ** (attempt - 1));
+    }
+  }
+
   async function load(url, accept) {
     let at;
     try { at = new URL(url); } catch { return null; }
-    const response = await fetchImpl(`${origin}${at.pathname}${at.search}`, { headers: { accept }, redirect: "manual", signal: AbortSignal.timeout(30_000) }).catch(() => null);
-    if (!response?.ok) { await response?.body?.cancel?.().catch(() => {}); return null; }
-    const headers = {};
-    for (const [name, value] of response.headers) if (!["content-encoding", "content-length", "transfer-encoding", "connection", "keep-alive"].includes(name)) headers[name] = value;
-    return { status: response.status, headers, body: Buffer.from(await response.arrayBuffer()) };
+    return ask(`${origin}${at.pathname}${at.search}`, accept);
   }
+  const html = (answer) => /^text\/html\b/i.test(answer.headers["content-type"] ?? "");
   return {
     kind: "dev",
-    file: (url) => load(url, "*/*"),
+    // Vite answers a name it does not have with its index page (200, text/html) or 404: that file is the server's. Any
+    // other answer is Vite's own, errors included (a transform error, an outdated optimized dependency), exactly as the
+    // page would get it from Vite directly; the place's server has no copy of a dev module to fall back on.
+    file: async (url) => {
+      const answer = await load(url, "*/*");
+      return !answer || answer.status === 404 || html(answer) ? null : answer;
+    },
     page: async (url) => {
-      const answer = await load(url, "text/html");
-      return answer && /^text\/html\b/i.test(answer.headers["content-type"] ?? "") ? { ...answer, headers: { ...answer.headers, ...PAGE_HEADERS } } : null;
+      const answer = await load(url, "text/html").catch(() => null);
+      return answer && answer.status >= 200 && answer.status < 300 && html(answer) ? { ...answer, headers: { ...answer.headers, ...PAGE_HEADERS } } : null;
     },
   };
 }

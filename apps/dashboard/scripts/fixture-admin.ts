@@ -86,6 +86,8 @@ function seedPaymentHistory(app: ReturnType<typeof createDashboardApp>, accounts
     const at = Math.min(now - 600_000, account.createdAt + Math.round((delays[i] ?? 12) * 3_600_000));
     for (const sub of state.subscriptions.filter(item => item.accountId === account.id && item.currentPeriodStart !== null)) {
       Object.assign(sub, { createdAt: at, currentPeriodStart: at, currentPeriodEnd: at + 30 * DAY });
+      const checkout = state.checkouts.find(item => item.id === sub.checkoutId);
+      if (checkout) checkout.createdAt = at - 4 * 60_000;
       for (const invoice of state.invoices.filter(item => item.subscriptionId === sub.id)) invoice.createdAt = at;
       for (let renewal = at + 30 * DAY; renewal < now; renewal += 30 * DAY) {
         const payment = `pay_fixture_${sub.id}_${renewal}`;
@@ -196,6 +198,20 @@ async function seedWeb(app: ReturnType<typeof createDashboardApp>, accounts: See
       if (rand() < 0.05) await analytics.record("app_pair_failed", { accountId: account.id, at: t + 1100_000, props: { reason: pick(["expired_code", "network"]) }, ctx });
     }
   }
+  // one paying person's whole road, for the profile: a launch thread on x, the demo, a direct return, sign-up, the upsell, checkout and a cloud
+  const mira = accounts[0]!, story = vid(), paidAt = Math.min(now - 600_000, mira.createdAt + 26 * 3_600_000);
+  await visit(story, mira.createdAt - 2 * DAY - 3 * 3_600_000, { pages: ["/", "/pricing", "/docs"], touch: TOUCHES[1], place: CITIES[0],
+    goals: [["demo_play", { section: "hero", label: "start_the_live_demo", from: "/" }], ["click", { label: "yearly", section: "pricing", value: "y", from: "/pricing" }], ["download_click", { to: "/download", from: "/pricing", value: "mac" }]] });
+  await visit(story, mira.createdAt - 18 * 60_000, { pages: ["/", "/pricing"], touch: TOUCHES[0], place: CITIES[0], goals: [["cta_click", { to: "/dashboard/signup", from: "/pricing", value: "plus" }]] });
+  await analytics.record("identify", { accountId: mira.id, at: mira.createdAt + 1500, props: { via: "page" }, ctx: { visitor: story } });
+  await analytics.record("plan_chosen", { accountId: mira.id, at: mira.createdAt + 150_000, props: { plan: "plus", period: "month" } });
+  const dash = { session: vid(), host: "dusk.bot", device: "desktop" as const, os: "mac" as const, browser: "arc" as const, country: "US", region: "California", city: "San Francisco" };
+  await analytics.record("page_view", { accountId: mira.id, at: paidAt - 12 * 60_000, props: { path: "/" }, ctx: { ...dash, source: "direct", channel: "direct", page: "/" } });
+  await analytics.record("page_action", { accountId: mira.id, at: paidAt - 11 * 60_000, props: { action: "upsell_shown", label: "dash_sidebar", path: "/" }, ctx: dash });
+  await analytics.record("page_action", { accountId: mira.id, at: paidAt - 6 * 60_000, props: { action: "upsell_click", label: "dash_sidebar", path: "/" }, ctx: dash });
+  await analytics.record("page_view", { accountId: mira.id, at: paidAt - 5 * 60_000, props: { path: "/cloud" }, ctx: { ...dash, page: "/cloud" } });
+  await analytics.record("cloud_state", { accountId: mira.id, at: paidAt + 40_000, props: { cloudId: "c0123456789abcdef01234567", kind: "starter", region: "us-east", from: "new", to: "provisioning" } });
+  await analytics.record("cloud_state", { accountId: mira.id, at: paidAt + 4 * 60_000, props: { cloudId: "c0123456789abcdef01234567", kind: "starter", region: "us-east", from: "provisioning", to: "running" } });
   for (let v = 0; v < 9; v++) await visit(vid(), now - Math.round(rand() * 25 * 60_000), { pages: rand() < 0.5 ? ["/", "/pricing"] : ["/"], goals: rand() < 0.3 ? [["waitlist_join"]] : [] });
   const BOTS: Array<[string, "answers" | "indexing" | "training"]> = [["GPTBot", "training"], ["ChatGPT-User", "answers"], ["ClaudeBot", "training"], ["PerplexityBot", "indexing"], ["OAI-SearchBot", "indexing"], ["Claude-User", "answers"]];
   for (let c = 0; c < 140; c++) { const [bot, kind] = pick(BOTS); await analytics.sink.crawl({ at: now - Math.round(rand() * 29 * DAY), bot, kind, path: pick([...PATHS, "/robots.txt", "/llms.txt", "/docs/getting-started"]), host: "preview.dusk.bot" }); }

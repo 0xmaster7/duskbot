@@ -229,6 +229,22 @@ test("a failed startup shows on the card with try again and quit, never a hang",
   assert.equal(splash.window.destroyed, false);
 });
 
+test("startup marks move the card forward, never back, and a reload shows the step reached", async () => {
+  const ran = [];
+  class Said extends UnreadyWindow {
+    constructor(options) { super(options); this.webContents.executeJavaScript = async (code) => { ran.push(code); }; }
+  }
+  const { splash } = fixture({ BrowserWindow: Said, dark: true });
+  assert.equal(splash.window.options.backgroundColor, "#141418");
+  assert.equal(splash.window.options.transparent, undefined);
+  splash.progress("splash"); splash.progress("server"); splash.progress("credentials");
+  assert.deepEqual(ran, ["window.card?.step(3)"]);
+  splash.window.webContents.emit("did-finish-load");
+  assert.deepEqual(ran, ["window.card?.step(3)", "window.card?.step(3)"]);
+  splash.progress("loaded");
+  assert.equal(ran.at(-1), "window.card?.step(5)");
+});
+
 test("the macOS tray icon is a template image, elsewhere the logo", () => {
   const loaded = [];
   const nativeImage = { createFromPath: (file) => { const image = { file, setTemplateImage: (on) => { image.template = on; }, resize: () => image }; loaded.push(image); return image; } };

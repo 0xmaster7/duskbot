@@ -107,18 +107,18 @@ const scrim = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacit
 
 /** a centered dialog: scrim, escape and outside click close it, focus moves in and comes back; it scales in from the
  * middle and fades out, and also plays its exit when an AnimatePresence above it drops it */
-export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean | "xl" }) {
   // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
   return createPortal(<AnimatePresence propagate>{open && <ModalFrame key="modal" onClose={onClose} title={title} footer={footer} wide={wide}>{children}</ModalFrame>}</AnimatePresence>, document.body);
 }
-function ModalFrame({ onClose, title, children, footer, wide }: { onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+function ModalFrame({ onClose, title, children, footer, wide }: { onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean | "xl" }) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useDialog(true, onClose, ref);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <m.div {...scrim} className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <m.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("pop relative my-auto w-full min-w-0 rounded-[28px] bg-pop p-7 outline-none max-sm:p-5", wide ? "max-w-[540px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}
+      <m.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("pop relative my-auto w-full min-w-0 rounded-[28px] bg-pop p-7 outline-none max-sm:p-5", wide === "xl" ? "max-w-[760px]" : wide ? "max-w-[540px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}
         initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 6, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
         <div className="flex items-start justify-between gap-4">
           <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>

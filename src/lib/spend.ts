@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import { formatCost } from "@/lib/usage-trace";
 import { api } from "@/state/store";
-import type { AllowanceReport, AutoTopUp, BatteryReport, RoutineForecast, SpendCapInput } from "../../shared/spend";
+import type { AllowanceReport, AutoTopUp, BatteryReport, DailyUsageReport, RoutineForecast, SpendCapInput } from "../../shared/spend";
 import type { RoutinePause } from "../../shared/routines";
 
-export type { AllowanceReport, BatteryReport, BatteryRow, RoutineForecast } from "../../shared/spend";
+export type { AllowanceReport, BatteryReport, BatteryRow, DailyUsageReport, DailyUsageSeries, RoutineForecast } from "../../shared/spend";
 
 export const fetchBattery = (): Promise<BatteryReport> => api("/api/usage/battery");
+export const fetchDaily = (days: number): Promise<DailyUsageReport> => api(`/api/usage/daily?days=${days}&tz=${new Date().getTimezoneOffset()}`);
 export const fetchForecast = (routineId: string): Promise<RoutineForecast> => api(`/api/routines/${encodeURIComponent(routineId)}/forecast`);
 export const saveCap = (input: SpendCapInput): Promise<unknown> => api("/api/usage/caps", { method: "PUT", body: JSON.stringify(input) });
 

@@ -174,6 +174,8 @@
       scanSections();
       measure();
       var extra = { w: w.innerWidth }, utm = {}, params = new URLSearchParams(loc.search);
+      // arc and brave send chrome's user agent
+      safe(function () { if (n.brave) extra.b = "brave"; else if (w.getComputedStyle(d.documentElement).getPropertyValue("--arc-palette-title")) extra.b = "arc"; })();
       "utm_source utm_medium utm_campaign utm_content utm_term ref via source".split(" ").forEach(function (key) {
         var value = params.get(key);
         if (value !== null && value.indexOf("@") < 0) utm[key] = value.slice(0, 100);
@@ -274,6 +276,12 @@
         if (value) meta.value = value;
       }
       if (name !== "click" || (target.matches('a[href], button, [role="button"]') && meta.label)) goal(name, meta);
+    }), true);
+    d.addEventListener("play", safe(function (event) {
+      var el = event.target;
+      if (!el || !/^(VIDEO|AUDIO)$/.test(el.tagName) || el.closest("[data-dusk-ignore]") || el.duskPlayed === pv) return;
+      el.duskPlayed = pv;
+      goal(el.getAttribute("data-dusk-goal") || "video_play", attributes(el));
     }), true);
     d.addEventListener("focusin", safe(function (event) {
       var el = event.target;

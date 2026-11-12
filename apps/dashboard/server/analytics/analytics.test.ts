@@ -46,6 +46,11 @@ describe("analytics", () => {
     expect(touchContext({ utmSource: "a@b.c" }).utm).toBeUndefined();
     expect(touchContext({})).toEqual({ source: "direct", channel: "direct" });
     expect(deviceOf("Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/131 Mobile")).toEqual({ device: "mobile", os: "android", browser: "chrome" });
+    const chrome = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+    expect(deviceOf(chrome, { brands: '"Brave";v="131", "Chromium";v="131"' }).browser).toBe("brave");
+    expect(deviceOf(chrome, { hint: "arc" }).browser).toBe("arc");
+    expect(deviceOf(chrome, { hint: "netscape" }).browser).toBe("chrome");
+    expect(deviceOf(SAFARI_UA, { hint: "arc" }).browser).toBe("safari");
   });
 
   it("counts an app device active once a day, and the first bot reply once ever", async () => {

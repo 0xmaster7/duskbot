@@ -1,10 +1,166 @@
 import { cn } from "@/lib/cn";
 
-/* dusk's small pixel icons: 11 by 11 cells drawn at 2px, one outline that follows the text colour and a few fixed fills.
-   Each row is a string; a cell is "." (empty), "o" (outline) or a fill letter from FILLS. */
-const FILLS: Record<string, string> = { w: "#fafbfc", b: "#4a8fd0", B: "#9fd3f5", g: "#6cc58a", y: "#f2c94c", p: "#f29bb5", v: "#a78bfa", V: "#cdbefc", G: "#c7cfd9", r: "#f2994a", n: "#deaa6e", N: "#c48c50", K: "#8e9aab" };
+/* dusk's small pixel objects in the brand's pastels (sky, lilac, pink, lemon, lime), each outlined in ink like the app
+   tiles, so the colour carries them on the light page and the dark one alike. 11 by 11 cells; a row is a string, a cell
+   is "." (empty), "o" (ink) or a fill letter from FILLS. Ink with no fill beside it (a speaker's waves, a mic's stand)
+   would vanish on a dark page, so those cells follow the text colour instead. */
+const INK = "#1b1b1f";
+const FILLS: Record<string, string> = {
+  w: "#fdfbf7",
+  b: "#c2ecfc", B: "#e3f6fe",
+  v: "#d0cefb", V: "#e7e6fd",
+  p: "#ffc4dd",
+  y: "#fff3a0",
+  g: "#c9f63f",
+  n: "#fff3a0", N: "#f6e477",
+  r: "#ffc4dd", R: "#ff9a9a",
+  G: "#e4e4ea", K: "#b9bcc6",
+};
 
 const ICONS = {
+  battery: [
+    "...........",
+    "...........",
+    "...........",
+    "ooooooooo..",
+    "obbbbbwwo..",
+    "obbbbbwwooo",
+    "obbbbbwwooo",
+    "obbbbbwwo..",
+    "ooooooooo..",
+    "...........",
+    "...........",
+  ],
+  batteryFull: [
+    "...........",
+    "...........",
+    "...........",
+    "ooooooooo..",
+    "oRRRRRRRo..",
+    "oRRRRRRRooo",
+    "oRRRRRRRooo",
+    "oRRRRRRRo..",
+    "ooooooooo..",
+    "...........",
+    "...........",
+  ],
+  gauge: [
+    "...........",
+    "...ooooo...",
+    "..oggyyro..",
+    ".ogbbbbbro.",
+    "ogbbbbobbro",
+    "obbbbobbbbo",
+    "obbboobbbbo",
+    "obbboobbbbo",
+    "ooooooooooo",
+    "...........",
+    "...........",
+  ],
+  stop: [
+    "...ooooo...",
+    "..oRRRRRo..",
+    ".oRRRRRRRo.",
+    "oRRwwwwwRRo",
+    "oRRwwwwwRRo",
+    "oRRRRRRRRRo",
+    ".oRRRRRRRo.",
+    "..oRRRRRo..",
+    "...ooooo...",
+    "...........",
+    "...........",
+  ],
+  info: [
+    "...ooooo...",
+    "..obbbbbo..",
+    ".obbbwbbbo.",
+    "obbbbbbbbbo",
+    "obbbwwbbbbo",
+    "obbbbwbbbbo",
+    "obbbbwbbbbo",
+    ".obbwwwbbo.",
+    "..obbbbbo..",
+    "...ooooo...",
+    "...........",
+  ],
+  alert: [
+    ".....o.....",
+    "....oyo....",
+    "....oyo....",
+    "...oyoyo...",
+    "...oyoyo...",
+    "..oyyoyyo..",
+    "..oyyyyyo..",
+    ".oyyyoyyyo.",
+    ".oyyyyyyyo.",
+    "ooooooooooo",
+    "...........",
+  ],
+  key: [
+    "...........",
+    "..ooo......",
+    ".oyyyo.....",
+    "oyyoyyooooo",
+    "oyyoyyyyyyo",
+    ".oyyyooyoyo",
+    "..ooo..o.o.",
+    "...........",
+    "...........",
+    "...........",
+    "...........",
+  ],
+  offline: [
+    "...........",
+    ".ooooooooo.",
+    "oVVVVVVVVVo",
+    "oVVVoVoVVVo",
+    "oVVVVoVVVVo",
+    "oVVVoVoVVVo",
+    "oVVVVVVVVVo",
+    ".ooooooooo.",
+    "....ooo....",
+    "..ooooooo..",
+    "...........",
+  ],
+  gift: [
+    "...o...o...",
+    "..oro.oro..",
+    "...orrro...",
+    ".ooooroooo.",
+    ".ovvvrvvvo.",
+    ".ooooroooo.",
+    "..ovvrvvo..",
+    "..ovvrvvo..",
+    "..ovvrvvo..",
+    "..ooooooo..",
+    "...........",
+  ],
+  shield: [
+    "..ooooooo..",
+    ".obbbbbbbo.",
+    ".obbBbbbbo.",
+    ".obBBbbbbo.",
+    ".obbbbbbbo.",
+    ".obbbbbbbo.",
+    "..obbbbbo..",
+    "..obbbbbo..",
+    "...obbbo...",
+    "....obo....",
+    ".....o.....",
+  ],
+  check: [
+    "...ooooo...",
+    "..ogggggo..",
+    ".oggggggggo",
+    "ogggggggwgo",
+    "oggwgggwggo",
+    "ogggwgwgggo",
+    "oggggwggggo",
+    "ogggggggggo",
+    ".ogggggggo.",
+    "..ooooooo..",
+    "...........",
+  ],
   palette: [
     "...ooooo...",
     "..onnnnno..",
@@ -61,12 +217,12 @@ const ICONS = {
     "...........",
     "...........",
     "ooooooooooo",
-    "owKwKwKwKwo",
-    "owwwwwwwwwo",
-    "oKwKwKwKwKo",
-    "owwwwwwwwwo",
-    "owwKKKKKwwo",
-    "owwwwwwwwwo",
+    "ovovovovovo",
+    "ovvvvvvvvvo",
+    "oovovovovoo",
+    "ovvvvvvvvvo",
+    "ovvooooovvo",
+    "ovvvvvvvvvo",
     "ooooooooooo",
     "...........",
   ],
@@ -100,26 +256,26 @@ const ICONS = {
     "...........",
     "....o...o..",
     "...oo....o.",
-    "oooGo..o..o",
-    "oGGGo...o.o",
-    "oGGGo...o.o",
-    "oGGGo...o.o",
-    "oooGo..o..o",
+    "oooVo..o..o",
+    "oVVVo...o.o",
+    "oVVVo...o.o",
+    "oVVVo...o.o",
+    "oooVo..o..o",
     "...oo....o.",
     "....o...o..",
     "...........",
   ],
   clock: [
     "...ooooo...",
-    "..owwwwwo..",
-    ".owwwowwwo.",
-    "owwwwowwwwo",
-    "owwwwowwwwo",
-    "owwwwoooowo",
-    "owwwwwwwwwo",
-    "owwwwwwwwwo",
-    ".owwwwwwwo.",
-    "..owwwwwo..",
+    "..opppppo..",
+    ".opppopppo.",
+    "oppppoppppo",
+    "oppppoppppo",
+    "oppppoooopo",
+    "opppppppppo",
+    "opppppppppo",
+    ".opppppppo.",
+    "..opppppo..",
     "...ooooo...",
   ],
   mic: [
@@ -163,14 +319,14 @@ const ICONS = {
   ],
   server: [
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
     "...........",
   ],
@@ -178,11 +334,11 @@ const ICONS = {
     "...........",
     "...........",
     "....ooo....",
-    "...owwwo...",
-    ".oowwwwwoo.",
-    "owwwwwwwwwo",
-    "owwwwwwwwwo",
-    "oBBwwwwwBBo",
+    "...oBBBo...",
+    ".ooBBBBBoo.",
+    "oBBBBBBBBBo",
+    "oBBBBBBBBBo",
+    "oBBBBBBBBBo",
     ".ooooooooo.",
     "...........",
     "...........",
@@ -202,13 +358,13 @@ const ICONS = {
   ],
   note: [
     "..ooooooo..",
-    "..owwwwwo..",
-    "..owGGGwo..",
-    "..owwwwwo..",
-    "..owGGGwo..",
-    "..owwwwwo..",
-    "..owGGwwo..",
-    "..owwwwwo..",
+    "..oyyyyyo..",
+    "..oywwwyo..",
+    "..oyyyyyo..",
+    "..oywwwyo..",
+    "..oyyyyyo..",
+    "..oywwyyo..",
+    "..oyyyyyo..",
     "..ooooooo..",
     "...........",
     "...........",
@@ -245,21 +401,44 @@ const ICONS = {
     "....ogo....",
     "....ogo....",
     ".oooogoooo.",
-    ".oggggggo..",
+    ".oggggggggo",
     ".oooogoooo.",
     "....ogo....",
     "....ogo....",
     "....ooo....",
     "...........",
   ],
+  idcard: [
+    "...........",
+    "...........",
+    "ooooooooooo",
+    "obbbbbbbbbo",
+    "oppobbwwwbo",
+    "oppobbbbbbo",
+    "oppobbwwbbo",
+    "oooobbbbbbo",
+    "obbbbbbbbbo",
+    "ooooooooooo",
+    "...........",
+  ],
 } as const;
 
 export type PixelIconName = keyof typeof ICONS;
 
+/** ink cells with no fill around them become "s", drawn in the text colour */
+function strokes(rows: readonly string[]) {
+  const filled = (x: number, y: number) => { const c = rows[y]?.[x]; return c !== undefined && c !== "." && c !== "o"; };
+  return rows.map((row, y) => [...row].map((c, x) => {
+    if (c !== "o") return c;
+    for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) if (filled(x + dx, y + dy)) return c;
+    return "s";
+  }).join(""));
+}
+
 /** one rect per run of a colour along a row, so an icon is a handful of rects */
 function runs(rows: readonly string[]) {
   const out: { x: number; y: number; w: number; c: string }[] = [];
-  rows.forEach((row, y) => {
+  strokes(rows).forEach((row, y) => {
     let x = 0;
     while (x < row.length) {
       const c = row[x]!;
@@ -276,9 +455,8 @@ const DRAWN = Object.fromEntries(Object.entries(ICONS).map(([name, rows]) => [na
 
 export function PixelIcon({ name, size = 22, className }: { name: PixelIconName; size?: number; className?: string }) {
   return (
-    <svg aria-hidden="true" data-pixel-icon={name} width={size} height={size} viewBox="0 0 11 11" shapeRendering="crispEdges"
-      className={cn("shrink-0 text-ink/75", className)}>
-      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? "currentColor" : FILLS[run.c]} />)}
+    <svg aria-hidden="true" data-pixel-icon={name} width={size} height={size} viewBox="0 0 11 11" shapeRendering="crispEdges" className={cn("shrink-0", className)}>
+      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? INK : run.c === "s" ? "currentColor" : FILLS[run.c]} />)}
     </svg>
   );
 }

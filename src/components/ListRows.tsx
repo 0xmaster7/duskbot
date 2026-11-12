@@ -162,7 +162,7 @@ export function NavRow({ title, hint, value, icon, pixel, onClick, drill = true,
       className={cn(rowCls, focusCls, "w-full cursor-pointer text-left enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] disabled:cursor-default disabled:opacity-45")}
     >
       {icon && <RowIcon icon={icon} />}
-      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center"><PixelIcon name={pixel} /></span>}
+      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center"><PixelIcon name={pixel} size={24} /></span>}
       <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
       <RowValue value={value} id={`${id}-value`} />
       {external

@@ -87,7 +87,7 @@ export async function handleTrack(req: IncomingMessage, res: ServerResponse, dep
     const tags = body.u && typeof body.u === "object" ? body.u as Record<string, unknown> : {};
     const width = Number(body.w);
     deps.track("site_view", { props: { path }, visitor: ids.visitor, ctx: {
-      ...base, ...deviceOf(String(req.headers["user-agent"] ?? "")), ...geoOf(req, deps.trustProxy), ...(Number.isInteger(width) && width > 0 && width < 20_000 ? { width } : {}),
+      ...base, ...deviceOf(String(req.headers["user-agent"] ?? ""), { brands: req.headers["sec-ch-ua"], hint: body.b }), ...geoOf(req, deps.trustProxy), ...(Number.isInteger(width) && width > 0 && width < 20_000 ? { width } : {}),
       ...touchContext({ referrer: referrerHost(body.r, host), utmSource: tags.utm_source ?? tags.source, utmMedium: tags.utm_medium, utmCampaign: tags.utm_campaign,
         utmContent: tags.utm_content, utmTerm: tags.utm_term, ref: tags.ref ?? tags.via }),
     } });

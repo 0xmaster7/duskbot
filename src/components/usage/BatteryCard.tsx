@@ -5,10 +5,10 @@ import { t } from "@/lib/i18n";
 import { fetchBattery, sharePercent, useLoaded, type BatteryRow } from "@/lib/spend";
 import { formatTokens } from "@/lib/usage";
 import { formatCost } from "@/lib/usage-trace";
+import { MASCOT_INK } from "@/lib/mascot";
 import { useStore } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { Card as RowsCard, NavRow, NoteRow, rowCls } from "../ListRows";
-import { AllowanceCard } from "./AllowanceCard";
 import { SpendCap } from "./SpendCap";
 
 const SHOWN = 6;
@@ -30,19 +30,20 @@ export function BatteryCard({ version }: { version: number }) {
     return (
       <li key={key}>
         <button type="button" aria-expanded={open === key} onClick={() => setOpen(open === key ? null : key)} data-battery-row={key}
-          className={cn(rowCls, "grid w-full cursor-pointer grid-cols-[minmax(0,11rem)_1fr_auto] text-start text-[13px] leading-[18px] hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus")}>
-          <span className={cn("flex min-w-0 items-center gap-2 text-ink", nested && "ps-6")}>
-            {bot ? <BotAvatar bot={bot} state="idle" size={18} animated={false} /> : row.kind === "routine" ? <Repeat size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary" /> : null}
+          className={cn(rowCls, "grid w-full cursor-pointer grid-cols-[minmax(0,11rem)_1fr_auto] gap-3 text-start text-[13px] leading-[18px] transition-colors duration-100 ease-out hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus", !nested && "min-h-[36px]")}>
+          <span className={cn("flex min-w-0 items-center gap-2.5 text-ink", nested && "ps-7")}>
+            {bot ? <BotAvatar bot={bot} state="idle" size={20} animated={false} /> : row.kind === "routine" ? <Repeat size={13} aria-hidden="true" className="shrink-0 text-ink-tertiary" /> : null}
             <span className="min-w-0">
               <span className="block truncate">{row.name}</span>
               {row.capUsd !== undefined && <span className="block truncate text-[12px] leading-4 text-ink-secondary">{t("usage.cap.amount", { amount: formatCost(row.capUsd) })}</span>}
             </span>
           </span>
-          <span className="h-1 overflow-hidden rounded-full bg-ink/[0.06]" aria-hidden="true">
-            <span className="block h-full rounded-full bg-ink/40" style={{ width: `${Math.max(2, row.share * 100)}%` }} />
+          <span className={cn("overflow-hidden rounded-full bg-ink/[0.06]", nested ? "h-1" : "h-1.5")} aria-hidden="true">
+            <span className="block h-full rounded-full" style={{ width: `${Math.max(2, row.share * 100)}%`, background: bot ? MASCOT_INK[bot.color] ?? MASCOT_INK.blue : "color-mix(in srgb, var(--color-ink) 35%, transparent)", opacity: nested ? 0.55 : 0.85 }} />
           </span>
-          <span className="min-w-[6.5rem] text-end tabular-nums text-ink-secondary" title={amount(row)}>
-            <span className="text-ink">{sharePercent(row.share)}</span> · {amount(row)}
+          <span className="min-w-[6.5rem] text-end tabular-nums text-ink-secondary">
+            <span className={nested ? "text-ink-secondary" : "text-ink"}>{amount(row)}</span>
+            <span className="ms-1.5 inline-block min-w-[2.5rem] text-[12px] text-ink-tertiary">{sharePercent(row.share)}</span>
           </span>
         </button>
         {open === key && (
@@ -55,8 +56,6 @@ export function BatteryCard({ version }: { version: number }) {
   };
 
   return (
-    <>
-    <AllowanceCard />
     <RowsCard label={t("usage.battery.title")} footnote={report?.basis === "tokens" && report.rows.length ? t("usage.battery.tokensNote") : undefined} data-settings-block="battery">
       {!report ? <NoteRow>{t("common.checking")}</NoteRow> : !bots.length ? <NoteRow>{t("usage.battery.empty")}</NoteRow> : (
         <ul className="contents">
@@ -65,6 +64,5 @@ export function BatteryCard({ version }: { version: number }) {
       )}
       {bots.length > SHOWN && !all && <NavRow drill={false} title={t("usage.battery.all", { count: String(bots.length) })} onClick={() => setAll(true)} />}
     </RowsCard>
-    </>
   );
 }

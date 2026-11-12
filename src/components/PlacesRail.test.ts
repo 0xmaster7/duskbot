@@ -338,8 +338,7 @@ it("beside the window's own rail (main says so; the page never reads the list), 
   expect(host.querySelector("[data-switcher-beside-rail]")?.className).toBe("hidden");
   const { placeMenuItems } = await import("./SidebarProfileMenu");
   const place = { bridge: workspaces, current: { local: false, name: "Office" }, cloudHome: false, onLine: "", openMenu: () => {}, switchable: true } as never;
-  expect(placeMenuItems(place, { owner: null, onCloudSettings: () => {} }).map((item) => item.key)).toEqual(["place", "switch-place"]);
-  expect(placeMenuItems(place, { owner: null, onCloudSettings: () => {}, besideRail: true }).map((item) => item.key), "one switcher: the rail").toEqual(["place"]);
+  expect(placeMenuItems(place, { owner: null, onCloudSettings: () => {} }).map((item) => item.key), "one switcher: the rail").toEqual(["place"]);
 });
 
 it("a right-click on a circle opens its place's menu: its colour, saved by main whatever its server runs, This computer's too; a member sees who may change it", async () => {

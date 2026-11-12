@@ -78,6 +78,7 @@ export function actionOf(el: Element, kind: "click" | "change"): { action: strin
 let listening = false;
 let currentPath = "/";
 let stepAt: number | null = null;
+let errorPath = "", errors = 0;
 function listen() {
   if (listening || typeof document === "undefined") return;
   listening = true;
@@ -88,6 +89,11 @@ function listen() {
     if (box instanceof HTMLInputElement && box.type === "search") { if (box.value.trim()) send({ action: "search", label: slug(box.id || box.name) ?? "search" }); return; }
     if (box instanceof Element) send(actionOf(box, "change"));
   }, true);
+  // that something broke and where, never the message or stack; at most five a page
+  for (const kind of ["error", "unhandledrejection"] as const) window.addEventListener(kind, () => {
+    if (errorPath !== currentPath) { errorPath = currentPath; errors = 0; }
+    if (++errors <= 5) send({ action: "js_error", label: kind === "error" ? "error" : "rejection" });
+  });
 }
 
 /** one page view per route change; the onboarding step rides along with how long the step before it took */

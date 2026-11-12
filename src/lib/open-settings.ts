@@ -5,13 +5,12 @@ import type { LocaleKey } from "@/locales";
 import type { Action, AppSettingsSection } from "@/state/store";
 import type { IconName } from "@/components/Icon";
 
-export type AdvancedPage = "apps" | "team" | "data" | "builder";
+export type AdvancedPage = "apps" | "team" | "data";
 
 export const ADVANCED_PAGES: ReadonlyArray<{ id: AdvancedPage; icon: IconName; sections: AppSettingsSection[] }> = [
-  { id: "apps", icon: "plug", sections: ["apps", "skills"] },
+  { id: "apps", icon: "plug", sections: ["apps", "skills", "builder", "experimental"] },
   { id: "team", icon: "building", sections: ["organization", "people"] },
   { id: "data", icon: "database", sections: ["data", "backups"] },
-  { id: "builder", icon: "sliders", sections: ["builder", "experimental"] },
 ];
 
 export type SettingsPane = "general" | "texting" | "computer" | "permissions" | "vault" | "models" | "bots" | "usage" | "updates" | "advanced";

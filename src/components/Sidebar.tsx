@@ -45,7 +45,7 @@ import { PhoneHero } from "./SidebarPhoneHero";
 import { SidebarProfileMenu } from "./SidebarProfileMenu";
 import { PHONE_LAYOUT, useMediaQuery } from "@/lib/use-media-query";
 import { GlassBar, GlassScrollFrame, GlassScroller } from "./GlassScrollFrame";
-import { DesktopWorkspaceSwitcher, endCloudHowTo } from "./DesktopWorkspaceSwitcher"; import { PlaceTint } from "./PlaceTint"; import { ChromeRailToggle } from "./ChromeRailToggle";
+import { SidebarPlaceButton } from "./SidebarPlaceButton"; import { PlaceTint } from "./PlaceTint"; import { ChromeRailToggle } from "./ChromeRailToggle";
 import { useCloudOwner } from "./CloudOwner";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
 import { SectionRows } from "./SidebarSectionRows";
@@ -730,7 +730,6 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
 }) {
   const { state, dispatch } = useStore();
   const cloudOwner = useCloudOwner(state.config?.cloudHome === true);
-  const endHowTo = useCallback(() => endCloudHowTo(dispatch), [dispatch]);
   const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   const { capabilities } = useDesktopCapabilities();
   const phone = useMediaQuery(PHONE_LAYOUT, false);
@@ -1082,17 +1081,14 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           <div className="relative flex">{plusControl}</div>
         </div>}
         {density !== "icons" && (simpleDesk ? <div data-sidebar-top-slot className="min-w-0 flex-1" /> : (
-          <div data-sidebar-top-slot className="@container/sidebar-top flex min-w-0 flex-1 items-center justify-end">
-            <div data-sidebar-top-switcher className="flex min-w-0 items-center">
-              <DesktopWorkspaceSwitcher inline pill cloudHome={state.config?.cloudHome === true} place={state.config?.team?.name} owner={cloudOwner} howTo={state.cloudHowTo} onMenuClosed={endHowTo} />
-            </div>
-          </div>
+          <div data-sidebar-top-slot className="min-w-0 flex-1" />
         ))}
         {!rail && <div
           data-sidebar-top-buttons
           className={cn("relative flex shrink-0 items-center", corner ? "pointer-events-auto" : simpleDesk ? "gap-2" : "gap-1 pl-0.5")}
           style={windowNoDragStyle}
         >
+          {!corner && !phone && <SidebarPlaceButton />}
           {simpleDesk && <SidebarSearchToggle ref={searchToggleRef} corner={corner} open={searchShown} onToggle={() => (corner ? searchShown ? closeSearch() : setSearchOpen(true) : openCommandPalette())} />}
           {plusControl}
         </div>}

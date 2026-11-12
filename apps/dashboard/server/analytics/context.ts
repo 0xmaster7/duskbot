@@ -30,15 +30,18 @@ export interface EventContext {
   lon?: number;
   device?: "desktop" | "mobile" | "tablet";
   os?: "mac" | "windows" | "linux" | "ios" | "android" | "other";
-  browser?: "chrome" | "safari" | "firefox" | "edge" | "other";
+  browser?: "chrome" | "safari" | "firefox" | "edge" | "arc" | "brave" | "other";
   width?: number;
   app?: { platform?: string; version?: string };
 }
 
-export function deviceOf(ua: string): Pick<EventContext, "device" | "os" | "browser"> {
+/** Arc and Brave send Chrome's user agent; Brave names itself in the sec-ch-ua header, and the site tracker passes a hint
+ * for either (Brave's navigator.brave, Arc's --arc-palette-* page styles) */
+export function deviceOf(ua: string, hints: { brands?: unknown; hint?: unknown } = {}): Pick<EventContext, "device" | "os" | "browser"> {
   const os = /iphone|ipad|ipod/i.test(ua) ? "ios" : /android/i.test(ua) ? "android" : /mac os x|macintosh/i.test(ua) ? "mac" : /windows/i.test(ua) ? "windows" : /linux|cros/i.test(ua) ? "linux" : "other";
   const device = /ipad|tablet/i.test(ua) || (/android/i.test(ua) && !/mobile/i.test(ua)) ? "tablet" : /mobi|iphone|ipod/i.test(ua) ? "mobile" : "desktop";
-  const browser = /edg\//i.test(ua) ? "edge" : /firefox|fxios/i.test(ua) ? "firefox" : /chrome|crios|chromium/i.test(ua) ? "chrome" : /safari/i.test(ua) ? "safari" : "other";
+  let browser: NonNullable<EventContext["browser"]> = /edg\//i.test(ua) ? "edge" : /firefox|fxios/i.test(ua) ? "firefox" : /chrome|crios|chromium/i.test(ua) ? "chrome" : /safari/i.test(ua) ? "safari" : "other";
+  if (browser === "chrome") browser = hints.hint === "arc" || hints.hint === "brave" ? hints.hint : typeof hints.brands === "string" && /"Brave"/.test(hints.brands) ? "brave" : browser;
   return { device, os, browser };
 }
 
@@ -110,7 +113,7 @@ export function requestContext(req: IncomingMessage, options: { publicOrigin: st
   const own = (() => { try { return new URL(options.publicOrigin).hostname; } catch { return null; } })();
   const params = options.url?.searchParams;
   return {
-    ...deviceOf(String(req.headers["user-agent"] ?? "")),
+    ...deviceOf(String(req.headers["user-agent"] ?? ""), { brands: req.headers["sec-ch-ua"] }),
     ...geoOf(req, options.trustProxy),
     ...touchContext({ referrer: referrerHost(options.referrer ?? req.headers.referer, own), utmSource: params?.get("utm_source"), utmMedium: params?.get("utm_medium"),
       utmCampaign: params?.get("utm_campaign"), utmContent: params?.get("utm_content"), utmTerm: params?.get("utm_term"), ref: params?.get("ref") ?? params?.get("via") }),

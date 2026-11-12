@@ -10,12 +10,14 @@ import {
   MAX_CAP_USD,
   type BatteryReport,
   type BatteryRow,
+  type DailyUsageReport,
   type RoutineForecast,
   type SpendCapInput,
 } from "../shared/spend.ts";
 import { writeFileAtomic } from "./atomic.ts";
 import { nextOccurrence, type RoutineSchedule } from "./routine-schedules.ts";
 import { readUsage, type UsageRow } from "./usage-ledger.ts";
+import { clampDays, clampOffset, dailyStart, dailyUsage } from "./usage-daily.ts";
 
 const DAY_MS = 24 * 60 * 60_000;
 export const WEEK_MS = 7 * DAY_MS;
@@ -235,6 +237,13 @@ export function createSpend(deps: SpendDeps) {
         .filter((row) => row.share > 0)
         .sort((a, b) => b.share - a.share);
       return { from: new Date(now() - WEEK_MS).toISOString(), to: new Date(now()).toISOString(), basis, totalUsd, totalTokens, rows: ranked };
+    },
+
+    /** Each bot's use per day for the usage graph, on the viewer's calendar days. */
+    daily(input: { days: unknown; offsetMinutes: unknown; bot(id: string): string | undefined }): DailyUsageReport {
+      const days = clampDays(input.days), offsetMinutes = clampOffset(input.offsetMinutes), at = now();
+      const rows = readUsage(deps.dataDir, { from: new Date(dailyStart(at, days, offsetMinutes)), to: new Date(at) });
+      return dailyUsage(rows, { now: at, days, offsetMinutes, botName: input.bot });
     },
 
     forecast(routine: ForecastRoutine): RoutineForecast {

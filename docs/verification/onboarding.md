@@ -181,3 +181,41 @@ pnpm exec vitest run src/components/onboarding/IslandIntro.test.ts src/component
 
 For a look without the app, `pnpm dev` and open `/previews/island-intro-preview.html` (fake bridge; `?reduced=1`,
 `?fail=1`, `?lang=de`, `?w=760&h=600`). The real island lighting up on a display is not covered by these checks.
+
+## Bring your bots from another app (Nov 12 2026)
+
+On the desktop app's own first run, before the first job, Dusk looks (within 2.5 s) for bots another agent app keeps
+on this computer and, when it finds some, offers them on one screen: each app with its bots as mascots and what comes
+over in counts, "bring them over" and "skip for now". Progress names each bot as it moves; the done screen says what
+moved in one line and what stayed behind in another. Settings → general → bring in from other apps → "look for bots"
+opens the same step later, and says when nothing is found or everything is already here.
+
+| App | Read from | Becomes |
+|---|---|---|
+| OpenClaw (and Clawdbot, Moltbot) | `~/.openclaw` (`$OPENCLAW_STATE_DIR`, `~/.openclaw-<profile>`, `~/.clawdbot`, `~/.moltbot`, `~/.moldbot`); `agents.list` (2026.3) or `agents.entries` (2026.11) in the JSON5 config; each workspace | one bot per agent: SOUL.md as its soul, IDENTITY.md's name, creature and vibe; MEMORY.md, USER.md, AGENTS.md, TOOLS.md and the newest 30 daily notes as memory; workspace and shared skills; HEARTBEAT.md as a 30-minute routine; cron jobs from `cron/jobs.json` or the `cron_jobs` table of `state/openclaw.sqlite` |
+| Hermes Agent | `~/.hermes` (`$HERMES_HOME`) and each real `profiles/<name>` | one bot per profile: SOUL.md plus the chosen personality as its soul, `memories/MEMORY.md` and `USER.md` (§ entries) as memory, its own skills (not the bundled ones in `.bundled_manifest`), `cron/jobs.json` |
+| Grok Bot | exports in `~/Downloads`, its roster's names | exports move as before; bots without one are named with a link to Grok bot's own move |
+| OpenMausBot, OpenGrokBot | a `~/.openmausbot` or `~/.opengrokbot` left beside the data folder in use | each bot but the helper and hidden ones, with its memory, skills and routines |
+
+Every bot moves as a package (`trust: "file"`): new bots beside any already here (a taken name is numbered), skills
+off until the scan passes them, routines paused, no keys, no connected apps. A bot already moved (its package id is on
+a bot here) is named as already here, so a second run adds nothing. Each app's bots land together in one sidebar
+section named after it. Logins, keys, sessions, transcripts and chat history (`.env`, `auth*.json`, `credentials/`,
+`sessions/`, `state.db`, `messages.db`, `openclaw-agent.sqlite`) are never listed or opened, links are never followed,
+nothing in the app's folder is written, and a file that can't be read is skipped and counted.
+
+```sh
+pnpm exec vitest run server/bot-move-local.test.ts server/bot-move.test.ts server/routes/setup-import.test.ts src/lib/bot-move.test.ts src/lib/grok-move.test.ts shared/grok-import.test.ts src/components/onboarding/WelcomeFlow.test.ts
+```
+
+The fixtures (`server/testing/agent-app-fixtures.ts`) lay out each app's folder as it does on disk, with a sentinel in
+every login, key, session and history file; the tests record every path opened and listed. For a look in the real app:
+
+```sh
+node --experimental-strip-types scripts/verify-bot-move.ts
+```
+
+It launches the isolated fake-engine fixture as the desktop app's own server, plants OpenClaw 2026.3, Hermes Agent and
+a left-behind `~/.openmausbot` in its temporary home, resets the welcome and prints a `previewUrl` that plays the
+first run. Not covered here: the packaged Electron window, and a real OpenClaw or Hermes install of a version other
+than the ones the fixtures copy.

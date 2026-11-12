@@ -64,7 +64,7 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
   const body = (
     <>
       <span aria-hidden="true" className="relative flex size-6 shrink-0 items-center justify-center">
-        <PixelIcon name={KIND_ICON[place.kind]} />
+        <PixelIcon name={KIND_ICON[place.kind]} size={24} />
         <span data-workspace-dot={health} className={cn("absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-app", DOT[health])} />
       </span>
       <span className="min-w-0 flex-1">

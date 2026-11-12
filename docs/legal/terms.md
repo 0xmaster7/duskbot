@@ -1,16 +1,14 @@
-> **Draft for legal review.** Not yet reviewed by a lawyer. Do not publish as final until reviewed. Last updated: 10 November 2026.
-
 ## Terms of use
 
-Effective date: [Effective date].
+Effective date: 12 November 2026. Last updated: 12 November 2026.
 
-These terms govern your use of dusk bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. Your agreement is with [Legal entity name], at [Registered address]. In these terms, “we” and “us” mean that entity. Contact hello@dusk.bot with questions before you use the services.
+These terms govern your use of dusk bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. The services are operated by dusk bot. In these terms, “dusk bot”, “we” and “us” mean the operator of the services, and your agreement is with that operator. Contact hello@dusk.bot with questions before you use the services. Legal notices may also be sent to that address.
 
 Your use of the software is also subject to its license. Read the [license summary](license.md) and the full license before you use dusk bot. These service terms do not expand your software license or grant commercial rights.
 
 ## Eligibility and agreement
 
-You must be at least 16 [or the age the owner picks]. You must be able to enter a binding agreement under the laws that apply to you. If you act for an organisation, you must have authority to agree for it. References to “you” then include that organisation.
+You must be at least 16 years old. You must be able to enter a binding agreement under the laws that apply to you. If you act for an organisation, you must have authority to agree for it. References to “you” then include that organisation.
 
 By using the services after these terms take effect, you agree to them. If you do not agree, do not use the services. Any rights that the law gives you and does not allow you to waive remain in place.
 
@@ -30,7 +28,7 @@ Your AI accounts and keys remain your responsibility. You pay any charges your c
 
 ## Acceptable use and bot actions
 
-You must use dusk bot lawfully. You must not use it to attack systems, gain unauthorised access, spread malware, harass people or send spam through bots. You must not evade safeguards or abuse the terms of an AI provider or connected app. Do not interfere with our services or other users' access.
+You must use dusk bot lawfully and follow our [acceptable use policy](acceptable-use.md), which forms part of these terms. You must not use it to attack systems, gain unauthorised access, spread malware, harass people or send spam through bots. You must not evade safeguards or abuse the terms of an AI provider or connected app. Do not interfere with our services or other users' access.
 
 You are responsible for what your bots do and for the actions you approve. Review the permissions you grant and the consequences of an action before approving it. Follow the laws where your bots act, including laws that apply to communications, personal information and access to computer systems.
 
@@ -40,9 +38,15 @@ You must have the rights and permissions needed for content you give to a bot. T
 
 Dodo Payments is the merchant of record for paid plans. It handles card data, tax and invoices. We store subscription status, plan lines, amounts and payment identifiers. We do not store card numbers. Review the price, billing period, renewal conditions and applicable payment terms shown when you purchase.
 
-Recurring plans renew as described at checkout until cancelled. Renewal notice and price change arrangements are [renewal notice and price change policy]. You can manage cancellation through [subscription cancellation method]. Cancellation takes effect under [cancellation timing and access policy]. Cancelling a dusk bot plan does not cancel your separate AI provider subscriptions.
+Plans are billed in US dollars, monthly or yearly, before any tax shown at checkout. Current prices are on the pricing page at dusk.bot/pricing. A yearly plan costs ten months of the monthly price. Your AI usage is never on your dusk bot bill: your AI provider bills you under your own plan with them.
 
-Refunds are governed by [refund policy], subject to your mandatory legal rights. Contact hello@dusk.bot if you need help with a plan or payment. Do not assume that closing the app, disconnecting a workspace or stopping a bot cancels a paid plan.
+Recurring plans renew automatically at the end of each billing period, at the price then in effect for your plan, until you cancel. The billing page of your account shows your plan, your next renewal date and your invoices. If we change the price of a plan you are on, we will email you at least 30 days before the new price applies, and the change takes effect from your next renewal after that notice. You can cancel before then.
+
+You can cancel at any time from the billing page of your account at dusk.bot/dashboard. Cancellation stops future renewals. Your plan, including any dusk cloud desktop, keeps working until the end of the period you have paid for, and then ends. Moving to a higher plan charges the difference for the rest of the current period straight away. Moving to a lower plan takes effect without a refund for the time already paid. Cancelling a dusk bot plan does not cancel your separate AI provider subscriptions.
+
+If a renewal payment fails, we email you and Dodo Payments may retry the charge. Update your card from the billing page to keep the plan running. If the payment is not made, the plan ends.
+
+Refunds follow our [refund and cancellation policy](refunds.md), subject to your mandatory legal rights. Contact hello@dusk.bot from the email address on your account if you need help with a plan or payment. Do not assume that closing the app, disconnecting a workspace or stopping a bot cancels a paid plan.
 
 ## dusk cloud desktops
 
@@ -78,14 +82,14 @@ To the extent permitted by law, the software and services are provided as is and
 
 ## Liability and indemnity
 
-To the extent permitted by law, we exclude liability for indirect or consequential loss, lost profits and lost opportunities arising from your use of the services. Our total liability is limited to [liability cap and calculation period]. Nothing limits liability that cannot lawfully be limited, including [mandatory liability exceptions].
+To the extent permitted by law, we exclude liability for indirect or consequential loss, lost profits and lost opportunities arising from your use of the services. Our total liability to you for all claims arising from the services is limited to the greater of the amount you paid us for the services in the 12 months before the event giving rise to the claim, or USD 50. Nothing limits liability that cannot lawfully be limited, including liability for death or personal injury caused by negligence, for fraud or fraudulent misrepresentation, or under mandatory consumer protection law.
 
-To the extent permitted by law, you agree to cover reasonable third-party claims, losses and costs arising from your unlawful use, infringement of another person's rights or material breach of these terms. This does not cover claims caused by our own unlawful conduct. Notice, defence and settlement arrangements are [indemnity procedure]. Mandatory consumer protections remain unaffected.
+To the extent permitted by law, you agree to cover reasonable third-party claims, losses and costs arising from your unlawful use, infringement of another person's rights or material breach of these terms. This does not cover claims caused by our own unlawful conduct. We will tell you promptly about any claim we ask you to cover, give you reasonable control of its defence and settlement, and not settle it in a way that admits fault on your behalf or puts an obligation on you without your agreement. Mandatory consumer protections remain unaffected.
 
 ## Changes, governing law and contact
 
-We may update these terms. Notice, timing and your options for material changes are [terms change notice procedure]. Changes will not remove rights that the law protects. Check the effective date when you review an updated version.
+We may update these terms. For a material change, we will email account holders and post a notice on dusk.bot at least 30 days before the change takes effect, unless a shorter period is needed for legal, security or abuse reasons. If you do not agree to a change, stop using the services and cancel any plan before it takes effect. Changes will not remove rights that the law protects. Check the effective date when you review an updated version.
 
-These terms are governed by [Governing law and courts], subject to mandatory protections and jurisdiction rights that apply to you.
+These terms are governed by the laws of the place where the operator of dusk bot is established, without regard to conflict of law rules. If you are a consumer, you keep the protection of the mandatory laws of the country where you live, and you may bring claims in the courts there. Before starting a formal dispute, please email hello@dusk.bot so we can try to resolve it with you.
 
-For general questions, licensing or service concerns, email hello@dusk.bot. You may also write to [Legal entity name], [Registered address]. For privacy requests, use privacy@dusk.bot. For security reports, use security@dusk.bot.
+For general questions, licensing or service concerns, email hello@dusk.bot. For refunds, see the [refund and cancellation policy](refunds.md). For privacy requests, use privacy@dusk.bot. For security reports, use security@dusk.bot.

@@ -130,7 +130,8 @@ describe("one name per thing", () => {
     const e = en as Record<string, string>;
     const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
     const myCloud = /CLOUD_HOME_NAME = "([^"]+)"/.exec(source("electron/cloud-home.mjs"))?.[1];
-    const thisComputer = /id: "workspace-local", label: "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
+    // the places popup says this mac on macOS, by the coordinator's call; elsewhere it matches the app's copy
+    const thisComputer = /platform === "darwin" \? "this mac" : "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
     const serverMenuLocal = /\{ label: "([^"]+)", type: "radio", checked: !active/.exec(source("electron/menu.mjs"))?.[1];
     // native menus and saved names keep their own capitals; the app's copy is lowercase
     const lower = (text: string | undefined) => text?.toLowerCase();

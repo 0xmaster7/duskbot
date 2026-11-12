@@ -1,10 +1,8 @@
-> **Draft for legal review.** Not yet reviewed by a lawyer. Do not publish as final until reviewed. Last updated: 10 November 2026.
+## dusk bot license
 
-## Dusk Bot license
+Effective date: 12 November 2026. Last updated: 12 November 2026.
 
-Effective date: [Effective date].
-
-Dusk Bot is source-available under the [PolyForm Strict License 1.0.0](https://polyformproject.org/licenses/strict/1.0.0). Source-available does not mean open source. You must follow the applicable license before using the software. This page is a summary. The full license text controls over this summary.
+dusk bot is source-available under the [PolyForm Strict License 1.0.0](https://polyformproject.org/licenses/strict/1.0.0). Source-available does not mean open source. You must follow the applicable license before using the software. This page is a summary. The full license text controls over this summary.
 
 Read the repository's [LICENSE](../../LICENSE) and [licensing guide](../LICENSING.md) for the exact terms and the distinction between this work and its upstream code. Your agreement for services does not expand the rights granted by the software license.
 
@@ -22,21 +20,24 @@ Commercial use needs a separate commercial license. Access to the source, an acc
 
 ## Commercial licensing
 
-Email hello@dusk.bot with your company name, use case and number of seats. Describe any modification or distribution rights you need. The scope, price and other terms of a commercial license are [commercial license terms]. Your permitted commercial use depends on that separate agreement.
+Using dusk bot at or for a business needs a work license. The simplest way to get one is a paid plan:
 
-For licensing enquiries, the responsible entity is [Legal entity name], at [Registered address].
+- **Pro** includes a work license for one person for as long as the plan is active. It covers that person using the app at or for a business, on their own computer, their own server or their dusk cloud desktop.
+- **Team** plans, from $100 a month, include a work license for each member of the team. Write to hello@dusk.bot to set one up.
+
+Current prices are on the pricing page at dusk.bot/pricing. A work license from a plan ends when the plan ends. It grants the right to use the software for commercial purposes only. It does not grant rights to modify, distribute or sublicense the software.
+
+If you need more than that, such as more seats, modification or distribution rights, or different terms, email hello@dusk.bot with your company name, use case and number of seats, and describe the rights you need. Those licenses are agreed in writing case by case. Your permitted commercial use depends on that separate agreement.
 
 ## Required notice
 
-The repository's LICENSE starts with this exact notice:
-
-> Required Notice: Copyright 2026 Siddharth Meena. Commercial use requires a separate license: https://dusk.bot/license
+The repository's LICENSE starts with a Required Notice. It names the copyright holder and states that commercial use requires a separate license, with a link to this page. Copies of the software must keep that notice as the license requires.
 
 Read the full license for its conditions, patent provisions, violation rules and warranty and liability terms. This summary does not replace any of them.
 
 ## Upstream and third-party notices
 
-Original code derived from OpenMausBot remains under Apache-2.0. You can find that license and its notices in [third_party/openmausbot](../../third_party/openmausbot). The work as a whole and changes made in this fork are covered by PolyForm Strict, as the repository's licensing guide explains. Separate rights in upstream code do not relicense the entire Dusk Bot work.
+Original code derived from OpenMausBot remains under Apache-2.0. You can find that license and its notices in [third_party/openmausbot](../../third_party/openmausbot). The work as a whole and changes made in this fork are covered by PolyForm Strict, as the repository's licensing guide explains. Separate rights in upstream code do not relicense the entire dusk bot work.
 
 Bundled third-party components keep their own licenses. Their notices are shipped in the app's licenses folder. Read those notices for each component's conditions. The OpenMausBot and MausBot names and mascot are trademarks of Supamaus Software Private Limited. Neither software license grants trademark rights.
 

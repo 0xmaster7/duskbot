@@ -1,10 +1,8 @@
-> **Draft for legal review.** Not yet reviewed by a lawyer. Do not publish as final until reviewed. Last updated: 10 November 2026.
-
 ## Privacy policy and controller
 
-Effective date: [Effective date].
+Effective date: 12 November 2026. Last updated: 12 November 2026.
 
-[Legal entity name], at [Registered address], is the controller for personal data processed through the dusk bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is dusk.bot/dashboard. Our link service is link.dusk.bot.
+dusk bot, the operator of the services (“dusk bot”, “we” or “us”), is the controller for personal data processed through the dusk bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is dusk.bot/dashboard. Our link service is link.dusk.bot.
 
 Your computer, VPS, our account services and a dusk cloud desktop have different roles. Choosing a hosted desktop stores your bot content on that machine. That content is not part of account dashboard workspace reports.
 
@@ -24,7 +22,7 @@ The phone push relay sees your device push token, the bot's name and identifiers
 
 The app sends crash and error reports only when a release is built with error reporting configured. A report contains the error type, a scrubbed message, stack frames with app-relative file names, the app version and platform.
 
-Scrubbing removes secrets, email addresses, web addresses, quoted text and personal folder names. Reports never contain message text, prompts, files, contacts or keys. The destination is [error tracking provider: self-hosted GlitchTip on our server, or Sentry]. Error reports are on by default; you can switch them off under Settings, Data sharing, in the desktop app. Error report retention is [error report retention]. This reporting is for finding and fixing errors, not product analytics.
+Scrubbing removes secrets, email addresses, web addresses, quoted text and personal folder names. Reports never contain message text, prompts, files, contacts or keys. Reports go to our own account service and are stored in our own database on our server. We do not use a third-party error tracking service. Error reports are on by default; you can switch them off under Settings, Data sharing, in the desktop app. Similar reports are grouped into one record, which is deleted 30 days after the error was last seen. This reporting is for finding and fixing errors, not product analytics.
 
 ## Optional account service
 
@@ -70,55 +68,43 @@ If you enable Wake for Slack, the account service holds your bot's Slack app-lev
 
 The service at link.dusk.bot pairs your own VPS with your app. Traffic is relayed as AES-256-GCM frames sealed with keys held only by the app and VPS. The link service cannot read that traffic.
 
-The service stores install session records and hashes of link tokens. These support installation and pairing without storing the original link tokens in those records. Retention for install sessions and token hashes is [link record retention]. Push delivery through this service follows the phone relay description above.
+The service stores install session records and hashes of link tokens. These support installation and pairing without storing the original link tokens in those records. An install session ends within two hours and its record is deleted about 15 minutes after it ends. Token hashes for a paired VPS are kept while that pairing exists and are removed with it. Push delivery through this service follows the phone relay description above.
 
 ## Connected apps
 
 You can optionally connect third-party apps such as Gmail, Slack and GitHub through Composio. Tool traffic passes through a dusk bot broker on Cloudflare Workers to Composio. Composio holds the OAuth connections. The broker stores only a hash of each installation's token.
 
-Tool traffic can include information needed to carry out your requested action in a connected app. This is distinct from collecting your chats or prompts in account reports. Review the permissions you grant and the connected app's own policy. Retention by the connected-app service is [Composio connection and tool-data retention]. The broker token hash is kept for [broker token hash retention].
+Tool traffic can include information needed to carry out your requested action in a connected app. This is distinct from collecting your chats or prompts in account reports. Review the permissions you grant and the connected app's own policy. Composio keeps your connections until you disconnect them, and handles tool data under its own retention rules and privacy policy. The broker token hash is kept while the installation stays connected.
 
 ## Website, hosting and logs
 
-The website, account service and link service run on a server rented from Contabo GmbH, Germany, [confirm data center region]. Cloudflare runs the connected-apps broker and the cloud desktops' public edge, provides DNS and forwards mail sent to our dusk.bot addresses. Spaceship is the domain registrar. Let's Encrypt provides TLS certificates.
+The website, account service, link service and our database run on a server rented from Contabo GmbH in the European Union. Cloudflare sits in front of dusk.bot as a proxy and content delivery network, runs the connected-apps broker and the cloud desktops' public edge, provides DNS and forwards mail sent to our dusk.bot addresses. Spaceship is the domain registrar. Let's Encrypt provides TLS certificates.
 
-Server access logs include IP addresses. We keep them for [log retention, for example 14 days] for security and abuse prevention. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
+Server access logs include IP addresses. We keep them for 14 days for security and abuse prevention, then they are deleted. Encrypted backups of account service data are made daily and deleted after 30 days. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
 
 ## Purposes and legal bases
 
 Where GDPR applies, we rely on the following legal bases. Contract covers processing needed to provide the services you request. This includes account sign-in, linked workspace reporting, paid plan administration, cloud hosting, pairing, push delivery and connected-app actions.
 
-Legitimate interests cover keeping services secure, preventing abuse and diagnosing errors. We consider your rights when relying on these interests. You can object to processing based on legitimate interests. Consent applies where required for optional processing, including [processing that requires consent and withdrawal method]. You can withdraw consent without affecting earlier lawful processing.
+Legitimate interests cover keeping services secure, preventing abuse and diagnosing errors. We consider your rights when relying on these interests. You can object to processing based on legitimate interests. Product analytics and anonymous summaries rely on legitimate interests in understanding and improving dusk bot, and you can switch them off at any time as described under Product analytics. Consent applies to the waitlist and to optional sign-in with Google, Apple or X. You withdraw it by unsubscribing from the waitlist or unlinking the sign-in method on your Account page. Withdrawing consent does not affect earlier lawful processing.
 
-Where legal obligations require payment or other records to be retained, the applicable obligations and records are [legal recordkeeping requirements]. We do not use your data for ads, and our product analytics stay first-party, as described below. We do not collect your message content on our account or link services. Your own dusk cloud desktop and the optional tool traffic described above have separate processing roles.
+Legal obligations apply to payment records: Dodo Payments keeps invoices and transaction records as merchant of record, and we keep our billing records (plans, amounts and payment identifiers) for as long as tax and accounting law requires. We do not use your data for ads, and our product analytics stay first-party, as described below. We do not collect your message content on our account or link services. Your own dusk cloud desktop and the optional tool traffic described above have separate processing roles.
 
 ## Sub-processors and service providers
 
-Provider legal roles, including any independent controller role for payments, are [provider role confirmations]. A provider's company location does not establish where all processing occurs.
+We use a small number of service providers to run dusk bot: Contabo (hosting), Cloudflare (proxy, DNS, connected-apps broker, cloud edge and email forwarding), InstaBox on Amazon Web Services (dusk cloud desktops), Dodo Payments (payments), Brevo (email and the waitlist), Composio (connected apps), Apple and Google (push notifications), Spaceship (domain registrar) and Let's Encrypt (TLS certificates). The [subprocessors page](subprocessors.md) lists each one with its purpose, the data involved and where it processes data.
 
-| Name | Purpose | Data involved | Location |
-| --- | --- | --- | --- |
-| Contabo GmbH | Website, account and link hosting | Account records, service records and access logs; sealed relay traffic | Germany, [confirm data center region] |
-| Cloudflare | Connected-apps broker, cloud desktop public edge, DNS and email forwarding | Tool traffic, broker token hashes, cloud edge traffic and mail sent to dusk.bot addresses | [Cloudflare processing locations] |
-| InstaBox | Cloud desktop infrastructure, sub-processor | Your hosted bots, chats, files and desktop data | [InstaBox processing locations: AWS us-west-2, United States] |
-| Dodo Payments | Merchant of record, payments, tax and invoices | Billing details, card data and transaction records; dusk bot receives no card numbers | [Dodo Payments processing locations] |
-| Brevo | Transactional email delivery and the waitlist | Email address, sign-in codes, account or billing notice content, and waitlist sign-ups | [Brevo processing locations] |
-| Composio | Connected-app tools and OAuth connections | OAuth connections and tool request and response data | [Composio processing locations] |
-| Apple APNs | Phone push delivery | Device push token, bot name and identifiers, never message text | [Apple APNs processing locations] |
-| Google FCM | Phone push delivery | Device push token, bot name and identifiers, never message text | [Google FCM processing locations] |
-| Spaceship | Domain registrar | Domain registration records, no user data | [Spaceship processing locations] |
-| Let's Encrypt | TLS certificates | Certificate information, no personal data | [Let's Encrypt certificate service locations] |
-| [error tracking provider: self-hosted GlitchTip on our server, or Sentry] | Conditional crash and error reporting | Scrubbed errors, app-relative frames, app version and platform | [error tracker processing location] |
+Dodo Payments acts as merchant of record and is an independent controller for the payment data it collects. Google, Apple and X are independent controllers for the sign-in data they hold about you. The other providers process data on our behalf as sub-processors. A provider's company location does not establish where all processing occurs.
 
 AI model providers you choose have a direct relationship with you. They are not our sub-processors. On dusk cloud, the cloud desktop connects to the providers you sign in to. You still use your own provider account and their terms apply; those connections are part of operating your hosted desktop.
 
 ## International transfers
 
-Your information may be processed outside your country through these providers. Where a transfer requires safeguards, we use applicable mechanisms, including Standard Contractual Clauses where needed. The relevant transfer destinations and safeguards are [international transfer details and SCC arrangements]. Contact privacy@dusk.bot to ask about safeguards applicable to your data or request a copy where available.
+Your information may be processed outside your country through these providers. Where a transfer requires safeguards, we use applicable mechanisms, including Standard Contractual Clauses where needed. Our own servers and database are in the European Union. dusk cloud desktops run in the United States (AWS us-west-2), and some providers, such as Cloudflare, Composio, Apple and Google, process data in the United States or on global networks. For those transfers we rely on the provider's Standard Contractual Clauses or an adequacy decision, such as the EU-US Data Privacy Framework, where the provider is certified. Contact privacy@dusk.bot to ask about safeguards applicable to your data or request a copy where available.
 
 ## Retention and account deletion
 
-Account record retention is [account and workspace report retention]. Session record retention is [session retention]. Billing record retention is [billing retention and legal requirements]. The service-specific periods above apply to logs, error reports, link records and cloud data. We do not assign a fixed period here where it has not been confirmed.
+Account records, linked workspaces and their latest reports are kept while your account exists and are deleted when you delete it. A session ends when you sign out or when it goes unused: a new browser session expires after 30 days, an app session after 90 days, and a session in regular use is extended by up to 90 days. Expired sessions can no longer be used. Billing records are kept for as long as tax and accounting law requires, which can be several years after your plan ends, even after the account is deleted. The service-specific periods above apply to analytics, logs, error reports, link records and cloud data.
 
 You can use Delete account on the Account page. It removes the account, sessions, identities and linked workspaces. Active plans and cloud desktops must be cancelled first. The page offers to cancel them. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted; its backups follow the backup rule above. Deleting your dusk bot account does not itself delete local files or records held independently by your AI providers.
 
@@ -134,12 +120,12 @@ We use encryption in transit, sealed relay frames, hashed session and link token
 
 ## Cookies and local storage
 
-On dusk.bot (the dashboard, the admin and the API), a session cookie is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie protects requests. A short-lived OAuth state cookie supports sign-in. Your theme preference is stored in local storage.
+On dusk.bot (the dashboard, the admin and the API), a session cookie (`dusk_dash`) is HttpOnly, lasts 30 days and is renewed while used. A CSRF cookie (`dusk_csrf`) protects requests. A short-lived OAuth state cookie (`dusk_oauth`, 10 minutes) supports sign-in. Your theme and notification preferences are stored in local storage. Our [cookie policy](cookies.md) lists every cookie and storage item we use.
 
 There are no advertising cookies. Outside the EU, the EEA, the UK and Switzerland, the website's analytics script sets two first-party cookies, `dusk_vid` (a random visitor id, one year) and `dusk_sid` (a visit id, 30 minutes), described under Product analytics; they are never shared with anyone. Where Cloudflare places you in those countries, or cannot place you, the script sets no cookies and uses no local storage, and our server counts visits with a daily-changing id instead, as described under Product analytics. The account cookies are strictly necessary for account and security functions. Theme local storage records your preference. Blocking required cookies may prevent account sign-in or related functions from working.
 
 ## Children, changes and contact
 
-dusk bot is not for children under 16 [or the age the owner picks]. If you believe a child has provided personal data through our services, contact privacy@dusk.bot so we can address it.
+dusk bot is not for children under 16. If you believe a child has provided personal data through our services, contact privacy@dusk.bot so we can address it.
 
-We may update this policy. We will use [privacy change notification method] for material changes. Check the effective date when reviewing it. For privacy requests, contact privacy@dusk.bot or [Legal entity name], [Registered address]. For general questions, use hello@dusk.bot.
+We may update this policy. For material changes, we will email account holders and post a notice on dusk.bot at least 30 days before the change takes effect, unless a shorter period is needed for legal or security reasons. Check the effective date when reviewing it. For privacy requests, contact privacy@dusk.bot. For general questions, use hello@dusk.bot.

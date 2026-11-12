@@ -1,10 +1,8 @@
-> **Draft for legal review.** Not yet reviewed by a lawyer. Do not publish as final until reviewed. Last updated: 10 November 2026.
-
 ## Report a vulnerability
 
-Effective date: [Effective date].
+Effective date: 12 November 2026. Last updated: 12 November 2026.
 
-If you find a security issue in dusk bot, email security@dusk.bot. This policy is offered by [Legal entity name], at [Registered address]. You can find security.txt at https://dusk.bot/.well-known/security.txt.
+If you find a security issue in dusk bot, email security@dusk.bot. This policy is offered by dusk bot, the operator of the services. You can find security.txt at https://dusk.bot/.well-known/security.txt.
 
 ## Scope
 
@@ -32,6 +30,6 @@ Test only accounts, devices and data you own or have explicit permission to use.
 
 ## What you can expect
 
-We aim to acknowledge your report within [3 business days]. We will assess the issue and communicate with you about findings and next steps. Acknowledgement is not a promise of a fix by a particular date. Please coordinate public disclosure with us so we can address the issue without exposing users.
+We aim to acknowledge your report within 3 business days. We will assess the issue and communicate with you about findings and next steps. Acknowledgement is not a promise of a fix by a particular date. Please coordinate public disclosure with us so we can address the issue without exposing users.
 
 There is no public bug bounty yet. This policy does not promise payment or another reward. For vulnerability reports and follow-up, use security@dusk.bot. For general enquiries, use hello@dusk.bot.
