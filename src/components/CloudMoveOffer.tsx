@@ -99,8 +99,8 @@ function MoveSheet({ state, progress, busy, onClose, onMove, onLater, onHide, on
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <ScrimMotion aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={onClose} />
       <SheetMotion ref={sheet} role="dialog" aria-modal="true" aria-labelledby={lineId} tabIndex={-1} data-cloud-move={state}
-        className="relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center rounded-[18px] bg-menu px-6 pb-5 pt-4 text-center text-ink outline-none">
-        <CloudMoveScene progress={progress} done={state === "done"} />
+        className="relative flex w-[min(380px,calc(100vw-32px))] flex-col items-center overflow-hidden rounded-[18px] bg-menu px-6 pb-5 text-center text-ink outline-none">
+        <CloudMoveScene progress={progress} done={state === "done"} className="-mx-6 mb-2 w-[calc(100%+3rem)] pt-3" />
         {state === "done" && <h2 className="m-0 mt-2 text-[17px] font-semibold leading-6">{t("cloudMoveOffer.done")}</h2>}
         <p id={lineId} role={state === "ask" ? undefined : "status"}
           className={cn("m-0 text-pretty", state === "done" ? "mt-1 text-[14px] font-medium leading-5 text-ink-secondary" : "mt-2 text-[15px] font-medium leading-6")}>{line}</p>

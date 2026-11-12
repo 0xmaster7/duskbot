@@ -191,6 +191,12 @@ My Cloud on Open dusk cloud, or by itself two minutes later (`createOpenWhenAske
 `app_action` events that ride with the page's own batches, so nothing goes while usage analytics are off; the page says
 each `shown`.
 
+The scene sits on its own pixel sky (`SKY` in `src/components/CloudMoveScene.tsx`, #c2ecfc down to #eaf6fd in four
+bands) in every skin. My Cloud's welcome (`src/components/cloud-welcome/CloudWelcome.tsx`) is the same scene with the
+bots landing on the cloud, one headline, three lines of what is different now, and one thing to do: Connect your AI
+while no AI works (the sign-in opens under it), else Start chatting; Not now ends it, and either marks every step handled
+for the sidebar's Set up card. `node --experimental-strip-types scripts/verify-cloud-welcome.ts` serves it.
+
 `server/cloud-move-offer.e2e.test.ts` runs it over the two-server fixture with `offer: true`: no move before the yes,
 Later then the line's Move, the bots arrive on the Cloud home and stay here, and the window opens My Cloud only on Open dusk cloud.
 `scripts/verify-cloud-move.ts` serves the whole app with the bridge played in the page

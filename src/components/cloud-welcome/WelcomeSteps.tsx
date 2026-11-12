@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Ref } from "react";
-import { Check, ChevronDown, CircleAlert, FolderOpen, Plug } from "../../icons";
+import { Check, ChevronDown, CircleAlert } from "../../icons";
 import { cloudEngine, cloudEngineChoices, useCloudEngineChoices } from "@/components/CloudEngineSignIn";
 import { useCloudPlanSnapshot } from "@/components/CloudTrialNotice";
 import { engineReady } from "@/components/EngineLibrary";
@@ -10,8 +10,7 @@ import { welcomeCredit } from "@/lib/cloud-welcome";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { plainSignIn } from "@/lib/onboarding";
-import { useStore, type Bot } from "@/state/store";
-import { CARD, CARD_IDLE, CardIcon, Footer, PRIMARY, QUIET, SECONDARY, StepHeading } from "./parts";
+import { Footer, PRIMARY, QUIET, StepHeading } from "./parts";
 
 /** Connecting an AI: an AI that already works when the step opens (one signed in here, or the plan's credit) is used as
  * it is and the step finishes itself; otherwise one recommended sign-in, every other way folded under it. */
@@ -57,47 +56,6 @@ export function WelcomeEngine({ name, headingRef, onFinish }: { name: string; he
         : credit?.state === "active"
           ? <button type="button" className={PRIMARY} onClick={onFinish}>{t("cloudWelcome.engine.useCredit")}</button>
           : <button type="button" className={QUIET} onClick={onFinish}>{t("cloudIntent.skip")}</button>}
-    </Footer>
-  </section>;
-}
-
-/** "folders": the desktop app shares folders through Files. */
-export function WelcomeFiles({ name, headingRef, onFinish }: { name: string; headingRef: Ref<HTMLHeadingElement>; onFinish: () => void }) {
-  const { dispatch } = useStore();
-  const card = (id: string, icon: typeof Plug, title: string, body: string, action?: { label: string; run: () => void }) =>
-    <div data-welcome-files={id} className={cn(CARD, CARD_IDLE)}>
-      <CardIcon icon={icon} />
-      <span className="text-[15px] font-semibold text-ink">{title}</span>
-      <span className="text-[13px] leading-relaxed text-ink-secondary">{body}</span>
-      {action && <span className="mt-1"><button type="button" className={SECONDARY} onClick={action.run}>{action.label}</button></span>}
-    </div>;
-  return <section aria-labelledby="cloud-welcome-step" data-welcome-step="files" className="flex flex-col gap-5">
-    <StepHeading headingRef={headingRef} title={t("cloudWelcome.files.title")} aside={t("cloudWelcome.files.optional")} sub={t("cloudWelcome.files.sub")} />
-    <div className="grid gap-3 @lg/step:grid-cols-2">
-      {card("folders", FolderOpen, t("cloudWelcome.files.folders"), t("cloudWelcome.files.foldersDesktop", { name }))}
-      {card("apps", Plug, t("cloudWelcome.files.apps"), t("cloudWelcome.files.appsHint"),
-        { label: t("cloudWelcome.files.appsAction"), run: () => dispatch({ type: "togglePlugins", open: true, surface: "apps" }) })}
-    </div>
-    <Footer>
-      <button type="button" className={PRIMARY} onClick={onFinish}>{t("cloudWelcome.files.finish")}</button>
-      <button type="button" className={QUIET} onClick={onFinish}>{t("cloudIntent.skip")}</button>
-    </Footer>
-  </section>;
-}
-
-export function WelcomeDone({ name, bot, headingRef, onSayHi, onJob }: {
-  name: string; bot: Bot | null; headingRef: Ref<HTMLHeadingElement>; onSayHi: () => void; onJob: () => void;
-}) {
-  return <section aria-labelledby="cloud-welcome-step" data-welcome-step="done" className="flex flex-col items-start gap-4">
-    <span aria-hidden="true" className="check-in flex size-[42px] items-center justify-center rounded-full bg-success">
-      <Check size={22} strokeWidth={2.5} />
-    </span>
-    <StepHeading headingRef={headingRef} title={t("cloudWelcome.done.title", { name })} sub={t("cloudWelcome.done.body")} />
-    <Footer>
-      <button type="button" className={PRIMARY} onClick={onSayHi}>
-        {bot?.chiefOfStaff || !bot ? t("cloudWelcome.done.chief") : t("cloudWelcome.done.bot", { name: bot.name })}
-      </button>
-      {bot && <button type="button" className={SECONDARY} onClick={onJob}>{t("cloudSetup.job.action")}</button>}
     </Footer>
   </section>;
 }

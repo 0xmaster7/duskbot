@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import type { MausColor } from "@/lib/mascot";
 import { botsAcross } from "@/lib/cloud-move-offer";
+import { cn } from "@/lib/cn";
 import { MausAvatar } from "./Avatar";
 import { useMotionReduced } from "./ui/SheetMotion";
 
@@ -43,17 +44,19 @@ function cloudPixels(): Px[] {
 }
 
 const LAPTOP_PX = laptopPixels(), CLOUD_PX = cloudPixels();
+// the scene sits on its own sky in every skin, so its pixels are fixed colours: never pure black or white
 const FILL: Record<string, string> = {
-  frame: "color-mix(in oklch, var(--color-ink) 34%, var(--color-menu))",
-  base: "color-mix(in oklch, var(--color-ink) 24%, var(--color-menu))",
-  notch: "color-mix(in oklch, var(--color-ink) 46%, var(--color-menu))",
-  screen: "color-mix(in oklch, var(--identity-blue) 14%, var(--color-menu))",
-  glow: "color-mix(in oklch, var(--identity-blue) 30%, var(--color-menu))",
-  // the cloud is the same off-white in every skin, so it reads as a cloud on a dark sheet and a light one
-  body: "#e6edf7",
-  light: "#f5f8fc",
-  shade: "#aebfdc",
+  frame: "#3d4757",
+  base: "#5a6577",
+  notch: "#2b323d",
+  screen: "#203047",
+  glow: "#4a8fd0",
+  body: "#f1f7fd",
+  light: "#fbfdff",
+  shade: "#9dbbdb",
 };
+/** The sky behind the scene, in four bands from #c2ecfc down to #eaf6fd, as pixel art draws a sky. */
+export const SKY = "linear-gradient(#c2ecfc 0 25%, #cdeffc 25% 50%, #d9f2fd 50% 75%, #eaf6fd 75% 100%)";
 
 function Pixels({ at, pixels }: { at: { x: number; y: number }; pixels: Px[] }) {
   return <g transform={`translate(${at.x} ${at.y})`}>
@@ -64,10 +67,11 @@ function Pixels({ at, pixels }: { at: { x: number; y: number }; pixels: Px[] }) 
 const spot = (slot: { x: number; y: number }) => `translate(${slot.x - BOT / 2}px, ${slot.y - BOT}px)`;
 
 /** Bots hopping from this computer onto dusk cloud: `progress` 0 to 1, the last bot hops only once everything arrived. */
-export function CloudMoveScene({ progress, done = false }: { progress: number; done?: boolean }) {
+export function CloudMoveScene({ progress, done = false, className }: { progress: number; done?: boolean; className?: string }) {
   const reduced = useMotionReduced();
   const across = botsAcross(done ? 1 : progress, BOTS.length);
-  return <div aria-hidden="true" data-cloud-move-scene={across} className="relative mx-auto h-[132px] w-[320px] max-w-full overflow-hidden">
+  return <div aria-hidden="true" data-cloud-move-scene={across} className={cn("flex w-full justify-center overflow-hidden", className)} style={{ background: SKY }}>
+    <div className="relative h-[132px] w-[320px] max-w-full shrink-0">
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} shapeRendering="crispEdges" className="absolute inset-0">
       <Pixels at={LAPTOP} pixels={LAPTOP_PX} />
       <Pixels at={CLOUD} pixels={CLOUD_PX} />
@@ -86,5 +90,6 @@ export function CloudMoveScene({ progress, done = false }: { progress: number; d
         animate={{ transform: there ? [spot(from), peak, spot(to)] : spot(from) }}
         transition={{ duration: HOP_MS / 1000, ease: "easeInOut", times: [0, 0.45, 1], delay: there ? 0.16 * index : 0 }}>{bot}</motion.span>;
     })}
+    </div>
   </div>;
 }
