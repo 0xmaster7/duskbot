@@ -252,7 +252,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     // a token is only the way in for an app nothing else connects: one Composio covers stays a normal Composio row,
     // unless this build signs in to it natively
     const first = mergeEntries([...own, ...catalog, ...vendors]);
-    const covered = new Set(first.filter((entry) => entry.kind === "token" && (entry.composio !== undefined || entry.aliases?.length) && tokens.status?.native[entry.id] !== true).map((entry) => entry.id));
+    const covered = new Set(first.filter((entry) => (entry.kind === "token" || entry.id === GMAIL) && (entry.composio !== undefined || entry.aliases?.length) && tokens.status?.native[entry.id] !== true).map((entry) => entry.id));
     const merged = [...(covered.size ? mergeEntries([...own.filter((entry) => !covered.has(entry.id)), ...catalog, ...vendors]) : first), ...custom];
     return ready ? stableOrder(merged) : merged;
   }, [connectors.cards, connectors.mode, connectors.status, remote, mcpServers, ready, tokens.status]);
