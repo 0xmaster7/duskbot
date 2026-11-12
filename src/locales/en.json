@@ -1935,6 +1935,8 @@
   "accounts.browserBody": "Check that the browser shows the account you want to add. If it shows another one, change it there.",
   "accounts.browserOpen": "open the browser again",
   "accounts.signOut": "sign out",
+  "accounts.signOutConfirmTitle": "sign out of dusk cloud?",
+  "accounts.signOutConfirmBody": "Your plan and your cloud bots keep going. This computer stops reaching them until you sign in again.",
   "accounts.signInAgain": "sign in again",
   "accounts.manage": "account and sign out",
   "accounts.title": "your account",

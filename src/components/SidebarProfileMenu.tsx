@@ -650,6 +650,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
       />
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
       {accounts.sheet && <AccountsSheet adding={accounts.sheet.email} note={accounts.sheet.note} onClose={accounts.closeSheet} />}
+      {accounts.signOutConfirm}
       {phoneAppOpen && <PhoneAppDialog
         open
         onClose={() => setPhoneAppOpen(false)}

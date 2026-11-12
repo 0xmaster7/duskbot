@@ -143,6 +143,7 @@ export function AccountRows() {
           onClose={() => { setAdding(false); accounts.closeSheet(); }}
         />
       )}
+      {accounts.signOutConfirm}
     </>
   );
 }

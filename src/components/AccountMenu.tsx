@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check, LogOut, Plus, UserRound, X } from "../icons";
 import type { AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
 import { cn } from "@/lib/cn";
@@ -7,6 +7,8 @@ import { t } from "@/lib/i18n";
 import { usePlaces } from "@/lib/places";
 import { CLOSE, Heading, PRIMARY, QUIET, SCREEN, SHEET } from "./cloud-buy/parts";
 import { codeDigits, SignInScreen } from "./cloud-buy/SignInScreen";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { PixelIcon } from "./ui/PixelIcon";
 import type { SidebarMenuItem } from "./SidebarPopoverMenu";
 
 export interface AccountsAccess {
@@ -30,8 +32,16 @@ export function switchNote(result: Pick<RailOpenResult | AccountSwitchResult, "o
   }
 }
 
-/** Who is signed in on this device, on this app's own page; on any other page, only whether main offers the sheet. */
-export function useAccounts(): AccountsAccess & { sheet: { email: string | null; note: string | null } | null; closeSheet(): void } {
+/** Signing out of dusk cloud asks first, over whatever is open (the accounts sheet sits at z-[60]): what happens, in one line. */
+export function CloudSignOutConfirm({ open, pending = false, onCancel, onConfirm }: { open: boolean; pending?: boolean; onCancel: () => void; onConfirm: () => void }) {
+  return <ConfirmDialog open={open} art={<PixelIcon name="cloud" size={28} />} title={t("accounts.signOutConfirmTitle")}
+    body={t("accounts.signOutConfirmBody")} confirmLabel={t("accounts.signOut")} tone="neutral" pending={pending} layer="z-[70]"
+    onCancel={onCancel} onConfirm={onConfirm} />;
+}
+
+/** Who is signed in on this device, on this app's own page; on any other page, only whether main offers the sheet. `signOut`
+ * asks first: render `signOutConfirm` wherever the hook is used. */
+export function useAccounts(): AccountsAccess & { sheet: { email: string | null; note: string | null } | null; closeSheet(): void; signOutConfirm: ReactNode } {
   const bridge = window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.accounts;
   const remote = window.duskDesktop?.accountSheet;
   const own = window.duskDesktop?.app?.ownPage === true && Boolean(bridge);
@@ -39,6 +49,7 @@ export function useAccounts(): AccountsAccess & { sheet: { email: string | null;
   const [view, setView] = useState<AccountsView | null>(null);
   const [offered, setOffered] = useState(false);
   const [sheet, setSheet] = useState<{ email: string | null; note: string | null } | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
   useEffect(() => {
     if (!own) return;
     const read = () => { void bridge!.list().then(setView).catch(() => {}); };
@@ -55,10 +66,15 @@ export function useAccounts(): AccountsAccess & { sheet: { email: string | null;
     view: own ? view : null,
     openSheet: !own && offered && remote ? () => { void remote.open().catch(() => {}); } : null,
     noRail: !places.beside && !places.places.length,
-    signOut: (id) => { void bridge?.signOut(id).then((result) => { setView(result.view); const note = switchNote(result); if (note) setSheet({ email: null, note }); }).catch(() => setSheet({ email: null, note: t("accounts.failed") })); },
+    signOut: (id) => setAsking(id),
     add: (email) => setSheet({ email: email ?? "", note: null }),
     sheet,
     closeSheet: () => setSheet(null),
+    signOutConfirm: <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => {
+      const id = asking;
+      setAsking(null);
+      if (id) void bridge?.signOut(id).then((result) => { setView(result.view); const note = switchNote(result); if (note) setSheet({ email: null, note }); }).catch(() => setSheet({ email: null, note: t("accounts.failed") }));
+    }} />,
   };
 }
 
@@ -146,6 +162,7 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
   const [view, setView] = useState<AccountsView | null>(null);
   const [note, setNote] = useState<string | null>(given);
   const [add, setAdd] = useState<string | null>(adding);
+  const [asking, setAsking] = useState<string | null>(null);
   useEffect(() => {
     if (!bridge) return;
     const read = () => { void bridge.list().then(setView).catch(() => setNote(t("accounts.failed"))); };
@@ -153,6 +170,7 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
     return bridge.onChanged(read);
   }, [bridge]);
   const signOut = (id: string) => {
+    setAsking(null);
     setNote(null);
     void bridge?.signOut(id).then((result) => {
       setView(result.view);
@@ -170,9 +188,10 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
           <Heading title={t("accounts.title")} />
           {active && !given && <p data-accounts-active className="truncate text-[14px] text-ink" title={active.email}>{t("accounts.heading")} {active.email}</p>}
           {note && <p role="status" data-accounts-note className="text-[13px] leading-5 text-ink-secondary">{note}</p>}
-          {active && !given && <button type="button" data-accounts-sign-out className={PRIMARY} onClick={() => signOut(active.id)}>{t("accounts.signOut")}</button>}
+          {active && !given && <button type="button" data-accounts-sign-out className={PRIMARY} onClick={() => setAsking(active.id)}>{t("accounts.signOut")}</button>}
         </div>}
     </div>
+    <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => { if (asking) signOut(asking); }} />
   </div>;
 }
 
