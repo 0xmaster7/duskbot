@@ -130,8 +130,8 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
   const reset = limit.resetsAt !== null && limit.resetsAt > now ? resetsIn(limit.resetsAt, now) : null;
   return (
     <div role="status" data-usage-banner={out ? "danger" : "warning"}
-      className="flex items-start gap-2.5 rounded-[14px] bg-menu py-2.5 pe-2 ps-3.5 outline-[0.5px] outline-offset-[-0.5px] outline-transparent [outline-style:solid]">
-      <Icon name="chart-bars" size={14} className={cn("mt-0.5 shrink-0", out ? "text-danger" : "text-warning")} />
+      className={cn("flex items-center gap-2.5 rounded-[14px] py-2 pe-2 ps-3.5", out ? "bg-danger/[0.07]" : "bg-warning/[0.08]")}>
+      <Icon name="chart-bars" size={14} className={cn("shrink-0", out ? "text-danger" : "text-warning")} />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">
           {out ? t("nativeUsage.banner.out", { engine: limit.name }) : t("nativeUsage.banner.near", { engine: limit.name, percent: used })}
