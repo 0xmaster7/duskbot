@@ -3101,6 +3101,8 @@
   "notices.allowance.near": "이번 주 예산의 80%를 사용했어요.",
   "notices.allowance.over": "주간 한도에 도달했어요. 새 작업은 초기화될 때까지 기다려요. 절약 모드로 채팅을 계속할 수 있어요.",
   "notices.allowance.see": "사용량 보기",
+  "notices.serverBehind": "이 서버는 이전 버전의 dusk bot을 사용하므로 앱의 일부가 여기서 숨겨져 있습니다. 업데이트하면 사용할 수 있습니다.",
+  "notices.serverBehind.copy": "업데이트 명령 복사",
   "composer.limit.reached": "주간 한도에 도달했어요",
   "composer.limit.saver": "절약 모드",
   "composer.limit.saverOn": "절약 모드 켜짐",

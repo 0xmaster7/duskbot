@@ -2894,6 +2894,8 @@
   "notices.allowance.near": "Wykorzystano 80% budżetu na ten tydzień.",
   "notices.allowance.over": "Osiągnięto limit tygodniowy. Nowe zadania czekają na reset; czat działa dalej w trybie oszczędnym.",
   "notices.allowance.see": "Zobacz wykorzystanie",
+  "notices.serverBehind": "Ten serwer ma starszą wersję dusk bot, więc część aplikacji jest tu ukryta. Zaktualizuj go, aby z niej korzystać.",
+  "notices.serverBehind.copy": "Kopiuj polecenie aktualizacji",
   "composer.limit.reached": "Osiągnięto limit tygodniowy",
   "composer.limit.saver": "Tryb oszczędny",
   "composer.limit.saverOn": "Tryb oszczędny włączony",

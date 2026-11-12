@@ -2,6 +2,7 @@
 // "Updated to 1.4.2" or "Update rolled back, nothing lost". Asked once per page, in the background; shown once.
 import { useEffect, useState } from "react";
 import { api } from "@/state/store";
+import { whenServerHas } from "./server-compat";
 import { t } from "@/lib/i18n";
 
 export interface UpdateDigest { kind: "updated" | "rolled_back"; version: string; at: number }
@@ -15,7 +16,7 @@ export function useUpdateDigest(): { line: string; seen: () => void } | null {
   const [digest, setDigest] = useState<UpdateDigest | null>(null);
   useEffect(() => {
     let active = true;
-    void api<{ digest: UpdateDigest | null }>("/api/updates/digest", { background: true })
+    void whenServerHas("updateDigest", () => api<{ digest: UpdateDigest | null }>("/api/updates/digest", { background: true }))
       .then(answer => { if (active && answer?.digest && (answer.digest.kind === "updated" || answer.digest.kind === "rolled_back")) setDigest(answer.digest); }, () => {});
     return () => { active = false; };
   }, []);

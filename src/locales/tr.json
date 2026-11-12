@@ -2384,6 +2384,8 @@
   "notices.allowance.near": "Bu haftaki bütçenin %80’ini kullandınız.",
   "notices.allowance.over": "Haftalık sınıra ulaşıldı. Yeni görevler sıfırlanana kadar bekler; sohbet Tasarruf modunda devam eder.",
   "notices.allowance.see": "Kullanımı gör",
+  "notices.serverBehind": "Bu sunucu daha eski bir dusk bot sürümü çalıştırıyor, bu yüzden uygulamanın bazı bölümleri burada gizli. Onları almak için güncelleyin.",
+  "notices.serverBehind.copy": "Güncelleme komutunu kopyala",
   "composer.limit.reached": "Haftalık sınıra ulaşıldı",
   "composer.limit.saver": "Tasarruf modu",
   "composer.limit.saverOn": "Tasarruf modu açık",

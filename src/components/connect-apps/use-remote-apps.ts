@@ -5,6 +5,7 @@ import { openExternalLink } from "@/lib/app-links";
 import { runMcpSignIn } from "@/lib/mcp-sign-in";
 import { updateMcpServers } from "@/lib/mcp-servers";
 import { t } from "@/lib/i18n";
+import { whenServerHas } from "@/lib/server-compat";
 import type { DirectoryAnswer, DirectoryApp } from "../../../shared/connector-directory";
 import { isRemoteMcpListing, type McpServerListing, type RemoteMcpListing } from "../mcp-draft";
 import type { Connection } from "./catalog";
@@ -18,8 +19,8 @@ let serverList: McpServerListing[] | null = null;
 
 /** The vendors' own MCP servers the directory kept, read once per session. */
 function loadRemoteApps(): Promise<DirectoryApp[]> {
-  directory ??= (api("/api/connectors/directory") as Promise<DirectoryAnswer>)
-    .then((answer) => (directoryApps = (answer.apps ?? []).filter((app) => app.source === "remote-mcp" && typeof app.url === "string")))
+  directory ??= whenServerHas("connectorDirectory", () => api("/api/connectors/directory") as Promise<DirectoryAnswer>)
+    .then((answer) => (directoryApps = (answer?.apps ?? []).filter((app) => app.source === "remote-mcp" && typeof app.url === "string")))
     .catch((cause) => { directory = null; directoryFailed = true; throw cause; });
   return directory;
 }
