@@ -154,6 +154,7 @@ const __APP_VERSION__: string;
       productEvents?: import("../../electron/product-events.mjs").ProductEventsBridge;
       errorReports?: import("../../electron/account-errors.mjs").ErrorReportsBridge;
       desktopLanguage?: import("../../electron/desktop-prefs.mjs").DesktopLanguageBridge;
+      desktopErrorReports?: import("../../electron/desktop-prefs.mjs").DesktopErrorReportsBridge;
       companyBackups?: {
         state(): Promise<CompanyBackupState>;
         list(): Promise<{ backups: CompanyBackupEntry[]; usedBytes: number; limits: { ownerQuotaBytes: number; retainedSnapshots: number } }>;

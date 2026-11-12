@@ -7,6 +7,8 @@ import type { RouteHandler } from "./table.ts";
 export interface DashboardRouteDeps {
   reporter: ReturnType<typeof createDashboardReporter>;
   linkAgentBase(): string | null;
+  /** the usage-signals switch the desktop app's usage-analytics setting drives */
+  usageSignals?: { choice(): { enabled: boolean; summaries: boolean }; set(next: { enabled?: boolean; summaries?: boolean }): void };
   env?: NodeJS.ProcessEnv;
   fetch?: typeof fetch;
 }
@@ -21,6 +23,17 @@ export function dashboardUrl(value: unknown): string | null {
 }
 export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }) => {
+    if (path === "/api/dashboard/usage-signals" && deps.usageSignals && (method === "GET" || method === "PUT")) {
+      res.setHeader("cache-control", "no-store");
+      if (!ownerOrAdmin(auth)) return json(res, 403, { error: "Only the owner or an admin can change usage signals." });
+      if (method === "PUT") {
+        const body = await readBody(req) as { enabled?: unknown; summaries?: unknown } | null;
+        const ok = (value: unknown) => value === undefined || typeof value === "boolean";
+        if (!body || typeof body !== "object" || !ok(body.enabled) || !ok(body.summaries) || (body.enabled === undefined && body.summaries === undefined)) return json(res, 400, { error: "Expected { enabled?: boolean, summaries?: boolean }." });
+        deps.usageSignals.set({ ...(body.enabled === undefined ? {} : { enabled: body.enabled as boolean }), ...(body.summaries === undefined ? {} : { summaries: body.summaries as boolean }) });
+      }
+      return json(res, 200, deps.usageSignals.choice());
+    }
     if (path !== "/api/dashboard/link" || !["GET", "POST", "DELETE"].includes(method)) return PASS;
     res.setHeader("cache-control", "no-store");
     if (!ownerOrAdmin(auth)) return json(res, 403, { error: "Only the owner or an admin can connect the dashboard." });

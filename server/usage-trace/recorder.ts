@@ -432,6 +432,11 @@ export function createTraceRecorder(options: { dataDir: string; now?: () => numb
     receipt,
     timeServed,
     settle,
+    /** The names of the tools an ended, not yet settled turn called, for usage-signals.ts to fold into words. */
+    toolNames(threadId: string): string[] {
+      const turn = ended.get(threadId)?.turn;
+      return turn ? [...turn.tools.values()].map((tool) => tool.name) : [];
+    },
     liveTurns,
     /** The next turn to start on `threadId` belongs to coordinator node `node`, or to an explicit parent turn. */
     expect(threadId: string, expectation: Expectation): void {

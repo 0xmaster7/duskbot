@@ -607,7 +607,7 @@ import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
 import { createSetupImportRoutes } from "./routes/setup-import.ts";
 import { createComputerRoutes } from "./routes/computers.ts";
-import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
+import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, cleanUsageDigest, scrubSummary } from "../shared/usage-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
 import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/antigravity-temp.ts";
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
@@ -1296,7 +1296,9 @@ const spend = createSpend({ dataDir: DATA_DIR, onHit: (hit) => routineGuard.capH
   tell: (botId, threadId, text, quiet) => { const bot = store.bot(botId); if (!bot) return; const thread = threadId && store.taskByThread(botId, threadId) ? threadId : bot.threadId; store.appendMessage(thread, { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); if (!quiet) notify(buildNoticeNotification(bot, thread, text)); } }); const routineHost = createRoutineHost({ dataDir: DATA_DIR, cloudHome: Boolean(CLOUD_HOME), spend, routines: () => routines, botName: (id) => store.bot(id)?.name, model: (botId) => { const selection = store.bot(botId)?.modelSelection; return selection ? { driverKind: registry.get(selection.instanceId)?.driverKind ?? "unknown", model: selection.model } : undefined; }, tell: (botId, threadId, text) => routineGuard.tell(botId, threadId, text), language: (threadId) => (threadId ? conversationLanguage(threadId) : undefined), probeLoopbackOrigin: process.env.DUSK_PROBE_LOOPBACK_ORIGIN });
 const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => turnTriggers.get(threadId), routineWriter: (id) => { const key = cloudRoutineAuthors?.writer(id); return key ? teamOwners.people?.list().find((one) => personKey({ id: "", email: one.email }) === key)?.email : undefined; } }); function bookTurnUsage(row: Omit<UsageRow, "at" | "costSource">, tokensReported = true): void {
   const cost = tokensReported || row.costUsd !== null ? ledgerCost(row, null) : { costUsd: null };
+  const toolNames = usageTrace.toolNames(row.threadId);
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
+  noteUsageTurn(booked, toolNames);
   void appendUsage(DATA_DIR, booked); const entry = spend.booked(booked); if (entry) routineHost.allowance.booked(entry);
 }
 
@@ -6536,6 +6538,61 @@ async function localVmInventoryPayload() {
 }
 
 const usageTrace = createTraceRecorder({ dataDir: DATA_DIR });
+const usagePlace = CLOUD_HOME ? "cloud" as const : isThisServerVps("this-server") ? "server" as const : "desktop" as const;
+const usageSignals = createUsageSignalsSwitch(DATA_DIR);
+const usageOutbox = createUsageOutbox({ enabled: usageSignals.enabled, snapshot: () => ({ bots: store.bots.length, rooms: store.groups.length, routines: routines?.listRoutines().length ?? 0,
+  webhooks: webhooks.list().length, appEvents: appTriggers.manager?.list().length ?? 0, skills: Object.keys(readSkillLibraryIndex()).length }) });
+const frustration = createFrustrationWatch({ dataDir: DATA_DIR, report: usageOutbox.frustration, summarize: async ({ threadId, botId, signals }) => {
+  const writer = usageSignals.summaries() ? sideJobs.text("frustration-summary", botId) : null;
+  if (!writer || !usageSignals.enabled()) return null;
+  const lines = store.messagesTail(threadId, 12).messages.filter((message) => message.kind === "text" && typeof message.text === "string" && message.text.trim())
+    .map((message) => ({ role: message.role, text: message.text! }));
+  return writer.generateText(summaryPrompt(lines, signals), { timeoutMs: 60_000 });
+} });
+let digestRunning = false;
+/** once a week for someone who uses Dusk enough: their own engine writes what they use it for, from a short digest of
+ * recent chats read on this computer; only the scrubbed result is sent */
+function maybeUsageDigest(botId: string): void {
+  if (digestRunning || !usageSignals.summaries() || !frustration.digestDue()) return;
+  const writer = sideJobs.text("frustration-summary", botId);
+  if (!writer) return;
+  digestRunning = true;
+  frustration.digestSent();
+  const threads = store.bots.flatMap((bot) => [bot.threadId, ...(bot.tasks ?? []).map((task) => task.threadId)].filter((id): id is string => typeof id === "string"))
+    .map((threadId) => ({ threadId, messages: store.messagesTail(threadId, 6).messages }))
+    .map((chat) => ({ at: Math.max(0, ...chat.messages.map((message) => message.at ?? 0)), lines: chat.messages.filter((message) => message.kind === "text" && typeof message.text === "string" && message.text.trim()).map((message) => ({ role: message.role, text: message.text! })) }))
+    .filter((chat) => chat.lines.length).sort((a, b) => b.at - a.at).slice(0, 12);
+  const recent = frustration.recent();
+  void writer.generateText(digestPrompt(threads, { ...recent, ...usageOutbox.mix() }), { timeoutMs: 90_000 })
+    .then((text) => {
+      const summary = scrubSummary(text, DIGEST_MAX);
+      if (summary) usageOutbox.digest(cleanUsageDigest({ id: randomBytes(12).toString("base64url"), at: Date.now(), turns: recent.turns, days: recent.days, summary }));
+    }, () => {}).finally(() => { digestRunning = false; });
+}
+const thumbsDownSeen = new Set<string>();
+/** a booked turn as a usage record and a frustration check; only words, counts and times are kept */
+function noteUsageTurn(row: Omit<UsageRow, "costSource"> & { costSource?: unknown }, toolNames: string[]): void {
+  try {
+    // side jobs and keep-warm pings are booked too, but they are not turns: they have no traced turn id
+    if (!row.turnId || row.trigger.kind === "helper" || !usageSignals.enabled()) return;
+    const record = turnRecord({ driverKind: row.driverKind, status: row.outcome?.status, reason: row.outcome?.reason, startedAt: row.startedAt ? Date.parse(row.startedAt) : undefined,
+      endedAt: row.endedAt ? Date.parse(row.endedAt) : undefined, toolNames, trigger: row.trigger, room: Boolean(store.groupByThread(row.threadId)) }, usagePlace, Date.now());
+    if (!record) return;
+    usageOutbox.turn(record);
+    if (record.from === "app" || record.from === "remote") { frustration.turn(row.threadId, row.botId, record); maybeUsageDigest(row.botId); }
+  } catch (error) { console.warn(`usage signals: ${error instanceof Error ? error.name : "error"}`); }
+}
+store.onChange((change) => {
+  if (change.type === "thread.deleted") { frustration.forget(change.threadId); return; }
+  if (change.type !== "message" && change.type !== "message.patch") return;
+  const message = change.message;
+  if (change.type === "message" && message.role === "user" && message.kind === "text" && !message.peerAsk && typeof message.text === "string") frustration.message(change.threadId, message.text);
+  if (message.role === "bot" && !thumbsDownSeen.has(message.id) && message.reactions?.some((reaction) => reaction.emoji === "👎" && reaction.by === "user")) {
+    thumbsDownSeen.add(message.id);
+    if (thumbsDownSeen.size > 2000) thumbsDownSeen.delete(thumbsDownSeen.values().next().value!);
+    frustration.thumbsDown(change.threadId);
+  }
+});
 bus.subscribe((event: RuntimeEvent) => { if (!shouldIgnoreProviderEvent(event)) usageTrace.observe(event); });
 bus.subscribe((event: RuntimeEvent) => {
   if (shouldIgnoreProviderEvent(event)) return;
@@ -9094,7 +9151,7 @@ const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThr
     }
   },
   interruptGoal: interruptRoutineGroupGoal,
-  onRunChanged: (run) => { cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
+  onRunChanged: (run) => { usageOutbox.run(run); cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
   onRunCut: (run) => run.groupId ? coordinator.cancelRoom(run.groupId, run.threadId!, ROUTINE_RESTARTED) : coordinator.cancelDirect(run.threadId!, ROUTINE_RESTARTED),
   onRunFailed: (run, alert) => {
     cloudHealth?.noteRoutineRun(run); routineGuard.failed(run); if (routineHost.limitSkipped(run.id)) { routines?.markSeen(run.id); routines?.adopt(({ routines: all }) => all.filter((one) => one.id === run.routineId)); return; }
@@ -12583,7 +12640,7 @@ ROUTES.push(createStatusRoutes({
   adminActivityRecording, configStatus, broadcast, threadShown,
   browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
   browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
-})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), apps: () => dashboardApps(cfg), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
+})); const dashboardCollector = createDashboardCollector({ dataDir: DATA_DIR, cfg, bots: () => store.bots, managedVpsOwners, teamComputers: () => teamComputers.list(), localInventory: localVmInventoryPayload, localRuntime: containerRuntimeStatus, vps, lastUsedAt: (id) => { const bot = store.bot(id); return bot ? Math.max(0, ...(bot.tasks ?? []).map((task) => task.updatedAt ?? 0)) || null : null; }, phones: phoneHost.listOwner, sessions: () => sessions.list(), mobile: mobileLink.state, publicUrl, deviceLabel: () => cfg.computerName || "", checkUpdate: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: Boolean(CLOUD_HOME) }), prices: () => null, computerKind: (id) => { const bot = store.bot(id); return bot && inheritedTeamComputer(bot) ? "team" : undefined; }, busy: botHasActiveTurn, engine: (id) => registry.get(id) ?? undefined, routines: () => { const runs = routines?.listRuns() ?? []; return (routines?.listRoutines() ?? []).map((routine) => ({ ...routine, lastRunAt: runs.find((run) => run.routineId === routine.id && run.startedAt !== undefined)?.startedAt ?? null })); }, planUsage: () => loadPlanUsage({ accounts: planAccountsFromInstances(instanceConfigs(cfg)) }), apps: () => dashboardApps(cfg), workspaceKind: isThisServerVps("this-server") || CLOUD_HOME ? "vps" : undefined }); const dashboardCommands = createDashboardCommands({ port: PORT, collect: dashboardCollector }); dashboardCommandOwner = dashboardCommands.owns; const dashboardReporter = createDashboardReporter({ dataDir: DATA_DIR, collect: dashboardCollector, usage: usageOutbox, execute: dashboardCommands.execute, log: (line) => console.warn(line) }); dashboardReporter.start(); ROUTES.push(createDashboardRoutes({ reporter: dashboardReporter, usageSignals, linkAgentBase: () => mobileLink.state().agent?.base ?? null }));
 
 ROUTES.push(desktopViewer.route);
 ROUTES.push(createBrowserViewerRoutes({ authorize: async () => null,

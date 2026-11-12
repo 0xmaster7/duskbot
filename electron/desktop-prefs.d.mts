@@ -19,6 +19,11 @@ export interface DesktopAnalyticsBridge {
   /** This computer's page only. */
   set?(enabled: boolean): Promise<void>;
 }
+/** Error reports from this desktop (on unless switched off); this computer's page only. */
+export interface DesktopErrorReportsBridge {
+  enabled(): Promise<boolean>;
+  set(enabled: boolean): Promise<void>;
+}
 /** The app's language on this computer, one pick for every page its window shows. */
 export interface DesktopLanguageBridge {
   /** A locale code, "" to follow the system, or null until one is picked on this computer. */
