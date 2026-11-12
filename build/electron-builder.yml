@@ -1,5 +1,6 @@
 appId: bot.dusk.app
 productName: Dusk Bot
+copyright: Copyright © 2026 Siddharth Meena
 artifactName: DuskBot-${version}-${arch}.${ext}
 
 protocols:

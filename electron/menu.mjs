@@ -1,5 +1,5 @@
-// Electron has no role for the macOS Preferences… item, so it is built explicitly.
-import { Menu, app } from "electron";
+// Electron has no role for the macOS Settings… item, so it is built explicitly.
+import { Menu, app, shell } from "electron";
 
 /** A local environment has a folder and no address. */
 const whereItLives = (environment) => (environment.kind === "local" ? environment.dataDir : new URL(environment.origin).host);
@@ -81,13 +81,19 @@ export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFr
   };
   const atLogin = openAtLogin ? [{ id: "open-at-login", label: "Open at Login", type: "checkbox", checked: openAtLogin.checked, click: () => openAtLogin.onToggle(!openAtLogin.checked) }] : [];
   const template = [
-    ...(isMac ? [{ label: app.name, submenu: [{ role: "about" }, { label: "Preferences…", accelerator: "CmdOrCtrl+,", click: () => onOpenSettings() }, ...atLogin, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, quit] }] : []),
+    ...(isMac ? [{ label: app.name, submenu: [{ role: "about" }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: () => onOpenSettings() }, ...atLogin, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, quit] }] : []),
     isMac ? (stops.length ? { label: "File", submenu: [...stops, { role: "close" }] } : { role: "fileMenu" })
       : openAtLogin || onQuit || stops.length ? { label: "File", submenu: [...stops, ...atLogin, ...(atLogin.length ? [{ type: "separator" }] : []), quit] } : { role: "fileMenu" },
     { role: "editMenu" },
     ...(home && !others.length ? [] : [server]),
     { role: "viewMenu" },
     { role: "windowMenu" },
+    { role: "help", submenu: [
+      { label: "dusk bot Help", click: () => void shell.openExternal("https://dusk.bot/docs") },
+      { label: "What's New", click: () => void shell.openExternal("https://dusk.bot/changelog") },
+      { type: "separator" },
+      { label: "Contact Support", click: () => void shell.openExternal("mailto:hello@dusk.bot") },
+    ] },
   ];
   return Menu.buildFromTemplate(template);
 }

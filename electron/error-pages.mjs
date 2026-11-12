@@ -1,5 +1,4 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { handoffPage } from "./pixel-page.mjs";
 
@@ -12,14 +11,13 @@ function escapeHtml(value) {
 /** The page the main window shows when the background server never came up. */
 export function buildErrorPage({ allPortsOccupied, logDir }) {
   const serverLogPath = path.join(logDir, "server.log");
-  const serverLogHref = pathToFileURL(serverLogPath).href;
   const reason = allPortsOccupied
     ? "Every dusk bot port answered health checks from another process, likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen dusk bot."
     : "The background server didn't come up in time. This is usually slow startup, not a port conflict. Quit and reopen dusk bot.";
   return dataUrl(handoffPage({
     title: "dusk bot couldn't start",
     mood: "oops",
-    content: `<h1>the bot server didn't wake up</h1><p>${escapeHtml(reason)} If it keeps happening, check <a target="_blank" rel="noopener" href="${serverLogHref}">${escapeHtml(serverLogPath)}</a>.</p>`,
+    content: `<h1>the bot server didn't wake up</h1><p>${escapeHtml(reason)} If it keeps happening, check <code>${escapeHtml(serverLogPath)}</code>.</p>`,
   }));
 }
 
@@ -32,9 +30,9 @@ export function desktopViewerErrorPage(message, retryUrl) {
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
   return dataUrl(handoffPage({
-    title: "Desktop unavailable",
+    title: "desktop unavailable",
     mood: "oops",
-    content: `<h1>couldn't open the live desktop</h1><p>${escape(message)}</p><p class="go"><a href="${escape(retryUrl)}" target="_blank" rel="noreferrer">Open in browser</a></p>`,
+    content: `<h1>couldn't open the live desktop</h1><p>${escape(message)}</p><p class="go"><a href="${escape(retryUrl)}" target="_blank" rel="noreferrer">open in browser</a></p>`,
   }));
 }
 
