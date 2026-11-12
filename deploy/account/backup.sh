@@ -10,7 +10,9 @@
 #   DUSK_BACKUP_DEST         space-separated rclone destinations, e.g. "oracle-backup:/data r2-backup:dusk-backups"
 #   DUSK_BACKUP_KEEP_DAYS    dailies kept at each destination (default 7)
 #   DUSK_BACKUP_KEEP_WEEKS   sunday copies kept (default 4), so nothing is older than about 28 days
-# layout: <dest>/<name>/daily/<name>-<utc time>.tar.gz.age and <dest>/<name>/weekly/...
+#   DUSK_BACKUP_KEEP_RUNS    for a set that runs several times a day (default 0, off): every run lands in runs/ and
+#                            the newest this many stay; daily/ and weekly/ then take only the first run of each day
+# layout: <dest>/<name>/daily/<name>-<utc time>.tar.gz.age, <dest>/<name>/weekly/... and <dest>/<name>/runs/...
 # restore: rclone copy <dest>/<name>/daily/<file> . && age -d -i backup-age.key <file> | tar -xz -C <empty folder>
 #          files/ holds the paths as they were; mongo/<name>.archive.gz goes back with
 #          mongorestore --gzip --archive=<file> (into a stopped service's database, --drop to replace)
@@ -21,10 +23,11 @@ RECIPIENT="${DUSK_BACKUP_RECIPIENT:?set DUSK_BACKUP_RECIPIENT}"
 DEST="${DUSK_BACKUP_DEST:?set DUSK_BACKUP_DEST}"
 KEEP_DAYS="${DUSK_BACKUP_KEEP_DAYS:-7}"
 KEEP_WEEKS="${DUSK_BACKUP_KEEP_WEEKS:-4}"
+KEEP_RUNS="${DUSK_BACKUP_KEEP_RUNS:-0}"
 PATHS="${DUSK_BACKUP_PATHS:-} ${DUSK_DASHBOARD_DATA:-}"
 case "$NAME" in ''|*[!a-z0-9-]*) echo "DUSK_BACKUP_NAME must be lowercase letters, digits and dashes" >&2; exit 2 ;; esac
 case "$RECIPIENT" in age1*) ;; *) echo "DUSK_BACKUP_RECIPIENT must be an age public key" >&2; exit 2 ;; esac
-for n in "$KEEP_DAYS" "$KEEP_WEEKS"; do case "$n" in ''|*[!0-9]*) echo "DUSK_BACKUP_KEEP_DAYS and _WEEKS must be numbers" >&2; exit 2 ;; esac; done
+for n in "$KEEP_DAYS" "$KEEP_WEEKS" "$KEEP_RUNS"; do case "$n" in ''|*[!0-9]*) echo "DUSK_BACKUP_KEEP_DAYS, _WEEKS and _RUNS must be numbers" >&2; exit 2 ;; esac; done
 [ "$KEEP_DAYS" -ge 1 ] || { echo "DUSK_BACKUP_KEEP_DAYS must be at least 1" >&2; exit 2; }
 
 # one run per set at a time
@@ -35,7 +38,9 @@ started=$(date +%s)
 umask 077
 work=$(mktemp -d /var/tmp/dusk-backup.XXXXXX)
 trap 'rm -rf "$work"' EXIT
-file="$NAME-$(date -u +%Y%m%dT%H%M%SZ).tar.gz.age"
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+day="${stamp%%T*}"
+file="$NAME-$stamp.tar.gz.age"
 parts=""
 
 # the services write each file by rename, so a copy holds whole files and keeps tar from reading a moving tree
@@ -78,15 +83,33 @@ prune() {
   [ -z "$old" ] || rclone delete "$1" --min-age "${2}d" --include "$NAME-*.tar.gz.age"
 }
 
+# keeps the newest $2 of this set's archives in $1
+prune_count() {
+  old=$(rclone lsf "$1" --files-only --include "$NAME-*.tar.gz.age" 2>/dev/null | sort -r | tail -n +"$(($2 + 1))") || return 0
+  for f in $old; do rclone deletefile "$1/$f" || return 1; done
+}
+
+# with runs/ on, daily/ and weekly/ take one archive per utc day; true when $1 has none from today yet
+first_today() {
+  [ "$KEEP_RUNS" = 0 ] && return 0
+  [ -z "$(rclone lsf "$1" --files-only --include "$NAME-${day}T*.tar.gz.age" 2>/dev/null)" ]
+}
+
 failed=0
-weekly=$([ "$(date -u +%u)" = 7 ] && [ "$KEEP_WEEKS" -gt 0 ] && echo 1 || echo 0)
+sunday=$([ "$(date -u +%u)" = 7 ] && [ "$KEEP_WEEKS" -gt 0 ] && echo 1 || echo 0)
 for dest in $DEST; do
   base="${dest%/}/$NAME"
+  daily=0; weekly=0
+  first_today "$base/daily" && daily=1
+  [ "$sunday" = 1 ] && first_today "$base/weekly" && weekly=1
   # a failed upload never prunes, so a destination keeps its old backups until a new one lands
-  if rclone copyto "$work/$file" "$base/daily/$file" && { [ "$weekly" = 0 ] || rclone copyto "$work/$file" "$base/weekly/$file"; }; then
+  if { [ "$KEEP_RUNS" = 0 ] || rclone copyto "$work/$file" "$base/runs/$file"; } &&
+     { [ "$daily" = 0 ] || rclone copyto "$work/$file" "$base/daily/$file"; } &&
+     { [ "$weekly" = 0 ] || rclone copyto "$work/$file" "$base/weekly/$file"; }; then
+    [ "$KEEP_RUNS" = 0 ] || prune_count "$base/runs" "$KEEP_RUNS" || failed=1
     prune "$base/daily" "$KEEP_DAYS" || failed=1
     prune "$base/weekly" "$((KEEP_WEEKS * 7))" || failed=1
-    echo "uploaded $file to $base ($size bytes$([ "$weekly" = 1 ] && echo ', also weekly'))"
+    echo "uploaded $file to $base ($size bytes$([ "$KEEP_RUNS" != 0 ] && echo ', run')$([ "$daily" = 1 ] && echo ', daily')$([ "$weekly" = 1 ] && echo ', weekly'))"
   else
     echo "upload to $base failed" >&2
     failed=1

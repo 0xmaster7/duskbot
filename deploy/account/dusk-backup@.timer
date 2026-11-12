@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily dusk bot backup of %i
+Description=dusk bot backup of %i (daily unless the set's timer.d drop-in says otherwise)
 
 [Timer]
 OnCalendar=*-*-* 04:17:00 UTC
