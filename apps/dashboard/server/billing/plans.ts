@@ -44,24 +44,27 @@ export const BILLING_CONFIG: BillingConfig = {
   freeWorkUntil: freeWorkUntil(process.env.DUSK_FREE_WORK_UNTIL),
   licenses: {
     solo: { kind: "solo", label: "Work license", monthlyCents: 1200, includedMembers: 1, extraMemberCents: null, maxMembers: 1, priority: false },
-    team: { kind: "team", label: "Team license", monthlyCents: 3000, includedMembers: 2, extraMemberCents: 1800, maxMembers: 50, priority: false },
+    team: { kind: "team", label: "Team license", monthlyCents: 3000, includedMembers: 2, extraMemberCents: 2000, maxMembers: 50, priority: false },
   },
   desktops: {
-    shared_s: { kind: "shared_s", label: "Plus", placement: "pool", monthlyCents: 2000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2, priority: false },
-    shared_m: { kind: "shared_m", label: "Pro", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
+    shared_s: { kind: "shared_s", label: "Plus", placement: "pool", monthlyCents: 2000, machine: { vcpu: 2, ramGb: 4, diskGb: 20 }, botComputers: 2, priority: false },
+    shared_m: { kind: "shared_m", label: "Pro", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 60 }, botComputers: 5, priority: true },
     dedicated: { kind: "dedicated", label: "Dedicated", placement: "dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null, priority: true },
   },
-  dedicated: { baseCents: 1400, perVcpuCents: 300, perGbRamCents: 100, per20GbDiskCents: 100, includedDiskGb: 40,
-    vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
+  // the sizes and the disk ceiling an InstaBox pro workspace can create (8/16, 200 GB a machine); the team bundle's
+  // 8/16/160 comes to $89: 7 + 8 x 4 + 16 x 2 + 6 x 3, so with the $30 team license it is $119 a month and $1190 a year
+  dedicated: { baseCents: 700, perVcpuCents: 400, perGbRamCents: 200, per20GbDiskCents: 300, includedDiskGb: 40,
+    vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 },
+    sizes: [{ vcpu: 2, ramGb: 4 }, { vcpu: 4, ramGb: 8 }, { vcpu: 8, ramGb: 16 }] },
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },
   trial: null,
-  // free $0, plus $20 (a cloud desktop), pro $50 (a bigger one and a work license for one person); the starter id sells as Plus
+  // free $0, plus $20 (a cloud machine), pro $50 (a bigger one and a work license for one person), team $119; the starter id sells as Plus
   bundles: [
     { id: "free", label: "Free", cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Your bots, on your computer", "Personal use", "No subscription"] },
-    { id: "starter", label: "Plus", cart: { license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } }, highlights: ["Your bots work 24/7", "dusk cloud, on 24/7", "2 bot computers"] },
-    { id: "pro", label: "Pro", cart: { license: { kind: "solo" }, desktop: { kind: "shared_m", region: "fsn1" } }, highlights: ["A bigger dusk cloud, always on", "5 bot computers, priority wake", "Work license for one person"] },
-    { id: "team", label: "Team", cart: { license: { kind: "team", members: 2 }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } }, highlights: ["Team license, 2 members", "Dedicated dusk cloud, unlimited bot computers", "8 vCPU, 16 GB RAM, 160 GB disk"] },
+    { id: "starter", label: "Plus", cart: { license: { kind: "none" }, desktop: { kind: "shared_s", region: "fsn1" } }, highlights: ["Your bots work in dusk cloud", "2 vCPU, 4 GB RAM, 20 GB disk", "Always available, wakes in seconds"] },
+    { id: "pro", label: "Pro", cart: { license: { kind: "solo" }, desktop: { kind: "shared_m", region: "fsn1" } }, highlights: ["4 vCPU, 8 GB RAM, 60 GB disk", "Always available, priority wake", "Work license for one person"] },
+    { id: "team", label: "Team", cart: { license: { kind: "team", members: 2 }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } } }, highlights: ["Dedicated 8 vCPU, 16 GB RAM, 160 GB disk", "Always available, priority wake", "Team license, 2 seats"] },
   ],
   regions: [{ id: "fsn1", label: "Falkenstein", country: "DE" }, { id: "nbg1", label: "Nuremberg", country: "DE" }, { id: "hel1", label: "Helsinki", country: "FI" }, { id: "ash", label: "Ashburn", country: "US" }, { id: "hil", label: "Hillsboro", country: "US" }, { id: "sin", label: "Singapore", country: "SG" }],
   defaultRegion: "fsn1", poolRegions: ["fsn1"],

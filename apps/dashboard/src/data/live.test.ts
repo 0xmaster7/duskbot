@@ -15,7 +15,7 @@ const catalog: Catalog = {
     { kind: "shared_m", label: "Pro", monthlyCents: 4000, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, placement: "pool", botComputers: 5, priority: true },
     { kind: "dedicated", label: "Dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 165 }, placement: "dedicated", botComputers: null, priority: true },
   ],
-  dedicated: { baseCents: 600, perVcpuCents: 350, perGbRamCents: 125, per20GbDiskCents: 102, includedDiskGb: 100, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
+  dedicated: { baseCents: 600, perVcpuCents: 350, perGbRamCents: 125, per20GbDiskCents: 102, includedDiskGb: 100, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 }, sizes: [] },
   bundles: [
     { id: "free", label: "Free", monthlyCents: 0, yearlyMonthlyCents: 0, cart: { license: { kind: "none" }, desktop: { kind: "none" } }, highlights: ["Personal use"] },
     { id: "starter", label: "Starter", monthlyCents: 2000, yearlyMonthlyCents: 1600, cart: { license: { kind: "solo" }, desktop: { kind: "shared_s" } }, highlights: ["Always on"] },

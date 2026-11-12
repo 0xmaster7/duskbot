@@ -25,6 +25,9 @@ export function parseCart(input: unknown, config: BillingConfig = BILLING_CONFIG
         const value = desktop.spec[key], range = config.dedicated[key];
         if (typeof value !== "number" || !Number.isInteger(value) || value < range.min || value > range.max || (value - range.min) % range.step !== 0) return null;
       }
+      // only a size the provider makes: no rounding up to a bigger machine than the one priced
+      const { vcpu, ramGb } = desktop.spec;
+      if (!config.dedicated.sizes.some(size => size.vcpu === vcpu && size.ramGb === ramGb)) return null;
     }
   }
   return { interval: input.interval, license: license.kind === "team" ? { kind: "team", members: license.members as number } : { kind: license.kind },

@@ -125,7 +125,7 @@ it("separates cookie and app credentials and preserves billing origin and CORS b
 it("runs the dashboard billing lifecycle over HTTP, including signed workspace reports and webhook replays", async () => {
   const f = await fixture(), { cookie, account, csrfToken } = await f.login();
   const catalog = await f.answer<Catalog>("/v1/billing/catalog"); expect(catalog.bundles.map(b => b.id)).toEqual(["free", "starter", "pro", "team"]);
-  const builder: Cart = { interval: "year", license: { kind: "solo" }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 12, ramGb: 24, diskGb: 240 } } };
+  const builder: Cart = { interval: "year", license: { kind: "solo" }, desktop: { kind: "dedicated", region: "fsn1", spec: { vcpu: 4, ramGb: 8, diskGb: 120 } } };
   expect(await f.answer<Quote>("/v1/billing/quote", { cart: builder })).toMatchObject({ bundle: null, machine: builder.desktop.spec, totalCents: quote(builder).totalCents });
   const team: Cart = { ...bundle("team"), license: { kind: "team", members: 6 } };
   const teamQuote = await f.answer<Quote>("/v1/billing/quote", { cart: team });

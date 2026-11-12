@@ -72,7 +72,7 @@ describe("billing service isolated fixture", () => {
     expect(service.licenses(owner.id)[0]).toMatchObject({ kind: "solo", status: "active", seats: 1, members: [{ email: owner.email, role: "owner", accountId: owner.id }] });
     expect(service.invoices(owner.id).invoices[0]).toMatchObject({ amountCents: quote(licensedDesktop(), config).totalCents, currency: "USD", status: "paid" });
     expect(store.state.invoices[0].subscriptionId).toBe(sub.id);
-    expect(clouds.activate).toHaveBeenCalledExactlyOnceWith(answer.cloudId, sub.id, { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 });
+    expect(clouds.activate).toHaveBeenCalledExactlyOnceWith(answer.cloudId, sub.id, { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 20 }, botComputers: 2 });
     const before = structuredClone(store.state); expect(deliver(deliveries)).toEqual([{ duplicate: true }, { duplicate: true }]);
     expect(store.state).toEqual(before); expect(clouds.activate).toHaveBeenCalledTimes(1);
     const newId = provider.sign("another_activation", deliveries[1].body); deliver([newId]);
@@ -133,7 +133,7 @@ describe("billing service isolated fixture", () => {
     expect(preview).toMatchObject({ chargeNowCents: quote(preset(2), config).totalCents - quote(licensedDesktop(), config).totalCents, expiresAt: time + 600_000 }); expect(preview.confirmation).toMatch(/^[A-Za-z0-9_-]{43}$/);
     await service.change(owner, sub.id, preview.confirmation);
     expect(sub).toMatchObject({ totalCents: quote(preset(2), config).totalCents, version: 2, cart: preset(2) });
-    expect(clouds.changePlan).toHaveBeenCalledExactlyOnceWith(sub.cloudId, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 });
+    expect(clouds.changePlan).toHaveBeenCalledExactlyOnceWith(sub.cloudId, { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 60 }, botComputers: 5 });
     await expect(service.change(owner, sub.id, preview.confirmation)).rejects.toMatchObject({ code: "confirmation_required" });
     expect(() => service.previewChange(owner, sub.id, preset(2))).toThrow(expect.objectContaining({ code: "already_on_plan" }));
     expect(() => service.previewChange(owner, sub.id, preset(3))).toThrow(expect.objectContaining({ code: "plan_change_unavailable" }));
@@ -437,7 +437,7 @@ it("does not debit a legacy fully refunded invoice again", async () => {
 it("discards a stale resize intent after the desktop has been destroyed", async () => {
   const { sub } = await buy();
   clouds.get(sub.cloudId!)!.status = "destroyed";
-  store.state.cloudActions = [{ kind: "change", cloudId: sub.cloudId!, plan: { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5 } }];
+  store.state.cloudActions = [{ kind: "change", cloudId: sub.cloudId!, plan: { kind: "shared_m", placement: "pool", spec: { vcpu: 4, ramGb: 8, diskGb: 60 }, botComputers: 5 } }];
   store.commit(); service.close();
   service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
   expect(clouds.changePlan).not.toHaveBeenCalled(); expect(store.state.cloudActions).toEqual([]);

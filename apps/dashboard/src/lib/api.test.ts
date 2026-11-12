@@ -3,7 +3,7 @@ import { CSRF_COOKIE, CSRF_HEADER } from "../data/wire";
 
 const catalog = {
   licenses: [], desktops: [], bundles: [], regions: [], defaultRegion: "eu", yearlyDiscountPercent: 0, freeWorkUntil: null,
-  dedicated: { baseCents: 0, perVcpuCents: 0, perGbRamCents: 0, includedDiskGb: 0, per20GbDiskCents: 0, vcpu: { min: 1, max: 8, step: 1 }, ramGb: { min: 1, max: 8, step: 1 }, diskGb: { min: 10, max: 100, step: 10 } },
+  dedicated: { baseCents: 0, perVcpuCents: 0, perGbRamCents: 0, includedDiskGb: 0, per20GbDiskCents: 0, vcpu: { min: 1, max: 8, step: 1 }, ramGb: { min: 1, max: 8, step: 1 }, diskGb: { min: 10, max: 100, step: 10 }, sizes: [] },
 };
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });

@@ -125,7 +125,7 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   await f.reconcile(); await f.client.refresh();
   expect(f.client.state()).toMatchObject({ machine: { status: "ready", origin: expect.stringMatching(/^https:\/\//) }, clouds: [{ id: checkout.cloudId, primary: true }] });
   fields = await f.session();
-  expect(parseCloudSummary(fields.cloud)).toMatchObject({ status: "ready", disk: { gb: 40, maxGb: 40 } });
+  expect(parseCloudSummary(fields.cloud)).toMatchObject({ status: "ready", disk: { gb: 20, maxGb: 20 } });
   expect(parseCloudList(fields.clouds)).toHaveLength(1); expect(parseCloudRenewal(fields.clouds)).toMatchObject({ cancelled: false, trial: false, keptDays: 30 });
   expect(fields.offer).toBeUndefined();
   expect(fields.license).toMatchObject({ work: f.now() < BILLING_CONFIG.freeWorkUntil! ? "free_until" : "unlicensed", license: null });

@@ -12,7 +12,7 @@ describe("billing pricing", () => {
     const managed = managedRegionConfig(config), catalog = catalogView(0, managed);
     expect(catalog.regions).toEqual([{ id: "us-west-2", label: "Oregon", country: "US" }]);
     expect(catalog.poolRegions).toEqual(["us-west-2"]);
-    expect(catalog.bundles.find(bundle => bundle.id === "team")!.monthlyCents).toBe(9000);
+    expect(catalog.bundles.find(bundle => bundle.id === "team")!.monthlyCents).toBe(11900);
     for (const bundle of managed.bundles.filter(item => item.cart.desktop.kind !== "none")) expect(parseCart({ ...bundle.cart, interval: "month" }, managed)).not.toBeNull();
     expect(parseCart({ ...structuredClone(config.bundles[1]!.cart), interval: "month" }, managed)).toBeNull();
   });
@@ -30,9 +30,9 @@ describe("billing pricing", () => {
     expect(config.bundles.map((_, index) => quote(preset(index, "year"), config).monthlyEquivalentCents)).toEqual(yearlyMonthly);
     expect(config.bundles.map((_, index) => quote(preset(index), config).bundle)).toEqual(["free", "starter", "pro", "team"]);
     expect(catalogView(0).bundles.map(bundle => bundle.monthlyCents)).toEqual(monthly);
-    // the prices people see: free $0, plus $20, pro $50; a year is two months free
-    expect(monthly.slice(0, 3)).toEqual([0, 2000, 5000]);
-    expect(config.bundles.slice(0, 3).map((_, index) => quote(preset(index, "year"), config).totalCents)).toEqual([0, 20000, 50000]);
+    // the prices people see: free $0, plus $20, pro $50, team $119; a year is two months free
+    expect(monthly).toEqual([0, 2000, 5000, 11900]);
+    expect(config.bundles.map((_, index) => quote(preset(index, "year"), config).totalCents)).toEqual([0, 20000, 50000, 119000]);
     expect(catalogView(Date.UTC(2030, 0, 1)).freeWorkUntil).toBeNull();
   });
   it("quotes the live team cart with separate annual line items and discount", () => {
@@ -47,12 +47,24 @@ describe("billing pricing", () => {
       { kind: "desktop", label: `dusk cloud ${desktop.label.toLowerCase()}`, amountCents: desktop.monthlyCents! * 12 },
       { kind: "discount", label: "Yearly, 2 months free", amountCents: -discount },
     ]);
-    expect(result).toMatchObject({ totalCents: subtotal - discount, monthlyEquivalentCents: Math.round((subtotal - discount) / 12), members: 5, bundle: null, botComputers: 5, machine: { vcpu: 4, ramGb: 8, diskGb: 80 } });
+    expect(result).toMatchObject({ totalCents: subtotal - discount, monthlyEquivalentCents: Math.round((subtotal - discount) / 12), members: 5, bundle: null, botComputers: 5, machine: { vcpu: 4, ramGb: 8, diskGb: 60 } });
   });
   it("prices and validates dedicated units, ranges and steps", () => {
-    expect(dedicatedMonthlyCents({ vcpu: 8, ramGb: 16, diskGb: 160 }, config)).toBe(6000);
-    for (const spec of [{ vcpu: 2, ramGb: 4, diskGb: 40 }, { vcpu: 32, ramGb: 64, diskGb: 1000 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "sin", spec } }, config)).not.toBeNull();
-    for (const spec of [{ vcpu: 3, ramGb: 16, diskGb: 160 }, { vcpu: 34, ramGb: 16, diskGb: 160 }, { vcpu: 8, ramGb: 6, diskGb: 160 }, { vcpu: 8, ramGb: 68, diskGb: 160 }, { vcpu: 8, ramGb: 16, diskGb: 45 }, { vcpu: 8, ramGb: 16, diskGb: 50 }, { vcpu: 8, ramGb: 16, diskGb: 1010 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
+    expect(dedicatedMonthlyCents({ vcpu: 8, ramGb: 16, diskGb: 160 }, config)).toBe(8900);
+    expect(dedicatedMonthlyCents({ vcpu: 2, ramGb: 4, diskGb: 40 }, config)).toBe(2300);
+    expect(dedicatedMonthlyCents({ vcpu: 8, ramGb: 16, diskGb: 200 }, config)).toBe(9500);
+    for (const spec of [{ vcpu: 2, ramGb: 4, diskGb: 40 }, { vcpu: 4, ramGb: 8, diskGb: 120 }, { vcpu: 8, ramGb: 16, diskGb: 200 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "sin", spec } }, config)).not.toBeNull();
+    for (const spec of [{ vcpu: 3, ramGb: 16, diskGb: 160 }, { vcpu: 34, ramGb: 16, diskGb: 160 }, { vcpu: 8, ramGb: 6, diskGb: 160 }, { vcpu: 8, ramGb: 68, diskGb: 160 }, { vcpu: 8, ramGb: 16, diskGb: 45 }, { vcpu: 8, ramGb: 16, diskGb: 50 }, { vcpu: 8, ramGb: 16, diskGb: 220 }, { vcpu: 16, ramGb: 32, diskGb: 160 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
+    // only the sizes the provider makes: an odd shape would be billed as the next size up
+    for (const spec of [{ vcpu: 2, ramGb: 16, diskGb: 40 }, { vcpu: 6, ramGb: 12, diskGb: 40 }, { vcpu: 8, ramGb: 8, diskGb: 40 }, { vcpu: 4, ramGb: 4, diskGb: 40 }]) expect(parseCart({ ...preset(3), desktop: { kind: "dedicated", region: "fsn1", spec } }, config)).toBeNull();
+  });
+  it("adds the team bundle up to $119 a month and $1190 a year through the dodo add-on prices", () => {
+    const unit = { license_team: config.licenses.team.monthlyCents, addon_dedicated: config.dedicated.baseCents, addon_vcpu: config.dedicated.perVcpuCents, addon_ram_gb: config.dedicated.perGbRamCents, addon_disk_20gb: config.dedicated.per20GbDiskCents } as Record<string, number>;
+    for (const [interval, months, total] of [["month", 1, 11900], ["year", 10, 119000]] as const) {
+      const sum = dodoCartKeys(preset(3, interval)).reduce((sum, { key, quantity }) => sum + unit[key.split(":")[0]] * months * quantity, 0);
+      expect(sum).toBe(total);
+      expect(quote(preset(3, interval), config).totalCents).toBe(total);
+    }
   });
   it("rejects malformed carts and normalizes solo members", () => {
     for (const cart of [null, {}, { ...preset(1), interval: "week" }, { ...preset(1), license: { kind: "bad" } }, { ...preset(1), license: { kind: "team", members: config.licenses.team.includedMembers - 1 } }, { ...preset(1), license: { kind: "team", members: 51 } }, { ...preset(1), license: { kind: "team", members: 3.5 } }, { ...preset(1), license: { kind: "solo", members: 2 } }, { ...preset(1), desktop: { kind: "shared_s", region: "sin" } }, { ...preset(1), desktop: { kind: "shared_s", region: "missing" } }, { ...preset(1), desktop: { kind: "shared_s", region: "fsn1", spec: {} } }, { ...preset(1), desktop: { kind: "none", spec: {} } }, { ...preset(1), unexpected: true }]) expect(parseCart(cart, config)).toBeNull();

@@ -59,6 +59,8 @@ export interface DedicatedPricing {
   vcpu: Range;
   ramGb: Range;
   diskGb: Range;
+  /** the only vcpu and ram pairs a dedicated machine can have: the sizes the cloud provider creates, so the price is the machine */
+  sizes: Array<{ vcpu: number; ramGb: number }>;
 }
 
 export const BUNDLE_IDS = ["free", "starter", "pro", "team"] as const;
