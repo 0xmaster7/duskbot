@@ -92,6 +92,11 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
   {optOut}` opts an account out and deletes its events; deleting the account deletes them too.
 - **Storage.** `analytics_events` (TTL 400 days), `analytics_daily` (kept), `analytics_marks` (once-only marks),
   `admin_audit` (kept). Without MongoDB (tests, fixture) they live in memory.
+- **Usage signals.** Linked workspaces add a `usage` section to `POST /v1/report` (`shared/usage-signals.ts`): one record
+  per bot turn and routine run in fixed words and counts, scrubbed frustration and weekly summaries, and a count snapshot.
+  `analytics/usage.ts` keeps them in `usage_events` (TTL 90 days), rolls them into `usage_daily` (kept) and `usage_people`
+  (TTL 400 days), with `usage_snapshots` and `usage_marks`; `PUT /v1/account/analytics {summaries}` stops summaries.
+  `GET /v1/admin/usage?from&to` feeds the overview's "what people use it for".
 - **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
   site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
   `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain
