@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>cookie policy / dusk bot</title>
-<meta name="description" content="dusk bot cookie policy.">
+<meta name="description" content="The few cookies and the local storage dusk.bot and the account pages use, what each is for, and your choices.">
 <meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="https://dusk.bot/cookies">
 <meta property="og:site_name" content="dusk bot">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://dusk.bot/cookies">
 <meta property="og:title" content="cookie policy / dusk bot">
-<meta property="og:description" content="dusk bot cookie policy.">
+<meta property="og:description" content="The few cookies and the local storage dusk.bot and the account pages use, what each is for, and your choices.">
 <meta property="og:image" content="https://dusk.bot/art/og6/legal.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
@@ -20,7 +20,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@duskbot_hq">
 <meta name="twitter:title" content="cookie policy / dusk bot">
-<meta name="twitter:description" content="dusk bot cookie policy.">
+<meta name="twitter:description" content="The few cookies and the local storage dusk.bot and the account pages use, what each is for, and your choices.">
 <meta name="twitter:image" content="https://dusk.bot/art/og6/legal.jpg">
 <meta name="twitter:image:alt" content="the fine print, in plain words: a green pixel bot beside a shield, a friend next to it, on a hill under a blue pixel sky">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -46,7 +46,7 @@
 <p>We do not use advertising cookies, and we do not use third-party analytics or tracking cookies. Every cookie below is set by dusk.bot itself, and none is shared with anyone else.</p>
 <h2 id="strictly-necessary-cookies">Strictly necessary cookies</h2>
 <p>These cookies are needed for signing in and keeping your account secure. They are set only when you use the account dashboard, and they do not need consent. If you block them, sign-in and account functions will not work.</p>
-<div class="table"><table><thead><tr><th>Name</th><th>Purpose</th><th>Lasts</th></tr></thead><tbody><tr><td><code>dusk_dash</code></td><td>Keeps you signed in. HttpOnly, so page scripts cannot read it.</td><td>30 days, renewed while you use it</td></tr><tr><td><code>dusk_csrf</code></td><td>Protects requests that change your account against cross-site request forgery.</td><td>30 days, renewed with the session</td></tr><tr><td><code>dusk_oauth</code></td><td>Remembers a sign-in with Google, Apple or X while you are away at that provider.</td><td>10 minutes</td></tr></tbody></table></div>
+<div class="table"><table><thead><tr><th>Name</th><th>Purpose</th><th>Lasts</th></tr></thead><tbody><tr><td><code>dusk_dash</code></td><td>Keeps you signed in. HttpOnly, so page scripts cannot read it.</td><td>30 days from sign-in</td></tr><tr><td><code>dusk_csrf</code></td><td>Protects requests that change your account against cross-site request forgery.</td><td>30 days from sign-in</td></tr><tr><td><code>dusk_oauth</code></td><td>Remembers a sign-in with Google, Apple or X while you are away at that provider.</td><td>10 minutes</td></tr></tbody></table></div>
 <p>Cloudflare, which sits in front of dusk.bot, may set its own strictly necessary security cookies, such as <code>__cf_bm</code>, to tell people apart from abusive automated traffic. They do not track you across sites.</p>
 <h2 id="analytics-cookies">Analytics cookies</h2>
 <p>Our own small analytics script counts page views, sign-up and download clicks, scrolling and time on page. It sets two first-party cookies, and only outside the EU, the EEA, the UK and Switzerland:</p>
@@ -54,7 +54,7 @@
 <p>If Cloudflare places your connection in the EU, the EEA, the UK or Switzerland, or cannot tell where you are, the script sets no cookies and uses no browser storage, and removes <code>dusk_vid</code> and <code>dusk_sid</code> if an earlier visit left them. Our server then counts visits with an id that changes every day and cannot be traced back to you. The privacy policy describes this under Product analytics.</p>
 <p>The script does nothing at all when your browser sends Global Privacy Control or Do Not Track.</p>
 <h2 id="local-and-session-storage">Local and session storage</h2>
-<div class="table"><table><thead><tr><th>Name</th><th>Where</th><th>Purpose</th><th>Lasts</th></tr></thead><tbody><tr><td><code>dusk-dash-theme</code></td><td>Dashboard, local storage</td><td>Your light or dark theme choice.</td><td>Until you clear it</td></tr><tr><td><code>dusk-dash-notify</code></td><td>Dashboard, local storage</td><td>Your notification preferences on this browser.</td><td>Until you clear it</td></tr><tr><td><code>dusk-dash-visit</code></td><td>Dashboard, session storage</td><td>A random visit id for our first-party product analytics.</td><td>Until you close the tab</td></tr><tr><td><code>dusk_ignore</code></td><td>Website, local storage</td><td>Turns our analytics off on this browser. Set only if you visit a page with <code>?dusk_ignore=1</code>.</td><td>Until you clear it</td></tr></tbody></table></div>
+<div class="table"><table><thead><tr><th>Name</th><th>Where</th><th>Purpose</th><th>Lasts</th></tr></thead><tbody><tr><td><code>dusk-dash-theme</code></td><td>Dashboard, local storage</td><td>Your light or dark theme choice.</td><td>Until you clear it</td></tr><tr><td><code>dusk-dash-notify</code></td><td>Dashboard, local storage</td><td>Your notification preferences on this browser.</td><td>Until you clear it</td></tr><tr><td><code>dusk-dash-visit</code></td><td>Dashboard, session storage</td><td>A random visit id for our first-party product analytics.</td><td>Until you close the tab</td></tr><tr><td>Other <code>dusk-dash-<em></code>, <code>dusk-onboarding-step</code> and <code>dusk-admin-</em></code> items</td><td>Dashboard, local and session storage</td><td>Interface state only: the workspace you picked, hints you dismissed, your onboarding step and a pending deletion confirmation.</td><td>Until you clear it, or until you close the tab for session storage</td></tr><tr><td><code>dusk_ignore</code></td><td>Website, local storage</td><td>Turns our analytics off on this browser. Set only if you visit a page with <code>?dusk_ignore=1</code>.</td><td>Until you clear it</td></tr></tbody></table></div>
 <h2 id="the-apps">The apps</h2>
 <p>The desktop and phone apps do not use browser cookies. They keep their settings on your device and use a random install id for the usage stats described in the privacy policy, which you can switch off under Settings, Data sharing.</p>
 <h2 id="your-choices">Your choices</h2>
@@ -75,7 +75,7 @@
 </div>
 <p class="foot-fine"><span data-dusk>made at dusk. the bots did most of it.</span></p>
 </footer>
-<script src="/a.js?v=d7abcb0a" data-api="/v1/t" defer></script>
+<script src="/a.js?v=1b034751" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
 <script src="/pages.js?v=48a52479" defer></script>

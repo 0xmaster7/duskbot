@@ -63,7 +63,7 @@
     }
     vid = vid || random(16);
     sid = sid || random(16);
-    var pv, path, pagePath, depth = 0, engaged = 0, since = null;
+    var pv, path, pagePath, depth = 0, folds = 0, engaged = 0, since = null;
     var sections = [], observer, forms = [], errors = 0, rage;
     function slug(value) {
       return (value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40).replace(/_+$/, "");
@@ -134,7 +134,10 @@
     }
     function measure() {
       var height = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
-      if (height > 0) depth = Math.max(depth, Math.min(100, Math.max(0, Math.round((w.scrollY + w.innerHeight) / height * 100))));
+      if (height > 0) {
+        depth = Math.max(depth, Math.min(100, Math.max(0, Math.round((w.scrollY + w.innerHeight) / height * 100))));
+        folds = Math.round(height / w.innerHeight);
+      }
     }
     function time() {
       var now = Date.now();
@@ -158,7 +161,7 @@
       forms.forEach(function (form) {
         if (!form.submitted && !form.abandoned) { goal("form_abandon", form.meta); form.abandoned = true; }
       });
-      if (force === true || engaged > 0 || depth > 0) send("leave", { s: depth, t: Math.round(engaged) });
+      if (force === true || engaged > 0 || depth > 0) send("leave", { s: depth, t: Math.round(engaged), f: folds });
     }
     function pageview() {
       if (d.visibilityState === "prerender" || (pv && pagePath === loc.pathname)) return;
@@ -204,7 +207,7 @@
       var meta = { section: sectionOf(el), label: labelOf(el) };
       for (var k = 0; k < el.attributes.length; k++) {
         var attr = el.attributes[k];
-        if (/^data-dusk-/.test(attr.name) && !/^data-dusk-(goal|section|label)$/.test(attr.name)) meta[attr.name.slice(10)] = attr.value;
+        if (attr.name.startsWith("data-dusk-") && !/^data-dusk-(goal|section|label)$/.test(attr.name)) meta[attr.name.slice(10)] = attr.value;
       }
       return meta;
     }
