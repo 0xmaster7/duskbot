@@ -7,6 +7,7 @@ import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { useAdmin, type UserDetail, type UserRow } from "./api";
 import { CloudTable } from "./Clouds";
+import { duration } from "./kit";
 import { endLabel, PlanEditor } from "./PlanEditor";
 import { m } from "../ui/motion";
 import { AdminHeader, Failed, Loading, money, n, Pager, SearchBox, Section, stamp, Status, Tile } from "./ui";
@@ -76,7 +77,7 @@ function describe(item: UserDetail["timeline"][number]) {
   if (item.name === "cloud_state") return `${String(p.from ?? "").replace(/_/g, " ")} to ${String(p.to ?? "").replace(/_/g, " ")}`;
   if (item.name === "page_view") return String(p.path ?? "");
   if (typeof p.amountCents === "number") return `${money(p.amountCents)}${p.status ? `, ${p.status}` : ""}`;
-  return Object.entries(p).filter(([key]) => key !== "cloudId").map(([key, value]) => `${key} ${value}`).join(", ");
+  return Object.entries(p).filter(([key]) => key !== "cloudId").map(([key, value]) => key === "ms" && typeof value === "number" ? `for ${duration(value)}` : `${key} ${value}`).join(", ");
 }
 
 export function UserPage({ id }: { id: string }) {
@@ -105,8 +106,8 @@ export function UserPage({ id }: { id: string }) {
                   <Table label="billing history">
                     <thead><tr><Th>what</Th><Th>status</Th><Th className="!text-end">amount</Th><Th>when</Th></tr></thead>
                     <tbody>
-                      {data.subscriptions.map((sub) => <tr key={sub.id}><Td><span className="block text-14 text-ink">{sub.plan ?? "custom"} plan{sub.comp ? ", comp" : ""}</span><span className="block text-12 text-ink-3">{endLabel(sub)}</span></Td><Td><Status value={sub.status} /></Td><Td className="text-end font-mono num">{sub.comp ? "free" : money(sub.totalCents)}</Td><Td className="t-id text-ink-2">{stamp(sub.createdAt)}</Td></tr>)}
-                      {data.payments.map((pay) => <tr key={pay.id}><Td>payment</Td><Td><Status value={pay.status} /></Td><Td className="text-end font-mono num">{money(pay.amountCents)}</Td><Td className="t-id text-ink-2">{stamp(pay.createdAt)}</Td></tr>)}
+                      {data.subscriptions.map((sub) => <tr key={sub.id}><Td><span className="block text-14 text-ink">{sub.plan ?? "custom"} plan{sub.comp ? ", comp" : ""}</span><span className="block text-12 text-ink-3">{endLabel(sub)}</span></Td><Td><Status value={sub.status} /></Td><Td className="text-end font-mono text-money num">{sub.comp ? "free" : money(sub.totalCents)}</Td><Td className="t-id text-ink-2">{stamp(sub.createdAt)}</Td></tr>)}
+                      {data.payments.map((pay) => <tr key={pay.id}><Td>payment</Td><Td><Status value={pay.status} /></Td><Td className="text-end font-mono text-money num">{money(pay.amountCents)}</Td><Td className="t-id text-ink-2">{stamp(pay.createdAt)}</Td></tr>)}
                     </tbody>
                   </Table>
                 ) : <p className="text-14 text-ink-3">nothing billed yet.</p>}

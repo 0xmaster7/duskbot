@@ -35,7 +35,9 @@ export function compact(n: number): string {
 export function usd(n: number | null | undefined): string {
   if (n === null || n === undefined) return "n/a";
   if (n > 0 && n < 0.01) return "<$0.01";
-  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // || 0 turns -0 (a negated empty sum) and sub-cent negatives into a plain $0.00
+  const v = Math.round(n * 100) / 100 || 0;
+  return `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function duration(sec: number): string {

@@ -106,9 +106,9 @@ function Resets({ plans, now }: { plans: PlanWindow[]; now: number }) {
       {plans.length ? (
         <ul className="mt-3">
           {plans.map((p) => (
-            <li key={`${p.provider}-${p.label}`} className="grid grid-cols-[minmax(0,1fr)_minmax(80px,200px)_48px] items-center gap-5 border-b border-line py-3.5 last:border-0 max-sm:grid-cols-[minmax(0,1fr)_48px]">
+            <li key={`${p.provider}-${p.label}`} className="grid grid-cols-[minmax(0,1fr)_minmax(80px,200px)_48px] items-center gap-5 py-3.5 max-sm:grid-cols-[minmax(0,1fr)_48px]">
               <div className="min-w-0">
-                <div className="truncate text-15 text-ink">{p.provider}{p.plan ? ` ${p.plan}` : ""} · {p.label}</div>
+                <div className="truncate text-15 text-ink">{p.provider}{p.plan ? ` ${p.plan}` : ""} · {p.label.toLowerCase()}</div>
                 <div className="truncate text-13 text-ink-3">{resetText(p.resetsAt, now)}</div>
               </div>
               <Bar value={p.usedPercent} tone={p.usedPercent >= 90 ? "warn" : "ink"} className="max-sm:hidden" label={`${p.provider} ${p.label} usage`} />

@@ -50,7 +50,7 @@ function Line({ label, value, bar, note, onClick }: { label: ReactNode; value: s
       {bar !== undefined && bar !== null && <m.span className="absolute inset-y-0 left-0 rounded-[10px] bg-accent/10" initial={{ width: 0 }} animate={{ width: `${Math.min(1, bar) * 100}%` }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} aria-hidden />}
       <span className="relative min-w-0 flex-1 truncate text-ink">{typeof label === "string" ? <SwapText text={label} className="w-full" /> : label}</span>
       {note && <span className="relative truncate text-12 font-medium text-ink-3 max-sm:hidden"><SwapText text={note} /></span>}
-      <span className="relative w-14 text-end font-mono text-ink num"><Figure value={value} className="!font-mono !text-13 !leading-5 !tracking-normal" /></span>
+      <span className="relative min-w-14 shrink-0 whitespace-nowrap text-end font-mono text-ink num"><Figure value={value} className="!font-mono !text-13 !leading-5 !tracking-normal" /></span>
     </button>
   );
 }

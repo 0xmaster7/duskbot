@@ -176,7 +176,7 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
               ))}
               </AnimatePresence>
             </ul>
-            {(people.data.people.length > 10) && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1 block h-8 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em]">{all ? "show fewer" : `show all ${n(people.data.people.length)}`}</button>}
+            {(people.data.people.length > 10) && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1 block h-8 px-3 font-mono text-[11.5px] tracking-[0.06em]">{all ? "show fewer" : `show all ${n(people.data.people.length)}`}</button>}
           </>
         ) : <SkyEmpty art="cat" className="!py-8" title={q ? `no one matches "${q}".` : "no one here yet."} />)}
       </div>

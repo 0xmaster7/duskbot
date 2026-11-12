@@ -211,7 +211,7 @@ function Stat({ label: title, value, note }: { label: string; value: string; not
     <div className="min-w-0 rounded-[18px] bg-pop px-4 py-3">
       <div className="truncate text-12 text-ink-3">{title}</div>
       <div className="mt-0.5 truncate font-mono text-[22px] font-medium leading-8 tracking-[-0.04em] text-ink num"><Figure value={value} className="!font-mono !text-[22px] !leading-8 !tracking-[-0.04em]" /></div>
-      {note && <div className="truncate text-12 text-ink-3">{note}</div>}
+      {note && <div className="line-clamp-2 text-12 text-ink-3">{note}</div>}
     </div>
   );
 }

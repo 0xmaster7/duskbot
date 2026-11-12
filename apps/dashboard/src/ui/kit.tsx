@@ -121,7 +121,7 @@ export function Stat({ label, value, className }: { label: string; value: ReactN
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ value: T; label: string }>; onChange(v: T): void; label: string }) {
   const pill = usePill();
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex shrink-0 rounded-full bg-card-2 p-1">
+    <div role="radiogroup" aria-label={label} className="scroll-x inline-flex max-w-full shrink-0 rounded-full bg-card-2 p-1">
       {options.map((o) => (
         <button
           key={o.value}
@@ -129,7 +129,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("relative h-8 rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
+          className={cx("relative h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
           {value === o.value && <Pill id={pill} />}
           <span className="relative">{o.label}</span>

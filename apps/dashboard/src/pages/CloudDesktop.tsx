@@ -34,7 +34,7 @@ function Empty() {
         {catalog ? (
           <ul className="">
             {catalog.desktops.map((d) => (
-              <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[160px_minmax(0,1fr)_200px_auto]">
+              <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,280px)_auto]">
                 <span className="text-14 font-medium text-ink">{d.name}</span>
                 <span className="num truncate text-13 text-ink-3 max-md:hidden">{specLine(d)}</span>
                 <span className="truncate text-13 text-ink-3 max-md:hidden">{botsLine(d.botComputers)}{d.priority ? ", priority wake" : ""}</span>

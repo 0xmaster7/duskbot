@@ -129,7 +129,7 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
             {lic?.work && sel ? <span className="block truncate">{lic.name} license<span className="num text-ink-3">, {members(sel.members)} · {bundleOf(catalog, "pro")?.license === sel.license && bundleOf(catalog, "pro")?.desktop === sel.desktop ? "included with pro" : priceText(licenseMonthly(lic, sel.members), sel.interval, catalog)}</span></span> : <span className="text-ink-3">personal use, free</span>}
           </Row>
           <Row k="payment method" action={<button type="button" className={quiet} onClick={() => void openPortal()}>{pm ? "update" : "add"}</button>}>
-            {pm ? <span className="num"><span className="uppercase">{pm.brand}</span> •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}
+            {pm ? <span className="num">{pm.brand.toLowerCase()} •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}
           </Row>
           <Row k="ai credits" action={<button type="button" className={quiet} onClick={() => setBuying(true)}>add credits</button>}>
             {billing ? <span className="num">{usd(billing.credits.balanceUsd)} <span className="text-ink-3">left</span></span> : <Skeleton className="h-5 w-24" />}

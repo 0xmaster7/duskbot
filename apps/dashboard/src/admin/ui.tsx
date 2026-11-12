@@ -84,7 +84,7 @@ export function DayBars({ title, days, values, tone = "accent", height = 96 }: {
         })}
       </svg>
       <div className="mt-1.5 flex justify-between t-meta !text-[11.5px]" aria-hidden><span>{days[0]?.slice(5)}</span><span>{days.at(-1)?.slice(5)}</span></div>
-      <table className="sr-only"><caption>{title} per day</caption><tbody>{days.map((day, i) => <tr key={day}><th scope="row">{day}</th><td>{values[i]}</td></tr>)}</tbody></table>
+      <div className="sr-only"><table><caption>{title} per day</caption><tbody>{days.map((day, i) => <tr key={day}><th scope="row">{day}</th><td>{values[i]}</td></tr>)}</tbody></table></div>
     </figure>
   );
 }

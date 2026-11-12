@@ -31,7 +31,7 @@ export function RangePicker({ value, onChange }: { value: Range; onChange(range:
   const keys: Array<[RangeKey, string]> = [["today", "today"], ["7d", "7 days"], ["30d", "30 days"], ["90d", "90 days"], ["custom", "custom"]];
   const pill = usePill();
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       <div role="radiogroup" aria-label="date range" className="scroll-x inline-flex max-w-full rounded-full bg-card-2 p-1">
         {keys.map(([key, label]) => (
           <button key={key} type="button" role="radio" aria-checked={value.key === key} onClick={() => onChange(rangeOf(key, Date.now(), custom))}
@@ -103,6 +103,11 @@ export function usd(cents: number, compact = false) {
   return `${sign}$${v.toLocaleString("en-US", { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 }
 
+/** gridline fractions whose labels land on whole numbers: quarters, else halves, else just the ends */
+export function gridFracs(max: number, most = 4) {
+  if (most >= 4 && Number.isInteger(max / 4)) return [0, 0.25, 0.5, 0.75, 1];
+  return Number.isInteger(max / 2) ? [0, 0.5, 1] : [0, 1];
+}
 export function niceMax(value: number) { if (value <= 4) return 4; const p = 10 ** Math.floor(Math.log10(value)); const m = value / p; return ([1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((step) => m <= step) ?? 10) * p; }
 /** a bar with its data end rounded and its baseline end square; a zero bar keeps the same commands, flat on the baseline */
 export function bar(x: number, y0: number, y1: number, w: number) {
@@ -215,7 +220,7 @@ export function RankCard({ title, tabs, data, label, onPick, active, metric, det
         </AnimatePresence>
         {!rows.length && <li className="px-2.5 py-6 text-center text-13 text-ink-3">nothing in this window yet.</li>}
       </ul>}
-      {more && !panels?.[tab] ? <Link to={more} className="text-link mx-auto mt-1.5 inline-flex h-8 items-center gap-1.5 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em]"><Maximize size={13} strokeWidth={1.75} aria-hidden /> details</Link>
+      {more && !panels?.[tab] ? <Link to={more} className="text-link mx-auto mt-1.5 inline-flex h-8 items-center gap-1.5 px-3 font-mono text-[11.5px] tracking-[0.06em]"><Maximize size={13} strokeWidth={1.75} aria-hidden /> details</Link>
         : !panels?.[tab] && rows.length > limit && <button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto mt-1.5 h-8 px-3 text-12">{all ? "show fewer" : `show all ${rows.length}`}</button>}
     </section>
   );

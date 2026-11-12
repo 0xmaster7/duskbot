@@ -64,7 +64,7 @@ export function PaymentsCard({ revenue }: { revenue: RevenueAnswer }) {
                       </span>
                     </span>
                     <span className="text-end">
-                      <span className={cx("block font-mono text-14 font-medium num", p.amountCents < 0 ? "text-bad" : "text-money")}>{p.amountCents > 0 ? "+" : ""}{usd(p.amountCents)}</span>
+                      <span className={cx("block font-mono text-14 font-medium num text-money")}>{p.amountCents > 0 ? "+" : ""}{usd(p.amountCents)}</span>
                       <span className="block text-12 text-ink-4">{ago(p.at, now)}</span>
                     </span>
                   </Link>

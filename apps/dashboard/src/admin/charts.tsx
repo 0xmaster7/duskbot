@@ -6,7 +6,7 @@ import { Link } from "../lib/router";
 import { useAdmin } from "./api";
 import { countryName } from "./geo";
 import { pointsAt, type LiveAnswer } from "./Live";
-import { CHANNEL, Morph, NO_VISIT, Row, bar, niceMax, percent, usd, type Note, type RankRow, type SeriesData } from "./kit";
+import { CHANNEL, Morph, NO_VISIT, Row, bar, gridFracs, niceMax, percent, usd, type Note, type RankRow, type SeriesData } from "./kit";
 import { n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
@@ -102,7 +102,7 @@ export function MainChart({ data, previous, notes, show, onNote, emptyMoney }: {
       <svg width="100%" height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`chart: ${n(totals.visitors)} visitors, ${usd(totals.revenue)} revenue, ${n(totals.signups)} signups`}
         onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.floor((e.clientX - r.left - PAD.left) / step); setHover(i >= 0 && i < count ? i : null); }} onMouseLeave={() => setHover(null)}>
         <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--viz-visitors)" stopOpacity={0.22} /><stop offset="100%" stopColor="var(--viz-visitors-wash)" stopOpacity={0.4} /></linearGradient></defs>
-        {[0, 0.25, 0.5, 0.75, 1].map((f) => <g key={f}>
+        {gridFracs(vMax).map((f) => <g key={f}>
           <line x1={PAD.left} x2={width - PAD.right} y1={base - tall * f} y2={base - tall * f} stroke="var(--line)" strokeDasharray={f ? "3 5" : undefined} />
           {show.visitors && <text x={PAD.left - 8} y={base - tall * f + 4} textAnchor="end" className="fill-ink-4 font-mono text-[11px]">{n(Math.round(vMax * f))}</text>}
         </g>)}
@@ -157,11 +157,12 @@ export function MainChart({ data, previous, notes, show, onNote, emptyMoney }: {
           );
         })()}
       </AnimatePresence>
-      <table className="sr-only">
+      {/* a table ignores overflow, so the sr-only box wraps it or it widens the page on phones */}
+      <div className="sr-only"><table>
         <caption>visitors, revenue and signups per {hourly ? "hour" : "day"}</caption>
         <thead><tr><th scope="col">{hourly ? "hour" : "day"}</th><th scope="col">visitors</th><th scope="col">window before</th><th scope="col">revenue</th><th scope="col">signups</th></tr></thead>
         <tbody>{data.starts.map((t, i) => <tr key={t}><th scope="row">{longLabel(t, hourly)}</th><td>{data.visitors[i]}</td><td>{previous[i] ?? 0}</td><td>{usd(net(i))}</td><td>{data.signups[i]}</td></tr>)}</tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
@@ -186,7 +187,7 @@ export function StackedBars({ starts, size, stacks, format, height = 168 }: { st
   return (
     <div className="relative" ref={box}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.floor((e.clientX - r.left - pad.left) / step); setHover(i >= 0 && i < count ? i : null); }} onMouseLeave={() => setHover(null)}>
-        {[0, 0.5, 1].map((f) => <g key={f}><line x1={pad.left} x2={width - pad.right} y1={y(max * f)} y2={y(max * f)} stroke="var(--line)" strokeDasharray={f ? "3 5" : undefined} /><text x={pad.left - 6} y={y(max * f) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[10.5px]">{format(Math.round(max * f))}</text></g>)}
+        {gridFracs(max, 2).map((f) => <g key={f}><line x1={pad.left} x2={width - pad.right} y1={y(max * f)} y2={y(max * f)} stroke="var(--line)" strokeDasharray={f ? "3 5" : undefined} /><text x={pad.left - 6} y={y(max * f) + 4} textAnchor="end" className="fill-ink-4 font-mono text-[10.5px]">{format(Math.round(max * f))}</text></g>)}
         <g>
           {starts.map((_, i) => {
             let at = 0;
@@ -212,7 +213,7 @@ export function StackedBars({ starts, size, stacks, format, height = 168 }: { st
       <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-12 text-ink-3" aria-label="legend">
         {stacks.map((s) => <li key={s.key} className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[3px]" style={{ background: s.color }} aria-hidden />{s.label}</li>)}
       </ul>
-      <table className="sr-only"><tbody>{starts.map((t, i) => <tr key={t}><th scope="row">{longLabel(t, hourly)}</th>{stacks.map((s) => <td key={s.key}>{s.label} {format(s.values[i] ?? 0)}</td>)}</tr>)}</tbody></table>
+      <div className="sr-only"><table><tbody>{starts.map((t, i) => <tr key={t}><th scope="row">{longLabel(t, hourly)}</th>{stacks.map((s) => <td key={s.key}>{s.label} {format(s.values[i] ?? 0)}</td>)}</tr>)}</tbody></table></div>
     </div>
   );
 }
