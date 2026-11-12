@@ -1,5 +1,6 @@
-// the page a browser shows when it hands someone back to the dusk bot app: a pixel sky, a bot on a speech card.
-// no script, no fetched asset (the callers' CSP is default-src 'none' with inline styles), so all art is inline svg.
+// the page a browser or a window shows when it hands someone back to the dusk bot app: a pixel sky, a bot on a speech
+// card. no script, no fetched asset (callers use default-src 'none' with inline styles), so all art is inline svg.
+// apps/link-service/src/handoff-page.mjs is a byte-identical copy: that service deploys alone, with no other files.
 
 const SPRITES = {
   kit: ["M2 2h2v1h-2zM12 2h2v1h-2zM2 3h3v1h-3zM11 3h3v1h-3zM2 4h3v1h-3zM11 4h3v1h-3zM2 5h4v1h-4zM10 5h4v1h-4zM2 6h12v1h-12zM2 7h12v1h-12zM1 8h14v1h-14zM1 9h14v1h-14zM1 10h14v1h-14zM1 11h14v1h-14zM1 12h14v1h-14zM2 13h12v1h-12zM2 14h12v1h-12zM3 15h10v1h-10z", "M4 9h2v1h-2zM10 9h2v1h-2zM4 10h2v1h-2zM10 10h2v1h-2zM4 11h2v1h-2zM10 11h2v1h-2z"],

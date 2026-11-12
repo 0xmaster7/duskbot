@@ -3,7 +3,7 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { createServer, type Server } from "node:http";
 
-import { handoffPage } from "../apps/link-service/src/handoff-page.mjs";
+import { handoffPage } from "../electron/pixel-page.mjs";
 
 import type { McpServerSpec } from "./contracts.ts";
 import { discoverMcpAuth, type McpAuthMetadata } from "./mcp-oauth-discovery.ts";
