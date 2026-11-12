@@ -194,7 +194,7 @@ export function Onboarding() {
       ) : step === "plan" ? (
         <div key="plan" className="step-in">
           <h1 className="t-title">where should your bots live?</h1>
-          <p className="mb-6 mt-3 text-16 text-ink-2">on dusk cloud they keep working 24/7, even when your computer is off.</p>
+          <p className="mb-6 mt-3 text-16 text-ink-2">on dusk cloud they keep working, even when your computer is off.</p>
           {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={setPlan} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose()} disabled={busy || !catalog}>{busy ? <Busy>opening checkout</Busy> : home === "cloud" && price ? `continue to checkout, ${price.amount}${price.unit}` : "continue with free"}</Button>

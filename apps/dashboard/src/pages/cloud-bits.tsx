@@ -3,7 +3,7 @@ import { Cloud, Monitor, Power, Server } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { useCloud } from "../data/cloud";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
-import { botsLine, bundleOf, desktopOf, dollars } from "../data/pricing";
+import { bundleOf, desktopOf, dollars, planSpecLine } from "../data/pricing";
 import { PlanSheet, planSelection, type PaidPlan } from "./plan-sheet";
 import { useSession } from "../data/session";
 import { duration } from "../lib/format";
@@ -108,11 +108,11 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
           {(["starter", "pro"] as const).map((id) => {
             const b = bundleOf(catalog, id);
             const d = b ? desktopOf(catalog, b.desktop) : null;
-            return b && <Choice key={id} name="quick-plan" value={id} checked={id === pick} onChange={() => setPick(id)} title={b.name} detail={d ? `${botsLine(d.botComputers)}${b.license !== "personal" ? ", work license" : ""}` : b.blurb} aside={<>{dollars(b.monthly)}<span className="text-ink-3">/mo</span></>} />;
+            return b && <Choice key={id} name="quick-plan" value={id} checked={id === pick} onChange={() => setPick(id)} title={b.name} detail={d ? planSpecLine(d, b.license !== "personal") : b.blurb} aside={<>{dollars(b.monthly)}<span className="text-ink-3">/mo</span></>} />;
           })}
         </div>
       </fieldset>
-      <p className="mt-4 text-13 text-ink-3">on 24/7, cancel any time.</p>
+      <p className="mt-4 text-13 text-ink-3">always available, cancel any time.</p>
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}

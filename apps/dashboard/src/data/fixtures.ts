@@ -7,18 +7,18 @@ export const fixtureCatalog: PlanCatalog = {
   licenses: [
     { id: "personal", name: "personal", monthly: 0, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: false, blurb: "Personal and non-commercial use" },
     { id: "starter", name: "work", monthly: 12, includedMembers: 1, perExtraMember: 0, maxMembers: 1, work: true, blurb: "For one person at work" },
-    { id: "team", name: "team", monthly: 30, includedMembers: 2, perExtraMember: 18, maxMembers: 50, work: true, blurb: "For a team, with shared bots" },
+    { id: "team", name: "team", monthly: 30, includedMembers: 2, perExtraMember: 20, maxMembers: 50, work: true, blurb: "For a team, 2 seats included" },
   ],
   desktops: [
-    { id: "shared-s", name: "shared s", monthly: 20, vcpu: 2, ramGb: 4, diskGb: 40, placement: "shared", botComputers: 2, priority: false, sizable: false, blurb: "Small, always on" },
-    { id: "shared-m", name: "shared m", monthly: 38, vcpu: 4, ramGb: 8, diskGb: 80, placement: "shared", botComputers: 5, priority: true, sizable: false, blurb: "Bigger, always on, priority wake" },
-    { id: "dedicated", name: "dedicated", monthly: 70, vcpu: 8, ramGb: 16, diskGb: 160, placement: "dedicated", botComputers: null, priority: true, sizable: true, blurb: "A whole machine of your own" },
+    { id: "shared-s", name: "plus", monthly: 20, vcpu: 2, ramGb: 4, diskGb: 20, placement: "shared", botComputers: 2, priority: false, sizable: false, blurb: "Always available, wakes in seconds" },
+    { id: "shared-m", name: "pro", monthly: 38, vcpu: 4, ramGb: 8, diskGb: 60, placement: "shared", botComputers: 5, priority: true, sizable: false, blurb: "Always available, priority wake" },
+    { id: "dedicated", name: "dedicated", monthly: 89, vcpu: 8, ramGb: 16, diskGb: 160, placement: "dedicated", botComputers: null, priority: true, sizable: true, blurb: "A whole machine of your own" },
   ],
   bundles: [
     { id: "free", name: "free", monthly: 0, license: "personal", members: 1, desktop: "none", blurb: "Your bots, on your computer", features: ["Your bots, on your computer", "Personal use", "No subscription"] },
-    { id: "starter", name: "plus", monthly: 20, license: "personal", members: 1, desktop: "shared-s", blurb: "Your bots work 24/7", features: ["Your bots work 24/7", "dusk cloud, on 24/7", "2 bot computers"] },
-    { id: "pro", name: "pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "For real work", features: ["A bigger dusk cloud, always on", "5 bot computers, priority wake", "Work license for one person"] },
-    { id: "team", name: "team", monthly: 100, license: "team", members: 2, desktop: "dedicated", blurb: "A dedicated machine for the whole team", features: ["Team license, 2 members", "Dedicated machine, unlimited bot computers"] },
+    { id: "starter", name: "plus", monthly: 20, license: "personal", members: 1, desktop: "shared-s", blurb: "dusk cloud, always available", features: ["Your bots work in dusk cloud", "2 vCPU, 4 GB RAM, 20 GB disk", "Always available, wakes in seconds"] },
+    { id: "pro", name: "pro", monthly: 50, license: "starter", members: 1, desktop: "shared-m", recommended: true, blurb: "A bigger machine, priority wake and a work license", features: ["4 vCPU, 8 GB RAM, 60 GB disk", "Always available, priority wake", "Work license for one person"] },
+    { id: "team", name: "team", monthly: 119, license: "team", members: 2, desktop: "dedicated", blurb: "A dedicated machine and a team license", features: ["Dedicated 8 vCPU, 16 GB RAM, 160 GB disk", "Always available, priority wake", "Team license, 2 seats"] },
   ],
   poolRegions: ["eu-central"],
   regions: [
@@ -28,7 +28,7 @@ export const fixtureCatalog: PlanCatalog = {
     { id: "us-west", name: "United States West", city: "Hillsboro" },
     { id: "ap-southeast", name: "Singapore", city: "Singapore" },
   ],
-  custom: { base: 6, perVcpu: 3.5, perGbRam: 1.25, per20GbDisk: 1, includedDiskGb: 0, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
+  custom: { base: 7, perVcpu: 4, perGbRam: 2, per20GbDisk: 3, includedDiskGb: 40, vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 } },
   // two months free
   yearlyDiscount: 1 / 6,
   workFreeUntil: new Date(2026, 11, 1).getTime(),
@@ -67,10 +67,10 @@ export function fixtureBilling(scenario: Scenario, now = Date.now()): BillingOve
 }
 
 export function fixtureClouds(scenario: Scenario, now = Date.now()): CloudDesktop[] {
-  if (scenario === "managed") return [{ id: "fx-cloud", name: "Sid's Cloud", status: "stopped", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: fixtureWorkspaceIds.cloud, createdAt: now - 60 * DAY, progress: null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: null, provider: "managed", lastBackupAt: now - 3 * DAY, deleteScheduledAt: null, deleteAskedAt: null }];
+  if (scenario === "managed") return [{ id: "fx-cloud", name: "Sid's Cloud", status: "stopped", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 60, workspaceId: fixtureWorkspaceIds.cloud, createdAt: now - 60 * DAY, progress: null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: null, provider: "managed", lastBackupAt: now - 3 * DAY, deleteScheduledAt: null, deleteAskedAt: null }];
   if (scenario !== "cloud" && scenario !== "provisioning") return [];
   const provisioning = scenario === "provisioning";
-  return [{ id: "fx-cloud", name: "Sid's Cloud", status: provisioning ? "provisioning" : "running", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 80, workspaceId: provisioning ? null : fixtureWorkspaceIds.cloud, createdAt: provisioning ? now : now - 12 * DAY, progress: provisioning ? { step: "Reserving your machine", value: 0 } : null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: provisioning ? null : 12 * DAY / 1000 }];
+  return [{ id: "fx-cloud", name: "Sid's Cloud", status: provisioning ? "provisioning" : "running", tier: "shared-m", placement: "shared", region: "eu-central", vcpu: 4, ramGb: 8, diskGb: 60, workspaceId: provisioning ? null : fixtureWorkspaceIds.cloud, createdAt: provisioning ? now : now - 12 * DAY, progress: provisioning ? { step: "Reserving your machine", value: 0 } : null, error: null, botComputers: { used: 2, limit: 5 }, uptimeSec: provisioning ? null : 12 * DAY / 1000 }];
 }
 
 function fixtureBots(kind: WorkspaceKind, now: number): BotReport[] {

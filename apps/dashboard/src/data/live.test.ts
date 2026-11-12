@@ -38,9 +38,9 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.deepEqual(result.custom.diskGb, catalog.dedicated.diskGb);
   assert.deepEqual(result.bundles.map((bundle) => [bundle.license, bundle.members, bundle.desktop, bundle.monthly, bundle.recommended]), [["personal", 1, "none", 0, false], ["starter", 1, "shared-s", 20, false], ["starter", 1, "shared-m", 50, true], ["team", 3, "dedicated", 100, false]]);
   assert.equal(result.bundles[0]!.blurb, "for personal use on your computer or your own vps");
-  assert.equal(result.bundles[1]!.blurb, "work license and dusk cloud, on 24/7");
-  assert.equal(result.bundles[2]!.blurb, "more room and priority for serious bots");
-  assert.equal(result.bundles[3]!.blurb, "a dedicated machine for the whole team");
+  assert.equal(result.bundles[1]!.blurb, "dusk cloud, always available");
+  assert.equal(result.bundles[2]!.blurb, "a bigger machine, priority wake and a work license");
+  assert.equal(result.bundles[3]!.blurb, "a dedicated machine and a team license");
   assert.deepEqual(result.bundles[2]!.features, ["Priority"]);
   assert.deepEqual(result.regions, [{ id: "eu", name: "Germany", city: "Falkenstein" }, { id: "us", name: "United States", city: "Ashburn" }, { id: "ap", name: "Singapore", city: "Singapore" }]);
   assert.equal(result.yearlyDiscount, 0.2);
@@ -81,7 +81,7 @@ test("yearly team quote merges extra members and uses service totals without bun
   assert.deepEqual(cartFromQuote(quote, plans), {
     lines: [
       { key: "license", label: "team license", detail: "5 members, 2 extra", monthly: 70 },
-      { key: "desktop", label: "dusk cloud, shared m", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
+      { key: "desktop", label: "dusk cloud, pro", detail: "4 vcpu · 8 gb ram · 80 gb", monthly: 40 },
     ],
     subtotal: 110, bundle: null, bundleSaving: 0, discount: 22, perMonth: 88, dueNow: 1056, free: false,
   });

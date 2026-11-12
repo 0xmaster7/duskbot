@@ -122,7 +122,7 @@ export function WorkspacesPage() {
                   {/* the installer only runs with a line the app makes: it carries the one-time code that links the server */}
                   <Step n={1} title="in the app, open add your vps">settings, computer. it makes one install line with its own pairing code.</Step>
                   <Step n={2} title="paste that line on your vps">over ssh. the line works once and links that server to your app, so copy all of it.</Step>
-                  <Step n={3} title="it reports here">machine, bots and bot computers, live.</Step>
+                  <Step n={3} title="it reports here">machine and bots, live.</Step>
                 </ol>
               </div>
             </div>

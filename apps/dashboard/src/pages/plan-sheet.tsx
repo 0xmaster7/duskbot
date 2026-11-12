@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Minus, Plus } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { BillingInterval, BundleId, CheckoutSource, LicenseId, PlanCatalog, Selection } from "../data/contracts";
-import { botsLine, bundleOf, desktopOf, dollars, licenseMonthly, licenseOf, perMonthOn, yearlyPerk } from "../data/pricing";
+import { bundleOf, desktopOf, dollars, planSpecLine, licenseMonthly, licenseOf, perMonthOn, yearlyPerk } from "../data/pricing";
 import { useCart } from "../data/quote";
 import { useSession } from "../data/session";
 import { longDate } from "../lib/format";
@@ -114,7 +114,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
   const line = (id: PaidPlan): ReactNode => {
     const x = bundleOf(catalog, id);
     const d = x ? desktopOf(catalog, x.desktop) : null;
-    return d ? `${botsLine(d.botComputers)}${d.priority ? ", priority wake" : ""}${x?.license !== "personal" ? ", work license" : ""}` : "";
+    return d ? planSpecLine(d, x?.license !== "personal") : "";
   };
   return (
     <Sheet

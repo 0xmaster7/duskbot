@@ -141,7 +141,7 @@ const WEEK = 7 * 86_400_000;
 // the invested copy holds the card for the rest of the visit it first showed in
 let visitInvested: InvestedFacts | null = null;
 
-/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed */
+/** the one nudge toward dusk cloud, for anyone without dusk cloud; hides for a week when closed */
 function SideUpsell() {
   const { clouds } = useCloud();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
@@ -189,16 +189,16 @@ function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (sourc
           <span className="shrink-0" aria-hidden><Mascot body="kit" color="blue" size={34} state="celebrate" tappable /></span>
           <div className="min-w-0">
             <h2 className="text-14 font-semibold leading-[1.3] text-ink">{investedLine(invested)}</h2>
-            <p className="mt-0.5 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps them working 24/7, even when your mac is off.</p>
+            <p className="mt-0.5 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps them working, even when your mac is off.</p>
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-3 pe-6">
           <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
-          <p className="min-w-0 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps your bots working 24/7, even when your mac is off.</p>
+          <p className="min-w-0 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps your bots working, even when your mac is off.</p>
         </div>
       )}
-      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", source); onOpen(source); }}>{invested ? "get dusk cloud" : "keep them on 24/7"}</Button>
+      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", source); onOpen(source); }}>{invested ? "get dusk cloud" : "keep them working"}</Button>
     </m.div>
   );
 }

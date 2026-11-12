@@ -42,7 +42,7 @@ export function ComputerRow({ c, detail, now }: { c: ComputerReport; detail: Wor
 /** one workspace's machine: live meters, the server, its services and its bot computers */
 const LINK = { direct: "direct", relay: "through the relay", off: "off" } as const;
 
-export function MachineView({ detail, now, limit, region }: { detail: WorkspaceDetail; now: number; limit?: number | null; region?: string }) {
+export function MachineView({ detail, now, region }: { detail: WorkspaceDetail; now: number; region?: string }) {
   const m = detail.report?.machine;
   const h = detail.history;
   const computers = detail.report?.computers;
@@ -62,8 +62,7 @@ export function MachineView({ detail, now, limit, region }: { detail: WorkspaceD
         <Metric label="network" value={m.network ? rate(m.network.rxBytesPerSec) : "n/a"} sub={m.network ? `${rate(m.network.txBytesPerSec)} out` : undefined}><Spark values={h.map((s) => s.rx)} /></Metric>
       </div>
       <Card aria-labelledby="computers-title">
-        <SectionTitle id="computers-title" action={<span className="num text-13 text-ink-3">{running} running{limit !== undefined ? ` · ${computers?.computers.length ?? 0} of ${limit === null ? "unlimited" : limit}` : ""}</span>}>bot computers</SectionTitle>
-        {limit !== undefined && limit !== null && <Bar value={((computers?.computers.length ?? 0) / Math.max(1, limit)) * 100} className="-mt-1 mb-3" label="bot computers used" />}
+        <SectionTitle id="computers-title" action={<span className="num text-13 text-ink-3">{running} running</span>}>bot computers</SectionTitle>
         {computers?.computers.length ? (
           <ul className="">{computers.computers.map((c) => <ComputerRow key={c.id} c={c} detail={detail} now={now} />)}</ul>
         ) : (

@@ -75,7 +75,8 @@ export function dollars(n: number, cents = false): string {
 
 export const gb = (n: number) => (n >= 1000 ? `${+(n / 1000).toFixed(1)} tb` : `${n} gb`);
 export const specLine = (s: MachineSpec) => `${s.vcpu} vcpu · ${gb(s.ramGb)} ram · ${gb(s.diskGb)}`;
-export const botsLine = (n: number | null) => (n === null ? "unlimited bot computers" : `${n} bot ${n === 1 ? "computer" : "computers"}`);
+/** a plan in one line: its machine, then priority wake and a work license when it has them */
+export const planSpecLine = (s: MachineSpec & { priority: boolean }, work = false) => `${specLine(s)}${s.priority ? ", priority wake" : ""}${work ? ", work license" : ""}`;
 
 /** how the yearly saving reads: "2 months free" when it is exactly that, else a percent */
 export const yearlyPerk = (c: Pick<PlanCatalog, "yearlyDiscount">) => (Math.abs(c.yearlyDiscount * 12 - 2) < 0.05 ? "2 months free" : `-${Math.round(c.yearlyDiscount * 100)}%`);

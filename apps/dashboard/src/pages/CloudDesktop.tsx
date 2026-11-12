@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppWindow, Check } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/contracts";
-import { botsLine, desktopMonthly, desktopOf, dollars, specLine } from "../data/pricing";
+import { desktopMonthly, desktopOf, dollars, gb, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { longDate } from "../lib/format";
@@ -28,7 +28,7 @@ function Empty() {
   const { catalog } = useCloud();
   return (
     <div className="flex flex-col gap-4">
-      <CloudPitch title="keep your bots on 24/7" body="dusk cloud runs your bots all day and all night, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
+      <CloudPitch title="keep your bots working" body="dusk cloud keeps your bots available, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
       <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
         <SectionTitle id="sizes-title" action={<Link to="/billing" className="text-link inline-flex h-8 items-center text-13">plans and billing</Link>}>sizes</SectionTitle>
         {catalog ? (
@@ -37,7 +37,7 @@ function Empty() {
               <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,280px)_auto]">
                 <span className="text-14 font-medium text-ink">{d.name}</span>
                 <span className="num truncate text-13 text-ink-3 max-md:hidden">{specLine(d)}</span>
-                <span className="truncate text-13 text-ink-3 max-md:hidden">{botsLine(d.botComputers)}{d.priority ? ", priority wake" : ""}</span>
+                <span className="truncate text-13 text-ink-3 max-md:hidden">always available{d.priority ? ", priority wake" : ""}</span>
                 <span className="num text-end text-14 text-ink">{d.sizable ? "from " : ""}{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></span>
               </li>
             ))}
@@ -102,9 +102,8 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   };
   const includes = [
     specLine(cloud),
-    botsLine(cloud.botComputers.limit),
     cloud.placement === "shared" ? "its own sandbox on our machines" : "a whole machine of its own",
-    current?.priority ? "on 24/7, priority wake" : "on 24/7",
+    current?.priority ? "always available, priority wake" : "always available, wakes in seconds",
   ];
   return (
     <Card aria-labelledby="size-title" className="flex flex-col">
@@ -116,7 +115,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
       {next && (
         <div className="mt-auto pt-6">
           <div className="rounded-[16px] bg-btn px-4 py-3.5">
-            <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">need more room?</span> {next.name} gives you {botsLine(next.botComputers).toLowerCase()}{next.priority && !current?.priority ? " and priority wake" : ""}.</p>
+            <p className="text-13 leading-[1.5] text-ink-3"><span className="text-ink-2">need more room?</span> {next.name} gives you {next.vcpu} vcpu, {gb(next.ramGb)} ram and {gb(next.diskGb)} disk{next.priority && !current?.priority ? ", with priority wake" : ""}.</p>
             <button type="button" onClick={() => { setTo(next.id); setOpen(true); }} disabled={!sub} className="text-link mt-2 inline-flex h-8 items-center text-13 disabled:opacity-45">upgrade to {next.name}</button>
           </div>
         </div>
@@ -127,7 +126,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
           <legend className="sr-only">size</legend>
           <div className="flex flex-col gap-1">
             {catalog.desktops.map((d) => (
-              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => setTo(d.id)} title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">current</span>}</>} detail={`${specLine(d)} · ${botsLine(d.botComputers)}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
+              <Choice key={d.id} name="resize" value={d.id} checked={to === d.id} onChange={() => setTo(d.id)} title={<>{d.name}{d.id === cloud.tier && <span className="ms-2 text-13 text-ink-3">current</span>}</>} detail={`${specLine(d)}${d.priority ? ", priority wake" : ""}`} aside={<>{dollars(desktopMonthly(d, null, catalog.custom))}<span className="text-ink-3">/mo</span></>} />
             ))}
           </div>
         </fieldset>
@@ -217,13 +216,12 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
           <PowerButton cloud={cloud} size="md" />
         </Card>
       )}
-      {detail ? <MachineView detail={detail} now={now} limit={cloud.botComputers.limit} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
+      {detail ? <MachineView detail={detail} now={now} region={regionName(catalog, cloud.region)} /> : cloud.status === "running" ? <Skeleton className="h-[170px] !rounded-card" /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>
           <dl className="">
             <KV k="runs on" v={cloud.placement === "shared" ? "its own sandbox" : "its own machine"} />
-            <KV k="bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
             <KV k="created" v={longDate(cloud.createdAt)} />
             {sub && <KV k={sub.cancelAt ? "ends" : "renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}

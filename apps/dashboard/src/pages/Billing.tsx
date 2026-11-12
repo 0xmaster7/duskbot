@@ -26,16 +26,15 @@ const CONTACT = "mailto:hello@dusk.bot";
 const members = (n: number) => `${n} ${n === 1 ? "member" : "members"}`;
 type Tier = "free" | PaidPlan;
 
-/** four rows, the machine first; every number comes from the catalog */
+/** three rows, the machine first; every number comes from the catalog */
 function points(id: PaidPlan, catalog: PlanCatalog): string[] {
   const b = bundleOf(catalog, id);
   const d = b ? desktopOf(catalog, b.desktop) : null;
   if (!d) return [];
   const machine = `${d.vcpu} vcpu, ${gb(d.ramGb)} ram, ${gb(d.diskGb)} disk`;
-  const bots = d.botComputers === null ? "unlimited bots at work at once" : `${d.botComputers} ${d.botComputers === 1 ? "bot" : "bots"} at work at once`;
   const wake = catalog.wake?.[d.id];
   const seconds = wake ? wakeSeconds(wake.medianMs) : null;
-  return id === "pro" ? [machine, bots, seconds ? `priority wake, in ${seconds} s` : "priority wake", "work license included"] : [machine, bots, seconds ? `on 24/7, wakes in ${seconds} s` : "on 24/7, wakes for slack messages", "set up in one click"];
+  return id === "pro" ? [machine, seconds ? `always available, priority wake in ${seconds} s` : "always available, priority wake", "work license for one person"] : [machine, seconds ? `always available, wakes in ${seconds} s` : "always available, wakes in seconds", "set up in one click"];
 }
 const ART = { free: sky, starter: meadow, pro: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
@@ -244,7 +243,7 @@ export function BillingPage() {
 
   return (
     <div>
-      <PageHeader title="plans and billing" sub="keep your bots working 24/7, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
+      <PageHeader title="plans and billing" sub="keep your bots working, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
       <div className="grid gap-3 lg:grid-cols-3">
         <PlanCard id="free" i={0} catalog={catalog} interval={interval} current={current("free")} action={current("free") ? "your plan" : "switch to free"} onChoose={current("free") ? null : () => setToFree(true)} disabled={false} />
         {card("starter", 1)}

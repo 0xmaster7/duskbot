@@ -9,9 +9,9 @@ const desktopIds = { none: "none", shared_s: "shared-s", shared_m: "shared-m", d
 const desktopKinds = { none: "none", "shared-s": "shared_s", "shared-m": "shared_m", dedicated: "dedicated" } as const;
 const bundleBlurbs = {
   free: "for personal use on your computer or your own vps",
-  starter: "dusk cloud, on 24/7",
-  pro: "more room and priority for serious bots",
-  team: "a dedicated machine for the whole team",
+  starter: "dusk cloud, always available",
+  pro: "a bigger machine, priority wake and a work license",
+  team: "a dedicated machine and a team license",
 };
 
 export function catalogFromWire(catalog: Catalog): PlanCatalog {
