@@ -20,7 +20,7 @@ const hintCls = "text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondar
 const valueCls = "min-w-0 max-w-[50%] shrink-0 truncate text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
 
 /** Grok's elevated 36px icon button (Share, Close): a white circle on a hairline, a 6% ink wash laid over it on hover. */
-export const roundButtonCls = "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-transparent bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-linear-to-b hover:from-ink/[0.06] hover:to-ink/[0.06] aria-expanded:bg-linear-to-b aria-expanded:from-ink/[0.06] aria-expanded:to-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+export const roundButtonCls = "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink/[0.92] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-linear-to-b hover:from-ink/[0.06] hover:to-ink/[0.06] aria-expanded:bg-linear-to-b aria-expanded:from-ink/[0.06] aria-expanded:to-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 /** The quiet 30px pill, and the ink one for the single action that commits. */
 export const pillCls = rowButtonCls;
 export const pillPrimaryCls = cn(rowButtonCls, "bg-ink text-app shadow-none enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:bg-ink/15 disabled:text-ink/30");
@@ -77,7 +77,7 @@ export function Card({ label, action, anchor, footnote, className, children, ...
       className={cn("scroll-mt-4", !inSections && cn(sectionGapCls(Boolean(label)), "first:mt-0"), className)}
     >
       {label && <CardLabel id={labelId} action={action}>{label}</CardLabel>}
-      <div data-panel-card-surface="" className="flex flex-col overflow-hidden rounded-[12px] border-[0.5px] border-transparent bg-composer p-1">
+      <div data-panel-card-surface="" className="flex flex-col overflow-hidden rounded-[12px] border-[0.5px] border-edge bg-composer p-1">
         {children}
       </div>
       {footnote && <p data-settings-footnote="" className="mt-2 px-3 text-[12px] leading-4 tracking-[0.01em] text-ink-tertiary">{footnote}</p>}

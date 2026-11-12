@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
+import type { MarkState } from "./mascot-engine";
 import type { MausColor } from "@/lib/mascot";
+import type { Bot } from "@/state/store";
 import { botsAcross } from "@/lib/cloud-move-offer";
 import { cn } from "@/lib/cn";
 import { MausAvatar } from "./Avatar";
@@ -58,9 +60,9 @@ const FILL: Record<string, string> = {
 /** The sky behind the scene, in four bands from #c2ecfc down to #eaf6fd, as pixel art draws a sky. */
 export const SKY = "linear-gradient(#c2ecfc 0 25%, #cdeffc 25% 50%, #d9f2fd 50% 75%, #eaf6fd 75% 100%)";
 
-function Pixels({ at, pixels }: { at: { x: number; y: number }; pixels: Px[] }) {
+function Pixels({ at, pixels, cell = CELL }: { at: { x: number; y: number }; pixels: Px[]; cell?: number }) {
   return <g transform={`translate(${at.x} ${at.y})`}>
-    {pixels.map((px) => <rect key={`${px.x}-${px.y}`} x={px.x * CELL} y={px.y * CELL} width={CELL} height={CELL} fill={FILL[px.tone]} />)}
+    {pixels.map((px) => <rect key={`${px.x}-${px.y}`} x={px.x * cell} y={px.y * cell} width={cell} height={cell} fill={FILL[px.tone]} />)}
   </g>;
 }
 
@@ -90,6 +92,38 @@ export function CloudMoveScene({ progress, done = false, className }: { progress
         animate={{ transform: there ? [spot(from), peak, spot(to)] : spot(from) }}
         transition={{ duration: HOP_MS / 1000, ease: "easeInOut", times: [0, 0.45, 1], delay: there ? 0.16 * index : 0 }}>{bot}</motion.span>;
     })}
+    </div>
+  </div>;
+}
+
+const BAND = { w: 240, h: 84, cell: 3, bot: 26 };
+const BAND_LAPTOP = { x: 30, y: 40 }, BAND_CLOUD = { x: 146, y: 36 };
+const BAND_ON = { laptop: { x: 63, y: 42 }, cloud: { x: 182, y: 47 } } as const;
+const bandSpot = (slot: { x: number; y: number }) => `translate(${slot.x - BAND.bot / 2}px, ${slot.y - BAND.bot}px)`;
+
+/** One bot and its way to dusk cloud, as a short band: asleep on this computer, on the cloud, or hopping across. */
+export function CloudHopScene({ bot, on, asleep = false, className }: {
+  bot: Pick<Bot, "color" | "mascotBody" | "name">;
+  on: "laptop" | "cloud";
+  asleep?: boolean;
+  className?: string;
+}) {
+  const reduced = useMotionReduced();
+  const from = BAND_ON.laptop, to = BAND_ON.cloud;
+  const peak = `translate(${(from.x + to.x) / 2 - BAND.bot / 2}px, ${Math.min(from.y, to.y) - BAND.bot - 26}px)`;
+  const state: MarkState = on === "cloud" ? "happy" : asleep ? "sleeping" : "idle";
+  const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={BAND.bot} state={state} trackPointer={false} animated={!reduced} label="" />;
+  return <div aria-hidden="true" data-cloud-hop={on} className={cn("flex w-full justify-center overflow-hidden", className)} style={{ background: SKY }}>
+    <div className="relative shrink-0" style={{ width: BAND.w, height: BAND.h }}>
+      <svg width={BAND.w} height={BAND.h} viewBox={`0 0 ${BAND.w} ${BAND.h}`} shapeRendering="crispEdges" className="absolute inset-0">
+        <Pixels at={BAND_LAPTOP} pixels={LAPTOP_PX} cell={BAND.cell} />
+        <Pixels at={BAND_CLOUD} pixels={CLOUD_PX} cell={BAND.cell} />
+      </svg>
+      {reduced
+        ? <span key={on} data-bot-at={on} className="absolute left-0 top-0 block animate-fade-in" style={{ transform: bandSpot(BAND_ON[on]) }}>{mascot}</span>
+        : <motion.span data-bot-at={on} className="absolute left-0 top-0 block will-change-transform" initial={false}
+            animate={{ transform: on === "cloud" ? [bandSpot(from), peak, bandSpot(to)] : [bandSpot(to), peak, bandSpot(from)] }}
+            transition={{ duration: 0.56, ease: "easeInOut", times: [0, 0.45, 1] }}>{mascot}</motion.span>}
     </div>
   </div>;
 }

@@ -125,7 +125,7 @@ const { DetailsTab } = await import("./bot-panel/DetailsTab");
 const { AdvancedTab } = await import("./bot-panel/AdvancedTab");
 const { SettingsPage } = await import("./bot-panel/SettingsPage");
 const { LibraryPage, LibrarySection } = await import("./bot-panel/LibraryTab");
-const { ComputerTab, RunsOnCard, WherePage } = await import("./bot-panel/ComputerTab");
+const { CloudCtaCard, ComputerTab, RunsOnCard, WherePage, cloudCtaStep } = await import("./bot-panel/ComputerTab");
 const { PageBody, AppsPage, RoutinesPage, MemoryPage, SkillsPage, FolderPage, BrowserPage } = await import("./bot-panel/pages");
 const { BrowserLogins } = await import("./bot-panel/browser-logins");
 const { PAGES, sectionTarget } = await import("./bot-panel/page-registry");
@@ -689,6 +689,8 @@ describe("the Computer tab", () => {
   beforeEach(() => { fixture.otherServer = "Studio VPS"; });
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
   const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
+  const cta = (bot: Bot, stage: Parameters<typeof CloudCtaCard>[0]["stage"], cloudDesktop: Parameters<typeof CloudCtaCard>[0]["cloudDesktop"] = null) =>
+    capture(() => CloudCtaCard({ bot, stage, cloudDesktop }));
   const runsOn = (bot: Bot) => {
     const card = ofType(computer(bot), RunsOnCard)!;
     return capture(() => RunsOnCard(card.props as Parameters<typeof RunsOnCard>[0]));
@@ -777,28 +779,32 @@ describe("the Computer tab", () => {
     expect(rendered.html).not.toContain('data-asleep-mascot=""');
     expect(rendered.html).not.toContain('data-panel-screen-of=""');
     expect(rendered.nodes.some((node) => node.props.inline === true)).toBe(false);
-    const card = runsOn(cloudBot());
-    expect(has(card, "data-panel-select", "place")).toBe(false);
+    expect(has(runsOn(cloudBot()), "data-panel-select", "place")).toBe(false);
+    const card = cta(cloudBot(), null);
+    expect(card.html).toContain('data-cloud-cta="get"');
+    expect(card.html).toContain('data-cloud-hop="laptop"');
+    expect(card.html).toContain(">keep Scout working 24/7 on dusk cloud<");
     expect(card.html).toContain(">Get dusk cloud<");
-    expect(card.html).toContain("Keeps working 24/7");
     click(find(card, "data-panel-action", "move-cloud"));
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
   });
 
   it("on this computer with a dusk cloud offers the move, then the switch once the bots live there, never the checkout", () => {
     fixture.otherServer = null;
-    const props = ofType(computer(cloudBot()), RunsOnCard)!.props as Parameters<typeof RunsOnCard>[0];
     const openHome = vi.fn(() => Promise.resolve());
-    const card = (stage: Parameters<typeof RunsOnCard>[0]["stage"]) =>
-      capture(() => RunsOnCard({ ...props, stage, picker: { ...props.picker, cloudDesktop: { openHome } as unknown as typeof props.picker.cloudDesktop } }));
-    const ready = card("ready");
+    const desktop = { openHome } as unknown as Parameters<typeof CloudCtaCard>[0]["cloudDesktop"];
+    const ready = cta(cloudBot(), "ready", desktop);
     expect(ready.html).toContain(">Move to dusk cloud<");
-    expect(ready.html).not.toContain("Keeps working 24/7");
-    const moved = card("moved");
+    expect(ready.html).toContain('data-cloud-hop="laptop"');
+    const moved = cta(cloudBot(), "moved", desktop);
     expect(moved.html).toContain(">Switch to dusk cloud<");
+    expect(moved.html).toContain('data-cloud-hop="cloud"');
+    expect(moved.html).toContain(">Scout works 24/7 on dusk cloud<");
     click(find(moved, "data-panel-action", "move-cloud"));
     expect(openHome).toHaveBeenCalledTimes(1);
     expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "openCloudAdd" }));
+    expect(cloudCtaStep("moving")).toBe("moving");
+    expect(cloudCtaStep("buy")).toBe("get");
   });
 });
 
