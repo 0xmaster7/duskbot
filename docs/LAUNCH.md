@@ -101,8 +101,7 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
    (payment details are yours to enter).
 6. **Sign in with Google / Apple / X** (optional): register the callbacks
    `https://dusk.bot/v1/auth/oauth/{google,apple,x}/callback` (and the preview.dusk.bot ones) and set the client names in the env file.
-7. **Mailboxes**: hello@, privacy@ and security@dusk.bot must receive mail (Spaceship email forwarding or a mail host;
-   MX records).
+7. **Mailboxes**: done 2026-11-10: Cloudflare Email Routing forwards every @dusk.bot address (MX on Cloudflare).
 8. **Backups**: `apt install age rclone`; create an age key pair on your Mac (`age-keygen -o ~/secure/dusk-backup.key`;
    keep it off the server and in your password manager), configure an rclone remote off the box (free option: Oracle
    Object Storage on the existing Oracle account, 20 GB Always Free; or Backblaze B2), then:
@@ -223,21 +222,22 @@ Silence or test:
 - Drafts in `docs/legal/{terms,privacy,license,security}.md`, each opening with "Draft for legal review", published as
   https://dusk.bot/terms, /privacy, /license and /security (built from the Markdown by
   `deployd/sites/dusk/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, InstaBox (cloud desktops, on AWS us-west-2), Dodo
-  Payments, Resend, Composio, Apple APNs, Google FCM, Spaceship, Let's Encrypt and the error tracker; AI model
+  Payments, Brevo, Composio, Apple APNs, Google FCM, Spaceship (registrar), Let's Encrypt and the error tracker; AI model
   providers are the user's own relationship.
 - https://dusk.bot/.well-known/security.txt (expires 2027-11-10).
 - Data export: **Download your data** on the dashboard's Account page (`GET /v1/account/export`: account, sign-ins,
   sessions, workspaces with their latest report, plans, payments, cloud desktops; no tokens, hashes or keys). Deletion
   already existed (Account > Delete account; cloud desktop data on its own page with a 7-day hold).
-- Cookie notice: not needed. dusk.bot sets only strictly necessary cookies (session, CSRF, OAuth state) and a theme
-  value in local storage; dusk.bot sets none.
+- Cookie notice: the account pages set only strictly necessary cookies (session, CSRF, OAuth state) and a theme value
+  in local storage. The site's analytics script sets `dusk_vid` and `dusk_sid` only outside the EU, EEA, UK and
+  Switzerland and nothing inside them (privacy.md, Product analytics); have the lawyer confirm no banner is needed.
 
 ### Owner
 
 1. Lawyer review of all four documents; fill every `[placeholder]`: legal entity and address, governing law and
    courts, effective date, refund policy, retention periods (cloud desktop after a plan ends, access logs), minimum
    age, data center region, each provider's processing locations and transfer mechanism, error tracker choice.
-2. Sign the processors' DPAs (Contabo, Cloudflare, Resend, Dodo, Composio, InstaBox, the error tracker). InstaBox
+2. Sign the processors' DPAs (Contabo, Cloudflare, Brevo, Dodo, Composio, InstaBox, the error tracker). InstaBox
    replaced the earlier cloud desktop provider: its DPA is new and still unsigned.
 3. Decide whether naming InstaBox publicly on /privacy is fine now (apps/cloud-service/README.md planned it for "once
    there are EU customers"; the privacy page names it today).
@@ -255,7 +255,7 @@ Silence or test:
   error text.
 - dusk.bot: home, download, docs (getting started, VPS install with `curl -fsSL https://dusk.bot/install.sh | sh -s <code>`
   and a read-first variant with `install.sh.sha256`), pricing (no invented prices; links to the account's Plans
-  page), footer with legal links; strict CSP and HSTS. `www.dusk.bot` does not resolve yet.
+  page), footer with legal links; strict CSP and HSTS.
 
 ### Polish not done (owner or a follow-up)
 
@@ -266,7 +266,7 @@ Silence or test:
   sentence plus "Show details" would read better.
 - Before the AI list loads, a fresh window can show "No bots yet / New bot" (`App.tsx`), and a connection that fails
   before first load shows "Connecting to your bots..." with no retry (`BootCover.tsx`).
-- Add `www.dusk.bot` (DNS A record at Spaceship, then `deploy aliases dusk-landing www.dusk.bot`).
+- `www.dusk.bot` resolves and 301s to the apex (checked 2026-11-12).
 
 ## 6. Security review
 
