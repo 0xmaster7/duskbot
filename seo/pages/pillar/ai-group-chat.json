@@ -104,7 +104,7 @@
     },
     {
       "h": "give each participant only the access it needs",
-      "md": "a checker working from attached files may not need connected apps at all. if another bot needs an app, allow that bot specifically. each app can be off, read only, or read and write, with an exact action list available too.[^3]\n\nsending has its own approval setting. do not infer that changing a label or editing an app page will ask first. keep those bots read only, or include \"ask me before you change anything\" in their instructions.\n\nkeep human ownership visible as well. one person should decide whether the final handoff is usable. the [ai teammates guide](/ai-teammates) goes further on fitting a bot room into a small team's work."
+      "md": "a checker working from attached files may not need connected apps at all. if another bot needs an app, allow that bot specifically. each app can be off, read only, or read and write, with an exact action list available too.\n\nsending has its own approval setting. do not infer that changing a label or editing an app page will ask first. keep those bots read only, or include \"ask me before you change anything\" in their instructions.\n\nkeep human ownership visible as well. one person should decide whether the final handoff is usable. the [ai teammates guide](/ai-teammates) goes further on fitting a bot room into a small team's work."
     }
   ],
   "faq": [

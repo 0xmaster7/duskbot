@@ -49,7 +49,7 @@
     },
     {
       "h": "draft here, send after review",
-      "md": "this routine returns text in chat. it does not promise a connection to your mailing service. copy the edited issue into your usual editor and check the subject, links and recipient list there.\n\nif you later give a bot a supported way to send, choose **Ask every time** for sending. the **Allow** card is the send decision. do not set a daily amount it may send on its own if you want every issue reviewed.[^2] a [social posting routine](/use-cases/social-media-posting) can turn the same approved notes into a different format."
+      "md": "this routine returns text in chat. it does not promise a connection to your mailing service. copy the edited issue into your usual editor and check the subject, links and recipient list there.\n\nif you later give a bot a supported way to send, choose **Ask every time** for sending. the **Allow** card is the send decision. do not set a daily amount it may send on its own if you want every issue reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^2] a [social posting routine](/use-cases/social-media-posting) can turn the same approved notes into a different format."
     },
     {
       "h": "leave room for an issue to be skipped",

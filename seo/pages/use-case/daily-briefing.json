@@ -10,7 +10,7 @@
     "ai daily briefing email calendar",
     "daily ai summary"
   ],
-  "answer": "start the day with a brief that connects your meetings to the messages behind them. give a bot read-only access to your work email and calendar, then ask for today’s first commitment, the latest context and any decision due before you finish. the result belongs in your chat. it is a reading list for today, with links back to the evidence, rather than another inbox to clear.",
+  "answer": "start the day with a brief that connects your meetings to the messages behind them. give a bot read-only access to your work email and calendar, then ask for today’s first commitment, the latest context and any decision due before you finish. the result belongs in your chat. it is a reading list for today, with a source for each item, linked where one is available, rather than another inbox to clear.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -79,6 +79,10 @@
     {
       "q": "why did my brief arrive after i opened my laptop?",
       "a": "local routines stop while the computer sleeps or dusk bot is closed. check **Automations** for run history and ask the bot which time zone the routine uses."
+    },
+    {
+      "q": "can i use this for my job?",
+      "a": "dusk bot is free for personal use; using it for your work needs a work license, which dusk cloud pro includes for one person. see [account and billing](/docs/account-and-billing)."
     }
   ],
   "sources": [

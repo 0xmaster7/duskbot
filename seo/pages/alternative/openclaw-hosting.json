@@ -137,7 +137,7 @@
         "cells": [
           "on hostinger's servers",
           "managed instance on a cloud of your choice",
-          "dedicated machine hosted by dusk"
+          "your own computer hosted by dusk, not shared"
         ],
         "src": [
           1,
@@ -169,7 +169,7 @@
     },
     {
       "h": "managed does not decide what the agent may do",
-      "md": "hostinger and elestio both describe taking care of server security and backups.[^1][^2] that is useful, but it does not answer which apps you should connect or which jobs you should delegate. openclaw supports skills and plugins, so choosing additions still deserves attention.[^6] the [openclaw safety guide](/guides/is-openclaw-safe) focuses on that question.\n\nin dusk bot, give a new bot read-only connected-app access while checking its work. sending emails, messages, posts or payments asks first unless you allow a daily amount. other app changes are not documented as automatically asking; keep read-only access or write \"ask me before you change anything\" into the routine.[^7] hosting does not replace that boundary."
+      "md": "hostinger and elestio both describe taking care of server security and backups.[^1][^2] that is useful, but it does not answer which apps you should connect or which jobs you should delegate. openclaw supports skills and plugins, so choosing additions still deserves attention.[^6] the [openclaw safety guide](/guides/is-openclaw-safe) focuses on that question.\n\nin dusk bot, give a new bot read-only connected-app access while checking its work. sending emails, messages, posts or payments asks first unless you allow a daily amount (a bot on **Full access** with no sending rule of its own may send up to 25 a day). other app changes are not documented as automatically asking; keep read-only access or write \"ask me before you change anything\" into the routine.[^7] hosting does not replace that boundary."
     },
     {
       "h": "keep the product choice separate from the server choice",

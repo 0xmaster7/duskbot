@@ -90,7 +90,7 @@
       "output": "approved text saved as a note after the review you requested"
     }
   ],
-  "asks": "the first two routines work with read-only hubspot access. the note routine needs permission to create notes, and its request to ask first is part of the instruction you gave it. hubspot note creation, record linking and task creation are not documented as automatically stopping for approval.\n\nsending an email or message through connected apps has a separate setting: asking first is the default, with an optional daily allowance. do not confuse permission to save a crm note with permission to contact the customer. if a bot only needs notes, leave other writing actions out of its allowed list.",
+  "asks": "the first two routines work with read-only hubspot access. the note routine needs permission to create notes, and its request to ask first is part of the instruction you gave it. hubspot note creation, record linking and task creation are not documented as automatically stopping for approval.\n\nsending an email or message through connected apps has a separate setting: asking first is the default, with an optional daily allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. do not confuse permission to save a crm note with permission to contact the customer. if a bot only needs notes, leave other writing actions out of its allowed list.",
   "cannot": [
     "repair company associations or create notes while limited to reads. a gap list and a repair job need different access.",
     "prove that similarly named contacts belong to the same company. ask it to show the actual links and the criteria behind a proposed match.",

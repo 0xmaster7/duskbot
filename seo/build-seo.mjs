@@ -99,6 +99,10 @@ export function buildSeo(ctx) {
   for (const w of warnings) console.warn(`seo warning: ${w}`);
   if (problems.length) throw new Error(`the seo quality gate failed:\n  ${problems.join('\n  ')}`);
 
+  // a page or hub that is not out must not be on disk either (a preview build, or a page set back to queued, leaves one)
+  const unwrite = (at) => { const file = path.join(site, at, 'index.html'); if (fs.existsSync(file)) { fs.rmSync(file); try { fs.rmdirSync(path.dirname(file)); } catch {} } };
+  for (const r of records) if (!r.built) unwrite(r.path);
+  for (const h of Object.values(HUBS)) if (!hubs.some((x) => x.at === h.at)) unwrite(h.at);
   for (const { r, html } of rendered) if (r.built) write(r.path, html, { index: r.indexable, group: r.state.cohort, lastmodKey: hash(JSON.stringify({ ...r, state: undefined, alt: undefined })) });
   for (const { h, html, pages } of hubPages) write(h.at, html, { index: pages.some((o) => o.indexable), group: 'hubs' });
 

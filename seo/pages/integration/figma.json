@@ -100,7 +100,7 @@
       "output": "a dated reference note tied to the inspected file"
     }
   ],
-  "asks": "a comment posted to figma is a send. it asks with **Allow** and **Deny** by default, unless you permit a daily sending amount. keep the first review agendas in dusk chat if the bot should not speak in the file.\n\nvariable changes and other design data edits are different from comment posts. they are not documented as asking first under sending controls. leave those actions disabled for a review bot, or put \"ask me before you change anything\" into a routine that truly needs them.",
+  "asks": "a comment posted to figma is a send. it asks with **Allow** and **Deny** by default, unless you permit a daily sending amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. keep the first review agendas in dusk chat if the bot should not speak in the file.\n\nvariable changes and other design data edits are different from comment posts. they are not documented as asking first under sending controls. leave those actions disabled for a review bot, or put \"ask me before you change anything\" into a routine that truly needs them.",
   "cannot": [
     "promise arbitrary visual editing from this catalog. it includes variables and development resources, but no general action to draw or rearrange every layer on a canvas.",
     "post comments or change variables through a read-only figma grant. reading a file for a handoff is a smaller permission than maintaining its design data.",

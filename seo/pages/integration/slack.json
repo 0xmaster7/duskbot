@@ -12,7 +12,7 @@
     "slack ai agent",
     "slack mcp"
   ],
-  "answer": "a bot in dusk bot can search slack messages, read channel history and follow a thread before it briefs you. use it to catch up on a project or find an unanswered question, with the ai you picked. replies can stay in your dusk chat until you want them posted. sending to slack asks first by default.",
+  "answer": "a bot in dusk bot can search slack messages, read channel history and follow a thread before it briefs you. use it to catch up on a project or find an unanswered question, with the ai you picked. replies can stay in your dusk chat until you want them posted. sending a slack message asks first by default.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -104,7 +104,7 @@
       "output": "a handover draft awaiting your review"
     }
   ],
-  "asks": "slack posts and messages use the sending control. with **Ask every time**, you review an **Allow** / **Deny** card before a message goes out. you can instead grant a daily sending amount to that bot.\n\nchannel settings and other app changes are separate from sending. for a bot that only briefs you, a read-only grant is the useful boundary: it cannot post, react or change the channel. if you later grant writes, put \"ask me before you change anything\" in the routine where you need supervision.",
+  "asks": "sending a slack message uses the sending control. with **Ask every time**, you review an **Allow** / **Deny** card before a message goes out. you can instead grant a daily sending amount to that bot. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. scheduling a message for later and editing a posted message count as app changes, not sends, so they don't ask first: leave them out of the bot's allowed actions, or tell the routine to ask you before it changes anything.\n\nchannel settings and other app changes are separate from sending. for a bot that only briefs you, a read-only grant is the useful boundary: it cannot post, react or change the channel. if you later grant writes, put \"ask me before you change anything\" in the routine where you need supervision.",
   "cannot": [
     "answer from messages outside the connected account's access. give it a reachable conversation rather than expecting a search to reveal every discussion in the company.",
     "write a slack reply with reading access alone. a draft in your dusk chat is still possible; posting needs the app action and the sending permission.",
@@ -127,7 +127,7 @@
     },
     {
       "q": "will it talk in my channels on its own?",
-      "a": "a read-only slack bot cannot post. if you allow sending actions, posts ask first by default unless you set a daily sending amount."
+      "a": "a read-only slack bot cannot post. if you allow sending actions, posts ask first by default unless you set a daily sending amount, or the bot is on **Full access** with no sending rule of its own (then it may send up to 25 a day)."
     },
     {
       "q": "can i read the catch-up from my phone?",

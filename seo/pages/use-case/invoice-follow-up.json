@@ -53,7 +53,7 @@
     },
     {
       "h": "draft in chat to keep the apps read-only",
-      "md": "a reminder written in chat does not need mail write access. read the wording beside its evidence, verify the recipient and check the current record before copying it into your email editor. save disputed items for a person who knows the account.\n\nchoose **Ask every time** for sending and do not grant a daily amount. supported email sends and payments then wait for **Allow**. invoice edits are a different kind of change, so read-only access is the boundary here, rather than a promise that every edit will ask.[^2]"
+      "md": "a reminder written in chat does not need mail write access. read the wording beside its evidence, verify the recipient and check the current record before copying it into your email editor. save disputed items for a person who knows the account.\n\nchoose **Ask every time** for sending and do not grant a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. supported email sends and payments then wait for **Allow**. invoice edits are a different kind of change, so read-only access is the boundary here, rather than a promise that every edit will ask.[^2]"
     },
     {
       "h": "what this cannot reconcile",

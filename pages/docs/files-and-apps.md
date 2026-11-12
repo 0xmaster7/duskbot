@@ -22,7 +22,7 @@ connect an app once and a bot can work inside it.
 
 1. open **Connected apps** in the sidebar.
 2. pick the app and sign in on its own page, so your password goes to them, never to a bot.
-3. choose which bots may use it. your bookkeeper doesn't need your slack.
+3. choose which bots may use it, and whether each may only read or may also change things. your bookkeeper doesn't need your slack.
 
 <p class="chips">{{chips gmail calendar drive docs sheets slack notion github linear figma stripe discord hubspot airtable asana trello dropbox outlook shopify sentry vercel supabase posthog zapier}}</p>
 

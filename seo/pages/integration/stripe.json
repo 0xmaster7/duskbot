@@ -77,7 +77,7 @@
         "use": "make a specific refund only after you choose **Allow**"
       }
     ],
-    "setup": "connect stripe under **Connected apps** and enable a billing bot with read-only access first. stripe handles the sign-in. for any later refund work, allow only the actions needed and keep the bot on **Ask every time** for sends. do not give it a daily amount to send on its own for these routines."
+    "setup": "connect stripe under **Connected apps** and enable a billing bot with read-only access first. stripe handles the sign-in. for any later refund work, allow only the actions needed and keep the bot on **Ask every time** for sends. do not give it a daily amount to send on its own for these routines. and don't put a stripe bot on **Full access**: with no sending rule of its own, a full-access bot may send up to 25 a day without asking, and here a send moves money."
   },
   "routines_intro": "these messages keep money movement out of scheduled work. they answer different billing questions and return evidence for a person to review.",
   "routines": [

@@ -54,7 +54,7 @@
         "label": "your laptop",
         "cells": [
           "dusk and the computer must stay awake",
-          "free for personal use; your own ai costs"
+          "free for personal use (work use needs a work license); your own ai costs"
         ],
         "src": [
           1,
@@ -65,7 +65,7 @@
         "label": "your own server",
         "cells": [
           "a server you maintain; bots can have private desktops there",
-          "dusk charges nothing for the server option; hosting and ai are yours"
+          "free for personal use (work use needs a work license); hosting and ai are yours"
         ],
         "src": [
           3,
@@ -76,7 +76,7 @@
         "label": "dusk cloud",
         "cells": [
           "a computer dusk hosts, with daily backups",
-          "plus $20 monthly; pro $50 monthly; ai billed separately"
+          "plus $20 a month; pro $50 a month, including a work license for one person; ai billed separately"
         ],
         "src": [
           1,
@@ -104,13 +104,13 @@
     },
     {
       "h": "what anthropic says about sign-in and its own cloud",
-      "md": "as of 12 november 2026, anthropic's legal page describes an end user signing in to the unmodified claude code binary, including on a hosted platform. it requires running the binary as published, leaving its authentication methods available, and meeting its commercial hosting terms. it also bars developers from offering claude.ai login or intermediating its credentials. those are conditions to read, not a verdict about dusk or another app. check your provider's current terms.[^8]\n\nanthropic's own cloud sessions continue after the laptop closes, and its cloud scheduled tasks can repeat a saved configuration. if your work already fits those options, a second hosted computer may be unnecessary. use the [claude scheduler guide](/guides/claude-scheduled-tasks) to separate cloud tasks, local tasks and an open-session loop.[^9][^10]"
+      "md": "as of 12 november 2026, anthropic's legal page describes an end user signing in to the unmodified claude code binary, including on a hosted platform. it requires running the binary as published, leaving its authentication methods available, and meeting its commercial hosting terms. it also bars developers from offering claude.ai login or intermediating its credentials. those are conditions to read, not a verdict about dusk or another app.[^8]\n\ntwo more lines matter for anything unattended. anthropic's consumer terms bar reaching its services \"through automated or non-human means\" except through an anthropic api key or where anthropic explicitly permits it,[^11] and its login help says it may bill use through certain third-party tools from usage credits rather than your plan's limits.[^12] for work that runs overnight with nobody watching, an api key is the route those terms name. check anthropic's current terms before you choose.\n\nanthropic's own cloud sessions continue after the laptop closes, and its cloud scheduled tasks can repeat a saved configuration. if your work already fits those options, a second hosted computer may be unnecessary. use the [claude scheduler guide](/guides/claude-scheduled-tasks) to separate cloud tasks, local tasks and an open-session loop.[^9][^10]"
     }
   ],
   "faq": [
     {
       "q": "how do you run claude code unattended overnight?",
-      "a": "give it one bounded task, decide where it may read or write, and leave a route for questions. in dusk, start with **Ask for approval** for commands and file changes. give connected apps read-only access if the job only needs reading.[^4]"
+      "a": "give it one bounded task, decide where it may read or write, and leave a route for questions. in dusk, start with **Ask for approval** for commands and file changes. give connected apps read-only access if the job only needs reading.[^4] and read anthropic's terms on automated use first: they name an api key as the route for unattended access.[^11]"
     },
     {
       "q": "will dusk cloud remove claude limits?",
@@ -163,6 +163,16 @@
     {
       "label": "anthropic: cloud scheduled tasks",
       "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: consumer terms of service",
+      "url": "https://www.anthropic.com/legal/consumer-terms",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: log in to your claude account",
+      "url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
       "checked": "2026-11-12"
     }
   ]

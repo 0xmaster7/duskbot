@@ -89,7 +89,7 @@
       "output": "a personal follow-up review in chat"
     }
   ],
-  "asks": "a pipeline reviewer can stay read only. that prevents it from creating follow-up tasks or changing opportunity records, while still letting it bring findings to your chat. permission to read a deal is not permission to advance its stage.\n\nif you later allow task creation or opportunity edits, put \"ask me before you change anything\" into the routine when review is required. those record changes are not documented as asking first automatically. sends through connected apps follow their separate setting: they ask by default, unless you allow a daily amount.",
+  "asks": "a pipeline reviewer can stay read only. that prevents it from creating follow-up tasks or changing opportunity records, while still letting it bring findings to your chat. permission to read a deal is not permission to advance its stage.\n\nif you later allow task creation or opportunity edits, put \"ask me before you change anything\" into the routine when review is required. those record changes are not documented as asking first automatically. sends through connected apps follow their separate setting: they ask by default, unless you allow a daily amount. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.",
   "cannot": [
     "change stages, owners or tasks with read-only access. grant only the specific writing actions needed if you decide to add record maintenance later.",
     "fill missing lead details from evidence that is not there. an empty field should be reported as empty, with a question for its owner.",

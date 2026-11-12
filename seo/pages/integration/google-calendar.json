@@ -69,7 +69,7 @@
       },
       {
         "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
-        "use": "inspect occurrences of a recurring event"
+        "use": "inspect occurrences of a recurring event (dusk bot counts this one as a change, so a read-only bot uses find event instead)"
       },
       {
         "slug": "GOOGLECALENDAR_CREATE_EVENT",

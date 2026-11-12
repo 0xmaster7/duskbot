@@ -79,7 +79,7 @@
     },
     {
       "h": "write access is a separate choice",
-      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. that sending rule does not mean every other change asks. labels, page edits and similar changes should stay read-only during a trial, or carry an explicit \"ask me before you change anything\" instruction.[^3]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
+      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. that sending rule does not mean every other change asks. labels, page edits and similar changes should stay read-only during a trial, or carry an explicit \"ask me before you change anything\" instruction.[^3]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
     }
   ],
   "faq": [

@@ -89,7 +89,7 @@
         "label": "local or hosted",
         "cells": [
           "your computer or server; paid nous portal tiers include one cloud agent",
-          "your computer, your server or a dedicated dusk cloud machine"
+          "your computer, your server or your own dusk cloud computer, not shared"
         ],
         "src": [
           1,

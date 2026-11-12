@@ -89,7 +89,7 @@
       "output": "a company description comparison"
     }
   ],
-  "asks": "creating posts and sending comments asks first under dusk bot's default sending setting. a daily allowance can let a bot send within the amount you choose, so keep asking enabled if every public word needs your review. preparing proposed wording in your chat is separate from publication.\n\nread-only access blocks uploads, publishing and deletion actions. if you enable changes, do not treat a sending approval as a promise that every other action asks too. use an exact allowed action list, and write \"ask me before you change anything\" when you want broader review of changes.",
+  "asks": "creating posts and sending comments asks first under dusk bot's default sending setting. a daily allowance can let a bot send within the amount you choose, so keep asking enabled if every public word needs your review. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. preparing proposed wording in your chat is separate from publication.\n\nread-only access blocks uploads, publishing and deletion actions. if you enable changes, do not treat a sending approval as a promise that every other action asks too. use an exact allowed action list, and write \"ask me before you change anything\" when you want broader review of changes.",
   "cannot": [
     "read or send linkedin inbox messages through this toolkit. there is no direct-message action among the 29 listed actions.",
     "send connection requests or run a general people search here. the ad targeting search action is not a substitute for either.",

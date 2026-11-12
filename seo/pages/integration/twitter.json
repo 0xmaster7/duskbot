@@ -89,7 +89,7 @@
       "output": "one proposed follow-up for your review"
     }
   ],
-  "asks": "publishing posts and sending messages ask you first by default. you can set a daily amount a bot may send on its own, so keep that setting at asking if you want every publication reviewed. draft text in your dusk bot chat does not need an x publishing action.\n\na read-only connection also prevents likes, follows, bookmarks and other changes. do not count on a send approval to supervise those actions. if you enable any of them, write \"ask me before you change anything\" into the routine and narrow its allowed action list to the work you actually want.",
+  "asks": "publishing posts and sending messages ask you first by default. you can set a daily amount a bot may send on its own, so keep that setting at asking if you want every publication reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. draft text in your dusk bot chat does not need an x publishing action.\n\na read-only connection also prevents likes, follows, bookmarks and other changes. do not count on a send approval to supervise those actions. if you enable any of them, write \"ask me before you change anything\" into the routine and narrow its allowed action list to the work you actually want.",
   "cannot": [
     "connect through a composio-managed sign-in in this catalog. a working custom auth setup is a prerequisite, not a step the routine can skip.",
     "start from a documented toolkit trigger here: the catalog lists no triggers. use scheduled reads for these routines rather than promising an immediate mention alert.",

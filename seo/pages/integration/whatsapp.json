@@ -89,7 +89,7 @@
       "output": "a contact information check"
     }
   ],
-  "asks": "customer messages, including template sends, ask for approval unless you have given the bot a daily sending allowance. keep that allowance off while checking that it selects the right business number, recipient and wording. a reply drafted in dusk bot chat has not been sent to the customer.\n\ntemplate edits and business profile changes are different from sends. do not assume they stop for a sending approval. keep them unavailable through read-only access, or tell the bot \"ask me before you change anything\" and allow only the actions needed for its job.",
+  "asks": "customer messages, including template sends, ask for approval unless you have given the bot a daily sending allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. keep that allowance off while checking that it selects the right business number, recipient and wording. a reply drafted in dusk bot chat has not been sent to the customer.\n\ntemplate edits and business profile changes are different from sends. do not assume they stop for a sending approval. keep them unavailable through read-only access, or tell the bot \"ask me before you change anything\" and allow only the actions needed for its job.",
   "cannot": [
     "read personal whatsapp chats, family groups or the inbox of an ordinary personal account. the connector explicitly supports whatsapp business accounts only.",
     "guarantee a complete customer conversation when the history lookup does not return it. tell the routine to report that gap rather than write a confident answer from missing context.",

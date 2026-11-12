@@ -113,11 +113,12 @@
       {
         "label": "work while the laptop is shut",
         "cells": [
-          "tasks started from the phone keep working in the cloud",
+          "since 6 october 2026, new tasks on pro, max and ultra run in the cloud, and scheduled tasks keep running while your computer sleeps",
           "pair with dusk cloud for access while your computer is off"
         ],
         "src": [
-          1,
+          12,
+          13,
           4,
           5
         ]
@@ -173,7 +174,7 @@
     },
     {
       "q": "where does my agent run when my laptop is closed?",
-      "a": "claude says tasks started from the phone continue in its cloud. for dusk bot, your own sleeping computer cannot run routines; dusk cloud is the hosted option. these are both documented routes, not a unique capability of either app.[^1][^4][^9]"
+      "a": "since 6 october 2026, new cowork tasks on pro, max and ultra run in claude's cloud, and its scheduled tasks keep running while your computer sleeps.[^12][^13] a dusk bot on your own sleeping computer can't run routines; dusk cloud is the hosted option for that.[^4][^9]"
     }
   ],
   "sources": [
@@ -223,6 +224,16 @@
     {
       "label": "dusk ai apps on the bot machine",
       "url": "/docs/your-own-server"
+    },
+    {
+      "label": "claude help: use claude cowork on web, desktop and mobile",
+      "url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude help: schedule recurring tasks in claude cowork",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
     }
   ]
 }

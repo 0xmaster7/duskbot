@@ -10,7 +10,7 @@
     "outlook mcp",
     "ai assistant for outlook"
   ],
-  "answer": "a bot in dusk bot can read outlook mail and calendar events together, then give you the context for a meeting or a reply you owe. connect outlook, choose the ai for the bot and name the mailbox to use. it can save drafts for review; email sends ask first unless you grant a daily sending amount.",
+  "answer": "a bot in dusk bot can read outlook mail and calendar events together, then give you the context for a meeting or a reply you owe. connect outlook, choose the ai for the bot and name the mailbox to use. it can save drafts for review; email sends ask first unless you grant a daily sending amount or put the bot on **Full access**.",
   "updated": "2026-11-12",
   "review": {
     "status": "approved",
@@ -68,7 +68,7 @@
       },
       {
         "slug": "OUTLOOK_CREATE_DRAFT_REPLY",
-        "use": "save a reply to an existing message for you to inspect"
+        "use": "save a reply to an existing message for you to inspect (it counts as a send, so it asks first)"
       },
       {
         "slug": "OUTLOOK_MOVE_MESSAGE",
@@ -102,7 +102,7 @@
       "output": "saved reply drafts and a list of missing decisions"
     }
   ],
-  "asks": "saving an email draft is different from sending it. an outlook send displays **Allow** and **Deny** by default; a daily sending amount can allow sends without that individual check. keep that setting narrow while learning the bot's judgement.\n\nmoving mail between folders and changing calendar events are not documented as asking first under the sending rule. use read-only access for a background reader. when a folder routine needs writes, tell it \"ask me before you change anything\" if you want each change reviewed.",
+  "asks": "saving a new email draft is different from sending it. one outlook quirk: a draft reply (**Create draft reply**) counts as a send in dusk bot, because its name carries \"reply\", so each one asks first like a send. an outlook send displays **Allow** and **Deny** by default; a daily sending amount can allow sends without that individual check. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. keep that setting narrow while learning the bot's judgement.\n\nmoving mail between folders and changing calendar events are not documented as asking first under the sending rule. use read-only access for a background reader. when a folder routine needs writes, tell it \"ask me before you change anything\" if you want each change reviewed.",
   "cannot": [
     "create outlook drafts with a read-only grant. reading mail and reporting in chat works within that boundary; a saved draft needs write access.",
     "work across an unconnected mailbox. an account signed in somewhere else is not automatically connected to dusk bot. connect each account you want the bot to use.",
@@ -125,7 +125,7 @@
     },
     {
       "q": "will it reply to customers while i am away?",
-      "a": "sending asks by default. leave drafts unsent if you want to read them later, and do not set a daily sending amount for a bot that should never send alone."
+      "a": "sending asks by default. leave drafts unsent if you want to read them later, don't set a daily sending amount for a bot that should never send alone, and set its sending to **Ask every time**, especially if the bot is on **Full access**."
     },
     {
       "q": "how do i use the assistant from my phone?",

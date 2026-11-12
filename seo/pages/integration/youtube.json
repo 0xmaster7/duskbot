@@ -89,7 +89,7 @@
       "output": "a description correction list in chat"
     }
   ],
-  "asks": "posting comments and replies asks for approval by default. if you allow a daily sending amount, a bot may send within it, so leave the default in place when you want each viewer reply reviewed.\n\nediting video details, changing playlists and moderating comments are separate changes. do not assume the send approval covers them. a read-only bot cannot make those calls. if you choose to permit them, specify the allowed actions and write \"ask me before you change anything\" into the routine. the question notebook above can stay entirely read only.",
+  "asks": "posting comments and replies asks for approval by default. if you allow a daily sending amount, a bot may send within it, so leave the default in place when you want each viewer reply reviewed. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.\n\nediting video details, changing playlists and moderating comments are separate changes. do not assume the send approval covers them. a read-only bot cannot make those calls. if you choose to permit them, specify the allowed actions and write \"ask me before you change anything\" into the routine. the question notebook above can stay entirely read only.",
   "cannot": [
     "promise a transcript for any video link. the toolkit lists caption tracks and can download an available track, but this catalog does not establish access to every video's captions.",
     "summarise the spoken content from titles, descriptions or comments alone. ask for a metadata review when that is all the connection returned.",

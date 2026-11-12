@@ -56,7 +56,7 @@
     },
     {
       "h": "how to set a boundary in dusk bot",
-      "md": "in dusk bot, **Connected apps** lets you choose access per bot: off, read only, or read and write. read-only restrictions are enforced before a call reaches the app. sending has a separate choice: **Ask every time** or **Allow a daily amount**.[^3]\n\nother app changes, such as labels and page edits, are not documented as always asking. keep the bot read-only or say \"ask me before you change anything\". only add trusted servers under **Plugins**, **MCP servers**; the [mcp explainer](/guides/what-is-mcp) describes that connection boundary. these controls help define a job. they are not a claim that dusk bot or any agent is risk-free."
+      "md": "in dusk bot, **Connected apps** lets you choose access per bot: off, read only, or read and write. read-only restrictions are enforced before a call reaches the app. sending has a separate choice: **Ask every time** or **Allow a daily amount**. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending.[^3]\n\nother app changes, such as labels and page edits, are not documented as always asking. keep the bot read-only or say \"ask me before you change anything\". only add trusted servers under **Plugins**, **MCP servers**; the [mcp explainer](/guides/what-is-mcp) describes that connection boundary. these controls help define a job. they are not a claim that dusk bot or any agent is risk-free."
     }
   ],
   "faq": [

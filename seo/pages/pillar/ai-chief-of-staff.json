@@ -50,7 +50,7 @@
     },
     {
       "h": "make the handoff visible",
-      "md": "use the group instructions for a shared rule: \"every handoff must name the question and what evidence is needed. return open questions to the lead. the lead asks me when priorities conflict.\"\n\nthen send the room a bounded request: \"help me prepare for tomorrow. @calendar, find the events i need to prepare for. @inbox, read the threads i identify for those events. lead: give me a list of decisions after their replies, without changing any events or sending anything.\"\n\nthe [group chat guide](/ai-group-chat) explains the room settings. do not assume a routine result in a specialist's private chat is automatically delivered to the group. bring those findings into the room explicitly. the routine messages below each return to the chat where you set them up; the lead coordinates the review once you share the material."
+      "md": "use the group instructions for a shared rule: \"every handoff must name the question and what evidence is needed. return open questions to the lead. the lead asks me when priorities conflict.\"\n\nthen send the room a bounded request: \"help me prepare for tomorrow. @calendar, find the events i need to prepare for. @inbox, read the threads i identify for those events. lead: give me a list of decisions after their replies, without changing any events or sending anything.\"\n\nthe [group chat guide](/ai-group-chat) explains the room settings. do not assume a routine result in a specialist's private chat is automatically delivered to the group. bring those findings into the room explicitly. each routine below asks for its result in the chat where you set it up; the lead coordinates the review once you share the material."
     },
     {
       "h": "morning brief: find the decisions before the day starts",
@@ -85,6 +85,10 @@
     {
       "q": "can it decide what my team should do next?",
       "a": "keep that decision with you. ask it to prepare options and identify missing owners or conflicting deadlines. confirm priorities yourself before asking anyone to act on them."
+    },
+    {
+      "q": "can i use this for my job?",
+      "a": "dusk bot is free for personal use; using it for your work needs a work license, which dusk cloud pro includes for one person. see [account and billing](/docs/account-and-billing)."
     }
   ],
   "sources": [

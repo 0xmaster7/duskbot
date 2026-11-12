@@ -104,7 +104,7 @@
       "output": "an unpublished release outline"
     }
   ],
-  "asks": "posting an issue comment is a send: by default it brings up **Allow** or **Deny**. a daily sending amount can change that, so check the bot's sending setting before enabling comments.\n\nlabels, assignments, issue closure and merges are other kinds of changes. do not assume they pause for a send card. keep the bot read-only for review work, or include \"ask me before you change anything\" in a routine that needs write access.",
+  "asks": "posting an issue comment is a send: by default it brings up **Allow** or **Deny**. a daily sending amount can change that, and so can **Full access** for a bot with no sending rule of its own (up to 25 a day), so check the bot's sending setting before enabling comments.\n\nlabels, assignments, issue closure, merges and submitting a pull request review are other kinds of changes. do not assume they pause for a send card. keep the bot read-only for review work, or include \"ask me before you change anything\" in a routine that needs write access.",
   "cannot": [
     "merge, label or assign with a read-only github grant. the permission check stops a write before it reaches the app; reading a pull request is not permission to merge it.",
     "keep triaging on a sleeping laptop. local event routines need dusk bot running and the computer awake. use dusk cloud if the repository needs attention while your machine is off.",

@@ -84,7 +84,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/files-and-apps": {
-  "hash": "9789733b5a47ee98",
+  "hash": "1c438c182037992a",
   "lastmod": "2026-11-12"
  },
  "/docs/computer": {
@@ -116,35 +116,35 @@
   "lastmod": "2026-11-12"
  },
  "/ai-agent-that-controls-your-computer": {
-  "hash": "8e6fee1fc2c58692",
+  "hash": "1ac33b5cf0a08ee9",
   "lastmod": "2026-11-12"
  },
  "/ai-chief-of-staff": {
-  "hash": "166dceabb6bfa607",
+  "hash": "88a45f4d76baed76",
   "lastmod": "2026-11-12"
  },
  "/ai-employees": {
-  "hash": "bb5914da269e9030",
+  "hash": "b0d2bafb3f1809a3",
   "lastmod": "2026-11-12"
  },
  "/ai-executive-assistant": {
-  "hash": "c4d968ca7cccd8bc",
+  "hash": "3a9138fbf70b67af",
   "lastmod": "2026-11-12"
  },
  "/ai-group-chat": {
-  "hash": "f98728f9a34d7bf9",
+  "hash": "f750e14e6d481dee",
   "lastmod": "2026-11-12"
  },
  "/alternatives/claude-cowork": {
-  "hash": "8368472e82d65408",
+  "hash": "e2f92ba30350760c",
   "lastmod": "2026-11-12"
  },
  "/alternatives/hermes-agent": {
-  "hash": "8400aede1f64eeb1",
+  "hash": "c629949c4a9c0441",
   "lastmod": "2026-11-12"
  },
  "/alternatives/manus": {
-  "hash": "dec2f65b51557207",
+  "hash": "6316a88caa3cf7f4",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw": {
@@ -152,7 +152,7 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-hosting": {
-  "hash": "b20dcfbeab404a1e",
+  "hash": "1092836fd347b46b",
   "lastmod": "2026-11-12"
  },
  "/alternatives/openclaw-no-setup": {
@@ -176,7 +176,7 @@
   "lastmod": "2026-11-12"
  },
  "/integrations/github": {
-  "hash": "1418758f54d1a4e6",
+  "hash": "1061fa24aa6f10a6",
   "lastmod": "2026-11-12"
  },
  "/integrations/gmail": {
@@ -184,7 +184,7 @@
   "lastmod": "2026-11-12"
  },
  "/integrations/google-calendar": {
-  "hash": "70e512fb0efbf6dc",
+  "hash": "260e086fdb104df9",
   "lastmod": "2026-11-12"
  },
  "/integrations/google-sheets": {
@@ -196,23 +196,23 @@
   "lastmod": "2026-11-12"
  },
  "/integrations/outlook": {
-  "hash": "4a179d8066f5210f",
+  "hash": "1430620c505af178",
   "lastmod": "2026-11-12"
  },
  "/integrations/slack": {
-  "hash": "2458244c9fd9f8e0",
+  "hash": "9a258f8e6ca42a56",
   "lastmod": "2026-11-12"
  },
  "/personal-ai-agent": {
-  "hash": "68cc38e0fb665a46",
+  "hash": "259b05a00ec21c49",
   "lastmod": "2026-11-12"
  },
  "/run-claude-code-24-7": {
-  "hash": "e0a3ba01c3f08361",
+  "hash": "4a7770018bbac99d",
   "lastmod": "2026-11-12"
  },
  "/scheduled-ai-tasks": {
-  "hash": "241b5b3668d7e602",
+  "hash": "6f62c65062902800",
   "lastmod": "2026-11-12"
  },
  "/tools/always-on-cost": {
@@ -220,11 +220,11 @@
   "lastmod": "2026-11-12"
  },
  "/use-cases/daily-briefing": {
-  "hash": "a300df4b12b7bb34",
+  "hash": "edc00f9a907d3a30",
   "lastmod": "2026-11-12"
  },
  "/use-cases/email-triage": {
-  "hash": "a47627c6bca3bc2b",
+  "hash": "0d9d0ab9a39b6ac1",
   "lastmod": "2026-11-12"
  },
  "/vs/openclaw-vs-hermes-agent": {
@@ -232,23 +232,23 @@
   "lastmod": "2026-11-12"
  },
  "/guides": {
-  "hash": "8111fcc1e0bd149c",
+  "hash": "0c89e107c0139c09",
   "lastmod": "2026-11-12"
  },
  "/alternatives": {
-  "hash": "712511b6455c6905",
+  "hash": "a37861db49978c7b",
   "lastmod": "2026-11-12"
  },
  "/integrations": {
-  "hash": "6a6874caafece957",
+  "hash": "dad7d62e970e2ffd",
   "lastmod": "2026-11-12"
  },
  "/use-cases": {
-  "hash": "97f54a09eed79916",
+  "hash": "09da8d7f756ef5aa",
   "lastmod": "2026-11-12"
  },
  "/tools": {
-  "hash": "80e44ad6e3ca5478",
+  "hash": "663e1c9b9584eb10",
   "lastmod": "2026-11-12"
  }
 }

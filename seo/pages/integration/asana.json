@@ -90,7 +90,7 @@
       "output": "a reply checklist for the next contractor check-in"
     }
   ],
-  "asks": "read-only access prevents task creation, edits and section moves before a call reaches asana. if you later enable changes, write \"ask me before you change anything\" into the routine when you want to review them. do not assume a due-date edit or reassignment has a separate approval card.\n\nsends through connected apps ask first by default, unless you set a daily sending allowance. that sending rule is separate from permission to change project records. use a small allowed action list for a bot whose only writing job is creating agreed tasks.",
+  "asks": "read-only access prevents task creation, edits and section moves before a call reaches asana. if you later enable changes, write \"ask me before you change anything\" into the routine when you want to review them. do not assume a due-date edit or reassignment has a separate approval card.\n\nsends through connected apps ask first by default, unless you set a daily sending allowance. one exception: a bot on **Full access** with no sending rule of its own may send up to 25 a day without asking, so give full-access bots **Ask every time** under sending. that sending rule is separate from permission to change project records. use a small allowed action list for a bot whose only writing job is creating agreed tasks.",
   "cannot": [
     "work on a project outside the access available to its connected account. a similarly named project is not a reason to guess; give the bot the exact project.",
     "create tasks or correct assignments while the asana connection for that bot is read only. the review routines above deliberately leave those records alone.",
