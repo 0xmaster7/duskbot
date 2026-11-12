@@ -28,10 +28,10 @@ async function server({ installed = "1.0.0", state = {}, actions, selfTest = nul
   if (selfTest) await writeFile(join(data, "update-state.json"), JSON.stringify({ v: 1, boots: [], selfTest }));
   const file = join(dir, "fixture.sh");
   await writeFile(file, `${script}
-SVC_HOME=${home} STATE=${stateDir} DATA=${data} TMP=${dir} NODE_BIN=${process.execPath} SELFTEST_WAIT=2
+SVC_HOME=${home} STATE=${stateDir} DATA=${data} TMP=${dir} PKGS=${join(dir, "pkgs")} NODE_BIN=${process.execPath} SELFTEST_WAIT=2
 log=${join(dir, "log")}
 get_package() { printf 'package for %s\\n' "$PKG_SHA" > "$1"; }
-as_user() { shift 0; printf 'as_user %s\\n' "$*" >> "$log"; v=$(cat "$9" 2>/dev/null | sed -n 's/^v=//p'); [ -z "$v" ] || printf '{\\n  "version": "%s"\\n}\\n' "$v" > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; printf 'as_user %s\\n' "$*" >> "$log"; eval "f=\\\${$#}"; v=$(sed -n 's/^v=//p' "$f" 2>/dev/null); [ -z "$v" ] || printf '{\\n  "version": "%s"\\n}\\n' "$v" > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"; }
 retry() { "$@"; }
 chown() { :; }
 install() { while [ $# -gt 1 ]; do shift; done; mkdir -p "$1"; }

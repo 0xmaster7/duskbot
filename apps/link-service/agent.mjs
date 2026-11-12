@@ -1315,8 +1315,10 @@ export function createUpdater({ base, dir = releasesDir(), current = AGENT_VERSI
  * same install.sh pins. this check only saves a wasted download: root's updater checks everything again
  */
 export const SERVER_RELEASE_KEYS = Object.freeze(["rel-2026-11:wtwZypDwVPBXZ25XsZOVpd0PZPBbVMhugheUj5_NLIM"]);
-const SERVER_UPDATE_EVERY_MS = 3 * 60 * 60_000;
+const SERVER_UPDATE_EVERY_MS = 60 * 60_000;
 const SERVER_UPDATE_FIRST_MS = 10 * 60_000;
+/** each check lands somewhere in this much more, so servers that started together do not ask the link service together */
+const SERVER_UPDATE_JITTER_MS = 20 * 60_000;
 const SIGNATURE = /^r1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]{1,4000}\.[A-Za-z0-9_-]{40,200}$/;
 export const serverReleaseDir = () => join(configDir(), "server-release");
 
@@ -1337,10 +1339,10 @@ export function serverReleaseSigned(signature, sha256, keys = SERVER_RELEASE_KEY
 /**
  * stages the server build the link service hands out for root's updater (install.sh --update-server, run by
  * duskbot-server-update.timer): `<sha256>.tgz` once it matches its hash and, when signed, a pinned key; `ready.json`
- * last. it never installs anything: the server is root's. an unsigned offer is staged for root to judge (root refuses
- * one once this server took a signed build); a bad signature is not
+ * last. it never installs anything: the server is root's, and root's updater takes signed builds only, so an unsigned
+ * offer or a bad signature is never downloaded
  */
-export function createServerUpdater({ base, id, token, dir = serverReleaseDir(), keys = [...SERVER_RELEASE_KEYS, ...(process.env.DUSK_RELEASE_PUBLIC_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, current = async () => (await serverLink())?.version ?? null, now = Date.now, log = () => {}, everyMs = SERVER_UPDATE_EVERY_MS, firstMs = SERVER_UPDATE_FIRST_MS }) {
+export function createServerUpdater({ base, id, token, dir = serverReleaseDir(), keys = [...SERVER_RELEASE_KEYS, ...(process.env.DUSK_RELEASE_PUBLIC_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean)], fetchImpl = fetch, current = async () => (await serverLink())?.version ?? null, now = Date.now, log = () => {}, everyMs = SERVER_UPDATE_EVERY_MS, firstMs = SERVER_UPDATE_FIRST_MS, jitterMs = SERVER_UPDATE_JITTER_MS, random = Math.random }) {
   let checking = null, timer = null, last = { checkedAt: null, staged: null, error: null };
   const auth = { authorization: `Bearer ${token}` };
 
@@ -1365,10 +1367,10 @@ export function createServerUpdater({ base, id, token, dir = serverReleaseDir(),
     if (!/^[0-9a-f]{64}$/.test(sha256) || !Number.isSafeInteger(size) || size <= 0 || size > 2 * 1024 ** 3) throw new Error("the server release is not usable");
     const signature = typeof pkg.signature === "string" ? pkg.signature : null;
     const signed = signature ? serverReleaseSigned(signature, sha256, keys) : null;
-    if (signature && !signed) throw new Error("the server release is not signed by a pinned key");
-    const version = signed?.version ?? (/^\d+\.\d+\.\d+$/.test(pkg.version ?? "") ? pkg.version : null);
+    if (!signed) throw new Error("the server release is not signed by a pinned key");
+    const version = signed.version;
     const running = await current().catch(() => null);
-    if (version && running && compareVersions(version, running) <= 0) return null;
+    if (running && compareVersions(version, running) <= 0) return null;
     let ready = null;
     try { ready = JSON.parse(readFileSync(join(dir, "ready.json"), "utf8")); } catch { /* nothing staged */ }
     if (ready?.sha256 === sha256 && existsSync(join(dir, `${sha256}.tgz`))) return version;
@@ -1376,9 +1378,9 @@ export function createServerUpdater({ base, id, token, dir = serverReleaseDir(),
     await download(sha256, size);
     const policy = offer.policy && typeof offer.policy.body === "string" && /^[A-Za-z0-9_-]{1,32000}$/.test(offer.policy.body) && SIGNATURE.test(offer.policy.signature ?? "")
       ? { body: offer.policy.body, signature: offer.policy.signature } : null;
-    writePrivate(join(dir, "ready.json"), JSON.stringify({ v: 1, sha256, size, version, ...(signature ? { signature } : {}), ...(policy ? { policy } : {}), at: now() }));
+    writePrivate(join(dir, "ready.json"), JSON.stringify({ v: 1, sha256, size, version, signature, ...(policy ? { policy } : {}), at: now() }));
     for (const name of readdirSync(dir)) if (/^[0-9a-f]{64}\.tgz(\.part)?$/.test(name) && !name.startsWith(sha256)) rmSync(join(dir, name), { force: true });
-    log(`link: server build ${version ?? sha256.slice(0, 12)} is staged; it installs once no bot is working`);
+    log(`link: server build ${version} is staged; it installs once no bot is working`);
     return version;
   }
 
@@ -1394,8 +1396,9 @@ export function createServerUpdater({ base, id, token, dir = serverReleaseDir(),
     status: () => ({ ...last }),
     start() {
       if (timer) return;
-      const again = () => { void check(); timer = setTimeout(again, everyMs); timer.unref?.(); };
-      timer = setTimeout(again, firstMs);
+      const spread = (ms) => ms + Math.floor(random() * jitterMs);
+      const again = () => { void check(); timer = setTimeout(again, spread(everyMs)); timer.unref?.(); };
+      timer = setTimeout(again, spread(firstMs));
       timer.unref?.();
     },
     stop() { clearTimeout(timer); timer = null; },

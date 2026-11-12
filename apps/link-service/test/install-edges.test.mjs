@@ -147,13 +147,15 @@ async function sh(actions) {
   for (const sub of [join(home, ".local/lib/node_modules/duskbot"), join(home, ".local/bin"), join(home, ".cache/duskbot-link"), state, join(home, ".duskbot")]) mkdirSync(sub, { recursive: true });
   mkdirSync(join(at, "bin"));
   writeFileSync(join(at, "fixture.sh"), `${script}
-SVC_HOME=${home} STATE=${state} DATA=${home}/.duskbot TMP=${at} LOGS=${at} LINK_HOME=${at}/link NODE_BIN=${process.execPath} SELFTEST_WAIT=2
+SVC_HOME=${home} STATE=${state} DATA=${home}/.duskbot TMP=${at} PKGS=${at}/pkgs LOGS=${at} LINK_HOME=${at}/link NODE_BIN=${process.execPath} SELFTEST_WAIT=2
 log=${at}/log; : > "$log"
 stub() { printf '#!/bin/sh\n%s\n' "$2" > "$TMP/bin/$1"; chmod +x "$TMP/bin/$1"; }
 retry() { "$@"; }
 chown() { :; }
 x() { printf 'x %s\\n' "$*" >> "$log"; }
 sleep() { :; }
+mkdir -p "$PKGS"
+as_user() { "$@"; }
 ${actions}
 `);
   const out = await run("sh", [join(at, "fixture.sh")], { env: { PATH: `${at}/bin:/usr/bin:/bin:/usr/sbin:/sbin`, TERM: "dumb" } }).then((r) => r.stdout + r.stderr, (e) => `${e.stdout}${e.stderr}\nexit ${e.code}`);
@@ -193,10 +195,10 @@ state_set package sha256:${oldSha}
 printf 'v=1.0.0' > "$SVC_HOME/.cache/duskbot-link/duskbot-${oldSha}.tgz"
 PKG_SHA=${newSha} PKG_VERSION=1.1.0 OFFLINE=0
 get_package() { printf 'v=1.1.0' > "$1"; }
-as_user() { echo "npm stopped" >> "$log"; return 130; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; echo "npm stopped" >> "$log"; return 130; }
 ( set -e; do_app ) || echo "first run stopped"
 echo "after stop: package=$(state_get package) pending=$(state_get update-pending) prev=$(state_get package-prev) half=$(state_get app-installing)"
-as_user() { printf 'as_user %s\\n' "$*" >> "$log"; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; printf 'as_user %s\\n' "$*" >> "$log"; }
 PKG_SHA="" OFFLINE=1
 ( set -e; do_app ) && echo "repair finished: package=$(state_get package) half=$(state_get app-installing)"`);
     expect(s.out).toContain("first run stopped");
@@ -213,10 +215,10 @@ printf 'v=1.0.0' > "$SVC_HOME/.cache/duskbot-link/duskbot-${oldSha}.tgz"
 state_set package sha256:${newSha}; state_set package-prev sha256:${oldSha}; state_set update-pending 1.1.0
 printf '{"v":1,"selfTest":{"version":"1.1.0","ok":false}}' > "$DATA/update-state.json"
 wait_health() { return 0; }
-as_user() { return 1; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; return 1; }
 update_settle 1 || echo "rollback stopped"
 echo "pending=$(state_get update-pending) package=$(state_get package) failed=$(state_get update-failed)"
-as_user() { printf 'as_user %s\\n' "$*" >> "$log"; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; printf 'as_user %s\\n' "$*" >> "$log"; }
 update_settle 1
 echo "pending=$(state_get update-pending) package=$(state_get package) failed=$(state_get update-failed)"`);
     expect(s.out).toContain("rollback stopped");
@@ -248,7 +250,7 @@ gate_up() { :; }; box_works() { :; }; wait_health() { return 1; }; systemctl() {
 do_service || echo "service failed, failed=$(state_get update-failed)"
 PKG_SHA=${good} PKG_VERSION=1.0.0 OFFLINE=0
 get_package() { printf 'v=1.0.0' > "$1"; }
-as_user() { printf '{\n  "version": "1.0.0"\n}\n' > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"; }
+as_user() { [ "$1" = npm ] || { "$@"; return; }; printf '{\n  "version": "1.0.0"\n}\n' > "$SVC_HOME/.local/lib/node_modules/duskbot/package.json"; }
 do_app && echo "package=$(state_get package)"`);
     expect(s.out).toContain("service failed, failed=1.1.0");
     expect(s.out).toContain(`package=sha256:${good}`);

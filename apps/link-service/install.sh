@@ -67,6 +67,9 @@ AGENT=/opt/duskbot-link/agent.mjs
 # root's copy of this script, run by duskbot-server-update.timer as `--update-server`; the build it installs is the one
 # the link agent staged in its own folder, which this script checks again from scratch
 UPDATER=/usr/local/lib/duskbot/install.sh
+# the server builds root checked (the one running and the one before, for a rollback), in root's own folder: root never
+# writes, reads or changes a path inside the server account's home, which that account could point anywhere
+PKGS=/var/lib/duskbot-link/packages
 SERVER_RELEASE=/var/lib/omb-link/.config/duskbot-link/server-release
 PORT=8799
 UNITS=/etc/systemd/system
@@ -976,13 +979,14 @@ if (version) {
 out("ok " + (version || "unknown") + " " + (e.SIG ? "signed" : "unsigned"));
 DUSK_CHECK
   KEYS="$RELEASE_KEYS" SHA="$2" SIG="$PKG_SIG" OFFER_VERSION="${PKG_VERSION:-}" POLICY_BODY="$POLICY_BODY" POLICY_SIG="$POLICY_SIG" \
-    HELD_POLICY="$STATE/update-policy.json" INSTALLED="$(installed_version)" FAILED="$(state_get update-failed)" SIGNED_BEFORE="$(state_get signed)" \
+    HELD_POLICY="$STATE/update-policy.json" INSTALLED="$(installed_version)" FAILED="$(state_get update-failed)" SIGNED_BEFORE="$([ "${REQUIRE_SIGNED:-}" = 1 ] && echo 1 || state_get signed)" \
     "$NODE_BIN" "$TMP/update-check.js" || echo "refuse check"
 }
-installed_version() { sed -n 's/^ *"version": *"\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' "$SVC_HOME/.local/lib/node_modules/duskbot/package.json" 2>/dev/null | head -n 1; }
+# files in the server account's home are read as that account, never by root through a path it could point anywhere
+installed_version() { as_user head -c 65536 "$SVC_HOME/.local/lib/node_modules/duskbot/package.json" 2>/dev/null | sed -n 's/^ *"version": *"\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' | head -n 1; }
 # the server's own self-test on <version> (server/update-state.ts): passed, failed, or nothing yet
 selftest_result() {
-  "$NODE_BIN" -e 'try { const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).selfTest; if (s && s.version === process.argv[2]) console.log(s.ok ? "passed" : "failed"); } catch {}' "$DATA/update-state.json" "$1" 2>/dev/null || true
+  as_user head -c 1048576 "$DATA/update-state.json" 2>/dev/null | "$NODE_BIN" -e 'try { const s = JSON.parse(require("node:fs").readFileSync(0, "utf8")).selfTest; if (s && s.version === process.argv[1]) console.log(s.ok ? "passed" : "failed"); } catch {}' "$1" 2>/dev/null || true
 }
 # after the server restarted on a new build: settles it, or puts the build before back. $1: 1 when the server answered
 update_settle() {
@@ -1000,8 +1004,8 @@ update_settle() {
   fi
   if [ "$ok" = 1 ]; then state_set update-pending ""; echo "Updated to $pending"; return 0; fi
   prev=$(state_get package-prev)
-  file="$SVC_HOME/.cache/duskbot-link/duskbot-${prev#sha256:}.tgz"
-  case "$prev" in sha256:*) [ -f "$file" ] || prev="" ;; *) prev="" ;; esac
+  file="$PKGS/duskbot-${prev#sha256:}.tgz"
+  case "$prev" in sha256:*) root_copy "${prev#sha256:}" || prev="" ;; *) prev="" ;; esac
   note_failed "$pending"
   if [ -z "$prev" ]; then state_set update-pending ""; echo "the update to $pending did not pass its self-test and there is no build here to go back to"; return 1; fi
   echo "the update to $pending did not pass its self-test: going back to the build before"
@@ -1042,9 +1046,8 @@ do_app() {
     return 1
   fi
   if [ -x "$bin" ] && [ "$(state_get package)" = "sha256:$PKG_SHA" ] && [ -z "$(state_get app-installing)" ]; then echo "already installed: build ${PKG_SHA%"${PKG_SHA#????????????}"}"; return 0; fi
-  cache="$SVC_HOME/.cache/duskbot-link"
-  install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
-  file="$cache/duskbot-$PKG_SHA.tgz"
+  [ -d "$PKGS" ] && [ ! -L "$PKGS" ] || install -d -o root -g root -m 0700 "$PKGS"
+  file="$PKGS/duskbot-$PKG_SHA.tgz"
   get_package "$file"
   verdict=$(update_check "$file" "$PKG_SHA")
   case "$verdict" in
@@ -1054,10 +1057,10 @@ do_app() {
       if [ -x "$bin" ]; then echo "keeping the installed build: the offered one is not taken (${verdict#refuse })"; return 0; fi
       echo "the offered build is not taken (${verdict#refuse })"; return 1 ;;
   esac
-  chown "$SVC_USER:$SVC_USER" "$file"
   prev=$(state_get package)
-  # the build before stays cached: it is what a failed update goes back to
-  find "$cache" -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" ! -name "duskbot-${prev#sha256:}.tgz" -exec rm -f {} + 2>/dev/null || true
+  # the build before stays in root's folder: it is what a failed update goes back to
+  case "$prev" in sha256:*) root_copy "${prev#sha256:}" || true ;; esac
+  find "$PKGS" -maxdepth 1 -type f -name 'duskbot-*.tgz*' ! -name "duskbot-$PKG_SHA.tgz" ! -name "duskbot-$PKG_SHA.tgz.part" ! -name "duskbot-${prev#sha256:}.tgz" -exec rm -f {} + 2>/dev/null || true
   # noted before npm touches anything: a run stopped part way still settles or rolls back this update next time
   if [ -n "$prev" ] && [ "$prev" != "sha256:$PKG_SHA" ]; then
     state_set package-prev "$prev"; state_set update-pending "$(printf '%s' "$verdict" | cut -d' ' -f2)"
@@ -1068,18 +1071,36 @@ do_app() {
 
 # npm replaces the installed files in place, so a stop part way leaves a mix: app-installing says which build was going
 # in, and the next run (a repair without a line too) finishes it from the verified download
-install_build() { # sha256:<hex> file
+install_build() { # sha256:<hex> root's verified file
   state_set app-installing "$1"
-  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$2" || return 1
+  _theirs=$(hand_over "$2") || { echo "could not hand the build to $SVC_USER"; return 1; }
+  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" "$_theirs" || return 1
   [ -x "$SVC_HOME/.local/bin/duskbot" ] || { echo "duskbot is missing after install"; return 1; }
   state_set package "$1"
   state_set app-installing ""
 }
+# root's verified copy of a build hands npm a copy the server account writes itself, into its own cache: root only reads
+# its own file and the account's write lands wherever the account may write anyway. prints that copy's path
+hand_over() { # root's file
+  _dest="$SVC_HOME/.cache/duskbot-link/${1##*/}"
+  as_user sh -c 'umask 077; mkdir -p "$1" && find "$1" -maxdepth 1 -name "duskbot-*.tgz*" ! -name "${2##*/}" -exec rm -f {} + && cat > "$2.tmp" && mv -f "$2.tmp" "$2"' sh "${_dest%/*}" "$_dest" < "$1" || return 1
+  echo "$_dest"
+}
+# root's own verified copy of build <sha256> in $PKGS; one only in the server account's cache (an install from before
+# $PKGS) is read as that account and kept only when it matches
+root_copy() { # sha256
+  _f="$PKGS/duskbot-$1.tgz"
+  [ -f "$_f" ] && [ ! -L "$_f" ] && [ "$(sha256sum "$_f" | cut -d' ' -f1)" = "$1" ] && return 0
+  [ -d "$PKGS" ] && [ ! -L "$PKGS" ] || install -d -o root -g root -m 0700 "$PKGS"
+  as_user cat "$SVC_HOME/.cache/duskbot-link/duskbot-$1.tgz" > "$_f.tmp" 2>/dev/null || { rm -f "$_f.tmp"; return 1; }
+  [ "$(sha256sum "$_f.tmp" | cut -d' ' -f1)" = "$1" ] || { rm -f "$_f.tmp"; return 1; }
+  mv -f "$_f.tmp" "$_f"
+}
 finish_interrupted() {
   half=$(state_get app-installing)
   [ -n "$half" ] || return 1
-  file="$SVC_HOME/.cache/duskbot-link/duskbot-${half#sha256:}.tgz"
-  if [ -f "$file" ] && [ "sha256:$(sha256sum "$file" | cut -d' ' -f1)" = "$half" ]; then
+  file="$PKGS/duskbot-${half#sha256:}.tgz"
+  if root_copy "${half#sha256:}"; then
     echo "finishing the install of build ${half#sha256:} that stopped part way"
     install_build "$half" "$file"
     return
@@ -1843,62 +1864,80 @@ refresh_updater() { # verified tgz
 
 # the build the link agent staged, read as data: "<sha256> <size> <version|-> <signature|-> <policy body|-> <policy signature|->",
 # every field checked against its own pattern, so nothing from that folder reaches the shell unchecked
+as_link() { runuser -u "$LINK_USER" -- "$@"; }
 staged_offer() {
-  "$NODE_BIN" -e '
+  as_link head -c 70000 "$SERVER_RELEASE/ready.json" 2>/dev/null | "$NODE_BIN" -e '
 const fs = require("node:fs");
 const SIG = /^r1\.[a-z0-9-]{1,32}\.[A-Za-z0-9_-]{1,4000}\.[A-Za-z0-9_-]{40,200}$/;
-let r; try { r = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); } catch { process.exit(1); }
-if (!/^[0-9a-f]{64}$/.test(r?.sha256 ?? "") || !Number.isSafeInteger(r.size) || r.size <= 0) process.exit(1);
+let r; try { r = JSON.parse(fs.readFileSync(0, "utf8")); } catch { process.exit(1); }
+if (!/^[0-9a-f]{64}$/.test(r?.sha256 ?? "") || !Number.isSafeInteger(r.size) || r.size <= 0 || r.size > 2 * 1024 ** 3) process.exit(1);
 const or = (ok, v) => (ok ? v : "-");
 const body = r.policy?.body, psig = r.policy?.signature;
 const policy = typeof body === "string" && /^[A-Za-z0-9_-]{1,32000}$/.test(body) && SIG.test(psig ?? "");
 console.log([r.sha256, r.size, or(/^\d+\.\d+\.\d+$/.test(r.version ?? ""), r.version), or(SIG.test(r.signature ?? ""), r.signature), or(policy, body), or(policy, psig)].join(" "));
-' "$SERVER_RELEASE/ready.json" 2>/dev/null
+' 2>/dev/null
 }
 
-# what holds an update back now (server/routes/updates.ts): nothing when idle, the hold codes, or "unknown". a server
-# that refuses the connection runs nothing, so an update (which may well fix it) goes ahead
+# what holds an update back now (server/routes/updates.ts): nothing when idle, else the hold codes, or "unknown" when the
+# running server does not say
 server_holds() {
   _code=$(curl -sS -m 10 -o "$TMP/busy" -w '%{http_code}' "http://127.0.0.1:$PORT/api/updates/busy" 2>/dev/null) && _rc=0 || _rc=$?
-  [ "$_rc" = 7 ] && return 0
   [ "$_rc" = 0 ] && [ "$_code" = 200 ] || { echo unknown; return 0; }
   "$NODE_BIN" -e 'try { const b = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).busy; if (!Array.isArray(b)) throw 0; console.log(b.filter((c) => /^[a-z-]{1,30}$/.test(c)).join(" ")); } catch { console.log("unknown"); }' "$TMP/busy"
 }
+# whether the server may be restarted now: "go" when it is running and idle, or failed or stuck starting (nothing runs
+# there, and the update may well fix it); else why not. a server someone stopped stays stopped
+restart_allowed() {
+  _state=$(systemctl is-active duskbot.service 2>/dev/null) || true
+  case "$_state" in
+    active) _holds=$(server_holds); [ -n "$_holds" ] && echo "$_holds" || echo go ;;
+    failed|activating) echo go ;;
+    *) echo "stopped (${_state:-unknown})" ;;
+  esac
+}
+# right before a restart: waits up to UPDATE_RESTART_WAIT seconds in short steps for the server to fall idle
+restart_wait() {
+  _waited=0
+  while :; do
+    _why=$(restart_allowed)
+    [ "$_why" != go ] || return 0
+    [ "$_waited" -lt "${UPDATE_RESTART_WAIT:-300}" ] || { echo "$(date -u '+%F %T') the restart waits for the next round: $_why"; return 1; }
+    sleep 15; _waited=$((_waited + 15))
+  done
+}
 
-# `sh install.sh --update-server` (root, from duskbot-server-update.timer): the staged build, checked again here (hash,
-# signature, policy, never older, never one that failed here), installed only while no bot is working, then the server
-# restarts and must answer and pass its self-test, or the build before goes back (update_settle)
+# `sh install.sh --update-server` (root, from duskbot-server-update.timer): the staged build, read as the link account
+# and checked again in root's own folder (hash, a pinned signature: this path takes signed builds only, policy, never
+# older, never one that failed here), installed only while no bot is working, then the server restarts (only while it
+# is still idle) and must answer and pass its self-test, or the build before goes back (update_settle)
 update_server() {
   [ "$(id -u)" -eq 0 ] || { echo "--update-server runs as root"; return 1; }
   if command -v flock >/dev/null 2>&1; then exec 9>>"$INSTALL_LOCK"; flock -n 9 || { echo "an install is running; the update waits for the next round"; return 0; }; LOCKED=1; fi
   [ -f "$STATE/linked" ] || return 0
-  TMP=$(mktemp -d) LINK_ID=$(state_get id) VPS_TOKEN="" OFFLINE=0
+  TMP=$(mktemp -d) LINK_ID=$(state_get id) VPS_TOKEN="" OFFLINE=0 REQUIRE_SIGNED=1
   PROGRESS="$TMP/progress"
   trap 'rm -rf "$TMP"' EXIT
-  # a run cut off part way (power, a stop) settles first: its rollback, or the finish of its npm install
-  if [ -n "$(state_get update-pending)" ] && [ "$(state_get running-package)" != "$(state_get package)" ] || [ -n "$(state_get app-installing)" ]; then
+  # a round that installed but did not restart yet, or was cut off part way (power, a stop): its restart and settle first
+  if [ -n "$(state_get app-installing)" ] || { [ -n "$(state_get update-pending)$(state_get running-package)" ] && [ "$(state_get running-package)" != "$(state_get package)" ]; }; then
+    restart_wait || return 0
     restart_settle; return
   fi
-  [ -f "$SERVER_RELEASE/ready.json" ] || return 0
-  offer=$(staged_offer) || { echo "the staged server build is not readable"; return 0; }
+  offer=$(staged_offer) || return 0
   set -f; set -- $offer; set +f
   [ "$#" = 6 ] || return 0
   dash() { [ "$1" = - ] && echo "" || echo "$1"; }
   PKG_SHA=$1 PKG_SIZE=$2 PKG_VERSION=$(dash "$3") PKG_SIG=$(dash "$4") POLICY_BODY=$(dash "$5") POLICY_SIG=$(dash "$6")
   [ "$(state_get package)" != "sha256:$PKG_SHA" ] || return 0
   [ "$(state_get server-update-refused)" != "$PKG_SHA" ] || return 0
-  holds=$(server_holds)
-  if [ -n "$holds" ]; then echo "$(date -u '+%F %T') build ${PKG_VERSION:-$PKG_SHA} waits: $holds"; return 0; fi
+  why=$(restart_allowed)
+  if [ "$why" != go ]; then echo "$(date -u '+%F %T') build ${PKG_VERSION:-$PKG_SHA} waits: $why"; return 0; fi
   echo "$(date -u '+%F %T') installing build ${PKG_VERSION:-$PKG_SHA}"
-  # root's own copy, checked here: the staged folder is the link account's
-  own="$STATE/server-update"
-  install -d -m 0700 "$own"
-  find "$own" -type f ! -name "$PKG_SHA.tgz" -exec rm -f {} + 2>/dev/null || true
-  cp "$SERVER_RELEASE/$PKG_SHA.tgz" "$own/$PKG_SHA.tgz.tmp" && mv "$own/$PKG_SHA.tgz.tmp" "$own/$PKG_SHA.tgz" || { echo "the staged build is gone"; return 0; }
-  if [ "$(sha256sum "$own/$PKG_SHA.tgz" | cut -d' ' -f1)" != "$PKG_SHA" ]; then echo "the staged build does not match its hash"; rm -f "$own/$PKG_SHA.tgz"; return 0; fi
-  cache="$SVC_HOME/.cache/duskbot-link"
-  install -d -o "$SVC_USER" -g "$SVC_USER" -m 0700 "$cache"
-  cp "$own/$PKG_SHA.tgz" "$cache/duskbot-$PKG_SHA.tgz"
+  # root's own copy, read as the link account (its folder is that account's), capped at the size it said
+  [ -d "$PKGS" ] && [ ! -L "$PKGS" ] || install -d -o root -g root -m 0700 "$PKGS"
+  _f="$PKGS/duskbot-$PKG_SHA.tgz"
+  as_link head -c "$PKG_SIZE" "$SERVER_RELEASE/$PKG_SHA.tgz" > "$_f.tmp" 2>/dev/null || { rm -f "$_f.tmp"; echo "the staged build is gone"; return 0; }
+  if [ "$(sha256sum "$_f.tmp" | cut -d' ' -f1)" != "$PKG_SHA" ]; then echo "the staged build does not match its hash"; rm -f "$_f.tmp"; return 0; fi
+  mv -f "$_f.tmp" "$_f"
   before=$(state_get package)
   set +e; ( set -e; do_app ); _rc=$?; set -e
   if [ "$(state_get package)" = "$before" ] && [ -z "$(state_get app-installing)" ]; then
@@ -1906,7 +1945,8 @@ update_server() {
     [ "$_rc" != 0 ] || state_set server-update-refused "$PKG_SHA"
     return 0
   fi
-  if [ "$_rc" = 0 ]; then refresh_updater "$own/$PKG_SHA.tgz"; fi
+  if [ "$_rc" = 0 ]; then refresh_updater "$_f"; fi
+  restart_wait || return 0
   restart_settle
 }
 # the server restarted on what is installed now, then settled: kept when it answers and passes its self-test, else the

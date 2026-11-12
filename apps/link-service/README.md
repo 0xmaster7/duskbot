@@ -132,19 +132,26 @@ stays on the relay; a transport that failed on a network is tried last there for
   `DUSK_LINK_UPDATES=off` turns it off for good.
 - **The server's own build.** The server is root's, so the agent only stages it and root installs it:
   - The agent reads `GET /v1/tunnels/<id>/server` with the tunnel's own VPS token (`{v:1, package:{sha256,size,version,signature?}, policy?}`,
-    404 `no_build` when none is published; 12 reads an hour per tunnel) 10 minutes after start and every 3 hours. When the
-    build is newer than the server's version (its well-known descriptor), it downloads
-    `GET /v1/tunnels/<id>/server/<sha256>.tgz` (only the current build, open byte ranges to resume, 12 a day per tunnel)
-    into `~/.config/duskbot-link/server-release/`, checks the hash and, when signed, the signature against the pinned
-    release keys (a bad signature is not staged), and writes `ready.json` last. `DUSK_LINK_SERVER_UPDATES=off` turns it off.
+    404 `no_build` when none is published; 12 reads an hour per tunnel) 10 to 30 minutes after start, then every 60 to
+    80 minutes (the spread keeps servers from asking together). Only a build signed by a pinned release key and newer
+    than the server's version (its well-known descriptor) is downloaded: `GET /v1/tunnels/<id>/server/<sha256>.tgz`
+    (only the current build, open byte ranges to resume, 12 a day per tunnel) into
+    `~/.config/duskbot-link/server-release/`, checked against its hash, with `ready.json` written last.
+    `DUSK_LINK_SERVER_UPDATES=off` turns it off.
   - `duskbot-server-update.timer` (15 minutes after boot, then 15 minutes after each run) runs root's copy of this
-    script, `/usr/local/lib/duskbot/install.sh --update-server`. It reads `ready.json` as data (every field checked
-    against its pattern), copies the tgz into root's own folder and checks its hash there, then asks the server
-    `GET /api/updates/busy` (owner-trust loopback only) and waits while anything holds (`turn`, `run`, `live-call`,
-    `computer`, `maintenance`; a server that refuses the connection runs nothing and is updated). The install is the
-    same as a pasted line's: signature, policy, never older, never a version that failed here, the build before kept,
-    and after the restart the server must answer and pass its self-test or the build before goes back. A build it would
-    not take is noted and not tried again. Its log is `/var/log/duskbot-link/server-update.log`.
+    script, `/usr/local/lib/duskbot/install.sh --update-server`. Root reads the link account's `ready.json` and tgz as
+    that account (`runuser`, capped at 70000 bytes and the size it said, at most 2 GiB) into its own folder
+    `/var/lib/duskbot-link/packages`, checks every field and the hash there, and takes signed builds only on this path.
+  - It goes ahead only when `systemctl is-active duskbot.service` is `active` and `GET /api/updates/busy` (owner-trust
+    loopback only) names no hold (`turn`, `run`, `live-call`, `computer`, `maintenance`), or the server is `failed` or
+    stuck `activating`. A server someone stopped stays stopped and is not updated. Just before the restart it asks
+    again and waits up to 5 minutes in 15 s steps; still busy, the restart waits for the next round.
+  - The install is the same as a pasted line's: signature, policy, never older, never a version that failed here, the
+    build before kept in root's folder, and after the restart the server must answer and pass its self-test or the build
+    before goes back. A build it would not take is noted and not tried again. Its log is
+    `/var/log/duskbot-link/server-update.log`.
+  - Root never writes, reads or changes a path in the server account's home: npm gets a copy the server account writes
+    into its own cache from root's file on stdin (pasted lines too).
   - Root's copy of the script comes from the link service when a line runs (the same trust as the line), and after that
     only from a signed build that carries it (`link/install.sh` in the package, `scripts/build-vps-package.mjs`).
   - An install from before this needs one more pasted line (or `--repair`) to get the timer.
