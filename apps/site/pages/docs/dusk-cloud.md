@@ -20,7 +20,7 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 
 | | plus | pro | team |
 | --- | --- | --- | --- |
-| **price** | $20 a month, or $220 a year | $50 a month, or $550 a year | $119 a month, or $1,309 a year |
+| **price** | $20 a month, or $200 a year | $50 a month, or $500 a year | $119 a month, or $1,190 a year |
 | **cloud computer** | 2 vcpu, 4 gb ram, 20 gb disk | 4 vcpu, 8 gb ram, 60 gb disk | dedicated: 8 vcpu, 16 gb ram, 160 gb disk |
 | **wake** | always available, wakes in seconds | always available, priority wake | always available, priority wake |
 | **license** | no work license | work license for one person | team license, 2 seats ($20 a month per extra member) |

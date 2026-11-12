@@ -1,6 +1,6 @@
 ## Terms of use
 
-Effective date: 12 November 2026. Last updated: 13 November 2026.
+Effective date: 12 November 2026. Last updated: 12 November 2026.
 
 These terms govern your use of dusk bot, dusk.bot, the account dashboard at dusk.bot/dashboard, and the link service at link.dusk.bot. The services are operated by dusk bot. In these terms, “dusk bot”, “we” and “us” mean the operator of the services, and your agreement is with that operator. Contact hello@dusk.bot with questions before you use the services. Legal notices may also be sent to that address.
 
@@ -38,7 +38,7 @@ You must have the rights and permissions needed for content you give to a bot. T
 
 Dodo Payments is the merchant of record for paid plans. It handles card data, tax and invoices. We store subscription status, plan lines, amounts and payment identifiers. We do not store card numbers. Review the price, billing period, renewal conditions and applicable payment terms shown when you purchase.
 
-Plans are billed in US dollars, monthly or yearly, before any tax shown at checkout. Current prices are on the pricing page at dusk.bot/pricing. A yearly plan costs eleven months of the monthly price. Your AI usage is never on your dusk bot bill: your AI provider bills you under your own plan with them.
+Plans are billed in US dollars, monthly or yearly, before any tax shown at checkout. Current prices are on the pricing page at dusk.bot/pricing. A yearly plan costs ten months of the monthly price. Your AI usage is never on your dusk bot bill: your AI provider bills you under your own plan with them.
 
 Recurring plans renew automatically at the end of each billing period, at the price then in effect for your plan, until you cancel. The billing page of your account shows your plan, your next renewal date and your invoices. If we change the price of a plan you are on, we will email you at least 30 days before the new price applies, and the change takes effect from your next renewal after that notice. You can cancel before then.
 

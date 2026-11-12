@@ -1,6 +1,6 @@
 {
  "/": {
-  "hash": "06c39f735e40e050",
+  "hash": "18fcca6a37f83103",
   "lastmod": "2026-11-13"
  },
  "/download": {
@@ -12,7 +12,7 @@
   "lastmod": "2026-11-12"
  },
  "/pricing": {
-  "hash": "a7e72da4e465e8d7",
+  "hash": "d5b7219b0fdff3a9",
   "lastmod": "2026-11-13"
  },
  "/about": {
@@ -32,19 +32,19 @@
   "lastmod": "2026-11-12"
  },
  "/terms": {
-  "hash": "0c5a77144e8ae981",
+  "hash": "068e3587ae973111",
   "lastmod": "2026-11-13"
  },
  "/privacy": {
-  "hash": "3a04c9433539f114",
-  "lastmod": "2026-11-12"
+  "hash": "35b9f55de58a939a",
+  "lastmod": "2026-11-13"
  },
  "/cookies": {
   "hash": "cc4c27bedefd250f",
   "lastmod": "2026-11-12"
  },
  "/refunds": {
-  "hash": "162d8af8008dbb30",
+  "hash": "5fece10f5e735c1b",
   "lastmod": "2026-11-13"
  },
  "/acceptable-use": {
@@ -52,8 +52,8 @@
   "lastmod": "2026-11-13"
  },
  "/subprocessors": {
-  "hash": "469e54a4a8118238",
-  "lastmod": "2026-11-12"
+  "hash": "1a10f7b6c8421985",
+  "lastmod": "2026-11-13"
  },
  "/license": {
   "hash": "726e068d0244d338",
@@ -68,7 +68,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/dusk-cloud": {
-  "hash": "04faacfd1a493deb",
+  "hash": "6d57d759fc68049e",
   "lastmod": "2026-11-13"
  },
  "/docs/phone": {
@@ -108,7 +108,7 @@
   "lastmod": "2026-11-12"
  },
  "/docs/account-and-billing": {
-  "hash": "d8e7f95685f8448b",
+  "hash": "e4a42ba0682f1fe6",
   "lastmod": "2026-11-13"
  },
  "/docs/privacy-and-data": {
@@ -140,7 +140,7 @@
   "lastmod": "2026-11-12"
  },
  "/ai-employees": {
-  "hash": "bb2394b4db8199a8",
+  "hash": "7497ce88b673a7f5",
   "lastmod": "2026-11-13"
  },
  "/ai-executive-assistant": {
@@ -188,7 +188,7 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/n8n": {
-  "hash": "248d526bec172da1",
+  "hash": "71f882264c445b44",
   "lastmod": "2026-11-13"
  },
  "/alternatives/openclaw": {
@@ -216,7 +216,7 @@
   "lastmod": "2026-11-12"
  },
  "/alternatives/sintra": {
-  "hash": "63b88fe7454d218e",
+  "hash": "ed594940ab6ba04a",
   "lastmod": "2026-11-13"
  },
  "/alternatives/zapier-agents": {
@@ -836,7 +836,7 @@
   "lastmod": "2026-11-12"
  },
  "/tools/always-on-cost": {
-  "hash": "99592ba9b6600e02",
+  "hash": "440ebabd0df8ce82",
   "lastmod": "2026-11-13"
  },
  "/use-cases/competitor-monitoring": {
