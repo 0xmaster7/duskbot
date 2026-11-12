@@ -16,6 +16,9 @@ const bot = (shape, colour, pose, size, cx, foot, { flip = false, rot = 0 } = {}
   return `<div class="bot" style="left:${Math.round(cx - size / 2 - size * b.px / b.G)}px;top:${Math.round(foot - size * (b.pt + b.G) / b.G)}px;${t.trim() ? `transform:${t};transform-origin:50% 100%` : ''}">${b.svg(size)}</div>`;
 };
 const img = (file, h, cx, foot, w0 = 420, h0 = 420) => { const w = Math.round(w0 * h / h0); return `<img class="px" src="${A}/${file}" style="left:${Math.round(cx - w / 2)}px;top:${foot - h}px;width:${w}px;height:${h}px" alt="">`; };
+// each logo file's own white margin, cut away so the mark itself fills the tile (top right bottom left, in the file's pixels)
+const CROP = { 'gmail.png': '13px 7px 13px 7px', 'calendar.png': '7px 11px 11px 11px', 'slack.png': '12px 11px 11px 12px', 'linear.png': '3px', 'notion.png': '0 0 0 1px' };
+const logo = (file) => `<img src="${A}/logos/${file}"${CROP[file] ? ` style="object-view-box: inset(${CROP[file]})"` : ''} alt="">`;
 const tile = (inner, size, x, y, rot = 0) => `<div class="tile" style="left:${x}px;top:${y}px;width:${size}px;height:${size}px;transform:rotate(${rot}deg)">${inner}</div>`;
 const bub = (who, text, side, tint, bottomY, x = M) => `<div class="bub ${side}" style="${side}:${x}px;bottom:${H - bottomY}px;--u:${tint}"><div class="in"><span>${who}</span>${text}</div><i></i></div>`;
 const hill = (cx, half, rise) => [cx, half, rise];
@@ -32,7 +35,7 @@ body { position: relative; width: ${W}px; height: ${H}px; overflow: hidden; font
 .bot svg { display: block; overflow: visible; filter: drop-shadow(0 6px 0 rgba(12,24,60,0.12)); }
 .px { image-rendering: pixelated; }
 .tile { display: grid; place-items: center; background: #fdfdfd; border-radius: 22%; box-shadow: 0 8px 0 rgba(12,24,60,0.14); }
-.tile img { width: 72%; height: 72%; object-fit: contain; }
+.tile img { width: 86%; height: 86%; object-fit: contain; }
 .bub { width: max-content; filter: drop-shadow(0 6px 0 rgba(12,24,60,0.12)); }
 .bub .in { padding: 10px 18px 16px; background: #fdfdfd; color: #212121; font-size: 22px; font-weight: 500; line-height: 1.18; letter-spacing: -0.015em; box-shadow: inset 0 -5px 0 var(--u);
   clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 6px 6px); }
@@ -69,13 +72,14 @@ const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, 
 { S.download = page({ G: H + 24, seed: 'download', title: 'your new coworkers are ready', line: 'for mac, windows, linux and your phone.', size: 108,
     body: [['boxo', 'tangerine', 'big', 200, 215, -4], ['hop', 'emerald', 'look', 220, 405, 6], ['pip', 'blue', 'happy', 280, 600, 0], ['mochi', 'pink', 'heart', 210, 800, -6], ['kit', 'violet', 'wink', 210, 990, 4]]
       .map(([s, c, p, z, x, r]) => bot(s, c, p, z, x, H + Math.round(z * 0.12), { rot: r })).join('') }); }
-// 4 docs: a big open notebook on the hill with a bot reading over it, a friend sitting on a stack of books
+// 4 docs: a small open notebook low on the hill with a bot reading over it, a friend sitting on a stack of books. the art is
+// a third (notebook, books) or a fifth (magnifier) of its file, the bots a whole number of pixels per cell
 { const G = 540, hl = [hill(600, 520, 40)], f = footOn(G, hl);
-  const nbH = 200, nbFoot = f(640) + 4, booksH = 96, booksFoot = f(400) + 4;
+  const nbFoot = f(620) + 4, booksFoot = f(430) + 4;
   S.docs = page({ G, hills: hl, seed: 'docs', title: 'everything your bots can do', line: 'in plain words, no jargon.', size: 100,
-    body: bot('pip', 'blue', 'focus', 170, 640, nbFoot - 150) + img('s-notebook.webp', nbH, 640, nbFoot, 520, 378) +
-      img('s-books.webp', booksH, 400, booksFoot, 420, 203) + bot('cheep', 'sun', 'happy', 104, 400, booksFoot - booksH + 10) +
-      img('kit/p-magnifier.webp', 110, 860, f(860), 298, 419) }); }
+    body: bot('pip', 'blue', 'focus', 132, 620, nbFoot - 98) + img('s-notebook.webp', 126, 620, nbFoot, 520, 378) +
+      img('s-books.webp', 68, 430, booksFoot, 420, 203) + bot('cheep', 'sun', 'happy', 88, 430, booksFoot - 60) +
+      img('kit/p-magnifier.webp', 84, 780, f(780), 298, 419) }); }
 // 5 about: the team photo on a cloud, with the one chat that explains it
 { S.about = page({ G: 610, seed: 'about', title: "who's behind the bots", line: 'a small team, and a lot of bots.', size: 108,
     body: `<img class="px" src="${A}/cloud-pink.png" style="left:270px;top:452px;width:660px;height:220px" alt="">` +
@@ -101,7 +105,7 @@ const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, 
 { const G = 540, hl = [hill(600, 360, 40)], f = footOn(G, hl);
   const logos = [['gmail.png', 300, 300, -8], ['slack.png', 420, 380, 6], ['notion.png', 330, 452, 4], ['github.svg', 800, 300, 8], ['calendar.png', 700, 380, -5], ['linear.png', 790, 452, -6]];
   S.integrations = page({ mood: 'teal', G, hills: hl, seed: 'integrations', title: 'your bots already know your apps', line: 'gmail, slack, notion, github and more.', size: 100,
-    body: logos.map(([l, x, y, r]) => tile(`<img src="${A}/logos/${l}" alt="">`, 84, x, y, r)).join('') + bot('mochi', 'pink', 'heart', 180, 600, f(600)) }); }
+    body: logos.map(([l, x, y, r]) => tile(logo(l), 84, x, y, r)).join('') + bot('mochi', 'pink', 'heart', 180, 600, f(600)) }); }
 // 10 alternatives hub: smaller words, more air; two bots back to back at the signpost
 { const G = 540, hl = [hill(600, 420, 42)], f = footOn(G, hl);
   S.alternatives = page({ G, hills: hl, seed: 'alternatives', title: 'before you pick an ai agent', line: 'honest side-by-sides, dated and sourced.', size: 80, top: 96, lineSize: 30,
@@ -126,7 +130,7 @@ const crew = (list, f) => list.map(([s, c, p, z, x, o = {}]) => bot(s, c, p, z, 
 // 15 /integrations/gmail: a bot standing on top of a giant gmail tile, reporting in
 { const G = 540, hl = [hill(640, 400, 40)], f = footOn(G, hl), ts = 170, tx = 640 - ts / 2, ty = f(640) - ts - 6;
   S.gmail = page({ G, hills: hl, seed: 'gmail', title: 'your inbox, sorted before you wake up', line: 'a bot that files, flags and drafts in gmail.', size: 92,
-    body: tile(`<img src="${A}/logos/gmail.png" alt="">`, ts, tx, ty, 0) + bot('kit', 'violet', 'happy', 120, 640, ty + 8) +
+    body: tile(logo('gmail.png'), ts, tx, ty, 0) + bot('kit', 'violet', 'happy', 120, 640, ty + 8) +
       bub('you', 'anything urgent?', 'left', '#fff3a0', 400) + bub('kit', 'two. drafts are ready.', 'right', '#ffc4dd', 400) }); }
 
 // which pages each card is for, and what it shows
