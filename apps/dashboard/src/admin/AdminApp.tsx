@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Sun, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Sun, Users } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -14,6 +14,7 @@ import { RetentionPage } from "./Retention";
 import { PeoplePage } from "./People";
 import { LivePage } from "./Live";
 import { ProductPage } from "./Product";
+import { RevenuePage } from "./RevenuePage";
 import { UserPage, UsersPage } from "./Users";
 import { CloudsPage } from "./Clouds";
 import { WaitlistPage } from "./Waitlist";
@@ -29,6 +30,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} />, also: ["/admin/analytics"] },
     { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
     { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
+    { to: "/admin/revenue", key: "m", label: "revenue", icon: <CreditCard {...ICON} /> },
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
@@ -59,6 +61,7 @@ function page(path: string): ReactNode {
   const user = /^\/admin\/users\/([^/]+)$/.exec(path);
   if (user) return <UserPage id={decodeURIComponent(user[1]!)} />;
   if (path === "/admin/product" || path.startsWith("/admin/product/")) return <ProductPage path={path} />;
+  if (path === "/admin/revenue") return <RevenuePage />;
   if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;

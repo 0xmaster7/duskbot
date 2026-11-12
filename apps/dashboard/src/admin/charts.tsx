@@ -18,7 +18,7 @@ export interface ChartShow { visitors: boolean; revenue: boolean; signups: boole
 export const SERIES = { visitors: "var(--viz-visitors)", revenue: "var(--viz-new)", renewal: "var(--viz-renewal)", signups: "var(--coral)" } as const;
 const SPRING = { type: "spring", visualDuration: 0.36, bounce: 0 } as const;
 
-function useWidth(min = 260) {
+export function useWidth(min = 260) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(720);
   useEffect(() => {
@@ -172,7 +172,7 @@ const CATEGORY = ["var(--viz-visitors)", "var(--viz-new)", "var(--viz-renewal)",
 export interface Stack { key: string; label: string; color: string; values: number[] }
 
 /** stacked bars over the chart's buckets; same-shaped data morphs, and a hover lists every layer */
-export function StackedBars({ starts, size, stacks, format, height = 168 }: { starts: number[]; size: number; stacks: Stack[]; format(v: number): string; height?: number }) {
+export function StackedBars({ starts, size, stacks, format, height = 168, label }: { starts: number[]; size: number; stacks: Stack[]; format(v: number): string; height?: number; label?(t: number, long: boolean): string }) {
   const [box, width] = useWidth(220);
   const [hover, setHover] = useState<number | null>(null);
   const reduced = useReducedMotion() ?? false;
@@ -198,13 +198,13 @@ export function StackedBars({ starts, size, stacks, format, height = 168 }: { st
             })}</g>;
           })}
         </g>
-        {starts.map((t, i) => i % every === 0 && <text key={t} x={x(i)} y={height - 6} textAnchor="middle" className="fill-ink-4 font-mono text-[10.5px]">{dayLabel(t, hourly)}</text>)}
+        {starts.map((t, i) => i % every === 0 && <text key={t} x={x(i)} y={height - 6} textAnchor="middle" className="fill-ink-4 font-mono text-[10.5px]">{label ? label(t, false) : dayLabel(t, hourly)}</text>)}
       </svg>
       <AnimatePresence>
         {hover !== null && (
           <m.div key="tip" className="pointer-events-none absolute left-0 top-0 z-10 min-w-[170px] rounded-[14px] bg-pop px-3 py-2 text-12 text-ink" style={{ boxShadow: "var(--pop-shadow)" }}
             initial={{ opacity: 0, x: Math.min(x(hover) + 12, width - 180) }} animate={{ opacity: 1, x: Math.min(x(hover) + 12, width - 180) }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={{ x: { type: "spring", visualDuration: 0.18, bounce: 0 }, opacity: { duration: 0.12 } }}>
-            <div className="font-mono text-ink-3">{longLabel(starts[hover]!, hourly)}</div>
+            <div className="font-mono text-ink-3">{label ? label(starts[hover]!, true) : longLabel(starts[hover]!, hourly)}</div>
             {stacks.filter((s) => (s.values[hover] ?? 0) !== 0).map((s) => <Row key={s.key} dot={s.color} label={s.label} value={format(s.values[hover]!)} />)}
             <Row label="total" value={format(totals[hover]!)} strong />
           </m.div>
@@ -213,7 +213,7 @@ export function StackedBars({ starts, size, stacks, format, height = 168 }: { st
       <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-12 text-ink-3" aria-label="legend">
         {stacks.map((s) => <li key={s.key} className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[3px]" style={{ background: s.color }} aria-hidden />{s.label}</li>)}
       </ul>
-      <div className="sr-only"><table><tbody>{starts.map((t, i) => <tr key={t}><th scope="row">{longLabel(t, hourly)}</th>{stacks.map((s) => <td key={s.key}>{s.label} {format(s.values[i] ?? 0)}</td>)}</tr>)}</tbody></table></div>
+      <div className="sr-only"><table><tbody>{starts.map((t, i) => <tr key={t}><th scope="row">{label ? label(t, true) : longLabel(t, hourly)}</th>{stacks.map((s) => <td key={s.key}>{s.label} {format(s.values[i] ?? 0)}</td>)}</tr>)}</tbody></table></div>
     </div>
   );
 }
