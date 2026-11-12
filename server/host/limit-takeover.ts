@@ -54,7 +54,7 @@ export interface LimitTakeoverDeps {
   resetAt?(instanceId: string): number | null;
   /** The backups the person chose for this bot, or for every bot. */
   chosen(botId: string): ModelSelection[];
-  /** The backups a signed-out AI's turns go to, as for a turn its AI never started: the bot's own list, or the
+  /** The backups a signed-out AI's turns (and a turn its provider failed) go to, as for a turn its AI never started: the bot's own list, or the
    * installation's one backup while Automatic recovery is on. `chosen` when not given. */
   signedOutChosen?(botId: string): ModelSelection[];
   engineName(instanceId: string): string;
@@ -203,7 +203,9 @@ export function createLimitTakeover(deps: LimitTakeoverDeps) {
       if (usable(engines, current, selection, scope, approval)) out.push({ instanceId: selection.instanceId, model: selection.model });
     };
     if (scope === "model" || scope === "credits") add({ instanceId: current.instanceId, model: current.models.default });
-    for (const selection of scope === "signed-out" ? deps.signedOutChosen?.(botId) ?? deps.chosen(botId) : deps.chosen(botId)) add(selection);
+    // like a sign-out, a provider's hiccup never reaches the installation backup while Automatic recovery is off
+    const startup = scope === "signed-out" || scope === "provider";
+    for (const selection of startup ? deps.signedOutChosen?.(botId) ?? deps.chosen(botId) : deps.chosen(botId)) add(selection);
     // A provider's hiccup moves a turn only to a backup the person chose.
     if (scope === "signed-out" || scope === "provider") return out;
     const others = engines.filter((engine) => engine.instanceId !== from.instanceId && engine.access !== "api" && !billsEachUse(deps.configs()[engine.instanceId])

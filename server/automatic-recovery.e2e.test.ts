@@ -288,7 +288,6 @@ it.each([true, false])("uses the ordered bot list only for proven pre-prompt fai
 
 it.each([
   { name: "disabled and the bot has no backups of its own", enabled: false, ownBackups: false },
-  { name: "prompt already accepted", method: "session/prompt" },
   { name: "partial output", method: "session/prompt", afterOutput: true },
   { name: "authentication failure", error: { code: -32603, message: "Authentication required: invalid API key" } },
 ])("does not automatically replay when $name", async ({ name: _name, ownBackups = true, ...options }) => {
@@ -308,6 +307,29 @@ it.each([
     expect(messages.filter((message: any) => message.role === "user" && message.text === "DO_NOT_REPLAY_THIS_9S")).toHaveLength(1);
     expect(messages.some((message: any) => message.tool?.ok === false)).toBe(true);
     expect(messages.some((message: any) => message.tool?.name?.startsWith("recovery:"))).toBe(false);
+  });
+}, 90_000);
+
+// Automatic recovery never replays a prompt the engine accepted. A provider timeout that wrote, ran and asked nothing
+// is the provider failover's (quota-switch.ts) instead: the message carries on the bot's own backups, said in one line.
+it("leaves a prompt the engine accepted to the provider failover, which carries it on the bot's own backups", async () => {
+  await withRecoveryFixture({ method: "session/prompt" }, async ({ api, control, calls, backupPrompts, evidence }) => {
+    const { bot } = await control("new-bot", "--name", "Accepted prompt");
+    const threadId = bot.activeTaskId;
+    await api("PATCH", `/api/bots/${bot.id}/tasks/${threadId}`, { modelSelection: primary, updateBotDefault: true });
+    await api("PATCH", `/api/bots/${bot.id}`, { fallback: [{ instanceId: "secondary", model: primary.model }, backup] });
+    await control("send", "--bot", bot.id, "--task", threadId, "--text", "ACCEPTED_PROMPT_4K");
+    await expect.poll(async () => backupPrompts().length, { timeout: 30_000 }).toBe(1);
+    expect((await control("wait", "--bot", bot.id, "--task", threadId, "--timeout", "30")).status).toBe("settled");
+    expect(calls().filter((call) => call.method === "session/prompt.error")).toHaveLength(2);
+    const state = (await api("GET", "/api/bots")).bots.find((entry: any) => entry.id === bot.id);
+    expect(state.tasks.find((task: any) => task.threadId === threadId)).toMatchObject({ modelSelection: backup, busy: false });
+    expect(state.modelSelection).toEqual(primary);
+    const { messages } = await control("messages", "--bot", bot.id, "--task", threadId, "--limit", "30");
+    evidence.push({ messages });
+    expect(messages.some((message: any) => message.tool?.name?.startsWith("recovery:"))).toBe(false);
+    expect(messages.filter((message: any) => /^notice: continuing on .+ did not answer$/.test(message.tool?.name ?? ""))).toHaveLength(2);
+    expect(messages.findLast((message: any) => message.role === "bot" && message.kind === "text")?.text).toBe("hello from fake claude");
   });
 }, 90_000);
 

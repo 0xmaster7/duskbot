@@ -384,6 +384,16 @@ describe("a model whose provider failed a turn before it did anything", () => {
     expect(instance.heldAtStart(KAI, OPUS)).toBeNull();
   });
 
+  it("never reaches the installation backup while Automatic recovery is off", () => {
+    // chosen still lists the saved installation backup; the startup list leaves it out while recovery is off
+    let startup: ModelSelection[] = [];
+    const { instance } = takeover({ chosen: () => [on("codex", "gpt-6")], signedOutChosen: () => startup });
+    instance.holdProvider(OPUS);
+    expect(instance.backups("kai", OPUS, "provider")).toEqual([]);
+    startup = [on("codex", "gpt-6")];
+    expect(instance.backups("kai", OPUS, "provider")).toEqual([on("codex", "gpt-6")]);
+  });
+
   it("carries no turn when the person chose no backup", () => {
     const { instance } = takeover();
     instance.holdProvider(OPUS);
