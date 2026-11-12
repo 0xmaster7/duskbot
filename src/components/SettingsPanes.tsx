@@ -68,7 +68,7 @@ export type Disclose = (id: string) => { id: string; open: boolean; onToggle: ()
 
 /** The pages a pane's rows open, by the section a deep link names: a link to one lands on that page. */
 export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; title: LocaleKey }>> = {
-  import: { id: "import", title: "settings.import.grokTitle" },
+  import: { id: "import", title: "settings.import.rowTitle" },
   companion: { id: "pairing", title: "settings.w6.pairing.title" },
   remote: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
   desktopWorkspaces: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
@@ -250,8 +250,8 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
 function ImportRow() {
   const sub = useSubPage();
   return (
-    <SettingRow icon="parcel" title={t("settings.import.grokTitle")} subtitle={t("settings.w6c.import.appsSubtitle")}>
-      <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.grokTitle"))}>{t("settings.w6c.import.start")}</button>
+    <SettingRow icon="parcel" title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
+      <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.rowTitle"))}>{t("settings.w6c.import.start")}</button>
     </SettingRow>
   );
 }

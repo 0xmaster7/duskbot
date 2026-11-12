@@ -1,0 +1,95 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const fixture = vi.hoisted(() => ({ requests: [] as string[], failImport: "" }));
+
+vi.mock("@/state/store", () => ({
+  api: vi.fn(async (path: string, init: { method?: string; body?: string } = {}) => {
+    fixture.requests.push(path);
+    const body = JSON.parse(init.body ?? "{}");
+    if (path.startsWith("/api/teams/import")) {
+      if (fixture.failImport && body.package.name === fixture.failImport) throw new Error("no room");
+      return { bots: [{ id: `id-${body.package.name}`, name: body.package.name, section: body.package.name }], routines: [], connections: [] };
+    }
+    if (path === "/api/sidebar-sections") return { bots: body.botIds.map((id: string) => ({ id, section: body.name })) };
+    if (path.startsWith("/api/sidebar-sections?")) return { sections: [] };
+    return {};
+  }),
+}));
+
+import type { GrokBot } from "../../shared/grok-import";
+import { GROK_EXPORT_FORMAT } from "../../shared/grok-import";
+import { outcome, planBotMove, runBotMove, type BotMoveLook } from "./bot-move";
+
+const bot = (name: string, over: Partial<GrokBot> = {}): GrokBot => ({
+  name, title: "", description: "", instructions: `You are ${name}.`, memories: ["a fact"], userFacts: [],
+  skills: [{ name: "notes", description: "Takes notes.", instructions: "Write it down." }],
+  routines: [{ name: "Daily", instruction: "Do it.", trigger: "schedule", cron: "0 9 * * *", when: "", timeZone: "UTC", paused: false, skills: [], details: "" }],
+  apps: [], ...over,
+});
+
+const look = (over: Partial<BotMoveLook> = {}): BotMoveLook => ({
+  bots: { apps: [
+    { source: "openclaw", app: "OpenClaw", where: "~/.openclaw", bots: [bot("Molty"), bot("Scout")], channels: ["telegram"], unreadable: [] },
+    { source: "hermes", app: "Hermes Agent", where: "~/.hermes", bots: [bot("Hermes", { skills: [], routines: [] })], channels: [], unreadable: ["cron/jobs.json"] },
+  ] },
+  grok: { files: [], bots: [] },
+  ...over,
+});
+const facts: Parameters<typeof planBotMove>[1] = { bots: [], servers: new Set<string>(), timeZone: "UTC" };
+
+beforeEach(() => {
+  fixture.requests = [];
+  fixture.failImport = "";
+});
+
+describe("planning a move", () => {
+  it("counts what each app brings and numbers a name already taken here", () => {
+    const plan = planBotMove(look(), { ...facts, bots: [{ name: "Scout" }] as never });
+    expect(plan.apps.map((app) => [app.app, app.preview.plans.map((one) => one.addedAs)])).toEqual([["OpenClaw", ["Molty", "Scout 2"]], ["Hermes Agent", ["Hermes"]]]);
+  });
+
+  it("names a bot moved before as already here instead of bringing it twice", () => {
+    const first = planBotMove(look(), facts);
+    const installed = first.apps.flatMap((app) => app.preview.plans.map((one) => ({ name: one.addedAs, installedPackage: { id: one.packageId } })));
+    const again = planBotMove(look(), { ...facts, bots: installed as never });
+    expect(again.apps.flatMap((app) => app.preview.plans)).toEqual([]);
+    expect(again.apps.flatMap((app) => app.preview.moved)).toEqual(["Molty", "Scout", "Hermes"]);
+  });
+
+  it("keeps the same bot found under two names once", () => {
+    const twice = look();
+    twice.bots.apps.push({ ...twice.bots.apps[0]! });
+    expect(planBotMove(twice, facts).apps.flatMap((app) => app.preview.plans).map((one) => one.addedAs)).toEqual(["Molty", "Scout", "Hermes"]);
+  });
+
+  it("brings Grok Bot exports in Downloads, and names Grok Bot bots still waiting for theirs", () => {
+    const grok = { files: [{ name: "grok-bot-export-drew.json", modifiedAt: 1, text: JSON.stringify({ format: GROK_EXPORT_FORMAT, bots: [{ name: "Drew", instructions: "Hi." }] }) }], bots: ["Drew", "Eggbot"] };
+    const plan = planBotMove(look({ bots: { apps: [] }, grok }), facts);
+    expect(plan.apps.map((app) => [app.app, app.preview.plans.map((one) => one.addedAs)])).toEqual([["Grok Bot", ["Drew"]]]);
+    expect(plan.grokWaiting).toEqual(["Eggbot"]);
+  });
+
+  it("finds nothing to offer on an empty computer", () => {
+    expect(planBotMove(look({ bots: { apps: [] } }), facts)).toEqual({ apps: [], grokWaiting: [] });
+  });
+});
+
+describe("moving", () => {
+  it("moves bot by bot with progress, and one that fails costs the others nothing", async () => {
+    fixture.failImport = "Scout";
+    const steps: Array<[number, string]> = [];
+    const reports = await runBotMove(planBotMove(look(), facts), () => {}, (done, name) => steps.push([done, name]));
+    expect(fixture.requests.filter((path) => path.startsWith("/api/sidebar-sections"))).toEqual([
+      "/api/sidebar-sections", "/api/sidebar-sections?section=Molty", "/api/sidebar-sections", "/api/sidebar-sections?section=Hermes",
+    ]);
+    expect(steps).toEqual([[0, "Molty"], [1, "Scout"], [2, "Hermes"]]);
+    const result = outcome(reports);
+    expect(result.moved).toBe(2);
+    expect(result.failed).toEqual(["Scout"]);
+    expect(result.line).toBe("moved 2 bots, 1 skill, 1 routine and their memory.");
+    expect(result.leftOut).toContain("chat history, logins and their Telegram connections stay in OpenClaw and Hermes Agent.");
+    expect(result.leftOut).toContain("routines arrive paused.");
+    expect(result.leftOut).toContain("couldn't move Scout.");
+    expect(result.leftOut).toContain("a few files couldn't be read");
+  });
+});

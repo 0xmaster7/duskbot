@@ -277,3 +277,73 @@ describe("other first runs", () => {
     expect(introStaged("maus"), "a replay lands in a chat that may be long under way").toBe(false);
   });
 });
+
+describe("bots from another app on this computer", () => {
+  const found = { apps: [{ source: "openclaw", app: "OpenClaw", where: "~/.openclaw", channels: ["telegram"], unreadable: [], bots: [{
+    name: "Molty", title: "", description: "", instructions: "Be helpful.", memories: ["Sam's sister is Ana."], userFacts: [],
+    skills: [{ name: "groceries", description: "Lists.", instructions: "---\nname: groceries\ndescription: Lists.\n---\n\nWrite the list." }],
+    routines: [{ name: "Morning", instruction: "Brief me.", trigger: "schedule", cron: "0 8 * * *", when: "", timeZone: "UTC", paused: false, skills: [], details: "" }],
+    apps: [],
+  }] }] };
+  const desktop = (bots: unknown) => {
+    vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
+    f.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+      if (path === "/api/setup-import/bots") {
+        if (bots === "fail") throw new Error("down");
+        return bots;
+      }
+      if (path === "/api/setup-import/grok") return { files: [], bots: [] };
+      if (path === "/api/mcp/servers") return { servers: [] };
+      if (path.startsWith("/api/teams/import")) return { bots: [{ ...maus, id: "molty", name: JSON.parse(init!.body!).package.name, defaultBot: undefined }], routines: [] };
+      return path === "/api/instances" ? { instances: f.state.instances } : JSON.parse(init?.body ?? "{}");
+    });
+  };
+  const settle = async () => { for (let i = 0; i < 5; i++) await act(async () => { await vi.advanceTimersByTimeAsync(10); }); };
+
+  it("offers them before the first job, moves them on one press, and says what came over and what stayed", async () => {
+    desktop(found);
+    await show();
+    await settle();
+    expect(host.querySelector("h1")?.textContent).toBe("bring your bots from OpenClaw?");
+    expect(text()).toContain("Molty");
+    expect(text()).toContain("1 bot, 1 skill, 1 routine and their memory");
+    await press("bring them over");
+    await settle();
+    expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
+    expect(host.querySelector("h1")?.textContent).toBe("your bots are here");
+    expect(text()).toContain("moved 1 bot, 1 skill, 1 routine and their memory.");
+    expect(host.querySelector("[data-bot-move-left-out]")?.textContent).toContain("chat history, logins and their Telegram connections stay in OpenClaw.");
+    await press("continue");
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+    expect(f.onDone).not.toHaveBeenCalled();
+  });
+
+  it("skip, or Escape, goes on to the first job with nothing moved", async () => {
+    desktop(found);
+    await show();
+    await settle();
+    await key("Escape");
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+    expect(f.onDone, "Escape leaves only the offer, not the whole welcome").not.toHaveBeenCalled();
+    expect(f.api.mock.calls.some(([path]) => String(path).startsWith("/api/teams/import"))).toBe(false);
+  });
+
+  it("says nothing when no other app is here, or when the look fails", async () => {
+    desktop({ apps: [] });
+    await show();
+    await settle();
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+    desktop("fail");
+    await show({ initialBeat: undefined });
+    await settle();
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+  });
+
+  it("is never offered on a replay or outside the desktop app", async () => {
+    desktop(found);
+    await show({ replay: true });
+    await settle();
+    expect(host.querySelector("h1")?.textContent).toBe("what should Dusk take off your plate?");
+    expect(f.api.mock.calls.some(([path]) => path === "/api/setup-import/bots")).toBe(false);
+  });
+});

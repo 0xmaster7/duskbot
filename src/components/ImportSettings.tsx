@@ -9,7 +9,7 @@ import { importOutcome, localSetupImport, setupImportApi, skillsSummary, toolsSu
 import { useStore } from "@/state/store";
 import { detectionCount, detectionSources, type SetupDetection, type SetupImportResult, type SetupSource } from "../../shared/setup-import";
 import { GrokBotMark } from "./GrokBotMark";
-import { GrokMoveDialog } from "./lazy-screens";
+import { BringBotsDialog, GrokMoveDialog } from "./lazy-screens";
 import { ClaudeMark, CodexMark, CursorMark, PresetProviderMark } from "./ProviderIcons";
 import { Card as RowsCard, CheckRow, ItemRow, NoteRow } from "./ListRows";
 
@@ -150,11 +150,27 @@ export function GrokImportSection() {
   );
 }
 
+/** Bots another agent app keeps on this computer: the first run's offer, again. */
+export function BotsImportSection() {
+  const [open, setOpen] = useState(false);
+  return (
+    <section data-import-section="bots" className="contents">
+      <RowsCard>
+        <ItemRow title={t("botMove.settingsTitle")} hint={t("botMove.settingsHint")}>
+          <button type="button" data-bot-move-open onClick={() => setOpen(true)} className="ui-button">{t("botMove.look")}</button>
+        </ItemRow>
+      </RowsCard>
+      {open && <BringBotsDialog onClose={() => setOpen(false)} />}
+    </section>
+  );
+}
+
 export function ImportSettings({ client = setupImportApi }: { client?: SetupImportClient }) {
   const { state } = useStore();
   const local = localSetupImport(state.config?.cloudHome === true);
   return (
     <>
+      {local && <BotsImportSection />}
       {local && <AiAppsImport client={client} local />}
       <GrokImportSection />
     </>
