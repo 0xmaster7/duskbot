@@ -128,8 +128,9 @@ it.skipIf(process.platform === "win32")("keeps an active GUI turn awake, sleeps 
     await expect.poll(() => h.row()?.State.Running, { timeout: 8_000, interval: 50 }).toBe(false);
     rmSync(dumpFile, { force: true });
     expect((await h.api("POST", `/api/bots/${h.bot.id}/messages`, { text: "Use this computer again." })).status).toBe(202);
-    expect((await (await computer()).state(true)).held).toBe(false);
-    expect(h.row()?.State.Running).toBe(true);
+    // asleep, the turn starts at once and wakes the computer beside it, since the message is about the computer
+    await expect.poll(() => existsSync(dumpFile), { timeout: 10_000, interval: 50 }).toBe(true);
+    await expect.poll(() => h.row()?.State.Running, { timeout: 8_000, interval: 50 }).toBe(true);
     expect(h.row()?.Id).toBe(identity);
     expect(h.mutations().filter((action) => action === "start")).toHaveLength(1);
     expect(h.mutations()).not.toContain("rm");
