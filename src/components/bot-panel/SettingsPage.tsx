@@ -15,7 +15,6 @@ import { BotConversations } from "./Conversations";
 import { panelMemoryNotes } from "./memory-notes";
 import type { SheetPage } from "./modals/panel-modal";
 import { Card, NavRow } from "../ListRows";
-import { Disclosure } from "./rows";
 import { useMemoryDoc } from "./use-memory-doc";
 import { useSlackAvailable, useSlackBotState } from "../slack/use-slack";
 
@@ -63,8 +62,7 @@ export function SettingsPage({ bot, onOpen, more }: {
         {slackAvailable && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
-      {/* the rest, which few people change, stays behind one disclosure; where it works lives on the Computer tab */}
-      <Disclosure data-panel-advanced="settings" label={t("botPanel.moreSettings")}>
+      {/* where it works lives on the Computer tab */}
         <Card label={t("botSettings.sections.access")} anchor="access">
           <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
           <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
@@ -90,7 +88,6 @@ export function SettingsPage({ bot, onOpen, more }: {
           </Card>
         )}
         {more}
-      </Disclosure>
       {clearThreads.dialog}
     </div>
   );

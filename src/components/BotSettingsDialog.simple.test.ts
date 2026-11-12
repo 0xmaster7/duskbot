@@ -326,16 +326,16 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
 
-  it("draws the Advanced tab: Library, Voice chat, This bot, then the rest under More settings, and no Model", () => {
+  it("draws the Advanced tab: Library, Voice chat, This bot, then every other section in the list, and no Model", () => {
     const bot = makeBot();
     const rendered = capture(() => AdvancedTab({ bot, derived: derived(), onOpen }));
-    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-advanced="settings"', 'data-panel-card="access"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    // one closed disclosure holds what few people change
-    expect(rendered.html.match(/<details/g)).toHaveLength(1);
-    expect(rendered.html).not.toMatch(/<details[^>]* open/);
-    for (const label of ["voice chat", "this bot", "more settings", "actions", "advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    // nothing is folded away
+    expect(rendered.html).not.toContain("<details");
+    expect(rendered.html).not.toContain(">more settings<");
+    for (const label of ["voice chat", "this bot", "actions", "advanced features"]) expect(rendered.html).toContain(`>${label}<`);
     // an empty library is grok's centred line, with no heading or card over it
     expect(rendered.html).not.toContain(">library<");
     expect(rendered.html).not.toContain(">settings for the whole app<");
@@ -623,16 +623,15 @@ describe("the Details tab", () => {
 });
 
 describe("the Bot settings page", () => {
-  it("leads with what the bot knows, tucks the rest and the actions under More settings, and leaves where it works to the Computer tab", () => {
+  it("leads with what the bot knows, then the rest and the actions in the list, and leaves where it works to the Computer tab", () => {
     const rendered = settingsPage(makeBot());
     expect(rendered.html).not.toContain('data-panel-card="model"');
-    const order = ['data-panel-card="uses"', 'data-panel-advanced="settings"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
     expect(pages).toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "backups"]);
-    const tucked = rendered.html.slice(rendered.html.indexOf('data-panel-advanced="settings"'));
-    for (const page of ["identity", "tools", "permissions", "folder", "backups"]) expect(tucked, page).toContain(`data-panel-page="${page}"`);
+    expect(rendered.html).not.toContain('data-panel-advanced="settings"');
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));
       expect(onOpen).toHaveBeenLastCalledWith(page);
