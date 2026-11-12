@@ -342,6 +342,35 @@ export function keepAliveFetch({ maxSockets = 8, tls = {} } = {}) {
   return go;
 }
 
+/**
+ * resolves the socket once it is connected; rejects (and destroys it) on an error, a close or `timeoutMs` without one.
+ * node 24.22 (electron 43) and 26.7: tls.connect({ socket }) over a socket still resolving or trying addresses
+ * (autoSelectFamily, on by default) stays on the first attempt's handle, and the process segfaults in TLSWrap::EncOut
+ * when a later address connects. tls goes on a dialled socket only once it is connected.
+ */
+export function connectedSocket(socket, { timeoutMs }) {
+  if (socket.destroyed) return Promise.reject(Object.assign(new Error("the connection closed before it opened"), { code: "ECONNRESET" }));
+  if (!socket.connecting) return Promise.resolve(socket);
+  return new Promise((resolve, reject) => {
+    const done = (error) => {
+      clearTimeout(timer);
+      socket.off("connect", opened);
+      socket.off("error", done);
+      socket.off("close", closed);
+      if (!error) { resolve(socket); return; }
+      socket.destroy();
+      reject(error);
+    };
+    const opened = () => done(null);
+    const closed = () => done(Object.assign(new Error("the connection closed before it opened"), { code: "ECONNRESET" }));
+    const timer = setTimeout(() => done(Object.assign(new Error("the connection did not open in time"), { code: "ETIMEDOUT" })), timeoutMs);
+    timer.unref?.();
+    socket.once("connect", opened);
+    socket.once("error", done);
+    socket.once("close", closed);
+  });
+}
+
 /** an http/2 stream's own window and the connection's: a whole desktop frame or download in flight at a long round trip */
 const H2_STREAM_WINDOW = 4 * 1024 * 1024;
 const H2_SESSION_WINDOW = 8 * 1024 * 1024;
@@ -384,9 +413,13 @@ export function relayFetch({ tls: tlsOptions = {}, maxSockets = 8, dial = null, 
     try { one.ping((error) => { clearTimeout(timer); if (checking === one) checking = null; if (error && live(one)) dead(); }); }
     catch { clearTimeout(timer); dead(); }
   };
-  const open = (url) => new Promise((resolve) => {
+  const open = (url) => {
     const host = url.hostname, port = Number(url.port) || 443;
-    const socket = tlsConnect({ host, port, ...(dial ? { socket: dial(host, port) } : {}), ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
+    if (!dial) return secure(url, host, port, undefined);
+    return connectedSocket(dial(host, port), { timeoutMs: H2_DIAL_MS }).then((raw) => secure(url, host, port, raw), () => null);
+  };
+  const secure = (url, host, port, raw) => new Promise((resolve) => {
+    const socket = tlsConnect({ host, port, ...(raw ? { socket: raw } : {}), ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["h2", "http/1.1"], ...(tlsSession ? { session: tlsSession } : {}), ...tlsOptions });
     socket.on("session", (value) => { tlsSession = value; });
     const failed = () => { socket.destroy(); resolve(null); };
     socket.once("error", failed);

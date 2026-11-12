@@ -13,7 +13,7 @@ import { networkInterfaces } from "node:os";
 import { Duplex } from "node:stream";
 import { checkServerIdentity, connect as tlsConnect } from "node:tls";
 
-import { openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
+import { connectedSocket, openFrame, sealBytes, sealFrame } from "./vps-link-protocol.mjs";
 import { clampMss } from "./tcp-clamp.mjs";
 
 // ---- direct transport shared with apps/link-service/agent.mjs (keep both in step; a test checks they interoperate) ----
@@ -611,56 +611,60 @@ export function wssConnector({ url, spki, timeoutMs = 15_000, connect: dial = ne
     raw.setNoDelay?.(true);
     raw.setKeepAlive?.(true, 15_000);
     raw.once("connect", () => void clampMss(raw));
-    const socket = tlsConnect({
-      socket: raw, host, ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["http/1.1"], ...tlsOptions,
-      checkServerIdentity: (name, cert) => {
-        const usual = checkServerIdentity(name, cert);
-        if (usual) return usual;
-        // the spki der, as the agent's spkiOf hashes it (node's cert.pubkey is the bare point for an ec key)
-        pinned = Boolean(cert.raw) && createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64") === spki;
-        return pinned ? undefined : Object.assign(new Error(PIN_ERROR), { code: "PIN" });
-      },
-    });
+    let socket = null;
     const fail = (error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      socket.destroy();
+      socket?.destroy();
       raw.destroy();
       reject(error?.code === "PIN" || (error?.message === PIN_ERROR) ? Object.assign(new Error(PIN_ERROR), { code: "PIN" }) : error);
     };
     const timer = setTimeout(() => fail(Object.assign(new Error("the server's https did not answer"), { code: "ETIMEDOUT" })), timeoutMs);
     timer.unref?.();
-    socket.on("error", fail);
-    socket.once("close", () => fail(new Error("the connection closed before the handshake")));
-    const nonce = randomBytes(16).toString("base64");
-    socket.once("secureConnect", () => {
-      if (!pinned) { fail(Object.assign(new Error(PIN_ERROR), { code: "PIN" })); return; }
-      socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
-        `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", "", ""].join("\r\n"));
-    });
-    let buffered = Buffer.alloc(0);
-    const onData = (chunk) => {
-      buffered = Buffer.concat([buffered, chunk]);
-      const end = buffered.indexOf("\r\n\r\n");
-      if (end < 0) { if (buffered.length > 16 * 1024) fail(new Error("the server's answer was not a websocket")); return; }
-      socket.off("data", onData);
-      const lines = buffered.subarray(0, end).toString("latin1").split("\r\n");
-      const status = /^HTTP\/1\.1 (\d{3})/.exec(lines[0])?.[1];
-      const headers = new Map(lines.slice(1).map((line) => [line.slice(0, line.indexOf(":")).trim().toLowerCase(), line.slice(line.indexOf(":") + 1).trim()]));
-      if (status !== "101" || headers.get("sec-websocket-accept") !== wsAccept(nonce)) {
-        fail(Object.assign(new Error(`the server's https answered ${status ?? "something else"} for the direct path`), { code: status === "404" ? "NOWSS" : "EPROTO" }));
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      socket.off("error", fail);
-      socket.removeAllListeners("close");
-      socket.setKeepAlive?.(true, 15_000);
-      const duplex = wsDuplex(socket, { client: true, head: buffered.subarray(end + 4) });
-      resolve({ readable: duplex, writable: duplex, close: () => duplex.destroy(), via: "wss" });
+    connectedSocket(raw, { timeoutMs }).then(() => { if (!settled) secure(); }, fail);
+    const secure = () => {
+      socket = tlsConnect({
+        socket: raw, host, ...(isIP(host) ? {} : { servername: host }), ALPNProtocols: ["http/1.1"], ...tlsOptions,
+        checkServerIdentity: (name, cert) => {
+          const usual = checkServerIdentity(name, cert);
+          if (usual) return usual;
+          // the spki der, as the agent's spkiOf hashes it (node's cert.pubkey is the bare point for an ec key)
+          pinned = Boolean(cert.raw) && createHash("sha256").update(new X509Certificate(cert.raw).publicKey.export({ type: "spki", format: "der" })).digest("base64") === spki;
+          return pinned ? undefined : Object.assign(new Error(PIN_ERROR), { code: "PIN" });
+        },
+      });
+      socket.on("error", fail);
+      socket.once("close", () => fail(new Error("the connection closed before the handshake")));
+      const nonce = randomBytes(16).toString("base64");
+      socket.once("secureConnect", () => {
+        if (!pinned) { fail(Object.assign(new Error(PIN_ERROR), { code: "PIN" })); return; }
+        socket.write([`GET ${target.pathname}${target.search} HTTP/1.1`, `Host: ${target.host}`, "Upgrade: websocket", "Connection: Upgrade",
+          `Sec-WebSocket-Key: ${nonce}`, "Sec-WebSocket-Version: 13", "", ""].join("\r\n"));
+      });
+      let buffered = Buffer.alloc(0);
+      const onData = (chunk) => {
+        buffered = Buffer.concat([buffered, chunk]);
+        const end = buffered.indexOf("\r\n\r\n");
+        if (end < 0) { if (buffered.length > 16 * 1024) fail(new Error("the server's answer was not a websocket")); return; }
+        socket.off("data", onData);
+        const lines = buffered.subarray(0, end).toString("latin1").split("\r\n");
+        const status = /^HTTP\/1\.1 (\d{3})/.exec(lines[0])?.[1];
+        const headers = new Map(lines.slice(1).map((line) => [line.slice(0, line.indexOf(":")).trim().toLowerCase(), line.slice(line.indexOf(":") + 1).trim()]));
+        if (status !== "101" || headers.get("sec-websocket-accept") !== wsAccept(nonce)) {
+          fail(Object.assign(new Error(`the server's https answered ${status ?? "something else"} for the direct path`), { code: status === "404" ? "NOWSS" : "EPROTO" }));
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        socket.off("error", fail);
+        socket.removeAllListeners("close");
+        socket.setKeepAlive?.(true, 15_000);
+        const duplex = wsDuplex(socket, { client: true, head: buffered.subarray(end + 4) });
+        resolve({ readable: duplex, writable: duplex, close: () => duplex.destroy(), via: "wss" });
+      };
+      socket.on("data", onData);
     };
-    socket.on("data", onData);
   });
 }
 
