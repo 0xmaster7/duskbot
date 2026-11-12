@@ -31,6 +31,22 @@ function railPage(): Plugin {
   };
 }
 
+/** About's Third-party notices: the upstream NOTICE (Apache 2.0 section 4(d)) served as /third-party-notices.txt, from one source. */
+function thirdPartyNotices(): Plugin {
+  const file = "third-party-notices.txt";
+  const text = () => readFileSync(page("./third_party/openmausbot/NOTICE"), "utf8");
+  const serve: Connect.NextHandleFunction = (req, res, next) => {
+    if (req.url !== `/${file}`) return next();
+    res.setHeader("content-type", "text/plain; charset=utf-8");
+    res.end(text());
+  };
+  return {
+    name: "third-party-notices",
+    configureServer: (server) => void server.middlewares.use(serve),
+    generateBundle() { this.emitFile({ type: "asset", fileName: file, source: text() }); },
+  };
+}
+
 /** The app page paints a waiting mascot before its script has loaded. */
 
 const include = [
@@ -73,7 +89,7 @@ function preloadApp(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), railPage(), preloadApp()],
+  plugins: [react(), tailwindcss(), railPage(), preloadApp(), thirdPartyNotices()],
   build: {
     rollupOptions: { input: { index: page("./index.html"), rail: page("./rail.html"), ambient: page("./ambient.html") } },
   },
@@ -109,6 +125,9 @@ export default defineConfig({
     // clients that resolve IPv4 first
     host: "127.0.0.1",
     port: Number(process.env.DUSK_UI_PORT) || 5199,
+    // the desktop window also runs this dev UI on a server's origin (electron/local-ui.mjs), so the client is told
+    // where hot reload lives instead of reaching for the page's host
+    hmr: { protocol: "ws", host: "127.0.0.1", clientPort: Number(process.env.DUSK_UI_PORT) || 5199 },
     // packager output lands inside the repo — its HTML files must never
     // trigger dev full-page reloads
     watch: {

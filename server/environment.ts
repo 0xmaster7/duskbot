@@ -13,6 +13,7 @@ import {
 import { hostname } from "node:os";
 import { dirname, join } from "node:path";
 
+import { SERVER_API_LEVEL } from "../shared/server-api.ts";
 import { SERVER_ROOT } from "./proxy-paths.ts";
 
 export interface EnvironmentDescriptor {
@@ -24,6 +25,8 @@ export interface EnvironmentDescriptor {
   platform: NodeJS.Platform;
   version: string;
   capabilities: {
+    /** The HTTP API level this server speaks (shared/server-api.ts). */
+    api: number;
     /** Pairing and sessions are available (this build). */
     remoteSessions: true;
     /** A person's own dusk cloud home. */
@@ -134,6 +137,7 @@ export function environmentDescriptor(input: { environmentId: string; desktopMan
     platform: process.platform,
     version: serverVersion(),
     capabilities: {
+      api: SERVER_API_LEVEL,
       remoteSessions: true,
       // Never advertise a protocol this server would refuse.
       ...(input.cloudHome === true ? { cloudHome: true as const, move: 1 as const } : {}),

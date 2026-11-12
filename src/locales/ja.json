@@ -2944,6 +2944,8 @@
   "notices.allowance.near": "今週の予算の80%を使いました。",
   "notices.allowance.over": "週の上限に達しました。新しいタスクはリセットまで待機します。チャットは節約モードで続けられます。",
   "notices.allowance.see": "使用状況を見る",
+  "notices.serverBehind": "このサーバーは古い dusk bot を使っているため、アプリの一部がここでは非表示です。更新すると使えるようになります。",
+  "notices.serverBehind.copy": "更新コマンドをコピー",
   "composer.limit.reached": "週の上限に達しました",
   "composer.limit.saver": "節約モード",
   "composer.limit.saverOn": "節約モードがオン",

@@ -2684,6 +2684,8 @@
   "notices.allowance.near": "Has usado el 80 % del presupuesto de esta semana.",
   "notices.allowance.over": "Límite semanal alcanzado. Las tareas nuevas esperan hasta que se restablezca; el chat sigue en modo ahorro.",
   "notices.allowance.see": "Ver uso",
+  "notices.serverBehind": "Este servidor usa una versión anterior de dusk bot, así que aquí se ocultan algunas partes de la app. Actualízalo para tenerlas.",
+  "notices.serverBehind.copy": "Copiar comando de actualización",
   "composer.limit.reached": "Límite semanal alcanzado",
   "composer.limit.saver": "Modo ahorro",
   "composer.limit.saverOn": "Modo ahorro activado",

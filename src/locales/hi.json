@@ -1352,6 +1352,8 @@
   "notices.allowance.near": "इस हफ़्ते के बजट का 80% इस्तेमाल हो गया है।",
   "notices.allowance.over": "साप्ताहिक सीमा पूरी हो गई है। नए काम रीसेट होने तक रुकेंगे; बचत मोड में चैट जारी रहेगी।",
   "notices.allowance.see": "उपयोग देखें",
+  "notices.serverBehind": "यह सर्वर dusk bot का पुराना संस्करण चलाता है, इसलिए ऐप के कुछ हिस्से यहाँ छिपे हैं। उन्हें पाने के लिए इसे अपडेट करें।",
+  "notices.serverBehind.copy": "अपडेट कमांड कॉपी करें",
   "composer.limit.reached": "साप्ताहिक सीमा पूरी हो गई",
   "composer.limit.saver": "बचत मोड",
   "composer.limit.saverOn": "बचत मोड चालू है",

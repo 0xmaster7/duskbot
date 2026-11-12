@@ -1,0 +1,1 @@
+{ "name": "local-ui-window", "private": true, "type": "module", "main": "main.mjs" }

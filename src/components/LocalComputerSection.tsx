@@ -305,7 +305,7 @@ export function LocalVmInventoryCard({
                     ? t("vm.perBot.deleteBlocked")
                     : t("vm.perBot.deleteTitle", { name: instance.name })
                 }
-                className="ui-button ui-button-danger"
+                className="ui-button"
               >
                 {t("common.delete")}
               </button>}

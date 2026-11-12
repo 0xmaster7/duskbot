@@ -3203,6 +3203,8 @@
   "notices.allowance.near": "本周预算已用 80%。",
   "notices.allowance.over": "已达到每周上限。新任务将等待重置；省钱模式下可继续聊天。",
   "notices.allowance.see": "查看用量",
+  "notices.serverBehind": "这台服务器运行的是较旧的 dusk bot，所以这里隐藏了应用的部分功能。更新后即可使用。",
+  "notices.serverBehind.copy": "复制更新命令",
   "composer.limit.reached": "已达到每周上限",
   "composer.limit.saver": "省钱模式",
   "composer.limit.saverOn": "省钱模式已开启",

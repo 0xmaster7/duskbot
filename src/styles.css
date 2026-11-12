@@ -141,9 +141,9 @@
   --color-menu-active: #f5f5f514;
   --color-card: #1f1f1f;
   --color-inset: #1b1b1b;
-  /* a control ON a card. The dark skins take their `raised` value, so this
-     is a no-op for them; the light skins need a tone of their own, because
-     there `raised` is pure white and a card is too. */
+  /* a control's fill (buttons, pills, selectors, the sidebar footer) on any
+     surface: a step darker than the surface in a light skin, a step lighter in
+     a dark one, so a control reads without a border. */
   --color-control: #282828;
   --color-hairline: #383838;
   /* the 0.5px line where two panes meet: the sidebar and the chat */
@@ -749,14 +749,14 @@
 [data-skin="daylight"] {
   --code-color-scheme: light;
   --frame-shade: 6%;
-  --color-app: #fcfcfc;           /* the thread */
-  --color-panel: #f5f5f5;         /* sidebar */
+  --color-app: #fdfdfd;           /* the thread */
+  --color-panel: #f7f7f7;         /* sidebar */
   --color-frame: var(--color-panel);
   --color-raised: #e4e4e4;        /* the sidebar's selected row: 8% ink on the panel */
   --color-raised-hover: #d8d8d8;
   --color-card: #efefef;          /* what a bot says: 6% ink on the page */
   --color-inset: #e9e9e9;         /* the search field */
-  --color-control: #e3e3e3;       /* a chip on a card */
+  --color-control: #e2e2e2;       /* a chip on a card */
   /* 24% ink: whole, the firm line; at /50, the 12% line between surfaces. */
   --color-hairline: #1c1c1c3d;
   --color-edge: #1c1c1c14;
@@ -768,9 +768,9 @@
   --color-accent: #126fd4;
   --color-accent-border: #1680f3;
   --color-accent-text: #0b69cc;
-  --color-focus: #858585;
+  --color-focus: #7f7f7f;
   --color-accent-ink: #ffffff;
-  --color-composer: #f2f2f2;   /* no ring, so the pill takes a tone off the page */
+  --color-composer: #ffffff;
   --color-composer-ring: #1c1c1c1f;
   --color-menu: #ffffff;
   --color-menu-hover: #1c1c1c0f;
@@ -823,14 +823,14 @@
 [data-skin="grok"] {
   --code-color-scheme: light;
   --frame-shade: 6%;
-  --color-app: #fcfcfc;           /* sand-bg-chrome: the thread */
-  --color-panel: #f5f5f5;         /* sand-bg-sidebar */
+  --color-app: #fdfdfd;           /* sand-bg-chrome: the thread */
+  --color-panel: #f7f7f7;         /* sand-bg-sidebar */
   --color-frame: var(--color-panel);
   --color-raised: #e4e4e4;        /* sand-bg-active (#1c1c1c14) on the sidebar */
   --color-raised-hover: #d8d8d8;
   --color-card: #efefef;          /* sand-fill-bubble-agent (#1c1c1c0f) on the page */
   --color-inset: #e9e9e9;
-  --color-control: #e3e3e3;
+  --color-control: #e2e2e2;
   --color-hairline: #1c1c1c3d;    /* sand-border-primary-translucent */
   --color-edge: #1c1c1c14;        /* sand-border-tertiary-translucent */
 
@@ -842,9 +842,9 @@
   --color-accent-border: #1680f3; /* sand-bg-accent-primary, the switch blue */
   --color-accent-text: #0b69cc;
   --color-unread: #0b6dd3;        /* sand-text-accent-primary, grok's unread dot */
-  --color-focus: #858585;
+  --color-focus: #7f7f7f;
   --color-accent-ink: #ffffff;
-  --color-composer: #f2f2f2;   /* no ring, so the pill takes a tone off the page */
+  --color-composer: #ffffff;
   --color-composer-ring: #1c1c1c1f;
   --color-menu: #ffffff;
   --color-menu-hover: #1c1c1c0f;  /* sand-bg-hover */
@@ -986,7 +986,7 @@
   --color-accent-text: #176b3f;
   --color-focus: #878c89;
   --color-accent-ink: #ffffff;
-  --color-composer: #f1f5f2;   /* no ring, so the pill takes a tone off the page */
+  --color-composer: #ffffff;
   --color-composer-ring: #e3e9e4;
   --color-menu: #ffffff;
   --color-menu-hover: color-mix(in srgb, var(--color-raised) 70%, transparent);
@@ -1475,7 +1475,7 @@ body {
     padding: 0.125rem 0.75rem;
     border: 1px solid transparent;
     border-radius: 9999px;
-    background: var(--color-panel);
+    background: var(--color-control);
     color: var(--color-ink-secondary);
     font-size: 13px;
     font-weight: 500;
@@ -1484,7 +1484,7 @@ body {
   }
   button.ui-pill:enabled:hover,
   a.ui-pill:hover {
-    background: var(--color-raised);
+    background: var(--color-raised-hover);
     color: var(--color-ink);
   }
   button.ui-pill:disabled { opacity: 0.6; }
@@ -1551,20 +1551,20 @@ body {
      call site's own fill (an ink pill, a danger outline) still wins. */
   :root:is([data-skin="midnight"], [data-skin="grok-dark"]) .ui-button {
     border-color: transparent;
-    background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   }
   :root:is([data-skin="midnight"], [data-skin="grok-dark"]) .ui-button:enabled:is(:hover, :active) {
-    background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 12%, transparent);
   }
   :root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) :is(.ui-button, .ui-icon-button) {
     border-radius: 9999px;
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-button {
     border-color: transparent;
-    background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 9%, transparent);
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-button:enabled:is(:hover, :active) {
-    background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+    background: color-mix(in srgb, var(--color-ink) 13%, transparent);
   }
   /* A dialog for the first-run surfaces: the menu tone on a hairline of ink, lifted only in Daylight. */
   .ui-modal {
@@ -1932,7 +1932,8 @@ body {
 
 /* Text fields carry no line: a field drawn with a border (its own `border`
    class, or a bordered wrapper holding it directly, as search pills do) is a
-   quiet ink-tinted fill instead, and nothing changes on hover, focus or
+   quiet ink-tinted fill instead (8%: a step darker than a card in a light
+   skin, lighter in a dark one, so a field never reads as a plain card), and nothing changes on hover, focus or
    active (the caret is the focus cue). The border keeps its width, transparent,
    so nothing reflows. Unlayered, so it wins over every bg-*, border-*, focus:*
    and ring utility. */
@@ -1941,7 +1942,7 @@ body {
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"]:is(:hover, :focus, :active),
 :is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)):is(:hover, :focus-within, :active) {
   border-color: transparent;
-  background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select):focus {
   --tw-ring-shadow: 0 0 #0000;

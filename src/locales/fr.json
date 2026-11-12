@@ -1352,6 +1352,8 @@
   "notices.allowance.near": "Vous avez utilisé 80 % du budget de cette semaine.",
   "notices.allowance.over": "Limite hebdomadaire atteinte. Les nouvelles tâches attendent la remise à zéro ; le chat continue en mode éco.",
   "notices.allowance.see": "Voir l’utilisation",
+  "notices.serverBehind": "Ce serveur utilise une version plus ancienne de dusk bot, certaines parties de l'app sont donc masquées ici. Mettez-le à jour pour les obtenir.",
+  "notices.serverBehind.copy": "Copier la commande de mise à jour",
   "composer.limit.reached": "Limite hebdomadaire atteinte",
   "composer.limit.saver": "Mode éco",
   "composer.limit.saverOn": "Mode éco activé",
