@@ -11,6 +11,7 @@ import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
 import { MotionRoot } from "./ui/motion";
 import { SkyEmpty } from "./ui/Sky";
+import { CrashBoundary } from "./ui/Crash";
 import { LoadingPage } from "./pages/common";
 import { ClaimPage, stashClaim } from "./pages/Connect";
 import { deletePageId, deleteSignInNote, stashDeleteToken } from "./data/delete-data";
@@ -136,10 +137,12 @@ function Root() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <MotionRoot>
-      <SessionProvider>
-        <Root />
-      </SessionProvider>
-    </MotionRoot>
+    <CrashBoundary>
+      <MotionRoot>
+        <SessionProvider>
+          <Root />
+        </SessionProvider>
+      </MotionRoot>
+    </CrashBoundary>
   </StrictMode>,
 );

@@ -1,3 +1,5 @@
+import { handoffPage } from "./handoff-page.mjs";
+
 const STATE = /^[0-9a-f]{64}$/;
 const CODE = /^[A-Za-z0-9._-]{8,256}$/;
 const ERROR = /^[a-z_]{1,64}$/;
@@ -11,17 +13,19 @@ export function slackCallback(res, params) {
     (codes.length === 1 && errors.length === 0 && CODE.test(codes[0])) ||
     (errors.length === 1 && codes.length === 0 && ERROR.test(errors[0]))
   );
-  let content = "<h1>This Slack link is not valid. Start again from Dusk Bot.</h1>";
-  let refresh = "";
+  let content = "<h1>that link didn&#39;t work</h1><p>This Slack link is not valid. Start again from Dusk Bot.</p>";
+  let head = "";
+  let mood = "oops";
   if (valid) {
     const query = new URLSearchParams(codes.length ? { code: codes[0], state: states[0] } : { error: errors[0], state: states[0] });
     const link = escapeHtml(`duskbot://slack/oauth?${query}`);
     const denied = errors[0] === "access_denied";
-    refresh = `<meta http-equiv="refresh" content="0;url=${link}">`;
+    head = `<meta http-equiv="refresh" content="0;url=${link}">`;
+    mood = denied ? "oops" : "go";
     content = `<h1>${escapeHtml(denied ? "Slack didn't add the bot" : "Returning to Dusk Bot")}</h1>
 <p>${denied ? "You can close this tab." : "If nothing happens, open Dusk Bot yourself."}</p>
-<p><a href="${link}">Open Dusk Bot</a></p>
-<p>Or copy this link and paste it into Dusk Bot:</p>
+<p class="go"><a href="${link}">Open Dusk Bot</a></p>
+<p class="hint">Or copy this link and paste it into Dusk Bot:</p>
 <code>${link}</code>`;
   }
   res.writeHead(valid ? 200 : 400, {
@@ -32,19 +36,5 @@ export function slackCallback(res, params) {
     "x-frame-options": "DENY",
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   });
-  res.end(`<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Returning to Dusk Bot</title>
-${refresh}
-<style>
-body{font-family:system-ui,sans-serif;background:#fafafa;color:#222;margin:0;min-height:100vh;display:grid;place-items:center}
-main{max-width:38rem;padding:2rem;text-align:center}h1{font-size:1.5rem}a{color:#175bb5}code{display:block;overflow-wrap:anywhere;user-select:all}
-@media(prefers-color-scheme:dark){body{background:#171717;color:#eee}a{color:#91bfff}}
-</style>
-</head>
-<body><main>${content}</main></body>
-</html>`);
+  res.end(handoffPage({ title: "Returning to Dusk Bot", mood, content, head }));
 }

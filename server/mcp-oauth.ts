@@ -3,6 +3,8 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { createServer, type Server } from "node:http";
 
+import { handoffPage } from "../apps/link-service/src/handoff-page.mjs";
+
 import type { McpServerSpec } from "./contracts.ts";
 import { discoverMcpAuth, type McpAuthMetadata } from "./mcp-oauth-discovery.ts";
 import { McpOAuthStore, type McpOAuthRecord, type McpOAuthTokens } from "./mcp-oauth-store.ts";
@@ -552,13 +554,13 @@ export class McpOAuthManager {
       if (request.headers.host !== expected.host || !request.url?.startsWith("/")) throw new Error("host");
       callback = new URL(request.url, flow.redirectUri);
     } catch {
-      response.writeHead(400).end("Invalid sign-in callback. Return to Dusk Bot and try again.");
+      send(request, response, 400, "Invalid sign-in callback. Return to Dusk Bot and try again.");
       return;
     }
     const answer = request.method === "GET"
       ? await this.answer(flow, callback)
       : { status: 400, text: "Invalid or expired sign-in. Return to Dusk Bot and try again." };
-    response.writeHead(answer.status).end(answer.text);
+    send(request, response, answer.status, answer.text);
   }
 
   /** Words fit for a plain page: never the code or the server's own text. */
@@ -680,4 +682,24 @@ export async function withMcpSignIn(
   const out: Record<string, McpServerSpec> = {};
   for (const entry of entries) if (entry) out[entry[0]] = entry[1];
   return out;
+}
+
+const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+
+/** A browser gets the pixel sign-in page; anything else (tests, the cloud relay) keeps the plain sentence. */
+function send(request: import("node:http").IncomingMessage, response: import("node:http").ServerResponse, status: number, text: string): void {
+  if (!/\btext\/html\b/.test(String(request.headers.accept ?? ""))) {
+    response.writeHead(status).end(text);
+    return;
+  }
+  const done = status === 200;
+  response.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+  }).end(handoffPage({
+    title: done ? "signed in" : "sign-in didn't finish",
+    mood: done ? "ok" : "oops",
+    content: `<h1>${done ? "you&#39;re signed in!" : "that sign-in didn&#39;t finish"}</h1><p>${escapeHtml(text)}</p>`,
+  }));
 }

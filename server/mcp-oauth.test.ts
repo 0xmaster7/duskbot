@@ -647,6 +647,22 @@ describe("McpOAuthManager with a failing onSettled", () => {
   });
 });
 
+describe("McpOAuthManager callback page", () => {
+  it("shows a browser the script-free pixel page with the same words", async () => {
+    await setup({});
+    manager = new McpOAuthManager({ file: join(dir, "mcp-oauth.json") });
+    const started = await manager.start("docs", mcp.url);
+    const page = await fetch(started.authorizationUrl!, { redirect: "follow", headers: { accept: "text/html,application/xhtml+xml" } });
+    expect(page.status).toBe(200);
+    expect(page.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(page.headers.get("content-security-policy")).toContain("default-src 'none'");
+    const html = await page.text();
+    expect(html).toContain("<h1>you&#39;re signed in!</h1>");
+    expect(html).toContain("Signed in. You can close this tab and return to Dusk Bot.");
+    expect(html).not.toMatch(/<script\b/i);
+  });
+});
+
 describe("McpOAuthManager sign-in from a browser on another computer", () => {
   const elsewhere = { remote: true, origin: "https://cloud.example" };
 
