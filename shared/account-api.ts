@@ -102,6 +102,8 @@ export const ACCOUNT_ROUTES = {
   appToken: "/v1/auth/app/token", //            POST { code, codeVerifier, deviceName, platform, appVersion? } -> AppGrant
   /** bearer app session: a one-time token the app hands its own workspace so it enrolls into this account's dashboard. */
   enrollGrant: "/v1/app/enroll-grant", //       POST {} -> EnrollGrantAnswer
+  /** bearer app session: a five-minute signed grant the app hands the link service to open a VPS setup session. */
+  linkGrant: "/v1/app/link-grant", //           POST {} -> { v: 1, grant, expiresAt }
   /** bearer app session: a one-time link that opens the website signed in to the same account (WebHandoffRequest). */
   webHandoff: "/v1/app/web-handoff", //         POST WebHandoffRequest -> WebHandoffAnswer
   /** website, same-origin only (Origin must be the service's): redeems a WebHandoffAnswer link's token.

@@ -43,6 +43,7 @@ import { createIncidents, type Incidents } from "./incidents/index.ts";
 import { memoryIncidentStore } from "./incidents/store.ts";
 import { createIncidentRoutes, IncidentRouteError } from "./incidents/routes.ts";
 import { aliasLegacyCookies, aliasLegacyHeaders } from "../../../electron/legacy-names.mjs";
+import { LINK_GRANT_PATH, linkGrantSignerFromEnv, signLinkGrant } from "./link-grant.ts";
 
 export interface DashboardAppOptions {
   dataDir: string;
@@ -151,6 +152,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     dev, signupOpen: options.signupOpen ?? true, trustProxy: options.trustProxy ?? false, legacyAccounts: () => state.accounts });
   state.sessions = [];
   store.changed();
+  const linkGrants = linkGrantSignerFromEnv(process.env, { dataDir: options.dataDir, loopback: dev });
   auth.onSignedIn(owner => {
     const existing = state.accounts.find(item => item.id === owner.id);
     if (existing) existing.email = owner.email; else state.accounts.push({ id: owner.id, email: owner.email });
@@ -495,6 +497,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (req.headers.origin !== undefined && req.headers.origin !== publicUrl) fail(403, "forbidden", "Origin is not allowed.");
     }
     if (await auth.handle(req, res, url, { readBody, bodyObject })) return;
+    // a link grant is only ever made for the signed-in app's own account; the json and origin checks above apply
+    if (method === "POST" && path === LINK_GRANT_PATH) {
+      rate(req, "link-grant", 120);
+      const found = auth.appSession(req);
+      if (!found) fail(401, "invalid_token", "Session is invalid.");
+      if (!linkGrants) fail(503, "link_grants_off", "Linking a server is not available right now.");
+      return json(res, 200, signLinkGrant(found.account.id, linkGrants, now()));
+    }
     if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
       isOwner: isAdminRequest, account: (request, strict) => {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }

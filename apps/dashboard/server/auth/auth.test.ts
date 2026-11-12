@@ -8,6 +8,9 @@ import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
 import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
+import { verifyLinkGrant } from "../../../link-service/src/grant.mjs";
+import { entitlementPublicKey } from "../../../../shared/entitlement.ts";
+import { LINK_GRANT_TTL_MS, linkAccountRef, linkGrantSignerFromEnv } from "../link-grant.ts";
 import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE, type AccountAnswer, type AppGrant, type EmailStartAnswer, type EnrollGrantAnswer, type HandoffAnswer, type WebHandoffAnswer, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 import { SIGNATURE_HEADERS, SIGNATURE_SKEW_MS, signedPayload, type EnrollAnswer, type WorkspaceDetail } from "../../../../shared/dashboard-protocol.ts";
 
@@ -367,6 +370,23 @@ describe("local account service", () => {
     expect(saved.workspaces[0].claimHash).toBeNull();
   });
 
+  it("signs a link grant only for a signed-in app, behind the json and origin checks, that the link service accepts", async () => {
+    expect((await call("/v1/app/link-grant", {})).status).toBe(401);
+    const grant = await appLogin();
+    expect((await call("/v1/app/link-grant", {}, { ...bearer(grant), origin: "https://evil.example" })).status).toBe(403);
+    expect((await fetch(url + "/v1/app/link-grant", { method: "POST", headers: { ...bearer(grant), "content-type": "text/plain" }, body: "{}" })).status).toBe(403);
+    expect((await fetch(url + "/v1/app/link-grant", { method: "OPTIONS", headers: { origin: "https://evil.example", "access-control-request-method": "POST" } })).headers.get("access-control-allow-origin")).toBeNull();
+    const answer = await body<{ v: 1; grant: string; expiresAt: number }>(call("/v1/app/link-grant", {}, bearer(grant)));
+    expect(answer).toEqual({ v: 1, grant: expect.stringMatching(/^l1\.[a-z0-9-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/), expiresAt: time + LINK_GRANT_TTL_MS });
+    const keys = [entitlementPublicKey(linkGrantSignerFromEnv(process.env, { dataDir, loopback: true })!)];
+    const other = await body<{ grant: string }>(call("/v1/app/link-grant", {}, bearer(await appLogin("other@example.test"))));
+    const mine = verifyLinkGrant(answer.grant, { keys, now: time }), theirs = verifyLinkGrant(other.grant, { keys, now: time });
+    expect(mine).toEqual({ ok: true, acct: linkAccountRef(grant.account.id) });
+    expect(theirs.ok && mine.ok && theirs.acct !== mine.acct).toBe(true);
+    expect(answer.grant).not.toContain(grant.account.id);
+    expect(verifyLinkGrant(answer.grant, { keys, now: time + LINK_GRANT_TTL_MS + 3 * 60_000 })).toEqual({ ok: false, error: "expired" });
+  });
+
   it("claims an unclaimed workspace and re-enrolls one the same account owns, but never one another account owns", async () => {
     const owner = await appLogin();
     const firstGrant = await body<EnrollGrantAnswer>(call("/v1/app/enroll-grant", {}, bearer(owner)));
@@ -706,8 +726,10 @@ describe("local account service", () => {
       try {
         await client.start();
         expect(await client.webHandoff({ plan: "pro" })).toEqual({ signedOut: true });
+        expect(await client.linkGrant()).toBeNull();
         await client.emailStart(email);
         expect((await client.emailVerify(code())).outcome).toBe("signed-in");
+        expect(await client.linkGrant()).toMatch(/^l1\./);
         expect(await client.webHandoff({ plan: "plus", source: "app_card" })).toEqual({ opened: true });
         expect(opened.at(-1)).toMatch(new RegExp(`^${url}/dashboard/handoff#t=[A-Za-z0-9_-]{43}$`));
         expect(await body(redeem(opened.at(-1)!.split("#t=")[1]!, { origin: url }))).toMatchObject({ account: { email }, next: "/billing?plan=plus&src=app_card" });
