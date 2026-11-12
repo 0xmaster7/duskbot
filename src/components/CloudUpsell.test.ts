@@ -10,6 +10,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
     return [f.values[index], (next: unknown) => { f.values[index] = typeof next === "function" ? (next as (value: unknown) => unknown)(f.values[index]) : next; }]; },
   useRef: (initial: unknown) => { const index = f.ref++; f.refs[index] ??= { current: initial }; return f.refs[index]; },
   useEffect: (effect: EffectCallback) => { f.effects.push(effect); },
+  useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => read(),
 }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: vi.fn() }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
@@ -83,6 +84,12 @@ describe("the sidebar dusk cloud card", () => {
     buttons.find(button => button.props["aria-label"] === "hide for a few days").props.onClick();
     expect(track).toHaveBeenCalledWith("upsell_dismiss", { source: "app_invested" });
     expect(storage.has("dusk-cloud-sidebar-card-until")).toBe(true);
+  });
+
+  it("steps aside when the corner dusk cloud card has this launch, so only one cloud offer is on screen", async () => {
+    vi.stubGlobal("sessionStorage", { getItem: () => "cloud-trial-intro-v1", setItem: () => {} });
+    expect(await launch()).toBe("");
+    expect(track).not.toHaveBeenCalledWith("upsell_shown", expect.anything());
   });
 
   it("waits below every threshold", async () => {

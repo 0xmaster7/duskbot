@@ -56,6 +56,13 @@ export function launchNotice(): NoticeId | null {
   return launchMemory;
 }
 
+const launchWatchers = new Set<() => void>();
+/** Told when this launch claims its notice, so the sidebar's dusk cloud card can step aside at once. */
+export function watchLaunchNotice(watch: () => void): () => void {
+  launchWatchers.add(watch);
+  return () => { launchWatchers.delete(watch); };
+}
+
 /** The first claim of a launch holds; a later one changes nothing. */
 export function markLaunchNotice(id: NoticeId): void {
   if (launchNotice()) return;
@@ -64,6 +71,7 @@ export function markLaunchNotice(id: NoticeId): void {
   } catch {
     launchMemory = id;
   }
+  for (const watch of Array.from(launchWatchers)) watch();
 }
 
 const stored = (id: string): string | null => { try { return localStorage.getItem(id); } catch { return null; } };

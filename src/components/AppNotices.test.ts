@@ -123,7 +123,8 @@ const press = (label: string) => {
 /** A bot has answered once, in this launch: what a new install has after its first chat. */
 const FIRST_REPLY = [{ tasks: [{ threadId: "first", usage: { turns: 1 } }] }];
 let session: Map<string, string>;
-const returning = () => { f.state.bots = [{ tasks: [{ threadId: "t", createdAt: 1, usage: { turns: 2 } }] }]; };
+// used before this launch, and invested (shared/cloud-upsell.ts INVESTED: 50 messages)
+const returning = () => { f.state.bots = [{ tasks: [{ threadId: "t", createdAt: 1, usage: { turns: 50 } }] }]; };
 const launchCardsSeen = () => { desk.saved = { seen: [WHATS_NEW_NOTICE] }; storage.set(GROK_MOVE_NOTICE, "1"); };
 const hints = () => f.state.config.onboarding.hintsSeen as string[];
 
@@ -176,6 +177,13 @@ describe("the card after the update", () => {
     const again = await launch();
     expect(again).toContain(INTRO); expect(again).not.toContain("sign in to your cloud plan");
     expect(track).toHaveBeenCalledWith("cloud_card_shown", { variant: "free" });
+  });
+
+  it("waits until someone is invested: a returning person with a few chats gets no corner cloud card", async () => {
+    f.state.bots = [{ tasks: [{ threadId: "t", createdAt: 1, usage: { turns: 2 } }] }];
+    expect(await launch()).not.toContain(INTRO);
+    f.state.routines = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    expect(await relaunch()).toContain(INTRO);
   });
 
   it("needs a trial: without one it stays quiet, and without money-back from the Admin it says none", async () => {

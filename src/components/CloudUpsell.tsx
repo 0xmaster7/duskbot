@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Cloud, X } from "../icons";
 import type { CloudSource } from "@/lib/cloud-plan";
 import { investedBy, type InvestedFacts } from "../../shared/cloud-upsell";
 import { firstChatQuiet, firstReplyPending } from "@/lib/corner-popup";
 import { cloudUpsellAllowed, investedFacts, isInvested, markAlwaysOn, sidebarCardSnoozed, snoozeSidebarCard, trackUpsell, watchUpsell } from "@/lib/cloud-upsell";
 import { MASCOT_INK } from "@/lib/mascot";
-import { CLOUD_INTRO, dismissNotice, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice, noticeSeen } from "@/lib/notices";
+import { CLOUD_INTRO, dismissNotice, INVESTED_NOTICE, LATE_ROUTINE_NOTICE, launchNotice, noticeSeen, watchLaunchNotice } from "@/lib/notices";
 import { t } from "@/lib/i18n";
 import { api, useStore } from "@/state/store";
 import { DuskMark } from "./mascot-view";
@@ -61,7 +61,8 @@ export function SidebarCloudCard() {
   const [held, setHeld] = useState<InvestedFacts | null>(launchInvested);
   const shown = useRef(false);
   const settled = firstReplyPending(state) === false && !firstChatQuiet(state) && !state.welcomeOpen;
-  const notice = launchNotice();
+  // a corner cloud card claiming this launch hides this one right away: one dusk cloud offer on screen at a time
+  const notice = useSyncExternalStore(watchLaunchNotice, launchNotice, () => null);
   const visible = allowed === true && settled && !snoozed && !(notice && CLOUD_NOTICES.has(notice));
   const record = state.config?.onboarding;
   const due = !shown.current && !held && !noticeSeen(record, INVESTED_NOTICE) && isInvested(state) ? investedFacts(state) : null;

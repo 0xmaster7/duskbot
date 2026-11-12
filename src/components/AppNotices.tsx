@@ -5,6 +5,7 @@ import { api, useStore } from "@/state/store";
 import { track } from "@/lib/analytics";
 import { buyOfferAllowed, cloudNoticeKind, cloudPlanView, cloudTrialNotice, cloudTrialView, offerTrialDays } from "@/lib/cloud-plan";
 import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
+import { isInvested } from "@/lib/cloud-upsell";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
 import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
@@ -104,7 +105,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const introDue = (): boolean | null => {
     if (!introAllowed || !view) return false;
     if (view.kind === "unknown" || view.kind === "connecting" || organization === null) return null;
-    if (!buyOfferAllowed(view) || !usedBefore(state.bots)) return false;
+    // the corner card is the louder pitch: only once someone is invested (shared/cloud-upsell.ts), never in their first chats
+    if (!buyOfferAllowed(view) || !usedBefore(state.bots) || !isInvested(state)) return false;
     if (offer === undefined) return null;
     if (offerTrialDays(offer) === null) return false;
     return introOpen || stage === "due" ? true : null;
