@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "@/state/api";
 import { t } from "@/lib/i18n";
 import { setUsageAnalytics } from "@/lib/product-analytics";
+import type { LocaleKey } from "@/locales";
 import { SwitchRow } from "./ListRows";
+
+/** A hint whose promise reads at a glance: its {never} is drawn bold. */
+function promise(key: LocaleKey): ReactNode {
+  const [before, ...rest] = t(key).split("{never}");
+  if (!rest.length) return before;
+  return <>{before}<strong className="font-semibold text-ink">{t("settings.dataSharing.never")}</strong>{rest.join(t("settings.dataSharing.never"))}</>;
+}
 
 type Choice = { enabled: boolean; summaries: boolean };
 
@@ -32,10 +40,10 @@ export function DataSharingRows() {
   if (!choice && !bridge) return failed ? <p className="px-3 py-2 text-[13px] text-ink/60">{t("settings.dataSharing.unavailable")}</p> : null;
   return (
     <>
-      {choice && <SwitchRow title={t("settings.dataSharing.usage")} hint={t("settings.dataSharing.note")} checked={choice.enabled} onChange={() => void save({ enabled: !choice.enabled })} />}
-      {choice && <SwitchRow title={t("settings.dataSharing.summaries")} hint={t("settings.dataSharing.summariesHint")} checked={choice.enabled && choice.summaries} disabled={!choice.enabled}
+      {choice && <SwitchRow title={t("settings.dataSharing.usage")} hint={promise("settings.dataSharing.note")} checked={choice.enabled} onChange={() => void save({ enabled: !choice.enabled })} />}
+      {choice && <SwitchRow title={t("settings.dataSharing.summaries")} hint={promise("settings.dataSharing.summariesHint")} checked={choice.enabled && choice.summaries} disabled={!choice.enabled}
         onChange={() => void save({ summaries: !choice.summaries })} />}
-      {bridge && errors !== null && <SwitchRow title={t("settings.dataSharing.errors")} hint={t("settings.dataSharing.errorsHint")} checked={errors}
+      {bridge && errors !== null && <SwitchRow title={t("settings.dataSharing.errors")} hint={promise("settings.dataSharing.errorsHint")} checked={errors}
         onChange={() => { const next = !errors; setErrors(next); void bridge.set(next).catch(() => setErrors(!next)); }} />}
       {failed && <p role="alert" className="px-3 py-2 text-[13px] text-danger">{t("settings.dataSharing.error")}</p>}
     </>

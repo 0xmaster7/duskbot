@@ -88,23 +88,6 @@ function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
     : <div title={detail} className={cls}>{body}</div>;
 }
 
-/** Three rows the size of a login's, so the list fills in place instead of jumping from a line of text. */
-function VaultSkeleton() {
-  return (
-    <div role="status" aria-label={t("settings.logins.loading")} data-vault-skeleton="" className="flex flex-col">
-      {[0.62, 0.48, 0.55].map((width) => (
-        <div key={width} aria-hidden="true" className="flex min-h-[50px] items-center gap-3 p-2">
-          <span className="flex w-[30px] shrink-0 justify-center"><span className="size-6 rounded-md bg-ink/[0.06]" /></span>
-          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <span className="h-3 rounded-full bg-ink/[0.07]" style={{ width: `${width * 60}%` }} />
-            <span className="h-2.5 rounded-full bg-ink/[0.045]" style={{ width: `${width * 90}%` }} />
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function KeyTile() {
   return <span className="flex size-6 items-center justify-center rounded-md border border-transparent bg-app text-ink/[0.68]"><Icon name="key" size={14} /></span>;
 }
@@ -216,6 +199,8 @@ export function LoginsSettings() {
   const nothing = ready && logins !== null && logins.length === 0 && secrets.length === 0;
   const secretHint = (secret: SavedSecretSummary) => [botNames(secret.bots),
     secret.lastUsedAt ? t("settings.logins.used", { when: relativeTime(secret.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
+  // nothing until the list is in: a frame that fills a moment later reads as "empty" first
+  if (!ready) return null;
 
   return (
     <>
@@ -238,7 +223,6 @@ export function LoginsSettings() {
         {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
         {nothing ? <ArtState data-art-state="vault" art="key" title={t("settings.docs.vault.empty")}>{t("settings.docs.vault.emptyBody")}</ArtState> : <>
           <div aria-busy={!ready || busy} className="flex flex-col rounded-xl border border-transparent bg-app p-1.5">
-            {!ready && <VaultSkeleton />}
             {ready && logins !== null && shown.length + shownSecrets.length === 0 && <NoteRow>{words ? t("settings.vault.noMatch") : t("settings.vault.noneHere")}</NoteRow>}
             {ready && !!shown.length && (
               <ul className="flex flex-col" data-logins-list>

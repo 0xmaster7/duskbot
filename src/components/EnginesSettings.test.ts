@@ -412,7 +412,7 @@ describe("Settings → AI in Simple mode", () => {
   };
   const rows = (html: string) => [...html.matchAll(/data-panel-page="engine:([^"]+)"/g)].map((match) => match[1]);
 
-  it("lists each ready provider, and each one signed in by subscription, as a row showing its status", () => {
+  it("lists each ready provider, and each one signed in by subscription, as a row with its mark and a plain status", () => {
     fixture.instances = [
       engine("claude", "claudeAgent", true),
       engine("codex", "codexAgent", false, { authentication: { method: "device-code" } }),
@@ -421,8 +421,8 @@ describe("Settings → AI in Simple mode", () => {
     const html = simple();
     expect(html).toContain(">your AI</h3>");
     expect(rows(html)).toEqual(["claude", "codex"]);
-    expect(html).toMatch(/data-panel-page="engine:claude"[\s\S]*?>ready<\/span>/);
-    expect(html).toMatch(/data-panel-page="engine:codex"[\s\S]*?>sign-in required<\/span>/);
+    expect(html).toMatch(/data-panel-page="engine:claude"[\s\S]*?<svg[\s\S]*?>connected<\/span>/);
+    expect(html).toMatch(/data-panel-page="engine:codex"[\s\S]*?>connect<\/span>/);
     expect(html).not.toContain("model providers and accounts");
   });
 
@@ -431,5 +431,11 @@ describe("Settings → AI in Simple mode", () => {
     const html = simple();
     expect(html).toMatch(/data-panel-page="more-engines"[\s\S]*?more AI providers \(2\)/);
     expect(rows(html)).toEqual(["claude"]);
+  });
+
+  it("ends the list with adding a custom provider by its base URL, key and models", () => {
+    fixture.instances = [engine("claude", "claudeAgent", true)];
+    const html = simple();
+    expect(html).toMatch(/data-panel-page="custom-provider"[\s\S]*?add a custom provider/);
   });
 });

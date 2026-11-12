@@ -56,6 +56,7 @@ export function SettingsPage({ bot, onOpen, more }: {
     <div data-panel-settings className="contents">
       <Card label={t("botPanel.section.thisBot")} anchor="uses">
         {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
+        <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
         <NavRow data-panel-page="instructions" pixel="note" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" pixel="bookmark" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
         <NavRow data-panel-page="skills" pixel="sparkle" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
@@ -64,7 +65,6 @@ export function SettingsPage({ bot, onOpen, more }: {
 
       {/* where it works lives on the Computer tab */}
         <Card label={t("botSettings.sections.access")} anchor="access">
-          <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
           <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
           <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
           <NavRow data-panel-page="folder" title={t("computer.files.folder")} value={bot.cwd ? shortPath(bot.cwd, capabilities.host?.homeDir) : t("botPanel.folder.private")} tooltip={bot.cwd ?? undefined} onClick={open("folder")} />

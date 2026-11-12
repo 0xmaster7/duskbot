@@ -9,7 +9,6 @@ import { MOOD_EMOJI, moodOf } from "@/ambient/mood";
 import { ambientSnapshot } from "@/ambient/summary";
 import { turnLive } from "@/state/turn-status";
 import type { AmbientPrefs } from "@/ambient/types";
-import { openIslandIntro } from "./onboarding/IslandIntroHost";
 
 type Size = AmbientPrefs["size"];
 const SIZES: Size[] = ["small", "medium", "large"];
@@ -57,12 +56,6 @@ export function AmbientRows() {
       )}
       <SettingRow title={t("settings.ambient.dock.title")} subtitle={t("settings.ambient.dock.subtitle")}>
         <Switch checked={state.dock} aria-label={t("settings.ambient.dock.title")} onClick={() => change({ dock: !state.dock })} />
-      </SettingRow>
-      <SettingRow title={t("settings.ambient.tour.title")} subtitle={t("settings.ambient.tour.subtitle")}>
-        <button type="button" data-island-tour="" className="ui-button ui-button-sm"
-          onClick={() => void openIslandIntro().then(() => bridge.prefs()).then(setState, () => {})}>
-          {t("settings.ambient.tour.show")}
-        </button>
       </SettingRow>
       {(state.island || state.dock) && state.displays.length > 1 && (
         <SettingRow title={t("settings.ambient.display.title")} subtitle={t("settings.ambient.display.subtitle")}>

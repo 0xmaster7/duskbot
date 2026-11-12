@@ -87,23 +87,3 @@ export function ServerSitesRow() {
   );
 }
 
-/** browserEngine.engine: the bots' browsers run on dusk bot's own Chrome driver instead of agent-browser. */
-export function NewBrowserSettings() {
-  const { state } = useStore();
-  const on = state.config?.browserEngine?.engine === "chrome";
-  const { saving, error, save } = useConfigSave();
-
-  return (
-    <div data-testid="new-browser-settings" className="contents">
-      <SettingRow title={t("settings.experimental.newBrowser")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
-        <Switch
-          checked={on}
-          aria-label={t("settings.experimental.newBrowserAria")}
-          disabled={saving}
-          onClick={() => void save({ browserEngine: { engine: on ? "agent-browser" : "chrome" } })}
-          className="disabled:opacity-50"
-        />
-      </SettingRow>
-    </div>
-  );
-}

@@ -18,7 +18,6 @@ import { BotDefaultsRows } from "./SettingsBots";
 import { ActivitySection } from "./ActivitySection";
 import { ArchivedBotsPanel } from "./ArchivedBotsPanel";
 import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
-import { AutomaticRecoverySettings } from "./AutomaticRecoverySettings";
 import { AccessOverview } from "./bot-access/AccessOverview";
 import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
 import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction";
@@ -55,7 +54,6 @@ import { SkillsSection } from "./SkillsSection";
 import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
-import { ThreadCleanupSettings } from "./ThreadCleanupSettings";
 import { UsageSection } from "./UsageSection";
 import { WorkspaceBackupSettings } from "./WorkspaceBackupSettings";
 import { reportsUsage, useEngineLimits } from "@/lib/limit-resets";
@@ -69,7 +67,7 @@ export type Disclose = (id: string) => { id: string; open: boolean; onToggle: ()
 
 /** The pages a pane's rows open, by the section a deep link names: a link to one lands on that page. */
 export const SECTION_PAGES: Partial<Record<AppSettingsSection, { id: string; title: LocaleKey }>> = {
-  import: { id: "import", title: "settings.import.grokTitle" },
+  import: { id: "import", title: "settings.import.rowTitle" },
   companion: { id: "pairing", title: "settings.w6.pairing.title" },
   remote: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
   desktopWorkspaces: { id: "elsewhere", title: "settings.simple.computer.elsewhere" },
@@ -174,7 +172,6 @@ function DressUpRow() {
 
 export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boolean }) {
   const { at } = useSubPage();
-  const [more, setMore] = useState(false);
   if (at === "import") return <AdminOnly><ImportSettings /></AdminOnly>;
   return (
     <>
@@ -193,6 +190,8 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <AccentRow />
           <TalkingStyleRow />
           <LanguageRow simple />
+          <PlaceLookRows />
+          <AmbientRows />
         </SettingsRows>
       </SettingsGroup>
       {!remoteActive && (
@@ -200,6 +199,7 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
           <SettingsRows>
             <TalkShortcutRow />
             <SendKeyRow simple />
+            <FollowUpRow simple />
             <QuickUpdatesRow />
             <OpenAtLoginRow simple />
           </SettingsRows>
@@ -208,23 +208,16 @@ export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boo
       <SettingsGroup label={tPreferred("settings.docs.notifications", "notifications.title")} block="notifications">
         <SettingsRows><NotificationRows /></SettingsRows>
       </SettingsGroup>
+      {!remoteActive && (
+        <SettingsGroup label={t("settings.dataSharing.title")} block="data-sharing">
+          <SettingsRows><DataSharingRows /></SettingsRows>
+        </SettingsGroup>
+      )}
       {has("import") && (
         <SettingsGroup label={tPreferred("settings.docs.bring", "settings.section.import")} block="import">
           <SettingsRows><ImportRow /></SettingsRows>
         </SettingsGroup>
       )}
-      <AdvancedFold open={more} onToggle={() => setMore(!more)}>
-        <SettingsRows>
-          {!remoteActive && <FollowUpRow simple />}
-          <PlaceLookRows />
-          <AmbientRows />
-        </SettingsRows>
-        {!remoteActive && (
-          <SettingsGroup label={t("settings.dataSharing.title")} block="data-sharing">
-            <SettingsRows><DataSharingRows /></SettingsRows>
-          </SettingsGroup>
-        )}
-      </AdvancedFold>
     </>
   );
 }
@@ -251,8 +244,8 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
 function ImportRow() {
   const sub = useSubPage();
   return (
-    <SettingRow icon="parcel" title={t("settings.import.grokTitle")} subtitle={t("settings.w6c.import.appsSubtitle")}>
-      <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.grokTitle"))}>{t("settings.w6c.import.start")}</button>
+    <SettingRow icon="parcel" title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
+      <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.rowTitle"))}>{t("settings.w6c.import.start")}</button>
     </SettingRow>
   );
 }
@@ -388,7 +381,6 @@ const ADVANCED_TITLES: Record<AdvancedPage, LocaleKey> = {
   apps: "settings.w6.apps.title",
   team: "settings.w6.team.title",
   data: "settings.w6.data.title",
-  builder: "settings.experimental.title",
 };
 
 export const advancedTitle = (page: AdvancedPage) => t(ADVANCED_TITLES[page]);
@@ -397,7 +389,6 @@ const ADVANCED_HINTS: Record<AdvancedPage, LocaleKey> = {
   apps: "settings.hint.appsPage",
   team: "settings.hint.team",
   data: "settings.hint.data",
-  builder: "settings.hint.experimental",
 };
 
 /** The first screen of Advanced: the rarer pages, and the archived bots while there are any. */
@@ -425,11 +416,18 @@ function AppsPage({ has }: { has: Has }) {
   if (at === "mcp") return <div data-settings-block="mcp" className="contents"><AdminOnly><McpServersPanel embedded rows /></AdminOnly></div>;
   if (at === "skills") return <div data-settings-block="skills" className="contents"><SkillsSection /></div>;
   return (
-    <RowsCard label={tPreferred("settings.docs.appsTools", "settings.w6.apps.title")} data-settings-block="apps">
-      <NavRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} hint={t("settings.hint.apps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
-      <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} hint={t("settings.hint.mcp")} />
-      {skills && <PageRow page="skills" title={t("settings.section.skills")} hint={t("settings.hint.skills")} />}
-    </RowsCard>
+    <>
+      <RowsCard label={tPreferred("settings.docs.appsTools", "settings.w6.apps.title")} data-settings-block="apps">
+        <NavRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} hint={t("settings.hint.apps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
+        <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} hint={t("settings.hint.mcp")} />
+        {skills && <PageRow page="skills" title={t("settings.section.skills")} hint={t("settings.hint.skills")} />}
+      </RowsCard>
+      <SettingsGroup label={t("settings.apps.learning")} block="builder">
+        <div data-settings-block="experimental" className="contents">
+          <ExperimentalFeaturesRow />
+        </div>
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -489,29 +487,14 @@ function TeamPage({ has }: { has: Has }) {
 function DataPage({ has }: { has: Has }) {
   const { at } = useSubPage();
   if (at === "attachments") return <SettingsRows><AttachmentStorageSettings /></SettingsRows>;
-  if (at === "thread-cleanup") return <div data-settings-block="thread-cleanup" className="contents"><ThreadCleanupSettings /></div>;
   if (at === "backups") return <div data-settings-block="backups" className="flex flex-col gap-5"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></div>;
   return (
     <>
       <SettingsGroup label={tPreferred("settings.docs.yourData", "settings.w6.data.title")} block="data">
         <SettingsRows>
           <PageRow page="attachments" title={t("settings.attachments.title")} hint={t("settings.hint.attachments")} />
-          <PageRow page="thread-cleanup" title={t("settings.threadCleanup.title")} hint={t("settings.hint.threadCleanup")} />
           {has("backups") && <PageRow page="backups" title={t("settings.section.backups")} hint={t("settings.hint.backups")} />}
         </SettingsRows>
-      </SettingsGroup>
-    </>
-  );
-}
-
-/** Features still being built, and the way back to the Simple look while Advanced is on. */
-function BuilderPage() {
-  return (
-    <>
-      <SettingsGroup label={tPreferred("settings.docs.experimental", "settings.experimental.title")} block="builder">
-        <div data-settings-block="experimental" className="contents">
-          <ExperimentalFeaturesRow />
-        </div>
       </SettingsGroup>
     </>
   );
@@ -521,15 +504,13 @@ function BuilderPage() {
 export function ModelsPane({ has, disclose, connections }: { has: Has; disclose: Disclose; connections: ReactNode }) {
   const { at } = useSubPage();
   if (at === "keys") return <div data-settings-block="connections" className="contents"><AdminOnly>{connections}</AdminOnly></div>;
-  if (at === "recovery") return <AdminOnly><AutomaticRecoverySettings /></AdminOnly>;
   if (at) return <div data-settings-block="engines" className="contents"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>;
   return (
     <>
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {has("connections") && (
         <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
-          {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
-          <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
+          <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />
         </RowsCard>
       )}
       {has("bots") && <BotDefaultsRows />}
@@ -549,6 +530,5 @@ export function AdvancedPageView({ page, has }: {
     case "apps": return <AppsPage has={has} />;
     case "team": return <TeamPage has={has} />;
     case "data": return <DataPage has={has} />;
-    case "builder": return <BuilderPage />;
   }
 }

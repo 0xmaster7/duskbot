@@ -88,14 +88,17 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(title(html)).toBe("general");
   });
 
-  it("opens General as you, how it looks, typing and sending, notifications and import, with data sharing under advanced", () => {
+  it("opens General as you, how it looks, typing and sending, notifications, data sharing and import, with nothing folded away", () => {
     const html = open("general");
-    expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "bring your stuff", "data sharing"]);
+    expect(groups(html)).toEqual(["you", "how it looks", "typing and sending", "notifications", "data sharing", "bring your stuff"]);
+    expect(html).not.toContain("data-settings-fold");
+    expect(html).toContain("bring in from other apps");
+    expect(html).not.toContain("Grok bot");
     expect(markers(html)).toEqual([]);
     expect(html).toContain('data-panel-page="import"');
     expect(markers(open("import"))).toEqual(["import"]);
     for (const label of ["theme", "language"]) expect(html).toContain(`role="combobox" aria-label="${label}`);
-    expect(html).toContain('role="radiogroup" aria-label="accent"');
+    expect(html).toContain('role="radiogroup" aria-label="your message color"');
     expect(html).toContain("play sound for notifications");
     expect(html).toContain('aria-label="notification sound"');
     expect(html).toContain("open blip");
@@ -113,7 +116,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(groups(html)).toEqual(["everything else"]);
     expect([...html.matchAll(/data-settings-open="([^"]+)"/g)].map((match) => match[1])).toEqual([]);
     expect([...html.matchAll(/data-settings-advanced="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(["apps", "team", "data", "builder"]);
+      .toEqual(["apps", "team", "data"]);
     expect(markers(html)).toEqual([]);
     expect(html).not.toContain("data-settings-back");
   });
@@ -133,7 +136,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(html)).toEqual(["engines"]);
     expect(html).toContain('data-panel-page="keys"');
     expect(html).not.toContain('data-panel-page="decision"');
-    expect(html).toContain('data-panel-page="recovery"');
+    expect(html).not.toContain('data-panel-page="recovery"');
     expect(markers(open("connections"))).toEqual(["apiKeys"]);
   });
 

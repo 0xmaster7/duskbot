@@ -108,7 +108,7 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "general";
     const html = render();
     expect(trigger(html, "theme")).toBeTruthy();
-    expect(trigger(html, "accent")).toBe("neutral");
+    expect(trigger(html, "your message color")).toBe("neutral");
     expect(trigger(html, "language")).toBeTruthy();
     expect(html).not.toContain('aria-label="advanced mode"');
   });
@@ -116,7 +116,7 @@ describe("Settings → General → Appearance", () => {
   it("shows the bot's colour as the Accent once chosen", () => {
     fixture.section = "general";
     fixture.colorUserBubbles = true;
-    expect(trigger(render(), "accent")).toBe("bot color");
+    expect(trigger(render(), "your message color")).toBe("bot color");
   });
 
   it("keeps the app language reachable from a paired remote client", () => {
@@ -200,10 +200,12 @@ describe("Settings → General → Appearance", () => {
     expect(html).toContain(">Shift+Enter<");
   });
 
-  it("keeps the experiments on their own page, with no timeouts or task limits, and recovery with the models", () => {
+  it("lands the old experiments link on apps and tools, with skill learning there and no developer switches", () => {
     fixture.section = "builder";
     const html = render();
-    expect(html).toContain("experimental features");
+    expect(html).toContain("apps and tools");
+    expect(html).toContain("what bots learn");
+    for (const gone of ["experimental features", "new browser", "event log"]) expect(html, gone).not.toContain(gone);
     for (const gone of ["Group turn time limit", "Tasks at once per bot", "MCP tool call", "automatic recovery"]) expect(html, gone).not.toContain(gone);
     fixture.section = "general";
     const general = render();
