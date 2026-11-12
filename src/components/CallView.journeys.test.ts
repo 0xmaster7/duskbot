@@ -293,7 +293,7 @@ describe("calling a bot off the Mac", () => {
     expect(globalThis.navigator.mediaDevices).toBeUndefined();
     chat(SERVER);
     press(callButton());
-    await vi.waitFor(() => expect(text()).toContain("live calls need a microphone, and this window can't use one. open Dusk at a secure https address to make the call."));
+    await vi.waitFor(() => expect(text()).toContain("live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call."));
     expect(text()).not.toContain("WebRTC");
     expect(text()).not.toContain(KEY_NEEDED);
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);

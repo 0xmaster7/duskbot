@@ -114,7 +114,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     expect(render().html).toBe("");
     await mount();
     const html = render().html;
-    expect(html).toContain("using Dusk at work?");
+    expect(html).toContain("using dusk bot at work?");
     expect(html).toContain("sign in with your organization.");
     expect(html).toContain("other admin address");
     expect(bridge.begin).not.toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     let html = render().html;
     expect(html).toContain("finish in your browser");
     expect(html).toContain("ABCDE-FGHIJ");
-    expect(html).not.toContain("using Dusk at work?");
+    expect(html).not.toContain("using dusk bot at work?");
     expect(onConnected).not.toHaveBeenCalled();
 
     push(connected);
@@ -152,7 +152,7 @@ describe("organisation sign-in row in the welcome flow", () => {
     button("cancel sign-in")!.props.onClick!();
     await flush();
     expect(bridge.cancelEnrollment).toHaveBeenCalledOnce();
-    expect(render().html).toContain("using Dusk at work?");
+    expect(render().html).toContain("using dusk bot at work?");
   });
 
   it("sends another Admin address to Settings instead of asking here", async () => {

@@ -335,7 +335,7 @@ describe("Simple mode's account menu", () => {
   });
 
   it("raises an update that is ready or failed to its own top row with a pill, and keeps it out of support", () => {
-    const update = { key: "update", label: "Restart to update to Dusk 0.2.0", subtitle: "notes", attention: true, onSelect: noop };
+    const update = { key: "update", label: "Restart to update to dusk bot 0.2.0", subtitle: "notes", attention: true, onSelect: noop };
     const items = build({ update, updateTop: { label: "update ready", action: "restart" } });
     expect(groups(items)[0]).toEqual(["update"]);
     expect(items[0]).toMatchObject({ label: "update ready", subtitle: undefined, attention: false });

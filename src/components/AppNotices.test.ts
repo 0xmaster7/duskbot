@@ -24,7 +24,7 @@ vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false, track: vi.fn() }
 vi.mock("./cloud-buy/NightCard", () => ({ NightCard: ({ children }: { children: unknown }) => children }));
 // Who Dusk belongs to: unknown (as before the session answers) unless a test says otherwise.
 vi.mock("@/lib/default-bot", async original => ({ ...await original<typeof import("@/lib/default-bot")>(), useViewerEmail: () => f.viewerEmail }));
-vi.mock("@/lib/brand", () => ({ productName: () => "Dusk" }));
+vi.mock("@/lib/brand", () => ({ productName: () => "dusk bot" }));
 vi.mock("./mascot-view", () => ({ DuskMark: () => null }));
 vi.mock("./Avatar", async original => ({ ...await original<typeof import("./Avatar")>(), MausAvatar: () => null }));
 vi.mock("@/components/EngineLibrary", () => ({ engineReady: (instance: { snapshot: { state: string; authenticated?: boolean } }) =>
@@ -44,7 +44,7 @@ const plans = [
 const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
 const INTRO = "keep your bots working when this computer is off";
-const STAR = "Enjoying Dusk?";
+const STAR = "Enjoying dusk bot?";
 const signedOut: CloudAccountState = { status: "signed-out" };
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
 const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
@@ -346,7 +346,7 @@ describe("upstream promotional campaigns", () => {
   it("does not advertise retired desktop provider credits, upstream mobile apps or community promotions to returning users", async () => {
     account = { ...free }; offer = { ...PLAIN_OFFER }; returning();
     const html = await launch();
-    for (const campaign of ["Enjoying Dusk?", "live on Product Hunt", "$50 of \x42oat credit", "\x62oat.dev", "Get Dusk updates?"]) expect(html).not.toContain(campaign);
+    for (const campaign of ["Enjoying dusk bot?", "live on Product Hunt", "$50 of \x42oat credit", "\x62oat.dev", "Get dusk bot updates?"]) expect(html).not.toContain(campaign);
   });
 
   it("keeps an expired account's sign-in recovery", async () => {

@@ -6,8 +6,8 @@ import { requestTooLargeMessage } from "../../shared/request-too-large";
 
 describe("plainErrorLine", () => {
   it.each([
-    ["Failed to fetch", "couldn't reach Dusk. check that it's running, then try again."],
-    ["NetworkError when attempting to fetch resource.", "couldn't reach Dusk. check that it's running, then try again."],
+    ["Failed to fetch", "couldn't reach dusk bot. check that it's running, then try again."],
+    ["NetworkError when attempting to fetch resource.", "couldn't reach dusk bot. check that it's running, then try again."],
     ["The operation was aborted due to timeout", "that took too long. try again."],
     ["502 Bad Gateway", "something went wrong on the other end. try again."],
     ["500 Internal Server Error", "something went wrong on the other end. try again."],

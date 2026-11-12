@@ -447,7 +447,7 @@ describe("live call media", () => {
     await startLiveCall({ botId: "b1", threadId: "t1" });
     expect(liveMedia()).toMatchObject({
       phase: "failed",
-      notice: "live calls need a microphone, and this window can't use one. open Dusk at a secure https address to make the call.",
+      notice: "live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call.",
       action: null,
     });
     expect(currentCall()).toBeNull();
@@ -766,7 +766,7 @@ describe("a blocked microphone", () => {
       pageMicrophone,
     });
     await startLiveCall({ botId: "b1", threadId: "t1" });
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "live calls need a microphone, and this window can't use one. open Dusk at a secure https address to make the call.", action: null });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "live calls need a microphone, and this window can't use one. open dusk bot at a secure https address to make the call.", action: null });
     expect(liveMedia().notice).not.toMatch(/browser/i);
     expect(pageMicrophone).not.toHaveBeenCalled();
   });

@@ -441,7 +441,7 @@ describe("thread control placement", () => {
       message: "dusk bot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch dusk bot after granting any missing macOS permission.",
     }));
     expect(screen).toContain("open Screen Recording settings");
-    expect(screen).toContain(">relaunch Dusk<");
+    expect(screen).toContain(">relaunch dusk bot<");
     expect(screen).not.toContain("open Accessibility settings");
     fixture.localMessage = "Accessibility required";
     const accessibility = renderToStaticMarkup(createElement(ErrorRow, {

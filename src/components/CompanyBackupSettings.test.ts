@@ -250,7 +250,7 @@ describe("optional Company cloud backup settings", () => {
   it("shows restart instructions and no backup actions when a restore is already staged", async () => {
     vi.mocked(bridge.state).mockResolvedValueOnce({ busy: false, pendingRestore: true });
     await ready();
-    expect(render().html).toContain("fully quit Dusk");
+    expect(render().html).toContain("fully quit dusk bot");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -267,10 +267,10 @@ describe("optional Company cloud backup settings", () => {
     await ready();
     if (lateState) {
       expect(render().html).toContain("cloud backups could not be loaded");
-      expect(render().html).not.toContain("Fully quit Dusk");
+      expect(render().html).not.toContain("Fully quit dusk bot");
       resolveState({ busy: false, pendingRestore: true }); await flush();
     }
-    expect(render().html).toContain("fully quit Dusk");
+    expect(render().html).toContain("fully quit dusk bot");
     for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
@@ -471,7 +471,7 @@ describe("optional Company cloud backup settings", () => {
     const replace = button("replace installation"); replace.props.onClick!(); replace.props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
-    expect(render().html).toContain("fully quit Dusk");
+    expect(render().html).toContain("fully quit dusk bot");
     expect(window.location.reload).not.toHaveBeenCalled();
     expect([...storage.values()]).not.toContain(PASSWORD);
   });

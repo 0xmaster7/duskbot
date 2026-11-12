@@ -5,8 +5,8 @@ describe("macOS CUA permission recovery", () => {
   it("names only the grants the host reported missing", () => {
     expect(missingMacCuaPermissions("embedded host failed: Screen Recording required; restart dusk bot")).toEqual(["screen"]);
     expect(missingMacCuaPermissions("Accessibility and Screen Recording required")).toEqual(["screen", "accessibility"]);
-    expect(macCuaPermissionMessage(["accessibility"])).toContain("Accessibility is required for Dusk");
-    expect(macCuaPermissionMessage(["screen"])).toContain("relaunch Dusk");
+    expect(macCuaPermissionMessage(["accessibility"])).toContain("Accessibility is required for dusk bot");
+    expect(macCuaPermissionMessage(["screen"])).toContain("relaunch dusk bot");
   });
 
   it("tells the person to turn on CuaDriver, not to relaunch, when the helper app waits for a grant", () => {

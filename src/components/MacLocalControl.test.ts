@@ -18,9 +18,9 @@ afterAll(() => vi.unstubAllGlobals());
 describe("Mac local computer status", () => {
   it("shows the recorded Accessibility failure and its matching recovery actions", () => {
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
-    expect(markup).toContain("Accessibility is required for Dusk");
+    expect(markup).toContain("Accessibility is required for dusk bot");
     expect(markup).toContain("open Accessibility settings");
-    expect(markup).toContain("relaunch Dusk");
+    expect(markup).toContain("relaunch dusk bot");
     expect(markup).not.toContain("open Screen Recording settings");
     expect(markup, "the driver detail shows inline, not folded").not.toContain("<details");
   });
@@ -30,7 +30,7 @@ describe("Mac local computer status", () => {
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
     expect(markup).toContain("local computer control is not ready");
     expect(markup).not.toContain("Accessibility is required");
-    expect(markup).not.toContain("relaunch Dusk</button>");
+    expect(markup).not.toContain("relaunch dusk bot</button>");
   });
 
   it("does not offer host repair actions to a remote renderer", () => {

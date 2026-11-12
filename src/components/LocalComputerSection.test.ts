@@ -197,7 +197,7 @@ describe("Local VM inventory UI", () => {
     }));
 
     expect(markup).toContain("not managed");
-    expect(markup).toContain("not managed by Dusk");
+    expect(markup).toContain("not managed by dusk bot");
     expect(markup).toContain("remove it directly in Docker or Podman");
     expect(markup).not.toContain(">Delete</button>");
     expect(markup).not.toContain("Container labels do not match");

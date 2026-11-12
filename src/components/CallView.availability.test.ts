@@ -70,7 +70,7 @@ describe("call capability guidance", () => {
     }, "other"), false, false);
     expect(help).toEqual({
       label: "calls where you take turns need the desktop app",
-      reason: "they listen from this computer, so they need Dusk on a Mac, Windows or Linux computer.",
+      reason: "they listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
     });
   });
 
@@ -101,7 +101,7 @@ describe("call capability guidance", () => {
       onDevice: true,
     }), false, false)).toEqual({
       label: "calls aren't available right now",
-      reason: "the speech service is unavailable in this app build. restart or update Dusk.",
+      reason: "the speech service is unavailable in this app build. restart or update dusk bot.",
     });
   });
 });

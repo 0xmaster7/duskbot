@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { PRODUCT_NAME, productName } from "./brand";
 
 describe("product name", () => {
-  it("uses Dusk", () => {
-    expect(productName()).toBe("Dusk");
+  it("uses dusk bot", () => {
+    expect(productName()).toBe("dusk bot");
   });
 
   it.each(["index.html", "rail.html"])("%s starts with the product name", (page) => {

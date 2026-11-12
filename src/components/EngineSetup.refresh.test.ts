@@ -87,6 +87,6 @@ it("says plainly when the engine now runs the copy the app installed", async () 
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ instances: [ready], usingAppCopy: true }))));
   mount(createElement(EngineSetup, { instance: opencode }));
   await act(async () => button("install OpenCode here").click());
-  expect(host.textContent).toContain("another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy Dusk installed.");
+  expect(host.textContent).toContain("another copy of OpenCode on this computer doesn't start, so OpenCode now uses the copy dusk bot installed.");
   expect(host.textContent).toContain("installation verified");
 });

@@ -56,7 +56,7 @@ describe("Settings → Import", () => {
   it("says what happened: looking, nothing new, not this computer, or the result", () => {
     expect(apps({ detection: undefined })).toContain("looking on this computer…");
     expect(apps({ detection: { skills: [], tools: [] } })).toContain("nothing new to bring in from your AI apps.");
-    expect(apps({ local: false })).toContain("only the desktop app on the computer running Dusk");
+    expect(apps({ local: false })).toContain("only the desktop app on the computer running dusk bot");
     expect(apps({ result: { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } } })).toContain("added 1 skill.");
   });
 });
