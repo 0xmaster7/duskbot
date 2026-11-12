@@ -23,8 +23,10 @@ the IDs in `wrangler.jsonc`, deploy under their own Worker name, and set
 `DUSK_COMPOSIO_BROKER_URL` in their packaged build. Running only the local
 server with a Composio project key remains the no-Cloudflare self-host path.
 
-Set `REGISTRATION_MODE` to `closed` to stop issuing new installation tokens
-without affecting existing users.
+`REGISTRATION_MODE` is `closed` (since 2026-11-13: dusk bot pays nothing per
+tool call) and `GLOBAL_DAILY_TOOL_CALLS` is 500, so the existing test
+installations stay inside Composio's free allowance. No build registers here by
+default.
 
 ## Budgets
 

@@ -1,4 +1,36 @@
-# Connect apps through Composio
+# Connect apps
+
+dusk bot pays nothing per tool call. Every app connects with the person's own account, key or token, and dusk bot's
+own Composio service (`apps/cloudflare/composio-broker`, `composio.dusk.bot`) is closed to new installations and is no
+build's default. The Connect apps window groups apps by how they connect, free first:
+
+- **Connect in one click.** The vendor's own hosted MCP server, signed in with the person's own account through dynamic
+  client registration (`server/connectors/remote-mcp.ts`), and sign-in to dusk bot's own OAuth apps.
+- **Paste a token.** GitHub, Notion, Linear, Airtable, Todoist, Trello, ClickUp, HubSpot, Jira, Shopify, Stripe and
+  Cloudflare (`server/app-tokens`), plus Gmail with an app password on the built-in email connector. Each shows a
+  numbered guide: open the app's token page, make a token, paste it; dusk bot checks it live before saving it.
+- **More apps with your Composio.** The person's own Composio account (Sign in with Composio, or their own `ak_` key),
+  free for 10,000 actions a month on Composio's own plan.
+
+## Token apps and native sign-ins
+
+A pasted token is checked against the vendor's own "who am I" endpoint, sealed in `app-tokens.json.enc` in the data
+folder (key in `app-tokens-key`, both 0600) and added as an MCP server:
+
+- the vendor's own MCP server with the token as a bearer where it takes one (GitHub, Linear, Cloudflare);
+- otherwise dusk bot's own `api_request` endpoint at `http://127.0.0.1:<port>/api/app-tokens/mcp/<id>`, which keeps the
+  token in the server, answers only loopback callers with that entry's random 256-bit bearer, and keeps every call on
+  the app's own API origin.
+
+Native sign-ins are rows in `shared/native-connectors.json`: a device-code flow (the person types a code on the
+vendor's page) or a loopback code flow with PKCE, the env names that hold the client id and secret, scopes, endpoints,
+a check URL and how bots use the token. Adding one is a row plus its client values in the release environment;
+`scripts/bundle-server.mjs` bakes exactly the env names the rows list. Today: GitHub (dusk bot's own GitHub App, device
+flow, `DUSK_GITHUB_APP_CLIENT_ID`) and Google Drive (`drive.file` only, which needs no Google review,
+`DUSK_GOOGLE_DRIVE_CLIENT_ID` and `DUSK_GOOGLE_DRIVE_CLIENT_SECRET`). Never add a sensitive or restricted Google scope
+to that Google project.
+
+## Your own Composio
 
 dusk bot uses one Composio project API key and one reusable Composio Session. That project key is the only Composio credential users need to provide. The Session enables Composio's multi-account mode with explicit account selection, so one dusk bot installation can keep several Slack, Gmail, Calendar, or other accounts connected without silently replacing the first one.
 
@@ -17,21 +49,17 @@ The desktop app validates the key before saving it. The key is encrypted using E
 
 ## dusk cloud
 
-A dusk cloud plan includes connected apps: there is no key to add. At every start a Cloud home's server makes sure it has its own installation on dusk bot's managed connection service (`https://composio.dusk.bot`), the same one the desktop app registers with (`server/cloud-connected-apps.ts`, sharing `electron/managed-composio.mjs` with the app):
-
-- The first start registers the installation (`POST /v1/installations`) and keeps its token in `connected-apps-installation.json` in the data folder (`CLOUD_HOME.data` in `electron/legacy-names.mjs`), owner-only (0600). The token is never written to `config.json`, sent to a client or logged.
-- Every later start serves that token at once and checks it with `GET /v1/me`. Only a refusal (401) registers a new installation; an outage or a rate limit keeps the token, so the Cloud's connected accounts are never stranded.
-- While the Cloud has no token (the service is down or refuses new registrations), the server keeps booting and serving, Connected apps says the service is temporarily unavailable, and it tries again after 30 seconds, then 1, 2, 5, 10 and every 30 minutes, with some jitter.
-- The file never goes into a backup or a move to another computer, and a restore keeps the Cloud's own (`server/workspace-backup-policy.ts`): its connected accounts belong to that installation.
-- A Composio project key the owner saves under **Self-host connected apps** still wins; clearing it returns to the included service.
-
-The built image uses the default service; `DUSK_COMPOSIO_BROKER_URL` names another (a staging service, or a closed port in CI). The server run from source registers only with an explicitly named service, so development and tests never create installations on the real one.
+A Cloud home connects apps the same way as the desktop app: the person's own accounts, tokens and Composio. It
+registers with a managed Composio service only when `DUSK_COMPOSIO_BROKER_URL` names one on purpose.
 
 ## App events
 
+Without a managed service (the default now), a bot watches an app with a schedule that checks it every few minutes
+(for mail: search messages since the last run), or a webhook the app sends. The rest of this section applies only where
+a managed service is named on purpose.
+
 An app-event automation runs a bot when something happens in a connected app: a new Gmail message, a Slack
-message in a channel, a HubSpot deal changing stage. It uses Composio triggers through the managed service, on
-the desktop, a headless server and a Cloud alike:
+message in a channel, a HubSpot deal changing stage. It uses Composio triggers through the managed service:
 
 1. `trigger` (`action: "create"`, `when: "app_event"`) or the editor saves the automation in `app-triggers.json` in the data
    folder and creates its trigger on the service (`POST /v1/triggers`), which checks that the connected account
@@ -187,15 +215,15 @@ The existing scoped `GET /api/connectors?services=gmail,slack` operation remains
 
 The workspace-level connections above say which accounts exist. A second, per-bot layer says which of an app's **tools** each bot may actually call. Open a bot's settings on the desktop, and under **Connected apps** each service can be set to:
 
-- **All tools** — every tool the service offers (the wildcard grant).
-- **An exact list** — only the named tools, such as GMAIL_SEND_EMAIL, shown as the granted count.
-- **No tools** — the service is listed but grants nothing.
+- **All tools**: every tool the service offers (the wildcard grant).
+- **An exact list**: only the named tools, such as GMAIL_SEND_EMAIL, shown as the granted count.
+- **No tools**: the service is listed but grants nothing.
 
-A bot with no grant record at all keeps the legacy behavior: every tool on every connected app it can see. Assigning the first grant switches the bot to exact-tool mode — a service not on the list grants nothing, even when the workspace is connected to it.
+A bot with no grant record at all keeps the legacy behavior: every tool on every connected app it can see. Assigning the first grant switches the bot to exact-tool mode: a service not on the list grants nothing, even when the workspace is connected to it.
 
 **Nothing changes until you assign.** Upgrading dusk bot does not alter any bot's access: existing bots keep the all-tools default until someone edits their grants. An emptied grant list is deliberate and means "no tools on any connected app." The one exception is an app a bot's **Apps** switch turns on (its read or write level) that its tool list leaves out: that app gets all of its tools, so a switch that shows an app on always lets the bot use it.
 
-**Imported bots land with no grants.** Shareable packages and team imports never carry grants — an imported bot starts with connected apps off, and any grants it later gets are chosen by the importing workspace. Grants also never appear in exports; only the workspace's own private team backup keeps them.
+**Imported bots land with no grants.** Shareable packages and team imports never carry grants: an imported bot starts with connected apps off, and any grants it later gets are chosen by the importing workspace. Grants also never appear in exports; only the workspace's own private team backup keeps them.
 
 **A Chief's new bots start with the Chief's apps.** A bot a Chief of Staff creates (`create_bot`, or a team setup) starts with a copy of the Chief's own connected apps, tools, read or write levels and MCP servers at that moment, never more, and the workspace's default access level. It has the Chief's owner and exactly the Chief's audience; on a Team Cloud, an app each person connects still works only for the person whose own request the work is, with their own connection. A bot a person creates keeps the defaults above.
 

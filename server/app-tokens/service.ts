@@ -118,7 +118,7 @@ export function createTokenApps(deps: TokenAppsDeps) {
   async function beginDevice(app: string): Promise<DeviceStart> {
     const connector = nativeConnector(app);
     const client = clients[app];
-    if (!connector || !client) throw new TokenCheckError("input", "This sign-in isn't set up in this build. Paste a token instead.");
+    if (!connector || !client) throw new TokenCheckError("input", "This sign-in isn't set up in this build yet.");
     for (const [key, entry] of pending) if (entry.expiresAt < now()) pending.delete(key);
     const handle = hex(16);
     if (connector.flow === "code") {
