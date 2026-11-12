@@ -52,7 +52,7 @@
 .tag.avail i { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); animation: none; }
 .tag.avail i.bar-sep { width: 1px; height: 14px; border-radius: 0; background: var(--line); margin: 0 2px; }
 .tag.avail .os { width: 14px; height: 14px; }
-.hero .hint { color: var(--ink-3); font-weight: 500; }
+.hero .hint { color: var(--ink-2); font-weight: 500; }
 
 /* every screen: one scene. a laptop, a monitor and a phone stand apart on the grass, each showing the same bot in a slice
    of the real app, each with its own label underneath. the devices are flat and drawn in css: a device is placed by its left
@@ -226,7 +226,7 @@ main.home { font-weight: 450; }
 .fig-head b, .rows b, .said b { font-weight: 550; }
 .fig-head b i { margin-right: 2px; font-style: normal; font-weight: 500; color: var(--ink-3); }
 .count { font: 500 11.5px/1.4 var(--mono); color: var(--ink-3); }
-.live { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: #e3f6ea; color: #0d7a43; font: 400 11.5px/1.4 var(--mono); }
+.live { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: #e3f6ea; color: #0d7a43; font: 500 11.5px/1.4 var(--mono); }
 .live i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.8s ease-in-out infinite; }
 .chip-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; margin-left: auto; padding: 0 12px; border: 0; border-radius: 999px; background: var(--wash); font: 500 13px/1 var(--sans); color: var(--ink); cursor: pointer; transition: background-color 0.2s ease, scale 0.16s var(--mk-ease-out); }
 .chip-btn::before { content: ""; position: absolute; inset: -7px 0; }
@@ -244,7 +244,7 @@ main.home { font-weight: 450; }
 .page-h span { font-size: 12.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .fares { list-style: none; margin: 0; padding: 0; }
 .fares li { display: grid; grid-template-columns: 50px 1fr auto 54px; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 8px; transition: background-color 0.2s ease; }
-.fares b, .fares em { font: 400 13px/1 var(--mono); }
+.fares b, .fares em { font: 500 13px/1 var(--mono); }
 .fares span { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .fares u { padding: 6px 0; border-radius: 999px; background: var(--wash); font: 500 12px/1 var(--sans); text-align: center; text-decoration: none; transition: background-color 0.2s ease, color 0.2s ease, scale 0.16s var(--mk-ease-out); }
 .fares li.hot { background: var(--wash); }
@@ -280,7 +280,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .notes li + li { border-top: 1px solid var(--line); }
 .notes p { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -0.01em; }
 .meta { display: flex; align-items: center; gap: 7px; margin-top: 2px; font: 500 11.5px/1.5 var(--mono); color: var(--ink-3); }
-.meta b { padding: 0 7px; border-radius: 999px; background: var(--t-lemon); color: #6b5600; font-weight: 400; }
+.meta b { padding: 0 7px; border-radius: 999px; background: var(--t-lemon); color: #6b5600; font-weight: 500; }
 .notes .new { padding-right: 84px; }
 .notes .new .chip-btn { position: absolute; right: 0; top: 13px; }
 [data-note] { display: inline-block; min-width: 2ch; min-height: 1.4em; margin-left: -6px; padding: 0 6px; border-radius: 5px; background: var(--t-lemon); outline: none; }
@@ -397,7 +397,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .seg button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: none; font: 500 15px/1 var(--sans); color: var(--ink-2); white-space: nowrap; cursor: pointer; transition: color 0.16s ease; }
 .seg [aria-pressed="true"] { color: var(--ink); }
 .seg:not(.is-on) [aria-pressed="true"] { background: #fff; }
-.seg em { padding: 2px 8px; border-radius: 999px; background: var(--t-sky); color: #0b5ea8; font: 400 11.5px/1.5 var(--mono); letter-spacing: 0; }
+.seg em { padding: 2px 8px; border-radius: 999px; background: var(--t-sky); color: #0b5ea8; font: 500 11.5px/1.5 var(--mono); letter-spacing: 0; }
 .seg-ind { display: none; position: absolute; inset: 0; z-index: -1; background: #fff; transition: clip-path var(--spring); }
 .seg.is-on .seg-ind { display: block; }
 .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gut); }
