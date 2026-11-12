@@ -22,6 +22,8 @@ export interface Step {
   /** a short qualifier: a platform, a plan period, a checkout source */
   detail: string | null;
   amountCents: number | null;
+  /** on a payment or refund: the tax on top of `amountCents` (prices are tax exclusive), when there was any */
+  taxCents?: number;
   /** for `returned`: the quiet time before this session */
   gapMs?: number;
   /** visible time: on a page view, how long it was looked at; on an upsell or notice, from shown to this step; on an
@@ -123,7 +125,7 @@ export function billingSteps(payments: readonly Payment[], checkouts: readonly C
     ...checkouts.map((checkout): Step => ({ at: checkout.createdAt, kind: "checkout", surface: "server", name: "started checkout", path: null, emoji: "🛒", detail: words(checkout.source), amountCents: checkout.amountCents || null })),
     ...payments.map((payment): Step => ({ at: payment.at, kind: payment.kind === "refund" ? "refund" : "paid", surface: "server", name: PAY_NAME[payment.kind], path: null,
       emoji: payment.kind === "refund" ? "↩️" : payment.kind === "renewal" ? "🔁" : "💰",
-      detail: payment.kind === "renewal" ? "renewal" : payment.kind === "one_time" ? "one time" : null, amountCents: payment.amountCents })),
+      detail: payment.kind === "renewal" ? "renewal" : payment.kind === "one_time" ? "one time" : null, amountCents: payment.amountCents, ...(payment.taxCents ? { taxCents: payment.taxCents } : {}) })),
   ];
 }
 

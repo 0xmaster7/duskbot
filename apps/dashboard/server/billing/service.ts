@@ -455,12 +455,16 @@ export function createBillingService(options: BillingServiceOptions) {
     customer(checkout.accountId, checkout.email, event.customerId);
     if (!invoice) {
       invoice = { id: id("inv"), accountId: checkout.accountId, providerPaymentId: event.paymentId, subscriptionId: sub?.id ?? checkout.subscriptionId, checkoutId: checkout.id,
-        amountCents: event.amountCents, currency: event.currency, status: event.type === "succeeded" ? "paid" : "failed",
+        amountCents: event.amountCents, ...taxOf(event), currency: event.currency, status: event.type === "succeeded" ? "paid" : "failed",
         description: (sub?.lines ?? checkout.lines).filter(line => line.kind !== "discount").map(line => line.label).join(", "), createdAt: now() };
       state.invoices.push(invoice);
       if (invoice.status === "paid") receipt(invoice, sub ?? null);
-    } else if (event.type === "succeeded" && invoice.status === "failed") { Object.assign(invoice, { status: "paid", amountCents: event.amountCents, currency: event.currency }); receipt(invoice, sub ?? null); }
+    } else if (event.type === "succeeded" && invoice.status === "failed") { Object.assign(invoice, { status: "paid", amountCents: event.amountCents, ...taxOf(event), currency: event.currency }); receipt(invoice, sub ?? null); }
     settleRefunds(event.paymentId);
+  }
+  // the tax inside a charge in its own currency (prices are tax exclusive), kept so revenue can count before tax
+  function taxOf(event: { amountCents: number; taxCents?: number | null }) {
+    return typeof event.taxCents === "number" && event.taxCents > 0 ? { taxCents: Math.min(event.taxCents, event.amountCents) } : {};
   }
   function receipt(invoice: (typeof state.invoices)[number], sub: StoredSubscription | null) {
     if (invoice.amountCents === 0) return;

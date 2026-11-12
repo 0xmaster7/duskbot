@@ -10,6 +10,11 @@ import { STORE_LAYOUTS } from "../server/persistence/layouts.ts";
 const dir = process.argv[2], uri = process.env.MONGODB_URI;
 if (!dir || !uri) { console.error("usage: MONGODB_URI=... import-json-state.ts <data folder>"); process.exit(2); }
 const files = readdirSync(dir).filter(name => name.endsWith(".json") && !name.endsWith(".tmp"));
+// a fixture's folder (made-up ledger rows, the fake provider's checkouts) never goes into a real database
+const billing = files.includes("billing.json") ? JSON.parse(readFileSync(join(dir, "billing.json"), "utf8")) as { ledger?: Array<{ via?: string }>; checkouts?: Array<{ providerSessionId?: string | null }> } : null;
+if (billing?.ledger?.some(row => row.via === "fixture") || billing?.checkouts?.some(row => row.providerSessionId?.startsWith("fake_"))) {
+  console.error("refused: this folder holds fixture or fake-provider billing records."); process.exit(2);
+}
 const database = await openMongoBackend({ uri, db: process.env.MONGODB_DB || "dusk" });
 try {
   const held = await database.db.collection("stores").countDocuments() + await database.db.collection("accounts").countDocuments();

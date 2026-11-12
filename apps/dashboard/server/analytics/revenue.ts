@@ -1,18 +1,22 @@
 // Revenue for the owner's overview: every payment and refund from the billing records, tied back to the visit that
 // brought the payer (the last non-direct touch before paying, else their first visit). Pure functions.
+import { refundBeforeTax, taxIn } from "./subscriptions.ts";
 import { DIMENSIONS, bucketsOf, matches, valuesOf, type Dimension, type Filters, type Identity, type Visit } from "./web.ts";
 
-export interface InvoiceLike { id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; amountCents: number; currency: string; status: "paid" | "failed" | "refunded"; createdAt: number }
+export interface InvoiceLike { id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; amountCents: number; taxCents?: number; currency: string; status: "paid" | "failed" | "refunded"; createdAt: number }
 export interface SubscriptionLike { accountId: string; status: string; totalCents: number; createdAt: number; currentPeriodStart: number | null; cart: { interval: string } }
 export interface BillingLike {
   invoices: readonly InvoiceLike[];
   subscriptions: readonly SubscriptionLike[];
   refunds?: ReadonlyArray<{ id: string; paymentId: string; amountCents: number; currency: string }>;
   webhookEvents?: ReadonlyArray<{ at: number; type: string }>;
+  /** payment rows carry the tax an older invoice did not keep */
+  ledger?: ReadonlyArray<{ type: string; providerPaymentId: string | null; taxCents: number | null }>;
 }
 
 export type PaymentKind = "new" | "renewal" | "one_time" | "refund";
-export interface Payment { id: string; accountId: string; at: number; amountCents: number; currency: string; kind: PaymentKind }
+/** `amountCents` is before tax (prices are tax exclusive); `taxCents` is the tax paid on top, negative on a refund */
+export interface Payment { id: string; accountId: string; at: number; amountCents: number; taxCents: number; currency: string; kind: PaymentKind }
 
 /** paid invoices as positive payments (a refunded one was still paid first) and each refund as a negative one */
 export function paymentsOf(state: BillingLike): Payment[] {
@@ -22,19 +26,23 @@ export function paymentsOf(state: BillingLike): Payment[] {
     if (invoice.status === "failed" || !invoice.subscriptionId) continue;
     if (!firstOf.has(invoice.subscriptionId) || firstOf.get(invoice.subscriptionId)! > invoice.createdAt) firstOf.set(invoice.subscriptionId, invoice.createdAt);
   }
+  const ledgerTax = new Map((state.ledger ?? []).filter(row => row.type === "payment.succeeded" && row.providerPaymentId && row.taxCents).map(row => [row.providerPaymentId!, row.taxCents!]));
+  const taxOf = (invoice: InvoiceLike) => taxIn(invoice.amountCents, invoice.taxCents ?? ledgerTax.get(invoice.providerPaymentId));
   const byPayment = new Map<string, InvoiceLike>();
   for (const invoice of state.invoices) {
     byPayment.set(invoice.providerPaymentId, invoice);
     if (invoice.status === "failed" || invoice.amountCents <= 0) continue;
     const kind: PaymentKind = !invoice.subscriptionId ? "one_time" : firstOf.get(invoice.subscriptionId) === invoice.createdAt ? "new" : "renewal";
-    out.push({ id: invoice.id, accountId: invoice.accountId, at: invoice.createdAt, amountCents: invoice.amountCents, currency: invoice.currency, kind });
+    const tax = taxOf(invoice);
+    out.push({ id: invoice.id, accountId: invoice.accountId, at: invoice.createdAt, amountCents: invoice.amountCents - tax, taxCents: tax, currency: invoice.currency, kind });
   }
   // a refund record carries no time; the webhook log keeps one per refund in the same order, else it lands on the payment's day
   const refundTimes = (state.webhookEvents ?? []).filter(event => event.type === "refund.succeeded").map(event => event.at);
   for (const [i, refund] of (state.refunds ?? []).entries()) {
     const invoice = byPayment.get(refund.paymentId);
     if (!invoice || refund.amountCents <= 0) continue;
-    out.push({ id: refund.id, accountId: invoice.accountId, at: Math.max(invoice.createdAt, refundTimes[i] ?? invoice.createdAt), amountCents: -refund.amountCents, currency: refund.currency, kind: "refund" });
+    const before = refundBeforeTax(refund.amountCents, { amountCents: invoice.amountCents - taxOf(invoice), chargedCents: invoice.amountCents });
+    out.push({ id: refund.id, accountId: invoice.accountId, at: Math.max(invoice.createdAt, refundTimes[i] ?? invoice.createdAt), amountCents: -before, taxCents: -(refund.amountCents - before), currency: refund.currency, kind: "refund" });
   }
   return out.sort((a, b) => a.at - b.at);
 }

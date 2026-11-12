@@ -27,7 +27,8 @@ export interface SubscriptionsInput {
 }
 
 interface Life { sub: StoredSubscription; accountId: string; start: number; end: number | null; segments: Array<{ from: number; mrr: number }>; comp: boolean }
-export interface Pay { paymentId: string; accountId: string; subscriptionId: string | null; at: number; amountCents: number; netCents: number; taxCents: number; country: string | null }
+/** `amountCents` is before tax (prices are tax exclusive), `chargedCents` what the buyer paid with tax */
+export interface Pay { paymentId: string; accountId: string; subscriptionId: string | null; at: number; amountCents: number; chargedCents: number; netCents: number; taxCents: number; country: string | null }
 export interface Refund { id: string; paymentId: string; accountId: string; at: number; amountCents: number }
 
 export const monthStart = (t: number) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
@@ -38,6 +39,11 @@ export const monthlyCents = (sub: Pick<StoredSubscription, "source" | "totalCent
 const ratio = (part: number, whole: number) => whole > 0 ? part / whole : null;
 const median = (values: number[]) => { if (!values.length) return null; const s = [...values].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : Math.round((s[m - 1]! + s[m]!) / 2); };
 
+/** the tax inside a charge, never more than the charge */
+export const taxIn = (chargedCents: number, taxCents: number | null | undefined) => Math.min(chargedCents, Math.max(0, taxCents ?? 0));
+/** a refund of a taxed charge, before tax: the same share of the pre-tax amount */
+export const refundBeforeTax = (refundCents: number, pay: Pick<Pay, "amountCents" | "chargedCents">) => pay.chargedCents > 0 ? Math.round(refundCents * pay.amountCents / pay.chargedCents) : refundCents;
+
 /** every money-in moment: paid invoices, then ledger payments the invoices do not know (read back by the backfill) */
 export function paysOf(input: Pick<SubscriptionsInput, "invoices" | "ledger">): Pay[] {
   const ledgerOf = new Map(input.ledger.filter(row => row.type === "payment.succeeded" && row.providerPaymentId).map(row => [row.providerPaymentId!, row]));
@@ -45,13 +51,16 @@ export function paysOf(input: Pick<SubscriptionsInput, "invoices" | "ledger">): 
   for (const invoice of input.invoices) {
     if (invoice.status === "failed" || invoice.amountCents <= 0) continue;
     const row = ledgerOf.get(invoice.providerPaymentId);
-    out.push({ paymentId: invoice.providerPaymentId, accountId: invoice.accountId, subscriptionId: invoice.subscriptionId, at: invoice.createdAt, amountCents: invoice.amountCents,
-      netCents: row?.netCents ?? invoice.amountCents, taxCents: row?.taxCents ?? 0, country: row?.country ?? null });
+    const tax = taxIn(invoice.amountCents, invoice.taxCents ?? row?.taxCents);
+    out.push({ paymentId: invoice.providerPaymentId, accountId: invoice.accountId, subscriptionId: invoice.subscriptionId, at: invoice.createdAt, amountCents: invoice.amountCents - tax,
+      chargedCents: invoice.amountCents, netCents: row?.netCents ?? invoice.amountCents - tax, taxCents: tax, country: row?.country ?? null });
   }
   const known = new Set(input.invoices.map(invoice => invoice.providerPaymentId));
   for (const row of ledgerOf.values()) {
     if (known.has(row.providerPaymentId!) || !row.accountId || !row.amountCents) continue;
-    out.push({ paymentId: row.providerPaymentId!, accountId: row.accountId, subscriptionId: row.subscriptionId, at: row.at, amountCents: row.amountCents, netCents: row.netCents ?? row.amountCents, taxCents: row.taxCents ?? 0, country: row.country });
+    const tax = taxIn(row.amountCents, row.taxCents);
+    out.push({ paymentId: row.providerPaymentId!, accountId: row.accountId, subscriptionId: row.subscriptionId, at: row.at, amountCents: row.amountCents - tax, chargedCents: row.amountCents,
+      netCents: row.netCents ?? row.amountCents - tax, taxCents: tax, country: row.country });
   }
   return out.sort((a, b) => a.at - b.at);
 }
@@ -63,12 +72,12 @@ export function refundsOf(input: Pick<SubscriptionsInput, "refunds" | "ledger">,
   for (const refund of input.refunds) {
     const pay = byPayment.get(refund.paymentId);
     if (!pay || refund.amountCents <= 0) continue;
-    out.push({ id: refund.id, paymentId: refund.paymentId, accountId: pay.accountId, at: times.get(refund.id)?.at ?? pay.at, amountCents: refund.amountCents });
+    out.push({ id: refund.id, paymentId: refund.paymentId, accountId: pay.accountId, at: times.get(refund.id)?.at ?? pay.at, amountCents: refundBeforeTax(refund.amountCents, pay) });
   }
   const known = new Set(input.refunds.map(refund => refund.id));
   for (const [id, row] of times) if (!known.has(id) && row.amountCents) {
     const pay = row.providerPaymentId ? byPayment.get(row.providerPaymentId) : undefined;
-    if (pay) out.push({ id, paymentId: pay.paymentId, accountId: pay.accountId, at: row.at, amountCents: row.amountCents });
+    if (pay) out.push({ id, paymentId: pay.paymentId, accountId: pay.accountId, at: row.at, amountCents: refundBeforeTax(row.amountCents, pay) });
   }
   return out.sort((a, b) => a.at - b.at);
 }
@@ -417,15 +426,20 @@ export function feedOf(input: SubscriptionsInput, pays: readonly Pay[], refunds:
     "dispute.won": "dispute_closed", "dispute.lost": "dispute_closed", "subscription.cancel_scheduled": "cancel_scheduled", "subscription.cancel_undone": "kept", "subscription.cancelled": "churned",
     "subscription.expired": "churned", "subscription.upgraded": "upgrade", "subscription.downgraded": "downgrade", "subscription.recovered": "recovered", "abandoned_checkout.detected": "abandoned" };
   const failedPayments = new Set(input.invoices.filter(i => i.status === "failed").map(i => i.providerPaymentId));
+  // a row's own plan is what it was called when written; its subscription, when still known, names it today
+  const planOfRow = (row: LedgerEntry) => {
+    const sub = row.subscriptionId ? input.subscriptions.find(item => item.id === row.subscriptionId) : undefined;
+    return sub && !row.type.startsWith("subscription.upgraded") && !row.type.startsWith("subscription.downgraded") ? input.planOf(sub) : row.plan ? label(row.plan) : null;
+  };
   for (const row of input.ledger) {
     const kind = KINDS[row.type];
     if (!kind) continue;
-    items.push({ id: row.id, at: row.at, kind, accountId: row.accountId, email: email(row.accountId), amountCents: row.amountCents,
+    items.push({ id: row.id, at: row.at, kind, accountId: row.accountId, email: email(row.accountId), amountCents: row.amountCents === null ? null : row.amountCents - taxIn(row.amountCents, row.taxCents),
       mrrDelta: row.mrrCents !== null && row.previousMrrCents !== null ? row.mrrCents - row.previousMrrCents : kind === "churned" && row.mrrCents !== null ? -row.mrrCents : null,
-      plan: row.plan ? label(row.plan) : null, detail: row.reason ?? (kind === "dispute_closed" ? row.type.slice(8) : null) });
+      plan: planOfRow(row), detail: row.reason ?? (kind === "dispute_closed" ? row.type.slice(8) : null) });
   }
   for (const invoice of input.invoices) if (invoice.status === "failed" && !input.ledger.some(row => row.providerPaymentId === invoice.providerPaymentId && row.type === "payment.failed") && failedPayments.has(invoice.providerPaymentId)) {
-    items.push({ id: `fail:${invoice.id}`, at: invoice.createdAt, kind: "failed", accountId: invoice.accountId, email: email(invoice.accountId), amountCents: invoice.amountCents, mrrDelta: null, plan: null, detail: null });
+    items.push({ id: `fail:${invoice.id}`, at: invoice.createdAt, kind: "failed", accountId: invoice.accountId, email: email(invoice.accountId), amountCents: invoice.amountCents - taxIn(invoice.amountCents, invoice.taxCents), mrrDelta: null, plan: null, detail: null });
   }
   return items.sort((a, b) => b.at - a.at).slice(0, limit);
 }

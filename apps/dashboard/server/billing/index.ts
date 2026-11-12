@@ -20,6 +20,7 @@ import { BillingError, createBillingService } from "./service.ts";
 import type { BillingNotice, OperatorGrant } from "./service.ts";
 import { BILLING_CONFIG, dodoProducts, managedRegionConfig, missingDodoProducts } from "./plans.ts";
 import { createFakeBillingProvider } from "./fake-provider.ts";
+import { stateBackend } from "../persistence/backend.ts";
 import { createDodoProvider } from "./dodo-provider.ts";
 import { BillingProviderError } from "./types.ts";
 import type { AccountRef, AccountResolver, BillingProvider } from "./types.ts";
@@ -61,6 +62,9 @@ export function createBilling(options: BillingOptions) {
   // which run through the same checkout, webhook and provisioning code with an in-process fake provider that charges nothing
   const billingProvider = choice("DUSK_BILLING_PROVIDER", ["fake", "dodo", "preview"]);
   const cloudProvider = choice("DUSK_CLOUD_PROVIDER", ["fake", "hetzner"]), poolDriver = choice("DUSK_POOL_DRIVER", ["fake"]);
+  // the fake provider mints paid checkouts that charge nothing: on a real database they would read as revenue, so it only
+  // runs on the local JSON stores (the operator-grant preview mode is free comps and may)
+  if (billingProvider === "fake" && stateBackend()) throw new Error("DUSK_BILLING_PROVIDER=fake makes up payments and refuses a MongoDB store; use dodo (test mode) or preview.");
   const fake = billingProvider === "fake" || billingProvider === "preview" ? createFakeBillingProvider({ now }) : null;
   const unavailable = () => { throw new BillingProviderError("unavailable"); };
   let provider: BillingProvider;

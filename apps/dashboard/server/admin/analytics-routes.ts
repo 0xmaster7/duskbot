@@ -80,6 +80,19 @@ export interface AnalyticsRoutesOptions { auth: Auth; billing: Billing; analytic
 export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   const { auth, billing, analytics, now } = options;
   const sink = analytics.sink;
+  /** the money records the owner sees: with a real provider, the fake provider's checkouts (fake_ sessions) and fixture
+   * ledger rows are never real money, whatever put them in the store */
+  function moneyState() {
+    const state = billing.store.state;
+    if (billing.operator.provider !== "dodo") return state;
+    const fakeCheckouts = new Set(state.checkouts.filter(row => row.providerSessionId?.startsWith("fake_")).map(row => row.id));
+    if (!fakeCheckouts.size && !(state.ledger ?? []).some(row => row.via === "fixture")) return state;
+    const fakeSubs = new Set(state.subscriptions.filter(row => fakeCheckouts.has(row.checkoutId)).map(row => row.id));
+    const fakePayments = new Set(state.invoices.filter(row => row.checkoutId && fakeCheckouts.has(row.checkoutId)).map(row => row.providerPaymentId));
+    return { ...state, checkouts: state.checkouts.filter(row => !fakeCheckouts.has(row.id)), subscriptions: state.subscriptions.filter(row => !fakeSubs.has(row.id)),
+      invoices: state.invoices.filter(row => !fakePayments.has(row.providerPaymentId)), refunds: (state.refunds ?? []).filter(row => !fakePayments.has(row.paymentId)),
+      ledger: (state.ledger ?? []).filter(row => row.via !== "fixture" && !(row.subscriptionId && fakeSubs.has(row.subscriptionId)) && !(row.providerPaymentId && fakePayments.has(row.providerPaymentId))) };
+  }
 
   function people(): People & { cloudChosen: Map<string, number>; paired: Map<string, number>; replied: Map<string, number> } {
     const { accounts, sessions } = auth.directory();
@@ -122,7 +135,8 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       .map(([id, at]) => ({ at, kind, seed: [...(identity.visitorsOf.get(id) ?? [])][0] ?? id, email: accounts.get(id)?.email ?? null, customer: p.paid.has(id) })))
       .sort((a, b) => b.at - a.at || a.seed.localeCompare(b.seed)).slice(0, 60);
     const live = online(events, now(), analytics.presence.list().map(entry => entry.key));
-    const revenue = revenueReport({ payments: paymentsOf(billing.store.state), subscriptions: billing.store.state.subscriptions, visits, identity, from, to, now: now(), filters: scoped,
+    const money = moneyState();
+    const revenue = revenueReport({ payments: paymentsOf(money), subscriptions: money.subscriptions, visits, identity, from, to, now: now(), filters: scoped,
       accounts: new Map([...accounts].map(([id, account]) => [id, { email: account.email, createdAt: account.createdAt }])) });
     const crawls = await sink.crawls(from, to);
     const count = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())]
@@ -217,7 +231,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const owner = account ? auth.directory().accounts.find(item => item.id === account) ?? null : null;
     const p = people();
     const visits = visitsOf(mine);
-    const state = billing.store.state;
+    const state = moneyState();
     const payments = account ? paymentsOf(state).filter(payment => payment.accountId === account) : [];
     const checkouts = account ? state.checkouts.filter(checkout => checkout.accountId === account) : [];
     // billing records are the source of truth for money; the paid event only stands in when they are gone
@@ -344,7 +358,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   const planLabel = (id: string) => BILLING_CONFIG.bundles.find(bundle => bundle.id === id)?.label.toLowerCase() ?? (id === "custom" ? "custom" : id.replace(/_/g, " "));
   const planOf = (sub: StoredSubscription) => { try { return planLabel(quote(sub.cart, BILLING_CONFIG).bundle ?? "custom"); } catch { return "custom"; } };
   function subscriptionInput(activity: ReadonlyMap<string, number>): SubscriptionsInput {
-    const state = billing.store.state;
+    const state = moneyState();
     return { subscriptions: state.subscriptions, invoices: state.invoices, refunds: state.refunds ?? [], ledger: state.ledger ?? [], checkouts: state.checkouts, customers: state.customers,
       accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])), activity, planOf, planLabel, now: now() };
   }

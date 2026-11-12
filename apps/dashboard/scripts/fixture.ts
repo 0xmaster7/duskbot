@@ -16,7 +16,10 @@ import { startFakeProviders } from "../server/auth/fake-providers.ts";
 import { memoryMailer } from "../server/auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import { memorySink } from "../server/analytics/sink.ts";
-import { seedAdminAuth, seedAdminData, seedWaitlist } from "./fixture-admin.ts";
+import { assertFixtureStore, seedAdminAuth, seedAdminData, seedWaitlist } from "./fixture-admin.ts";
+
+// a fixture is local and made up: it never starts with a real database in its environment
+assertFixtureStore();
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, "session-file": { type: "string" } } });
 const port = Number(values.port);

@@ -72,7 +72,7 @@ describe("person profile", () => {
       ev("app_open", T, { kind: "desktop", platform: "darwin" }, app, "acct_1"),
       ev("app_close", T + MIN, { ms: 20 * MIN }, app, "acct_1"),
       ev("app_open", T + MIN + SESSION_GAP_MS + 1, { kind: "desktop" }, app, "acct_1"),
-    ], billingSteps([{ id: "p", accountId: "acct_1", at: T + 10 * DAY, amountCents: 1500, currency: "USD", kind: "renewal" }], []));
+    ], billingSteps([{ id: "p", accountId: "acct_1", at: T + 10 * DAY, amountCents: 1500, taxCents: 0, currency: "USD", kind: "renewal" }], []));
     expect(sessions.map(s => [s.surface, s.source, s.ms])).toEqual([["server", null, 0], ["app", null, 0], ["app", null, 20 * MIN]]);
     expect(sessions[0]!.steps).toEqual([expect.objectContaining({ kind: "paid", name: "renewed", amountCents: 1500 })]);
     expect(sessions[1]!.steps.at(-1)!.kind).toBe("returned");
@@ -90,7 +90,7 @@ describe("person profile", () => {
   });
 
   it("sums spend net of refunds and times the first payment from the first visit", () => {
-    const pay = (at: number, amountCents: number, kind: "new" | "renewal" | "refund") => ({ id: `p${at}`, accountId: "a", at, amountCents, currency: "USD", kind });
+    const pay = (at: number, amountCents: number, kind: "new" | "renewal" | "refund") => ({ id: `p${at}`, accountId: "a", at, amountCents, taxCents: 0, currency: "USD", kind });
     const spend = spendOf([pay(T + 3 * DAY, 1500, "new"), pay(T + 33 * DAY, 1500, "renewal"), pay(T + 34 * DAY, -1500, "refund")]);
     expect(spend).toEqual({ spentCents: 1500, refundedCents: 1500, payments: 2, firstPaidAt: T + 3 * DAY });
     expect(timeToPayOf(T, spend.firstPaidAt)).toBe(3 * DAY);

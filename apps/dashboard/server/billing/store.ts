@@ -36,7 +36,11 @@ export interface StoredSubscription {
   cancelAtPeriodEnd: boolean; createdAt: number; updatedAt: number; version: number;
 }
 export interface StoredInvoice {
-  id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; checkoutId: string | null; amountCents: number;
+  id: string; accountId: string; providerPaymentId: string; subscriptionId: string | null; checkoutId: string | null;
+  /** what the buyer was charged, tax included (prices are tax exclusive, so tax comes on top) */
+  amountCents: number;
+  /** the tax inside `amountCents`, as the provider reported it; absent on invoices from before it was kept */
+  taxCents?: number;
   currency: string; status: "paid" | "failed" | "refunded"; description: string; createdAt: number;
 }
 /** where a paying customer first came from, copied from analytics at their first payment so it outlives the raw events */
@@ -94,7 +98,7 @@ const valid = shape({
   checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), cloudId: nullable(str), providerSubscriptionId: optional(str), revive: optional(bool), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, lines: array(line) })),
   subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), source: optional(nullable(str)), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
-  invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),
+  invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, taxCents: optional(int), currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),
   webhookEvents: array(shape({ id: str, at: int, type: str })),
   feedback: array(shape({ id: str, accountId: str, cloudId: nullable(str), subscriptionId: nullable(str), answer: one("feature", "price", "setup", "broken", "later", "other"), expected: optional(str), improve: optional(str), at: int })),
 });

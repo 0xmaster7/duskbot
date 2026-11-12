@@ -7,6 +7,7 @@ import { memoryWaitlist, type WaitlistEntry } from "../server/admin/waitlist.ts"
 import { BILLING_CONFIG } from "../server/billing/plans.ts";
 import { draft, ledgerId } from "../server/billing/ledger.ts";
 import { costOf } from "../server/admin/infra.ts";
+import { stateBackend } from "../server/persistence/backend.ts";
 import type { UsageCategory, UsageDigest, UsageFrom, UsageFrustration, UsageReason, UsageRun, UsageSignal, UsageTool, UsageTurn } from "../../../shared/usage-signals.ts";
 
 const DAY = 86_400_000;
@@ -24,8 +25,14 @@ const HISTORIC = ["ada.nwosu", "bruno.costa", "chloe.martin", "dev.patel", "emma
   "uma.rao", "victor.hugo", "wren.taylor", "yara.haddad", "zoe.becker", "arjun.mehta", "bea.santos", "caleb.wright"];
 let historic: SeededAccount[] = [];
 
+/** made-up data only ever goes into a local fixture's JSON stores, never a database */
+export function assertFixtureStore() {
+  if (process.env.MONGODB_URI || stateBackend()) throw new Error("fixture data only seeds a local fixture; unset MONGODB_URI (it points at a real database).");
+}
+
 /** writes auth.json before the service starts, so the seeded accounts have real sign-up dates */
 export function seedAdminAuth(dataDir: string, now: number): SeededAccount[] {
+  assertFixtureStore();
   const accounts = PEOPLE.map((handle, i) => ({ id: id("acct_"), email: `${handle}@example.test`, name: handle.split(".").map(part => part[0]!.toUpperCase() + part.slice(1)).join(" "),
     createdAt: now - Math.round((i < 3 ? 36 + i * 8 : i * 1.7 + rand() * 2) * DAY) - Math.round(rand() * 20) * 3_600_000 }));
   const identities = accounts.filter((_, i) => i % 3 === 0).map(account => ({ accountId: account.id, provider: "google", subject: id("g_"), email: account.email, label: account.email, addedAt: account.createdAt }));
@@ -53,6 +60,7 @@ export function seedWaitlist(now: number) {
 
 /** clouds through the real (fake-provider) checkout path, then a month of events */
 export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
+  assertFixtureStore();
   const { analytics, billing } = app;
   for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 9, 12]) {
     const account = accounts[i]!;

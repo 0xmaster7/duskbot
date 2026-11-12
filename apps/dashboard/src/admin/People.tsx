@@ -21,7 +21,7 @@ type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "s
   | "error" | "feedback" | "returned" | "billing";
 interface Step {
   at: number; kind: StepKind; surface: "site" | "account" | "app" | "server"; name: string; path: string | null; detail: string | null; amountCents: number | null; gapMs?: number;
-  ms?: number; scroll?: number; emoji?: string;
+  taxCents?: number; ms?: number; scroll?: number; emoji?: string;
 }
 interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
 interface Profile {
@@ -121,6 +121,8 @@ function StepText({ step }: { step: Step }) {
   const detail = step.detail ? <span className="text-ink-4"> · {step.detail.replace(/_/g, " ")}</span> : null;
   const took = step.ms !== undefined ? <span className="text-ink-4"> · <Time ms={step.ms} /></span> : null;
   const amount = step.amountCents !== null ? <span className={cx("font-mono font-medium num", step.kind === "checkout" ? "text-ink-2" : "text-money")}> {usd(step.amountCents)}</span> : null;
+  // prices are tax exclusive: the tax paid on top reads after the amount
+  const tax = step.taxCents ? <span className="font-mono text-ink-4 num"> (+{usd(Math.abs(step.taxCents))} tax)</span> : null;
   switch (step.kind) {
     case "view": return <>{step.surface === "app" ? "opened" : "viewed"} <span className="font-mono text-12 text-ink">{step.path}</span>{took}
       {step.scroll !== undefined && <span className="text-ink-4"> · read <span className="font-mono text-12 text-ink-2 num">{step.scroll}%</span></span>}</>;
@@ -131,8 +133,8 @@ function StepText({ step }: { step: Step }) {
     case "notice": return <Outcome did={step.name === "notice_ignored" ? null : NOTICE_DID[step.name] ?? step.name} what={<>the {step.detail ?? "corner"} notice</>} ms={step.ms} />;
     case "goal": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}{step.ms !== undefined && <span className="text-ink-4"> · after <Time ms={step.ms} /></span>}</>;
     case "onboarding": return <>{step.name}{step.ms !== undefined && <span className="text-ink-4"> · <Time ms={step.ms} /> on the step before</span>}</>;
-    case "paid": return <>{step.name}{amount}{detail}</>;
-    case "refund": return <>{step.name}{step.amountCents !== null && <span className="font-mono text-ink-3 num"> {usd(step.amountCents)}</span>}{detail}</>;
+    case "paid": return <>{step.name}{amount}{tax}{detail}</>;
+    case "refund": return <>{step.name}{step.amountCents !== null && <span className="font-mono text-ink-3 num"> {usd(step.amountCents)}</span>}{tax}{detail}</>;
     case "billing": {
       if (PLAN_CHANGE.has(step.name)) {
         const delta = step.amountCents;
