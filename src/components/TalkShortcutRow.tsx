@@ -29,7 +29,7 @@ export function TalkShortcutRow() {
   // one row for the switch, and the key as its own row's quiet value once it is on
   return (
     <>
-      <SettingRow title={t("settings.talk.title")} subtitle={t("settings.s2.talk.subtitle", { key: label })}
+      <SettingRow icon="mic" title={t("settings.talk.title")} subtitle={t("settings.s2.talk.subtitle", { key: label })}
         message={problem ? <div role="alert" className="text-danger">{problem}</div> : null}>
         <Switch checked={state.enabled} disabled={busy} aria-label={t("settings.talk.aria")} onClick={() => change({ enabled: !state.enabled })} />
       </SettingRow>

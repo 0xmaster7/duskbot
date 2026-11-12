@@ -52,6 +52,7 @@ export function DeviceNotificationsRow() {
 
   return (
     <SettingRow
+      icon="bell"
       title={t("settings.deviceNotifications.title")}
       subtitle={blocked ? t("settings.deviceNotifications.blocked") : undefined}
     >
@@ -68,7 +69,7 @@ export function DeviceNotificationsRow() {
 function NotificationSoundsRow() {
   const enabled = useNotificationSounds();
   return (
-    <SettingRow title={t("settings.notificationSound.playTitle")}>
+    <SettingRow icon="speaker" title={t("settings.notificationSound.playTitle")}>
       <Switch
         checked={enabled}
         aria-label={t("settings.notificationSounds.play")}
@@ -92,7 +93,7 @@ export function NotificationSoundPickerRow() {
   const [sound, setSound] = useState<UiSoundName>(chosenSound);
   if (!enabled) return null;
   return (
-    <SettingRow title={t("settings.notificationSound.title")}>
+    <SettingRow icon="speaker" title={t("settings.notificationSound.title")}>
       <SettingsSelect
         value={sound}
         aria-label={t("settings.notificationSound.title")}

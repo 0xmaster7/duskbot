@@ -56,10 +56,10 @@ export function SettingsPage({ bot, onOpen, more }: {
     <div data-panel-settings className="contents">
       <Card label={t("botPanel.section.thisBot")} anchor="uses">
         {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
-        <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
-        <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
-        <NavRow data-panel-page="skills" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
-        {slackAvailable && <NavRow data-panel-page="slack" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
+        <NavRow data-panel-page="instructions" pixel="note" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
+        <NavRow data-panel-page="memory" pixel="bookmark" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
+        <NavRow data-panel-page="skills" pixel="sparkle" title={t("botSettings.simple.skills")} value={skills.loading ? undefined : skillsOn > 0 ? t("botPanel.skills.on", { count: skillsOn }) : t("botPanel.none")} onClick={open("skills")} />
+        {slackAvailable && <NavRow data-panel-page="slack" pixel="bubble" title={t("slack.title")} value={slackValue} onClick={open("slack")} />}
       </Card>
 
       {/* where it works lives on the Computer tab */}

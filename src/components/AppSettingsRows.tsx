@@ -79,7 +79,7 @@ export function TalkingStyleRow() {
     }
   };
   return (
-    <SettingRow title={t("settings.talkingStyle.title")} subtitle={tOptional("settings.docs.talkingStyle.hint")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
+    <SettingRow icon="bubble" title={t("settings.talkingStyle.title")} subtitle={tOptional("settings.docs.talkingStyle.hint")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
       <SettingsSelect
         variant="segmented"
         value={talkingStyleOf(state.config?.talkingStyle)}
@@ -116,6 +116,7 @@ export function QuickUpdatesRow() {
   };
   return (
     <SettingRow
+      icon="bolt"
       title={t("settings.quickUpdates.title")}
       subtitle={tPreferred("settings.docs.quickUpdates.hint", "settings.quickUpdates.subtitle")}
       message={error ? <p role="alert" className="text-danger">{error}</p> : null}
@@ -136,6 +137,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
 
   return (
     <SettingRow
+      icon="globe"
       title={t("settings.language.title")}
       subtitle={simple ? activeLocale() === "en" ? tOptional("settings.docs.language.hint") : t("settings.simple.language.partial") : t("settings.language.subtitle")}
     >
@@ -158,7 +160,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
 export function SendKeyRow({ simple = false }: { simple?: boolean }) {
   const sendKey = useSendKey();
   return (
-    <SettingRow title={t("settings.sendKey.title")} subtitle={simple ? tOptional("settings.docs.sendKey.hint") : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
+    <SettingRow icon="keyboard" title={t("settings.sendKey.title")} subtitle={simple ? tOptional("settings.docs.sendKey.hint") : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
       <SettingsSelect
         variant="segmented"
         value={sendKey}

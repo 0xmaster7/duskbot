@@ -152,7 +152,7 @@ export function AccountRows() {
 export function AccentRow() {
   const bot = useColorUserBubbles();
   return (
-    <SettingRow title={t("settings.accent.title")} subtitle={tOptional("settings.docs.accent.hint")}>
+    <SettingRow icon="droplet" title={t("settings.accent.title")} subtitle={tOptional("settings.docs.accent.hint")}>
       <SettingsSelect
         variant="segmented"
         value={bot ? "bot" : "neutral"}
@@ -250,7 +250,7 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
 function ImportRow() {
   const sub = useSubPage();
   return (
-    <SettingRow title={t("settings.import.grokTitle")} subtitle={t("settings.w6c.import.appsSubtitle")}>
+    <SettingRow icon="parcel" title={t("settings.import.grokTitle")} subtitle={t("settings.w6c.import.appsSubtitle")}>
       <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.grokTitle"))}>{t("settings.w6c.import.start")}</button>
     </SettingRow>
   );

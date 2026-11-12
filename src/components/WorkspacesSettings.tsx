@@ -4,11 +4,12 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { removePlace, usePlaces, type RailPlace } from "@/lib/places";
 import { openAddVps, vpsLinkAvailable } from "@/lib/vps-link";
-import { Cloud, Plus, Trash2 } from "../icons";
+import { Trash2 } from "../icons";
 import { CloudMoveRow } from "./CloudMoveSettings";
 import { useWorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { NavRow, NoteRow } from "./ListRows";
 import { Icon } from "./Icon";
+import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
 import { SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 
 type Health = "online" | "offline" | "problem" | "setting-up";
@@ -41,6 +42,8 @@ function kindWord(kind: RailPlace["kind"]): string {
   return t("settings.docs.ws.server");
 }
 
+const KIND_ICON: Record<RailPlace["kind"], PixelIconName> = { computer: "laptop", server: "server", cloud: "cloud", team: "team", account: "cloud" };
+
 const confirmAction = (text: string) => (window.duskDesktop?.confirm ? window.duskDesktop.confirm(text) : Promise.resolve(window.confirm(text)));
 
 /** What a place is, from the window's own word for it when there is no list of places to read: a Cloud that is home,
@@ -60,8 +63,9 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
   const hint = place.name === kind ? t(HEALTH_WORD[health]) : `${kind} · ${t(HEALTH_WORD[health])}`;
   const body = (
     <>
-      <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center">
-        <span data-workspace-dot={health} className={cn("size-2 rounded-full", DOT[health])} />
+      <span aria-hidden="true" className="relative flex size-6 shrink-0 items-center justify-center">
+        <PixelIcon name={KIND_ICON[place.kind]} />
+        <span data-workspace-dot={health} className={cn("absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-app", DOT[health])} />
       </span>
       <span className="min-w-0 flex-1">
         <span data-row-title="" className="block truncate text-[13px] leading-[18px] text-ink">{place.name}</span>
@@ -130,10 +134,10 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
             onRemove={place.removable ? () => void remove(place) : undefined} />
         ))}
         <CloudMoveRow otherwise={!hasCloud && canBuy
-          ? <NavRow data-settings-open="get-cloud" icon={Cloud} title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
+          ? <NavRow data-settings-open="get-cloud" pixel="cloud" title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
               onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings" })} />
           : null} />
-        <NavRow data-settings-open="add-workspace" icon={Plus} title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
+        <NavRow data-settings-open="add-workspace" pixel="plus" title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
         {(error || here.error) && <NoteRow tone="danger">{error || here.error}</NoteRow>}
       </SettingsRows>
     </SettingsGroup>

@@ -9,6 +9,7 @@ import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } fr
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
 import { HeadArt, type ArtName } from "./ui/Art";
+import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
 
 /* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
    30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
@@ -123,11 +124,13 @@ function RowValue({ value, id }: { value?: ReactNode; id?: string }) {
 }
 
 /** A row that goes somewhere or does one thing: the name, its value, a chevron (or an out arrow for a web page). */
-export function NavRow({ title, hint, value, icon, onClick, drill = true, external = false, danger = false, disabled, tooltip, ...rest }: {
+export function NavRow({ title, hint, value, icon, pixel, onClick, drill = true, external = false, danger = false, disabled, tooltip, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
   value?: ReactNode;
   icon?: GlyphIcon;
+  /** a small pixel icon in the row's leading slot */
+  pixel?: PixelIconName;
   onClick: () => void;
   drill?: boolean;
   external?: boolean;
@@ -159,6 +162,7 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, extern
       className={cn(rowCls, focusCls, "w-full cursor-pointer text-left enabled:hover:bg-ink/[0.035] enabled:active:bg-ink/[0.05] disabled:cursor-default disabled:opacity-45")}
     >
       {icon && <RowIcon icon={icon} />}
+      {pixel && <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center"><PixelIcon name={pixel} /></span>}
       <RowText title={title} hint={hint} tone={danger ? "danger" : undefined} titleId={`${id}-title`} hintId={`${id}-hint`} />
       <RowValue value={value} id={`${id}-value`} />
       {external
