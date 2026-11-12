@@ -55,7 +55,7 @@ export function SettingsPage({ bot, onOpen, more }: {
 
   return (
     <div data-panel-settings className="contents">
-      <Card label={t("botPanel.section.thisBot")} art="notebook" anchor="uses">
+      <Card label={t("botPanel.section.thisBot")} anchor="uses">
         {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />

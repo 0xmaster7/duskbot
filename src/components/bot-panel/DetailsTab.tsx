@@ -68,7 +68,7 @@ export function VoiceChatCard({ bot, patch }: { bot: Bot; patch: Derived["patch"
     ...voices.filter((entry) => entry !== fallback).map((entry) => ({ value: entry.id, label: entry.label })),
   ];
   return (
-    <Card label={t("botPanel.section.voiceChat")} art="phone" anchor="call">
+    <Card label={t("botPanel.section.voiceChat")} anchor="call">
       <VoiceChatRow row="voice" label={t("voice.title")}>
         <SelectPill data-panel-select="voice" aria-label={t("voice.title")} value={voice} options={voiceOptions} onChange={(next: string) => patch({ voice: next })} />
       </VoiceChatRow>
