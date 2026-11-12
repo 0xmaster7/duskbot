@@ -16,7 +16,7 @@ import mark from "../../favicon.svg";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 import { CheerBot } from "./CheerBot";
-import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pill, Pop, ToastStack, usePill } from "./motion";
+import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pop, ToastStack } from "./motion";
 import { useInvestedNoteShown } from "../lib/upsell-stage";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
@@ -168,7 +168,6 @@ function SideUpsell() {
 
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
   const { path } = useLocation();
-  const pill = usePill();
   return (
     <nav aria-label="dashboard" className="flex flex-col gap-5">
       {NAV.map((group, i) => (
@@ -182,9 +181,8 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 to={item.to}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "font-medium text-ink" : "hover-side text-ink-2")}
+                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors duration-150", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
               >
-                {on && <Pill id={pill} />}
                 <span className={cx("relative", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
                 <span className="relative">{item.label}</span>
                 {item.to === "/cloud" && <CloudBadge />}

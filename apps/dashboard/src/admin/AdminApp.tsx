@@ -20,7 +20,7 @@ import { WaitlistPage } from "./Waitlist";
 import { EventsPage } from "./Events";
 import { AuditPage, HealthPage } from "./Health";
 import { Loading, Tabs } from "./ui";
-import { AnimatePresence, m, PageIn, Pill, ToastStack, usePill } from "../ui/motion";
+import { AnimatePresence, m, PageIn, ToastStack } from "../ui/motion";
 
 const ICON = { size: 17, strokeWidth: 1.75 } as const;
 interface NavItem { to: string; key: string; label: string; icon?: ReactNode; also?: string[] }
@@ -104,7 +104,6 @@ export function AdminApp() {
   const theme = useTheme();
   const dark = theme === "dark" || (theme === "system" && typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
   const [moreOpen, setMoreOpen] = useState(inMore);
-  const sidePill = usePill(), topPill = usePill();
   useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} · dusk bot admin`; }, [path]);
   useEffect(() => { const to = MOVED[path]; if (to) navigate(to, { replace: true }); }, [path]);
   if (me.error) {
@@ -132,8 +131,7 @@ export function AdminApp() {
               {group.items.map((item) => {
                 const active = on(path, item);
                 return (
-                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14", active ? "font-medium text-ink" : "hover-side text-ink-2")}>
-                    {active && <Pill id={sidePill} className="bg-card" />}
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14 transition-colors duration-150", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
                     <span className={cx("relative", active ? "text-ink" : "text-ink-3")} aria-hidden>{item.icon}</span>
                     <span className="relative flex-1">{item.label}</span>
                     <kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
@@ -154,9 +152,8 @@ export function AdminApp() {
                   const active = on(path, item);
                   return (
                     <li key={item.to}>
-                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13", active ? "font-medium text-ink" : "hover-side text-ink-3")}>
-                        {active && <Pill id={sidePill} className="bg-card" />}
-                        <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span><kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13 transition-colors duration-150", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
+                            <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span><kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
                       </Link>
                     </li>
                   );
@@ -182,7 +179,7 @@ export function AdminApp() {
         <nav aria-label="admin" className="scroll-x flex gap-1 px-3 pb-2">
           {ALL.map((item, i) => (
             <Link key={item.to} to={item.to} aria-current={on(path, item) ? "page" : undefined}
-              className={cx("relative inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-13", i === NAV.length && "ms-2", on(path, item) ? "font-medium text-ink" : i < NAV.length ? "text-ink-2" : "text-ink-4")}>{on(path, item) && <Pill id={topPill} className="bg-card" />}<span className="relative">{item.label}</span></Link>
+              className={cx("relative inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-13 transition-colors duration-150", i === NAV.length && "ms-2", on(path, item) ? "bg-card font-medium text-ink" : i < NAV.length ? "text-ink-2" : "text-ink-4")}><span className="relative">{item.label}</span></Link>
           ))}
         </nav>
       </header>

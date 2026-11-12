@@ -64,6 +64,9 @@ export interface RecentPayment {
   firstSeen: number | null; signedUpAt: number | null;
 }
 
+/** the revenue key for a payment with no visit to credit: paid before tracking began, or from an untracked device */
+export const NO_VISIT = "no_visit";
+
 export interface RevenueInput {
   payments: readonly Payment[];
   subscriptions: readonly SubscriptionLike[];
@@ -109,9 +112,12 @@ export function revenueReport(input: RevenueInput) {
 
   const { size, starts } = bucketsOf(from, to);
   const series = { new: starts.map(() => 0), renewal: starts.map(() => 0), refund: starts.map(() => 0) };
+  const byChannel: Record<string, number[]> = {};
   for (const payment of within(from, to)) {
     const i = Math.floor((payment.at - from) / size);
     if (i < 0 || i >= starts.length) continue;
+    const channel = credited(payment)?.channel ?? NO_VISIT;
+    (byChannel[channel] ??= starts.map(() => 0))[i]! += payment.amountCents;
     if (payment.kind === "refund") series.refund[i]! += payment.amountCents;
     else if (payment.kind === "renewal") series.renewal[i]! += payment.amountCents;
     else series.new[i]! += payment.amountCents;
@@ -120,7 +126,7 @@ export function revenueReport(input: RevenueInput) {
   const cards = Object.fromEntries(DIMENSIONS.map(dim => [dim, {} as Record<string, number>])) as Record<Dimension, Record<string, number>>;
   for (const payment of within(from, to)) {
     const visit = credited(payment);
-    for (const dim of DIMENSIONS) for (const value of visit ? valuesOf(visit, dim) : ["unknown"]) cards[dim][value] = (cards[dim][value] ?? 0) + payment.amountCents;
+    for (const dim of DIMENSIONS) for (const value of visit ? valuesOf(visit, dim) : [NO_VISIT]) cards[dim][value] = (cards[dim][value] ?? 0) + payment.amountCents;
   }
 
   const recent: RecentPayment[] = within(from, to).reverse().slice(0, 20).map(payment => {
@@ -131,5 +137,20 @@ export function revenueReport(input: RevenueInput) {
       country: visit?.country ?? null, city: visit?.city ?? null, device: visit?.device ?? null, firstSeen: t.first?.start ?? null, signedUpAt: account?.createdAt ?? null };
   });
 
-  return { current: kpis(from, to, Math.min(to, input.now)), previous: kpis(from - span, from, from), series, cards, recent, live: payments.length > 0, first: payments.find(payment => payment.amountCents > 0)?.at ?? null };
+  // lifetime value by where each customer first came from, over every payment they ever made (filters do not apply)
+  const lifetime = new Map<string, { source: string; cents: number }>();
+  for (const payment of payments) {
+    const entry = lifetime.get(payment.accountId) ?? lifetime.set(payment.accountId, { source: touch(payment).first?.source ?? NO_VISIT, cents: 0 }).get(payment.accountId)!;
+    entry.cents += payment.amountCents;
+  }
+  const bySource = new Map<string, { customers: number; cents: number }>();
+  for (const { source, cents } of lifetime.values()) {
+    if (cents <= 0) continue;
+    const row = bySource.get(source) ?? bySource.set(source, { customers: 0, cents: 0 }).get(source)!;
+    row.customers++; row.cents += cents;
+  }
+  const ltv = [...bySource].map(([source, row]) => ({ source, customers: row.customers, cents: row.cents, perCustomer: Math.round(row.cents / row.customers) }))
+    .sort((a, b) => Number(a.source === NO_VISIT) - Number(b.source === NO_VISIT) || b.perCustomer - a.perCustomer).slice(0, 12);
+
+  return { current: kpis(from, to, Math.min(to, input.now)), previous: kpis(from - span, from, from), series, byChannel, ltv, cards, recent, live: payments.length > 0, first: payments.find(payment => payment.amountCents > 0)?.at ?? null };
 }
