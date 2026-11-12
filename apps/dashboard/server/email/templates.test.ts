@@ -42,7 +42,7 @@ describe("account emails", () => {
 
   it("keeps what a receipt must say in plain sight", () => {
     const receipt = all.find(sample => sample.id === "04-receipt")!.email;
-    for (const fact of ["$20.00", "Shared S", "next charge", "december 11, 2026", "inv_7Qm2xK9"]) { expect(receipt.text).toContain(fact); expect(receipt.html).toContain(fact); }
+    for (const fact of ["$20.00", "dusk cloud plus", "next charge", "december 11, 2026", "inv_7Qm2xK9"]) { expect(receipt.text).toContain(fact); expect(receipt.html).toContain(fact); }
   });
 
   it("keeps the code one copyable string, and in the subject and preheader for notifications", () => {

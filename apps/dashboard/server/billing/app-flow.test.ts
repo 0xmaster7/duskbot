@@ -235,6 +235,9 @@ it("reports Add a Cloud cap and rate blocks in the desktop shape", async () => {
   for (let n = 0; n < BILLING_CONFIG.maxCloudsPerAccount; n++) f.billing.clouds.order({ accountId: f.owner().id, name: `Cloud ${n}`, color: null, region: "fsn1", kind: plan.kind, placement: plan.placement, spec: plan.machine, botComputers: plan.botComputers });
   expect(await f.request("clouds", { tier: "pro", interval: "month", name: "One too many" })).toMatchObject({ status: 409, data: { error: "cap", addBlocked: "cap" } });
   expect(await f.session()).toMatchObject({ canAdd: false, addBlocked: "cap" });
-  for (let n = 0; n < BILLING_CONFIG.checkoutsPerHour; n++) await f.billing.service.checkout(f.owner(), { kind: "credits", pack: "c10" });
+  // checkouts the provider refused still count toward the hourly limit
+  const refused = vi.spyOn(f.billing.fake!, "createCheckout").mockRejectedValue(new Error("down"));
+  for (let n = 0; n < BILLING_CONFIG.checkoutsPerHour; n++) await expect(f.billing.service.checkout(f.owner(), { kind: "cart", cart: { interval: "month", license: { kind: "solo" }, desktop: { kind: "none" } } })).rejects.toMatchObject({ code: "unavailable" });
+  refused.mockRestore();
   expect(await f.request("clouds", { tier: "pro", interval: "month", name: "Rate limited" })).toMatchObject({ status: 429, data: { error: "rate_limited", addBlocked: "rate" } });
 });

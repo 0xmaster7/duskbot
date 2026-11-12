@@ -1,4 +1,4 @@
-import type { BundleView, Catalog, CreditPack, DedicatedPricing, DesktopOption, LicenseOption, Region } from "../../../../shared/billing-api.ts";
+import type { BundleView, Catalog, DedicatedPricing, DesktopOption, LicenseOption, Region } from "../../../../shared/billing-api.ts";
 import { quote } from "./pricing.ts";
 
 export interface BillingConfig {
@@ -11,16 +11,20 @@ export interface BillingConfig {
   appAllowances: Record<"shared_s" | "shared_m" | "dedicated", { computerHours: number; voiceCharacters: number }>;
   trial: null;
   bundles: Array<Pick<BundleView, "id" | "label" | "cart" | "highlights">>;
-  regions: Region[]; defaultRegion: string; poolRegions: string[]; creditPacks: CreditPack[]; products: Record<string, string>;
+  regions: Region[]; defaultRegion: string; poolRegions: string[]; products: Record<string, string>;
 }
 
 /**
- * DUSK_DODO_PRODUCTS is a JSON object mapping these keys to dodo ids, with month and year intervals:
- * license_solo:<interval>, license_team:<interval>, desktop_shared_s:<interval>, desktop_shared_m:<interval>, desktop_dedicated:<interval>;
- * addon_member:<interval>, addon_shared_s:<interval>, addon_shared_m:<interval>, addon_dedicated:<interval>,
- * addon_vcpu:<interval>, addon_ram_gb:<interval>, addon_disk_20gb:<interval>; credits_c10, credits_c25, credits_c50.
- * base products and addons must match this config's prices; yearly prices include its yearly discount.
+ * DUSK_DODO_PRODUCTS is a JSON object mapping every key below to a dodo id (pricing.ts dodoCartKeys picks them per cart).
+ * subscription products, the base line: license_solo, license_team, desktop_shared_s, desktop_shared_m, desktop_dedicated.
+ * add-ons: addon_member, addon_shared_s, addon_shared_m, addon_dedicated, addon_vcpu, addon_ram_gb, addon_disk_20gb.
+ * each in :month and :year. base products and addons must match this config's prices; yearly prices include its yearly discount.
  */
+export const DODO_PRODUCT_KEYS = ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated",
+  "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_20gb"]
+  .flatMap(key => [`${key}:month`, `${key}:year`]);
+/** keys a cart may need that DUSK_DODO_PRODUCTS lacks: any cart needing one answers 503 unavailable */
+export function missingDodoProducts(products: Record<string, string>): string[] { return DODO_PRODUCT_KEYS.filter(key => !products[key]); }
 export function dodoProducts(env: Record<string, string | undefined>): Record<string, string> {
   if (!env.DUSK_DODO_PRODUCTS) return {};
   const value: unknown = JSON.parse(env.DUSK_DODO_PRODUCTS);
@@ -43,8 +47,8 @@ export const BILLING_CONFIG: BillingConfig = {
     team: { kind: "team", label: "Team license", monthlyCents: 3000, includedMembers: 2, extraMemberCents: 1800, maxMembers: 50, priority: false },
   },
   desktops: {
-    shared_s: { kind: "shared_s", label: "Shared S", placement: "pool", monthlyCents: 2000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2, priority: false },
-    shared_m: { kind: "shared_m", label: "Shared M", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
+    shared_s: { kind: "shared_s", label: "Plus", placement: "pool", monthlyCents: 2000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2, priority: false },
+    shared_m: { kind: "shared_m", label: "Pro", placement: "pool", monthlyCents: 3800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, priority: true },
     dedicated: { kind: "dedicated", label: "Dedicated", placement: "dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 160 }, botComputers: null, priority: true },
   },
   dedicated: { baseCents: 1400, perVcpuCents: 300, perGbRamCents: 100, per20GbDiskCents: 100, includedDiskGb: 40,
@@ -61,7 +65,6 @@ export const BILLING_CONFIG: BillingConfig = {
   ],
   regions: [{ id: "fsn1", label: "Falkenstein", country: "DE" }, { id: "nbg1", label: "Nuremberg", country: "DE" }, { id: "hel1", label: "Helsinki", country: "FI" }, { id: "ash", label: "Ashburn", country: "US" }, { id: "hil", label: "Hillsboro", country: "US" }, { id: "sin", label: "Singapore", country: "SG" }],
   defaultRegion: "fsn1", poolRegions: ["fsn1"],
-  creditPacks: [{ id: "c10", label: "$10 credits", priceCents: 1000, creditCents: 1000 }, { id: "c25", label: "$25 credits", priceCents: 2500, creditCents: 2500 }, { id: "c50", label: "$50 credits", priceCents: 5000, creditCents: 5000 }],
   products: dodoProducts(process.env),
 };
 
@@ -85,6 +88,6 @@ export function catalogView(now: number, config: BillingConfig = BILLING_CONFIG)
     monthlyCents: quote({ ...bundle.cart, interval: "month" }, config).totalCents,
     yearlyMonthlyCents: quote({ ...bundle.cart, interval: "year" }, config).monthlyEquivalentCents })),
   licenses: Object.values(config.licenses), desktops: Object.values(config.desktops), dedicated: config.dedicated, regions: config.regions, poolRegions: config.poolRegions,
-  defaultRegion: config.defaultRegion, yearlyDiscountPercent: config.yearlyDiscountPercent, creditPacks: config.creditPacks,
+  defaultRegion: config.defaultRegion, yearlyDiscountPercent: config.yearlyDiscountPercent,
   freeWorkUntil: config.freeWorkUntil !== null && now < config.freeWorkUntil ? config.freeWorkUntil : null, graceDays: config.graceDays });
 }

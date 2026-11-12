@@ -28,7 +28,6 @@ export const STORE_LAYOUTS: Record<string, StoreLayout> = {
       indexes: [...byAccount, { keys: { providerSubscriptionId: 1 }, unique: true, partial: { providerSubscriptionId: { $type: "string" } } }] },
     licenses: { collection: "billing_licenses", key: byId, indexes: [{ keys: { ownerAccountId: 1 } }] },
     invoices: { collection: "billing_invoices", key: byId, indexes: [...byAccount, { keys: { providerPaymentId: 1 }, unique: true }] },
-    credits: { collection: "billing_credits", key: byId, indexes: [...byAccount, { keys: { reason: 1, ref: 1 }, unique: true }] },
     webhookEvents: { collection: "billing_webhook_events", key: byId, indexes: [{ keys: { at: 1 } }] },
     feedback: { collection: "billing_feedback", key: byId },
     closures: { collection: "billing_closures", key: byId },

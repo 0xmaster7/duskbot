@@ -37,7 +37,6 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
     yearlyDiscount: catalog.yearlyDiscountPercent / 100,
     workFreeUntil: catalog.freeWorkUntil,
-    creditPacks: catalog.creditPacks.map((pack) => ({ id: pack.id, usd: pack.priceCents / 100 })),
   };
 }
 
@@ -90,16 +89,12 @@ export function subscriptionFromWire(subscription: SubscriptionView, catalog: Pl
   return { id: subscription.id, bundle: subscription.bundle, selection: selectionFromCart(subscription.cart, catalog), status: statuses[subscription.status], amountUsd: subscription.totalCents / 100, currentPeriodEnd: subscription.currentPeriodEnd ?? 0, cancelAt: subscription.cancelAtPeriodEnd ? subscription.currentPeriodEnd : null };
 }
 
-export function billingFromWire(overview: WireBillingOverview, catalog: PlanCatalog, now = Date.now()): BillingOverview {
+export function billingFromWire(overview: WireBillingOverview, catalog: PlanCatalog): BillingOverview {
   const subscription = overview.subscriptions.filter((item) => item.status !== "ended").reduce<SubscriptionView | null>((newest, item) => !newest || item.createdAt > newest.createdAt ? item : newest, null);
-  const date = new Date(now);
-  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-  const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
   return {
     subscription: subscription ? subscriptionFromWire(subscription, catalog) : null,
     paymentMethod: null,
     invoices: overview.invoices.invoices.map((invoice) => ({ id: invoice.id, number: invoice.id, date: invoice.at, description: invoice.description, amountUsd: invoice.amountCents / 100, status: invoice.status === "failed" ? "open" : invoice.status, url: invoice.downloadUrl })),
-    credits: { balanceUsd: overview.credits.balanceCents / 100, autoTopUp: false, usedThisMonthUsd: -overview.credits.entries.filter((entry) => entry.reason === "usage" && entry.at >= monthStart && entry.at < monthEnd).reduce((sum, entry) => sum + entry.deltaCents, 0) / 100 },
   };
 }
 

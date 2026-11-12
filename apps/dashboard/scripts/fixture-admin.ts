@@ -89,7 +89,7 @@ export async function seedAdminData(app: ReturnType<typeof createDashboardApp>, 
 }
 
 /** the fake provider pays everything at once; spread the payments over when each person would have paid, then add
- * renewals for the older ones, a credits top-up and one refund */
+ * renewals for the older ones and one refund */
 function seedPaymentHistory(app: ReturnType<typeof createDashboardApp>, accounts: SeededAccount[], now: number) {
   const state = app.billing.store.state;
   const delays = [26, 3, 70, 5, 0.6, 0, 40, 9, 0, 2, 0, 0, 150];
@@ -108,9 +108,6 @@ function seedPaymentHistory(app: ReturnType<typeof createDashboardApp>, accounts
       }
     }
   }
-  const topUp = accounts[3]!;
-  state.invoices.push({ id: "inv_fixture_credits", accountId: topUp.id, providerPaymentId: "pay_fixture_credits", subscriptionId: null, checkoutId: null, amountCents: 1000,
-    currency: "USD", status: "paid", description: "credits", createdAt: now - 2 * DAY - 5 * 3_600_000 });
   const refunded = state.invoices.find(invoice => invoice.accountId === accounts[7]!.id && invoice.status === "paid");
   if (refunded) {
     (state.refunds ??= []).push({ id: "ref_fixture_1", paymentId: refunded.providerPaymentId, amountCents: refunded.amountCents, currency: refunded.currency });
@@ -153,8 +150,8 @@ function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
   let paymentN = 0;
   function subscribe(account: SeededAccount, start: number, bundle: string, interval: "month" | "year", source: string) {
     const priced = quote(bundle, interval), checkoutId = `chk_hist_${account.id.slice(5, 15)}_${start}`;
-    state.checkouts.push({ id: checkoutId, accountId: account.id, email: account.email, kind: "cart", cart: priced.cart, packId: null, cloudId: null, providerSessionId: `fake_hist_${start}`, url: null,
-      status: "completed", source, createdAt: start - 6 * 60_000, openUntil: start + 30 * 60_000, subscriptionId: null, amountCents: priced.totalCents, creditCents: null, lines: priced.lines });
+    state.checkouts.push({ id: checkoutId, accountId: account.id, email: account.email, kind: "cart", cart: priced.cart, cloudId: null, providerSessionId: `fake_hist_${start}`, url: null,
+      status: "completed", source, createdAt: start - 6 * 60_000, openUntil: start + 30 * 60_000, subscriptionId: null, amountCents: priced.totalCents, lines: priced.lines });
     const sub: Sub = { id: `sub_hist_${account.id.slice(5, 15)}_${start}`, accountId: account.id, providerSubscriptionId: `dsub_hist_${account.id.slice(5, 15)}_${start}`, checkoutId, cart: priced.cart,
       totalCents: source === "admin_comp" ? 0 : priced.totalCents, lines: priced.lines, status: "active", source, licenseId: null, cloudId: null, currentPeriodStart: start, currentPeriodEnd: add(start, interval === "year" ? 12 : 1),
       cancelAtPeriodEnd: false, createdAt: start, updatedAt: start, version: 1, lastEventAt: start };
@@ -241,8 +238,8 @@ function seedHistoric(app: ReturnType<typeof createDashboardApp>, now: number) {
   for (const account of historic) state.customers.push({ accountId: account.id, email: account.email, providerCustomerId: `cus_hist_${account.id.slice(5, 15)}` });
   for (let i = 0; i < 9; i++) {
     const account = historic[(i * 5) % historic.length]!, at = now - Math.round((5 + i * 9) * DAY);
-    state.checkouts.push({ id: `chk_left_${i}`, accountId: account.id, email: account.email, kind: "cart", cart: quote("pro", "month").cart, packId: null, cloudId: null, providerSessionId: `fake_left_${i}`, url: null,
-      status: "expired", source: sources[i % sources.length]!, createdAt: at, openUntil: at + 30 * 60_000, subscriptionId: null, amountCents: quote("pro", "month").totalCents, creditCents: null, lines: quote("pro", "month").lines });
+    state.checkouts.push({ id: `chk_left_${i}`, accountId: account.id, email: account.email, kind: "cart", cart: quote("pro", "month").cart, cloudId: null, providerSessionId: `fake_left_${i}`, url: null,
+      status: "expired", source: sources[i % sources.length]!, createdAt: at, openUntil: at + 30 * 60_000, subscriptionId: null, amountCents: quote("pro", "month").totalCents, lines: quote("pro", "month").lines });
   }
 }
 

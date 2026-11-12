@@ -84,7 +84,7 @@ it("requires csrf on every cookie billing mutation and leaves public quotes and 
     expect(response.status, path).toBe(403);
     expect(await response.json()).toMatchObject({ code: "csrf" });
   }
-  for (const path of ["/v1/billing/overview", "/v1/billing/invoices", "/v1/billing/credits", "/v1/billing/license", "/v1/clouds"]) {
+  for (const path of ["/v1/billing/overview", "/v1/billing/invoices", "/v1/billing/license", "/v1/clouds"]) {
     expect((await fetch(`${f.origin}${path}`, { headers: { cookie: owner.cookie } })).status, path).toBe(200);
   }
   for (const path of ["/v1/billing/invoices/missing/download", "/v1/clouds/missing"]) {
@@ -136,7 +136,7 @@ it("runs the dashboard billing lifecycle over HTTP, including signed workspace r
   let overview = await f.answer<BillingOverview>("/v1/billing/overview", undefined, cookie);
   expect(overview.subscriptions).toHaveLength(1); expect(overview.subscriptions[0].status).toBe("active");
   expect(overview.license).toMatchObject({ work: "licensed", license: { status: "active", role: "owner" } }); expect(overview.invoices.invoices).toHaveLength(1);
-  const counts = () => { const s = f.saved(); return [s.subscriptions.length, s.licenses.length, s.invoices.length, s.credits.length, s.webhookEvents.length]; };
+  const counts = () => { const s = f.saved(); return [s.subscriptions.length, s.licenses.length, s.invoices.length, s.webhookEvents.length]; };
   const beforeReplay = counts(); for (const d of deliveries) await f.deliver(d); expect(counts()).toEqual(beforeReplay);
   const tampered = await fetch(`${f.origin}/v1/billing/webhooks/dodo`, { method: "POST", headers: { "content-type": "application/json", ...deliveries[0].headers, "webhook-signature": `v1,${Buffer.alloc(32).toString("base64")}` }, body: new Uint8Array(deliveries[0].body) });
   expect(tampered.status).toBe(401); expect(await tampered.json()).toMatchObject({ code: "bad_signature" }); expect(counts()).toEqual(beforeReplay);
@@ -162,10 +162,8 @@ it("runs the dashboard billing lifecycle over HTTP, including signed workspace r
   await f.answer(`/v1/billing/subscriptions/${subId}/change`, { confirmation: preview.confirmation }, cookie); await f.reconcile();
   expect(f.billing.clouds.get(cloud.id)?.spec).toEqual(BILLING_CONFIG.desktops.shared_m.machine);
   expect(f.billing.fakePool!.calls.find(c => c.method === "setQuota")?.input).toMatchObject({ ...BILLING_CONFIG.desktops.shared_m.machine, botComputers: 5, netMbps: 250 });
-  const credits = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "credits", pack: "c25" }, cookie), creditDeliveries = await f.complete(credits.checkoutId);
-  expect(await f.answer("/v1/billing/credits", undefined, cookie)).toMatchObject({ balanceCents: 2500 });
-  const afterCredits = counts(); for (const d of [...deliveries, ...creditDeliveries]) await f.deliver(d); expect(counts()).toEqual(afterCredits);
-  const invoices = await f.answer<InvoicePage>("/v1/billing/invoices", undefined, cookie); expect(invoices.invoices).toHaveLength(2);
+  const afterChange = counts(); for (const d of deliveries) await f.deliver(d); expect(counts()).toEqual(afterChange);
+  const invoices = await f.answer<InvoicePage>("/v1/billing/invoices", undefined, cookie); expect(invoices.invoices.length).toBeGreaterThan(0);
   for (const invoice of invoices.invoices) { const res = await f.page(invoice.downloadUrl!, undefined, cookie); expect(res.status).toBe(302); expect(res.headers.get("location")).toMatch(/^https:\/\/test.customer.dodopayments.com\/invoices\//); expect(res.headers.get("cache-control")).toBe("no-store"); }
   const stranger = await f.login("stranger@example.test");
   for (const [path, data] of [[`/v1/clouds/${cloud.id}`, undefined], [`/v1/billing/subscriptions/${subId}/cancel`, {}], [invoices.invoices[0].downloadUrl!, undefined], [`/v1/billing/licenses/${overview.licenses[0].id}/members`, { email: "x@example.test" }]] as const) {
@@ -197,7 +195,7 @@ it("completes fake checkouts only for their owner and rejects invalid or oversiz
   expect(await f.answer("/v1/billing/fake/complete", { checkoutId: checkout.checkoutId }, owner.cookie)).toEqual({ ok: true, deliveries: 2 });
   expect(await f.answer("/v1/billing/fake/complete", { checkoutId: checkout.checkoutId }, owner.cookie)).toEqual({ ok: true, deliveries: 2 });
   expect(f.saved().subscriptions).toHaveLength(1);
-  for (const data of [{ kind: "credits", pack: 25 }, { kind: "cart", cart: bundle("pro"), name: 2 }, { kind: "credits", pack: "c25", ignored: "x".repeat(17000) }]) {
+  for (const data of [{ kind: "credits", pack: 25 }, { kind: "cart", cart: bundle("pro"), name: 2 }, { kind: "cart", cart: bundle("pro"), ignored: "x".repeat(17000) }]) {
     const res = await f.page("/v1/billing/checkout", data, owner.cookie); expect(res.status).toBe(400); expect(await res.json()).toMatchObject({ code: "invalid_request" });
   }
   const invoice = f.saved().invoices[0];
@@ -243,8 +241,8 @@ it("does not give a recreated account the deleted account's license", async () =
   expect(overview.subscriptions).toEqual([]);
   expect(overview.clouds).toEqual([]);
   expect(f.billing.sessionFields(replacement.account).license).toMatchObject({ license: null });
-  const creditCheckout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "credits", pack: "c25" }, replacement.cookie);
-  await f.complete(creditCheckout.checkoutId);
+  const cloudOnly = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("starter") }, replacement.cookie);
+  await f.complete(cloudOnly.checkoutId);
   expect((await f.answer<BillingOverview>("/v1/billing/overview", undefined, replacement.cookie)).licenses).toEqual([]);
 });
 

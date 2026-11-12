@@ -16,7 +16,6 @@ import peaks from "../art/p-peaks.webp";
 import sky from "../art/p-sky.webp";
 import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
-import { BuyCredits } from "./credits-dialog";
 import { FreeSheet } from "./funnel";
 import { AnimatePresence } from "../ui/motion";
 import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
@@ -105,7 +104,6 @@ const quiet = "text-link inline-flex h-9 items-center rounded-full px-1 text-14 
 
 function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalog; onLicense(): void; onCancelPlan(): void }) {
   const { billing, clouds, openPortal } = useCloud();
-  const [buying, setBuying] = useState(false);
   const sub = billing?.subscription ?? null;
   const sel = sub?.selection ?? null;
   const { cart } = useCart(sel, catalog);
@@ -131,9 +129,6 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
           <Row k="payment method" action={<button type="button" className={quiet} onClick={() => void openPortal()}>{pm ? "update" : "add"}</button>}>
             {pm ? <span className="num">{pm.brand.toLowerCase()} •••• {pm.last4}<span className="text-ink-3">, expires {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}</span></span> : <span className="text-ink-3">none yet. you add one at checkout.</span>}
           </Row>
-          <Row k="ai credits" action={<button type="button" className={quiet} onClick={() => setBuying(true)}>add credits</button>}>
-            {billing ? <span className="num">{usd(billing.credits.balanceUsd)} <span className="text-ink-3">left</span></span> : <Skeleton className="h-5 w-24" />}
-          </Row>
         </dl>
       </section>
       <section className="mt-12" aria-labelledby="invoices-title">
@@ -154,7 +149,6 @@ function YourBilling({ catalog, onLicense, onCancelPlan }: { catalog: PlanCatalo
           </ul>
         ) : <p className="py-5 text-14 text-ink-3">invoices show up here after your first payment.</p>}
       </section>
-      <BuyCredits source="dash_credits" open={buying} onClose={() => setBuying(false)} />
     </>
   );
 }

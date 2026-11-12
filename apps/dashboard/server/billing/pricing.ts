@@ -53,7 +53,7 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
   if (cart.desktop.kind !== "none") {
     const desktop = config.desktops[cart.desktop.kind];
     machine = { ...(cart.desktop.spec ?? desktop.machine) }; botComputers = desktop.botComputers;
-    lines.push({ kind: "desktop", label: cart.desktop.kind === "dedicated" ? `Dedicated ${machine.vcpu} vCPU, ${machine.ramGb} GB, ${machine.diskGb} GB` : `dusk cloud ${desktop.label}`,
+    lines.push({ kind: "desktop", label: cart.desktop.kind === "dedicated" ? `dusk cloud dedicated, ${machine.vcpu} vCPU, ${machine.ramGb} GB, ${machine.diskGb} GB` : `dusk cloud ${desktop.label.toLowerCase()}`,
       amountCents: (cart.desktop.kind === "dedicated" ? dedicatedMonthlyCents(machine, config) : desktop.monthlyCents!) * multiplier });
   }
   const sum = lines.reduce((sum, line) => sum + line.amountCents, 0);
@@ -63,28 +63,26 @@ export function quote(cart: Cart, config: BillingConfig = BILLING_CONFIG): Quote
     lines, totalCents, monthlyEquivalentCents: cart.interval === "year" ? Math.round(totalCents / 12) : totalCents, machine, botComputers, members };
 }
 
-export function dodoCart(cart: Cart, products: Record<string, string>, config: BillingConfig = BILLING_CONFIG): ProviderCartLine[] | null {
+/** the DUSK_DODO_PRODUCTS keys a cart needs, base product first, each add-on with the quantity it is sent with */
+export function dodoCartKeys(cart: Cart, config: BillingConfig = BILLING_CONFIG): Array<{ key: string; quantity: number }> {
   const hasLicense = cart.license.kind !== "none";
-  if (!hasLicense && cart.desktop.kind === "none") return null;
-  const productId = products[`${hasLicense ? `license_${cart.license.kind}` : `desktop_${cart.desktop.kind}`}:${cart.interval}`];
-  if (!productId) return null;
-  const addons: ProviderCartLine["addons"] = []; let missing = false;
-  function add(key: string, quantity: number) {
-    if (!quantity) return;
-    const addonId = products[`${key}:${cart.interval}`];
-    if (!addonId) missing = true; else addons.push({ addonId, quantity });
-  }
+  if (!hasLicense && cart.desktop.kind === "none") return [];
+  const keys = [{ key: `${hasLicense ? `license_${cart.license.kind}` : `desktop_${cart.desktop.kind}`}:${cart.interval}`, quantity: 1 }];
+  const add = (key: string, quantity: number) => { if (quantity) keys.push({ key: `${key}:${cart.interval}`, quantity }); };
   if (cart.license.kind === "team") add("addon_member", cart.license.members! - config.licenses.team.includedMembers);
   if (hasLicense && cart.desktop.kind !== "none") add(`addon_${cart.desktop.kind}`, 1);
   if (cart.desktop.kind === "dedicated") {
     add("addon_vcpu", cart.desktop.spec!.vcpu); add("addon_ram_gb", cart.desktop.spec!.ramGb);
     add("addon_disk_20gb", (cart.desktop.spec!.diskGb - config.dedicated.includedDiskGb) / 20);
   }
-  return missing ? null : [{ productId, quantity: 1, addons }];
+  return keys;
 }
-export function dodoCreditsCart(packId: string, products: Record<string, string>): ProviderCartLine[] | null {
-  const productId = products[`credits_${packId}`];
-  return productId ? [{ productId, quantity: 1, addons: [] }] : null;
+/** the cart as dodo ids, or null when it is empty or any key it needs is missing from DUSK_DODO_PRODUCTS */
+export function dodoCart(cart: Cart, products: Record<string, string>, config: BillingConfig = BILLING_CONFIG): ProviderCartLine[] | null {
+  const keys = dodoCartKeys(cart, config);
+  if (!keys.length || keys.some(({ key }) => !products[key])) return null;
+  const [base, ...addons] = keys;
+  return [{ productId: products[base.key], quantity: 1, addons: addons.map(({ key, quantity }) => ({ addonId: products[key], quantity })) }];
 }
 /** what dodo charges now for a plan change in difference_immediately mode (the billing cycle restarts that day) */
 export function changeCharge(fromTotalCents: number, toTotalCents: number) { return Math.max(0, toTotalCents - fromTotalCents); }

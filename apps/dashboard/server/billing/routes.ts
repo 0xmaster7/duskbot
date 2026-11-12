@@ -62,7 +62,6 @@ export function createBillingRoutes(ctx: BillingContext) {
       if (method === "GET") {
         if (path === "/v1/billing/overview") return send(service.overview(account));
         if (path === "/v1/billing/invoices") return send(service.invoices(account.id, url.searchParams.get("cursor")));
-        if (path === "/v1/billing/credits") return send(service.credits(account.id));
         if (path === "/v1/billing/license") return send(service.licenseCheck(account));
         if (path === "/v1/clouds") return send({ clouds: clouds.list(account.id).map(clouds.view) });
         const invoice = /^\/v1\/billing\/invoices\/([^/]+)\/download$/.exec(path);
@@ -82,8 +81,7 @@ export function createBillingRoutes(ctx: BillingContext) {
             const name = data.name === undefined ? undefined : cloudName(data.name), swatch = data.color === undefined ? undefined : color(data.color);
             if (swatch === null) invalid();
             item = { kind: "cart", cart: parsed, ...(name === undefined ? {} : { name }), ...(swatch === undefined ? {} : { color: swatch }) };
-          } else if (data.kind === "credits") item = { kind: "credits", pack: text(data.pack) };
-          else return invalid();
+          } else return invalid();
           return send(await service.checkout(account, item, { source: data.source }));
         }
         if (path === "/v1/billing/portal") { if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon"); await body(req); return send(await service.portal(account)); }

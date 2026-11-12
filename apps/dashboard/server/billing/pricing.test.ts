@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Cart } from "../../../../shared/billing-api.ts";
-import { BILLING_CONFIG as config, catalogView, dodoProducts, managedRegionConfig } from "./plans.ts";
+import { BILLING_CONFIG as config, catalogView, DODO_PRODUCT_KEYS, dodoProducts, managedRegionConfig, missingDodoProducts } from "./plans.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../../cloud-service/src/retention.ts";
-import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCreditsCart, parseCart, quote } from "./pricing.ts";
+import { changeCharge, dedicatedMonthlyCents, dodoCart, dodoCartKeys, parseCart, quote } from "./pricing.ts";
 
 const preset = (index: number, interval: Cart["interval"] = "month"): Cart => ({ ...structuredClone(config.bundles[index].cart), interval });
 const products = Object.fromEntries(["month", "year"].flatMap(interval => ["license_solo", "license_team", "desktop_shared_s", "desktop_shared_m", "desktop_dedicated", "addon_member", "addon_shared_s", "addon_shared_m", "addon_dedicated", "addon_vcpu", "addon_ram_gb", "addon_disk_20gb"].map(key => [`${key}:${interval}`, `${key}_${interval}`])));
@@ -44,7 +44,7 @@ describe("billing pricing", () => {
     expect(result.lines).toEqual([
       { kind: "license", label: `${license.label}, ${license.includedMembers} members`, amountCents: license.monthlyCents * 12 },
       { kind: "members", label: `${extraMembers} extra members`, amountCents: extraMembers * license.extraMemberCents! * 12 },
-      { kind: "desktop", label: `dusk cloud ${desktop.label}`, amountCents: desktop.monthlyCents! * 12 },
+      { kind: "desktop", label: `dusk cloud ${desktop.label.toLowerCase()}`, amountCents: desktop.monthlyCents! * 12 },
       { kind: "discount", label: "Yearly, 2 months free", amountCents: -discount },
     ]);
     expect(result).toMatchObject({ totalCents: subtotal - discount, monthlyEquivalentCents: Math.round((subtotal - discount) / 12), members: 5, bundle: null, botComputers: 5, machine: { vcpu: 4, ramGb: 8, diskGb: 80 } });
@@ -71,7 +71,13 @@ describe("billing pricing", () => {
     const minimum = { ...preset(3), desktop: { kind: "dedicated" as const, region: "fsn1", spec: { vcpu: 2, ramGb: 4, diskGb: 40 } } };
     expect(dodoCart(minimum, products)![0].addons).not.toContainEqual(expect.objectContaining({ addonId: "addon_disk_20gb_month" }));
     expect(dodoCart(preset(1), {})).toBeNull(); expect(dodoCart({ ...preset(1), license: { kind: "solo" } }, { "license_solo:month": "solo" })).toBeNull();
-    expect(dodoCreditsCart("c10", {})).toBeNull(); expect(dodoCreditsCart("c10", { credits_c10: "credits" })).toEqual([{ productId: "credits", quantity: 1, addons: [] }]);
+    expect(dodoCartKeys(minimum).map(({ key }) => key)).toEqual(["license_team:month", "addon_dedicated:month", "addon_vcpu:month", "addon_ram_gb:month"]);
+    // every key any cart can ask for is one the config documents, so a complete DUSK_DODO_PRODUCTS never answers 503
+    for (const interval of ["month", "year"] as const) for (const license of [{ kind: "none" as const }, { kind: "solo" as const }, { kind: "team" as const, members: 3 }])
+      for (const desktop of [{ kind: "none" as const }, { kind: "shared_s" as const, region: "fsn1" }, { kind: "shared_m" as const, region: "fsn1" }, { kind: "dedicated" as const, region: "fsn1", spec: { vcpu: 8, ramGb: 16, diskGb: 160 } }])
+        for (const { key } of dodoCartKeys({ interval, license, desktop })) expect(DODO_PRODUCT_KEYS).toContain(key);
+    expect(missingDodoProducts(Object.fromEntries(DODO_PRODUCT_KEYS.map(key => [key, "id"])))).toEqual([]);
+    expect(missingDodoProducts({ "license_solo:month": "id" })).toHaveLength(DODO_PRODUCT_KEYS.length - 1);
   });
   it("charges the difference on upgrades, nothing on downgrades, and validates product configuration", () => {
     expect(changeCharge(2000, 5000)).toBe(3000); expect(changeCharge(5000, 2000)).toBe(0);

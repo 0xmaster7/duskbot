@@ -266,12 +266,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
   if (method === "POST" && path === "/v1/billing/checkout") {
     const { source: _source, ...req } = b as unknown as CheckoutRequest;
     const id = `fx-checkout-${s.nextId++}`;
-    if (req.kind === "credits") {
-      const pack = fixtureCatalog.creditPacks.find((p) => p.id === req.pack);
-      if (!pack) return fail("Choose a credit pack.");
-      s.billing.credits.balanceUsd = Math.round((s.billing.credits.balanceUsd + pack.usd) * 100) / 100;
-      s.billing.invoices.unshift({ id, number: `DUSK-CREDITS-${s.nextId}`, date: now, description: `$${pack.usd} AI credits`, amountUsd: pack.usd, status: "paid", url: null });
-    } else if (req.kind === "plan") {
+    if (req.kind === "plan") {
       const selection = selectionFrom(req.selection);
       if (req.bundle !== null && !fixtureCatalog.bundles.some((bundle) => bundle.id === req.bundle)) fail("Choose a bundle.");
       s.billing.subscription = subscription(selection, req.bundle, now);

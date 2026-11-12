@@ -49,14 +49,11 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
     complete(sessionId: string) {
       const previous = completed.get(sessionId); if (previous) return previous.map(delivery => sign(delivery.headers["webhook-id"], delivery.body));
       const input = sessions.get(sessionId); if (!input) throw new BillingProviderError("refused");
-      const customerId = input.customerId ?? id("cus_"), isCart = input.billing ? input.billing.interval !== null : !input.cart[0].productId.startsWith("credits_");
-      const subscriptionId = isCart ? id("dsub_") : null;
+      const customerId = input.customerId ?? id("cus_"), subscriptionId = id("dsub_");
       const result = [payment(input, customerId, subscriptionId)];
-      if (subscriptionId) {
-        const interval = input.billing?.interval ?? (input.cart[0].productId.endsWith(":year") ? "year" : "month");
-        subscriptions.set(subscriptionId, { input: structuredClone(input), customerId, nextBillingAt: next(now(), interval), cancel: false });
-        result.push(delivery("subscription.active", subscriptionData(subscriptionId)));
-      }
+      const interval = input.billing?.interval ?? (input.cart[0].productId.endsWith(":year") ? "year" : "month");
+      subscriptions.set(subscriptionId, { input: structuredClone(input), customerId, nextBillingAt: next(now(), interval), cancel: false });
+      result.push(delivery("subscription.active", subscriptionData(subscriptionId)));
       completed.set(sessionId, result); return result;
     },
     renew(subscriptionId: string) {

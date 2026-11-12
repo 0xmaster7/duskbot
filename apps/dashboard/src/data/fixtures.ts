@@ -32,7 +32,6 @@ export const fixtureCatalog: PlanCatalog = {
   // two months free
   yearlyDiscount: 1 / 6,
   workFreeUntil: new Date(2026, 11, 1).getTime(),
-  creditPacks: [10, 25, 50].map((usd) => ({ id: `credits-${usd}`, usd })),
 };
 
 const DAY = 86_400_000;
@@ -64,7 +63,6 @@ export function fixtureBilling(scenario: Scenario, now = Date.now()): BillingOve
     subscription: paid ? { id: "fx-sub", bundle: "pro", selection: { license: "starter", members: 1, desktop: "shared-m", size: null, region: "eu-central", interval: "month" }, status: ended ? "canceled" : "active", amountUsd: 50, currentPeriodEnd: now + (ended ? -3 : 18) * DAY, cancelAt: ended ? now - 3 * DAY : null } : null,
     paymentMethod: paid ? { brand: "Visa", last4: "4242", expMonth: 9, expYear: new Date(now).getFullYear() + 3 } : null,
     invoices: paid ? Array.from({ length: 5 }, (_, i) => ({ id: `fx-invoice-${i}`, number: `DUSK-${new Date(now).getFullYear()}-${String(105 - i).padStart(4, "0")}`, date: now - (12 + 30 * i) * DAY, description: "Pro, monthly", amountUsd: 50, status: "paid" as const, url: null })) : [],
-    credits: { balanceUsd: paid ? 12.4 : 0, autoTopUp: false, usedThisMonthUsd: paid ? 7.85 : 0 },
   };
 }
 

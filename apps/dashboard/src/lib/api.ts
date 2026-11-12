@@ -192,7 +192,7 @@ export const api = {
   billing: async () => FIXTURE ? call<BillingOverview>("/v1/billing") : (await overview()).billing,
   checkout: async (req: CheckoutRequest): Promise<CheckoutAnswer> => {
     if (FIXTURE) return send("/v1/billing/checkout", "POST", req);
-    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", req.kind === "plan" ? { kind: "cart", source: req.source, cart: cartFromSelection(req.selection, await catalog()) } : req);
+    const answer = await send<WireCheckoutAnswer>("/v1/billing/checkout", "POST", { kind: "cart", source: req.source, cart: cartFromSelection(req.selection, await catalog()) });
     return { url: answer.checkoutUrl, id: answer.checkoutId };
   },
   portal: () => send<{ url: string }>("/v1/billing/portal", "POST"),

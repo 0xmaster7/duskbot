@@ -109,8 +109,6 @@ export interface CustomPricing {
   diskGb: Range;
 }
 
-export interface CreditPack { id: string; usd: number }
-
 export interface PlanCatalog {
   /** false while paid plans cannot be bought yet */
   checkoutOpen?: boolean;
@@ -126,7 +124,6 @@ export interface PlanCatalog {
   yearlyDiscount: number;
   /** work use is free until then (an early grace period); null when it is over */
   workFreeUntil: number | null;
-  creditPacks: CreditPack[];
 }
 
 /** what the builder holds and checkout buys: one subscription with a line per part */
@@ -163,13 +160,10 @@ export interface Invoice {
   url: string | null;
 }
 
-export interface Credits { balanceUsd: number; autoTopUp: boolean; usedThisMonthUsd: number }
-
 export interface BillingOverview {
   subscription: Subscription | null;
   paymentMethod: PaymentMethod | null;
   invoices: Invoice[];
-  credits: Credits;
 }
 
 export type CloudStatus = "provisioning" | "running" | "waking" | "sleeping" | "stopped" | "error";
@@ -203,8 +197,7 @@ export interface CloudDesktop extends MachineSpec {
 }
 
 export type CheckoutRequest =
-  | { kind: "plan"; selection: Selection; bundle: BundleId | null; source: CheckoutSource }
-  | { kind: "credits"; pack: string; source: CheckoutSource };
+  { kind: "plan"; selection: Selection; bundle: BundleId | null; source: CheckoutSource };
 
 /** the provider's hosted checkout; the dashboard opens it and waits for the webhook to land */
 export interface CheckoutAnswer { url: string; id: string }

@@ -2,21 +2,19 @@ import { afterEach, expect, test, vi } from "vitest";
 import { CSRF_COOKIE, CSRF_HEADER } from "../data/wire";
 
 const catalog = {
-  licenses: [], desktops: [], bundles: [], regions: [], creditPacks: [], defaultRegion: "eu", yearlyDiscountPercent: 0, freeWorkUntil: null,
+  licenses: [], desktops: [], bundles: [], regions: [], defaultRegion: "eu", yearlyDiscountPercent: 0, freeWorkUntil: null,
   dedicated: { baseCents: 0, perVcpuCents: 0, perGbRamCents: 0, includedDiskGb: 0, per20GbDiskCents: 0, vcpu: { min: 1, max: 8, step: 1 }, ramGb: { min: 1, max: 8, step: 1 }, diskGb: { min: 10, max: 100, step: 10 } },
 };
 
 afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 
-test("plan and credit checkouts send their source next to the wire kind", async () => {
+test("plan checkouts send their source next to the wire kind", async () => {
   const fetch = vi.fn(async (path: string, _init?: RequestInit) => Response.json(path.endsWith("catalog") ? catalog : { checkoutUrl: "https://checkout.example.test", checkoutId: "checkout" }));
   vi.stubGlobal("fetch", fetch);
   const { api } = await import("./api");
   await api.checkout({ kind: "plan", source: "dash_routines", bundle: null, selection: { desktop: "shared-s", license: "personal", members: 1, interval: "month", region: "eu", size: null } });
-  await api.checkout({ kind: "credits", source: "dash_credits", pack: "credits-10" });
   const requests = fetch.mock.calls.filter(([path]) => path.endsWith("checkout"));
   expect(JSON.parse((requests[0]![1] as RequestInit).body as string)).toEqual({ kind: "cart", source: "dash_routines", cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "shared_s", region: "eu" } } });
-  expect(JSON.parse((requests[1]![1] as RequestInit).body as string)).toEqual({ kind: "credits", source: "dash_credits", pack: "credits-10" });
 });
 
 test("Slack wake uses the cloud route and PUT includes the session and CSRF header", async () => {
@@ -48,11 +46,11 @@ test("fixtures accept checkout sources and retain the Slack wake switch state", 
   expect(await api.slackWake(clouds[0]!.id)).toEqual({ available: true, enabled: false, state: "off", bots: 0, buffered: 0 });
   expect((await api.setSlackWake(clouds[0]!.id, true)).enabled).toBe(true);
   expect((await api.slackWake(clouds[0]!.id)).enabled).toBe(true);
-  expect(await api.checkout({ kind: "credits", source: "dash_credits", pack: "credits-10" })).toEqual({ url: "", id: expect.any(String) });
+  expect(await api.checkout({ kind: "plan", source: "dash_billing", bundle: "starter", selection: { desktop: "shared-s", license: "personal", members: 1, interval: "month", region: "eu-central", size: null } })).toEqual({ url: "", id: expect.any(String) });
 });
 
 test("a plan change that charges now is applied only at the amount the person was shown", async () => {
-  const overview = { subscriptions: [{ id: "sub1", status: "active", createdAt: 1, bundle: null, totalCents: 1000, currentPeriodEnd: 2, cancelAtPeriodEnd: false, cart: { interval: "month", license: { kind: "team", members: 3 }, desktop: { kind: "none" } } }], clouds: [], invoices: { invoices: [] }, credits: { balanceCents: 0, entries: [] } };
+  const overview = { subscriptions: [{ id: "sub1", status: "active", createdAt: 1, bundle: null, totalCents: 1000, currentPeriodEnd: 2, cancelAtPeriodEnd: false, cart: { interval: "month", license: { kind: "team", members: 3 }, desktop: { kind: "none" } } }], clouds: [], invoices: { invoices: [] } };
   let chargeNowCents = 1250;
   const fetch = vi.fn(async (path: string, _init?: RequestInit) => Response.json(
     path.endsWith("catalog") ? catalog : path.endsWith("overview") ? overview : path.endsWith("/preview") ? { v: 1, quote: {}, chargeNowCents, confirmation: "confirm-1", expiresAt: 3 } : {}));

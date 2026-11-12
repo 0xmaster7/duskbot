@@ -89,7 +89,6 @@ export interface Catalog {
   defaultRegion: string;
   /** percent off a year paid up front */
   yearlyDiscountPercent: number;
-  creditPacks: CreditPack[];
   /** work use needs no license until this time; null once the grace is over */
   freeWorkUntil: number | null;
   /** days a cancelled or ended cloud desktop is kept, stopped, before it is destroyed */
@@ -117,22 +116,18 @@ export interface Quote {
   members: number;
 }
 
-export interface CreditPack { id: string; label: string; priceCents: number; creditCents: number }
-
 /** where a checkout started; anything else an older client sends is recorded as "other" */
 export const CHECKOUT_SOURCES = ["app_card", "app_howto", "app_menu", "app_settings", "app_routines", "app_pages", "app_whats_new_pro", "app_whats_new_team", "app_onboarding", "app_computer_move", "app_sidebar", "app_invested", "app_always_on", "app_mobile", "app_bot_panel",
-  "dash_home", "dash_billing", "dash_cloud", "dash_onboarding", "dash_routines", "dash_license", "dash_credits", "dash_start", "dash_free_sheet", "dash_sidebar", "dash_invested", "other"] as const;
+  "dash_home", "dash_billing", "dash_cloud", "dash_onboarding", "dash_routines", "dash_license", "dash_start", "dash_free_sheet", "dash_sidebar", "dash_invested", "other"] as const;
 export type CheckoutSource = (typeof CHECKOUT_SOURCES)[number];
 export const checkoutSource = (value: unknown): CheckoutSource | null =>
   value === undefined || value === null || value === "" ? null : (CHECKOUT_SOURCES as readonly unknown[]).includes(value) ? value as CheckoutSource : "other";
 
-/** checkouts per source over a window: opened, paid (a subscription or a top-up landed), and still paying now */
+/** checkouts per source over a window: opened, paid (a subscription landed), and still paying now */
 export interface FunnelRow { source: CheckoutSource | "unknown"; started: number; paid: number; active: number }
 export interface FunnelView { v: typeof BILLING_API_VERSION; from: number; to: number; rows: FunnelRow[]; totals: Omit<FunnelRow, "source"> }
 
-export type CheckoutItem =
-  | { kind: "cart"; cart: Cart; name?: string; color?: CloudSwatch }
-  | { kind: "credits"; pack: string };
+export type CheckoutItem = { kind: "cart"; cart: Cart; name?: string; color?: CloudSwatch };
 /** `revives`: paying brings back this account's paused cloud (`cloudId`) with its data instead of a new one. The same
  * cart while its checkout is still open answers that checkout again. */
 export interface CheckoutAnswer { v: typeof BILLING_API_VERSION; checkoutId: string; checkoutUrl: string; cloudId: string | null; revives: boolean }
@@ -194,8 +189,6 @@ export interface InvoiceView {
 }
 export interface InvoicePage { invoices: InvoiceView[]; nextCursor: string | null }
 
-export interface CreditsView { balanceCents: number; entries: Array<{ id: string; at: number; deltaCents: number; reason: "top_up" | "refund" | "usage" | "grant" }> }
-
 export const CANCEL_ANSWERS = ["feature", "price", "setup", "broken", "later", "other"] as const;
 export type CancelAnswer = (typeof CANCEL_ANSWERS)[number];
 /** the desktop app's cancel sheet survey (electron/cloud-account.mjs cancelSurvey), as the dashboard sends it too */
@@ -253,7 +246,6 @@ export interface BillingOverview {
   licenses: LicenseView[];
   license: LicenseCheck;
   clouds: CloudDesktopView[];
-  credits: CreditsView;
   invoices: InvoicePage;
 }
 
@@ -266,7 +258,6 @@ export interface BillingOverview {
  *   POST /v1/billing/portal                          -> { url }
  *   GET  /v1/billing/invoices?cursor=                -> InvoicePage
  *   GET  /v1/billing/invoices/:id/download           -> 302 to the provider's invoice
- *   GET  /v1/billing/credits                         -> CreditsView
  *   GET  /v1/billing/license                         -> LicenseCheck
  *   POST /v1/billing/licenses/:id/members  { email } -> { license: LicenseView }
  *   DELETE /v1/billing/licenses/:id/members/:email   -> { license: LicenseView }

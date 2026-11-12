@@ -4,7 +4,7 @@ import type { EmailConfig, Rendered } from "./templates.ts";
 
 const at = Date.UTC(2026, 10, 11, 14, 30);
 const DAY = 86_400_000;
-const cloud = { name: "night shift", plan: "shared s", machine: "2 vcpu, 4 gb memory, 40 gb disk", region: "oregon" };
+const cloud = { name: "night shift", plan: "plus", machine: "2 vcpu, 4 gb memory, 40 gb disk", region: "oregon" };
 
 /** one filled-in copy of every email, for the tests and the previews */
 export function samples(cfg: EmailConfig): Array<{ id: string; trigger: string; email: Rendered }> {
@@ -14,10 +14,10 @@ export function samples(cfg: EmailConfig): Array<{ id: string; trigger: string; 
     { id: "01c-recovery-none", trigger: "can't sign in, no account uses the address", email: recoveryEmail(cfg, { code: "48213097", ways: null }) },
     { id: "02-welcome", trigger: "first sign-up (auth.onAccountCreated)", email: welcomeEmail(cfg, { cloudFromCents: 2000 }) },
     { id: "03-cloud-ready", trigger: "a cloud's first time running (clouds service save)", email: cloudReadyEmail(cfg, cloud) },
-    { id: "04-receipt", trigger: "a paid invoice (billing webhook payment.succeeded)", email: receiptEmail(cfg, { amountCents: 2000, currency: "USD", description: "Shared S", paidAt: at,
+    { id: "04-receipt", trigger: "a paid invoice (billing webhook payment.succeeded)", email: receiptEmail(cfg, { amountCents: 2000, currency: "USD", description: "dusk cloud plus", paidAt: at,
       receiptId: "inv_7Qm2xK9", periodStart: at, periodEnd: at + 30 * DAY, renews: true, first: true, cloud: true }) },
-    { id: "05-payment-failed", trigger: "subscription on_hold or failed (billing webhook)", email: paymentFailedEmail(cfg, { amountCents: 2000, currency: "USD", description: "Shared S", cloudName: cloud.name, fixBy: at + 7 * DAY }) },
-    { id: "06-cancelled", trigger: "plan set to end at period end (cancel route or webhook)", email: cancelledEmail(cfg, { description: "Shared S", cloudName: cloud.name, endsAt: at + 20 * DAY, keepDays: 30, keptPaused: true }) },
+    { id: "05-payment-failed", trigger: "subscription on_hold or failed (billing webhook)", email: paymentFailedEmail(cfg, { amountCents: 2000, currency: "USD", description: "dusk cloud plus", cloudName: cloud.name, fixBy: at + 7 * DAY }) },
+    { id: "06-cancelled", trigger: "plan set to end at period end (cancel route or webhook)", email: cancelledEmail(cfg, { description: "dusk cloud plus", cloudName: cloud.name, endsAt: at + 20 * DAY, keepDays: 30, keptPaused: true }) },
     { id: "08-cloud-deleted", trigger: "cloud deleted (managed notice deleted, or generic lifecycle)", email: cloudDeletedEmail(cfg, { name: cloud.name, at }) },
     { id: "09-account-deleted", trigger: "account deleted (auth.onAccountDeleted)", email: accountDeletedEmail(cfg, { email: "sam@example.com" }) },
     { id: "10-promo", trigger: "template only: launches and feature news", email: promoEmail(cfg, {

@@ -36,7 +36,7 @@ Do not use dusk bot to create, store, send or share:
 
 ## dusk cloud desktops
 
-A dusk cloud desktop is a shared resource on our infrastructure provider. On it, do not:
+A dusk cloud desktop runs on our infrastructure provider's machines. On it, do not:
 
 - mine cryptocurrency, or run work that holds the processor or network at full use for long periods unrelated to your bots;
 - host public file sharing, proxies, VPNs or services for other people;

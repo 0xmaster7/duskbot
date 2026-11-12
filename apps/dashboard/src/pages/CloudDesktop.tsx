@@ -103,7 +103,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   const includes = [
     specLine(cloud),
     botsLine(cloud.botComputers.limit),
-    cloud.placement === "shared" ? "its own sandbox on a shared host" : "a whole machine of its own",
+    cloud.placement === "shared" ? "its own sandbox on our machines" : "a whole machine of its own",
     current?.priority ? "on 24/7, priority wake" : "on 24/7",
   ];
   return (
@@ -222,7 +222,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
         <Card aria-labelledby="about-title">
           <SectionTitle id="about-title">about</SectionTitle>
           <dl className="">
-            <KV k="runs on" v={cloud.placement === "shared" ? "shared, own sandbox" : "its own machine"} />
+            <KV k="runs on" v={cloud.placement === "shared" ? "its own sandbox" : "its own machine"} />
             <KV k="bot computers" v={`${detail?.report?.computers?.computers.length ?? cloud.botComputers.used} of ${cloud.botComputers.limit === null ? "unlimited" : cloud.botComputers.limit}`} />
             {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
             <KV k="created" v={longDate(cloud.createdAt)} />

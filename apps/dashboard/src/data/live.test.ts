@@ -11,8 +11,8 @@ const catalog: Catalog = {
     { kind: "team", label: "Team", monthlyCents: 3000, includedMembers: 3, extraMemberCents: 1500, maxMembers: 50, priority: true },
   ],
   desktops: [
-    { kind: "shared_s", label: "Shared S", monthlyCents: 1000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, placement: "pool", botComputers: 2, priority: false },
-    { kind: "shared_m", label: "Shared M", monthlyCents: 4000, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, placement: "pool", botComputers: 5, priority: true },
+    { kind: "shared_s", label: "Plus", monthlyCents: 1000, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, placement: "pool", botComputers: 2, priority: false },
+    { kind: "shared_m", label: "Pro", monthlyCents: 4000, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, placement: "pool", botComputers: 5, priority: true },
     { kind: "dedicated", label: "Dedicated", monthlyCents: null, machine: { vcpu: 8, ramGb: 16, diskGb: 165 }, placement: "dedicated", botComputers: null, priority: true },
   ],
   dedicated: { baseCents: 600, perVcpuCents: 350, perGbRamCents: 125, per20GbDiskCents: 102, includedDiskGb: 100, vcpu: { min: 2, max: 32, step: 2 }, ramGb: { min: 4, max: 64, step: 4 }, diskGb: { min: 40, max: 1000, step: 20 } },
@@ -23,7 +23,6 @@ const catalog: Catalog = {
     { id: "team", label: "Team", monthlyCents: 10000, yearlyMonthlyCents: 8000, cart: { license: { kind: "team" }, desktop: { kind: "dedicated" } }, highlights: ["Unlimited computers"] },
   ],
   regions: [{ id: "us", country: "United States", label: "Ashburn" }, { id: "eu", country: "Germany", label: "Falkenstein" }, { id: "ap", country: "Singapore", label: "Singapore" }],
-  creditPacks: [{ id: "credits-10", label: "$10", priceCents: 1000, creditCents: 1200 }],
 };
 
 test("catalog maps ids, prices, bundles, custom pricing and the default region", () => {
@@ -46,7 +45,6 @@ test("catalog maps ids, prices, bundles, custom pricing and the default region",
   assert.deepEqual(result.regions, [{ id: "eu", name: "Germany", city: "Falkenstein" }, { id: "us", name: "United States", city: "Ashburn" }, { id: "ap", name: "Singapore", city: "Singapore" }]);
   assert.equal(result.yearlyDiscount, 0.2);
   assert.equal(result.workFreeUntil, catalog.freeWorkUntil);
-  assert.deepEqual(result.creditPacks, [{ id: "credits-10", usd: 10 }]);
   const smaller = structuredClone(catalog);
   smaller.desktops[2]!.machine.diskGb = 40;
   assert.equal(catalogFromWire(smaller).desktops[2]!.monthly, 54);
@@ -75,7 +73,7 @@ test("yearly team quote merges extra members and uses service totals without bun
     lines: [
       { kind: "license", label: "Team license, 3 members", amountCents: 48000 },
       { kind: "members", label: "2 extra members", amountCents: 36000 },
-      { kind: "desktop", label: "dusk cloud Shared M", amountCents: 48000 },
+      { kind: "desktop", label: "dusk cloud pro", amountCents: 48000 },
       { kind: "discount", label: "Yearly discount (20%)", amountCents: -26400 },
     ],
     totalCents: 105600, monthlyEquivalentCents: 8800, machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, members: 5,
@@ -102,7 +100,7 @@ test("small dedicated quote keeps its service price below the default desktop pr
   const plans = catalogFromWire(catalog);
   const quote: Quote = {
     cart: { interval: "month", license: { kind: "none" }, desktop: { kind: "dedicated", region: "eu", spec: { vcpu: 2, ramGb: 4, diskGb: 40 } } },
-    bundle: null, lines: [{ kind: "desktop", label: "Dedicated 2 vCPU, 4 GB, 40 GB", amountCents: 2400 }],
+    bundle: null, lines: [{ kind: "desktop", label: "dusk cloud dedicated, 2 vCPU, 4 GB, 40 GB", amountCents: 2400 }],
     totalCents: 2400, monthlyEquivalentCents: 2400, machine: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: null, members: 0,
   };
   assert.deepEqual(cartFromQuote(quote, plans), {
@@ -172,7 +170,7 @@ test("account prepends email, preserves OAuth identities, and maps devices, pref
   assert.deepEqual(accountFromWire(account, 5000, { getItem: () => { throw new Error("unavailable"); } }).notifications, result.notifications);
 });
 
-test("billing selects the newest non-ended subscription and maps invoices and monthly credit use", () => {
+test("billing selects the newest non-ended subscription and maps invoices", () => {
   const plans = catalogFromWire(catalog);
   const subscription: SubscriptionView = { id: "sub", cart: { interval: "month", license: { kind: "solo" }, desktop: { kind: "shared_m", region: "eu" } }, bundle: "pro", lines: [], totalCents: 5000, status: "active", licenseId: null, cloudId: null, currentPeriodEnd: 9999, cancelAtPeriodEnd: true, createdAt: 1 };
   SUBSCRIPTION_STATUSES.forEach((status, index) => assert.equal(subscriptionFromWire({ ...subscription, status }, plans).status, ["pending", "active", "past_due", "canceled", "canceled"][index]));
@@ -181,15 +179,13 @@ test("billing selects the newest non-ended subscription and maps invoices and mo
   const overview: BillingOverview = {
     v: 1, subscriptions: [subscription, { ...subscription, id: "new", createdAt: 2 }, { ...subscription, id: "ended", status: "ended", createdAt: 3 }], licenses: [], license: { v: 1, work: "unlicensed", license: null, freeWorkUntil: null, checkedAt: now }, clouds: [],
     invoices: { invoices: [{ id: "invoice", at: now, amountCents: 1250, currency: "USD", status: "failed", description: "Plan", downloadUrl: "/invoice" }], nextCursor: null },
-    credits: { balanceCents: 1234, entries: [{ id: "usage", at: now, deltaCents: -150, reason: "usage" }, { id: "prior", at: new Date(2026, 9, 31).getTime(), deltaCents: -900, reason: "usage" }, { id: "future", at: new Date(2026, 11, 1).getTime(), deltaCents: -900, reason: "usage" }, { id: "topup", at: now, deltaCents: 1000, reason: "top_up" }] },
   };
-  const result = billingFromWire(overview, plans, now);
+  const result = billingFromWire(overview, plans);
   assert.equal(result.subscription!.id, "new");
   assert.equal(result.subscription!.amountUsd, 50);
   assert.equal(result.subscription!.cancelAt, 9999);
   assert.equal(result.paymentMethod, null);
   assert.deepEqual(result.invoices, [{ id: "invoice", number: "invoice", date: now, amountUsd: 12.5, status: "open", description: "Plan", url: "/invoice" }]);
-  assert.deepEqual(result.credits, { balanceUsd: 12.34, autoTopUp: false, usedThisMonthUsd: 1.5 });
-  assert.equal(billingFromWire({ ...overview, subscriptions: [{ ...subscription, status: "ended" }] }, plans, now).subscription, null);
+  assert.equal(billingFromWire({ ...overview, subscriptions: [{ ...subscription, status: "ended" }] }, plans).subscription, null);
   assert.deepEqual(providersFromWire({ v: 1, signupOpen: true, providers: [{ id: "apple", enabled: false, comingSoon: true }] }), { providers: [{ id: "apple", enabled: false, comingSoon: true }] });
 });

@@ -18,12 +18,13 @@ export type CloudAction =
   | { kind: "end"; cloudId: string; at: number; from?: number }
   | { kind: "keep"; cloudId: string };
 export interface StoredCheckout {
-  id: string; accountId: string; email: string; kind: "cart" | "credits"; cart: Cart | null; packId: string | null; cloudId: string | null;
+  /** "credits": a retired pack purchase, still readable in older stores; nothing makes one any more */
+  id: string; accountId: string; email: string; kind: "cart" | "credits"; cart: Cart | null; cloudId: string | null;
   providerSubscriptionId?: string;
   /** paying it brings back `cloudId`, an ended cloud of this account, instead of a new one */
   revive?: boolean;
   providerSessionId: string | null; url: string | null; status: "open" | "completed" | "expired"; source: string | null;
-  createdAt: number; openUntil: number; subscriptionId: string | null; amountCents: number; creditCents: number | null; lines: CartLine[];
+  createdAt: number; openUntil: number; subscriptionId: string | null; amountCents: number; lines: CartLine[];
 }
 export interface StoredSubscription {
   id: string; accountId: string; providerSubscriptionId: string | null; checkoutId: string; cart: Cart; totalCents: number; lines: CartLine[];
@@ -56,7 +57,6 @@ export interface BillingState {
   /** when the owner's backfill last finished, and what it added */
   lastSync?: { at: number; added: number; scanned: number } | null;
   checkouts: StoredCheckout[]; subscriptions: StoredSubscription[]; licenses: LicenseView[]; invoices: StoredInvoice[];
-  credits: Array<{ id: string; accountId: string; deltaCents: number; reason: "top_up" | "refund" | "usage" | "grant"; ref: string; at: number }>;
   webhookEvents: Array<{ id: string; at: number; type: string }>;
   feedback: Array<CancelSurvey & { id: string; accountId: string; cloudId: string | null; subscriptionId: string | null; at: number }>;
 }
@@ -91,11 +91,10 @@ const valid = shape({
   customers: array(shape({ accountId: str, email: str, providerCustomerId: nullable(str), attribution: optional(shape({ source: str, channel: str, campaign: nullable(str), referrer: nullable(str), country: nullable(str), firstSeen: nullable(int) })) })),
   ledger: optional(array(validLedgerEntry)),
   lastSync: optional(nullable(shape({ at: int, added: int, scanned: int }))),
-  checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), packId: nullable(str), cloudId: nullable(str), providerSubscriptionId: optional(str), revive: optional(bool), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, creditCents: nullable(int), lines: array(line) })),
+  checkouts: array(shape({ id: str, accountId: str, email: str, kind: one("cart", "credits"), cart: nullable(cart), cloudId: nullable(str), providerSubscriptionId: optional(str), revive: optional(bool), providerSessionId: nullable(str), url: nullable(str), status: one("open", "completed", "expired"), source: nullable(str), createdAt: int, openUntil: int, subscriptionId: nullable(str), amountCents: int, lines: array(line) })),
   subscriptions: array(shape({ id: str, accountId: str, providerSubscriptionId: nullable(str), checkoutId: str, cart, totalCents: int, lines: array(line), status: one("pending", "active", "payment_problem", "cancelled", "ended"), lastEventAt: optional(int), source: optional(nullable(str)), pendingChange: optional(shape({ cart, totalCents: int, lines: array(line), products: shape({ productId: str, addons: array(shape({ addonId: str, quantity: int })) }), cloudId: nullable(str) })), licenseId: nullable(str), cloudId: nullable(str), currentPeriodStart: nullable(int), currentPeriodEnd: nullable(int), cancelAtPeriodEnd: bool, createdAt: int, updatedAt: int, version: int })),
   licenses: array(shape({ id: str, ownerAccountId: str, kind: one("solo", "team"), seats: int, members: array(shape({ email: str, accountId: nullable(str), role: one("owner", "member"), addedAt: int })), priority: bool, subscriptionId: nullable(str), status: one("active", "grace", "expired"), validUntil: nullable(int) })),
   invoices: array(shape({ id: str, accountId: str, providerPaymentId: str, subscriptionId: nullable(str), checkoutId: nullable(str), amountCents: int, currency: str, status: one("paid", "failed", "refunded"), description: str, createdAt: int })),
-  credits: array(shape({ id: str, accountId: str, deltaCents: int, reason: one("top_up", "refund", "usage", "grant"), ref: str, at: int })),
   webhookEvents: array(shape({ id: str, at: int, type: str })),
   feedback: array(shape({ id: str, accountId: str, cloudId: nullable(str), subscriptionId: nullable(str), answer: one("feature", "price", "setup", "broken", "later", "other"), expected: optional(str), improve: optional(str), at: int })),
 });
@@ -104,10 +103,10 @@ function validState(value: unknown): value is BillingState {
   const state = value as BillingState;
   const unique = (values: string[]) => new Set(values).size === values.length;
   return Object.entries(state).filter(([key]) => key !== "cloudActions" && key !== "lastSync").every(([key, rows]) => unique(rows.map((row: { id?: string; accountId?: string }) => key === "customers" ? row.accountId! : row.id!)))
-    && unique(state.invoices.map(row => row.providerPaymentId)) && unique(state.credits.map(row => `${row.reason}:${row.ref}`))
+    && unique(state.invoices.map(row => row.providerPaymentId))
     && unique(state.subscriptions.flatMap(row => row.providerSubscriptionId ? [row.providerSubscriptionId] : []));
 }
 export function createBillingStore(dataDir: string) {
-  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ closures: [], providerCancels: [], customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], credits: [], webhookEvents: [], feedback: [] }), validState);
+  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ closures: [], providerCancels: [], customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], webhookEvents: [], feedback: [] }), validState);
 }
 export type BillingStore = ReturnType<typeof createBillingStore>;

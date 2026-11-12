@@ -34,7 +34,7 @@ export function regionName(catalog: PlanCatalog | null, id: string) {
 }
 
 export function tierName(catalog: PlanCatalog | null, cloud: CloudDesktop) {
-  return (catalog && desktopOf(catalog, cloud.tier)?.name) ?? (cloud.placement === "shared" ? "shared" : "dedicated");
+  return (catalog && desktopOf(catalog, cloud.tier)?.name) ?? (cloud.placement === "shared" ? "dusk cloud" : "dedicated");
 }
 
 export function workspaceIcon(w: Pick<WorkspaceSummary, "kind">, cloud: CloudDesktop | null, size = 18) {
