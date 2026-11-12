@@ -10,7 +10,6 @@ import { DuskPixel, CROWD, COLOURS, bodyName, colourName } from './mascot-src/pi
 import { buildDocs } from './build-docs.mjs';
 import { buildSeo, seoFooter } from './seo/build-seo.mjs';
 import { writeSitemaps, robotsTxt } from './seo/sitemaps.mjs';
-import { writeCards } from './seo/art/cards.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
@@ -236,21 +235,29 @@ const FOOT = [
 ];
 // the seo hubs (seo/), once any of their pages is live
 { const hubs = seoFooter(); if (hubs.length) FOOT.splice(2, 0, ['guides', hubs]); }
-// the share cards (seo/art/cards.mjs, drawn by seo/art/render.py into art/og): each page names its card with og, the
-// card's alt text and whether it has a square crop come from there. a card that is not drawn yet stops the build
-const CARDS = writeCards(site);
-const ogCard = (name) => {
-  if (!CARDS.alts[name]) throw new Error(`no share card called ${name} (seo/art/cards.mjs)`);
-  if (!has(`art/og/${name}.jpg`)) throw new Error(`the share card art/og/${name}.jpg is not drawn: python3 seo/art/render.py`);
-  return { wide: `/art/og/${name}.jpg`, square: CARDS.squares.has(name) ? `/art/og/${name}-sq.jpg` : null, alt: CARDS.alts[name] };
+// the share pictures: art/og-<name>.jpg for each page that has its own (art-src/og/make.py draws them; home and the
+// waitlist share the white "meet dusk bot" card, which og.jpg, the fallback, copies). each with what it shows, for alt text
+const HOME_ALT = 'meet dusk bot: a big purple cat bot and four small pixel bots on a hill under a blue pixel sky, chatting "can you sort my inbox?" "done. three need you."';
+const OG = {
+  home: HOME_ALT, waitlist: HOME_ALT,
+  docs: 'the docs: pixel bots looking over a white card, in front of a birch wood',
+  download: 'download dusk bot: pixel bots looking over a white card, in front of white cliffs and a waterfall',
+  pricing: 'pricing: pixel bots looking over a white card, in front of little islands on a lake',
+  changelog: "what's new: pixel bots looking over a white card, in front of a lily pond",
+  about: 'about dusk bot: pixel bots looking over a white card, in front of chalk cliffs by the sea',
+  contact: 'say hi: pixel bots looking over a white card, in front of sand dunes by the sea',
+  brand: 'brand: pixel bots looking over a white card, in front of an open blue sky',
+  legal: 'the fine print: pixel bots looking over a white card, in front of snowy hills and green fields',
+  404: 'this page wandered off: a pixel bot looking over a white card, in front of a calm sea with one small island',
 };
+const ogCard = (name) => (OG[name] && has(`art/og-${name}.jpg`) ? { wide: `/art/og-${name}.jpg`, alt: OG[name] } : { wide: '/art/og.jpg', alt: HOME_ALT });
 const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
 // page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
 // kind: extra classes on <main>; scripts, styles: more files after the shared ones; jsonld: structured data for search engines
-export function layout({ title, description, body, page, at, section = page, og = section, ogImage: ogFile, ogSquare, ogType = 'website', ogAlt, kind = '', scripts = [], styles = [], jsonld = [], noindex = false }) {
+export function layout({ title, description, body, page, at, section = page, og = section, ogImage: ogFile, ogType = 'website', ogAlt, kind = '', scripts = [], styles = [], jsonld = [], noindex = false }) {
   const home = page === 'home';
-  const card = ogFile ? { wide: ogFile, square: ogSquare || null, alt: ogAlt } : ogCard(og);
+  const card = ogFile ? { wide: ogFile, alt: ogAlt } : ogCard(og);
   const address = at ?? (home ? '/' : `/${page}`);
   const here_ = (href) => (href === address ? ' aria-current="page"' : href === `/${section}` ? ' class="is-here"' : '');
   const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
@@ -276,11 +283,7 @@ export function layout({ title, description, body, page, at, section = page, og 
 <meta property="og:image" content="${SITE_URL}${card.wide}">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">${card.alt ? `\n<meta property="og:image:alt" content="${esc(card.alt)}">` : ''}${card.square ? `
-<meta property="og:image" content="${SITE_URL}${card.square}">
-<meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="1200">${card.alt ? `\n<meta property="og:image:alt" content="${esc(card.alt)}">` : ''}` : ''}
+<meta property="og:image:height" content="630">${card.alt ? `\n<meta property="og:image:alt" content="${esc(card.alt)}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@duskbot_hq">
 <meta name="twitter:title" content="${esc(title)}">
@@ -374,7 +377,7 @@ for (const [name, title, short] of legal) {
   const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 [copyright holder].'));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
   const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
-  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: name, kind: 'p-legal',
+  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
     body: `<header class="phead wrap"><h1>${title.toLowerCase()}</h1></header>
 ${strip('layers', 'circle blue, hex orange', 'short')}
 <div class="legal-wrap wrap">

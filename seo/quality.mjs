@@ -138,7 +138,7 @@ export function checkPages({ rendered, records, site, TYPES, hubPages, check = f
   for (const { h, html } of hubPages) {
     if ((html.match(/<h1[\s>]/g) || []).length !== 1) problems.push(`${h.at}: not exactly one h1`);
     if (/—/.test(html)) problems.push(`${h.at}: has an em dash`);
-    for (const f of [`art/seo/${sceneId(h.at)}.webp`, `art/seo/og/${sceneId(h.at)}.jpg`, `art/seo/og/${sceneId(h.at)}-sq.jpg`]) if (!fs.existsSync(path.join(site, f))) problems.push(`${h.at}: no ${f} (run python3 seo/art/render.py)`);
+    for (const f of [`art/seo/${sceneId(h.at)}.webp`, `art/seo/og/${sceneId(h.at)}.jpg`]) if (!fs.existsSync(path.join(site, f))) problems.push(`${h.at}: no ${f} (run python3 seo/art/render.py)`);
   }
   return { problems, warnings };
 }

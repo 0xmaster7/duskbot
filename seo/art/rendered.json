@@ -1,908 +1,206 @@
 {
- "agents-when-laptop-closed": {
-  "hero": "dfe3b3e5c22faefd",
-  "og": "1c9312d386b27690"
- },
- "ai-agent-that-controls-your-computer": {
-  "hero": "c2f273dbf903be50",
-  "og": "3a3795a1afdba5b5"
- },
- "ai-chief-of-staff": {
-  "hero": "16ca1cfde369890b",
-  "og": "d7fcf8483e84f65e"
- },
- "ai-employees": {
-  "hero": "37076cff3f1d2db7",
-  "og": "54b6a5e0a7385c76"
- },
- "ai-executive-assistant": {
-  "hero": "0c9961872e626ad7",
-  "og": "50ba5ac80f7da7aa"
- },
- "ai-group-chat": {
-  "hero": "67bccebca55d43c4",
-  "og": "c3c122497083a3d6"
- },
- "ai-teammates": {
-  "hero": "5c5ca083b1fe5b1c",
-  "og": "91c8d17d1a6cabf2"
- },
- "alternatives": {
-  "hero": "46ae96f29abd565f",
-  "og": "9c42763ea6c6ebf4"
- },
- "alternatives--ai-assistant-you-text": {
-  "hero": "b77d7996c5963f12",
-  "og": "5137ffc3b6db4dce"
- },
- "alternatives--chatgpt-agent": {
-  "hero": "1c980e422031bb7a",
-  "og": "8c430acbe4c145d7"
- },
- "alternatives--claude-cowork": {
-  "hero": "df994d07aac6b33b",
-  "og": "8a480fadaf9338ef"
- },
- "alternatives--genspark": {
-  "hero": "8610f45bda701418",
-  "og": "e243e15bd8e50b1d"
- },
- "alternatives--gumloop": {
-  "hero": "15adf18921c93445",
-  "og": "067bed5a5b60fd5d"
- },
- "alternatives--hermes-agent": {
-  "hero": "07b212c1d4e88e6b",
-  "og": "158ee5fe062ec906"
- },
- "alternatives--lindy": {
-  "hero": "ac66b0d7918461e2",
-  "og": "7b178d5c856a13d5"
- },
- "alternatives--manus": {
-  "hero": "de16fadc801dc201",
-  "og": "a039ab26e7613ca9"
- },
- "alternatives--n8n": {
-  "hero": "7b3b43298d151be5",
-  "og": "b7897630e00a4474"
- },
- "alternatives--openclaw": {
-  "hero": "fdb1be6aa5e6f5dc",
-  "og": "59b172b5d58df458"
- },
- "alternatives--openclaw-hosting": {
-  "hero": "a04562e87dfed148",
-  "og": "886df4207e4f019b"
- },
- "alternatives--openclaw-no-setup": {
-  "hero": "f93ccb508bede7b8",
-  "og": "450d0b00e9f1c455"
- },
- "alternatives--perplexity-comet": {
-  "hero": "b09cca8b24992541",
-  "og": "88e1e5e2cdff700e"
- },
- "alternatives--poke": {
-  "hero": "934bbbaccc21de3c",
-  "og": "db8a3d4a3ec070d7"
- },
- "alternatives--relevance-ai": {
-  "hero": "0ad75b90d46d5c53",
-  "og": "f2f2d6aaefe3397e"
- },
- "alternatives--sintra": {
-  "hero": "d0ec974386eed16d",
-  "og": "da4581ee69c335bf"
- },
- "alternatives--zapier-agents": {
-  "hero": "4de7ed26b4c51aa9",
-  "og": "3a27862ab1d65131"
- },
- "claude-code-from-your-phone": {
-  "hero": "39dd8a43cb9bebca",
-  "og": "3f52561ec7166a73"
- },
- "for--ecommerce": {
-  "hero": "e18a9cce4d66197e",
-  "og": "9d117492c7a72e04"
- },
- "for--founders": {
-  "hero": "144c12d947b1479e",
-  "og": "31e03b2b1813ae26"
- },
- "for--product-managers": {
-  "hero": "b191ad64455d223a",
-  "og": "6756c0984dd77a81"
- },
- "for--real-estate-agents": {
-  "hero": "572c8bf1cb9efc2e",
-  "og": "b33786b0e1a63af3"
- },
- "for--recruiters": {
-  "hero": "1adc5657b1efc4a9",
-  "og": "b7893cd5ae135b4b"
- },
- "for--small-business-owners": {
-  "hero": "4864a4789c0e6831",
-  "og": "6c7cba0d4f13b111"
- },
- "for--students": {
-  "hero": "bf3157f3de7ce8a2",
-  "og": "a1e3c179d3321770"
- },
- "glossary": {
-  "hero": "1b4fda1479ba39a4",
-  "og": "f0a59be0b32fd7fc"
- },
- "glossary--always-on-ai-agent": {
-  "hero": "1b39c4c8c616b5c3",
-  "og": "fae13cb193f9e6d1"
- },
- "guides": {
-  "hero": "8b2439591e508162",
-  "og": "c6a6d9278a15357c"
- },
- "guides--apps-that-use-your-ai-subscription": {
-  "hero": "abf0ccddec5a23ed",
-  "og": "054cd7defa0ad186"
- },
- "guides--chatgpt-scheduled-tasks": {
-  "hero": "e22c84db0e5ecddb",
-  "og": "83e5671cb0b47a2f"
- },
- "guides--claude-code-for-email": {
-  "hero": "296d5bd224bee1b5",
-  "og": "01c7ee39eccf2de4"
- },
- "guides--claude-code-for-marketing": {
-  "hero": "d0900a315a8bb77f",
-  "og": "b36631dc2eda956a"
- },
- "guides--claude-code-for-non-developers": {
-  "hero": "21d8bab5aaea65fc",
-  "og": "9c5f980cce54055d"
- },
- "guides--claude-code-routines": {
-  "hero": "82bc69b769c81e17",
-  "og": "0c733de4ba7795c1"
- },
- "guides--claude-code-telegram-discord-slack": {
-  "hero": "e9339987366b7c8d",
-  "og": "092dc0f3bf6e1acb"
- },
- "guides--claude-connectors": {
-  "hero": "3dc59e098eba3a96",
-  "og": "17fccd60002ce070"
- },
- "guides--claude-cowork-pricing": {
-  "hero": "0f09cd3729bb060a",
-  "og": "7642e434f4178f79"
- },
- "guides--claude-cowork-windows": {
-  "hero": "9c64b3797fb6e85c",
-  "og": "67aed15a2871a9b6"
- },
- "guides--claude-scheduled-tasks": {
-  "hero": "022f0c6ebc6f268e",
-  "og": "4b0b9d93e3858aa7"
- },
- "guides--claude-skills": {
-  "hero": "38c7284362796f6a",
-  "og": "c238a29b2ebf79e4"
- },
- "guides--claude-subscription-vs-api": {
-  "hero": "081f1f7e18b90f17",
-  "og": "06b0544c9b15b026"
- },
- "guides--gemini-scheduled-actions": {
-  "hero": "a396998d5bb9d07b",
-  "og": "99ebb4142d217b7e"
- },
- "guides--grok-tasks": {
-  "hero": "d4a486bfcb333cf7",
-  "og": "cd6cc2f14a452735"
- },
- "guides--how-much-does-an-ai-agent-cost": {
-  "hero": "065dbf3434989936",
-  "og": "35fe4ab0c647fa5c"
- },
- "guides--is-it-safe-to-let-ai-control-your-computer": {
-  "hero": "f8a2524a22f4512c",
-  "og": "b18700333962b525"
- },
- "guides--is-openclaw-safe": {
-  "hero": "78e6387a7de1cf9b",
-  "og": "aadb5be704c2da9a"
- },
- "guides--openclaw-clawdbot-moltbot-explained": {
-  "hero": "f561c85019ec5219",
-  "og": "476d897bf51b8144"
- },
- "guides--what-is-an-ai-agent": {
-  "hero": "cfbec653c9496ac8",
-  "og": "bacc43f32113906f"
- },
- "guides--what-is-mcp": {
-  "hero": "f0c4d33158e4e70f",
-  "og": "5fa3e4e1cd1e7915"
- },
- "integrations": {
-  "hero": "3e3ad437978fee73",
-  "og": "e13975f5b83b59bc"
- },
- "integrations--airtable": {
-  "hero": "dc2a47637d4a8db2",
-  "og": "ea636fa9e42a6118"
- },
- "integrations--airtable--create-records": {
-  "hero": "e3ec145d570c3433",
-  "og": "39169f3a34c78945"
- },
- "integrations--asana": {
-  "hero": "7cd414bca8cc32f0",
-  "og": "ecb7e37c62905b34"
- },
- "integrations--asana--create-task-comment": {
-  "hero": "851d8c7dc2f6b055",
-  "og": "25c6986d1ee43038"
- },
- "integrations--asana--get-a-task": {
-  "hero": "104dad976834e1d1",
-  "og": "14028f5ade0d7cf9"
- },
- "integrations--canva": {
-  "hero": "59d834f08c733bcc",
-  "og": "a6a08f40b427a8e1"
- },
- "integrations--canva--list-user-designs": {
-  "hero": "b9a19c40fc5e333a",
-  "og": "a9fd4a869c5cde34"
- },
- "integrations--discord": {
-  "hero": "17ef1e9052723e62",
-  "og": "4062d6d15f782b99"
- },
- "integrations--excel": {
-  "hero": "801d6391dd77932a",
-  "og": "dca51c4fc32775d2"
- },
- "integrations--excel--add-table": {
-  "hero": "462f15b2109df140",
-  "og": "d9132fa9571f6d2b"
- },
- "integrations--excel--search-drive-files": {
-  "hero": "5560ce5a028a3dde",
-  "og": "7d983801f66acd0b"
- },
- "integrations--figma": {
-  "hero": "bd8a65b02fe1e8f4",
-  "og": "309279475aa4528e"
- },
- "integrations--github": {
-  "hero": "9f07761cc04355ee",
-  "og": "6376f41b366f29d4"
- },
- "integrations--github--add-labels-to-an-issue": {
-  "hero": "976c61c69c5b0bdb",
-  "og": "07bbd45088605f29"
- },
- "integrations--github--close-an-issue": {
-  "hero": "df74b56fdc16035d",
-  "og": "3099b0a62750d8d4"
- },
- "integrations--github--create-an-issue": {
-  "hero": "2f802c30a677799f",
-  "og": "d90768ed483bfd6d"
- },
- "integrations--github--create-an-issue-comment": {
-  "hero": "08dc3e0515c0cd81",
-  "og": "5ab795f99deb3ec7"
- },
- "integrations--github--get-a-pull-request": {
-  "hero": "5f8cd5f13feddd02",
-  "og": "277888c79ba5fed0"
- },
- "integrations--github--list-repository-issues": {
-  "hero": "705a0e14343de735",
-  "og": "9f12d7240d893537"
- },
- "integrations--github--search-issues-and-pull-requests": {
-  "hero": "abbd5383dd651d07",
-  "og": "9e4c4c04bef9843a"
- },
- "integrations--gmail": {
-  "hero": "331b8dc5265ced2a",
-  "og": "5e7358484fc5aa4b"
- },
- "integrations--gmail--batch-modify-gmail-messages": {
-  "hero": "585af64da523f9a7",
-  "og": "a57a242056035f22"
- },
- "integrations--gmail--create-email-draft": {
-  "hero": "10adf7abebd969e9",
-  "og": "1d83b03fb2eed16e"
- },
- "integrations--gmail--delete-thread": {
-  "hero": "13a34d481dc526dc",
-  "og": "3af8b57d5b7dc7eb"
- },
- "integrations--gmail--fetch-emails": {
-  "hero": "603ce74b1dd5d27c",
-  "og": "8fd54b8a6289349b"
- },
- "integrations--gmail--get-gmail-attachment": {
-  "hero": "c3124dd5a12847e6",
-  "og": "25e3327bcf1af3aa"
- },
- "integrations--gmail--list-drafts": {
-  "hero": "8dc4b95294fe8e91",
-  "og": "9b887896d321b59a"
- },
- "integrations--gmail--move-to-trash": {
-  "hero": "5e4e92bc4c5c9524",
-  "og": "320635a9cc2822bb"
- },
- "integrations--gmail--reply-to-email-thread": {
-  "hero": "60a7828a656aa0fd",
-  "og": "e23223c7c3c48e6a"
- },
- "integrations--gmail--search-people": {
-  "hero": "b4723ce9406e4085",
-  "og": "a8660a780628daf4"
- },
- "integrations--gmail--send-draft": {
-  "hero": "0001d05664895fba",
-  "og": "a79eb7424818d8a8"
- },
- "integrations--gmail--send-email": {
-  "hero": "1582e195563de8f7",
-  "og": "12a55b4200335049"
- },
- "integrations--gmail--untrash-message": {
-  "hero": "90d853f6312a9737",
-  "og": "9411e2f89d90e0a6"
- },
- "integrations--gmail--update-draft": {
-  "hero": "c970c7734c7020ab",
-  "og": "228814cbfcba7721"
- },
- "integrations--google-calendar": {
-  "hero": "0070c36c209cee44",
-  "og": "5c49a873af1c6554"
- },
- "integrations--google-calendar--create-a-new-calendar": {
-  "hero": "06f3151a4db1d0a9",
-  "og": "dc2e5caced046970"
- },
- "integrations--google-calendar--create-event": {
-  "hero": "bc0938caa0311e07",
-  "og": "fceb670ac78814ff"
- },
- "integrations--google-calendar--delete-event": {
-  "hero": "5eee6f351ab0b1cb",
-  "og": "691a689628193252"
- },
- "integrations--google-calendar--find-event": {
-  "hero": "18139eb4110e389f",
-  "og": "23198cec27cfb0df"
- },
- "integrations--google-calendar--get-event-instances": {
-  "hero": "7ca131fb87540e75",
-  "og": "0db55cfb31f988a5"
- },
- "integrations--google-calendar--list-events-from-all-calendars": {
-  "hero": "d5d2f7a433f83179",
-  "og": "f89a433e50b6ab01"
- },
- "integrations--google-calendar--patch-event": {
-  "hero": "66670369688fcd28",
-  "og": "9590a8440dab61d5"
- },
- "integrations--google-calendar--query-calendar-availability": {
-  "hero": "2153c56f7c060035",
-  "og": "c57c29a1f397bb84"
- },
- "integrations--google-drive": {
-  "hero": "f4754a226df6244a",
-  "og": "8ab7b0a741abcb46"
- },
- "integrations--google-drive--create-a-folder": {
-  "hero": "544e46ff3ab09b1e",
-  "og": "4ebac9b1eafaf815"
- },
- "integrations--google-drive--create-permission": {
-  "hero": "416704389d26e139",
-  "og": "aa346227c923dcf4"
- },
- "integrations--google-drive--export-google-workspace-file": {
-  "hero": "e885940536834095",
-  "og": "60cfc361bb06fffa"
- },
- "integrations--google-drive--find-file": {
-  "hero": "9a990d07b1652d17",
-  "og": "401737761bda3548"
- },
- "integrations--google-drive--move-file": {
-  "hero": "a508c0dfb633069d",
-  "og": "e9bda316a1a011e1"
- },
- "integrations--google-drive--upload-file": {
-  "hero": "4399c6164388b829",
-  "og": "723fb0fb5dd6faf2"
- },
- "integrations--google-sheets": {
-  "hero": "0e96d89a575bcd79",
-  "og": "257f5b56d5fcea2f"
- },
- "integrations--google-sheets--append-values-to-spreadsheet": {
-  "hero": "f63ffebe0920456c",
-  "og": "c32a936659fac9b3"
- },
- "integrations--google-sheets--copy-sheet-to-another-spreadsheet": {
-  "hero": "3a15e08c1b7d1d40",
-  "og": "0afcfd038202ebac"
- },
- "integrations--google-sheets--create-a-google-sheet": {
-  "hero": "f593af654c04026c",
-  "og": "d63271c2c5f8be21"
- },
- "integrations--google-sheets--export-sheet-as-pdf": {
-  "hero": "74e03d7ebc6725d4",
-  "og": "1d66f23852604bf9"
- },
- "integrations--google-sheets--get-spreadsheet-values": {
-  "hero": "34b900ecf024ffa1",
-  "og": "7ee15d2cd1167137"
- },
- "integrations--google-sheets--search-spreadsheets": {
-  "hero": "bb85078bfde1fc24",
-  "og": "9b440ad785240675"
- },
- "integrations--google-sheets--set-basic-filter": {
-  "hero": "1aa2c35adb9ae191",
-  "og": "217b9105d317fa61"
- },
- "integrations--google-sheets--set-data-validation-rule": {
-  "hero": "6451d16ffe62c3aa",
-  "og": "250475bc7847f9f4"
- },
- "integrations--google-sheets--sort-range": {
-  "hero": "e98e4cd479a59124",
-  "og": "d01288a4870bdabf"
- },
- "integrations--google-sheets--update-spreadsheet-values": {
-  "hero": "a0d9f6002d83f2f7",
-  "og": "7c134f403e48f9d1"
- },
- "integrations--google-sheets--upsert-rows": {
-  "hero": "81ad702fbdd2c37b",
-  "og": "5ad26dac9ccc2a30"
- },
- "integrations--hubspot": {
-  "hero": "beaf61eb70a76966",
-  "og": "060be37f471a20ec"
- },
- "integrations--jira": {
-  "hero": "64f8c8f3cbc27df2",
-  "og": "fed1fc619e7500fa"
- },
- "integrations--jira--add-comment": {
-  "hero": "b1053f47b4c6128c",
-  "og": "3644253ad6b178cd"
- },
- "integrations--jira--assign-issue": {
-  "hero": "07d197ac2a4e9680",
-  "og": "4af057b039979bc4"
- },
- "integrations--linear": {
-  "hero": "520b544bb272f029",
-  "og": "5d3880fc265194bb"
- },
- "integrations--linear--search-linear-issues": {
-  "hero": "61a9817c6ee337bb",
-  "og": "cc20040373d543ae"
- },
- "integrations--linear--update-issue": {
-  "hero": "f8505d80cc55ba20",
-  "og": "e3fa083db6625863"
- },
- "integrations--linkedin": {
-  "hero": "06ab9572c207dabf",
-  "og": "1ebdf4943b3cbcd8"
- },
- "integrations--notion": {
-  "hero": "ca24ef0281d4d5f4",
-  "og": "68c328dd80de6076"
- },
- "integrations--notion--add-multiple-content-blocks": {
-  "hero": "d088f329a529170d",
-  "og": "6950d59657c07060"
- },
- "integrations--notion--create-comment": {
-  "hero": "a8963cb5bbbc826e",
-  "og": "09cb9c12f5f1409a"
- },
- "integrations--notion--create-notion-page": {
-  "hero": "be82ddc0e8e2b5cf",
-  "og": "265242e984f1c325"
- },
- "integrations--notion--fetch-comments": {
-  "hero": "ea032780bf356ba5",
-  "og": "e55112f702a79847"
- },
- "integrations--notion--get-page-markdown": {
-  "hero": "d7337e0d8744e285",
-  "og": "0b19f8241b9f5ecb"
- },
- "integrations--notion--insert-row-database": {
-  "hero": "8d26c1861de7528f",
-  "og": "c75e7a549b32fe7a"
- },
- "integrations--notion--move-page": {
-  "hero": "05ae62cd938f1b06",
-  "og": "9c8b1f0b99bbed7f"
- },
- "integrations--notion--query-database-with-filter": {
-  "hero": "9c68106c0ab0799c",
-  "og": "16d93f478c76fbec"
- },
- "integrations--notion--replace-page-content": {
-  "hero": "d6ca603f851c118e",
-  "og": "ac229e56208b2ba5"
- },
- "integrations--notion--search-notion-pages-and-databases": {
-  "hero": "cc88290e9ae973ce",
-  "og": "a1be0a54111f4a69"
- },
- "integrations--notion--update-page": {
-  "hero": "35bc5406a111748f",
-  "og": "044c2e3e4f694966"
- },
- "integrations--notion--upsert-database-rows": {
-  "hero": "daa635304a52a3bf",
-  "og": "c8e4c97df87e7bc9"
- },
- "integrations--obsidian": {
-  "hero": "1f559cb32f81c2f6",
-  "og": "fe720c865af5ad91"
- },
- "integrations--outlook": {
-  "hero": "adbe67cf61bad8a5",
-  "og": "c96aba6ae9cab41d"
- },
- "integrations--outlook--create-calendar-event": {
-  "hero": "8ee4830dd52ea9b4",
-  "og": "700027fc3c034167"
- },
- "integrations--outlook--create-email-draft": {
-  "hero": "a7b9a93af311c308",
-  "og": "d4dbd7d4a46b20f5"
- },
- "integrations--outlook--create-to-do-task": {
-  "hero": "6661e40031423f09",
-  "og": "c4127bcc3956a847"
- },
- "integrations--outlook--decline-calendar-event": {
-  "hero": "c90f0dedce22d421",
-  "og": "f9a5832d9ebc98a6"
- },
- "integrations--outlook--download-outlook-attachment": {
-  "hero": "30e3fa7afa751dcd",
-  "og": "81d2d316039cc10a"
- },
- "integrations--outlook--find-meeting-times": {
-  "hero": "724faff5f9fca180",
-  "og": "d673e09b37e6f5a8"
- },
- "integrations--outlook--list-tasks-from-a-to-do-list": {
-  "hero": "0cfcb4e534c70998",
-  "og": "22f57fdade5f8452"
- },
- "integrations--outlook--move-message-to-folder": {
-  "hero": "b2d2b69fb4e90505",
-  "og": "5ae3ecb2ebd58c01"
- },
- "integrations--outlook--query-emails": {
-  "hero": "1ce9a932a092ed01",
-  "og": "3bf526e0297f518d"
- },
- "integrations--outlook--reply-to-email": {
-  "hero": "abe8f6904cdc5b9f",
-  "og": "ceef781f933f8e34"
- },
- "integrations--outlook--search-calendar-events": {
-  "hero": "81801842ae2483ac",
-  "og": "ccf058c38c20df0c"
- },
- "integrations--outlook--send-email": {
-  "hero": "8e1d955fc4831ec7",
-  "og": "94615cdd19c2f7e7"
- },
- "integrations--salesforce": {
-  "hero": "e53cda9d2a20da26",
-  "og": "cf112f8bb1c1de6d"
- },
- "integrations--shopify": {
-  "hero": "9f7050c12530a44d",
-  "og": "dfbabbb24089df98"
- },
- "integrations--slack": {
-  "hero": "a0cc212295c4d6a2",
-  "og": "4174ba59b5537a7d"
- },
- "integrations--slack--add-reaction-to-message": {
-  "hero": "a11f678f0d118d65",
-  "og": "1f52740c4b16ae9b"
- },
- "integrations--slack--create-a-reminder": {
-  "hero": "37115d18ec7a7826",
-  "og": "b982a8d8a0b39cec"
- },
- "integrations--slack--create-slack-canvas": {
-  "hero": "2624344a8351b056",
-  "og": "382913c69971842c"
- },
- "integrations--slack--create-slack-list-item": {
-  "hero": "09e1ebd739862176",
-  "og": "f9679be61d3dc0f5"
- },
- "integrations--slack--fetch-conversation-history": {
-  "hero": "c80e432915ca0227",
-  "og": "ca1d9b6c08137d79"
- },
- "integrations--slack--list-unread-channel-messages": {
-  "hero": "9a5cadc979f7c771",
-  "og": "9af085621dcc3f46"
- },
- "integrations--slack--schedule-message": {
-  "hero": "08a12e25f43348ad",
-  "og": "f703ace1adbdf12d"
- },
- "integrations--slack--search-messages": {
-  "hero": "066bc7036dc272d7",
-  "og": "fdfa2d1a99af98a3"
- },
- "integrations--slack--send-message": {
-  "hero": "5be01e4e4703747c",
-  "og": "f6d54eda848565bf"
- },
- "integrations--slack--update-a-slack-message": {
-  "hero": "55a065ba1d8bd375",
-  "og": "d9a881a6a3aec9da"
- },
- "integrations--stripe": {
-  "hero": "d6ece3c25085dbb8",
-  "og": "1093398c0077fd7f"
- },
- "integrations--stripe--retrieve-invoice": {
-  "hero": "3e15c0ad72c60dba",
-  "og": "59af39adfc2d84f9"
- },
- "integrations--twitter": {
-  "hero": "17bfabebac046a90",
-  "og": "47488f5eb7e2292f"
- },
- "integrations--whatsapp": {
-  "hero": "0d599dd11529266a",
-  "og": "f4f7b50c04dcd1d4"
- },
- "integrations--youtube": {
-  "hero": "874757f02e24cb66",
-  "og": "5ec748e5e4bca55e"
- },
- "og:404": {
-  "og": "712b7ecee9a356b6"
- },
- "og:about": {
-  "og": "38514ed0c7eec76d"
- },
- "og:brand": {
-  "og": "c91a181103b53a50"
- },
- "og:changelog": {
-  "og": "dd991774ad4039ee"
- },
- "og:contact": {
-  "og": "6f861cf519f8a63b"
- },
- "og:dashboard": {
-  "og": "1ce980ea020fa843"
- },
- "og:docs": {
-  "og": "0e93cb971d4397d3"
- },
- "og:docs--account-and-billing": {
-  "og": "8bf5468674b383f1"
- },
- "og:docs--bots": {
-  "og": "9ded44c96bc75629"
- },
- "og:docs--computer": {
-  "og": "c7d0436b4431fcda"
- },
- "og:docs--dusk-cloud": {
-  "og": "773a3f6e5ca28b84"
- },
- "og:docs--faq": {
-  "og": "68b14a1535c3d532"
- },
- "og:docs--files-and-apps": {
-  "og": "81afd1fd7c3ecf3a"
- },
- "og:docs--getting-started": {
-  "og": "6dba469a27753c91"
- },
- "og:docs--group-chats": {
-  "og": "82836b1ebdfaca83"
- },
- "og:docs--memory": {
-  "og": "863d6df1533550f1"
- },
- "og:docs--phone": {
-  "og": "97c08216e95634fb"
- },
- "og:docs--privacy-and-data": {
-  "og": "b81bafbebe54c91c"
- },
- "og:docs--routines": {
-  "og": "7235a8ae45c1a64d"
- },
- "og:docs--tips": {
-  "og": "919ea97e16701533"
- },
- "og:docs--troubleshooting": {
-  "og": "16fde1827ecda9ae"
- },
- "og:docs--your-own-server": {
-  "og": "0195ad71266b6273"
- },
- "og:download": {
-  "og": "4b6d90898e4aee07"
- },
- "og:home": {
-  "og": "320ff73bae730367"
- },
- "og:license": {
-  "og": "97efb8aa5d1f4d7a"
- },
- "og:pricing": {
-  "og": "943a6faad0521ba6"
- },
- "og:privacy": {
-  "og": "525bd670e0b22c0b"
- },
- "og:security": {
-  "og": "b03948040b4856c1"
- },
- "og:terms": {
-  "og": "425d867bfe4516e5"
- },
- "og:waitlist": {
-  "og": "f91172d20ee15405"
- },
- "personal-ai-agent": {
-  "hero": "b35e9fad0df821c7",
-  "og": "206788268beb080a"
- },
- "routines": {
-  "hero": "05fbf06e5e298f26",
-  "og": "b85caaccc299d21d"
- },
- "routines--github-issue-triage": {
-  "hero": "5fa0a819988f4b27",
-  "og": "1b4cb7a2720df7e3"
- },
- "routines--meeting-prep-brief": {
-  "hero": "1c48243aeda9af27",
-  "og": "5c1ac75883ea2617"
- },
- "routines--slack-channel-digest": {
-  "hero": "d9d071d164ed2dec",
-  "og": "0a2506e65de8b559"
- },
- "routines--weekly-calendar-preview": {
-  "hero": "423e57f54d5a569d",
-  "og": "de3edfa6e9c61f76"
- },
- "routines--weekly-receipts-sweep": {
-  "hero": "3740a9d8ad77ece9",
-  "og": "bcf1d71dc76df64c"
- },
- "run-claude-code-24-7": {
-  "hero": "35c3512985d4c453",
-  "og": "467aa7bb9f817a42"
- },
- "scheduled-ai-tasks": {
-  "hero": "dcec814e75795d2f",
-  "og": "7119bf03aa5fa912"
- },
- "tools": {
-  "hero": "d6e7c75a39324b99",
-  "og": "2f4cab849f7d2d67"
- },
- "tools--always-on-cost": {
-  "hero": "99b5767bfc285358",
-  "og": "d95a66a078a7c175"
- },
- "use-cases": {
-  "hero": "ddddbfd75b8e0489",
-  "og": "a4495f21067a18e6"
- },
- "use-cases--competitor-monitoring": {
-  "hero": "8b1fb6fda53701ba",
-  "og": "bca839caf91e6181"
- },
- "use-cases--daily-briefing": {
-  "hero": "ac371fc3568b9c13",
-  "og": "993ccfbe47cbce75"
- },
- "use-cases--email-triage": {
-  "hero": "75351dba65a33301",
-  "og": "ab185864bf3d1ae0"
- },
- "use-cases--file-organizer": {
-  "hero": "763574e67710615c",
-  "og": "00cf1477743a5dea"
- },
- "use-cases--invoice-follow-up": {
-  "hero": "cd502053042c5c9e",
-  "og": "da00f0d7bbebb016"
- },
- "use-cases--lead-research": {
-  "hero": "8d88f1ec1590e16f",
-  "og": "2fb9f7d7acc654e4"
- },
- "use-cases--market-research": {
-  "hero": "dfafe79f5b5a3610",
-  "og": "99f4981219c727fc"
- },
- "use-cases--newsletter": {
-  "hero": "1d338e19d21aa37f",
-  "og": "688bdd97b5c4fd0a"
- },
- "use-cases--social-media-posting": {
-  "hero": "fc51b296b03817b1",
-  "og": "9b3556a5ff2e4e0e"
- },
- "use-cases--web-scraping": {
-  "hero": "1a1ac92ec72d16e3",
-  "og": "cd45974f2615d0ba"
- },
- "use-your-ai-subscription": {
-  "hero": "225e3df14aab3043",
-  "og": "eba503f99f3aff3d"
- },
- "vs--ai-agent-vs-chatbot": {
-  "hero": "fd45db98942ccc4d",
-  "og": "15aa22e01d004b32"
- },
- "vs--chatgpt-agent": {
-  "hero": "8c26bba4356ba355",
-  "og": "8b45c325ea77c628"
- },
- "vs--claude-cowork": {
-  "hero": "f145b49b802ce9e5",
-  "og": "c65aea62231763c1"
- },
- "vs--lindy": {
-  "hero": "54c6b3a0f3bae5b4",
-  "og": "87ecb842001ff2e2"
- },
- "vs--manus": {
-  "hero": "5bae0e2726f15ef0",
-  "og": "e344e3b2694e821e"
- },
- "vs--openclaw": {
-  "hero": "6c60d2d1f56d222e",
-  "og": "fc64d31441144101"
- },
- "vs--openclaw-vs-hermes-agent": {
-  "hero": "9dc234853697228a",
-  "og": "84ea5a69f15072e6"
- },
- "vs--poke": {
-  "hero": "edc1d3ca353751ae",
-  "og": "4275c16e1b79171a"
- }
+ "agents-when-laptop-closed": "922c6ac9b1366003",
+ "ai-agent-that-controls-your-computer": "db35c00e0c06442f",
+ "ai-chief-of-staff": "0e4eb87a5e3d16ad",
+ "ai-employees": "283c0954a703ccb7",
+ "ai-executive-assistant": "6c0143a523590481",
+ "ai-group-chat": "89a57cb10d0a0edd",
+ "ai-teammates": "dbbedb34c3765de1",
+ "alternatives": "2a8bfc180a68f80f",
+ "alternatives--ai-assistant-you-text": "d179093e36c2e71e",
+ "alternatives--chatgpt-agent": "5a8329fa453df1ac",
+ "alternatives--claude-cowork": "3f7ffe4f08d0e02a",
+ "alternatives--genspark": "c1521cfef6de83de",
+ "alternatives--gumloop": "59a5c8843a147648",
+ "alternatives--hermes-agent": "d429d0ea6d9de817",
+ "alternatives--lindy": "419ef88a02e18042",
+ "alternatives--manus": "9d46971d342a7522",
+ "alternatives--n8n": "af6d058b7684a00d",
+ "alternatives--openclaw": "c9c404403795f7b2",
+ "alternatives--openclaw-hosting": "26d91f8f2a1fcdc5",
+ "alternatives--openclaw-no-setup": "954e09eef4ee4630",
+ "alternatives--perplexity-comet": "7d39b7741db7c4be",
+ "alternatives--poke": "8effb43e748a3c56",
+ "alternatives--relevance-ai": "fed8b7c1cfd2e54c",
+ "alternatives--sintra": "3ff9e1815969180b",
+ "alternatives--zapier-agents": "6382392d5efb15e4",
+ "claude-code-from-your-phone": "0c555cbbe8ca5a92",
+ "for--ecommerce": "f9d53ce17a548841",
+ "for--founders": "cac79f8caa5efbc4",
+ "for--product-managers": "c7d10797597ba08b",
+ "for--real-estate-agents": "93b55848764c27f2",
+ "for--recruiters": "fa2f8d5afa77c004",
+ "for--small-business-owners": "320f4c2113ca664b",
+ "for--students": "5577cda2eff6ec7c",
+ "glossary": "4a5839e45253754c",
+ "glossary--always-on-ai-agent": "4c7cfbc9038b2a98",
+ "guides": "e59dcd044675da83",
+ "guides--apps-that-use-your-ai-subscription": "b077d7a1a5f7523c",
+ "guides--chatgpt-scheduled-tasks": "812359195024e319",
+ "guides--claude-code-for-email": "17121943beff3f41",
+ "guides--claude-code-for-marketing": "2ab30eb4d0e4b9bd",
+ "guides--claude-code-for-non-developers": "5e3108c298d14619",
+ "guides--claude-code-routines": "1c8aacf89aeaf5d5",
+ "guides--claude-code-telegram-discord-slack": "f307c8eb8ef864a5",
+ "guides--claude-connectors": "29967d85f734c9d5",
+ "guides--claude-cowork-pricing": "dac8788d6179a5eb",
+ "guides--claude-cowork-windows": "cc7627d6068e68f3",
+ "guides--claude-scheduled-tasks": "be1624276451afe6",
+ "guides--claude-skills": "5bd8d02ae9fe5b17",
+ "guides--claude-subscription-vs-api": "ce1f40e29f6403db",
+ "guides--gemini-scheduled-actions": "249e7483b976f2bc",
+ "guides--grok-tasks": "1ca12cdb506d36fc",
+ "guides--how-much-does-an-ai-agent-cost": "22e1411fb0e1c689",
+ "guides--is-it-safe-to-let-ai-control-your-computer": "e34c7843d2d88859",
+ "guides--is-openclaw-safe": "2c3b5025bf16ebd9",
+ "guides--openclaw-clawdbot-moltbot-explained": "9bd9d6c9bcd33784",
+ "guides--what-is-an-ai-agent": "1e50c26667ff990b",
+ "guides--what-is-mcp": "195ff5c40ca56c0d",
+ "integrations": "e19a1b3aa5e9cd7b",
+ "integrations--airtable": "9e309f638c5ebee4",
+ "integrations--airtable--create-records": "68ffca5e4ac143ba",
+ "integrations--asana": "9f9ebc972ddc8c88",
+ "integrations--asana--create-task-comment": "cba950d385b9a991",
+ "integrations--asana--get-a-task": "ebe8355752a20681",
+ "integrations--canva": "ce3ae246fe3b712c",
+ "integrations--canva--list-user-designs": "beaab15c873ef1a1",
+ "integrations--discord": "3e99d982a497f594",
+ "integrations--excel": "638cd985ea5932e8",
+ "integrations--excel--add-table": "f5bbefce84083ab0",
+ "integrations--excel--search-drive-files": "a0d1b4fa0ddc118c",
+ "integrations--figma": "6db3e8893d8eb5d5",
+ "integrations--github": "de563d51bc741456",
+ "integrations--github--add-labels-to-an-issue": "860181288ba1269c",
+ "integrations--github--close-an-issue": "5a567ac8703d3fce",
+ "integrations--github--create-an-issue": "5c0bad5cdd8b520c",
+ "integrations--github--create-an-issue-comment": "a64764351acd9abb",
+ "integrations--github--get-a-pull-request": "16f251f4273f4ef1",
+ "integrations--github--list-repository-issues": "4836a81e487fdee7",
+ "integrations--github--search-issues-and-pull-requests": "43d51ff0c24a7af5",
+ "integrations--gmail": "6cad26c83b3c9715",
+ "integrations--gmail--batch-modify-gmail-messages": "1d2b8c90f2f0f1a6",
+ "integrations--gmail--create-email-draft": "db99a9900a14cb24",
+ "integrations--gmail--delete-thread": "11f98c83795a426a",
+ "integrations--gmail--fetch-emails": "84743d8bed093aa8",
+ "integrations--gmail--get-gmail-attachment": "c120762c991e0454",
+ "integrations--gmail--list-drafts": "10364c2403559473",
+ "integrations--gmail--move-to-trash": "b131ac6327be9ada",
+ "integrations--gmail--reply-to-email-thread": "4071c01786d96be4",
+ "integrations--gmail--search-people": "37dd37044ae25d45",
+ "integrations--gmail--send-draft": "064ecb13dea1cb0e",
+ "integrations--gmail--send-email": "487b00747e85a9e4",
+ "integrations--gmail--untrash-message": "11e65eda48c7dfd7",
+ "integrations--gmail--update-draft": "2b72fc3e699b0956",
+ "integrations--google-calendar": "4c55ec9c965c7d17",
+ "integrations--google-calendar--create-a-new-calendar": "4117a516a4bf54aa",
+ "integrations--google-calendar--create-event": "fce457f1ed227179",
+ "integrations--google-calendar--delete-event": "f9a1ae1b2e6eefb0",
+ "integrations--google-calendar--find-event": "f8a26156df872459",
+ "integrations--google-calendar--get-event-instances": "f24961fd5a85cd00",
+ "integrations--google-calendar--list-events-from-all-calendars": "7ad4aa18421d3a78",
+ "integrations--google-calendar--patch-event": "cea2370aa80adbbd",
+ "integrations--google-calendar--query-calendar-availability": "2df4af73c3ff53f4",
+ "integrations--google-drive": "4f9424d04b377291",
+ "integrations--google-drive--create-a-folder": "57b8605e69654240",
+ "integrations--google-drive--create-permission": "87b0d08d48c63e91",
+ "integrations--google-drive--export-google-workspace-file": "20944c6096d6984f",
+ "integrations--google-drive--find-file": "76a11f895ea688b9",
+ "integrations--google-drive--move-file": "09ce0c6e2bbce6ae",
+ "integrations--google-drive--upload-file": "90223bab1a53ec2a",
+ "integrations--google-sheets": "2e96713f81a48b1d",
+ "integrations--google-sheets--append-values-to-spreadsheet": "f51023c1320ab78f",
+ "integrations--google-sheets--copy-sheet-to-another-spreadsheet": "15a1474e1a9581ee",
+ "integrations--google-sheets--create-a-google-sheet": "2c171d18eb0b325a",
+ "integrations--google-sheets--export-sheet-as-pdf": "9448101842fd0b7e",
+ "integrations--google-sheets--get-spreadsheet-values": "c1ff2076e32e4ad3",
+ "integrations--google-sheets--search-spreadsheets": "9859319684068b0c",
+ "integrations--google-sheets--set-basic-filter": "3c871c78b7a24891",
+ "integrations--google-sheets--set-data-validation-rule": "3d2088cdfe94d758",
+ "integrations--google-sheets--sort-range": "a027b261072f780e",
+ "integrations--google-sheets--update-spreadsheet-values": "6282746a2fdb0332",
+ "integrations--google-sheets--upsert-rows": "c3020d166aaeb798",
+ "integrations--hubspot": "d4d41d3e220d0faa",
+ "integrations--jira": "38f86037f03a5507",
+ "integrations--jira--add-comment": "6d7d17d391ce4146",
+ "integrations--jira--assign-issue": "326e4926d92f9dc8",
+ "integrations--linear": "df3237297b3551d4",
+ "integrations--linear--search-linear-issues": "281be664a45368db",
+ "integrations--linear--update-issue": "a07400e9f4a6769d",
+ "integrations--linkedin": "efc0e77ed7974d35",
+ "integrations--notion": "0f3d5626273e0324",
+ "integrations--notion--add-multiple-content-blocks": "e97e6be34029620f",
+ "integrations--notion--create-comment": "699b8796d2d977b0",
+ "integrations--notion--create-notion-page": "84a11b6c143e0250",
+ "integrations--notion--fetch-comments": "7ea26b0c3866c42d",
+ "integrations--notion--get-page-markdown": "f5c6004869a89b7d",
+ "integrations--notion--insert-row-database": "f29d7230917c6324",
+ "integrations--notion--move-page": "c1388df760b069fc",
+ "integrations--notion--query-database-with-filter": "7058eaaa0581d2ea",
+ "integrations--notion--replace-page-content": "c7e8ee99adf53d8a",
+ "integrations--notion--search-notion-pages-and-databases": "5a3ed75f0696ffd6",
+ "integrations--notion--update-page": "b7d8e50d1d0a9578",
+ "integrations--notion--upsert-database-rows": "555cf26b3c59d654",
+ "integrations--obsidian": "cf323b6a506e775f",
+ "integrations--outlook": "2af5465b1a9aa8f9",
+ "integrations--outlook--create-calendar-event": "e230d630cfb40a7a",
+ "integrations--outlook--create-email-draft": "eef78f4a088d03f3",
+ "integrations--outlook--create-to-do-task": "428eb874c715f152",
+ "integrations--outlook--decline-calendar-event": "1651071bd716194e",
+ "integrations--outlook--download-outlook-attachment": "4c31f93f1d80bcef",
+ "integrations--outlook--find-meeting-times": "0ba456241bdf37e8",
+ "integrations--outlook--list-tasks-from-a-to-do-list": "86b48c9a945ccf10",
+ "integrations--outlook--move-message-to-folder": "af3989d2982c7d27",
+ "integrations--outlook--query-emails": "03ac4c360f3c7016",
+ "integrations--outlook--reply-to-email": "1e49ab3c66f193e7",
+ "integrations--outlook--search-calendar-events": "1c44963ee288a727",
+ "integrations--outlook--send-email": "a6185dd839fea05b",
+ "integrations--salesforce": "54058189e9346555",
+ "integrations--shopify": "8383d6c198dd37c8",
+ "integrations--slack": "7cb4b5e81c941118",
+ "integrations--slack--add-reaction-to-message": "9ca5dae9d0401d5a",
+ "integrations--slack--create-a-reminder": "1767ca2c0b121679",
+ "integrations--slack--create-slack-canvas": "f356f1c90dd1f5b0",
+ "integrations--slack--create-slack-list-item": "760ff2ed95aa38d3",
+ "integrations--slack--fetch-conversation-history": "f703b9f81938df01",
+ "integrations--slack--list-unread-channel-messages": "90cb6018b99ac224",
+ "integrations--slack--schedule-message": "7a554077f1805362",
+ "integrations--slack--search-messages": "a39a2bf81052e9ee",
+ "integrations--slack--send-message": "7ec8ca634308cbee",
+ "integrations--slack--update-a-slack-message": "8438d9154ea4ff18",
+ "integrations--stripe": "c05122899ff00d99",
+ "integrations--stripe--retrieve-invoice": "46d9cd091912e0a3",
+ "integrations--twitter": "a0a1818541ad8837",
+ "integrations--whatsapp": "5b4fc0afc0041b66",
+ "integrations--youtube": "b36f28d22069ef5c",
+ "personal-ai-agent": "1209522549f1dfa6",
+ "routines": "e7584214a6d4ba08",
+ "routines--github-issue-triage": "7641d0c44cf09555",
+ "routines--meeting-prep-brief": "7b9b589b399f11ac",
+ "routines--slack-channel-digest": "fc91ed0ee22d5f05",
+ "routines--weekly-calendar-preview": "2f4aea751b65917e",
+ "routines--weekly-receipts-sweep": "ffee34141f307083",
+ "run-claude-code-24-7": "0b99713ac684237d",
+ "scheduled-ai-tasks": "03d14d6876aa40a6",
+ "tools": "1d21bb5c6b86725a",
+ "tools--always-on-cost": "f79f611b9c98502b",
+ "use-cases": "2e3a44ee51f91cbf",
+ "use-cases--competitor-monitoring": "6ba8c5287bdb950b",
+ "use-cases--daily-briefing": "13f670b16fee63de",
+ "use-cases--email-triage": "f0c219e9086a657c",
+ "use-cases--file-organizer": "a1e4671823d28839",
+ "use-cases--invoice-follow-up": "7195cc65858f83eb",
+ "use-cases--lead-research": "4746feb0ac177921",
+ "use-cases--market-research": "a2245cdaf97c85cd",
+ "use-cases--newsletter": "59c45c4146e55406",
+ "use-cases--social-media-posting": "27490c9bf1604cfd",
+ "use-cases--web-scraping": "d70ecd77440b1942",
+ "use-your-ai-subscription": "a1b6bab6711a459b",
+ "vs--ai-agent-vs-chatbot": "9fa3b80261d6102d",
+ "vs--chatgpt-agent": "54a6856e411cf726",
+ "vs--claude-cowork": "8bee755a60734d65",
+ "vs--lindy": "6ed7b36f6b19d155",
+ "vs--manus": "778ba97d42a6db6f",
+ "vs--openclaw": "23cc1a9c31936998",
+ "vs--openclaw-vs-hermes-agent": "a9a87dc1c8d03c37",
+ "vs--poke": "e17f4ec29925e28a"
 }

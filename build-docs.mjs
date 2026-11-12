@@ -78,7 +78,7 @@ ${p.html}
 ${toc}
 </div>`;
     const jsonld = [JSON.parse(macros(JSON.stringify(crumbs))), ...(qs.length ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qs }] : [])];
-    write(p.at, layout({ title: `${p.title} / dusk bot docs`, description: p.description, page: p.name, at: p.at, section: 'docs', og: `docs--${p.name}`, kind: 'p-doc', scripts: ['docs.js'], jsonld, body }));
+    write(p.at, layout({ title: `${p.title} / dusk bot docs`, description: p.description, page: p.name, at: p.at, section: 'docs', og: 'docs', kind: 'p-doc', scripts: ['docs.js'], jsonld, body }));
   });
 
   // the docs home: every section, with its pages and what each is about
