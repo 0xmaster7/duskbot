@@ -1,5 +1,5 @@
-// builds the dusk.bot pages: wraps each page body in the shared layout, turns the legal drafts (Markdown in the Dusk Bot
-// repo's docs/legal) into terms/, privacy/, license/ and security/, the docs (pages/docs/*.md, see build-docs.mjs) into
+// builds the dusk.bot pages: wraps each page body in the shared layout, turns the legal pages (Markdown in the Dusk Bot
+// repo's docs/legal) into terms/, privacy/, cookies/, refunds/, acceptable-use/, subprocessors/, license/ and security/, the docs (pages/docs/*.md, see build-docs.mjs) into
 // docs/, pages/changelog.md into changelog/, and writes the sitemap, robots.txt, the manifest and the redirects. zero deps.
 //   node sites/dusk/build-pages.mjs [path to the Dusk Bot checkout]
 import fs from 'node:fs';
@@ -31,7 +31,7 @@ function inline(text) {
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
   s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*|#[^)\s]+|mailto:[^)\s]+|\{\{(?:app|site)[^}]*\}\})\)/g, '<a href="$2">$1</a>');
   // one legal draft pointing at another by file name is a page here
-  s = s.replace(/\[([^\]]+)\]\((terms|privacy|license|security)\.md\)/g, '<a href="/$2">$1</a>');
+  s = s.replace(/\[([^\]]+)\]\((terms|privacy|license|security|refunds|cookies|acceptable-use|subprocessors)\.md\)/g, '<a href="/$2">$1</a>');
   // a link into the app's own repository has nowhere to go on the site, so only its words stay
   s = s.replace(/\[([^\]]+)\]\(\.\.?\/[^)\s]*\)/g, '$1');
   s = s.replace(/(^|[\s(])((?:hello|privacy|security)@dusk\.bot)/g, '$1<a href="mailto:$2">$2</a>');
@@ -231,7 +231,7 @@ const FOOT = [
   ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [WAITLIST_HOME ? '/' : '/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security'], ['https://x.com/duskbot_hq', 'x / @duskbot_hq']]],
-  ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
+  ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/cookies', 'cookies'], ['/refunds', 'refunds'], ['/acceptable-use', 'acceptable use'], ['/subprocessors', 'subprocessors'], ['/license', 'license']]],
 ];
 // the seo hubs (seo/), once any of their pages is live
 { const hubs = seoFooter(); if (hubs.length) FOOT.splice(2, 0, ['guides', hubs]); }
@@ -363,14 +363,15 @@ for (const page of pages) {
   write('/changelog', layout({ title: "what's new / dusk bot", description: 'Every Dusk Bot release, newest first: what changed and what got fixed.', page: 'changelog', kind: 'p-changelog', body }));
 }
 
-// the legal drafts, each with a list of its sections beside it
-const legal = [['terms', 'Terms of Service', 'terms'], ['privacy', 'Privacy Policy', 'privacy'], ['license', 'License', 'license'], ['security', 'Security', 'security']];
+// the legal pages, each with a list of its sections beside it
+const legal = [['terms', 'Terms of Service', 'terms'], ['privacy', 'Privacy Policy', 'privacy'], ['cookies', 'Cookie Policy', 'cookies'], ['refunds', 'Refund and Cancellation Policy', 'refunds'],
+  ['acceptable-use', 'Acceptable Use Policy', 'acceptable use'], ['subprocessors', 'Subprocessors', 'subprocessors'], ['license', 'License', 'license'], ['security', 'Security', 'security']];
 for (const [name, title, short] of legal) {
-  // the drafts name a person as copyright holder; the site shows a placeholder until the company name is set
-  const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 [copyright holder].'));
+  // the site never shows a person's name as copyright holder
+  const html = markdown(fs.readFileSync(path.join(repo, 'docs', 'legal', `${name}.md`), 'utf8').replace(/Copyright (\d{4}) [^.\n]+\./g, 'Copyright $1 dusk bot.'));
   const toc = [...html.matchAll(/<h2 id="([^"]+)">([\s\S]*?)<\/h2>/g)].map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('');
   const others = legal.map(([n, , s]) => `<a href="/${n}"${n === name ? ' aria-current="page"' : ''}>${s}</a>`).join('');
-  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `Dusk Bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
+  write(`/${name}`, layout({ title: `${title.toLowerCase()} / dusk bot`, description: `dusk bot ${title.toLowerCase()}.`, page: name, section: 'legal', og: 'legal', kind: 'p-legal',
     body: `<header class="phead wrap"><h1>${title.toLowerCase()}</h1></header>
 ${strip('layers', 'circle blue, hex orange', 'short')}
 <div class="legal-wrap wrap">

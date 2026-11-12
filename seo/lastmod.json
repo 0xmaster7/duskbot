@@ -1,6 +1,6 @@
 {
  "/": {
-  "hash": "752f01574c8761d1",
+  "hash": "b169c15f8f1be017",
   "lastmod": "2026-11-12"
  },
  "/download": {
@@ -32,19 +32,35 @@
   "lastmod": "2026-11-12"
  },
  "/terms": {
-  "hash": "a34d55f56ef0d2d5",
+  "hash": "16df3de46225dd3d",
   "lastmod": "2026-11-12"
  },
  "/privacy": {
-  "hash": "01aff2a21986ea69",
+  "hash": "35764ab6b5e6500a",
+  "lastmod": "2026-11-12"
+ },
+ "/cookies": {
+  "hash": "544f5eec784bd71b",
+  "lastmod": "2026-11-12"
+ },
+ "/refunds": {
+  "hash": "34cba77688d3aac7",
+  "lastmod": "2026-11-12"
+ },
+ "/acceptable-use": {
+  "hash": "94942a481da35c44",
+  "lastmod": "2026-11-12"
+ },
+ "/subprocessors": {
+  "hash": "469e54a4a8118238",
   "lastmod": "2026-11-12"
  },
  "/license": {
-  "hash": "906c0e0b98f54507",
+  "hash": "e26fca4628c90c24",
   "lastmod": "2026-11-12"
  },
  "/security": {
-  "hash": "7bb6cfc276ad033e",
+  "hash": "e947c1f8a16c79be",
   "lastmod": "2026-11-12"
  },
  "/docs/getting-started": {
