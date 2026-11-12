@@ -240,7 +240,7 @@ export function createBotPackageExport(input: {
     };
   }
   return parseBotPackage({
-    format: "dusk.package",
+    format: "openmaus.package",
     version: 1,
     package: definition,
   });

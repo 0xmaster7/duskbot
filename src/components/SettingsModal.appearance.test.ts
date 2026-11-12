@@ -221,7 +221,7 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "backups";
     const html = render();
     expect(html).toContain("Export full backup");
-    expect(html).toContain('type="file" accept=".duskbackup"');
+    expect(html).toContain('type="file" accept=".duskbackup,.ombbackup"');
   });
 
   it("renders Appearance in Japanese", () => {

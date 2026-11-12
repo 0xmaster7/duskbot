@@ -792,7 +792,7 @@ describe("pairing, end to end", () => {
         token: string;
       };
       expect(opened.code).toMatch(/^\d{6}$/);
-      expect(opened.token).toMatch(/^dusk_pair_[A-Za-z0-9_-]{43}$/);
+      expect(opened.token).toMatch(/^omb_pair_[A-Za-z0-9_-]{43}$/);
 
       const wrong = await fetch(`${base}/api/pair`, {
         method: "POST",
@@ -820,7 +820,7 @@ describe("pairing, end to end", () => {
         endpoints: Array<{ url: string; kind: string; priority: number }>;
       };
       expect(body.serverName).toBe("Ada's computer");
-      expect(body.token).toMatch(/^dusk_/);
+      expect(body.token).toMatch(/^omb_/);
       expect(body.hosts).toEqual(["macbook.tail1234.ts.net", "192.168.1.42", "duskbot-abcd1234.local"]);
       expect(body.endpoints).toEqual([
         { url: "https://device-123.companion.example", kind: "hosted", priority: 0 },

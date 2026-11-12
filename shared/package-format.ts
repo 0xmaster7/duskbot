@@ -1,4 +1,4 @@
-// The dusk bot package file ("dusk.package"), v1 or v2; every reader
+// The dusk bot package file ("openmaus.package"), v1 or v2; every reader
 // returns v2. The single validation gate for the server, the renderer and the
 // Admin upload, so it imports only zod, yaml, croner and pure shared modules
 // (no Buffer, no node:*). The schema has no field for chat history, secrets,
@@ -12,9 +12,8 @@ import { redactSecretsInText } from "./redact.ts";
 import { normalizeCronSchedule } from "./routine-schedule.ts";
 import { MAUS_COLOR_NAMES } from "./wire.ts";
 import { isSkillName, parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES } from "./skill-md.ts";
-import { withCurrentFormat } from "../electron/legacy-names.mjs";
 
-export const PACKAGE_FORMAT = "dusk.package";
+export const PACKAGE_FORMAT = "openmaus.package";
 /** The newest version this module reads and writes. */
 export const PACKAGE_VERSION = 2;
 /** Canonical UTF-8 bytes of the whole document. */
@@ -708,7 +707,6 @@ function markdownDocument(markdown: string): unknown {
 
 /** True for a BotMRR Markdown string or an object that says it is a package. */
 export function isPackageDocument(value: unknown): boolean {
-  value = withCurrentFormat(value);
   if (typeof value === "string") return /^---\r?\n[\s\S]*?\bbotmrr:\s*1\b/m.test(value);
   return Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
     (value as { format?: unknown }).format === PACKAGE_FORMAT;
@@ -756,7 +754,6 @@ export function upgradeV1(document: PackageDocumentV1): PackageDocument {
  * Admin may stamp who published a release. */
 export function parsePackageDocument(value: unknown, options: { trust?: PackageTrust } = {}): PackageDocument {
   const trust = options.trust ?? "file";
-  value = withCurrentFormat(value);
   let document: PackageDocument;
   if (typeof value === "string") {
     document = upgradeV1(parsePackageV1(value));

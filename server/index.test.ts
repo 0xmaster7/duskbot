@@ -4990,7 +4990,7 @@ describe("harness HTTP API", () => {
 
   it("installs a complete bot package with a Chief, room, playbook, connector intent, and paused routine", async () => {
     const packageFile = {
-      format: "dusk.package",
+      format: "openmaus.package",
       version: 1,
       package: {
         id: "signal-desk",

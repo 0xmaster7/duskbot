@@ -502,7 +502,7 @@ describe("restoring exactly one browser profile", () => {
   it("uses fixed-length restore identities even for overlapping legacy names", () => {
     const keys = ["work", "work-client", "work-work-client", "WORK", "work_"].map(browserRestoreKey);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys.every((key) => /^dusk-[a-f0-9]{64}$/.test(key))).toBe(true);
+    expect(keys.every((key) => /^omb-[a-f0-9]{64}$/.test(key))).toBe(true);
     for (const a of keys) for (const b of keys) if (a !== b) expect(b.startsWith(a + "-")).toBe(false);
   });
 

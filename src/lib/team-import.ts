@@ -48,7 +48,7 @@ export function teamImportPreview(manifest: unknown): PendingTeamImport {
       warnings: backup.warnings,
     };
   }
-  if (root.format === "dusk.package") return packagePreview(root, manifest);
+  if (root.format === "openmaus.package") return packagePreview(root, manifest);
   if (root.format !== "dusk.team") throw new Error("This is not a dusk bot backup, BotMRR playbook or legacy team.");
   if (root.version !== 1 && root.version !== 2) throw new Error(`Team file version ${String(root.version)} is not supported.`);
   if (!root.team || typeof root.team !== "object" || Array.isArray(root.team)) {
@@ -98,7 +98,7 @@ function markdownPackage(markdown: string): unknown {
   }
   const { botmrr, ...pkg } = metadata as Record<string, unknown>;
   if (botmrr !== 1) throw new Error("This BotMRR Markdown version is not supported.");
-  return { format: "dusk.package", version: 1, package: pkg };
+  return { format: "openmaus.package", version: 1, package: pkg };
 }
 
 function sharedTeamPreview(document: PackageDocument, manifest: unknown): PendingTeamImport {

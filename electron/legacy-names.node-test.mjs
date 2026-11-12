@@ -177,7 +177,7 @@ test("tokens minted before the rename are still tokens", () => {
 });
 
 test("a file from before the rename reads as the current format; the old well-known link path answers as the new one", () => {
-  assert.deepEqual(withCurrentFormat({ format: "openmaus.package", version: 2 }), { format: "dusk.package", version: 2 });
+  assert.deepEqual(withCurrentFormat({ format: "openmaus.package", version: 2 }), { format: "openmaus.package", version: 2 });
   const current = { format: "dusk.team" };
   assert.equal(withCurrentFormat(current), current);
   assert.equal(withCurrentFormat("text"), "text");

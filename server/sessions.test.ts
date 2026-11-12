@@ -38,9 +38,9 @@ describe("the native-app encoding of a pairing window", () => {
   it("redeems the same window as the typed code, and consumes it", () => {
     const { code, credential } = registry.openPairing({ label: "Pixel" });
     // The Android companion's parser demands the 9-character prefix plus exactly 43 base64url characters (Connection.kt).
-    expect(credential.startsWith("dusk_pair_")).toBe(true);
+    expect(credential.startsWith("omb_pair_")).toBe(true);
     expect(credential.length).toBe(52);
-    expect(credential.slice("dusk_pair_".length)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(credential.slice("omb_pair_".length)).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
     const paired = registry.exchange({ code: credential, label: "Pixel", source: "10.0.0.9" });
     expect(paired.ok).toBe(true);
@@ -50,7 +50,7 @@ describe("the native-app encoding of a pairing window", () => {
 
   it("never normalizes a credential", () => {
     // A credential containing every symbol normalizePairingCode folds (0, 1, _ and -): it must be hashed exactly as presented.
-    const trap = "dusk_pair_0123456789-_abcdefghijklmnopqrstuvwxyzABCDE";
+    const trap = "omb_pair_0123456789-_abcdefghijklmnopqrstuvwxyzABCDE";
     expect(trap.length).toBe(52);
     expect(normalizePairingCode(trap)).not.toBe(trap);
     expect(isPairingCredential(trap)).toBe(true);

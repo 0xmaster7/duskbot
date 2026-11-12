@@ -27,7 +27,7 @@ describe("DeviceRegistry", () => {
     const registry = new DeviceRegistry();
     const { token, device } = pair(registry);
 
-    expect(token.startsWith("dusk_")).toBe(true);
+    expect(token.startsWith("omb_")).toBe(true);
     expect(registry.authenticate(token)?.id).toBe(device.id);
 
     const raw = readFileSync(join(DATA_DIR, "devices.json"), "utf8");
@@ -142,7 +142,7 @@ describe("DeviceRegistry", () => {
     expect(registry.redeem(credential, "iPhone", "different-request-id")).toMatchObject({
       error: expect.stringContaining("no pairing"),
     });
-    expect(registry.redeem("dusk_pair_wrong", "iPhone", requestId)).toMatchObject({
+    expect(registry.redeem("omb_pair_wrong", "iPhone", requestId)).toMatchObject({
       error: expect.stringContaining("no pairing"),
     });
   });
@@ -214,7 +214,7 @@ describe("DeviceRegistry", () => {
     const registry = new DeviceRegistry();
     const { code, token } = registry.openPairing();
 
-    expect(token).toMatch(/^dusk_pair_[A-Za-z0-9_-]{43}$/);
+    expect(token).toMatch(/^omb_pair_[A-Za-z0-9_-]{43}$/);
     expect(registry.redeem(token, "iPhone")).toHaveProperty("token");
     expect(registry.redeem(code, "iPad")).toMatchObject({
       error: expect.stringContaining("no pairing"),

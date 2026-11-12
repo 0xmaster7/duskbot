@@ -63,7 +63,7 @@ describe("team import preview", () => {
 
   it("previews the complete package setup before installation", () => {
     const preview = teamImportPreview({
-      format: "dusk.package",
+      format: "openmaus.package",
       version: 1,
       package: {
         name: "Lead Desk",

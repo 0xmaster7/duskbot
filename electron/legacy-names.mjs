@@ -307,9 +307,10 @@ export function carryLegacySafeStorageKey({ name, packaged = true, run = securit
   }
 }
 
-/** a file format id from before the rename (openmaus.package, openmaus.backup, ...) read as the current one; the document is copied, never changed */
+/** a file format id from before the rename (openmaus.backup, openmaus.team, ...) read as the current one; the document is copied, never changed.
+ * openmaus.package keeps its name: a package's release sha256 is over its canonical bytes, format id included. */
 export function withCurrentFormat(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.format !== "string" || !value.format.startsWith("openmaus.")) return value;
+  if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.format !== "string" || !value.format.startsWith("openmaus.") || value.format === "openmaus.package") return value;
   return { ...value, format: `dusk.${value.format.slice("openmaus.".length)}` };
 }
 

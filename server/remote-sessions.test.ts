@@ -348,7 +348,7 @@ describe("pairing", () => {
 
   it("pairs a native companion app on its own route, with the body shape it sends", async () => {
     const opened = await pairingCode(["client"]);
-    expect(opened.credential).toMatch(/^dusk_pair_[A-Za-z0-9_-]{43}$/);
+    expect(opened.credential).toMatch(/^omb_pair_[A-Za-z0-9_-]{43}$/);
 
     const paired = await call("/api/pair", {
       method: "POST",

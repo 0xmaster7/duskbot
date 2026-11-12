@@ -57,7 +57,7 @@ describe("Settings full backups", () => {
   it("shows export and a native file input as rows, the passwords only in their dialogs, and the validated summary", async () => {
     await ready();
     const html = render().html;
-    expect(html).toContain('type="file" accept=".duskbackup"');
+    expect(html).toContain('type="file" accept=".duskbackup,.ombbackup"');
     expect(html.match(/type="password"/g)).toBeNull();
     expect(html).toContain("Sign-ins and keys are left out");
     expect(html).toContain("can&#x27;t be recovered");
