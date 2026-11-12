@@ -221,8 +221,8 @@ describe("what is for sale, as the Admin says", () => {
     expect(terms(1)).toBe("free for 1 day, then $169/month + tax");
     expect(terms(3)).toBe("free for 3 days, then $169/month + tax");
     const badge = (trialDays: number) => cloudIntroView({ plans: [{ tier: "team", amount: 16900, trialDays }], recommended: "team" })!.badge;
-    expect(badge(1)).toBe("free for 1 day");
-    expect(badge(3)).toBe("free for 3 days");
+    expect(badge(1)).toBe("Free for 1 day");
+    expect(badge(3)).toBe("Free for 3 days");
     setLocale("de");
     expect(terms(1)).toBe("1 Tag kostenlos, dann $169/Monat zzgl. Steuern");
     expect(badge(3)).toBe("3 Tage kostenlos");
@@ -282,11 +282,11 @@ describe("what is for sale, as the Admin says", () => {
   });
 
   it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
-    expect(cloudIntroView(OFFER)).toEqual({ badge: "free for 7 days",
-      points: ["routines run on time, day and night", "reach your bots from your phone, even with this computer off"],
+    expect(cloudIntroView(OFFER)).toEqual({ badge: "Free for 7 days",
+      points: ["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off"],
       price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
     const bare = cloudIntroView({ ...OFFER, refundDays: undefined })!;
-    expect(bare.points).toEqual(["routines run on time, day and night", "reach your bots from your phone, even with this computer off"]); expect(bare.moneyBack).toBeNull();
+    expect(bare.points).toEqual(["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off"]); expect(bare.moneyBack).toBeNull();
     expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
     expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
     const partial: CloudOffer = { ...OFFER, plans: OFFER.plans.map(plan => plan.tier === "starter" ? { ...plan, trialDays: undefined } : plan) };

@@ -43,7 +43,7 @@ const plans = [
 ];
 const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
-const INTRO = "keep your bots working when this computer is off";
+const INTRO = "Keep your bots working when this computer is off";
 const STAR = "Enjoying dusk bot?";
 const signedOut: CloudAccountState = { status: "signed-out" };
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
@@ -159,9 +159,9 @@ describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
     returning();
     const html = await launch();
-    const words = [INTRO, "free for 7 days", "dusk cloud runs your bots for you in the cloud, always available.", "routines run on time, day and night",
-      "reach your bots from your phone, even with this computer off", "Then from $15/month + tax. Cancel any time.",
-      "14-day money-back on every plan.", "start free trial", "show me how", "sign in to your cloud plan", "Not now"];
+    const words = [INTRO, "Free for 7 days", "dusk cloud runs your bots for you in the cloud, always available.", "Routines run on time, day and night",
+      "Reach your bots from your phone, even with this computer off", "Then from $15/month + tax. Cancel any time.",
+      "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
     for (const gone of ["launch price", "first 100", "$89", "New features first", "Get Pro", STAR]) expect(html).not.toContain(gone);
@@ -175,7 +175,7 @@ describe("the card after the update", () => {
     now = NOW + 3 * 3600_000; expect(await launch()).toBe("");
     now = NOW + DAY; account = free;
     const again = await launch();
-    expect(again).toContain(INTRO); expect(again).not.toContain("sign in to your cloud plan");
+    expect(again).toContain(INTRO); expect(again).not.toContain("Sign in to your cloud plan");
     expect(track).toHaveBeenCalledWith("cloud_card_shown", { variant: "free" });
   });
 
@@ -214,7 +214,7 @@ describe("the card after the update", () => {
 
   it("Start free trial opens the Add a Cloud dialog from the card, and the card is done for good", async () => {
     returning(); await launch();
-    press("start free trial"); await flush();
+    press("Start free trial"); await flush();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card" });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "start", ms: expect.any(Number) });
     expect(storage.get(CLOUD_INTRO)).toBe("1"); expect(hints()).toContain(CLOUD_INTRO);
@@ -224,7 +224,7 @@ describe("the card after the update", () => {
 
   it("Show me how starts the one-step tip; Not now, the X and Escape end it for good, then say where Add a Cloud lives", async () => {
     returning(); await launch();
-    press("show me how");
+    press("Show me how");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "cloudHowTo", open: true });
     expect(track).toHaveBeenCalledWith("cloud_card_action", { action: "howto", ms: expect.any(Number) });
     expect(storage.get(CLOUD_INTRO)).toBe("1");
@@ -245,7 +245,7 @@ describe("the card after the update", () => {
 
   it("sign in to your Cloud plan opens the sheet at its own sign-in and only hides the card for now", async () => {
     returning(); await launch();
-    press("sign in to your cloud plan");
+    press("Sign in to your cloud plan");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card", signIn: true });
     expect(storage.get(CLOUD_INTRO)).toBeUndefined(); expect(render()).toBe("");
     now = NOW + DAY; expect(await launch()).toContain(INTRO);
