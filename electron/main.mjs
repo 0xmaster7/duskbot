@@ -529,7 +529,7 @@ async function secureWorkspaceConfig() {
 }
 
 function composioBrokerUrl() {
-  return managedComposioBrokerUrl(process.env.DUSK_COMPOSIO_BROKER_URL, app.isPackaged || devDesktopUsesManagedApps());
+  return managedComposioBrokerUrl(process.env.DUSK_COMPOSIO_BROKER_URL, devDesktopUsesManagedApps());
 }
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.

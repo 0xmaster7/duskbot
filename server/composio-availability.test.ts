@@ -37,7 +37,8 @@ describe("connectorSetup", () => {
     expect(connectorSetup(cfg({ composio: { apiKey: "" } }), false)).toBe("needs-setup");
   });
 
-  it("reports the managed service as unavailable only on a host it comes with (the installed desktop app, a Cloud home)", () => {
+  it("reports the managed service as unavailable only on a host that was given one on purpose", () => {
     expect(connectorSetup(cfg(), true)).toBe("service-unavailable");
+    expect(connectorSetup(cfg())).toBe("needs-setup");
   });
 });

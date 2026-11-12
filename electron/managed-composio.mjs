@@ -1,19 +1,19 @@
 const TOKEN = /^[0-9a-f]{64}$/;
 
-/** dusk bot's connected-apps service (apps/cloudflare/composio-broker on dusk bot's own cloudflare account): the packaged
- * desktop app, the desktop app run from source and a Cloud home use it. */
+/** dusk bot's own connected-apps service (apps/cloudflare/composio-broker). Closed to new installations: dusk bot pays
+ * nothing per tool call, so apps connect with the person's own accounts and keys. Used only when named explicitly. */
 export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = "https://composio.dusk.bot";
 
-/** The desktop app run from source connects apps the way a shipped one does, so what the owner tries is what people get;
- * DUSK_DEV_MANAGED_APPS=0 turns it off (a project key, or Composio Connect, then). Tests never start the desktop app. */
+/** Off unless DUSK_DEV_MANAGED_APPS=1 names it on purpose (and DUSK_COMPOSIO_BROKER_URL says where). */
 export function devDesktopUsesManagedApps(env = process.env) {
-  return env.DUSK_DEV_MANAGED_APPS !== "0";
+  return env.DUSK_DEV_MANAGED_APPS === "1";
 }
 
-/** An explicit URL wins; otherwise the default, only for a shipped build, so development and tests never register. */
-export function managedComposioBrokerUrl(configured, shipped) {
+/** An explicit URL wins; otherwise the default only when asked for on purpose (`useDefault`). No build, shipped or not,
+ * registers with the managed service by itself. */
+export function managedComposioBrokerUrl(configured, useDefault) {
   const explicit = typeof configured === "string" ? configured.trim() : "";
-  return normalizeManagedComposioBrokerUrl(explicit || (shipped ? DEFAULT_MANAGED_COMPOSIO_BROKER_URL : ""));
+  return normalizeManagedComposioBrokerUrl(explicit || (useDefault ? DEFAULT_MANAGED_COMPOSIO_BROKER_URL : ""));
 }
 
 export function normalizeManagedComposioBrokerUrl(value) {

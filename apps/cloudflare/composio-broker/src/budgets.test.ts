@@ -147,3 +147,14 @@ describe("usage stats", () => {
     expect(JSON.stringify(body)).not.toContain(owner.token);
   });
 });
+
+describe("closed registration", () => {
+  it("refuses new installations and keeps the ones that exist", async () => {
+    const { h } = harness();
+    const owner = await h.install();
+    h.env.REGISTRATION_MODE = "closed";
+    const refused = await h.fetch("/v1/installations", { method: "POST", body: "{}" });
+    expect(refused.status).toBe(503);
+    expect((await h.call(owner, "/v1/me")).status).toBe(200);
+  });
+});

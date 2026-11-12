@@ -11,7 +11,10 @@
   "vars": {
     "COMPOSIO_API_BASE": "https://backend.composio.dev/api/v3.1",
     "COMPOSIO_TOOLKIT_BASE": "https://backend.composio.dev/api/v3",
-    "REGISTRATION_MODE": "open"
+    // dusk bot pays nothing per tool call: no new installations, and the test installations that exist stay inside
+    // composio's free allowance
+    "REGISTRATION_MODE": "closed",
+    "GLOBAL_DAILY_TOOL_CALLS": "500"
   },
   "secrets": { "required": ["COMPOSIO_API_KEY"] },
   "d1_databases": [

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_MANAGED_COMPOSIO_BROKER_URL,
+  devDesktopUsesManagedApps,
   ensureManagedComposioCredentials,
   managedComposioAccess,
   managedComposioBrokerUrl,
@@ -20,11 +21,13 @@ describe("managed Composio desktop registration", () => {
     expect(managedComposioAccess("", { composioBrokerToken: TOKEN })).toBeNull();
   });
 
-  it("uses the default service only in a shipped build (the packaged app, a Cloud home's image); an explicit URL wins", () => {
+  it("uses the managed service only when asked for on purpose; an explicit URL wins", () => {
     expect(DEFAULT_MANAGED_COMPOSIO_BROKER_URL).toMatch(/^https:\/\//);
     expect(managedComposioBrokerUrl(undefined, true)).toBe(DEFAULT_MANAGED_COMPOSIO_BROKER_URL);
     expect(managedComposioBrokerUrl("  ", true)).toBe(DEFAULT_MANAGED_COMPOSIO_BROKER_URL);
     expect(managedComposioBrokerUrl(undefined, false)).toBe("");
+    expect(devDesktopUsesManagedApps({})).toBe(false);
+    expect(devDesktopUsesManagedApps({ DUSK_DEV_MANAGED_APPS: "1" })).toBe(true);
     expect(managedComposioBrokerUrl(" http://127.0.0.1:8787/ ", false)).toBe("http://127.0.0.1:8787");
     expect(managedComposioBrokerUrl("http://broker.example", true)).toBe("");
   });

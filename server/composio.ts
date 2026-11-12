@@ -182,12 +182,13 @@ export function connectorAvailability(
   return storeState === "unavailable" ? "unreadable" : "unconfigured";
 }
 
-/** Only a host the managed service comes with (the desktop app, DUSK_DESKTOP_PARENT=1, or a Cloud home) calls a missing one an outage. */
+/** Only a host that was given a managed service on purpose (a Cloud home with DUSK_COMPOSIO_BROKER_URL) calls a missing one an
+ * outage. Everywhere else connected apps start with the person's own accounts: no setup is an outage. */
 export type ConnectorSetup = "ready" | "needs-setup" | "service-unavailable";
 
 export function connectorSetup(
   cfg: AppConfig,
-  managedHost: boolean = process.env.DUSK_DESKTOP_PARENT === "1",
+  managedHost = false,
 ): ConnectorSetup {
   if (configured(cfg)) return "ready";
   return managedHost ? "service-unavailable" : "needs-setup";
