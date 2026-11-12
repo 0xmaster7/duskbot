@@ -20,6 +20,7 @@ import { forgetTranscriptShelf } from "@/state/transcript-cache";
 import { reportPresence } from "./presence";
 import { registerPushForConnection } from "./push";
 import { Unreachable } from "./Unreachable";
+import { PhoneUpdateLine } from "./PhoneUpdateLine";
 
 type GateState = { kind: "loading" } | { kind: "pair"; reason?: "revoked" } | { kind: "ready"; id: string }
   | { kind: "offline"; record: MobileConnectionRecord; others: MobileConnectionRecord[]; attempts: number; trying: boolean };
@@ -157,6 +158,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   return (
     <>
       <ActiveConnection value={state.id}><TranscriptShelfScope value={state.id === "same-origin" ? null : state.id}><Fragment key={state.id}>{children}</Fragment></TranscriptShelfScope></ActiveConnection>
+      <PhoneUpdateLine connection={state.kind === "ready" ? state.id : null} />
       {(incoming || adding > 0) && (
         <div className="fixed inset-0 z-50">
           <Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink

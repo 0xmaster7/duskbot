@@ -13,7 +13,7 @@ import {
 import { hostname } from "node:os";
 import { dirname, join } from "node:path";
 
-import { SERVER_API_LEVEL } from "../shared/server-api.ts";
+import { MIN_MOBILE_APP_LEVEL, SERVER_API_LEVEL } from "../shared/server-api.ts";
 import { SERVER_ROOT } from "./proxy-paths.ts";
 
 export interface EnvironmentDescriptor {
@@ -27,6 +27,8 @@ export interface EnvironmentDescriptor {
   capabilities: {
     /** The HTTP API level this server speaks (shared/server-api.ts). */
     api: number;
+    /** The oldest phone app level this server serves (shared/server-api.ts MIN_MOBILE_APP_LEVEL). */
+    minMobile: number;
     /** Pairing and sessions are available (this build). */
     remoteSessions: true;
     /** A person's own dusk cloud home. */
@@ -141,6 +143,7 @@ export function environmentDescriptor(input: { environmentId: string; desktopMan
     version: serverVersion(),
     capabilities: {
       api: SERVER_API_LEVEL,
+      minMobile: MIN_MOBILE_APP_LEVEL,
       remoteSessions: true,
       // Never advertise a protocol this server would refuse.
       ...(input.cloudHome === true ? { cloudHome: true as const, move: 1 as const } : {}),

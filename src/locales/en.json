@@ -7958,6 +7958,8 @@
   "failedReply.retryAnyway": "Try again anyway",
   "failedReply.retryCancel": "Don't retry",
   "mobile.desktop.noStoreApp": "The phone app isn't in the App Store or Google Play yet. Until it is, create a code below, scan it with your phone's camera, then add the page to your Home Screen.",
+  "mobile.update.line": "This app is out of date.",
+  "mobile.update.button": "update",
   "mobile.unreachable.title": "can't reach {name}",
   "mobile.unreachable.body": "It may be restarting or offline. This phone is still linked, so there's no need to pair again.",
   "mobile.unreachable.trying": "trying again...",

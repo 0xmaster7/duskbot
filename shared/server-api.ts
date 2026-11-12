@@ -18,6 +18,19 @@ export const SERVER_FEATURES = {
 
 export type ServerFeature = keyof typeof SERVER_FEATURES;
 
+/** The phone app's own level (apps/mobile, this build). Raise it when the phone starts needing what an older server
+ * lacks: a VPS or dusk cloud server updates itself to catch up, so the phone shows nothing for that. */
+export const MOBILE_APP_LEVEL = 1;
+/** The oldest phone app level this server still serves, sent as `capabilities.minMobile`. Raise it only when a route an
+ * older phone app calls changes shape; that phone then shows one line with a way to the store. */
+export const MIN_MOBILE_APP_LEVEL = 1;
+
+/** Whether a server's descriptor says this phone app is too old for it; a server that does not say never refuses. */
+export function phoneTooOld(descriptor: unknown, level: number = MOBILE_APP_LEVEL): boolean {
+  const min = (descriptor as { capabilities?: { minMobile?: unknown } } | null)?.capabilities?.minMobile;
+  return Number.isInteger(min) && (min as number) > level;
+}
+
 /** The level a descriptor says, or null for a server from before levels (it still answers everything it has). */
 export function serverApiLevel(descriptor: unknown): number | null {
   const api = (descriptor as { capabilities?: { api?: unknown } } | null)?.capabilities?.api;
