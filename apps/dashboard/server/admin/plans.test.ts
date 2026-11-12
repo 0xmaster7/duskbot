@@ -8,6 +8,7 @@ import { createDashboardApp } from "../app.ts";
 import { memoryMailer } from "../auth/mail.ts";
 import { memorySink } from "../analytics/sink.ts";
 import { OPEN_ENDED_AT } from "../billing/service.ts";
+import { BILLING_CONFIG } from "../billing/plans.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 import type { PlanBillingInfo, PlanSubscriptionRow } from "./plans.ts";
 
@@ -115,6 +116,14 @@ describe("admin plan edits", () => {
     expect(held.nextBillingAt).toBe(until);
     await new Promise(resolve => setTimeout(resolve, 20));
     expect(mailer.outbox.some(item => item.subject.startsWith("receipt"))).toBe(false);
+  });
+
+  it("grants over a checkout the person opened and never paid, and that checkout's cloud is let go", async () => {
+    const bundle = BILLING_CONFIG.bundles.find(item => item.id === "pro")!;
+    const started = await app.billing.service.checkout({ id: personId, email: OTHER }, { kind: "cart", cart: app.billing.service.quote({ ...bundle.cart, interval: "month" }).cart }, { source: "dash_billing" });
+    const profile = await edit({ action: "grant", plan: "starter", until: null });
+    expect(live(profile)).toMatchObject({ bundle: "starter", status: "active", openEnded: true });
+    expect(app.billing.store.state.checkouts.find(item => item.id === started.checkoutId)!.status).toBe("expired");
   });
 
   it("grants an open-ended comp, then re-dates it longer, shorter and open-ended again, keeping the license in step", async () => {

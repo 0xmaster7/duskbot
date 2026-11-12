@@ -501,8 +501,9 @@ export function createBillingService(options: BillingServiceOptions) {
   try { flushCloudActions(); } catch {}
   const retryCloudActions = setInterval(() => { try { flushCloudActions(); } catch {} }, 15_000);
   retryCloudActions.unref();
-  function expireCheckouts(accountId: string) {
-    for (const checkout of state.checkouts) if (checkout.accountId === accountId && checkout.status === "open" && checkout.openUntil <= now()) {
+  /** `all`: an operator's grant replaces an open checkout the person never paid */
+  function expireCheckouts(accountId: string, all = false) {
+    for (const checkout of state.checkouts) if (checkout.accountId === accountId && checkout.status === "open" && (all || checkout.openUntil <= now())) {
       checkout.status = "expired"; if (checkout.cloudId) clouds.abandon(checkout.cloudId);
     }
   }
@@ -511,7 +512,7 @@ export function createBillingService(options: BillingServiceOptions) {
     if (!item || typeof item !== "object" || (item.kind !== "cart" && item.kind !== "credits")) fail(400, "invalid_request");
     const url = returnUrl(input.returnPath);
     const source = input.operator?.source ?? checkoutSource(input.source);
-    expireCheckouts(account.id);
+    expireCheckouts(account.id, input.operator !== undefined);
     const cart = item.kind === "cart" ? parsed(item.cart) : null;
     const amount = (priced: number) => input.operator?.amountCents ?? priced;
     const open = state.checkouts.find(checkout => checkout.accountId === account.id && checkout.kind === "cart" && checkout.status === "open" && checkout.openUntil > now());
