@@ -607,7 +607,7 @@ import { createMcpServerRoutes } from "./routes/mcp-servers.ts";
 import { teamAdminSummary } from "./cloud-team-admin.ts";
 import { createSetupImportRoutes } from "./routes/setup-import.ts";
 import { createComputerRoutes } from "./routes/computers.ts";
-import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, cleanUsageDigest, scrubSummary } from "../shared/usage-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
+import { createStatusRoutes } from "./routes/status.ts"; import { createDashboardRoutes } from "./routes/dashboard.ts"; import { createDashboardCollector } from "./dashboard-report.ts"; import { createDashboardReporter } from "./dashboard-reporter.ts"; import { memoryFiles } from "./cloud-send-memory.ts"; import { createFrustrationWatch, createUsageOutbox, digestPrompt, hashId, summaryPrompt, turnRecord } from "./usage-signals.ts"; import { DIGEST_MAX, cleanUsageDigest, engineFamily, failureReason, runEvery, scrubSummary } from "../shared/usage-signals.ts"; import { attachmentKind, cleanSignal, sizeBucket } from "../shared/product-signals.ts"; import { createUsageSignalsSwitch } from "./usage-signals-switch.ts"; import { createDashboardCommands } from "./dashboard-commands.ts"; import { dashboardApps } from "./dashboard-apps.ts";
 import { findAntigravityLeftovers, removeAntigravityLeftovers } from "./drivers/antigravity-temp.ts";
 import { createLiveRoutes } from "./routes/live.ts";
 import { createNotificationRoutes } from "./routes/notifications.ts";
@@ -1296,13 +1296,15 @@ const spend = createSpend({ dataDir: DATA_DIR, onHit: (hit) => routineGuard.capH
   tell: (botId, threadId, text, quiet) => { const bot = store.bot(botId); if (!bot) return; const thread = threadId && store.taskByThread(botId, threadId) ? threadId : bot.threadId; store.appendMessage(thread, { role: "bot", kind: "activity", tool: { name: `notice: ${text}`, ok: true } }); if (!quiet) notify(buildNoticeNotification(bot, thread, text)); } }); const routineHost = createRoutineHost({ dataDir: DATA_DIR, cloudHome: Boolean(CLOUD_HOME), spend, routines: () => routines, botName: (id) => store.bot(id)?.name, model: (botId) => { const selection = store.bot(botId)?.modelSelection; return selection ? { driverKind: registry.get(selection.instanceId)?.driverKind ?? "unknown", model: selection.model } : undefined; }, tell: (botId, threadId, text) => routineGuard.tell(botId, threadId, text), language: (threadId) => (threadId ? conversationLanguage(threadId) : undefined), probeLoopbackOrigin: process.env.DUSK_PROBE_LOOPBACK_ORIGIN });
 const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => turnTriggers.get(threadId), routineWriter: (id) => { const key = cloudRoutineAuthors?.writer(id); return key ? teamOwners.people?.list().find((one) => personKey({ id: "", email: one.email }) === key)?.email : undefined; } }); function bookTurnUsage(row: Omit<UsageRow, "at" | "costSource">, tokensReported = true): void {
   const cost = tokensReported || row.costUsd !== null ? ledgerCost(row, null) : { costUsd: null };
-  const toolNames = usageTrace.toolNames(row.threadId);
+  const toolNames = usageTrace.toolNames(row.threadId), turnDetail = usageTrace.turnDetail(row.threadId);
   const booked = attributeUsage({ ...row, ...cost, ...usageTrace.settle(row.threadId), at: new Date().toISOString() });
-  noteUsageTurn(booked, toolNames);
+  noteUsageTurn(booked, toolNames, turnDetail);
   void appendUsage(DATA_DIR, booked); const entry = spend.booked(booked); if (entry) routineHost.allowance.booked(entry);
 }
 
-const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) => limitTakeover.signedIn(instanceId) }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
+const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) => limitTakeover.signedIn(instanceId),
+  outcome: (instanceId, outcome, error) => usageSignal("engine_sign_in", { engine: engineFamily(registry.get(instanceId)?.driverKind), outcome,
+    ...(outcome === "failed" ? { reason: failureReason(error instanceof Error ? error.message : typeof error === "string" ? error : "") } : {}) }) }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
   checksUrl: (name, server) => mcpOAuth.authState(name, server.url) === "none" && !teamConnections.personMcp().includes(name) });
 const mcpOAuth = new McpOAuthManager({
   file: join(DATA_DIR, "mcp-oauth.json"),
@@ -6540,8 +6542,24 @@ async function localVmInventoryPayload() {
 const usageTrace = createTraceRecorder({ dataDir: DATA_DIR });
 const usagePlace = CLOUD_HOME ? "cloud" as const : isThisServerVps("this-server") ? "server" as const : "desktop" as const;
 const usageSignals = createUsageSignalsSwitch(DATA_DIR);
-const usageOutbox = createUsageOutbox({ enabled: usageSignals.enabled, snapshot: () => ({ bots: store.bots.length, rooms: store.groups.length, routines: routines?.listRoutines().length ?? 0,
-  webhooks: webhooks.list().length, appEvents: appTriggers.manager?.list().length ?? 0, skills: Object.keys(readSkillLibraryIndex()).length }) });
+let memoryBucket: { at: number; bucket: number } | null = null;
+/** the bots' memory files' total size as a bucket, read at most every 30 minutes */
+function usageMemoryBucket(): number {
+  if (memoryBucket && Date.now() - memoryBucket.at < 30 * 60_000) return memoryBucket.bucket;
+  let bytes = 0;
+  for (const bot of store.bots) try { for (const file of memoryFiles(bot.id)) bytes += file.text.length; } catch {}
+  const bucket = bytes === 0 ? 0 : bytes < 10_000 ? 1 : bytes < 100_000 ? 2 : bytes < 1_000_000 ? 3 : bytes < 10_000_000 ? 4 : 5;
+  memoryBucket = { at: Date.now(), bucket };
+  return bucket;
+}
+const usageOutbox = createUsageOutbox({ enabled: usageSignals.enabled, snapshot: () => {
+  const tasks = store.bots.flatMap((bot) => bot.tasks ?? []), botEngines: Record<string, number> = {};
+  for (const bot of store.bots) { const engine = engineFamily(registry.get(bot.modelSelection.instanceId)?.driverKind); botEngines[engine] = (botEngines[engine] ?? 0) + 1; }
+  return { bots: store.bots.length, rooms: store.groups.length, routines: routines?.listRoutines().length ?? 0, webhooks: webhooks.list().length, appEvents: appTriggers.manager?.list().length ?? 0,
+    skills: Object.keys(readSkillLibraryIndex()).length, chats: tasks.filter((task) => !task.archivedAt).length, archived: tasks.filter((task) => task.archivedAt).length, memory: usageMemoryBucket(), botEngines };
+} });
+/** a workspace signal through the shared catalogue; anything it does not allow is dropped */
+const usageSignal = (name: string, props: Record<string, unknown> = {}) => { try { usageOutbox.signal(name, props, (n, p) => cleanSignal(n, p, "workspace")); } catch {} };
 const frustration = createFrustrationWatch({ dataDir: DATA_DIR, report: usageOutbox.frustration, summarize: async ({ threadId, botId, signals }) => {
   const writer = usageSignals.summaries() ? sideJobs.text("frustration-summary", botId) : null;
   if (!writer || !usageSignals.enabled()) return null;
@@ -6571,19 +6589,20 @@ function maybeUsageDigest(botId: string): void {
 }
 const thumbsDownSeen = new Set<string>();
 /** a booked turn as a usage record and a frustration check; only words, counts and times are kept */
-function noteUsageTurn(row: Omit<UsageRow, "costSource"> & { costSource?: unknown }, toolNames: string[]): void {
+function noteUsageTurn(row: Omit<UsageRow, "costSource"> & { costSource?: unknown }, toolNames: string[], detail: { failedNames: string[]; firstStepAt?: number }): void {
   try {
     // side jobs and keep-warm pings are booked too, but they are not turns: they have no traced turn id
     if (!row.turnId || row.trigger.kind === "helper" || !usageSignals.enabled()) return;
     const record = turnRecord({ driverKind: row.driverKind, status: row.outcome?.status, reason: row.outcome?.reason, startedAt: row.startedAt ? Date.parse(row.startedAt) : undefined,
-      endedAt: row.endedAt ? Date.parse(row.endedAt) : undefined, toolNames, trigger: row.trigger, room: Boolean(store.groupByThread(row.threadId)) }, usagePlace, Date.now());
+      endedAt: row.endedAt ? Date.parse(row.endedAt) : undefined, toolNames, trigger: row.trigger, room: Boolean(store.groupByThread(row.threadId)), failedNames: detail.failedNames,
+      firstStepAt: detail.firstStepAt, model: row.model, bot: hashId(usageSignals.salt(), row.botId), chat: hashId(usageSignals.salt(), row.threadId) }, usagePlace, Date.now());
     if (!record) return;
     usageOutbox.turn(record);
     if (record.from === "app" || record.from === "remote") { frustration.turn(row.threadId, row.botId, record); maybeUsageDigest(row.botId); }
   } catch (error) { console.warn(`usage signals: ${error instanceof Error ? error.name : "error"}`); }
 }
 store.onChange((change) => {
-  if (change.type === "thread.deleted") { frustration.forget(change.threadId); return; }
+  if (change.type === "thread.deleted") { frustration.forget(change.threadId); usageSignal("chat_deleted"); return; }
   if (change.type !== "message" && change.type !== "message.patch") return;
   const message = change.message;
   if (change.type === "message" && message.role === "user" && message.kind === "text" && !message.peerAsk && typeof message.text === "string") frustration.message(change.threadId, message.text);
@@ -9151,7 +9170,7 @@ const runHealth = startRunHealth({ dataDir: DATA_DIR, turns: () => liveTurnByThr
     }
   },
   interruptGoal: interruptRoutineGroupGoal,
-  onRunChanged: (run) => { usageOutbox.run(run); cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
+  onRunChanged: (run) => { const routine = routines?.listRoutines().find((one) => one.id === run.routineId); usageOutbox.run(run, { every: runEvery(routine?.schedule as Parameters<typeof runEvery>[0], run.triggerSource === "webhook"), routine: hashId(usageSignals.salt(), run.routineId) }); cloudHealth?.noteRoutineRun(run); if (!routineHost.limitSkipped(run.id)) syncRoutineRunToSource(run); routineGuard.changed(run); },
   onRunCut: (run) => run.groupId ? coordinator.cancelRoom(run.groupId, run.threadId!, ROUTINE_RESTARTED) : coordinator.cancelDirect(run.threadId!, ROUTINE_RESTARTED),
   onRunFailed: (run, alert) => {
     cloudHealth?.noteRoutineRun(run); routineGuard.failed(run); if (routineHost.limitSkipped(run.id)) { routines?.markSeen(run.id); routines?.adopt(({ routines: all }) => all.filter((one) => one.id === run.routineId)); return; }
@@ -12363,7 +12382,7 @@ const { react } = createReactions({
 });
 const publishedPages = createPublishedPages({ dataDir: DATA_DIR, cloudHome: CLOUD_HOME, selfHosted: !CLOUD_HOME && utilityParentPort === undefined, patch: (threadId, messageId, text, publishedPage) => void store.patchMessage(threadId, messageId, { text, publishedPage }), apps: { chat: chatApps, store } }); ROUTES.push(createReactionRoutes({ react, reactorFor, cloudGuestSendRefusal }), publishedPages.routes, createPlacesElsewhereRoutes({ elsewhere: placesElsewhere, owner: (auth) => !sharedMembership() && (auth.kind === "loopback" || ownHome.owner(auth) || (CLOUD_PERSONAL && cloudOwnerSession(auth))) }));
 // `let` slots are read per request.
-ROUTES.push(createThreadRoutes({
+ROUTES.push(createThreadRoutes({ attached: (mime, bytes) => usageSignal("attachment", { kind: attachmentKind(mime), size: sizeBucket(bytes) }),
   groupFor: personRooms.groupForAuth,
   store, userName: userNameFor, sessions, groupUsageReader,
   sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
@@ -12591,7 +12610,7 @@ const mcpConfig = createMcpConfig({
   connectionsChanged: (change) => void routineHolds?.connections(change), probeAs: mcpServersHost.probeAs,
   changed: () => broadcast({ kind: "mcp.changed" }) });
 const persistAnnouncedMcpServers = (next: Record<string, unknown>) => { persistMcpServers(next); broadcast({ kind: "mcp.changed" }); };
-ROUTES.push(createConfigRoutes({
+ROUTES.push(createConfigRoutes({ settingsChanged: (keys) => { for (const key of keys.slice(0, 10)) usageSignal("setting_changed", { key }); },
   sealer, store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
   closeBrowser, browserEngineSwitched,
   cloudHome: Boolean(CLOUD_HOME),

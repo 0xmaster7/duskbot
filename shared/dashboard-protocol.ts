@@ -3,6 +3,7 @@
 // never message contents or secrets. docs: apps/dashboard/README.md
 
 import { cleanUsageReport, type UsageReport } from "./usage-signals.ts";
+import { cleanSignal } from "./product-signals.ts";
 
 export const DASHBOARD_PROTOCOL = 1;
 
@@ -268,7 +269,7 @@ const dashboardSections: Record<string, DashboardParser> = {
     windows: dashboardArray(dashboardObject({ label: dashboardName, usedPercent: dashboardNumber, resetsAt: dashboardNullable(dashboardNumber) }), 20) }), 20) }),
   apps: dashboardObject({ available: dashboardBoolean, complete: dashboardBoolean,
     services: dashboardArray(dashboardObject({ slug: input => appSlug(input) ?? dashboardInvalid, connected: dashboardBoolean, pending: dashboardBoolean }), 500) }),
-  usage: input => cleanUsageReport(input) ?? dashboardInvalid,
+  usage: input => cleanUsageReport(input, Date.now(), (name, props) => cleanSignal(name, props, "workspace")) ?? dashboardInvalid,
   results: dashboardArray(input => {
     const result = dashboardObject({ id: dashboardId, ok: dashboardBoolean, message: dashboardNullable(dashboardText()), at: dashboardNumber })(input);
     if (result === dashboardInvalid) return result;

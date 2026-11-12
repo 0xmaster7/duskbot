@@ -189,7 +189,7 @@ export function focusRules(a: UsageAnswer): FocusItem[] {
   }
   const worstEngine = a.failures.filter(row => row.kind === "engine" && row.turns >= 30 && row.rate >= Math.max(0.08, overall * 1.5)).sort((x, y) => y.failed - x.failed)[0];
   if (worstEngine) out.push({ id: `engine:${worstEngine.key}`, target: "failures", weight: 70 + worstEngine.rate * 50,
-    text: `${worstEngine.key} fails ${pct(worstEngine.rate)} of turns against ${pct(overall)} overall, mostly because ${worstEngine.reasonWords}.` });
+    text: `${worstEngine.key} fails ${pct(worstEngine.rate)} of turns against ${pct(overall)} overall${worstEngine.reason === "unknown" ? "" : `, mostly because ${worstEngine.reasonWords}`}.` });
   const worstTool = a.failures.filter(row => row.kind === "tool" && row.turns >= 20 && row.rate >= 0.15).sort((x, y) => y.failed - x.failed)[0];
   if (worstTool) out.push({ id: `tool:${worstTool.key}`, target: "tools", weight: 60 + worstTool.rate * 40,
     text: `turns that use ${touchWords(worstTool.key)} fail ${pct(worstTool.rate)} of the time (${worstTool.reasonWords}).` });

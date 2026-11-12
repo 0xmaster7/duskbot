@@ -437,6 +437,13 @@ export function createTraceRecorder(options: { dataDir: string; now?: () => numb
       const turn = ended.get(threadId)?.turn;
       return turn ? [...turn.tools.values()].map((tool) => tool.name) : [];
     },
+    /** The tools that failed in an ended, not yet settled turn, and when its first model step ended. */
+    turnDetail(threadId: string): { failedNames: string[]; firstStepAt?: number } {
+      const turn = ended.get(threadId)?.turn;
+      if (!turn) return { failedNames: [] };
+      const first = turn.steps.find((step) => typeof step.endedAt === "number");
+      return { failedNames: [...turn.tools.values()].filter((tool) => tool.status === "error").map((tool) => tool.name), ...(first?.endedAt ? { firstStepAt: first.endedAt } : {}) };
+    },
     liveTurns,
     /** The next turn to start on `threadId` belongs to coordinator node `node`, or to an explicit parent turn. */
     expect(threadId: string, expectation: Expectation): void {

@@ -87,6 +87,8 @@ export interface ThreadRouteDeps {
   memberDefaultBot?(email: string): unknown;
   /** Who uploaded each file: only its uploader discards it, and only while nothing uses it. */
   uploads: { note(auth: RequestAuth, name: string): void; owns(auth: RequestAuth, name: string): boolean };
+  /** a file was attached: its type and size only, for usage signals */
+  attached?(mime: string, bytes: number): void;
   attachmentInUse(name: string): boolean;
   /** The stored files a Settings clear must leave (pictures, banner, routine files), null until those load; absent on a Team Cloud, which has no clear. */
   keptAttachments?(): ReadonlySet<string> | null;
@@ -404,6 +406,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         req.on("error", (e) => fail(400, e instanceof Error ? e.message : String(e)));
       });
       deps.uploads.note(auth, basename(saved.path));
+      deps.attached?.(saved.mime, saved.bytes);
       const media = attachmentImageSize(basename(saved.path));
       return json(res, 201, media ? { ...saved, media } : saved);
     }
@@ -442,6 +445,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         const chunks = req.iterator({ destroyOnReturn: false }) as AsyncIterable<Buffer>;
         const saved = await saveFile(chunks, name, rawType ?? "", { uploadId, expectedBytes: declaredLength });
         deps.uploads.note(auth, basename(saved.path));
+        deps.attached?.(saved.mime, saved.bytes);
         return json(res, 201, saved);
       } catch (error) {
         req.resume();
