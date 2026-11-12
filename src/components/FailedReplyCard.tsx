@@ -142,6 +142,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   return (
     <div className="mb-2 w-full px-5" data-failed-reply="">
       <ChatErrorCard
+        icon={lead.kind === "usage_limit" ? "gauge" : signInNotice ? "key" : lead.kind === "place" ? "offline" : undefined}
         title={lead.kind === "blocker" ? t("chat.blocker.title") : failedReplyTitle(items.map((item) => item.bot?.name ?? item.message.from?.name ?? ""), group)}
         onDismiss={close}
         actions={actions.length > 0 && actions.slice(0, lead.kind === "blocker" ? 3 : 2).map((action) => (

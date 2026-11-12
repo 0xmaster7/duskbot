@@ -1,21 +1,15 @@
-import { cn } from "@/lib/cn";
-import { Icon, type IconName } from "../Icon";
+import { PixelIcon, type PixelIconName } from "./PixelIcon";
 
 export type NoticeTone = "info" | "warning" | "danger" | "success";
 
-const GLYPH: Record<NoticeTone, { name: IconName; filled: boolean; cls: string }> = {
-  info: { name: "info", filled: true, cls: "text-ink/56" },
-  warning: { name: "exclamation-circle", filled: true, cls: "text-warning" },
-  danger: { name: "exclamation-circle", filled: true, cls: "text-danger" },
-  success: { name: "check-circle", filled: true, cls: "text-success" },
-};
+/** calm by default: info and a heads-up share the quiet info mark; only an error is red */
+const PICTURE: Record<NoticeTone, PixelIconName> = { info: "info", warning: "info", danger: "stop", success: "check" };
 
-/** The one small coloured glyph that carries a notice's tone; the words stay ink. */
-export function NoticeGlyph({ tone }: { tone: NoticeTone }) {
-  const glyph = GLYPH[tone];
+/** The one small pixel picture that carries a notice's tone, or what it is about; the words stay ink. */
+export function NoticeGlyph({ tone, icon }: { tone: NoticeTone; icon?: PixelIconName }) {
   return (
-    <span aria-hidden="true" className={cn("flex size-5 shrink-0 items-center justify-center", glyph.cls)}>
-      <Icon name={glyph.name} variant={glyph.filled ? "filled" : "outline"} size={16} />
+    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center">
+      <PixelIcon name={icon ?? PICTURE[tone]} size={20} />
     </span>
   );
 }

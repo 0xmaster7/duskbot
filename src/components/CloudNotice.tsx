@@ -20,7 +20,7 @@ export function CloudNoticeCard({ kind, busy = false, failed = false, onAction, 
   kind: CloudNoticeKind; busy?: boolean; failed?: boolean; onAction: () => void; onNotNow: () => void;
 }) {
   const card = CLOUD_NOTICE_CARD[kind];
-  return <NoticeCard titleId="cloud-notice-title" notice={`cloud-notice-${kind}`} icon={Cloud} title={t(card.title)} onDismiss={onNotNow}>
+  return <NoticeCard titleId="cloud-notice-title" notice={`cloud-notice-${kind}`} icon={Cloud} pixel={kind === "sign-in-again" ? "key" : "cloud"} title={t(card.title)} onDismiss={onNotNow}>
     <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">{t(card.hint)}</p>
     <div className="mt-3 flex flex-wrap items-center gap-3">
       <button type="button" disabled={busy} className={PRIMARY_BUTTON} onClick={onAction}>{t(card.action)}</button>

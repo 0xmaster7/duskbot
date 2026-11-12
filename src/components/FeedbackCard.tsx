@@ -17,7 +17,7 @@ export function FeedbackCard({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(timer);
   }, [answered, onDone]);
   const dismiss = () => { if (!answered) feedbackDismissed(MOMENT); onDone(); };
-  return <NoticeCard titleId="feedback-title" notice="feedback" icon={Smile} title={t(answered ? "feedback.thanks" : "feedback.title")} onDismiss={dismiss}>
+  return <NoticeCard titleId="feedback-title" notice="feedback" icon={Smile} pixel="bubble" title={t(answered ? "feedback.thanks" : "feedback.title")} onDismiss={dismiss}>
     {!answered && <>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">{t("feedback.body")}</p>
       <div role="group" aria-labelledby="feedback-title" className="mt-3 flex gap-1.5">

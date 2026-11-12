@@ -34,7 +34,7 @@ const ICON: Record<CloudTrialState, typeof CalendarClock> = {
 export function CloudTrialNoticeCard({ view, failed = false, onAction, onClose }: {
   view: CloudTrialView; failed?: boolean; onAction: () => void; onClose: () => void;
 }) {
-  return <NoticeCard titleId="cloud-trial-notice-title" notice={`cloud-trial-${view.state}`} icon={ICON[view.state]} title={view.title} onDismiss={onClose} dismissLabel={t("cloudAdd.close")}>
+  return <NoticeCard titleId="cloud-trial-notice-title" notice={`cloud-trial-${view.state}`} icon={ICON[view.state]} pixel="cloud" title={view.title} onDismiss={onClose} dismissLabel={t("cloudAdd.close")}>
     <div id="cloud-trial-notice-body">
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{view.body}</p>
       {view.credit && <p className="mt-1.5 text-[13px] text-ink-secondary">{view.credit}</p>}

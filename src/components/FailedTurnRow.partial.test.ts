@@ -42,7 +42,7 @@ describe("a turn whose reply came back but a step failed", () => {
 
   it("is still the red failure row when the turn did not finish", () => {
     const html = show(failedTurnTool(cause, { terminal: true }));
-    expect(html).toContain("danger");
+    expect(html).toContain('data-pixel-icon="stop"');
     expect(html).not.toContain("partly done");
   });
 

@@ -20,7 +20,7 @@ export function TwoPlacesCard({ suggest, onBring, onDismiss }: { suggest: TwoPla
     setBusy(true); setFailed(null);
     void onBring().catch((cause: unknown) => { setBusy(false); setFailed(ipcErrorText(cause) ?? t("twoPlaces.failed")); });
   };
-  return <NoticeCard titleId="two-places-title" notice="two-places" icon={Merge} title={t("twoPlaces.title")} onDismiss={onDismiss}>
+  return <NoticeCard titleId="two-places-title" notice="two-places" icon={Merge} pixel="laptop" title={t("twoPlaces.title")} onDismiss={onDismiss}>
     <p className="mb-3 mt-1 text-[13px] text-ink-secondary">{t("twoPlaces.body", { place: suggest.name })}</p>
     {failed && <p role="alert" className="mb-3 text-[12px] text-danger">{failed}</p>}
     {confirming ? <div role="group" aria-label={t("twoPlaces.confirmTitle", { place: suggest.name })} className="rounded-lg border border-transparent p-3"
