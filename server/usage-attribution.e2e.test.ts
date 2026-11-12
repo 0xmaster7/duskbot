@@ -54,12 +54,13 @@ posixOnly("usage attribution e2e", () => {
       await new Promise((r) => setTimeout(r, 100));
     }
   };
+  /** The turns booked for this bot; the short acknowledgement written beside a turn is the bot's own, on a turn-beat thread. */
   const ledger = (botId: string) => {
     const file = join(home, ".duskbot", "usage", `${new Date().toISOString().slice(0, 7)}.jsonl`);
     if (!existsSync(file)) return [];
     // The server may be appending a line as this reads: only complete lines count, and the caller's wait reads again.
     const text = readFileSync(file, "utf8");
-    return text.slice(0, text.lastIndexOf("\n") + 1).split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.botId === botId);
+    return text.slice(0, text.lastIndexOf("\n") + 1).split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.botId === botId && !String(row.threadId).startsWith("turn-beat-"));
   };
   const newBot = async (instanceId: string, model: string) => {
     const created = (await api("POST", "/api/bots")).body.bot;
