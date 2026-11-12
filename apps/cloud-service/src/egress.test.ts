@@ -144,7 +144,7 @@ it("pauses at once a limited machine whose meter shows more than the limit lets 
     bytes += 20 * GB;
     for (let i = 0; i < 4; i++) { at.t += EGRESS_READ_MS; await guard.step(c, true); }
     expect(guard.view(c)!.state).toBe("slowed");
-    // then two hours: at the limit (2.25 GB an hour), or at the host's 50 Mbit/s (22.5 GB an hour)
+    // then two hours: at the limit (2.25 GB an hour), or at 50 Mbit/s (22.5 GB an hour, a tenth of what the host allows)
     for (let i = 0; i < 8; i++) { at.t += EGRESS_READ_MS; bytes += (tampered ? 22.5 : 2.25) / 4 * GB; await guard.step(c, true); }
     expect(guard.view(c)!.state).toBe(tampered ? "paused" : "slowed");
     expect(guard.paused(c)).toBe(tampered);

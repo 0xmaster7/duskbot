@@ -6,7 +6,8 @@
 // us and does not wake it; exec runs `bash -lc` as the machine user (passwordless sudo) and is never retried here;
 // DELETE needs X-Confirm-Delete; there is no purge of stopped disks and no region. Snapshots (docs/pricing.md, read
 // 2026-11-13) are free and outlive their machine; a paused machine cannot be saved, a stopped one saves at once. There is
-// no network limit in the API (create and PATCH take none): a machine's upload is capped near 50 Mbit/s by its host.
+// no network limit in the API (create and PATCH take none): a machine uploaded at 400 to 600 Mbit/s
+// (2026-11-12), and its kernel has no shaping qdisc, only nftables (egress.ts).
 import { randomUUID } from "node:crypto";
 import type { MachineSpec } from "../../../shared/billing-api.ts";
 import { boundedJson, RetryableCloudError } from "../../dashboard/server/clouds/http.ts";

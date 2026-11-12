@@ -59,7 +59,7 @@ export const BILLING_CONFIG: BillingConfig = {
     vcpu: { min: 2, max: 8, step: 2 }, ramGb: { min: 4, max: 16, step: 4 }, diskGb: { min: 40, max: 200, step: 20 },
     sizes: [{ vcpu: 2, ramGb: 4 }, { vcpu: 4, ramGb: 8 }, { vcpu: 8, ramGb: 16 }] },
   poolQuotas: { shared_s: { netMbps: 100, pids: 2048 }, shared_m: { netMbps: 250, pids: 4096 } },
-  // InstaBox bills upload past the workspace's shared 1 TB at $0.02/GB and a machine can send ~50 Mbit/s (~16 TB a month):
+  // InstaBox bills upload past the workspace's shared 1 TB at $0.02/GB and a machine can send 400+ Mbit/s (100+ TB a month):
   // chat, browsing, connectors and updates send a few GB a month, so these only ever meet a proxy, a file host or a loop
   egressGb: { shared_s: { alert: 25, slow: 50, pause: 100 }, shared_m: { alert: 50, slow: 100, pause: 200 }, dedicated: { alert: 100, slow: 200, pause: 400 } },
   appAllowances: { shared_s: { computerHours: 720, voiceCharacters: 0 }, shared_m: { computerHours: 720, voiceCharacters: 0 }, dedicated: { computerHours: 720, voiceCharacters: 0 } },

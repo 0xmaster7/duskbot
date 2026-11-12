@@ -1,5 +1,6 @@
 // The egress guard. InstaBox bills what a machine uploads to the internet past the workspace's shared monthly pool, and
-// a machine can send ~50 Mbit/s, so one home running a proxy or a file host could cost hundreds of dollars a month. Each
+// a machine can send 400 to 600 Mbit/s (measured 2026-11-12), so one home running a proxy or a file host could cost
+// hundreds of dollars a month. Each
 // home's upload in the calendar month (UTC) is read from the provider's own meter (usage().egressBytes) every
 // EGRESS_READ_MS while it runs. Past `alert` GB the operator hears once; past `slow` its upload is limited to
 // EGRESS_SLOW_MBIT inside the machine (InstaBox has no network limit in its API) and the owner sees why; past `pause` the
@@ -13,13 +14,13 @@ import type { MachineProvider } from "./provider.ts";
 
 export const GB = 1e9;
 export const EGRESS_SLOW_MBIT = 5;
-/** how often a running home's meter is read: InstaBox counts upload by the hour */
+/** how often a running home's meter is read (the meter itself showed a 100 MB upload within seconds, 2026-11-12) */
 export const EGRESS_READ_MS = 15 * 60_000;
 /** a limit that would not go in is tried again this often */
 const RETRY_MS = 5 * 60_000;
 const HOUR = 3_600_000, LIMIT_BYTES_PER_SECOND = EGRESS_SLOW_MBIT * 1e6 / 8;
-/** upload a limited machine may show past what the limit lets through: the meter counts by the hour, so one hour at the
- *  limit, and half again the rate for the bucket's shape */
+/** upload a limited machine may show past what the limit lets through: an hour's grace at the limit, and half again the
+ *  rate for the bucket's shape */
 export function egressTampered(sent: number, ms: number): boolean { return sent > LIMIT_BYTES_PER_SECOND * (1.5 * ms / 1000 + 3600); }
 
 export interface EgressLimits { alert: number; slow: number; pause: number }
@@ -63,11 +64,20 @@ export function freshEgress(month: string, serverId: string | null, lift: string
   return { month, serverId, bytes: 0, carried: 0, readAt: null, alertedAt: null, slowAt: null, pausedAt: null, limited: null, watch: null, limitTryAt: null, limitFailures: 0, lift };
 }
 
-// the machine's way out: the interface its default route uses; tc as root (the machine user has passwordless sudo)
-const DEV = `export PATH="$PATH:/usr/sbin:/sbin"; dev=$(ip -o route get 1.1.1.1 2>/dev/null | sed -n 's/.* dev \\([^ ]*\\).*/\\1/p'); [ -n "$dev" ] || { echo "no route"; exit 3; }`;
-/** every packet the machine sends (its bot computers' too, they go out through it) through one token bucket */
-export const EGRESS_LIMIT_COMMAND = `${DEV}; sudo -n tc qdisc replace dev "$dev" root tbf rate ${EGRESS_SLOW_MBIT}mbit burst 64kb latency 400ms && tc qdisc show dev "$dev" | grep -q " tbf " && echo "limited $dev"`;
-export const EGRESS_LIFT_COMMAND = `${DEV}; if tc qdisc show dev "$dev" | grep -q " tbf "; then sudo -n tc qdisc del dev "$dev" root; fi; echo lifted`;
+// the machine's way out: the interface its default route uses; nft as root (the machine user has passwordless sudo).
+// InstaBox's kernel has no shaping qdisc (no tbf, htb or fq; checked 2026-11-12), so the limit is an nftables byte
+// policer: packets past the rate are dropped and TCP backs off to it (a 100 MB upload measured 0.64 MB/s)
+const PATH = `export PATH="$PATH:/usr/sbin:/sbin"`;
+const DEV = `${PATH}; dev=$(ip -o route get 1.1.1.1 2>/dev/null | sed -n 's/.* dev \\([^ ]*\\).*/\\1/p'); [ -n "$dev" ] || { echo "no route"; exit 3; }`;
+const TABLE = "inet dusk_egress";
+// one table replaced whole in one transaction (made first so the delete always finds it); the burst
+// holds more than one 64 KB offloaded segment
+const RULES = `table ${TABLE}\\ndelete table ${TABLE}\\ntable ${TABLE} {\\n limit cap { rate over ${LIMIT_BYTES_PER_SECOND} bytes/second burst 262144 bytes; }\\n`
+  + ` chain sent { type filter hook output priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n`
+  + ` chain passed { type filter hook forward priority 0; policy accept; oifname "%s" limit name "cap" drop; }\\n}\\n`;
+/** every packet the machine sends (its bot computers' too, they are forwarded through it) through one shared bucket */
+export const EGRESS_LIMIT_COMMAND = `${DEV}; printf '${RULES}' "$dev" "$dev" | sudo -n nft -f - && sudo -n nft list table ${TABLE} | grep -q 'limit name' && echo "limited $dev"`;
+export const EGRESS_LIFT_COMMAND = `${PATH}; if sudo -n nft list table ${TABLE} >/dev/null 2>&1; then sudo -n nft delete table ${TABLE} || exit 1; fi; echo lifted`;
 
 export interface EgressGuardDeps {
   provider: Pick<MachineProvider, "usage" | "run">;
