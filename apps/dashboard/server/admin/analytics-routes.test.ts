@@ -111,12 +111,48 @@ describe("admin analytics routes", () => {
     await beacon();
     const paths = ["/v1/admin/web", "/v1/admin/web/source", `/v1/admin/web?${range(time - DAY, time + 1)}&f.channel=ai`, "/v1/admin/funnel", "/v1/admin/funnel?mode=signups",
       "/v1/admin/journeys", "/v1/admin/journeys?only=customers&q=x", `/v1/admin/journeys/${accountId}`, `/v1/admin/journeys/${ANON}`,
-      "/v1/admin/realtime", "/v1/admin/realtime?minutes=60", "/v1/admin/retention", "/v1/admin/app"];
+      "/v1/admin/realtime", "/v1/admin/realtime?minutes=60", "/v1/admin/retention", "/v1/admin/app", "/v1/admin/revenue", "/v1/admin/revenue?days=30"];
     for (const path of paths) {
       expect((await call(path)).status, path).toBe(401);
       expect((await call(path, { cookie: other })).status, path).toBe(403);
       expect((await call(path, { cookie: admin })).status, path).toBe(200);
     }
+  });
+
+  it("keeps the revenue backfill to the owner with CSRF, and says when the provider keeps no history", async () => {
+    const admin = await login(ADMIN), other = await login(OTHER);
+    expect((await call("/v1/admin/revenue/sync", { body: {} })).status).toBe(401);
+    expect((await call("/v1/admin/revenue/sync", { body: {}, cookie: other })).status).toBe(403);
+    expect((await call("/v1/admin/revenue/sync", { body: {}, cookie: admin, csrf: false })).status).toBe(403);
+    const answer = await call("/v1/admin/revenue/sync", { body: {}, cookie: admin });
+    expect(answer.status).toBe(409);
+    expect(await answer.json()).toMatchObject({ code: "unavailable" });
+    expect((await call("/v1/admin/revenue?days=3", { cookie: admin })).status).toBe(400);
+  });
+
+  it("reports MRR from a real checkout, stores the payer's first touch and shows billing on their profile", async () => {
+    const admin = await login(ADMIN), payer = await login(OTHER), accountId = app.auth.accountByEmail(OTHER)!.id;
+    await view(VID, "s1", time - 2 * DAY, "/pricing");
+    await identify(accountId);
+    const bundle = (await import("../billing/plans.ts")).BILLING_CONFIG.bundles.find(item => item.id === "starter")!;
+    const answer = await app.billing.service.checkout({ id: accountId, email: OTHER }, { kind: "cart", cart: app.billing.service.quote({ ...bundle.cart, interval: "month" }).cart }, { source: "dash_home" });
+    const stored = app.billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
+    for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    const total = app.billing.store.state.subscriptions[0]!.totalCents;
+    type Revenue = Awaited<ReturnType<Routes["revenue"]>>;
+    const revenue = await read<Revenue>("/v1/admin/revenue", admin);
+    expect(revenue.headline).toMatchObject({ mrr: total, arr: total * 12, customers: 1, arpu: total });
+    expect(revenue.customers[0]).toMatchObject({ accountId, email: OTHER, status: "active", channel: "ai", source: "ChatGPT", country: "DE" });
+    expect(revenue.feed[0]).toMatchObject({ kind: "new", accountId, amountCents: total });
+    expect(revenue.funnel.steps.map(step => step.count)).toEqual([1, 1, 1, 1, 0]);
+    expect(revenue.sync).toEqual({ available: false, last: null });
+    expect(app.billing.store.state.customers.find(row => row.accountId === accountId)!.attribution).toMatchObject({ source: "ChatGPT", channel: "ai" });
+    await expect.poll(() => sink.all.filter(event => event.name === "billing").map(event => event.props.type)).toEqual(["checkout.started", "payment.succeeded", "subscription.active"]);
+    const profile = await read<Profile>(`/v1/admin/journeys/${accountId}`, admin);
+    expect(profile.billing).toMatchObject({ customer: { mrr: total, status: "active" }, invoices: [{ amountCents: total, status: "paid" }] });
+    expect(profile.billing!.events.map(event => event.emoji)).toContain("💰");
+    expect(JSON.stringify(profile.sessions)).not.toContain("\"name\":\"billing\"");
+    void payer;
   });
 
   it("authorizes every note mutation and requires CSRF for each method", async () => {

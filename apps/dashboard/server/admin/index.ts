@@ -17,6 +17,7 @@ import type { StoredEvent } from "../analytics/sink.ts";
 import { brevoChecker, waitlistCsv, type WaitlistSource } from "./waitlist.ts";
 import { healthTargets, newestBackup, probe, spoolCount, type ErrorCounter } from "./health.ts";
 import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.ts";
+import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
@@ -49,6 +50,7 @@ export interface AdminOptions {
 
 const rethrow = (error: unknown): never => {
   if (error instanceof AnalyticsRouteError || error instanceof PlanError) throw new AdminError(error.status, error.code, error.message);
+  if (error instanceof BillingError) throw new AdminError(error.status, error.code, error.code === "unavailable" ? "The payment provider can't be read right now." : "That can't be done right now.");
   throw error;
 };
 export const parseAdminEmails = (value: string | undefined) => [...new Set((value ?? "").split(",").map(item => item.trim().toLowerCase()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)))];
@@ -364,6 +366,7 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/events") return send(await events(url));
       if (route === "/usage") return send(await usageAnswer(url));
       try {
+        if (route === "/revenue") return send(await deep.revenue(url));
         if (route === "/web") return send(await deep.web(url));
         if (route.startsWith("/web/")) { const dim = route.slice(5); if (!deep.isDimension(dim)) throw new AnalyticsRouteError(400, "invalid_request", "Invalid dimension."); return send(await deep.webDetails(dim, url)); }
         if (route === "/funnel") return send(await deep.funnel(url));
@@ -412,6 +415,11 @@ export function createAdmin(options: AdminOptions) {
         if (!account) throw new AdminError(404, "not_found", "Not found.");
         await plans.edit(owner, { id: account.id, email: account.email }, options.bodyObject(await options.readBody(req))).catch(rethrow);
         return send(await user(account.id));
+      }
+      if (route === "/revenue/sync") {
+        const result = await deep.syncRevenue().catch(rethrow);
+        await audit(owner.id, "revenue.sync", null, result);
+        return send(result);
       }
       const action = /^\/clouds\/(c[0-9a-f]{24})\/(pause|resume|delete)$/.exec(route);
       if (action) return send(await cloudAction(owner, action[1]!, action[2]!, options.bodyObject(await options.readBody(req))));

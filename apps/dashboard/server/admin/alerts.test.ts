@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { memorySink } from "../analytics/sink.ts";
 import { memoryMailer } from "../auth/mail.ts";
-import { createAlerts, isSpike, parseAlerts } from "./alerts.ts";
+import { churnThreshold, createAlerts, isSpike, parseAlerts } from "./alerts.ts";
+import { draft, ledgerId } from "../billing/ledger.ts";
 
 const HOUR = 3_600_000, DAY = 86_400_000;
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
@@ -32,7 +33,7 @@ describe("admin alerts", () => {
     alerts.waitlistJoin(); alerts.waitlistJoin();
     await settle();
     await alerts.tick();
-    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["New signup: new@example.test", "First payment: new@example.test", "2 new on the waitlist"]);
+    expect(mailer.outbox.map(mail => mail.subject)).toEqual(["New signup: new@example.test", "First payment ever: new@example.test", "2 new on the waitlist"]);
     expect(mailer.outbox[1]!.text).toContain("$20.00");
     alerts.close();
     const off = setup("", time);
@@ -49,6 +50,37 @@ describe("admin alerts", () => {
     time.now += DAY + HOUR;
     await alerts.tick();
     expect(mailer.outbox.filter(mail => mail.subject.startsWith("dusk bot yesterday"))).toHaveLength(2);
+    alerts.close();
+  });
+  it("sends one email per money incident: failures, disputes, refunds, big churn and each MRR milestone once", async () => {
+    const time = { now: Date.parse("2026-11-12T06:00:00Z") };
+    const { mailer, alerts } = setup("paid", time);
+    const row = (type: string, extra: Record<string, unknown> = {}) => ({ ...draft({ key: `${type}:${JSON.stringify(extra)}`, type, at: time.now, via: "fixture", accountId: "acct_1", subscriptionId: "sub_1", ...extra }), id: ledgerId(type), recordedAt: time.now });
+    const facts = { email: "pay@example.test", paidBefore: true, mrr: 0 };
+    alerts.money(row("payment.failed", { amountCents: 2000, reason: "insufficient_funds" }), facts);
+    alerts.money(row("subscription.on_hold"), facts);
+    alerts.money(row("payment.failed"), { ...facts, paidBefore: false, email: "new@example.test" });
+    alerts.money(row("dispute.opened", { providerRef: "dsp_1", amountCents: 2000 }), facts); alerts.money(row("dispute.opened", { providerRef: "dsp_1" }), facts);
+    alerts.money(row("refund.succeeded", { providerRef: "ref_1", amountCents: 500 }), facts); alerts.money(row("refund.succeeded", { providerRef: "ref_1", amountCents: 500 }), facts);
+    alerts.money(row("subscription.cancelled", { mrrCents: 1000, subscriptionId: "small" }), facts);
+    alerts.money(row("subscription.cancelled", { mrrCents: 9000, subscriptionId: "big" }), facts); alerts.money(row("subscription.expired", { mrrCents: 9000, subscriptionId: "big" }), facts);
+    alerts.money(row("payment.succeeded"), { ...facts, mrr: 60_000 }); alerts.money(row("payment.succeeded"), { ...facts, mrr: 60_000 });
+    await settle(); await settle();
+    expect(mailer.outbox.map(mail => mail.subject).sort()).toEqual(["Customer lost: pay@example.test ($90.00/mo)", "Dispute opened: pay@example.test", "MRR passed $500 a month",
+      "Payment failed: pay@example.test", "Refund: $5.00 to pay@example.test"]);
+    expect(mailer.outbox.find(mail => mail.subject.startsWith("Payment failed"))!.text).toContain("insufficient funds");
+    expect(churnThreshold(undefined)).toBe(5000); expect(churnThreshold("20000")).toBe(20000); expect(churnThreshold("x")).toBe(5000);
+    alerts.close();
+  });
+  it("puts new paying customers, MRR and money trouble in the digest", async () => {
+    const time = { now: Date.parse("2026-11-12T08:05:00Z") };
+    const mailer = memoryMailer(), sink = memorySink(() => time.now);
+    const alerts = createAlerts({ kinds: parseAlerts("digest"), emails: () => ["owner@example.test"], mailer, sink, now: () => time.now, panelUrl: "https://preview.dusk.bot/app/admin",
+      totals: () => ({ signups: 3, paid: 2, waitlist: null, accounts: 40, money: { newCustomers: [{ email: "a@example.test", cents: 2000 }, { email: null, cents: 900 }], mrr: 12_000, netNew: 2900, failed: 1, recovered: 0, churned: 0, refunds: 0 } }) });
+    await alerts.tick();
+    expect(mailer.outbox[0]!.text).toContain("New paying customers: 2 (a@example.test $20.00, an account $9.00).");
+    expect(mailer.outbox[0]!.text).toContain("MRR: $120.00 (+$29.00 yesterday).");
+    expect(mailer.outbox[0]!.text).toContain("Failed payments: 1");
     alerts.close();
   });
 });

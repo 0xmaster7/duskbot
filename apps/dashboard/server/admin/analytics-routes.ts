@@ -12,6 +12,11 @@ import { aligned, newVsReturning, peakHours } from "../analytics/insights.ts";
 import { billingSteps, firstSourceOf, sessionsOf, spendOf, timeToPayOf, whereOf } from "../analytics/profile.ts";
 import type { StoredSubscription } from "../billing/store.ts";
 import { UPSELL_EVENTS } from "../../../../shared/cloud-upsell.ts";
+import { accountMrr, billingCardOf, livesOf, paysOf, subscriptionReport, type SubscriptionsInput } from "../analytics/subscriptions.ts";
+import { LEDGER_LABELS } from "../billing/ledger.ts";
+import { BILLING_CONFIG } from "../billing/plans.ts";
+import { quote } from "../billing/pricing.ts";
+import type { Step } from "../analytics/profile.ts";
 
 export class AnalyticsRouteError extends Error {
   status: number; code: string;
@@ -191,6 +196,14 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return { from, to, total: list.length, people: list.slice(0, 200) };
   }
 
+  function billingCard(accountId: string) {
+    const input = subscriptionInput(new Map());
+    const card = billingCardOf(subscriptionReport(input), input, accountId);
+    if (!card) return null;
+    const sub = billing.store.state.subscriptions.filter(row => row.accountId === accountId && row.status !== "pending").sort((a, b) => b.createdAt - a.createdAt)[0];
+    return { ...card, events: card.events.map(event => ({ ...event, label: LEDGER_LABELS[event.type]?.label ?? event.type, emoji: LEDGER_LABELS[event.type]?.emoji ?? "•", plan: event.plan ? planLabel(event.plan) : null })),
+      cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false, currentPeriodEnd: sub?.currentPeriodEnd ?? null };
+  }
   async function profile(id: string) {
     const idents = await sink.scan(0, now() + 60_000, ["identify"]);
     const identity = identityOf(idents);
@@ -208,8 +221,8 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const payments = account ? paymentsOf(state).filter(payment => payment.accountId === account) : [];
     const checkouts = account ? state.checkouts.filter(checkout => checkout.accountId === account) : [];
     // billing records are the source of truth for money; the paid event only stands in when they are gone
-    const kept = payments.length ? mine.filter(event => event.name !== "checkout_paid") : mine;
-    const sessions = sessionsOf(kept, billingSteps(payments, checkouts));
+    const kept = (payments.length ? mine.filter(event => event.name !== "checkout_paid") : mine).filter(event => event.name !== "billing");
+    const sessions = sessionsOf(kept, [...billingSteps(payments, checkouts), ...(account ? ledgerSteps(account) : [])]);
     const firstSeen = sessions.length ? sessions.at(-1)!.start : owner?.createdAt ?? null;
     const spend = spendOf(payments, account ? p.paid.get(account) ?? null : null);
     const firstSource = firstSourceOf(visitsOf(mine, ["site", "account"]));
@@ -223,6 +236,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
       where: whereOf(mine), firstSource, sessions: sessions.slice(0, 120),
       stats: { firstSeen, visits: sessions.filter(session => session.surface !== "server").length, pageviews: kept.filter(event => event.name === "site_view" || event.name === "page_view").length,
         ...spend, timeToPayMs: timeToPayOf(firstSeen, spend.firstPaidAt) },
+      billing: account ? billingCard(account) : null,
     };
   }
 
@@ -327,6 +341,73 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return productReport({ from, to, events, funnel: flow.steps });
   }
 
+  const planLabel = (id: string) => BILLING_CONFIG.bundles.find(bundle => bundle.id === id)?.label.toLowerCase() ?? (id === "custom" ? "custom" : id.replace(/_/g, " "));
+  const planOf = (sub: StoredSubscription) => { try { return planLabel(quote(sub.cart, BILLING_CONFIG).bundle ?? "custom"); } catch { return "custom"; } };
+  function subscriptionInput(activity: ReadonlyMap<string, number>): SubscriptionsInput {
+    const state = billing.store.state;
+    return { subscriptions: state.subscriptions, invoices: state.invoices, refunds: state.refunds ?? [], ledger: state.ledger ?? [], checkouts: state.checkouts, customers: state.customers,
+      accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])), activity, planOf, planLabel, now: now() };
+  }
+  /** each paying customer's first touch, kept on the billing record once known so it outlives the raw events */
+  function attribute(paying: ReadonlySet<string>, events: readonly StoredEvent[]) {
+    const missing = billing.store.state.customers.filter(row => paying.has(row.accountId) && !row.attribution).map(row => row.accountId);
+    if (!missing.length) return;
+    const identity = identityOf(events.filter(event => event.name === "identify"));
+    const visits = visitsOf(events, ["site", "account"]);
+    for (const accountId of missing) {
+      const mine = new Set([accountId, ...(identity.visitorsOf.get(accountId) ?? [])]);
+      const first = firstSourceOf(visits.filter(visit => mine.has(visit.visitor) || identity.accountOf.get(visit.visitor) === accountId));
+      if (!first) continue;
+      const visit = visits.find(item => item.start === first.at);
+      billing.service.setAttribution(accountId, { source: first.source, channel: first.channel, campaign: first.campaign, referrer: first.referrer, country: visit?.country ?? null, firstSeen: first.at });
+    }
+  }
+  async function revenueData() {
+    const time = now();
+    const [recent, history] = await Promise.all([sink.scan(time - 14 * DAY, time + 60_000), sink.scan(time - 400 * DAY, time + 60_000, ["site_view", "page_view", "identify"])]);
+    const activity = new Map([...activeDays(recent)].map(([id, days]) => [id, days.size]));
+    const input = subscriptionInput(activity);
+    const pays = paysOf(input), paying = new Set([...pays.map(pay => pay.accountId), ...input.subscriptions.filter(sub => sub.status !== "pending").map(sub => sub.accountId)]);
+    attribute(paying, history);
+    return { input: subscriptionInput(activity), history };
+  }
+  /** visitor, signup, checkout, paid and still paying a month after: people first seen in the window */
+  function revenueFunnel(input: SubscriptionsInput, history: readonly StoredEvent[], days: number) {
+    const time = now(), from = time - days * DAY;
+    const identity = identityOf(history.filter(event => event.name === "identify"));
+    const first = new Map<string, number>();
+    for (const visit of visitsOf(history)) {
+      const who = identity.accountOf.get(visit.visitor) ?? visit.visitor;
+      if (!first.has(who) || first.get(who)! > visit.start) first.set(who, visit.start);
+    }
+    for (const [id, account] of input.accounts) if (!first.has(id) || first.get(id)! > account.createdAt) first.set(id, account.createdAt);
+    const pays = paysOf(input), lives = livesOf(input, pays, time);
+    const firstPaid = new Map<string, number>();
+    for (const life of lives) if (!life.comp && (!firstPaid.has(life.accountId) || firstPaid.get(life.accountId)! > life.start)) firstPaid.set(life.accountId, life.start);
+    const checkout = new Set(input.checkouts.filter(row => row.source !== "ops_grant" && row.source !== "admin_comp").map(row => row.accountId));
+    const people = [...first].filter(([, at]) => at >= from && at < time).map(([id]) => id);
+    const signed = people.filter(id => input.accounts.has(id)), started = signed.filter(id => checkout.has(id) || firstPaid.has(id)), paid = started.filter(id => firstPaid.has(id));
+    const eligible = paid.filter(id => firstPaid.get(id)! + 30 * DAY <= time);
+    const retained = eligible.filter(id => (accountMrr(lives, firstPaid.get(id)! + 30 * DAY).get(id) ?? 0) > 0);
+    return { days, steps: [{ id: "visit", label: "visited", count: people.length }, { id: "signup", label: "signed up", count: signed.length }, { id: "checkout", label: "started checkout", count: started.length },
+      { id: "paid", label: "paid", count: paid.length }, { id: "retained", label: "still paying in month 2", count: retained.length, of: eligible.length }] };
+  }
+  async function revenue(url: URL) {
+    const days = Number(url.searchParams.get("days") ?? "90");
+    if (!Number.isInteger(days) || days < 7 || days > 400) throw bad();
+    const { input, history } = await revenueData();
+    const state = billing.store.state;
+    return { ...subscriptionReport(input), funnel: revenueFunnel(input, history, days), sync: { available: billing.operator.provider === "dodo", last: state.lastSync ?? null } };
+  }
+  function ledgerSteps(accountId: string): Step[] {
+    const skip = new Set(["payment.succeeded", "refund.succeeded", "subscription.renewed", "subscription.active", "checkout.started"]);
+    return (billing.store.state.ledger ?? []).filter(row => row.accountId === accountId && !skip.has(row.type) && LEDGER_LABELS[row.type]).map(row => {
+      const delta = row.mrrCents !== null && row.previousMrrCents !== null ? row.mrrCents - row.previousMrrCents : null;
+      return { at: row.at, kind: "billing", surface: "server", name: LEDGER_LABELS[row.type]!.label, emoji: LEDGER_LABELS[row.type]!.emoji, path: null,
+        detail: row.reason ?? (row.plan ? planLabel(row.plan) : null), amountCents: delta ?? (row.type.startsWith("payment.") || row.type.startsWith("dispute.") ? row.amountCents : null) };
+    });
+  }
+
   async function saveNote(actor: string, input: Record<string, unknown>, id?: string) {
     // oxlint-disable-next-line no-control-regex -- control characters are what this strips or refuses
     const text = typeof input.text === "string" ? input.text.replace(/[\u0000-\u001f]/g, " ").trim() : "";
@@ -339,5 +420,5 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return note;
   }
 
-  return { web, webDetails, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
+  return { revenue, syncRevenue: () => billing.service.syncFromProvider(), web, webDetails, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
 }

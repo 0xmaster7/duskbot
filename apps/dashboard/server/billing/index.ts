@@ -25,6 +25,7 @@ import { BillingProviderError } from "./types.ts";
 import type { AccountRef, AccountResolver, BillingProvider } from "./types.ts";
 import { createBillingRoutes } from "./routes.ts";
 import { createAdminRoutes } from "./admin-routes.ts";
+import type { LedgerEntry } from "./ledger.ts";
 
 export interface BillingOptions {
   dataDir: string; publicUrl: string; dashboard: { state: DashboardState; changed(): void; close?(): void }; accounts: AccountResolver;
@@ -38,6 +39,8 @@ export interface BillingOptions {
   mail?: (cloud: StoredCloud, letter: CloudLetter) => void;
   /** billing events worth an email: receipts, failed payments, cancellations */
   notify?: (notice: BillingNotice) => void;
+  /** each new billing ledger row, once stored */
+  onLedger?: (entry: LedgerEntry) => void;
   /** a cloud's first time up, and a cloud the generic lifecycle took down */
   cloudEvent?: (kind: CloudEventKind, cloud: StoredCloud) => void;
   /** every cloud status change */
@@ -124,7 +127,7 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   billingStore = store;
-  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify });
+  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");

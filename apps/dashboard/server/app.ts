@@ -33,7 +33,9 @@ import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { createUsage, memoryUsageStore, type UsageStore } from "./analytics/usage.ts";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
-import { createAlerts, parseAlerts } from "./admin/alerts.ts";
+import { churnThreshold, createAlerts, parseAlerts } from "./admin/alerts.ts";
+import { moneyDigestOf, mrrAtTime } from "./analytics/subscriptions.ts";
+import type { LedgerEntry } from "./billing/ledger.ts";
 import type { WaitlistSource } from "./admin/waitlist.ts";
 import { workspaceTurns } from "./admin/metrics.ts";
 import { createIncidents, type Incidents } from "./incidents/index.ts";
@@ -206,6 +208,16 @@ export function createDashboardApp(options: DashboardAppOptions) {
     else sendTo(notice.accountId, "required", cancelledEmail(emailCfg, { description: notice.description, cloudName: cloud?.name ?? null, endsAt: notice.endsAt,
       keptPaused: cloud?.backend === "managed", keepDays: cloud?.backend === "managed" ? retentionDays : notice.graceDays }));
   }
+  const ledgerState = () => ({ subscriptions: billing.store.state.subscriptions, invoices: billing.store.state.invoices, ledger: billing.store.state.ledger ?? [] });
+  function ledgerRow(entry: LedgerEntry) {
+    if (entry.accountId) {
+      const props = { type: entry.type, ...(entry.amountCents !== null ? { amountCents: Math.abs(entry.amountCents) } : {}), ...(entry.mrrCents !== null ? { mrrCents: entry.mrrCents } : {}),
+        ...(entry.previousMrrCents !== null ? { previousMrrCents: entry.previousMrrCents } : {}), ...(entry.plan ? { plan: entry.plan } : {}), ...(entry.interval ? { interval: entry.interval } : {}) };
+      analytics.track("billing", { accountId: entry.accountId, at: entry.at, props });
+    }
+    const paidBefore = !!entry.accountId && billing.store.state.invoices.some(invoice => invoice.accountId === entry.accountId && invoice.status !== "failed" && invoice.amountCents > 0);
+    alerts.money(entry, { email: entry.accountId ? auth.account(entry.accountId)?.email ?? null : null, paidBefore, mrr: mrrAtTime(ledgerState(), now()) });
+  }
   const billing = createBilling({ accountExists: id => auth.account(id) !== null,
     findAccount: email => { const found = auth.accountByEmail(email); return found ? { id: found.id, email: found.email } : null; },
     mail: (cloud, letter) => {
@@ -214,6 +226,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (email) sendTo(cloud.accountId, letter.notice.kind === "recovered" ? "cloudStatus" : "required", email);
     },
     notify: notice => billingNotice(notice),
+    onLedger: entry => ledgerRow(entry),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),
     cloudEvent: (kind, cloud) => kind === "ready" ? sendTo(cloud.accountId, "cloudStatus", cloudReadyEmail(emailCfg, cloudFacts(cloud)))
       : sendTo(cloud.accountId, "required", cloudDeletedEmail(emailCfg, { name: cloud.name, at: now() })),
@@ -250,7 +263,9 @@ export function createDashboardApp(options: DashboardAppOptions) {
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
   const alerts = createAlerts({ kinds: parseAlerts((options.admin?.env ?? process.env).DUSK_ADMIN_ALERTS), emails: () => adminEmails, mailer: options.mailer, sink: analytics.sink, now,
     panelUrl: `${publicUrl}${ADMIN_PATH}`, totals: (from, to) => ({ accounts: auth.directory().accounts.length, signups: auth.directory().accounts.filter(account => account.createdAt >= from && account.createdAt < to).length,
-      paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null }) });
+      paid: billing.store.state.invoices.filter(invoice => invoice.status === "paid" && invoice.createdAt >= from && invoice.createdAt < to).length, waitlist: null,
+      money: moneyDigestOf({ ...ledgerState(), accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])) }, from, to) }),
+    churnCents: churnThreshold((options.admin?.env ?? process.env).DUSK_ALERT_CHURN_CENTS) });
   auth.onAccountCreated(owner => alerts.signup(owner.email, auth.directory().identities.find(item => item.accountId === owner.id)?.provider ?? "email"));
   analytics.onTrack((name, input = {}) => {
     if (name === "site_goal" && input.props?.goal === "waitlist_join") alerts.waitlistJoin();

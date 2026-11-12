@@ -1,9 +1,18 @@
 import type { Mailer } from "../auth/mail.ts";
 import type { AnalyticsSink } from "../analytics/sink.ts";
 import { DAY, HOUR, visitsOf } from "../analytics/web.ts";
+import type { LedgerEntry } from "../billing/ledger.ts";
 
-/** DUSK_ADMIN_ALERTS: which emails the admins get; "all", or any of these, comma-separated; unset sends none */
+/** DUSK_ADMIN_ALERTS: which emails the admins get; "all", or any of these, comma-separated; unset sends none.
+ *  "paid" is the first payment ever and money trouble: a paying customer's failed payment, a dispute, a refund, a big
+ *  customer's churn and MRR milestones */
 export const ALERT_KINDS = ["signup", "paid", "waitlist", "spike", "digest"] as const;
+/** MRR milestones in cents: $100, $500, $1k, $2.5k, $5k, $10k, $25k, $50k, $100k a month */
+export const MRR_MILESTONES = [10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000];
+/** DUSK_ALERT_CHURN_CENTS: a churned customer worth at least this much MRR gets its own email; $50 unless set */
+export function churnThreshold(value: string | undefined) { const cents = Number(value); return Number.isSafeInteger(cents) && cents >= 0 && value !== "" && value !== undefined ? cents : 5_000; }
+const usd = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export interface MoneyDigest { newCustomers: Array<{ email: string | null; cents: number }>; mrr: number; netNew: number; failed: number; recovered: number; churned: number; refunds: number }
 export type AlertKind = (typeof ALERT_KINDS)[number];
 export function parseAlerts(value: string | undefined): Set<AlertKind> {
   const parts = (value ?? "").split(",").map(item => item.trim().toLowerCase()).filter(Boolean);
@@ -29,7 +38,8 @@ export interface AlertsOptions {
   /** the admin panel's address, for links in the emails */
   panelUrl: string;
   /** yesterday's numbers for the digest: signups, payments, waitlist joins */
-  totals(from: number, to: number): { signups: number; paid: number; waitlist: number | null; accounts: number };
+  totals(from: number, to: number): { signups: number; paid: number; waitlist: number | null; accounts: number; money?: MoneyDigest };
+  churnCents?: number;
 }
 
 /**
@@ -54,11 +64,36 @@ export function createAlerts(options: AlertsOptions) {
   function signup(email: string, method: string) {
     if (kinds.has("signup")) void send(`New signup: ${email}`, [`${email} made a dusk bot account (${method}).`]);
   }
+  /** the first payment ever; each later new customer is in the daily digest instead */
   function paid(accountId: string, email: string | null, amountCents: number) {
-    if (!kinds.has("paid")) return;
-    void sink.once(`alert|paid|${accountId}`, null).then(first => {
-      if (first) void send(`First payment: ${email ?? "an account"}`, [`${email ?? accountId} paid for the first time: $${(amountCents / 100).toFixed(2)}.`]);
+    if (!kinds.has("paid") || amountCents <= 0) return;
+    void sink.once("alert|paid|first-ever", null).then(first => {
+      if (first) void send(`First payment ever: ${email ?? "an account"}`, [`${email ?? accountId} just paid ${usd(amountCents)}. That's dusk bot's first money in.`]);
     }, () => {});
+  }
+  /** one email per incident, each behind a mark so a retry, a replay or a restart never sends it twice */
+  async function money(entry: LedgerEntry, facts: { email: string | null; paidBefore: boolean; mrr: number }) {
+    if (!kinds.has("paid")) return;
+    const who = facts.email ?? entry.accountId ?? "a customer", time = now();
+    const failure = entry.type === "payment.failed" || entry.type === "subscription.on_hold" || entry.type === "subscription.failed";
+    if (failure && facts.paidBefore && await sink.once(`alert|failed|${entry.subscriptionId ?? entry.accountId ?? entry.providerPaymentId}`, time + 30 * DAY)) {
+      await send(`Payment failed: ${who}`, [`A payment from ${who} didn't go through${entry.amountCents ? ` (${usd(entry.amountCents)})` : ""}${entry.reason ? `: ${entry.reason.replace(/_/g, " ")}` : ""}.`,
+        "dodo retries it on its own. You'll hear again only if it fails again after a month."]);
+    }
+    if (entry.type === "dispute.opened" && await sink.once(`alert|dispute|${entry.providerRef ?? entry.id}`, null)) {
+      await send(`Dispute opened: ${who}`, [`${who} disputed a payment${entry.amountCents ? ` of ${usd(entry.amountCents)}` : ""}. Answer it in the dodo dashboard before its deadline.`]);
+    }
+    if (entry.type === "refund.succeeded" && await sink.once(`alert|refund|${entry.providerRef ?? entry.id}`, null)) {
+      await send(`Refund: ${usd(entry.amountCents ?? 0)} to ${who}`, [`${usd(entry.amountCents ?? 0)} went back to ${who}${entry.reason ? ` (${entry.reason})` : ""}.`]);
+    }
+    const churn = entry.type === "subscription.cancelled" || entry.type === "subscription.expired";
+    if (churn && (entry.mrrCents ?? 0) >= (options.churnCents ?? 5_000) && await sink.once(`alert|churn|${entry.subscriptionId ?? entry.id}`, null)) {
+      await send(`Customer lost: ${who} (${usd(entry.mrrCents ?? 0)}/mo)`, [`${who} stopped paying for ${entry.plan ?? "their plan"}, worth ${usd(entry.mrrCents ?? 0)} a month.`]);
+    }
+    const reached = MRR_MILESTONES.filter(cents => facts.mrr >= cents);
+    const fresh: number[] = [];
+    for (const cents of reached) if (await sink.once(`alert|mrr|${cents}`, null)) fresh.push(cents);
+    if (fresh.length) await send(`MRR passed ${usd(fresh.at(-1)!).replace(/\.00$/, "")} a month`, [`dusk bot now makes ${usd(facts.mrr)} a month in recurring revenue.`]);
   }
   function waitlistJoin() { if (kinds.has("waitlist")) waitlist++; }
   async function tick() {
@@ -89,10 +124,16 @@ export function createAlerts(options: AlertsOptions) {
       const totals = options.totals(from, today);
       await send(`dusk bot yesterday: ${visitors} visitors, ${totals.signups} signups`, [
         `Visitors: ${visitors}${top ? ` (${top})` : ""}.`, `Signups: ${totals.signups}. Accounts in all: ${totals.accounts}.`,
-        `Paid: ${totals.paid}.`, ...(totals.waitlist === null ? [] : [`Waitlist joins: ${totals.waitlist}.`])]);
+        `Paid: ${totals.paid}.`, ...(totals.waitlist === null ? [] : [`Waitlist joins: ${totals.waitlist}.`]),
+        ...(totals.money ? [
+          ...(totals.money.newCustomers.length ? [`New paying customers: ${totals.money.newCustomers.length} (${totals.money.newCustomers.slice(0, 10).map(row => `${row.email ?? "an account"} ${usd(row.cents)}`).join(", ")}${totals.money.newCustomers.length > 10 ? ", and more" : ""}).`] : []),
+          `MRR: ${usd(totals.money.mrr)} (${totals.money.netNew >= 0 ? "+" : "-"}${usd(Math.abs(totals.money.netNew))} yesterday).`,
+          ...(totals.money.failed || totals.money.recovered || totals.money.churned || totals.money.refunds
+            ? [`Failed payments: ${totals.money.failed}, recovered: ${totals.money.recovered}, cancellations: ${totals.money.churned}, refunds: ${totals.money.refunds}.`] : []),
+        ] : [])]);
     }
   }
   const timer = kinds.size ? setInterval(() => { void tick().catch(() => console.warn("alerts: a check failed")); }, 10 * 60_000) : null;
   timer?.unref();
-  return { signup, paid, waitlistJoin, tick, close() { if (timer) clearInterval(timer); } };
+  return { signup, paid, money: (entry: LedgerEntry, facts: { email: string | null; paidBefore: boolean; mrr: number }) => { void money(entry, facts).catch(() => console.warn("alerts: a money alert failed")); }, waitlistJoin, tick, close() { if (timer) clearInterval(timer); } };
 }

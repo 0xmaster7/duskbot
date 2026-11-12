@@ -9,7 +9,7 @@ import type { Visit } from "./web.ts";
 export const SESSION_GAP_MS = 30 * 60_000;
 
 export type StepKind = "view" | "goal" | "paid" | "refund" | "checkout" | "signup" | "signin" | "onboarding" | "plan" | "paired" | "install" | "app"
-  | "reply" | "cloud" | "upsell" | "notice" | "error" | "feedback" | "returned";
+  | "reply" | "cloud" | "upsell" | "notice" | "error" | "feedback" | "returned" | "billing";
 export type StepSurface = "site" | "account" | "app" | "server";
 export interface Step {
   at: number; kind: StepKind; surface: StepSurface;
@@ -29,6 +29,8 @@ export interface Step {
   ms?: number;
   /** a site page view's deepest scroll, only for pages at least two screens tall */
   scroll?: number;
+  /** a money moment's mark: 💰 paid, 🔁 renewed, ⚠️ failed, ↩️ refunded, 👋 cancelled, 📈 upgraded, 📉 downgraded */
+  emoji?: string;
 }
 export interface Session {
   start: number; end: number; ms: number; surface: StepSurface;
@@ -118,8 +120,9 @@ const PAY_NAME: Record<Payment["kind"], string> = { new: "paid", renewal: "renew
 /** billing records as steps: each payment and refund, and each checkout that was started */
 export function billingSteps(payments: readonly Payment[], checkouts: readonly CheckoutLike[]): Step[] {
   return [
-    ...checkouts.map((checkout): Step => ({ at: checkout.createdAt, kind: "checkout", surface: "server", name: "started checkout", path: null, detail: words(checkout.source), amountCents: checkout.amountCents || null })),
+    ...checkouts.map((checkout): Step => ({ at: checkout.createdAt, kind: "checkout", surface: "server", name: "started checkout", path: null, emoji: "🛒", detail: words(checkout.source), amountCents: checkout.amountCents || null })),
     ...payments.map((payment): Step => ({ at: payment.at, kind: payment.kind === "refund" ? "refund" : "paid", surface: "server", name: PAY_NAME[payment.kind], path: null,
+      emoji: payment.kind === "refund" ? "↩️" : payment.kind === "renewal" ? "🔁" : "💰",
       detail: payment.kind === "renewal" ? "renewal" : payment.kind === "one_time" ? "one time" : null, amountCents: payment.amountCents })),
   ];
 }

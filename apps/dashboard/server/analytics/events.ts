@@ -53,6 +53,8 @@ export const EVENTS = {
   /** the first time any of the account's workspaces reported a bot turn */
   first_bot_reply: { source: "server", props: {} },
   checkout_paid: { source: "server", props: { amountCents: count } },
+  /** a billing ledger row (billing/ledger.ts): paid, renewed, failed, refunded, disputed, cancelled, upgraded, downgraded */
+  billing: { source: "server", props: { type: pattern(/^[a-z_]{2,24}\.[a-z_]{2,24}$/, 49), amountCents: count, mrrCents: count, previousMrrCents: count, plan: word, interval: oneOf("month", "year") } },
   page_view: { source: "page", props: { path: route }, active: true },
   /** an account page view's end: its visible time; sent on the next route or when the page goes away */
   page_leave: { source: "page", props: { path: route, ms: count } },

@@ -439,3 +439,22 @@ export function billingCardOf(report: SubscriptionReport, input: SubscriptionsIn
     .map(entry => ({ id: entry.id, at: entry.at, type: entry.type, amountCents: entry.amountCents, mrrCents: entry.mrrCents, previousMrrCents: entry.previousMrrCents, plan: entry.plan, reason: entry.reason }));
   return row || invoices.length || events.length ? { customer: row, invoices, events } : null;
 }
+
+/** MRR right now and at any moment, from the billing records alone */
+export function mrrAtTime(input: Pick<SubscriptionsInput, "subscriptions" | "invoices" | "ledger">, at: number) {
+  return sum(accountMrr(livesOf(input, paysOf(input), at), at));
+}
+/** yesterday's money for the owner's daily digest */
+export function moneyDigestOf(input: Pick<SubscriptionsInput, "subscriptions" | "invoices" | "ledger" | "accounts">, from: number, to: number) {
+  const pays = paysOf(input), first = new Map<string, Pay>();
+  for (const pay of pays) if (!first.has(pay.accountId)) first.set(pay.accountId, pay);
+  const within = (row: { at: number }) => row.at >= from && row.at < to;
+  const rows = input.ledger.filter(within);
+  const failed = new Set(rows.filter(row => row.type === "payment.failed" || row.type === "subscription.on_hold" || row.type === "subscription.failed").map(row => row.subscriptionId ?? row.id));
+  return {
+    newCustomers: [...first.values()].filter(within).map(pay => ({ email: input.accounts.get(pay.accountId)?.email ?? null, cents: pay.amountCents })),
+    mrr: mrrAtTime(input, to - 1), netNew: mrrAtTime(input, to - 1) - mrrAtTime(input, from - 1), failed: failed.size,
+    recovered: rows.filter(row => row.type === "subscription.recovered").length, churned: rows.filter(row => row.type === "subscription.cancelled" || row.type === "subscription.expired").length,
+    refunds: rows.filter(row => row.type === "refund.succeeded").length,
+  };
+}
