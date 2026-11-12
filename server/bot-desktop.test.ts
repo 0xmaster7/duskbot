@@ -167,6 +167,9 @@ describe("bot desktop isolation checks", () => {
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "strict" }, ["VNC_PW=x"])).toBe("strict");
     expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=strict"])).toBeUndefined();
     expect(containerBotDesktopMode({}, [])).toBeUndefined();
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["OMB_MODE=free"])).toBe("free");
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "free" }, ["DUSK_MODE=strict", "OMB_MODE=free"])).toBeUndefined();
+    expect(containerBotDesktopMode({ [BOT_DESKTOP_MODE_LABEL]: "strict" }, ["OMB_MODE=free"])).toBeUndefined();
     expect(botDesktopIsHardened(freeInspected(), undefined)).toBe(false);
     expect(botDesktopIsHardened(freeInspected(), "strict")).toBe(false);
   });

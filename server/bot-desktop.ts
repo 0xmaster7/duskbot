@@ -211,10 +211,17 @@ export function botDesktopMountsAreSafe(containerName: string, detail: {
 }
 
 /** A container's mode label and environment must agree; anything else is not a box this app made. */
+// images up to v3 read the mode from OMB_MODE, and the computers made for them still carry it
+const LEGACY_MODE_ENV = "OMB_MODE";
+
+function envValue(env: string[] | undefined, name: string): string | undefined {
+  return env?.find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1);
+}
+
 export function containerBotDesktopMode(labels: Record<string, string> | undefined, env: string[] | undefined): BotDesktopMode | undefined {
   const mode = labels?.[BOT_DESKTOP_MODE_LABEL];
   if (mode !== "free" && mode !== "strict") return undefined;
-  const envMode = env?.find((entry) => entry.startsWith("DUSK_MODE="))?.slice("DUSK_MODE=".length) ?? "strict";
+  const envMode = envValue(env, "DUSK_MODE") ?? envValue(env, LEGACY_MODE_ENV) ?? "strict";
   return envMode === mode ? mode : undefined;
 }
 
