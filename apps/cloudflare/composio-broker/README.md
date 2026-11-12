@@ -8,12 +8,15 @@ MCP traffic, and returns short-lived Connect Links to the local app.
 The desktop never receives the project key. Authorization links are returned
 only on demand and are never persisted in chat messages.
 
-Deployment for this repository:
-
-1. `pnpm broker:types`
-2. `pnpm exec wrangler d1 migrations apply duskbot-composio --remote --config apps/cloudflare/composio-broker/wrangler.jsonc`
-3. For an existing Worker, run `pnpm exec wrangler secret put COMPOSIO_API_KEY --config apps/cloudflare/composio-broker/wrangler.jsonc`, then `pnpm broker:deploy`.
-4. For the very first deploy, put `COMPOSIO_API_KEY=...` in the ignored `.dev.vars.production` file and run `pnpm exec wrangler deploy --config apps/cloudflare/composio-broker/wrangler.jsonc --secrets-file .dev.vars.production`. Delete the file immediately afterward.
+Deployment for this repository: it runs on dusk bot's own Cloudflare account at
+`https://composio.dusk.bot`, with dusk bot's own Composio project. Put
+`DUSK_COMPOSIO_API_KEY`, `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1 and the
+dusk.bot zone's Workers routes, all edit) and `CLOUDFLARE_ACCOUNT_ID` in
+`~/.config/duskbot/dusk.env`, then run `scripts/deploy-composio-broker.sh`. It
+creates the D1 database when missing and writes its id into `wrangler.jsonc`
+(commit that), applies every migration, makes the Composio webhook
+subscription, keeps the generated secrets in `dusk.env` and deploys with them.
+Run it again for every later deploy.
 
 Forks should create their own D1 database and rate-limit namespaces, replace
 the IDs in `wrangler.jsonc`, deploy under their own Worker name, and set
@@ -159,7 +162,7 @@ changes nothing.
    curl -sS https://backend.composio.dev/api/v3.1/webhook_subscriptions -H "x-api-key: $COMPOSIO_API_KEY"
    curl -sS -X POST https://backend.composio.dev/api/v3.1/webhook_subscriptions \
      -H "x-api-key: $COMPOSIO_API_KEY" -H "content-type: application/json" \
-     -d '{"webhook_url":"https://duskbot-composio.milindsoni201.workers.dev/v1/composio/webhook","enabled_events":["composio.trigger.message","composio.trigger.disabled","composio.connected_account.expired"],"version":"V3"}'
+     -d '{"webhook_url":"https://composio.dusk.bot/v1/composio/webhook","enabled_events":["composio.trigger.message","composio.trigger.disabled","composio.connected_account.expired"],"version":"V3"}'
    ```
 
    If Composio refuses `composio.trigger.disabled`, leave it out: the server's

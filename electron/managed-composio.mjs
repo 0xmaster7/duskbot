@@ -1,8 +1,14 @@
-import { UPSTREAM } from "./legacy-names.mjs";
 const TOKEN = /^[0-9a-f]{64}$/;
 
-/** dusk bot's connected-apps service (cloudflare/composio-broker): the packaged desktop app and a Cloud home use it. */
-export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = UPSTREAM.composioBroker;
+/** dusk bot's connected-apps service (apps/cloudflare/composio-broker on dusk bot's own cloudflare account): the packaged
+ * desktop app, the desktop app run from source and a Cloud home use it. */
+export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = "https://composio.dusk.bot";
+
+/** The desktop app run from source connects apps the way a shipped one does, so what the owner tries is what people get;
+ * DUSK_DEV_MANAGED_APPS=0 turns it off (a project key, or Composio Connect, then). Tests never start the desktop app. */
+export function devDesktopUsesManagedApps(env = process.env) {
+  return env.DUSK_DEV_MANAGED_APPS !== "0";
+}
 
 /** An explicit URL wins; otherwise the default, only for a shipped build, so development and tests never register. */
 export function managedComposioBrokerUrl(configured, shipped) {

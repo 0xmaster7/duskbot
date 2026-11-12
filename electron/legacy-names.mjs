@@ -70,11 +70,9 @@ export const CLOUD_HOME = Object.freeze({
 /** a phone saved this computer's lan name, so it keeps it */
 export const MDNS_HOST_PREFIX = `${OLD}-`;
 
-/** services that still run under the old name: the teams playbook repository (someone else's) and the connected-apps
- * broker until it is deployed again as duskbot-composio (apps/cloudflare/composio-broker) */
+/** a service that still runs under the old name: the teams playbook repository (someone else's) */
 export const UPSTREAM = Object.freeze({
   teamLibrary: { repository: `https://github.com/milind-soni/${OLD}-teams`, raw: `https://raw.githubusercontent.com/milind-soni/${OLD}-teams/main` },
-  composioBroker: `https://${OLD}-composio.milindsoni201.workers.dev`,
 });
 
 const NEW_ENV = "DUSK_";

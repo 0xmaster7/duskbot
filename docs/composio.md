@@ -17,7 +17,7 @@ The desktop app validates the key before saving it. The key is encrypted using E
 
 ## dusk cloud
 
-A dusk cloud plan includes connected apps: there is no key to add. At every start a Cloud home's server makes sure it has its own installation on dusk bot's managed connection service, the same one the packaged desktop app registers with (`server/cloud-connected-apps.ts`, sharing `electron/managed-composio.mjs` with the app):
+A dusk cloud plan includes connected apps: there is no key to add. At every start a Cloud home's server makes sure it has its own installation on dusk bot's managed connection service (`https://composio.dusk.bot`), the same one the desktop app registers with (`server/cloud-connected-apps.ts`, sharing `electron/managed-composio.mjs` with the app):
 
 - The first start registers the installation (`POST /v1/installations`) and keeps its token in `connected-apps-installation.json` in the data folder (`CLOUD_HOME.data` in `electron/legacy-names.mjs`), owner-only (0600). The token is never written to `config.json`, sent to a client or logged.
 - Every later start serves that token at once and checks it with `GET /v1/me`. Only a refusal (401) registers a new installation; an outage or a rate limit keeps the token, so the Cloud's connected accounts are never stranded.

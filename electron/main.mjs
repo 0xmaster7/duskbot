@@ -47,6 +47,7 @@ import { appPermissionHandlers, externalLinkUrl } from "./app-permissions.mjs";
 import { appFrameNavigationAllowed } from "./app-frame-guard.mjs";
 import { writeClipboardText } from "./clipboard-write.mjs";
 import {
+  devDesktopUsesManagedApps,
   ensureManagedComposioCredentials,
   managedComposioAccess,
   managedComposioBrokerUrl,
@@ -528,7 +529,7 @@ async function secureWorkspaceConfig() {
 }
 
 function composioBrokerUrl() {
-  return managedComposioBrokerUrl(process.env.DUSK_COMPOSIO_BROKER_URL, app.isPackaged);
+  return managedComposioBrokerUrl(process.env.DUSK_COMPOSIO_BROKER_URL, app.isPackaged || devDesktopUsesManagedApps());
 }
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.
@@ -3316,7 +3317,7 @@ app.whenReady().then(async () => {
   if (credentialStoreUnavailable) {
     slog("skipping connected-apps registration: the credential store was unreadable this launch");
   }
-  if (!desktopRemoteAccess && app.isPackaged && composioBrokerUrl() && !credentialStoreUnavailable) {
+  if (!desktopRemoteAccess && composioBrokerUrl() && !credentialStoreUnavailable) {
     void updateSecureCredentialDocument(async (credentials) => {
       await ensureManagedComposioCredentials({
         brokerUrl: composioBrokerUrl(),
