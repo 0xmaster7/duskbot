@@ -58,4 +58,11 @@ describe("keyboard focus on form controls", () => {
       }
     }
   });
+
+  it.each(CONTROLS)("gives a keyboard-focused %s input a halo, since the global rule clears its outline and it paints no tint", (type) => {
+    const rule = /:root\[data-focus-nav\] input:is\(([^)]*)\):focus-visible\s*\{([^}]*)\}/.exec(unlayered(css));
+    expect(rule).not.toBeNull();
+    expect(rule![1]).toContain(`[type="${type}"]`);
+    expect(rule![2]).toMatch(/box-shadow:\s*0 0 0 \d+px/);
+  });
 });
