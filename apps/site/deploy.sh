@@ -4,14 +4,14 @@
 # Dusk Bot repo), which proxies every non-account path to this app on 127.0.0.1:3103; app., dev. and www. are its
 # aliases and redirect. before launch dusk.bot's home is the waitlist page on its own and every other page is the full
 # site: the landing build runs with DUSK_WAITLIST_HOME=1 (set DUSK_WAITLIST_HOME=0 for the full home page at launch).
-#   sites/dusk/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
+#   apps/site/deploy.sh            # landing (the app dusk-landing, reached through dusk.bot)
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 # LANDING_ENV is the landing app's env file (mongodb + brevo for the waitlist, names in .env.example); it is uploaded
 # when it exists, otherwise the env already on the server stays.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DUSK_REPO="${DUSK_REPO:-$HOME/Desktop/code/OpenMausBot}"
+DUSK_REPO="${DUSK_REPO:-$(cd "$HERE/../.." && pwd)}"
 INSTALLER="${INSTALLER:-$DUSK_REPO/apps/link-service/install.sh}"
 LANDING_ENV="${LANDING_ENV:-$HOME/.config/duskbot/site-landing.env}"
 DEPLOY="${DEPLOY:-deploy}"

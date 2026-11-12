@@ -4,7 +4,7 @@
 # site. run on the Mac after Release published v<version>.
 #   scripts/publish-downloads.sh v0.1.142
 # env: DUSK_DOWNLOADS_REPO (public, default DuskBotAI/duskbot-releases), DUSK_SOURCE_REPO (private, the
-# release's home), DEPLOYD_DIR (default ~/Desktop/code/deployd), DRY_RUN=1 to stop before uploading.
+# release's home), SITE_DIR (default apps/site in this repo), DRY_RUN=1 to stop before uploading.
 set -euo pipefail
 
 TAG="${1:?usage: publish-downloads.sh v<version>}"
@@ -12,7 +12,7 @@ VERSION="${TAG#v}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG" >&2; exit 2; }
 SOURCE="${DUSK_SOURCE_REPO:-DuskBotAI/duskbot}"
 DOWNLOADS="${DUSK_DOWNLOADS_REPO:-DuskBotAI/duskbot-releases}"
-DEPLOYD="${DEPLOYD_DIR:-$HOME/Desktop/code/deployd}"
+SITE="${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)/apps/site}"
 work=$(mktemp -d "${TMPDIR:-/tmp}/dusk-publish.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
@@ -38,8 +38,8 @@ gh release view "$TAG" --repo "$DOWNLOADS" >/dev/null 2>&1 || gh release create 
 gh release upload "$TAG" --repo "$DOWNLOADS" --clobber "$work"/assets/DuskBot* "$work/site/SHA256SUMS"
 gh release edit "$TAG" --repo "$DOWNLOADS" --latest
 
-mkdir -p "$DEPLOYD/sites/dusk/public/landing/releases/$VERSION"
-cp "$work/site/latest.json" "$DEPLOYD/sites/dusk/public/landing/releases/latest.json"
-cp "$work/site/SHA256SUMS" "$DEPLOYD/sites/dusk/public/landing/releases/$VERSION/SHA256SUMS"
-(cd "$DEPLOYD" && sites/dusk/deploy.sh landing)
+mkdir -p "$SITE/public/landing/releases/$VERSION"
+cp "$work/site/latest.json" "$SITE/public/landing/releases/latest.json"
+cp "$work/site/SHA256SUMS" "$SITE/public/landing/releases/$VERSION/SHA256SUMS"
+(cd "$SITE" && ./deploy.sh landing)
 curl -fsS "https://dusk.bot/releases/latest.json" | grep -q "\"version\": \"$VERSION\"" && echo "dusk.bot announces $VERSION"

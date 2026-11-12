@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync } from 'fs';
 import { execFileSync } from 'child_process';
 const { chromium } = createRequire('/Users/siddharth/Desktop/code/make/')('playwright');
 const here = new URL('.', import.meta.url).pathname, out = `${here}../../public/landing/email`;
-const ROOT = process.env.ROOT ?? 'deployd/sites/dusk';
+const ROOT = process.env.ROOT ?? 'apps/site';
 const scenes = ['code', 'welcome', 'cloud-ready', 'receipt', 'payment', 'napping', 'heads-up', 'cloud-gone', 'bye', 'promo'];
 mkdirSync(`${out}/fonts`, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });

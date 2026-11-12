@@ -64,7 +64,7 @@ Import a data folder of JSON files once: `node apps/dashboard/scripts/import-jso
 
 | Data | Store | Status |
 | --- | --- | --- |
-| dusk.bot waitlist | `dusk.waitlist` + `dusk.counters` (deployd `sites/dusk`) | live |
+| dusk.bot waitlist | `dusk.waitlist` + `dusk.counters` (`apps/site`) | live |
 | composio broker installs, triggers, events | Cloudflare D1 `duskbot-composio` | stays (runs on Workers, cannot reach a loopback DB) |
 | link-service sessions and tunnels | `link-service/src/store.mjs` JSON | stays for now (ephemeral) |
 | companion, self-hosted bot | local files on the user's machine | stays (user-side data) |

@@ -6,11 +6,11 @@
 #   4. tell indexnow about new, changed and removed pages (only after the site is live)
 #   5. on mondays, the prune report (never applied; a person decides)
 # settings come from the environment (the timer reads ~/.config/dusk-seo.env):
-#   DUSK_SEO_REPO   the deployd checkout            DUSK_REPO        the dusk bot checkout (for the build)
-#   DUSK_SEO_DEPLOY the command that ships sites/dusk (leave empty to only commit and push)
+#   DUSK_SEO_REPO   the dusk bot checkout           DUSK_REPO        the dusk bot checkout (for the build)
+#   DUSK_SEO_DEPLOY the command that ships apps/site (leave empty to only commit and push)
 #   DUSK_GSC_CREDENTIALS, DUSK_GSC_SITE  search console (until set, the gate holds)    SITE_URL (default https://dusk.bot)
 set -euo pipefail
-cd "${DUSK_SEO_REPO:?set DUSK_SEO_REPO to the deployd checkout}/sites/dusk"
+cd "${DUSK_SEO_REPO:?set DUSK_SEO_REPO to the dusk bot checkout}/apps/site"
 git pull --rebase --autostash --quiet
 node seo/jobs/release.mjs --apply || { echo "gate is red (or the job failed): nothing released, see above"; }
 if ! git diff --quiet -- seo/release.json; then

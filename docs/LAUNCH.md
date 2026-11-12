@@ -61,7 +61,7 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
 8. **First release**: Actions > Prepare next release > patch; merge the PR; when the draft is ready, review and
    publish it; then on the Mac `DRY_RUN=1 scripts/publish-downloads.sh v<version>` and without `DRY_RUN`. Then
    remove the "Downloads open with the first public release" line from
-   `~/Desktop/code/deployd/sites/dusk/pages/download.html` and run `sites/dusk/deploy.sh landing`.
+   `apps/site/pages/download.html` and run `apps/site/deploy.sh landing`.
 9. **Store listings** (only if wanted): Mac App Store and Microsoft Store are not set up (the app is distributed
    directly); the phone app (Capacitor, `apps/mobile`) needs an App Store Connect app record for its bundle id, a
    Google Play developer account (one-time USD 25), screenshots, the privacy nutrition label (use
@@ -229,7 +229,7 @@ Silence or test:
 - Final policies in `docs/legal/{terms,privacy,cookies,refunds,acceptable-use,subprocessors,license,security}.md`, each
   with an effective date (12 November 2026), live at https://dusk.bot/terms, /privacy, /cookies, /refunds,
   /acceptable-use, /subprocessors, /license and /security (built from the Markdown by
-  `deployd/sites/dusk/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, InstaBox (cloud desktops, on AWS us-west-2), Dodo
+  `apps/site/build-pages.mjs`). The privacy policy lists the sub-processors: Contabo, Cloudflare, InstaBox (cloud desktops, on AWS us-west-2), Dodo
   Payments, Brevo, Composio, Apple APNs, Google FCM, Spaceship (registrar), Let's Encrypt and the error tracker; AI model
   providers are the user's own relationship.
 - https://dusk.bot/.well-known/security.txt (expires 2027-11-10).
@@ -248,7 +248,7 @@ Silence or test:
    replaced the earlier cloud desktop provider: its DPA is new and still unsigned.
 3. Decide whether naming InstaBox publicly on /privacy is fine now (apps/cloud-service/README.md planned it for "once
    there are EU customers"; the privacy page names it today).
-4. After any policy edit: run `sites/dusk/deploy.sh landing`, and bump security.txt's
+4. After any policy edit: run `apps/site/deploy.sh landing`, and bump security.txt's
    Expires yearly.
 
 ## 5. Product polish

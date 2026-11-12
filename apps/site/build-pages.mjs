@@ -1,7 +1,7 @@
 // builds the dusk.bot pages: wraps each page body in the shared layout, turns the legal pages (Markdown in the Dusk Bot
 // repo's docs/legal) into terms/, privacy/, cookies/, refunds/, acceptable-use/, subprocessors/, license/ and security/, the docs (pages/docs/*.md, see build-docs.mjs) into
 // docs/, pages/changelog.md into changelog/, and writes the sitemap, robots.txt, the manifest and the redirects. zero deps.
-//   node sites/dusk/build-pages.mjs [path to the Dusk Bot checkout]
+//   node apps/site/build-pages.mjs [path to the dusk bot checkout, default: this repo]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +13,7 @@ import { writeSitemaps, robotsTxt } from './seo/sitemaps.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
-const repo = process.argv[2] || path.join(process.env.HOME, 'Desktop/code/OpenMausBot');
+const repo = process.argv[2] || path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 // every link to the account web app goes through APP_URL, and every absolute address of this site through SITE_URL.
 // DUSK_APP_URL is a path on this origin (default /app, where preview.dusk.bot serves the app) or a full address
 export const APP_URL = (process.env.DUSK_APP_URL || '/dashboard').replace(/\/+$/, '');
