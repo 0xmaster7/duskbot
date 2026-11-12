@@ -56,6 +56,10 @@ const FILL: Record<string, string> = {
   body: "#f1f7fd",
   light: "#fbfdff",
   shade: "#9dbbdb",
+  sun: "#f2c94c",
+  sunShade: "#e3a93b",
+  moon: "#b9c6ea",
+  star: "#f2c94c",
 };
 /** The sky behind the scene, in four bands from #c2ecfc down to #eaf6fd, as pixel art draws a sky. */
 export const SKY = "linear-gradient(#c2ecfc 0 25%, #cdeffc 25% 50%, #d9f2fd 50% 75%, #eaf6fd 75% 100%)";
@@ -127,5 +131,26 @@ export function CloudHopScene({ bot, on, asleep = false, sky = true, className }
             animate={{ transform: on === "cloud" ? [bandSpot(from), peak, bandSpot(to)] : [bandSpot(to), peak, bandSpot(from)] }}
             transition={{ duration: 0.56, ease: "easeInOut", times: [0, 0.45, 1] }}>{mascot}</motion.span>}
     </div>
+  </div>;
+}
+
+const REST = { w: 128, h: 68, cell: 3, bot: 28 };
+const REST_CLOUD = { x: 28, y: 30 };
+const SUN: Px[] = [".yyy.", "yyyyy", "yyyyY", "yyyYY", ".YYY."].flatMap((row, y) => [...row].flatMap((c, x) => (c === "." ? [] : [{ x, y, tone: c === "y" ? "sun" : "sunShade" }])));
+const MOON: Px[] = [".mmm.", "mm...", "m....", "mm...", ".mmm."].flatMap((row, y) => [...row].flatMap((c, x) => (c === "." ? [] : [{ x, y, tone: "moon" }])));
+const STARS: Px[] = [{ x: 0, y: 0, tone: "star" }, { x: 5, y: 3, tone: "star" }, { x: 2, y: 7, tone: "star" }];
+
+/** A bot resting on its cloud between a small sun and a moon: it works all day and all night. `awake` lifts it a little. */
+export function CloudRestScene({ bot, awake = false, className }: { bot: Pick<Bot, "color" | "mascotBody" | "name">; awake?: boolean; className?: string }) {
+  const reduced = useMotionReduced();
+  const mascot = <MausAvatar color={bot.color} bodyId={bot.mascotBody ?? undefined} size={REST.bot} state={awake ? "happy" : "idle"} trackPointer={false} animated={!reduced} label="" />;
+  return <div aria-hidden="true" data-cloud-rest="" className={cn("relative shrink-0", className)} style={{ width: REST.w, height: REST.h }}>
+    <svg width={REST.w} height={REST.h} viewBox={`0 0 ${REST.w} ${REST.h}`} shapeRendering="crispEdges" className="absolute inset-0">
+      <Pixels at={{ x: 6, y: 8 }} pixels={SUN} cell={REST.cell} />
+      <Pixels at={{ x: 106, y: 6 }} pixels={MOON} cell={REST.cell} />
+      <Pixels at={{ x: 88, y: 4 }} pixels={STARS} cell={2} />
+      <Pixels at={REST_CLOUD} pixels={CLOUD_PX} cell={REST.cell} />
+    </svg>
+    <span className="absolute block transition-transform duration-200 ease-out motion-reduce:transition-none" style={{ left: REST_CLOUD.x + 36 - REST.bot / 2, top: REST_CLOUD.y - REST.bot + 8, transform: awake && !reduced ? "translateY(-3px)" : undefined }}>{mascot}</span>
   </div>;
 }
