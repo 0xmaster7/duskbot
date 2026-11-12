@@ -7,7 +7,7 @@ import { activeLocale, t } from "@/lib/i18n";
 import { buyOfferAllowed, cloudPlanLabel, cloudPlanLine, cloudPlanView, cloudTrialView, moneyBackLine, offerTrialDays, trialRunning, type CloudPlanView } from "@/lib/cloud-plan";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
 import type { LocaleKey } from "@/locales";
-import { AccountsSheet } from "./AccountMenu";
+import { AccountsSheet, CloudSignOutConfirm } from "./AccountMenu";
 import { Card } from "./SettingsPrimitives";
 import { CloudCancelPlan, type CloudRenewalActions } from "./CloudCancelPlan";
 import { StagingMark } from "./cloud-buy/parts";
@@ -304,11 +304,8 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
         {view.kind === "free" && !confirm && <p className="text-[12px] text-ink-secondary">{t(window.duskDesktop?.accounts ? "cloudAccount.otherEmailOrTeam" : "cloudAccount.otherEmail")}{" "}
           <button type="button" data-cloud-other-email disabled={busy} className="underline hover:text-ink" onClick={() => (window.duskDesktop?.accounts ? setAddingEmail(true) : setConfirm(true))}>{t(window.duskDesktop?.accounts ? "cloudAccount.addOtherEmail" : "cloudAccount.useOtherEmail")}</button></p>}
         {addingEmail && <AccountsSheet adding="" onClose={() => setAddingEmail(false)} />}
-        {confirm && <div role="group" aria-label={t("cloudAccount.signoutTitle")} className="rounded-lg border border-transparent p-3">
-          <p className="text-[13px] text-ink-secondary">{t("cloudAccount.signoutHelp")}</p><div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" autoFocus disabled={busy} className="ui-button" onClick={() => setConfirm(false)}>{t("cloudAccount.keep")}</button>
-            <button type="button" disabled={busy} className="ui-button text-danger" onClick={() => void perform(() => bridge.signOut())}>{t("cloudAccount.signOut")}</button>
-          </div></div>}
+        {/* one ask, the same dialog as every other sign-out (AccountMenu) */}
+        <CloudSignOutConfirm open={confirm} pending={busy} onCancel={() => setConfirm(false)} onConfirm={() => void perform(() => bridge.signOut())} />
       </div>}
       {error && <p role="alert" className="mt-3 text-[13px] text-danger">{t("cloudAccount.actionFailed")}</p>}
       {!account && <button type="button" disabled={busy} className="ui-button mt-3" onClick={() => void perform(() => bridge.state())}>{t("organization.refresh")}</button>}

@@ -88,8 +88,8 @@ const PROMPT_KEYS: readonly RegExp[] = [/^onboarding\.start\.job\./];
 
 const wordCount = (value: string) => value.replace(/\{[^}]*\}/g, "x").trim().split(/\s+/).length;
 
-/** the chat window: banners and notices (the corner dusk cloud card, cloudIntro, included), composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
-const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro)\./;
+/** the chat window: banners and notices (the corner cards over it, cloudIntro, twoPlaces, cloudNotice and routines.late, included), composer, message actions, turn status lines, approval cards, thread errors. Everything here, buttons and fragments included, reads in sentence case. Sidebar and settings labels are not listed, so they stay lowercase; the bot panel has its own list below. */
+const CHAT_KEYS = /^(chat|composer|approval|question|failedReply|toolStep|toolDetail|nativeUsage|notices?|contextWarning|secretCard|thread|conversation|ask|limits|error|needsYou|goalRun|trace|server\.status|cloudIntro|twoPlaces|cloudNotice|routines\.late)\./;
 
 /** spoken-only or machine-read text keeps its case in the chat window too */
 const CHAT_QUIET = /(^|\.)(aria\w*)(\.|$)/i;

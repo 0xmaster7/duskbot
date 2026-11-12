@@ -37,11 +37,11 @@ describe("the trial's notice card", () => {
   };
   it("says one message, its next step, and the way down in its last days; it never takes focus", () => {
     const { html, tree, onAction, onClose } = card(cloudTrialView(trial("active", { switchTo: { tier: "starter", amount: 1500 } })));
-    for (const text of ["your free trial ends on Oct 15", "Then Pro is $49/month plus tax, charged on Oct 15.",
-      "Prefer Starter at $15? Tell us from your plan page before Oct 15, and we&#x27;ll switch your plan.", "manage subscription", "Not now"]) expect(html).toContain(text);
+    for (const text of ["Your free trial ends on Oct 15", "Then Pro is $49/month plus tax, charged on Oct 15.",
+      "Prefer Starter at $15? Tell us from your plan page before Oct 15, and we&#x27;ll switch your plan.", "Manage subscription", "Not now"]) expect(html).toContain(text);
     expect(html).toContain('role="status"'); expect(html).not.toContain("autofocus"); expect(html).not.toContain('aria-modal="true"');
     expect(html).toContain('data-notice="cloud-trial-active"');
-    tree.find(node => node.type === "button" && renderToStaticMarkup(node).includes("manage subscription"))!.props.onClick();
+    tree.find(node => node.type === "button" && renderToStaticMarkup(node).includes("Manage subscription"))!.props.onClick();
     expect(onAction).toHaveBeenCalledOnce();
     for (const label of ["Not now"]) tree.find(node => node.type === "button" && renderToStaticMarkup(node).includes(label))!.props.onClick();
     tree.find(node => node.type === "button" && node.props["aria-label"] === "close")!.props.onClick();
@@ -51,7 +51,7 @@ describe("the trial's notice card", () => {
   });
   it("with nothing to do, one OK; a browser that did not open says so", () => {
     const { html } = card(cloudTrialView(trial("processing")));
-    expect(html).toContain("your first payment is processing"); expect(html).toContain(">OK<"); expect(html).not.toContain("not now");
+    expect(html).toContain("Your first payment is processing"); expect(html).toContain(">OK<"); expect(html).not.toContain("not now");
     expect(card(cloudTrialView(trial("ended", { deleteAt: ENDS + 3 * DAY, keep: "checkout" })), true).html).toContain("Could not open your browser. Please try again.");
   });
 });

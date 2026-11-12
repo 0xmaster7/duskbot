@@ -33,7 +33,7 @@ export function TwoPlacesCard({ suggest, onBring, onDismiss }: { suggest: TwoPla
           {busy && <Loader2 aria-hidden="true" className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none" />}
           {t("twoPlaces.move")}
         </button>
-        <button type="button" autoFocus className="ui-button min-h-9 px-3 py-1.5" disabled={busy} onClick={cancel}>{t("common.cancel")}</button>
+        <button type="button" autoFocus className="ui-button min-h-9 px-3 py-1.5" disabled={busy} onClick={cancel}>{t("twoPlaces.cancel")}</button>
       </div>
     </div> : <div className="flex flex-wrap items-center gap-3">
       <button type="button" data-two-places-bring className={PRIMARY_BUTTON} autoFocus={cancelled} onClick={() => setConfirming(true)}>{t("twoPlaces.bring")}</button>

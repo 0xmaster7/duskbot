@@ -11,6 +11,9 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: { host: { platform: f.platform } }, ready: true }) }));
 vi.mock("@/state/store", async original => ({ ...await original<typeof import("@/state/store")>(), useStore: () => ({ state: { bots: [{ name: "Ember" }] }, dispatch: vi.fn() }) }));
+// the sign-out ask is the app's ConfirmDialog, a portal: here only its props are read
+vi.mock("./AccountMenu", async original => ({ ...await original<typeof import("./AccountMenu")>(), CloudSignOutConfirm: () => null }));
+import { CloudSignOutConfirm } from "./AccountMenu";
 import { CloudAccountSettings, CloudPlanOnCloud, TeamPeopleCard, cloudLinkAction, cloudPlanLabel } from "./CloudAccountSettings";
 type Node = ReactElement<{ children?: ReactNode; onClick?: () => void }>;
 function nodes(value: ReactNode): Node[] { if (!isValidElement(value)) return []; const node = value as Node; return [node, ...Children.toArray(node.props.children).flatMap(nodes)]; }
@@ -57,9 +60,12 @@ it("names the verified tier; no tier is today's Pro, and a tier newer than the a
   expect(cloudPlanLabel()).toBe("Pro"); expect(cloudPlanLabel("toString")).toBe("Cloud");
 });
 it("sign-out requires confirmation and preserves local and organization wording", async () => {
-  await ready(free); click("sign out of dusk cloud"); expect(bridge.signOut).not.toHaveBeenCalled();
-  expect(render().html).toContain("does not cancel your subscription"); click("keep signed in"); expect(bridge.signOut).not.toHaveBeenCalled();
-  click("sign out of dusk cloud"); click("sign out of dusk cloud"); await flush(); expect(bridge.signOut).toHaveBeenCalledExactlyOnceWith();
+  const ask = () => render().nodes.find(node => node.type === CloudSignOutConfirm)!.props as unknown as { open: boolean; onCancel(): void; onConfirm(): void };
+  await ready(free); expect(ask().open).toBe(false);
+  click("sign out of dusk cloud"); expect(bridge.signOut).not.toHaveBeenCalled(); expect(ask().open).toBe(true);
+  ask().onCancel(); expect(ask().open).toBe(false); expect(bridge.signOut).not.toHaveBeenCalled();
+  // asked once: the dialog's own confirm signs out, with no second step on the page
+  click("sign out of dusk cloud"); ask().onConfirm(); await flush(); expect(bridge.signOut).toHaveBeenCalledExactlyOnceWith();
   expect(render().html).toContain("sign in to your cloud plan"); expect(fetch).not.toHaveBeenCalled();
 });
 it("never accesses account bridge from remote companion pages", async () => {
@@ -158,7 +164,7 @@ it("a free account may add a Cloud, and is told what to do if it bought with ano
   all(render({ onAddCloud: vi.fn() }).html, ["no plan yet", ">add a cloud<", "Bought a plan with a different email?"]);
   none(render({ onAddCloud: vi.fn() }).html, ["Choose a Cloud plan", "Free account", "a checkout return alone"]);
   button("sign out and use that email")!.props.onClick!();
-  expect(render().html).toContain("does not cancel your subscription"); expect(bridge.signOut).not.toHaveBeenCalled();
+  expect((render().nodes.find(node => node.type === CloudSignOutConfirm)!.props as { open?: boolean }).open).toBe(true); expect(bridge.signOut).not.toHaveBeenCalled();
 });
 it("shows the sign-in code plainly, with how long it works", async () => {
   await ready({ status: "connecting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: Date.UTC(2026, 9, 2, 12, 15) } });

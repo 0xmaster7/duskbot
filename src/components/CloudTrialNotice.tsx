@@ -4,6 +4,7 @@ import type { CloudPlanBridge, CloudPlanSnapshot } from "../../electron/cloud-ac
 import type { CloudTrialState } from "../../electron/cloud-home.mjs";
 import type { CloudTrialView } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
+import { upperFirst } from "@/lib/lower-first";
 import { NoticeCard, NotNowButton, PRIMARY_BUTTON } from "./NoticeCard";
 
 export const CLOUD_PLAN_REFRESH_MS = 5 * 60_000;
@@ -34,14 +35,14 @@ const ICON: Record<CloudTrialState, typeof CalendarClock> = {
 export function CloudTrialNoticeCard({ view, failed = false, onAction, onClose }: {
   view: CloudTrialView; failed?: boolean; onAction: () => void; onClose: () => void;
 }) {
-  return <NoticeCard titleId="cloud-trial-notice-title" notice={`cloud-trial-${view.state}`} icon={ICON[view.state]} pixel="cloud" title={view.title} onDismiss={onClose} dismissLabel={t("cloudAdd.close")}>
+  return <NoticeCard titleId="cloud-trial-notice-title" notice={`cloud-trial-${view.state}`} icon={ICON[view.state]} pixel="cloud" title={upperFirst(view.title)} onDismiss={onClose} dismissLabel={t("cloudAdd.close")}>
     <div id="cloud-trial-notice-body">
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{view.body}</p>
       {view.switchPlan && <p className="mt-1.5 text-[13px] text-ink-secondary">{view.switchPlan}</p>}
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-3">
       {view.action ? <>
-        <button type="button" className={PRIMARY_BUTTON} onClick={onAction}>{view.action.label}<ArrowUpRight size={14} aria-hidden="true" /></button>
+        <button type="button" className={PRIMARY_BUTTON} onClick={onAction}>{upperFirst(view.action.label)}<ArrowUpRight size={14} aria-hidden="true" /></button>
         <NotNowButton onClick={onClose} />
       </> : <button type="button" className={PRIMARY_BUTTON} onClick={onClose}>{t("cloudTrial.ok")}</button>}
     </div>

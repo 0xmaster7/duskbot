@@ -300,14 +300,14 @@ describe("the free trial's notice, here and on My Cloud", () => {
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
     offer = { ...PLAIN_OFFER };
     const html = await launch();
-    expect(html).toContain("your free trial ends on"); expect(html).not.toContain("Claude credit");
+    expect(html).toContain("Your free trial ends on"); expect(html).not.toContain("Claude credit");
     expect(html).toContain("Prefer Starter at $15?");
     expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
     snapshot = { ...snapshot, notice: undefined };
-    expect(await settle()).toContain("your free trial ends on");
+    expect(await settle()).toContain("Your free trial ends on");
     expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
-    press("manage subscription"); await flush();
+    press("Manage subscription"); await flush();
     expect(bridges.plan.manage).toHaveBeenCalledOnce();
     expect(render()).toBe("");
     expect(await launch()).not.toContain("your free trial");
@@ -319,7 +319,7 @@ describe("the free trial's notice, here and on My Cloud", () => {
     returning();
     snapshot = { status: "none", trial: trial("ended", { deleteAt: NOW + 3 * DAY, keep: "checkout" }), notice: "ended" };
     f.state.config.onboarding.hintsSeen = ["cloud-setup-hidden"];
-    expect(await launch()).toContain("your free trial has ended");
+    expect(await launch()).toContain("Your free trial has ended");
     f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: false } }];
     expect(await launch()).toBe("");
     f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }];
@@ -339,14 +339,14 @@ describe("the first conversation after meeting the Chief", () => {
     f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
     expect(await launch()).toBe("");
     f.state.bots = structuredClone(FIRST_REPLY);
-    expect(await launch()).toContain("your free trial ends on");
+    expect(await launch()).toContain("Your free trial ends on");
   });
 
   it("changes nothing for an install whose first run came before: its notices keep their own rules", async () => {
     const running = trial("active");
     account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
     f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
-    expect(await launch()).toContain("your free trial ends on");
+    expect(await launch()).toContain("Your free trial ends on");
   });
 });
 
@@ -359,8 +359,8 @@ describe("upstream promotional campaigns", () => {
 
   it("keeps an expired account's sign-in recovery", async () => {
     account = { status: "reauth-required", message: "expired", lastPlan: { tier: "pro", active: true } }; returning();
-    expect(await launch()).toContain("sign in again to reach the cloud");
-    press("sign in again"); await flush();
+    expect(await launch()).toContain("Sign in again to reach the cloud");
+    press("Sign in again"); await flush();
     expect(bridges.cloud.signInAgain).toHaveBeenCalledOnce();
   });
 });
@@ -381,15 +381,15 @@ describe("bots in two places", () => {
     returning();
     const html = await launch();
     expect(html).toContain('data-notice="two-places"');
-    expect(html).toContain("bring your bots together");
+    expect(html).toContain("Bring your bots together");
     expect(html).toContain(BODY);
     expect(html).not.toContain(STAR);
-    press("bring them together");
+    press("Bring them together");
     const asking = await settle();
     expect(accepted, "one tap never moves anyone").toEqual([]);
-    expect(asking).toContain("move this computer&#x27;s bots to Garage server?");
+    expect(asking).toContain("Move this computer&#x27;s bots to Garage server?");
     expect(asking, "the undo switch is My Cloud's only").not.toContain("keep this computer&#x27;s bots on this computer");
-    press("move bots");
+    press("Move bots");
     await flush();
     expect(accepted).toEqual([GARAGE.key]);
     expect(track).toHaveBeenCalledWith("two_places_card", { action: "bring", kind: "server", ms: expect.any(Number) });
@@ -400,24 +400,24 @@ describe("bots in two places", () => {
     returning();
     suggest = { key: "cloud:mine", name: "My Cloud", kind: "cloud" };
     await launch();
-    press("bring them together");
+    press("Bring them together");
     const asking = await settle();
-    expect(asking).toContain("move this computer&#x27;s bots to My Cloud?");
+    expect(asking).toContain("Move this computer&#x27;s bots to My Cloud?");
     expect(asking, "My Cloud names the way back").toContain("keep this computer&#x27;s bots on this computer");
-    press("cancel");
+    press("Cancel");
     const after = await settle();
     expect(accepted).toEqual([]);
     expect(dismissed).toEqual([]);
     expect(after).toContain('data-notice="two-places"');
-    expect(after).not.toContain("move bots");
-    expect(after).toContain("bring them together");
+    expect(after).not.toContain("Move bots");
+    expect(after).toContain("Bring them together");
     expect(tree().find(node => node.props["data-two-places-bring"])?.props.autoFocus, "focus returns to the button Cancel brought back").toBe(true);
   });
 
   it("Escape on the confirm step works as Cancel and never dismisses the card", async () => {
     returning();
     await launch();
-    press("bring them together");
+    press("Bring them together");
     await settle();
     const escape = { key: "Escape", preventDefault: vi.fn(), stopPropagation: vi.fn() };
     tree().find(node => node.props.role === "group")!.props.onKeyDown(escape);
@@ -426,7 +426,7 @@ describe("bots in two places", () => {
     expect(dismissed).toEqual([]);
     expect(accepted).toEqual([]);
     expect(after).toContain('data-notice="two-places"');
-    expect(after).not.toContain("move bots");
+    expect(after).not.toContain("Move bots");
   });
 
   it("a different suggested place starts a fresh card, so a confirm never carries over to it", async () => {
