@@ -4,7 +4,7 @@ Effective date: 12 November 2026. Last updated: 12 November 2026.
 
 This policy explains how cancelling and refunds work for paid dusk bot plans. It is part of our [terms of use](terms.md). Nothing here limits rights you have under the consumer law that applies to you.
 
-The app itself is free for personal use, with every feature, on your own computer or server. You can try everything before you pay. A paid plan adds a dusk cloud desktop, and Pro and Team plans add a work license.
+The app itself is free for personal use, with every feature, on your own computer or server. You can try everything before you pay. A paid plan can add a dusk cloud desktop, a work license, or both: Plus adds a desktop, and Pro and Team plans add a desktop and a work license.
 
 ## Who bills you
 

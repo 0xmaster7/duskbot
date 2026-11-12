@@ -12,8 +12,8 @@ These cookies are needed for signing in and keeping your account secure. They ar
 
 | Name | Purpose | Lasts |
 | --- | --- | --- |
-| `dusk_dash` | Keeps you signed in. HttpOnly, so page scripts cannot read it. | 30 days, renewed while you use it |
-| `dusk_csrf` | Protects requests that change your account against cross-site request forgery. | 30 days, renewed with the session |
+| `dusk_dash` | Keeps you signed in. HttpOnly, so page scripts cannot read it. | 30 days from sign-in |
+| `dusk_csrf` | Protects requests that change your account against cross-site request forgery. | 30 days from sign-in |
 | `dusk_oauth` | Remembers a sign-in with Google, Apple or X while you are away at that provider. | 10 minutes |
 
 Cloudflare, which sits in front of dusk.bot, may set its own strictly necessary security cookies, such as `__cf_bm`, to tell people apart from abusive automated traffic. They do not track you across sites.
@@ -38,6 +38,7 @@ The script does nothing at all when your browser sends Global Privacy Control or
 | `dusk-dash-theme` | Dashboard, local storage | Your light or dark theme choice. | Until you clear it |
 | `dusk-dash-notify` | Dashboard, local storage | Your notification preferences on this browser. | Until you clear it |
 | `dusk-dash-visit` | Dashboard, session storage | A random visit id for our first-party product analytics. | Until you close the tab |
+| Other `dusk-dash-*`, `dusk-onboarding-step` and `dusk-admin-*` items | Dashboard, local and session storage | Interface state only: the workspace you picked, hints you dismissed, your onboarding step and a pending deletion confirmation. | Until you clear it, or until you close the tab for session storage |
 | `dusk_ignore` | Website, local storage | Turns our analytics off on this browser. Set only if you visit a page with `?dusk_ignore=1`. | Until you clear it |
 
 ## The apps

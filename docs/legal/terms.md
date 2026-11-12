@@ -44,7 +44,7 @@ Recurring plans renew automatically at the end of each billing period, at the pr
 
 You can cancel at any time from the billing page of your account at dusk.bot/dashboard. Cancellation stops future renewals. Your plan, including any dusk cloud desktop, keeps working until the end of the period you have paid for, and then ends. Moving to a higher plan charges the difference for the rest of the current period straight away. Moving to a lower plan takes effect without a refund for the time already paid. Cancelling a dusk bot plan does not cancel your separate AI provider subscriptions.
 
-If a renewal payment fails, we email you and Dodo Payments may retry the charge. Update your card from the billing page to keep the plan running. If the payment is not made, the plan ends.
+If a renewal payment fails, we email you and Dodo Payments may retry the charge. Update your card from the billing page to keep the plan running. If the payment is still not made 30 days after the renewal date, the plan ends, and any dusk cloud desktop follows the 30-day retention rule.
 
 Refunds follow our [refund and cancellation policy](refunds.md), subject to your mandatory legal rights. Contact hello@dusk.bot from the email address on your account if you need help with a plan or payment. Do not assume that closing the app, disconnecting a workspace or stopping a bot cancels a paid plan.
 
@@ -72,7 +72,7 @@ You may send feedback to hello@dusk.bot. Do not include confidential material or
 
 We may suspend or end access to our services if you materially breach these terms, create a security risk or use them unlawfully. Where practical and lawful, we will tell you the reason and give you a chance to address it. Urgent risks may require action first.
 
-You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted. Separate provider records follow their own applicable rules.
+You may stop using the services. Account deletion is self-serve on the Account page. You must first cancel active plans and cloud desktops. The page offers to cancel them. Deletion removes your account, sessions, identities and linked workspaces, and ends any work license on it at once. A cloud desktop of a deleted account stops (at once, or when its paid time ends), is kept for 30 days, and is then deleted. Separate provider records follow their own applicable rules.
 
 ## Disclaimers and your review
 

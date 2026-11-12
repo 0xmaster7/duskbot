@@ -20,7 +20,7 @@ Commercial use needs a separate commercial license. Access to the source, an acc
 
 ## Commercial licensing
 
-Using dusk bot at or for a business needs a work license. The simplest way to get one is a paid plan:
+Using dusk bot at or for a business needs a work license. You can add one on its own from the billing page of your account (from $12 a month for one person), or get one with a paid plan:
 
 - **Pro** includes a work license for one person for as long as the plan is active. It covers that person using the app at or for a business, on their own computer, their own server or their dusk cloud desktop.
 - **Team** plans, from $100 a month, include a work license for each member of the team. Write to hello@dusk.bot to set one up.
