@@ -8108,5 +8108,7 @@
   "routineRun.aria": "{name} routine run: {status}",
   "routineRun.openRun": "open run",
   "routineRun.review": "review",
-  "routineRun.openRunFor": "{action} for {name}"
+  "routineRun.openRunFor": "{action} for {name}",
+  "runsOn.cloudDesktopLine": "keep {name} working 24/7 on cloud desktop",
+  "runsOn.cloudDesktopLineThere": "{name} works 24/7 on cloud desktop"
 }

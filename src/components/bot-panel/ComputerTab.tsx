@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Cloud, Laptop, Monitor, Server, type GlyphIcon } from "../../icons";
 
@@ -22,7 +22,6 @@ import type { SimplePageId } from "./page-registry";
 import type { InlineReport } from "../ComputerPanel";
 import { deviceWord } from "../vps-link/parts";
 import { Card, Disclosure, NavRow, NoteRow, RadioRow, RowIcon, RowText, rowCls } from "./rows";
-import { pillPrimaryCls } from "../ListRows";
 import { CloudHopScene } from "../CloudMoveScene";
 import { mdPrimaryCls } from "../ui/GrokDialog";
 import { CloudDesktopListRow, useCloudDesktop, type CloudDesktopRow } from "./CloudDesktop";
@@ -225,6 +224,7 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
   const toVps = host.kind !== "vps" && host.kind !== "cloud" && vpsLinkAvailable() && stage !== "moved";
   const toHome = (host.kind === "vps" && stage === "elsewhere") || (host.kind === "cloud" && stage === "moved");
   return (
+    <>
     <Card label={t("runsOn.title")} anchor="runs-on">
       <div data-panel-row="runs-on" data-runs-on={host.kind} className={rowCls}>
         <RowIcon icon={HOST_ICON[host.kind]} />
@@ -247,18 +247,42 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
           />
         </div>
       )}
-      {editable && (toCloud || toVps || toHome) && (
-        <div className="flex flex-col gap-1 px-2 pb-1.5 pt-1">
-          {toCloud && <button type="button" data-panel-action="move-cloud" className={cn(pillPrimaryCls, "w-full")} onClick={() => openCloudMove("cloud")}>{cloudLabel}</button>}
-          {(toVps || toHome) && (
-            <div className="flex flex-wrap items-center justify-center gap-1">
-              {toVps && <button type="button" data-panel-action="move-vps" className={quietCls} onClick={openAddVps}>{t("runsOn.moveVps")}</button>}
-              {toHome && <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device })}</button>}
-            </div>
-          )}
+      {editable && !toCloud && (toVps || toHome) && (
+        <div className="flex flex-wrap items-center justify-center gap-1 px-2 pb-1.5 pt-1">
+          {toVps && <button type="button" data-panel-action="move-vps" className={quietCls} onClick={openAddVps}>{t("runsOn.moveVps")}</button>}
+          {toHome && <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device })}</button>}
         </div>
       )}
     </Card>
+    {editable && toCloud && (
+      <CloudDesktopCta bot={bot} stage={stage} label={cloudLabel}
+        quiet={(toVps || toHome) && <>
+          {toVps && <button type="button" data-panel-action="move-vps" className={quietCls} onClick={openAddVps}>{t("runsOn.moveVps")}</button>}
+          {toHome && <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device })}</button>}
+        </>} />
+    )}
+    </>
+  );
+}
+
+/** Moving a bot from a server to cloud desktop: the same small sky as dusk cloud's card, its mascot hopping over when the
+ * button is pointed at, one line, the one primary action, and the quieter moves under it. */
+function CloudDesktopCta({ bot, stage, label, quiet }: { bot: Bot; stage: CloudMoveStage | null; label: string; quiet: ReactNode }) {
+  const [hopping, setHopping] = useState(false);
+  const there = stage === "moved" || stage === "open";
+  const moving = stage === "preparing" || stage === "moving" || stage === "coming-back";
+  const preview = (on: boolean) => (event: { pointerType: string }) => { if (event.pointerType === "mouse") setHopping(on); };
+  return (
+    <section data-panel-card="cloud-desktop" data-cloud-cta={there ? "open" : moving ? "moving" : "move"} className="mt-3 overflow-hidden rounded-[18px] bg-menu shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_8%,transparent)]">
+      <CloudHopScene bot={bot} on={there || moving || hopping ? "cloud" : "laptop"} className="pt-1" />
+      <div className="flex flex-col items-center gap-2.5 px-4 pb-3 pt-3 text-center">
+        <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink">{t(there ? "runsOn.cloudDesktopLineThere" : "runsOn.cloudDesktopLine", { name: bot.name })}</p>
+        <button type="button" data-panel-action="move-cloud" className={cn(mdPrimaryCls, "w-full")} disabled={moving}
+          onClick={() => openCloudMove("cloud")} onPointerEnter={preview(true)} onPointerLeave={preview(false)}
+          onFocus={() => setHopping(true)} onBlur={() => setHopping(false)}>{label}</button>
+        {quiet && <div className="-mt-1 flex flex-wrap items-center justify-center gap-1">{quiet}</div>}
+      </div>
+    </section>
   );
 }
 
