@@ -21,7 +21,7 @@ const EDGE = 14;
 /** Off the bots and the card, the card goes almost at once (a slip of the pointer is forgiven); the column follows a
  * good while later, so the two never vanish together. */
 export const CARD_LEAVE_MS = 90;
-export const HIDE_MS = 400;
+export const HIDE_MS = 340;
 /** This much around the card and the column still counts as on them, so heading back never closes anything. */
 const GRACE = 16;
 /** The first card of a visit waits for intent: resting on a bot this long, or moving this far on the column. Long
@@ -45,13 +45,14 @@ const KEPT_MESSAGES = 120;
 const CARD_GAP = 10;
 const CARD_MARGIN = 8;
 /** The card comes out on a soft, quick spring (no visible bounce, settled in about 180ms) with its fade on a shorter
- * clock, glides between bots on a quicker one (about 150ms), and leaves in a short fade with a touch of scale and drift. */
+ * clock, glides between bots on a quicker one (about 150ms), and leaves in a soft fade with a touch of scale and drift,
+ * where it was. */
 const CARD_SPRING = { type: "spring", stiffness: 600, damping: 44 } as const;
 const CARD_GLIDE = { type: "spring", stiffness: 800, damping: 54 } as const;
 const CARD_FADE = { duration: 0.12, ease: EASE_OUT } as const;
-const CARD_OUT = { duration: 0.12, ease: EASE_OUT } as const;
+const CARD_OUT = { duration: 0.18, ease: SOFT_EASE } as const;
 const JUMP = { duration: 0 } as const;
-/** The column folds away a little after the card, on a soft ease-out. */
+/** The column folds away as the card finishes going, on the same soft ease-out. */
 const RAIL_EXIT = { duration: 0.22, ease: SOFT_EASE, delay: 0.03 } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
@@ -175,6 +176,10 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   }, [shownId, contentH, ids, bodyH, top]);
   const cardY = Math.round(Math.min(stageH - cardH - CARD_MARGIN, Math.max(CARD_MARGIN, anchor - cardH / 2)));
   const cardShown = card !== null;
+  // leaving, the card keeps the place and size it had: its words may still change (the long chat handed back, a reply
+  // marked seen) and must not move or resize it while it fades
+  const leavingAt = useRef({ y: cardY, h: cardH });
+  if (cardShown) leavingAt.current = { y: cardY, h: cardH };
   // gliding is for moving between bots; a card coming out appears where the bot is
   const wasShown = useRef(false);
   const glide = wasShown.current && !reduced ? CARD_GLIDE : JUMP;
@@ -424,7 +429,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         initial={false}
         animate={cardShown
           ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
-          : { opacity: 0, scale: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: cardY, height: cardH }}
+          : { opacity: 0, scale: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: leavingAt.current.y, height: leavingAt.current.h }}
         transition={cardShown
           ? { opacity: CARD_FADE, scale: CARD_SPRING, x: CARD_SPRING, y: glide, height: glide }
           : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: JUMP, height: JUMP }}

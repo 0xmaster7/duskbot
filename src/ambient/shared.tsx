@@ -273,7 +273,7 @@ export function useTraceTransitions(bridge: AmbientBridge) {
 }
 
 /** A surface's closing has played out by then: the leave delay is behind it, its words and its shell are gone. */
-export const SETTLED_MS = 440;
+export const SETTLED_MS = 480;
 
 /** Tells main once the surface has finished closing (ambient-window.mjs waits for it before giving the keyboard back,
  * which on macOS reorders the panel and would cut the animation short). */
