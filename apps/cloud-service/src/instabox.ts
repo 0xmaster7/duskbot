@@ -23,13 +23,16 @@ export const INSTABOX_HOME_PORT = 8080;
 export const INSTABOX_STARTS_PER_MINUTE = { pro: 30, builder: 50, team: 100 } as const;
 export type InstaboxPlan = keyof typeof INSTABOX_STARTS_PER_MINUTE;
 
+/** the provider size a spec is: only an exact one, never rounded up, so a machine is always the one that was sold */
 export function instaboxSize(spec: MachineSpec, allowed: ReadonlyArray<{ vcpu: number; memMiB: number }> = INSTABOX_SIZES): { vcpu: number; memMiB: number } {
-  const size = [...allowed].sort((a, b) => a.vcpu - b.vcpu || a.memMiB - b.memMiB).find(s => s.vcpu >= spec.vcpu && s.memMiB >= spec.ramGb * 1024);
+  const size = allowed.find(s => s.vcpu === spec.vcpu && s.memMiB === spec.ramGb * 1024);
   if (!size) throw new Error("Cloud machine size unavailable.");
   return size;
 }
+/** what a spec costs an hour awake; a spec that is no provider size (older records, the simulator) is costed as the next size up */
 export function instaboxHourlyCents(spec: MachineSpec): number {
-  const size = instaboxSize(spec);
+  const size = INSTABOX_SIZES.find(s => s.vcpu >= spec.vcpu && s.memMiB >= spec.ramGb * 1024);
+  if (!size) throw new Error("Cloud machine size unavailable.");
   return size.vcpu * INSTABOX_PRICES.vcpuCents + (size.memMiB / 1024) * INSTABOX_PRICES.memGiBCents;
 }
 
@@ -236,6 +239,20 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
     await call("PATCH", `/v1/machines/${m.id}`, { body: { metadata: { ...m.metadata, "omb.setup": result } }, idempotent: true }).catch(() => {});
     return result;
   }
+  /** /data grown to the disk that was sold: a create always gets the size's 20 GiB, and a running machine grows online.
+   *  rarely a grow needs a stop: then stopped, grown and booted again (only on a fresh machine, before its setup runs) */
+  async function growDisk(m: RawMachine, diskGb: number): Promise<RawMachine> {
+    if (m.diskGiB >= diskGb) return m;
+    try { await call("PATCH", `/v1/machines/${m.id}`, { body: { persistentDiskGiB: diskGb }, idempotent: true }); }
+    catch (error) {
+      if (!(error instanceof InstaboxError && error.code === "grow_needs_stop")) throw error;
+      await call("POST", `/v1/machines/${m.id}/stop`, { body: {}, idempotent: true });
+      await settle(m.id, x => x.state === "stopped");
+      await call("PATCH", `/v1/machines/${m.id}`, { body: { persistentDiskGiB: diskGb }, idempotent: true });
+      await call("POST", `/v1/machines/${m.id}/start`, { body: {}, idempotent: true });
+    }
+    return settle(m.id, x => awake(x) && x.diskGiB >= diskGb);
+  }
   /** the boot file and the setup script go in once the machine runs; the setup runs on its own, detached from this request */
   async function startSetup(m: RawMachine, input: MachineCreateInput) {
     for (const file of input.files ?? []) await upload(m.id, file.path, Buffer.from(file.content));
@@ -280,6 +297,7 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
         if (!m) throw new RetryableCloudError();
       }
       m = await settle(m.id, awake);
+      if (m.metadata["omb.setup"] === "pending") m = await growDisk(m, input.spec.diskGb);
       const origin = await publish(m.id);
       if (input.ttlSeconds) await provider.lease(m.id, input.ttlSeconds);
       if (m.metadata["omb.setup"] === "pending") await startSetup(m, input);
@@ -327,6 +345,11 @@ export function createInstaboxProvider(options: InstaboxProviderOptions): Machin
         await settle(serverId, x => x.state === "stopped");
       }
       await call("PATCH", `/v1/machines/${serverId}`, { body: { vcpus: size.vcpu, memMiB: size.memMiB }, idempotent: true });
+      // the disk follows the plan, applied at the start below; a shrink the data does not fit in keeps the bigger disk
+      if (m.diskGiB !== spec.diskGb) {
+        try { await call("PATCH", `/v1/machines/${serverId}`, { body: { persistentDiskGiB: spec.diskGb }, idempotent: true }); }
+        catch (error) { if (!(spec.diskGb < m.diskGiB && error instanceof InstaboxError && error.code === "disk_too_small")) throw error; }
+      }
       await call("POST", `/v1/machines/${serverId}/start`, { body: {}, idempotent: true });
     },
     async run(serverId, command, timeoutSeconds = 120) {

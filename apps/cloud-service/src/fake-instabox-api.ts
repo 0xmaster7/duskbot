@@ -11,6 +11,8 @@ export interface FakeMachine {
   id: string; name: string; state: string; ready: boolean; metadata: Record<string, string>; vcpus: number; memMiB: number; template: string | null; snapshotId: string | null;
   autoSuspendAfterSeconds: number | null; createdAt: number; updatedAt: number; files: Map<string, Buffer>; volume: Map<string, Buffer>; memory: Set<string>;
   ports: Map<number, string>; leases: Map<string, number>; processesPreserved: boolean | null; runningMs: number; runningSince: number | null; setupPolls: number;
+  /** /data in GiB: 20 at create, grown or shrunk with a PATCH of persistentDiskGiB */
+  diskGiB: number;
 }
 export interface FakeExec { machine: FakeMachine; cmd: string }
 
@@ -19,12 +21,12 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
   const machines = new Map<string, FakeMachine>(), operations = new Map<string, Record<string, unknown>>(), snapshots = new Map<string, { id: string; name: string; status: string; createdAt: number; source: string }>();
   const requests: Array<{ method: string; path: string; body: unknown; headers: Record<string, string | string[] | undefined> }> = [];
   const idem = new Map<string, unknown>();
-  let failNext = 0, limitNext = 0, busyNext = 0, startsBlockedUntil = 0, coldResume = false, refuseResume: string | null = null;
+  let failNext = 0, limitNext = 0, busyNext = 0, startsBlockedUntil = 0, coldResume = false, refuseResume: string | null = null, growNeedsStop = false, usedGiB = 0;
   const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
   const ident = (prefix: string) => `${prefix}_${Array.from(randomBytes(26), b => alphabet[b % alphabet.length]).join("")}`;
   const iso = (t: number) => new Date(t).toISOString();
   const view = (m: FakeMachine) => ({ id: m.id, name: m.name, state: m.state, desiredState: m.state, operationId: null, template: m.template ? { id: m.template, version: "fake" } : null,
-    spec: { vcpus: m.vcpus, memMiB: m.memMiB, persistentDiskGiB: 20, rootDiskGiB: 16 }, storage: { sizeGiB: 20, mountPath: "/data", persistent: true, synced: true },
+    spec: { vcpus: m.vcpus, memMiB: m.memMiB, persistentDiskGiB: m.diskGiB, rootDiskGiB: 16 }, storage: { sizeGiB: m.diskGiB, mountPath: "/data", persistent: true, synced: true },
     runtime: { ready: m.ready, ...(m.processesPreserved === null ? {} : { processesPreserved: m.processesPreserved }) }, autoSuspendAfterSeconds: m.autoSuspendAfterSeconds,
     metadata: m.metadata, guestUser: "user", createdAt: iso(m.createdAt), updatedAt: iso(m.updatedAt) });
   function operation(m: FakeMachine, type: string) { const op = { id: ident("op"), machineId: m.id, type, state: "succeeded", error: null, createdAt: iso(now()), updatedAt: iso(now()) }; operations.set(op.id, op); return op; }
@@ -105,7 +107,7 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
       if (body?.name && [...machines.values()].some(m => m.name === body.name)) return error(res, 409, "name_taken");
       const m: FakeMachine = { id: ident("m"), name: body?.name ?? `box-${randomBytes(4).toString("hex")}`, state: "running", ready: true, metadata: body?.metadata ?? {}, vcpus: body?.vcpus ?? 4, memMiB: body?.memMiB ?? 8192,
         template: body?.snapshotId ? null : body?.templateId ?? "agent-browser", snapshotId: body?.snapshotId ?? null, autoSuspendAfterSeconds: body?.autoSuspendAfterSeconds ?? 1800,
-        createdAt: now(), updatedAt: now(), files: new Map(), volume: new Map(), memory: new Set(), ports: new Map(), leases: new Map(), processesPreserved: null, runningMs: 0, runningSince: now(), setupPolls: 0 };
+        createdAt: now(), updatedAt: now(), files: new Map(), volume: new Map(), memory: new Set(), ports: new Map(), leases: new Map(), processesPreserved: null, runningMs: 0, runningSince: now(), setupPolls: 0, diskGiB: 20 };
       machines.set(m.id, m);
       const answer = operation(m, "create");
       idem.set(String(idemKey), answer);
@@ -126,6 +128,16 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
       if (body?.metadata) m.metadata = body.metadata;
       if (typeof body?.autoSuspendAfterSeconds === "number") m.autoSuspendAfterSeconds = body.autoSuspendAfterSeconds || null;
       if (body?.vcpus !== undefined) { if (m.state !== "stopped") return error(res, 409, "operation_conflict"); m.vcpus = body.vcpus; m.memMiB = body.memMiB; }
+      if (body?.persistentDiskGiB) {
+        // grows online (rarely it needs a stop); a shrink needs a stopped machine whose data plus 10% fits; 200 GiB is the pro plan's limit
+        const size = Number(body.persistentDiskGiB);
+        if (!Number.isInteger(size) || size < 1 || size > 1024) return error(res, 400, "invalid_request");
+        if (size > 200) return error(res, 429, "quota_exceeded");
+        if (size > m.diskGiB && growNeedsStop && m.state === "running") return error(res, 409, "grow_needs_stop");
+        if (size < m.diskGiB && m.state !== "stopped") return error(res, 409, "operation_conflict");
+        if (size < m.diskGiB && size < Math.max(usedGiB * 1.1, usedGiB + 1)) return error(res, 409, "disk_too_small");
+        m.diskGiB = size;
+      }
       return send(res, 200, view(m));
     }
     if (!action && method === "DELETE") {
@@ -199,6 +211,10 @@ export async function startFakeInstaboxApi(options: { now?: () => number; key?: 
     coldResume(on = true) { coldResume = on; },
     /** this machine's resumes are refused with a cooldown */
     refuseResume(machineId: string | null) { refuseResume = machineId; },
+    /** a running machine's disk grow answers grow_needs_stop */
+    growNeedsStop(on = true) { growNeedsStop = on; },
+    /** GiB of data on every machine's /data, for shrinks */
+    diskUsed(gib: number) { usedGiB = gib; },
     onExec(fn: typeof handler) { handler = fn; },
     /** the machine is lost without anyone deleting it through the API */
     lose(machineId: string) { machines.delete(machineId); },

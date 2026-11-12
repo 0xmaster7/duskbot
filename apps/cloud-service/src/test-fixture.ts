@@ -24,7 +24,7 @@ import type { DesktopPlan, HomePower, StoredCloud } from "../../dashboard/server
 
 export const cleanup: Array<() => unknown> = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
-export const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, botComputers: 2 };
+export const plan: DesktopPlan = { kind: "shared_s", placement: "pool", spec: { vcpu: 2, ramGb: 4, diskGb: 20 }, botComputers: 2 };
 export const SHA = "a".repeat(64);
 export const BACKUP_SECRET = Buffer.alloc(32, 9);
 

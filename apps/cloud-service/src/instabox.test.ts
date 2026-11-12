@@ -17,8 +17,9 @@ const input = { cloudId: CLOUD, spec: { vcpu: 2, ramGb: 4, diskGb: 40 }, region:
 
 it("prices and sizes machines from the plan's sizes", () => {
   expect(instaboxSize({ vcpu: 2, ramGb: 4, diskGb: 40 })).toEqual({ vcpu: 2, memMiB: 4096 });
-  expect(instaboxSize({ vcpu: 3, ramGb: 4, diskGb: 40 })).toEqual({ vcpu: 4, memMiB: 8192 });
-  expect(() => instaboxSize({ vcpu: 64, ramGb: 512, diskGb: 40 })).toThrow("unavailable");
+  // never rounded up: a machine is the size that was sold
+  for (const spec of [{ vcpu: 3, ramGb: 4, diskGb: 40 }, { vcpu: 2, ramGb: 16, diskGb: 40 }, { vcpu: 64, ramGb: 512, diskGb: 40 }]) expect(() => instaboxSize(spec)).toThrow("unavailable");
+  expect(instaboxHourlyCents({ vcpu: 3, ramGb: 4, diskGb: 40 })).toBeCloseTo(3.4);
   expect(instaboxHourlyCents({ vcpu: 2, ramGb: 4, diskGb: 40 })).toBeCloseTo(1.7);
   expect(instaboxHourlyCents({ vcpu: 4, ramGb: 8, diskGb: 80 })).toBeCloseTo(3.4);
   const profile = instaboxCostProfile();
@@ -83,7 +84,8 @@ it("wakes a machine that paused itself, starts a stopped one, and resizes a paus
   await provider.power(server.id, "off");
   await provider.resize(server.id, { vcpu: 4, ramGb: 8, diskGb: 80 });
   const m = api.machines.get(server.id)!;
-  expect([m.vcpus, m.memMiB, m.state]).toEqual([4, 8192, "running"]);
+  expect([m.vcpus, m.memMiB, m.diskGiB, m.state]).toEqual([4, 8192, 80, "running"]);
+  expect((await provider.status(server.id)).diskGb).toBe(80);
   await expect(provider.resize(server.id, { vcpu: 2, ramGb: 4, diskGb: 40 })).rejects.toThrow("must be off");
 });
 
@@ -171,4 +173,37 @@ it("the image restores in place and keeps the platform's entries, and a resumed 
   expect(setup).not.toContain("pre-stop");
   expect(setup).toContain(INSTABOX_BOOT_FILE);
   expect(INSTABOX_IMAGE.installCommand("a".repeat(64))).toContain("/data/home/omb-home.tgz");
+});
+
+it("gives a new machine the disk that was sold and keeps it in step with plan changes", async () => {
+  const { api, provider } = await fixture();
+  const plus = await provider.create({ ...input, spec: { vcpu: 2, ramGb: 4, diskGb: 20 } });
+  // the size's own 20 GiB: nothing to grow, and a create never sends a disk size (InstaBox refuses one)
+  expect(api.machines.get(plus.id)!.diskGiB).toBe(20);
+  expect(api.requests.filter(r => r.method === "PATCH" && (r.body as Record<string, unknown>)?.persistentDiskGiB)).toHaveLength(0);
+  expect(Object.keys(api.requests.find(r => r.method === "POST" && r.path === "/v1/machines")!.body as object)).not.toContain("persistentDiskGiB");
+
+  const pro = await provider.create({ ...input, cloudId: `c${"b".repeat(24)}`, spec: { vcpu: 4, ramGb: 8, diskGb: 60 } });
+  expect(api.machines.get(pro.id)!.diskGiB).toBe(60);
+  expect(pro.diskGb).toBe(60);
+  // a retried create finds the grown disk and asks for nothing more
+  const patches = api.requests.filter(r => r.method === "PATCH" && (r.body as Record<string, unknown>)?.persistentDiskGiB).length;
+  await provider.create({ ...input, cloudId: `c${"b".repeat(24)}`, spec: { vcpu: 4, ramGb: 8, diskGb: 60 } });
+  expect(api.requests.filter(r => r.method === "PATCH" && (r.body as Record<string, unknown>)?.persistentDiskGiB)).toHaveLength(patches);
+
+  // a grow that needs a stop: stopped, grown and booted again before the setup starts
+  api.growNeedsStop();
+  const team = await provider.create({ ...input, cloudId: `c${"d".repeat(24)}`, spec: { vcpu: 8, ramGb: 16, diskGb: 160 } });
+  const machine = api.machines.get(team.id)!;
+  expect([machine.diskGiB, machine.state, machine.metadata["omb.setup"]]).toEqual([160, "running", "running"]);
+  api.growNeedsStop(false);
+
+  // a downgrade shrinks the disk while stopped; when the data does not fit, the bigger disk stays and the resize still lands
+  await provider.power(pro.id, "off");
+  await provider.resize(pro.id, { vcpu: 2, ramGb: 4, diskGb: 20 });
+  expect([api.machines.get(pro.id)!.vcpus, api.machines.get(pro.id)!.diskGiB]).toEqual([2, 20]);
+  await provider.power(team.id, "off");
+  api.diskUsed(100);
+  await provider.resize(team.id, { vcpu: 4, ramGb: 8, diskGb: 60 });
+  expect([machine.vcpus, machine.diskGiB, machine.state]).toEqual([4, 160, "running"]);
 });
