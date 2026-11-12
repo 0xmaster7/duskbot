@@ -100,7 +100,7 @@ function sessionLabel(session: Session): { icon: string; text: string } {
 function StepText({ step }: { step: Step }) {
   const where = step.path ? <span className="text-ink-4"> on <span className="font-mono text-12 text-ink-3">{step.path}</span></span> : null;
   const detail = step.detail ? <span className="text-ink-4"> · {step.detail.replace(/_/g, " ")}</span> : null;
-  const amount = step.amountCents !== null ? <span className={cx("font-mono font-medium num", step.kind === "checkout" ? "text-ink-2" : "text-coral-deep")}> {usd(step.amountCents)}</span> : null;
+  const amount = step.amountCents !== null ? <span className={cx("font-mono font-medium num", step.kind === "checkout" ? "text-ink-2" : "text-money")}> {usd(step.amountCents)}</span> : null;
   switch (step.kind) {
     case "view": return <>{step.surface === "app" ? "opened" : "viewed"} <span className="font-mono text-12 text-ink">{step.path}</span></>;
     case "goal": case "upsell": return <><span className="font-medium text-accent-ink">{step.name}</span>{where}{detail}</>;
@@ -116,7 +116,7 @@ function Stat({ label, value, note, money }: { label: string; value: ReactNode; 
   return (
     <div className="min-w-0 rounded-[16px] bg-card px-3.5 py-3">
       <div className="text-12 font-medium text-ink-3">{label}</div>
-      <div className={cx("mt-1 truncate text-[17px] font-medium leading-6", money ? "font-mono text-coral-deep num" : "text-ink")}>{value}</div>
+      <div className={cx("mt-1 truncate text-[17px] font-medium leading-6", money ? "font-mono text-money num" : "text-ink")}>{value}</div>
       <div className="mt-0.5 h-[18px] truncate text-12 leading-[18px] text-ink-4">{note}</div>
     </div>
   );
