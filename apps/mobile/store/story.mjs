@@ -59,9 +59,8 @@ export const SHOTS = [
   {
     id: "10-models", screen: "profile", bg: "meadow", dark: false,
     headline: "works with the ai\nyou already use.",
-    line: "",
-    chips: ["chatgpt", "claude", "gemini", "grok"],
-    art: { bots: [["hop", "coral", 0.26], ["pip", "blue", 0.74, 1.1]] },
+    line: "bring the model you like and pick one for each bot.",
+    art: { bots: [["hop", "coral", 0.24], ["kit", "violet", 0.4], ["goo", "mint", 0.6], ["pip", "blue", 0.76, 1.1]] },
   },
 ];
 

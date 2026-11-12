@@ -123,9 +123,6 @@ function shotHtml(shot: Shot, size: Size) {
     const h = P.w * 0.2;
     return `<img class="prop" src="${fileUrl(join(here, "art", `${file}.webp`))}" style="left:${P.x + P.w * at}px;top:${P.y + P.bezel * 0.35 - h}px;height:${h}px;transform:translateX(-50%)" alt="">`;
   })() : "";
-  const chips = shot.chips
-    ? `<div class="chips" style="margin-top:${40 * u}px;gap:${18 * u}px">${shot.chips.map((chip: string, i: number) => `<span class="chip" style="font-size:${44 * u}px;padding:${20 * u}px ${32 * u}px;box-shadow:${6 * u}px ${6 * u}px 0 ${[C.lemon, C.pink, C.sky3, C.lilac][i % 4]}">${esc(chip)}</span>`).join("")}</div>`
-    : "";
   const shadow = sky ? "rgba(6,58,110,0.28)" : "rgba(27,27,31,0.16)";
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: "Display"; src: url("${fileUrl(join(fonts, "general-sans-semibold.ttf"))}"); font-weight: 600; }
@@ -138,8 +135,6 @@ html, body { width: ${L.W}px; height: ${L.H}px; overflow: hidden; background: ${
 .text { position: absolute; left: ${L.margin}px; top: ${L.textTop}px; right: ${L.margin}px; }
 h1 { font: 600 ${L.headline}px/1.1 "Display"; letter-spacing: -0.025em; color: ${textInk}; white-space: pre-line;  }
 p { font: 500 ${L.line}px/1.4 "Body"; color: ${lineInk}; margin-top: ${30 * u}px; max-width: ${(L.H / L.W > 2 ? 900 : 800) * u}px; text-wrap: pretty; }
-.chips { display: flex; flex-wrap: wrap; }
-.chip { font-family: "Display"; font-weight: 600; color: ${INK}; background: #fdfdfd; line-height: 1; }
 .prop { position: absolute; z-index: 3; width: auto; }
 .art { position: absolute; z-index: 3; }
 .art svg { display: block; width: 100%; height: 100%; }
@@ -152,7 +147,7 @@ p { font: 500 ${L.line}px/1.4 "Body"; color: ${lineInk}; margin-top: ${30 * u}px
 .home { position: absolute; left: 50%; bottom: ${8 * P.pt}px; width: ${144 * P.pt}px; height: ${5 * P.pt}px; margin-left: ${-72 * P.pt}px; border-radius: 99px; background: ${shot.dark ? "rgba(255,255,255,0.86)" : "rgba(16,16,20,0.9)"}; }
 </style></head><body>
 ${sky ? `<div class="sky">${skySvg(shot.bg as "meadow" | "dusk", L.W, L.H)}</div>` : ""}
-<div class="text"><h1>${esc(shot.headline)}</h1>${shot.line ? `<p>${esc(shot.line)}</p>` : ""}${chips}</div>
+<div class="text"><h1>${esc(shot.headline)}</h1>${shot.line ? `<p>${esc(shot.line)}</p>` : ""}</div>
 ${prop}
 <div class="phone"><div class="screen"><img src="${fileUrl(screen)}" alt="">${statusBar(shot.dark)}<div class="island"></div><div class="home"></div></div></div>
 ${bots}
