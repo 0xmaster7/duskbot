@@ -1,0 +1,1683 @@
+{
+  "toolkit": "outlook",
+  "name": "Outlook",
+  "version": "20261104_00",
+  "description": "Outlook is Microsoft's email and calendaring platform integrating contacts and scheduling, enabling users to manage communications and events in a unified workspace",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 333,
+  "triggers_count": 5,
+  "tools": [
+    {
+      "name": "Accept calendar event invite",
+      "slug": "OUTLOOK_ACCEPT_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Add event attachment",
+      "slug": "OUTLOOK_ADD_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Add mail attachment",
+      "slug": "OUTLOOK_ADD_MAIL_ATTACHMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Batch move messages",
+      "slug": "OUTLOOK_BATCH_MOVE_MESSAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch update messages",
+      "slug": "OUTLOOK_BATCH_UPDATE_MESSAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Create Calendar Event",
+      "slug": "OUTLOOK_CALENDAR_CREATE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel user's calendar event",
+      "slug": "OUTLOOK_CANCEL_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel user calendar group event",
+      "slug": "OUTLOOK_CANCEL_CALENDAR_GROUP_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel user calendar event",
+      "slug": "OUTLOOK_CANCEL_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Copy user's mail folder",
+      "slug": "OUTLOOK_COPY_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Copy child mail folder",
+      "slug": "OUTLOOK_COPY_ME_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Copy message to folder",
+      "slug": "OUTLOOK_COPY_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Copy message from child folder",
+      "slug": "OUTLOOK_COPY_MESSAGE_FROM_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Copy user message from folder",
+      "slug": "OUTLOOK_COPY_MESSAGE_FROM_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Count messages",
+      "slug": "OUTLOOK_COUNT_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Create attachment upload session",
+      "slug": "OUTLOOK_CREATE_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create attachment upload session in child folder",
+      "slug": "OUTLOOK_CREATE_ATTACHMENT_UPLOAD_SESSION_IN_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar",
+      "slug": "OUTLOOK_CREATE_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Create Event in Calendar (Deprecated)",
+      "slug": "OUTLOOK_CREATE_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar event attachment",
+      "slug": "OUTLOOK_CREATE_CALENDAR_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar event attachment upload session",
+      "slug": "OUTLOOK_CREATE_CALENDAR_EVENT_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create event in specific calendar",
+      "slug": "OUTLOOK_CREATE_CALENDAR_EVENT_IN_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar group",
+      "slug": "OUTLOOK_CREATE_CALENDAR_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Create user calendar group event attachment",
+      "slug": "OUTLOOK_CREATE_CALENDAR_GROUP_CALENDAR_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create event extension",
+      "slug": "OUTLOOK_CREATE_CALENDAR_GROUP_CALENDAR_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Calendar Permission",
+      "slug": "OUTLOOK_CREATE_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar group event attachment upload session",
+      "slug": "OUTLOOK_CREATE_CAL_GROUP_EVENT_ATTACH_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Create contact",
+      "slug": "OUTLOOK_CREATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Create contact folder",
+      "slug": "OUTLOOK_CREATE_CONTACT_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create user contact folder child folder",
+      "slug": "OUTLOOK_CREATE_CONTACT_FOLDER_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create email draft",
+      "slug": "OUTLOOK_CREATE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a draft reply",
+      "slug": "OUTLOOK_CREATE_DRAFT_REPLY",
+      "kind": "send"
+    },
+    {
+      "name": "Create Email Rule",
+      "slug": "OUTLOOK_CREATE_EMAIL_RULE",
+      "kind": "send"
+    },
+    {
+      "name": "Create user calendar event attachment",
+      "slug": "OUTLOOK_CREATE_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create event attachment upload session",
+      "slug": "OUTLOOK_CREATE_EVENT_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create user mail folder message forward draft",
+      "slug": "OUTLOOK_CREATE_FORWARD_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Microsoft 365 group event",
+      "slug": "OUTLOOK_CREATE_GROUP_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create mail folder",
+      "slug": "OUTLOOK_CREATE_MAIL_FOLDER",
+      "kind": "send"
+    },
+    {
+      "name": "Create message in mail folder",
+      "slug": "OUTLOOK_CREATE_MAIL_FOLDER_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create mail folder message attachment",
+      "slug": "OUTLOOK_CREATE_MAIL_FOLDER_MESSAGE_ATTACHMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create mail folder message attachment upload session",
+      "slug": "OUTLOOK_CREATE_MAIL_FOLDER_MESSAGE_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "send"
+    },
+    {
+      "name": "Create User Mail Folder Message Rule",
+      "slug": "OUTLOOK_CREATE_MAIL_FOLDER_MESSAGE_RULE",
+      "kind": "send"
+    },
+    {
+      "name": "Create master category (Deprecated)",
+      "slug": "OUTLOOK_CREATE_MASTER_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create user calendar event extension",
+      "slug": "OUTLOOK_CREATE_ME_CALENDAR_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create user calendar permission",
+      "slug": "OUTLOOK_CREATE_ME_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create message in user's child folder",
+      "slug": "OUTLOOK_CREATE_ME_CHILD_FOLDER_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create user contact in folder",
+      "slug": "OUTLOOK_CREATE_ME_CONTACT_FOLDERS_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create user contact extension",
+      "slug": "OUTLOOK_CREATE_ME_CONTACT_FOLDERS_CONTACTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create contact extension",
+      "slug": "OUTLOOK_CREATE_ME_CONTACT_FOLDERS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create contact in child folder",
+      "slug": "OUTLOOK_CREATE_ME_CONTACT_IN_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar event for user",
+      "slug": "OUTLOOK_CREATE_ME_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create me event attachment upload session",
+      "slug": "OUTLOOK_CREATE_ME_EVENT_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create forward draft",
+      "slug": "OUTLOOK_CREATE_ME_FORWARD_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create user Focused Inbox override",
+      "slug": "OUTLOOK_CREATE_ME_INFERENCE_CLASSIFICATION_OVERRIDE",
+      "kind": "write"
+    },
+    {
+      "name": "Create reply-all draft for mail folder message",
+      "slug": "OUTLOOK_CREATE_ME_MAIL_FOLDER_MESSAGE_REPLY_ALL_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply-all draft for user message",
+      "slug": "OUTLOOK_CREATE_ME_MESSAGE_REPLY_ALL_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply-all draft for child folder message",
+      "slug": "OUTLOOK_CREATE_ME_REPLY_ALL_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply draft",
+      "slug": "OUTLOOK_CREATE_ME_REPLY_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create message attachment",
+      "slug": "OUTLOOK_CREATE_MESSAGE_ATTACHMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply-all draft in folder",
+      "slug": "OUTLOOK_CREATE_REPLY_ALL_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create To Do task",
+      "slug": "OUTLOOK_CREATE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create user calendar event attachment",
+      "slug": "OUTLOOK_CREATE_USER_CALENDAR_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar in user's calendar group",
+      "slug": "OUTLOOK_CREATE_USER_CALENDAR_GROUP_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Create user calendar group event",
+      "slug": "OUTLOOK_CREATE_USER_CALENDAR_GROUP_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create user contact extension",
+      "slug": "OUTLOOK_CREATE_USER_CONTACTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create user event attachment upload session",
+      "slug": "OUTLOOK_CREATE_USER_EVENT_ATTACHMENT_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create calendar permission via event",
+      "slug": "OUTLOOK_CREATE_USER_EVENT_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create user message extension",
+      "slug": "OUTLOOK_CREATE_USER_MAIL_CHILD_FOLDER_MSG_EXT",
+      "kind": "send"
+    },
+    {
+      "name": "Create user mail folder message extension",
+      "slug": "OUTLOOK_CREATE_USER_MAIL_FOLDER_MESSAGE_EXTENSION",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply draft for user mail folder message",
+      "slug": "OUTLOOK_CREATE_USER_MAIL_FOLDER_MESSAGE_REPLY_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Create user mail folders child folders",
+      "slug": "OUTLOOK_CREATE_USER_MAIL_FOLDERS_CHILD_FOLDERS",
+      "kind": "send"
+    },
+    {
+      "name": "Create user master category",
+      "slug": "OUTLOOK_CREATE_USER_MASTER_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create user message",
+      "slug": "OUTLOOK_CREATE_USER_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create user message attachment",
+      "slug": "OUTLOOK_CREATE_USER_MESSAGE_ATTACHMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Decline calendar event",
+      "slug": "OUTLOOK_DECLINE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calendar",
+      "slug": "OUTLOOK_DELETE_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calendar event",
+      "slug": "OUTLOOK_DELETE_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user calendar event attachment",
+      "slug": "OUTLOOK_DELETE_CALENDAR_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete event from specific calendar",
+      "slug": "OUTLOOK_DELETE_CALENDAR_EVENT_FROM_SPECIFIC_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user calendar group calendar",
+      "slug": "OUTLOOK_DELETE_CALENDAR_FROM_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calendar group",
+      "slug": "OUTLOOK_DELETE_CALENDAR_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user calendar group calendar event",
+      "slug": "OUTLOOK_DELETE_CALENDAR_GROUP_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calendar group event attachment",
+      "slug": "OUTLOOK_DELETE_CALENDAR_GROUP_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Calendar Group Event",
+      "slug": "OUTLOOK_DELETE_CALENDAR_GROUP_EVENT_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Calendar",
+      "slug": "OUTLOOK_DELETE_CALENDAR_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User Calendar Group Calendar Permission",
+      "slug": "OUTLOOK_DELETE_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Child Contact Folder",
+      "slug": "OUTLOOK_DELETE_CHILD_CONTACT_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Child Folder Message",
+      "slug": "OUTLOOK_DELETE_CHILD_FOLDER_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Contact",
+      "slug": "OUTLOOK_DELETE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete contact folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user contact folder child folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FOLDER_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Contact from Folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FOLDER_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Contact Folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete User Contact from Child Folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FROM_CHILD_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Contact from Folder",
+      "slug": "OUTLOOK_DELETE_CONTACT_FROM_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Contact",
+      "slug": "OUTLOOK_DELETE_CONTACT_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete contact extension",
+      "slug": "OUTLOOK_DELETE_CONTACTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Email Rule",
+      "slug": "OUTLOOK_DELETE_EMAIL_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calendar event (Deprecated)",
+      "slug": "OUTLOOK_DELETE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete event attachment",
+      "slug": "OUTLOOK_DELETE_EVENT_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete event extension",
+      "slug": "OUTLOOK_DELETE_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Event",
+      "slug": "OUTLOOK_DELETE_EVENT_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete mail folder",
+      "slug": "OUTLOOK_DELETE_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Mail Folder Message",
+      "slug": "OUTLOOK_DELETE_MAIL_FOLDER_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete master category",
+      "slug": "OUTLOOK_DELETE_MASTER_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User Calendars Calendar Permission",
+      "slug": "OUTLOOK_DELETE_ME_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete contact extension",
+      "slug": "OUTLOOK_DELETE_ME_CONTACT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user contact folder contact extension",
+      "slug": "OUTLOOK_DELETE_ME_CONTACT_FOLDER_CONTACT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user event extension",
+      "slug": "OUTLOOK_DELETE_ME_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user event attachment",
+      "slug": "OUTLOOK_DELETE_ME_EVENTS_ATTACHMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete inference classification override",
+      "slug": "OUTLOOK_DELETE_ME_INFERENCE_CLASSIFICATION_OVERRIDE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete mail folder child folder",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDER_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Child Mail Folder",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDER_CHILD_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete mail folder message rule",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDER_MESSAGE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user message extension",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDERS_CHILD_FOLDERS_MESSAGES_EXTENS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Message Attachment (Deprecated)",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDERS_MESSAGES_ATTACHMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete message extension",
+      "slug": "OUTLOOK_DELETE_ME_MAIL_FOLDERS_MESSAGES_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Message Attachment",
+      "slug": "OUTLOOK_DELETE_ME_MESSAGES_ATTACHMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Message",
+      "slug": "OUTLOOK_DELETE_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Message Attachment",
+      "slug": "OUTLOOK_DELETE_MESSAGE_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete message extension",
+      "slug": "OUTLOOK_DELETE_MESSAGE_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Message (Folder-Scoped) (Deprecated)",
+      "slug": "OUTLOOK_DELETE_MESSAGE_PERMANENTLY_FROM_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User Calendar Permission",
+      "slug": "OUTLOOK_DELETE_PRIMARY_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete To Do task",
+      "slug": "OUTLOOK_DELETE_TODO_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete User Calendar Event",
+      "slug": "OUTLOOK_DELETE_USER_CALENDAR_EVENT_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Contact from User's Child Folder",
+      "slug": "OUTLOOK_DELETE_USER_CHILD_FOLDER_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User Child Folder Message Permanently",
+      "slug": "OUTLOOK_DELETE_USER_CHILD_FOLDER_MESSAGE_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user contact extension",
+      "slug": "OUTLOOK_DELETE_USER_CONTACT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete User Event",
+      "slug": "OUTLOOK_DELETE_USER_EVENT_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete User Mail Folder",
+      "slug": "OUTLOOK_DELETE_USER_MAIL_FOLDER_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete user message attachment",
+      "slug": "OUTLOOK_DELETE_USER_MESSAGE_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Dismiss user calendar event reminder",
+      "slug": "OUTLOOK_DISMISS_CALENDAR_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Dismiss event reminder",
+      "slug": "OUTLOOK_DISMISS_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Dismiss user calendar group event reminder",
+      "slug": "OUTLOOK_DISMISS_EVENT_REMINDER_FROM_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Dismiss user event reminder",
+      "slug": "OUTLOOK_DISMISS_USER_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Download group post attachment",
+      "slug": "OUTLOOK_DOWNLOAD_GROUP_POST_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Download Outlook attachment",
+      "slug": "OUTLOOK_DOWNLOAD_OUTLOOK_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Download profile photo",
+      "slug": "OUTLOOK_DOWNLOAD_PROFILE_PHOTO",
+      "kind": "read"
+    },
+    {
+      "name": "Find Meeting Times",
+      "slug": "OUTLOOK_FIND_MEETING_TIMES",
+      "kind": "read"
+    },
+    {
+      "name": "Forward message",
+      "slug": "OUTLOOK_FORWARD_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Forward user calendar event",
+      "slug": "OUTLOOK_FORWARD_USER_CALENDAR_EVENT",
+      "kind": "send"
+    },
+    {
+      "name": "Get specific calendar",
+      "slug": "OUTLOOK_GET_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get event from calendar",
+      "slug": "OUTLOOK_GET_CALENDAR_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar event attachment",
+      "slug": "OUTLOOK_GET_CALENDAR_EVENT_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar from event",
+      "slug": "OUTLOOK_GET_CALENDAR_FROM_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar from calendar group",
+      "slug": "OUTLOOK_GET_CALENDAR_FROM_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar group",
+      "slug": "OUTLOOK_GET_CALENDAR_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get event extension",
+      "slug": "OUTLOOK_GET_CALENDAR_GROUP_CALENDAR_EVENT_EXTENSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar group event attachment",
+      "slug": "OUTLOOK_GET_CALENDAR_GROUP_EVENT_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Calendar Group Schedule",
+      "slug": "OUTLOOK_GET_CALENDAR_GROUP_SCHEDULE",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar permission",
+      "slug": "OUTLOOK_GET_CALENDAR_PERMISSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar permission",
+      "slug": "OUTLOOK_GET_CALENDAR_PERMISSION_FROM_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get Calendar Schedule",
+      "slug": "OUTLOOK_GET_CALENDAR_SCHEDULE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Calendar View",
+      "slug": "OUTLOOK_GET_CALENDAR_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "Get child folder message",
+      "slug": "OUTLOOK_GET_CHILD_FOLDER_MESSAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get child folder message MIME content",
+      "slug": "OUTLOOK_GET_CHILD_FOLDER_MESSAGE_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get child mail folder",
+      "slug": "OUTLOOK_GET_CHILD_MAIL_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact extension",
+      "slug": "OUTLOOK_GET_CONTACT_EXTENSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact folder",
+      "slug": "OUTLOOK_GET_CONTACT_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "List user contact folders",
+      "slug": "OUTLOOK_GET_CONTACT_FOLDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact from folder",
+      "slug": "OUTLOOK_GET_CONTACT_FROM_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact photo metadata",
+      "slug": "OUTLOOK_GET_CONTACT_PHOTO_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get drafts mail folder",
+      "slug": "OUTLOOK_GET_DRAFTS_MAIL_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get drive item",
+      "slug": "OUTLOOK_GET_DRIVE_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar event",
+      "slug": "OUTLOOK_GET_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get event attachment",
+      "slug": "OUTLOOK_GET_EVENT_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get event calendar from calendar group",
+      "slug": "OUTLOOK_GET_EVENT_CALENDAR_FROM_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Microsoft Graph group",
+      "slug": "OUTLOOK_GET_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Microsoft 365 group calendar",
+      "slug": "OUTLOOK_GET_GROUP_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get Microsoft 365 group event",
+      "slug": "OUTLOOK_GET_GROUP_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get group post attachment",
+      "slug": "OUTLOOK_GET_GROUP_POST_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get inference classification",
+      "slug": "OUTLOOK_GET_INFERENCE_CLASSIFICATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get mailbox settings",
+      "slug": "OUTLOOK_GET_MAILBOX_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get mail delta",
+      "slug": "OUTLOOK_GET_MAIL_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "Get mail folder",
+      "slug": "OUTLOOK_GET_MAIL_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get mail folder message",
+      "slug": "OUTLOOK_GET_MAIL_FOLDER_MESSAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get user mail folder message rule",
+      "slug": "OUTLOOK_GET_MAIL_FOLDER_MESSAGE_RULE",
+      "kind": "read"
+    },
+    {
+      "name": "Get mail tips",
+      "slug": "OUTLOOK_GET_MAIL_TIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get master categories",
+      "slug": "OUTLOOK_GET_MASTER_CATEGORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get master category",
+      "slug": "OUTLOOK_GET_MASTER_CATEGORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get user's default calendar",
+      "slug": "OUTLOOK_GET_ME_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get user child contact folder",
+      "slug": "OUTLOOK_GET_ME_CONTACT_FOLDERS_CHILD_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact from child folder",
+      "slug": "OUTLOOK_GET_ME_CONTACT_FROM_CHILD_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact photo",
+      "slug": "OUTLOOK_GET_ME_CONTACT_PHOTO",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact",
+      "slug": "OUTLOOK_GET_ME_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user contact extension",
+      "slug": "OUTLOOK_GET_ME_CONTACTS_EXTENSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user event attachment",
+      "slug": "OUTLOOK_GET_ME_EVENT_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get event calendar",
+      "slug": "OUTLOOK_GET_ME_EVENT_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get mail folder message attachment (Deprecated)",
+      "slug": "OUTLOOK_GET_ME_MAIL_FOLDER_MESSAGE_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get message extension",
+      "slug": "OUTLOOK_GET_ME_MAIL_FOLDERS_MESSAGES_EXTENSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get message MIME content",
+      "slug": "OUTLOOK_GET_ME_MESSAGE_MIME_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get user outlook",
+      "slug": "OUTLOOK_GET_ME_OUTLOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get email message",
+      "slug": "OUTLOOK_GET_MESSAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get user message extension",
+      "slug": "OUTLOOK_GET_MESSAGE_EXTENSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get attachment from nested folder message",
+      "slug": "OUTLOOK_GET_NESTED_FOLDER_MESSAGE_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Planner plan",
+      "slug": "OUTLOOK_GET_PLANNER_PLAN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Outlook profile",
+      "slug": "OUTLOOK_GET_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get schedule",
+      "slug": "OUTLOOK_GET_SCHEDULE",
+      "kind": "read"
+    },
+    {
+      "name": "Get supported languages",
+      "slug": "OUTLOOK_GET_SUPPORTED_LANGUAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Get supported time zones",
+      "slug": "OUTLOOK_GET_SUPPORTED_TIME_ZONES",
+      "kind": "read"
+    },
+    {
+      "name": "Get user by email",
+      "slug": "OUTLOOK_GET_USER_BY_EMAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Get user's calendar",
+      "slug": "OUTLOOK_GET_USER_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get allowed calendar sharing roles for user calendar",
+      "slug": "OUTLOOK_GET_USER_CALENDAR_ALLOWED_SHARING_ROLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar event",
+      "slug": "OUTLOOK_GET_USER_CALENDAR_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar group calendar permission",
+      "slug": "OUTLOOK_GET_USER_CALENDAR_GROUP_CALENDAR_PERMISSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar group event",
+      "slug": "OUTLOOK_GET_USER_CALENDAR_GROUP_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get user calendar group event attachment",
+      "slug": "OUTLOOK_GET_USER_CALENDAR_GROUP_EVENT_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get message from child folder",
+      "slug": "OUTLOOK_GET_USER_CHILD_FOLDER_MESSAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get event extension",
+      "slug": "OUTLOOK_GET_USER_EVENT_EXTENSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get user message attachment",
+      "slug": "OUTLOOK_GET_USER_MESSAGES_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List assigned Planner tasks",
+      "slug": "OUTLOOK_LIST_ASSIGNED_PLANNER_TASKS",
+      "kind": "read"
+    },
+    {
+      "name": "List Calendar Calendar View (Deprecated)",
+      "slug": "OUTLOOK_LIST_CALENDAR_CALENDAR_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar event attachments",
+      "slug": "OUTLOOK_LIST_CALENDAR_EVENT_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar group calendar events",
+      "slug": "OUTLOOK_LIST_CALENDAR_GROUP_CALENDAR_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List calendars in calendar group",
+      "slug": "OUTLOOK_LIST_CALENDAR_GROUP_CALENDARS",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar group event attachments",
+      "slug": "OUTLOOK_LIST_CALENDAR_GROUP_EVENT_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Outlook calendar groups",
+      "slug": "OUTLOOK_LIST_CALENDAR_GROUPS",
+      "kind": "read"
+    },
+    {
+      "name": "List calendar permissions",
+      "slug": "OUTLOOK_LIST_CALENDAR_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Outlook calendars",
+      "slug": "OUTLOOK_LIST_CALENDARS",
+      "kind": "read"
+    },
+    {
+      "name": "List calendar view delta",
+      "slug": "OUTLOOK_LIST_CALENDAR_VIEW_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List chat messages",
+      "slug": "OUTLOOK_LIST_CHAT_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Teams chats",
+      "slug": "OUTLOOK_LIST_CHATS",
+      "kind": "read"
+    },
+    {
+      "name": "List user child folder contacts",
+      "slug": "OUTLOOK_LIST_CHILD_FOLDER_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "List child folder messages",
+      "slug": "OUTLOOK_LIST_CHILD_FOLDER_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List child mail folders",
+      "slug": "OUTLOOK_LIST_CHILD_MAIL_FOLDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List contact folder child folders",
+      "slug": "OUTLOOK_LIST_CONTACT_FOLDER_CHILD_FOLDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List contact folders delta",
+      "slug": "OUTLOOK_LIST_CONTACT_FOLDERS_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List Outlook contacts (Deprecated)",
+      "slug": "OUTLOOK_LIST_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "List contacts delta",
+      "slug": "OUTLOOK_LIST_CONTACTS_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List direct group memberships",
+      "slug": "OUTLOOK_LIST_DIRECT_GROUP_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "List Email Rules",
+      "slug": "OUTLOOK_LIST_EMAIL_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "List event attachments",
+      "slug": "OUTLOOK_LIST_EVENT_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List event calendar permissions",
+      "slug": "OUTLOOK_LIST_EVENT_CALENDAR_CALENDAR_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List event instances",
+      "slug": "OUTLOOK_LIST_EVENT_INSTANCES",
+      "kind": "read"
+    },
+    {
+      "name": "List events",
+      "slug": "OUTLOOK_LIST_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Microsoft 365 group calendar view",
+      "slug": "OUTLOOK_LIST_GROUP_CALENDAR_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "List group conversations",
+      "slug": "OUTLOOK_LIST_GROUP_CONVERSATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List group conversation threads",
+      "slug": "OUTLOOK_LIST_GROUP_CONVERSATION_THREADS",
+      "kind": "read"
+    },
+    {
+      "name": "List group thread posts",
+      "slug": "OUTLOOK_LIST_GROUP_THREAD_POSTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Outlook group threads",
+      "slug": "OUTLOOK_LIST_GROUP_THREADS",
+      "kind": "read"
+    },
+    {
+      "name": "List Inference Classification Overrides",
+      "slug": "OUTLOOK_LIST_INFERENCE_CLASSIFICATION_OVERRIDES",
+      "kind": "read"
+    },
+    {
+      "name": "List license details",
+      "slug": "OUTLOOK_LIST_LICENSE_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "List mail folder message attachments",
+      "slug": "OUTLOOK_LIST_MAIL_FOLDER_MESSAGE_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List mail folder message rules",
+      "slug": "OUTLOOK_LIST_MAIL_FOLDER_MESSAGE_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "List mail folder messages",
+      "slug": "OUTLOOK_LIST_MAIL_FOLDER_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List mail folders",
+      "slug": "OUTLOOK_LIST_MAIL_FOLDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List mail folders delta",
+      "slug": "OUTLOOK_LIST_MAIL_FOLDERS_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List master categories",
+      "slug": "OUTLOOK_LIST_MASTER_CATEGORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar permissions",
+      "slug": "OUTLOOK_LIST_ME_CALENDAR_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List me event instances (Deprecated)",
+      "slug": "OUTLOOK_LIST_ME_EVENT_INSTANCES",
+      "kind": "read"
+    },
+    {
+      "name": "List message attachments from child folder",
+      "slug": "OUTLOOK_LIST_MESSAGE_ATTACHMENTS_FROM_CHILD_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "List Messages",
+      "slug": "OUTLOOK_LIST_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List notification subscriptions",
+      "slug": "OUTLOOK_LIST_NOTIFICATION_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List organizations",
+      "slug": "OUTLOOK_LIST_ORGANIZATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Outlook attachments",
+      "slug": "OUTLOOK_LIST_OUTLOOK_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List places",
+      "slug": "OUTLOOK_LIST_PLACES",
+      "kind": "read"
+    },
+    {
+      "name": "List Planner plan buckets",
+      "slug": "OUTLOOK_LIST_PLANNER_PLAN_BUCKETS",
+      "kind": "read"
+    },
+    {
+      "name": "List primary calendar permissions",
+      "slug": "OUTLOOK_LIST_PRIMARY_CALENDAR_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List event reminders",
+      "slug": "OUTLOOK_LIST_REMINDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List sent items messages",
+      "slug": "OUTLOOK_LIST_SENT_ITEMS_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List To Do task lists",
+      "slug": "OUTLOOK_LIST_TO_DO_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List tasks from a To Do list",
+      "slug": "OUTLOOK_LIST_TODO_TASKS",
+      "kind": "read"
+    },
+    {
+      "name": "List calendar event instances",
+      "slug": "OUTLOOK_LIST_USER_CALENDAR_EVENT_INSTANCES",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar event attachments",
+      "slug": "OUTLOOK_LIST_USER_CALENDAR_EVENTS_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List event instances",
+      "slug": "OUTLOOK_LIST_USER_CALENDAR_GROUP_EVENT_INSTANCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Calendar View from User Calendar Group",
+      "slug": "OUTLOOK_LIST_USER_CALENDAR_GROUPS_CALENDAR_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendar permissions",
+      "slug": "OUTLOOK_LIST_USER_CALENDARS_CALENDAR_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List user calendars events",
+      "slug": "OUTLOOK_LIST_USER_CALENDARS_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get calendar view from user's calendar",
+      "slug": "OUTLOOK_LIST_USER_CALENDAR_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "List user contacts",
+      "slug": "OUTLOOK_LIST_USER_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "List users",
+      "slug": "OUTLOOK_LIST_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Move mail folder",
+      "slug": "OUTLOOK_MOVE_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Move child mail folder",
+      "slug": "OUTLOOK_MOVE_ME_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Move message to folder",
+      "slug": "OUTLOOK_MOVE_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Move message from child folder",
+      "slug": "OUTLOOK_MOVE_MESSAGE_FROM_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Move message from folder",
+      "slug": "OUTLOOK_MOVE_MESSAGE_FROM_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Message",
+      "slug": "OUTLOOK_PERMANENT_DELETE_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Pin message",
+      "slug": "OUTLOOK_PIN_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Query Emails",
+      "slug": "OUTLOOK_QUERY_EMAILS",
+      "kind": "write"
+    },
+    {
+      "name": "Reply all",
+      "slug": "OUTLOOK_REPLY_ALL",
+      "kind": "send"
+    },
+    {
+      "name": "Reply to Email",
+      "slug": "OUTLOOK_REPLY_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Report message",
+      "slug": "OUTLOOK_REPORT_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Search calendar events",
+      "slug": "OUTLOOK_SEARCH_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Outlook messages",
+      "slug": "OUTLOOK_SEARCH_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Search Outlook people",
+      "slug": "OUTLOOK_SEARCH_PEOPLE",
+      "kind": "read"
+    },
+    {
+      "name": "Search SharePoint sites",
+      "slug": "OUTLOOK_SEARCH_SITES",
+      "kind": "read"
+    },
+    {
+      "name": "Send draft",
+      "slug": "OUTLOOK_SEND_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Send email",
+      "slug": "OUTLOOK_SEND_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Snooze user calendar group event reminder",
+      "slug": "OUTLOOK_SNOOZE_CALENDAR_GROUP_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Snooze event reminder",
+      "slug": "OUTLOOK_SNOOZE_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Snooze user calendar event reminder",
+      "slug": "OUTLOOK_SNOOZE_USER_CALENDAR_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Snooze user event reminder",
+      "slug": "OUTLOOK_SNOOZE_USER_EVENT_REMINDER",
+      "kind": "write"
+    },
+    {
+      "name": "Translate Exchange IDs",
+      "slug": "OUTLOOK_TRANSLATE_EXCHANGE_IDS",
+      "kind": "write"
+    },
+    {
+      "name": "Update calendar event",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update event in specific calendar",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_EVENT_IN_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Update calendar group",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Update Calendar Group Calendar Permission",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_GROUP_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar in calendar group",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_GROUPS_CALENDARS",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar group event",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_GROUPS_CALENDARS_EVENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Update calendar permission",
+      "slug": "OUTLOOK_UPDATE_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update child folder contact",
+      "slug": "OUTLOOK_UPDATE_CHILD_FOLDER_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Contact",
+      "slug": "OUTLOOK_UPDATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Update user contact folder",
+      "slug": "OUTLOOK_UPDATE_CONTACT_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update user contact folder child folder",
+      "slug": "OUTLOOK_UPDATE_CONTACT_FOLDER_CHILD_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update contact in folder",
+      "slug": "OUTLOOK_UPDATE_CONTACT_FOLDERS_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Update email message",
+      "slug": "OUTLOOK_UPDATE_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Update Email Rule",
+      "slug": "OUTLOOK_UPDATE_EMAIL_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Update event extension",
+      "slug": "OUTLOOK_UPDATE_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update event extension in calendar group",
+      "slug": "OUTLOOK_UPDATE_EVENT_EXTENSION_IN_CALENDAR_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Update Inference Classification",
+      "slug": "OUTLOOK_UPDATE_INFERENCE_CLASSIFICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update mailbox settings",
+      "slug": "OUTLOOK_UPDATE_MAILBOX_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update mail folder",
+      "slug": "OUTLOOK_UPDATE_MAIL_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update master category",
+      "slug": "OUTLOOK_UPDATE_MASTER_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Update contact extension",
+      "slug": "OUTLOOK_UPDATE_ME_CONTACTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update To Do task",
+      "slug": "OUTLOOK_UPDATE_TODO_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar",
+      "slug": "OUTLOOK_UPDATE_USER_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar event",
+      "slug": "OUTLOOK_UPDATE_USER_CALENDAR_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar event",
+      "slug": "OUTLOOK_UPDATE_USER_CALENDAR_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar permission",
+      "slug": "OUTLOOK_UPDATE_USER_CALENDAR_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update user calendar by ID",
+      "slug": "OUTLOOK_UPDATE_USER_CALENDARS",
+      "kind": "write"
+    },
+    {
+      "name": "Update user child folder message",
+      "slug": "OUTLOOK_UPDATE_USER_CHILD_FOLDER_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update user contact extension",
+      "slug": "OUTLOOK_UPDATE_USER_CONTACT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update user contact extension",
+      "slug": "OUTLOOK_UPDATE_USER_CONTACTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update user contact extension (v3)",
+      "slug": "OUTLOOK_UPDATE_USER_CONTACTS_EXTENSIONS_DIRECT",
+      "kind": "write"
+    },
+    {
+      "name": "Update user event extension",
+      "slug": "OUTLOOK_UPDATE_USER_EVENT_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update user events extensions",
+      "slug": "OUTLOOK_UPDATE_USER_EVENTS_EXTENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update User Inference Classification Override",
+      "slug": "OUTLOOK_UPDATE_USER_INFERENCE_CLASSIFICATION_OVERRIDE",
+      "kind": "write"
+    },
+    {
+      "name": "Update user mail folder message",
+      "slug": "OUTLOOK_UPDATE_USER_MAIL_FOLDER_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update user message extension",
+      "slug": "OUTLOOK_UPDATE_USER_MAIL_FOLDER_MESSAGE_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update user mail folder message rule",
+      "slug": "OUTLOOK_UPDATE_USER_MAIL_FOLDER_MESSAGE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Update user mail folder child folder",
+      "slug": "OUTLOOK_UPDATE_USER_MAIL_FOLDERS_CHILD_FOLDERS",
+      "kind": "write"
+    },
+    {
+      "name": "Update user message extension",
+      "slug": "OUTLOOK_UPDATE_USER_MESSAGE_EXTENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "OUTLOOK_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/outlook",
+  "fetched_at": "2026-11-12"
+}

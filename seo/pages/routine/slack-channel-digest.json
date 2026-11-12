@@ -1,0 +1,51 @@
+{
+  "path": "/routines/slack-channel-digest",
+  "type": "routine",
+  "title": "Slack channel digest: decisions and loose ends each day",
+  "nav": "slack channel digest",
+  "h1": "an end-of-day digest of the slack channels you choose",
+  "description": "Copy a Slack digest routine that reads selected channels and threads, then returns decisions, explicit commitments and unresolved questions with message links.",
+  "keyword": "ai slack channel digest",
+  "keywords": ["slack daily digest ai", "slack channel summary routine", "end of day slack summary"],
+  "answer": "pick a few slack channels and ask a bot for an end-of-day digest. it reads messages and relevant thread replies, then separates decisions, explicit commitments and unresolved questions with links back to the discussion. the digest comes to your dusk bot chat rather than adding another channel message. keep slack read-only and tell the bot to stay quiet when nothing worth reporting happened.",
+  "updated": "2026-11-12",
+  "review": { "status": "needs_review" },
+  "tags": ["slack", "routine", "digest", "decisions", "threads"],
+  "connectors": ["slack"],
+  "related": ["/integrations/slack", "/for/product-managers", "/use-cases/daily-briefing"],
+  "art": { "props": ["p-bubbles", "p-newspaper"], "bubble": "the decisions today" },
+  "og_line": "read the decisions, then follow the thread.",
+  "routine": {
+    "message": "every weekday at 5:30pm, read today's messages in the slack workspace and channel list i give you. include relevant thread replies you can access, even when the parent message is older.\n\ngive me a digest here with three short groups:\n- decisions explicitly agreed in the discussion\n- commitments someone explicitly made, with the person and any stated deadline\n- questions still unresolved in the messages you read\n\ninclude the channel and a message link for each item. label suggestions as suggestions, not decisions. don't assign an owner or invent a deadline when neither was stated. skip greetings, repeated announcements and social chatter. if there is nothing substantive, stay quiet.\n\nuse only the named channels, not direct messages or other channels. don't post, reply, react, mark anything read or change slack.",
+    "when": "weekdays at 17:30 in the time zone you choose, covering that day's discussion in your selected channels",
+    "needs": "slack connected with read access to the selected workspace and channels, including conversation history, thread reads and message links",
+    "output": "today in the selected acme channels\n\ndecisions: #launch, priya confirmed that the public demo moves to thursday. source: priya's message at 10:20.\ncommitments: #support, sam said he will test the corrected import file tomorrow morning. source: sam's thread reply at 15:40.\nopen questions: #launch, no answer found to whether the old signup page should remain live. source: priya's question at 16:10.\nscope: #launch and #support only. no direct messages read."
+  },
+  "knobs": [
+    "start with two named channels and add another only when you know what useful information it would contribute",
+    "change the reporting time to fit the team's working day, and say whether a cross-time-zone team needs a wider window",
+    "add a topic filter such as customer escalations, while keeping links so you can inspect what was left out",
+    "cap the digest at five items and ask the bot to group repeated references to the same decision",
+    "if you want a channel post later, grant the specific send action and keep **Ask every time** selected; sending is separate from reading"
+  ],
+  "fails": [
+    "a proposal sounds like a final decision. require a message where someone explicitly confirms the choice, and list anything weaker as an open proposal.",
+    "it misses the answer in a thread. ask it to open the thread before calling a question unresolved, and to state when replies were inaccessible.",
+    "it reports yesterday's item again because the discussion continued today. ask it to include only the new decision or changed commitment, with the earlier context kept brief.",
+    "a quiet channel and an inaccessible channel look the same. require the bot to report an access failure instead of treating it as a day with no news."
+  ],
+  "sections": [
+    { "h": "a useful digest keeps its sources close", "md": "the [slack connector](/integrations/slack) lists conversation history, thread reads and message permalink retrieval. a summary should use those references so you can open the discussion behind a short line. do not treat the summary as a replacement for reading a sensitive disagreement.\n\na [product manager](/for/product-managers) might choose release and feedback channels; someone else may only need operational handoffs. if the problem is preparing for the morning rather than catching up at night, try a [daily briefing](/use-cases/daily-briefing). inspect the first digests and remove channels that only add noise. on a local computer, the scheduled run needs the computer awake and dusk bot open." }
+  ],
+  "faq": [
+    { "q": "what do people actually use scheduled ai tasks for in slack?", "a": "a bounded catch-up is a useful starting point: decisions, promises and unanswered questions from channels you would otherwise read manually. keep the source links and judge whether the selection is useful after a few runs." },
+    { "q": "will the digest be posted into slack?", "a": "not with this message. it returns to the bot's chat, and slack can remain read-only. posting requires write access to the sending action and follows your bot's sending setting." },
+    { "q": "does it read every channel and my direct messages?", "a": "the routine explicitly limits the request to the channels you name. also limit the bot's app permissions and allowed actions. naming channels is an instruction for this job, not a claim that the connection itself has channel-level permission controls." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: app access and sending", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: sending settings", "url": "/docs/computer" },
+    { "label": "composio: slack history, threads and links", "url": "https://docs.composio.dev/toolkits/slack", "checked": "2026-11-12" }
+  ]
+}

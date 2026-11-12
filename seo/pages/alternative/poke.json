@@ -1,0 +1,225 @@
+{
+  "path": "/alternatives/poke",
+  "type": "alternative",
+  "title": "Poke AI alternatives: texting a contact or your bots",
+  "nav": "poke",
+  "h1": "poke ai alternatives when you want an app for your bots",
+  "description": "Compare Poke's iMessage assistant and credit tiers with Dusk Bot's own app, separate AI bill and phone pairing, including the Cognition update.",
+  "keyword": "poke ai alternatives",
+  "keywords": [
+    "poke ai",
+    "poke ai review",
+    "poke ai imessage",
+    "poke ai cost"
+  ],
+  "answer": "pick poke if the point is to text an assistant inside imessage or another chat app without installing one more app. pick dusk bot if you want separate bots in their own desktop app and want to choose the ai behind each. poke includes models in its tiers; dusk bills the computer separately from ai usage. as of 12 november 2026, poke says it is joining cognition, whose announcement says existing users can continue as before.[^1][^2][^3][^4]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "poke",
+    "imessage",
+    "phone",
+    "credits"
+  ],
+  "connectors": [],
+  "related": [
+    "/vs/poke",
+    "/alternatives/ai-assistant-you-text",
+    "/personal-ai-agent"
+  ],
+  "competitor": {
+    "key": "poke",
+    "name": "Poke",
+    "url": "https://poke.com/"
+  },
+  "art": {
+    "props": [
+      "s-phone",
+      "p-bubbles"
+    ],
+    "label": "Poke",
+    "bubble": "contact or app?"
+  },
+  "og_line": "choose where the conversation belongs.",
+  "verdict": {
+    "them_title": "poke",
+    "them": [
+      "you want the assistant alongside your other contacts in apple messages, telegram, whatsapp or rcs",
+      "you want an always-on cloud service with models included in the plan"
+    ],
+    "dusk": [
+      "you want to keep several bots apart by job, memory and conversation",
+      "you want to select each bot's ai and choose the machine that holds its chats and files"
+    ]
+  },
+  "compare": {
+    "h": "the conversation and the bill",
+    "intro": "tier prices and company status are as of 12 november 2026. poke's pages don't give enough information to compare a poke credit with a specific amount of ai-provider usage.",
+    "cols": [
+      "Poke",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "where you text",
+        "cells": [
+          "apple messages, telegram, whatsapp and rcs",
+          "dusk desktop app or its paired phone browser"
+        ],
+        "src": [
+          1,
+          5,
+          6
+        ]
+      },
+      {
+        "label": "getting started",
+        "cells": [
+          "sign up and send a message; no install",
+          "download the desktop app and sign in to your chosen ai"
+        ],
+        "src": [
+          1,
+          5
+        ]
+      },
+      {
+        "label": "which ai pays attention",
+        "cells": [
+          "models included; pro and ultra describe frontier models without naming them",
+          "the ai you choose for each bot, billed by your provider"
+        ],
+        "src": [
+          2,
+          5,
+          3
+        ]
+      },
+      {
+        "label": "free starting point",
+        "cells": [
+          "free tier, no card required",
+          "free personal use on your own computer, no dusk account or card"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "paid tiers",
+        "cells": [
+          "pro $19 monthly; ultra $199 monthly with pay-as-you-go usage beyond credits",
+          "optional dusk cloud: $20 or $50 monthly, plus your separate ai cost"
+        ],
+        "src": [
+          2,
+          7,
+          3
+        ]
+      },
+      {
+        "label": "computer off",
+        "cells": [
+          "always-on agent in their cloud",
+          "phone access needs the paired computer running, or dusk cloud"
+        ],
+        "src": [
+          4,
+          6,
+          7
+        ]
+      },
+      {
+        "label": "background work",
+        "cells": [
+          "reminders and scheduled tasks; pro adds real-time background automations",
+          "routines created in chat, with a schedule card and run history"
+        ],
+        "src": [
+          8,
+          9
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot, and this page reflects our reading of the dated poke facts rather than a neutral product test. we did not send the same messages to both services or test delivery reliability. model names and a usable credit-to-task rate were not recorded for poke, so we do not estimate either. sources were checked on 12 november 2026.",
+  "sections": [
+    {
+      "h": "a familiar contact is a real reason to stay",
+      "md": "poke's main advantage for this choice is the conversation's home. it appears in messaging services you may already keep open, including apple messages.[^1] if that is the whole reason you want an assistant, changing to a separate desktop app may add friction rather than remove it. the [assistant-you-text comparison](/alternatives/ai-assistant-you-text) looks at that broader category.\n\ndusk bot offers its own place for a small team: each bot has its own name, job, chats and memory.[^5] that separation can help when a personal helper and a work bot need different instructions. it is a different interface choice, not proof of better replies."
+    },
+    {
+      "h": "phone access has a condition",
+      "md": "poke is described as an always-on cloud agent by cognition.[^4] you do not have to leave your own laptop awake for that cloud service.\n\nwith dusk, pair your phone to the machine where the bots live. pairing to your computer works while that computer is on and running dusk bot. pairing to dusk cloud works with your computer off. the current phone version opens in the browser and can be added to the home screen; it sends no notifications, and store apps are still on their way.[^6][^7] do not choose it expecting an imessage contact. [poke versus dusk bot](/vs/poke) is the direct follow-up if this is your deciding point."
+    },
+    {
+      "h": "look past the monthly sticker",
+      "md": "poke's pro and ultra tiers include models, with ultra allowing pay-as-you-go usage beyond its credits.[^2] poke's pages don't name those models or say how far an allowance goes for a task like yours. a low monthly tier price cannot answer that question on its own.\n\ndusk separates the host from the ai. you may pay nothing to dusk for personal local use, while your ai provider still bills usage. a hosted dusk computer is another cost.[^3][^7] when evaluating a [personal ai agent](/personal-ai-agent), decide whether you value one bundled allowance or choosing and watching a provider bill yourself."
+    },
+    {
+      "h": "what joining cognition tells you",
+      "md": "cognition announced the interaction company's move on 23 july 2026. its post says poke users can continue using the product as before, and poke's current banner says it is joining cognition.[^4] that supports a continuity statement as of the check date. it does not establish future pricing, a new model lineup or a migration requirement."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is the lowest poke ai price?",
+      "a": "as of 12 november 2026, poke has a $0 free tier, pro at $19 a month and ultra at $199 a month. ultra adds pay-as-you-go usage beyond credits. check the current allowance before committing to a recurring job.[^2]"
+    },
+    {
+      "q": "how are people running agents from their phone?",
+      "a": "poke uses existing messaging apps. dusk bot pairs a phone browser to your desktop computer or dusk cloud. for dusk, choose cloud if you need access while the desktop computer is off.[^1][^6]"
+    },
+    {
+      "q": "can i choose the exact ai in poke?",
+      "a": "the recorded pricing page describes frontier models by tier but does not name them. that is not enough to promise a specific engine. dusk lets you pick and change an ai per bot; check that provider's current terms and limits.[^2][^5]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "poke messaging docs",
+      "url": "https://poke.com/docs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke pricing and model tiers",
+      "url": "https://poke.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk ai billing and personal use",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "cognition welcomes the interaction company",
+      "url": "https://cognition.com/blog/interaction",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk phone pairing and current browser limits",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk cloud plans",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "poke background tasks",
+      "url": "https://poke.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

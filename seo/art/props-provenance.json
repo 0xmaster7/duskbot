@@ -1,0 +1,137 @@
+{
+  "p-bag": {
+    "w": 375,
+    "h": 419,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1198x1313",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-binoculars": {
+    "w": 420,
+    "h": 406,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1536x1024",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-briefcase": {
+    "w": 420,
+    "h": 370,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1377x1142",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-bubbles": {
+    "w": 420,
+    "h": 316,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1536x1024",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-cap": {
+    "w": 360,
+    "h": 419,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1254x1254",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-chart": {
+    "w": 297,
+    "h": 419,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1142x1377",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-folder": {
+    "w": 420,
+    "h": 360,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1377x1142",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-house": {
+    "w": 420,
+    "h": 401,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1312x1199",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-laptop": {
+    "w": 420,
+    "h": 404,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1312x1199",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-magnifier": {
+    "w": 298,
+    "h": 419,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1142x1377",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-megaphone": {
+    "w": 420,
+    "h": 333,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1536x1024",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-mug": {
+    "w": 313,
+    "h": 419,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1254x1254",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-newspaper": {
+    "w": 420,
+    "h": 316,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1377x1142",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-receipt": {
+    "w": 240,
+    "h": 418,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1024x1536",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  },
+  "p-shield": {
+    "w": 368,
+    "h": 418,
+    "model": "gpt-image-2.5-sunburst",
+    "returned_size": "1142x1377",
+    "made": "2026-11-12",
+    "style_reference": "art/s-mailbox.webp",
+    "tool": "gpt-image-mchat gen.mjs --edit --transparent, alpha hardened at 140, trimmed, width 420"
+  }
+}

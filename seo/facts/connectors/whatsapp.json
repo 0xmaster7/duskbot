@@ -1,0 +1,653 @@
+{
+  "toolkit": "whatsapp",
+  "name": "WhatsApp",
+  "version": "20261105_00",
+  "description": "Enables interaction with customers through the WhatsApp Business API for messaging and automation. Only supports WhatsApp Business accounts, not WhatsApp Personal accounts.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 127,
+  "triggers_count": 1,
+  "tools": [
+    {
+      "name": "Accept business solution",
+      "slug": "WHATSAPP_ACCEPT_BUSINESS_SOLUTION",
+      "kind": "write"
+    },
+    {
+      "name": "Accept solution deactivation",
+      "slug": "WHATSAPP_ACCEPT_SOLUTION_DEACTIVATION",
+      "kind": "write"
+    },
+    {
+      "name": "Add business phone number",
+      "slug": "WHATSAPP_ADD_BUSINESS_PHONE_NUMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Approve group join requests",
+      "slug": "WHATSAPP_APPROVE_GROUP_JOIN_REQUESTS",
+      "kind": "write"
+    },
+    {
+      "name": "Assign user",
+      "slug": "WHATSAPP_ASSIGN_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Block WhatsApp Users",
+      "slug": "WHATSAPP_BLOCK_USERS",
+      "kind": "write"
+    },
+    {
+      "name": "Configure WhatsApp Conversational Automation",
+      "slug": "WHATSAPP_CONFIGURE_CONVERSATIONAL_AUTOMATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create business account",
+      "slug": "WHATSAPP_CREATE_BUSINESS_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Create business solution",
+      "slug": "WHATSAPP_CREATE_BUSINESS_SOLUTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create WhatsApp Flow",
+      "slug": "WHATSAPP_CREATE_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Create group",
+      "slug": "WHATSAPP_CREATE_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Create group invite link",
+      "slug": "WHATSAPP_CREATE_GROUP_INVITE_LINK",
+      "kind": "send"
+    },
+    {
+      "name": "Create WhatsApp Max Price Agreement",
+      "slug": "WHATSAPP_CREATE_MAX_PRICE_AGREEMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create message template",
+      "slug": "WHATSAPP_CREATE_MESSAGE_TEMPLATE",
+      "kind": "send"
+    },
+    {
+      "name": "Create obo mobility intent",
+      "slug": "WHATSAPP_CREATE_OBO_MOBILITY_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create phone number",
+      "slug": "WHATSAPP_CREATE_PHONE_NUMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Create QR Code",
+      "slug": "WHATSAPP_CREATE_QR_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Create schedule",
+      "slug": "WHATSAPP_CREATE_SCHEDULE",
+      "kind": "write"
+    },
+    {
+      "name": "Create upload session for WhatsApp",
+      "slug": "WHATSAPP_CREATE_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete flow",
+      "slug": "WHATSAPP_DELETE_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete group",
+      "slug": "WHATSAPP_DELETE_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Delete group invite link",
+      "slug": "WHATSAPP_DELETE_GROUP_INVITE_LINK",
+      "kind": "send"
+    },
+    {
+      "name": "Delete WhatsApp Media",
+      "slug": "WHATSAPP_DELETE_MEDIA",
+      "kind": "write"
+    },
+    {
+      "name": "Delete message template",
+      "slug": "WHATSAPP_DELETE_MESSAGE_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete preverified number",
+      "slug": "WHATSAPP_DELETE_PREVERIFIED_NUMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete QR Code",
+      "slug": "WHATSAPP_DELETE_QR_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Deprecate flow",
+      "slug": "WHATSAPP_DEPRECATE_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Deregister WhatsApp Business Phone Number",
+      "slug": "WHATSAPP_DEREGISTER_PHONE",
+      "kind": "write"
+    },
+    {
+      "name": "Download media",
+      "slug": "WHATSAPP_DOWNLOAD_MEDIA",
+      "kind": "read"
+    },
+    {
+      "name": "Edit message template",
+      "slug": "WHATSAPP_EDIT_MESSAGE_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Get account number",
+      "slug": "WHATSAPP_GET_ACCOUNT_NUMBER",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Business Account Activities",
+      "slug": "WHATSAPP_GET_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get assigned business accounts",
+      "slug": "WHATSAPP_GET_ASSIGNED_BUSINESS_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get assigned users",
+      "slug": "WHATSAPP_GET_ASSIGNED_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Business Account Details",
+      "slug": "WHATSAPP_GET_BUSINESS_ACCOUNT_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Get business bot",
+      "slug": "WHATSAPP_GET_BUSINESS_BOT",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Business Compliance Info",
+      "slug": "WHATSAPP_GET_BUSINESS_COMPLIANCE_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Business Encryption",
+      "slug": "WHATSAPP_GET_BUSINESS_ENCRYPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get business portfolio",
+      "slug": "WHATSAPP_GET_BUSINESS_PORTFOLIO",
+      "kind": "read"
+    },
+    {
+      "name": "Get business profile",
+      "slug": "WHATSAPP_GET_BUSINESS_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get business profile node",
+      "slug": "WHATSAPP_GET_BUSINESS_PROFILE_NODE",
+      "kind": "read"
+    },
+    {
+      "name": "Get call permissions",
+      "slug": "WHATSAPP_GET_CALL_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get client WhatsApp Business Accounts",
+      "slug": "WHATSAPP_GET_CLIENT_BUSINESS_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Commerce Settings",
+      "slug": "WHATSAPP_GET_COMMERCE_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get connected client businesses",
+      "slug": "WHATSAPP_GET_CONNECTED_CLIENT_BUSINESSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get extended credits",
+      "slug": "WHATSAPP_GET_EXTENDED_CREDITS",
+      "kind": "read"
+    },
+    {
+      "name": "Get flow",
+      "slug": "WHATSAPP_GET_FLOW",
+      "kind": "read"
+    },
+    {
+      "name": "Get Flow Assets",
+      "slug": "WHATSAPP_GET_FLOW_ASSETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get group",
+      "slug": "WHATSAPP_GET_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Join Requests",
+      "slug": "WHATSAPP_GET_JOIN_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get max price agreements",
+      "slug": "WHATSAPP_GET_MAX_PRICE_AGREEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get media info",
+      "slug": "WHATSAPP_GET_MEDIA_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Message History",
+      "slug": "WHATSAPP_GET_MESSAGE_HISTORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get message history events",
+      "slug": "WHATSAPP_GET_MESSAGE_HISTORY_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get message templates",
+      "slug": "WHATSAPP_GET_MESSAGE_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get migration intent",
+      "slug": "WHATSAPP_GET_MIGRATION_INTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get official business account status",
+      "slug": "WHATSAPP_GET_OFFICIAL_BUSINESS_ACCOUNT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get owned WhatsApp Business Accounts",
+      "slug": "WHATSAPP_GET_OWNED_BUSINESS_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get phone number",
+      "slug": "WHATSAPP_GET_PHONE_NUMBER",
+      "kind": "read"
+    },
+    {
+      "name": "Get phone numbers",
+      "slug": "WHATSAPP_GET_PHONE_NUMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get preverified number",
+      "slug": "WHATSAPP_GET_PREVERIFIED_NUMBER",
+      "kind": "read"
+    },
+    {
+      "name": "Get preverified number partners",
+      "slug": "WHATSAPP_GET_PREVERIFIED_NUMBER_PARTNERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get qr code",
+      "slug": "WHATSAPP_GET_QR_CODE",
+      "kind": "read"
+    },
+    {
+      "name": "Get reach estimate",
+      "slug": "WHATSAPP_GET_REACH_ESTIMATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Schedules",
+      "slug": "WHATSAPP_GET_SCHEDULES",
+      "kind": "read"
+    },
+    {
+      "name": "Get WhatsApp Cloud API Settings",
+      "slug": "WHATSAPP_GET_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get solution access token",
+      "slug": "WHATSAPP_GET_SOLUTION_ACCESS_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Subscribed Apps",
+      "slug": "WHATSAPP_GET_SUBSCRIBED_APPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get message template library",
+      "slug": "WHATSAPP_GET_TEMPLATE_LIBRARY",
+      "kind": "read"
+    },
+    {
+      "name": "Get template status",
+      "slug": "WHATSAPP_GET_TEMPLATE_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get upload offset",
+      "slug": "WHATSAPP_GET_UPLOAD_OFFSET",
+      "kind": "read"
+    },
+    {
+      "name": "List blocked users",
+      "slug": "WHATSAPP_LIST_BLOCKED_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List business accounts",
+      "slug": "WHATSAPP_LIST_BUSINESS_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "List business solutions",
+      "slug": "WHATSAPP_LIST_BUSINESS_SOLUTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List WhatsApp Flows",
+      "slug": "WHATSAPP_LIST_FLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "List WhatsApp Groups",
+      "slug": "WHATSAPP_LIST_GROUPS",
+      "kind": "read"
+    },
+    {
+      "name": "List on behalf requests",
+      "slug": "WHATSAPP_LIST_ON_BEHALF_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "List preverified numbers",
+      "slug": "WHATSAPP_LIST_PREVERIFIED_NUMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "List qr codes",
+      "slug": "WHATSAPP_LIST_QR_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "List WhatsApp Solutions",
+      "slug": "WHATSAPP_LIST_SOLUTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Manage call",
+      "slug": "WHATSAPP_MANAGE_CALL",
+      "kind": "write"
+    },
+    {
+      "name": "Migrate flows",
+      "slug": "WHATSAPP_MIGRATE_FLOWS",
+      "kind": "write"
+    },
+    {
+      "name": "Onboard marketing partners",
+      "slug": "WHATSAPP_ONBOARD_MARKETING_PARTNERS",
+      "kind": "write"
+    },
+    {
+      "name": "Publish WhatsApp Flow",
+      "slug": "WHATSAPP_PUBLISH_FLOW",
+      "kind": "send"
+    },
+    {
+      "name": "Register WhatsApp Business Phone Number",
+      "slug": "WHATSAPP_REGISTER_PHONE",
+      "kind": "write"
+    },
+    {
+      "name": "Reject business solution",
+      "slug": "WHATSAPP_REJECT_BUSINESS_SOLUTION",
+      "kind": "write"
+    },
+    {
+      "name": "Reject group join requests",
+      "slug": "WHATSAPP_REJECT_GROUP_JOIN_REQUESTS",
+      "kind": "write"
+    },
+    {
+      "name": "Reject solution deactivation",
+      "slug": "WHATSAPP_REJECT_SOLUTION_DEACTIVATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Assigned User from WhatsApp Business Account",
+      "slug": "WHATSAPP_REMOVE_ASSIGNED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove group participants",
+      "slug": "WHATSAPP_REMOVE_GROUP_PARTICIPANTS",
+      "kind": "write"
+    },
+    {
+      "name": "Request preverified number code",
+      "slug": "WHATSAPP_REQUEST_PREVERIFIED_NUMBER_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Request solution deactivation",
+      "slug": "WHATSAPP_REQUEST_SOLUTION_DEACTIVATION",
+      "kind": "write"
+    },
+    {
+      "name": "Request verification code",
+      "slug": "WHATSAPP_REQUEST_VERIFICATION_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Send contacts",
+      "slug": "WHATSAPP_SEND_CONTACTS",
+      "kind": "send"
+    },
+    {
+      "name": "Send encrypted message",
+      "slug": "WHATSAPP_SEND_ENCRYPTED_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Send interactive buttons",
+      "slug": "WHATSAPP_SEND_INTERACTIVE_BUTTONS",
+      "kind": "send"
+    },
+    {
+      "name": "Send interactive list",
+      "slug": "WHATSAPP_SEND_INTERACTIVE_LIST",
+      "kind": "send"
+    },
+    {
+      "name": "Send location",
+      "slug": "WHATSAPP_SEND_LOCATION",
+      "kind": "send"
+    },
+    {
+      "name": "Send marketing message",
+      "slug": "WHATSAPP_SEND_MARKETING_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Send media",
+      "slug": "WHATSAPP_SEND_MEDIA",
+      "kind": "send"
+    },
+    {
+      "name": "Send media by",
+      "slug": "WHATSAPP_SEND_MEDIA_BY_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Send message",
+      "slug": "WHATSAPP_SEND_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Send template message",
+      "slug": "WHATSAPP_SEND_TEMPLATE_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Set business encryption",
+      "slug": "WHATSAPP_SET_BUSINESS_ENCRYPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Set obo mobility intent",
+      "slug": "WHATSAPP_SET_OBO_MOBILITY_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Set solution migration intent",
+      "slug": "WHATSAPP_SET_SOLUTION_MIGRATION_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Set WhatsApp Two-Step Verification PIN",
+      "slug": "WHATSAPP_SET_TWO_STEP_VERIFICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Share preverified numbers",
+      "slug": "WHATSAPP_SHARE_PREVERIFIED_NUMBERS",
+      "kind": "send"
+    },
+    {
+      "name": "Subscribe to WABA Webhooks",
+      "slug": "WHATSAPP_SUBSCRIBE_APP",
+      "kind": "write"
+    },
+    {
+      "name": "Unblock WhatsApp Users",
+      "slug": "WHATSAPP_UNBLOCK_USERS",
+      "kind": "write"
+    },
+    {
+      "name": "Unsubscribe from WABA Webhooks",
+      "slug": "WHATSAPP_UNSUBSCRIBE_APP",
+      "kind": "write"
+    },
+    {
+      "name": "Update WhatsApp Flow Metadata",
+      "slug": "WHATSAPP_UPDATE_BUSINESS_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Update business account settings",
+      "slug": "WHATSAPP_UPDATE_BUSINESS_ACCOUNT_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update business compliance info",
+      "slug": "WHATSAPP_UPDATE_BUSINESS_COMPLIANCE_INFO",
+      "kind": "write"
+    },
+    {
+      "name": "Update WhatsApp Business Profile",
+      "slug": "WHATSAPP_UPDATE_BUSINESS_PROFILE",
+      "kind": "write"
+    },
+    {
+      "name": "Update business profile node",
+      "slug": "WHATSAPP_UPDATE_BUSINESS_PROFILE_NODE",
+      "kind": "write"
+    },
+    {
+      "name": "Update WhatsApp commerce settings",
+      "slug": "WHATSAPP_UPDATE_COMMERCE_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update Flow JSON",
+      "slug": "WHATSAPP_UPDATE_FLOW_JSON",
+      "kind": "write"
+    },
+    {
+      "name": "Update group",
+      "slug": "WHATSAPP_UPDATE_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Update official business account status",
+      "slug": "WHATSAPP_UPDATE_OFFICIAL_BUSINESS_ACCOUNT_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Update WhatsApp Cloud API Settings",
+      "slug": "WHATSAPP_UPDATE_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Upload file chunk",
+      "slug": "WHATSAPP_UPLOAD_FILE_CHUNK",
+      "kind": "write"
+    },
+    {
+      "name": "Upload media",
+      "slug": "WHATSAPP_UPLOAD_MEDIA",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert message template",
+      "slug": "WHATSAPP_UPSERT_MESSAGE_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Verify Phone Number OTP Code",
+      "slug": "WHATSAPP_VERIFY_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Verify preverified number code",
+      "slug": "WHATSAPP_VERIFY_PREVERIFIED_NUMBER_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "WHATSAPP_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/whatsapp",
+  "fetched_at": "2026-11-12"
+}

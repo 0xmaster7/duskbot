@@ -1,0 +1,93 @@
+{
+  "path": "/use-cases/web-scraping",
+  "type": "use-case",
+  "title": "AI web scraping: read chosen pages into a useful table",
+  "nav": "web scraping",
+  "h1": "ask a bot to read web pages into a table",
+  "description": "Copy a browser routine for collecting specific fields from chosen pages, with source links, missing values and clear boundaries.",
+  "keyword": "ai web scraping",
+  "keywords": [
+    "ai agent web scraping",
+    "ai web scraper no code"
+  ],
+  "answer": "for a small collection of pages, give a bot the urls and the exact fields you want back. it reads them in its own browser and returns a table you can check against the originals. ask it to leave missing values blank and record pages it could not open. this is a supervised reading task, with no promise of complete coverage, bulk crawling or access through a blocked page.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "browser",
+    "extraction",
+    "tables",
+    "sources"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/competitor-monitoring",
+    "/use-cases/lead-research"
+  ],
+  "art": {
+    "props": [
+      "s-computer",
+      "p-chart"
+    ],
+    "bubble": "one row per page"
+  },
+  "og_line": "chosen fields, with the source beside them.",
+  "routine": {
+    "intro": "send a short list of permitted public urls first. describe each field as you would to someone collecting it by hand. the example task below collects workshop listings, not personal contact details.",
+    "message": "every wednesday at 11, read the public workshop pages in the url list i gave you, using your own browser. do not follow links beyond that list.\n\nreturn one row per listing with: workshop title, organiser, displayed date, displayed location, displayed price and currency, source url, and date read. copy dates and prices as shown; do not calculate missing ones. use “not listed” for a missing field. if a page contains several sessions, keep them in separate rows.\n\nreport pages that failed separately. stop if a page blocks access, asks for a login or says automated access is not permitted. do not submit forms, accept terms, collect attendee details or bypass restrictions. keep the result in this chat.",
+    "when": "wednesdays at 11:00 for the same approved list of pages",
+    "needs": "a bot with its own browser, permitted urls and a field list; no connector needed",
+    "output": "example extraction for sam’s fictional workshop directory\n\nworkshop | organiser | date shown | location shown | price shown | source\nrepair basics | priya’s studio | 18 november | north room | £25 | supplied page “repair basics”\nwood finishing | jo’s workshop | not listed | east hall | not listed | supplied page “wood finishing”\n\nread: 12 november 2026\nfailed: “weekend sessions” showed an access restriction. no rows collected from it.\ncheck: the repair basics page also mentions materials; no separate materials price is listed."
+  },
+  "sections": [
+    {
+      "h": "define the rows before the run",
+      "md": "a page can contain a headline price, an optional extra and an old offer. tell the bot which belongs in the table. keep the displayed wording when it matters: “from £25” should not become a guaranteed £25 booking.\n\nstart with pages whose structure you can inspect. compare the first table against those pages yourself before adding more urls. a blank field is useful evidence that the page did not provide an answer. filling it from a guess would make the table harder to trust."
+    },
+    {
+      "h": "use the browser without promising a crawler",
+      "md": "a bot can have a browser separate from your own. **Screen** lets you watch it work, and **Take control** lets you step in.[^1] that gives you a way to inspect a difficult page, not a guarantee that every page can be read.\n\nthere is no documented bulk-crawl limit, extraction accuracy or guaranteed export format to promise here. if your real question is what the pages mean, use [market research](/use-cases/market-research). if you only want to hear about changed pages, use [competitor monitoring](/use-cases/competitor-monitoring)."
+    },
+    {
+      "h": "check permission before collecting",
+      "md": "respect each site’s terms and robots rules, and the personal data laws that apply to your work. review those before approving a page list; do not treat a publicly visible page as permission for every use. this is a practical boundary, not legal advice.\n\nkeep collection to fields needed for the task. for contact lists, the [lead research page](/use-cases/lead-research) explains a narrower starting point. a browser task can also fail when content needs a sign-in or never finishes loading. ask for that failure in the result rather than an empty table that looks complete."
+    }
+  ],
+  "safeguards": [
+    "approve the page list after checking site terms and robots rules",
+    "exclude personal details unless you have established a lawful reason to collect them",
+    "keep the source url and reading date with every collected row",
+    "treat missing fields and blocked pages as gaps, never as instructions to bypass access"
+  ],
+  "faq": [
+    {
+      "q": "can i scrape websites with ai without writing code?",
+      "a": "you can describe a small browser reading task in chat and specify the table you want back. this page does not promise an unattended crawler or reliable extraction from every site."
+    },
+    {
+      "q": "what if the website blocks the bot?",
+      "a": "the routine tells it to stop and list the blocked page. review whether another permitted source meets the need. do not ask it to evade the restriction."
+    },
+    {
+      "q": "can i use the table for lead generation?",
+      "a": "start by checking the permitted use and keeping only relevant company information. collection and outreach raise separate questions; getting a row into a table does not settle either one."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    }
+  ]
+}

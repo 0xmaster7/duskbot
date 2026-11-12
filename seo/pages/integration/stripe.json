@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/stripe",
+  "type": "integration",
+  "title": "Stripe AI assistant for invoices, refunds and billing checks",
+  "nav": "stripe",
+  "h1": "a stripe bot that reads billing before money moves",
+  "description": "Read Stripe billing with a bot in Dusk Bot: review overdue invoices, reconcile refund records and inspect subscriptions. Money sends stay behind Allow.",
+  "keyword": "stripe mcp",
+  "keywords": [
+    "claude stripe",
+    "stripe ai agent"
+  ],
+  "answer": "connect stripe to a bot in dusk bot for billing questions grounded in your invoices, subscriptions and refund records. start with a reader that reports amounts and dates in chat. a refund moves money, so keep it behind **Allow**. reading billing records is useful on its own; the bot does not need permission to move money to explain them.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "billing",
+    "invoices",
+    "refunds",
+    "subscriptions"
+  ],
+  "connectors": [
+    "stripe"
+  ],
+  "related": [
+    "/use-cases/invoice-follow-up",
+    "/integrations/google-sheets",
+    "/for/founders"
+  ],
+  "art": {
+    "logo": "stripe",
+    "label": "Stripe",
+    "props": [
+      "p-receipt",
+      "p-shield"
+    ],
+    "bubble": "read before a refund"
+  },
+  "og_line": "billing context before a money decision.",
+  "app": {
+    "name": "Stripe",
+    "toolkit": "stripe",
+    "intro": "give the bot a customer reference or a date window so it can inspect the right records. these actions cover billing review as well as a refund action that should remain outside a reader's permissions.",
+    "highlight": [
+      {
+        "slug": "STRIPE_LIST_INVOICES",
+        "use": "review invoices in the period you are closing"
+      },
+      {
+        "slug": "STRIPE_SEARCH_INVOICES",
+        "use": "find invoices for a particular billing question"
+      },
+      {
+        "slug": "STRIPE_RETRIEVE_CUSTOMER",
+        "use": "confirm which customer a record belongs to"
+      },
+      {
+        "slug": "STRIPE_LIST_SUBSCRIPTIONS",
+        "use": "inspect subscription records before explaining billing status"
+      },
+      {
+        "slug": "STRIPE_LIST_REFUNDS",
+        "use": "collect refund records for a reconciliation check"
+      },
+      {
+        "slug": "STRIPE_RETRIEVE_CHARGE",
+        "use": "read the charge behind a refund request"
+      },
+      {
+        "slug": "STRIPE_LIST_PAYOUTS",
+        "use": "review payout records separately from invoice totals"
+      },
+      {
+        "slug": "STRIPE_CREATE_REFUND",
+        "use": "make a specific refund only after you choose **Allow**"
+      }
+    ],
+    "setup": "connect stripe under **Connected apps** and enable a billing bot with read-only access first. stripe handles the sign-in. for any later refund work, allow only the actions needed and keep the bot on **Ask every time** for sends. do not give it a daily amount to send on its own for these routines."
+  },
+  "routines_intro": "these messages keep money movement out of scheduled work. they answer different billing questions and return evidence for a person to review.",
+  "routines": [
+    {
+      "name": "overdue invoice review",
+      "message": "every monday at 8, read stripe invoices that are open and past their due date. list the customer, invoice reference, amount, currency and due date. group by currency. do not send invoices, contact customers or change records.",
+      "when": "mondays at 08:00",
+      "output": "an overdue invoice list for review"
+    },
+    {
+      "name": "refund reconciliation",
+      "message": "every friday at 3, list stripe refunds created this week and read their related charges. show each refund reference, amount, currency and charge reference. flag anything you cannot match. do not create another refund or move money.",
+      "when": "fridays at 15:00",
+      "output": "a refund-to-charge reconciliation table"
+    },
+    {
+      "name": "subscription questions",
+      "message": "on the first weekday of each month at 10, inspect the stripe subscription records for the customers i named here. summarise their recorded status and billing dates. flag missing context before suggesting any next step. do not cancel, update or charge anything.",
+      "when": "first weekday of the month at 10:00",
+      "output": "a customer billing status brief"
+    }
+  ],
+  "asks": "payments and refunds are sends of money. for this setup, keep **Ask every time** and use **Allow** only after checking the customer, charge, currency and amount. choose **Deny** when the proposed operation is not the one you intended. the money-moving action should never be part of a scheduled reader.\n\nother stripe changes, such as editing a subscription, are not documented as using that sending checkpoint. keep them outside the bot's action list, or explicitly say \"ask me before you change anything\" if you later need an editing routine.",
+  "cannot": [
+    "create a refund or alter billing records with read-only access. that boundary is checked before the app call reaches stripe.",
+    "establish a complete accounting result from an invoice sum alone. these routines report the records they inspect; keep currencies and record types separate and review unmatched items.",
+    "complete a local billing check while the computer is asleep. if an early report needs to be ready before you start work, run that reader on dusk cloud or another always-on machine."
+  ],
+  "sections": [
+    {
+      "h": "keep collection separate from review",
+      "md": "an overdue list is a starting point for [invoice follow-up](/use-cases/invoice-follow-up), not an instruction to contact every customer. a payment may need context you have not given the bot. review the references and amounts before drafting a message or approving a money operation."
+    },
+    {
+      "h": "choose where billing summaries land",
+      "md": "keep the first reports in dusk chat. if you later want a [google sheets summary](/integrations/google-sheets), connect it separately and define the destination range. do not turn a reporting job into a subscription-editing job. for a [founder briefing](/for/founders), ask for the billing questions that need a decision rather than an unsupported revenue forecast."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a stripe ai agent issue refunds automatically?",
+      "a": "the catalog includes a refund action, but this setup keeps refunds behind your **Allow** decision and gives scheduled readers no refund permission. keep the sending setting on **Ask every time**."
+    },
+    {
+      "q": "can it check billing without access to move money?",
+      "a": "yes. use a read-only stripe grant and have it report invoice, subscription or refund records in chat. it cannot call the money-changing actions under that grant."
+    },
+    {
+      "q": "is this financial advice or a record review?",
+      "a": "the routines review connected billing records and identify questions for you. they do not establish tax treatment, accounting completeness or whether a customer should receive a refund."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: connected apps and sends",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: allow and deny",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

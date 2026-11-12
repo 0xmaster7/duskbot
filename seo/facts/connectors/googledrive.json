@@ -1,0 +1,542 @@
+{
+  "toolkit": "googledrive",
+  "name": "Google Drive",
+  "version": "20261104_00",
+  "description": "Google Drive is a cloud storage solution for uploading, sharing, and collaborating on files across devices, with robust search and offline access",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 105,
+  "triggers_count": 7,
+  "tools": [
+    {
+      "name": "Add file sharing preference (Deprecated)",
+      "slug": "GOOGLEDRIVE_ADD_FILE_SHARING_PREFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Insert File Parent (v2)",
+      "slug": "GOOGLEDRIVE_ADD_PARENT",
+      "kind": "write"
+    },
+    {
+      "name": "Insert Property (v2 API)",
+      "slug": "GOOGLEDRIVE_ADD_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Get Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_BATCH_GET_SPREADSHEET_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Update Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_BATCH_UPDATE_SPREADSHEET_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_CLEAR_SPREADSHEET_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Copy file (Deprecated)",
+      "slug": "GOOGLEDRIVE_COPY_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Copy file with advanced options",
+      "slug": "GOOGLEDRIVE_COPY_FILE_ADVANCED",
+      "kind": "write"
+    },
+    {
+      "name": "Create Comment",
+      "slug": "GOOGLEDRIVE_CREATE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Shared Drive",
+      "slug": "GOOGLEDRIVE_CREATE_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Create File or Folder",
+      "slug": "GOOGLEDRIVE_CREATE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a File from Text",
+      "slug": "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a folder",
+      "slug": "GOOGLEDRIVE_CREATE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Permission",
+      "slug": "GOOGLEDRIVE_CREATE_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Permissions Batch",
+      "slug": "GOOGLEDRIVE_CREATE_PERMISSIONS_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Create Reply",
+      "slug": "GOOGLEDRIVE_CREATE_REPLY",
+      "kind": "send"
+    },
+    {
+      "name": "Create Shortcut to File/Folder",
+      "slug": "GOOGLEDRIVE_CREATE_SHORTCUT_TO_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Team Drive (Deprecated)",
+      "slug": "GOOGLEDRIVE_CREATE_TEAM_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Child (v2)",
+      "slug": "GOOGLEDRIVE_DELETE_CHILD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "GOOGLEDRIVE_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Shared Drive",
+      "slug": "GOOGLEDRIVE_DELETE_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete file",
+      "slug": "GOOGLEDRIVE_DELETE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Parent (v2)",
+      "slug": "GOOGLEDRIVE_DELETE_PARENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Permission",
+      "slug": "GOOGLEDRIVE_DELETE_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Property (v2 API)",
+      "slug": "GOOGLEDRIVE_DELETE_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Reply",
+      "slug": "GOOGLEDRIVE_DELETE_REPLY",
+      "kind": "send"
+    },
+    {
+      "name": "Delete Revision",
+      "slug": "GOOGLEDRIVE_DELETE_REVISION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Team Drive (Deprecated)",
+      "slug": "GOOGLEDRIVE_DELETE_TEAM_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Download a file from Google Drive",
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Download file content (Deprecated)",
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE2",
+      "kind": "read"
+    },
+    {
+      "name": "Download file via operation",
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE_OPERATION",
+      "kind": "read"
+    },
+    {
+      "name": "Download File Revision",
+      "slug": "GOOGLEDRIVE_DOWNLOAD_FILE_REVISION",
+      "kind": "read"
+    },
+    {
+      "name": "Edit File",
+      "slug": "GOOGLEDRIVE_EDIT_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Empty Trash",
+      "slug": "GOOGLEDRIVE_EMPTY_TRASH",
+      "kind": "write"
+    },
+    {
+      "name": "Export Google Workspace file",
+      "slug": "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Find file",
+      "slug": "GOOGLEDRIVE_FIND_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Find folder",
+      "slug": "GOOGLEDRIVE_FIND_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Generate File IDs",
+      "slug": "GOOGLEDRIVE_GENERATE_IDS",
+      "kind": "write"
+    },
+    {
+      "name": "Get about",
+      "slug": "GOOGLEDRIVE_GET_ABOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Get App",
+      "slug": "GOOGLEDRIVE_GET_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Change (v2 - Deprecated)",
+      "slug": "GOOGLEDRIVE_GET_CHANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Changes Start Page Token",
+      "slug": "GOOGLEDRIVE_GET_CHANGES_START_PAGE_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Child Reference (v2)",
+      "slug": "GOOGLEDRIVE_GET_CHILD",
+      "kind": "read"
+    },
+    {
+      "name": "Get Comment",
+      "slug": "GOOGLEDRIVE_GET_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Document",
+      "slug": "GOOGLEDRIVE_GET_DOCUMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shared Drive",
+      "slug": "GOOGLEDRIVE_GET_DRIVE",
+      "kind": "read"
+    },
+    {
+      "name": "Get File Metadata",
+      "slug": "GOOGLEDRIVE_GET_FILE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Property (v2)",
+      "slug": "GOOGLEDRIVE_GET_FILE_PROPERTY",
+      "kind": "read"
+    },
+    {
+      "name": "Get File (v2 API) (Deprecated)",
+      "slug": "GOOGLEDRIVE_GET_FILE_V2",
+      "kind": "read"
+    },
+    {
+      "name": "Get Google Form",
+      "slug": "GOOGLEDRIVE_GET_FORM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Parent Reference (v2)",
+      "slug": "GOOGLEDRIVE_GET_PARENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Permission",
+      "slug": "GOOGLEDRIVE_GET_PERMISSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Permission ID for Email",
+      "slug": "GOOGLEDRIVE_GET_PERMISSION_ID_FOR_EMAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Google Slides Presentation",
+      "slug": "GOOGLEDRIVE_GET_PRESENTATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Presentation Page Thumbnail",
+      "slug": "GOOGLEDRIVE_GET_PRESENTATION_PAGE_THUMBNAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Reply",
+      "slug": "GOOGLEDRIVE_GET_REPLY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Revision",
+      "slug": "GOOGLEDRIVE_GET_REVISION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Spreadsheet",
+      "slug": "GOOGLEDRIVE_GET_SPREADSHEET",
+      "kind": "read"
+    },
+    {
+      "name": "Get Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_GET_SPREADSHEET_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team Drive (Deprecated)",
+      "slug": "GOOGLEDRIVE_GET_TEAM_DRIVE",
+      "kind": "read"
+    },
+    {
+      "name": "Delete folder or file",
+      "slug": "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Hide Shared Drive",
+      "slug": "GOOGLEDRIVE_HIDE_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Insert Child Into Folder (v2)",
+      "slug": "GOOGLEDRIVE_INSERT_CHILD",
+      "kind": "write"
+    },
+    {
+      "name": "List Access Proposals",
+      "slug": "GOOGLEDRIVE_LIST_ACCESS_PROPOSALS",
+      "kind": "read"
+    },
+    {
+      "name": "List Approvals",
+      "slug": "GOOGLEDRIVE_LIST_APPROVALS",
+      "kind": "read"
+    },
+    {
+      "name": "List Changes",
+      "slug": "GOOGLEDRIVE_LIST_CHANGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Folder Children (v2)",
+      "slug": "GOOGLEDRIVE_LIST_CHILDREN_V2",
+      "kind": "read"
+    },
+    {
+      "name": "List Comments",
+      "slug": "GOOGLEDRIVE_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List File Labels",
+      "slug": "GOOGLEDRIVE_LIST_FILE_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "List Properties (v2 API)",
+      "slug": "GOOGLEDRIVE_LIST_FILE_PROPERTIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Files and Folders (Deprecated)",
+      "slug": "GOOGLEDRIVE_LIST_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "List Google Form Responses",
+      "slug": "GOOGLEDRIVE_LIST_FORM_RESPONSES",
+      "kind": "read"
+    },
+    {
+      "name": "List Label Definitions",
+      "slug": "GOOGLEDRIVE_LIST_LABEL_DEFINITIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Permissions",
+      "slug": "GOOGLEDRIVE_LIST_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Replies to Comment",
+      "slug": "GOOGLEDRIVE_LIST_REPLIES",
+      "kind": "read"
+    },
+    {
+      "name": "List File Revisions",
+      "slug": "GOOGLEDRIVE_LIST_REVISIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Shared Drives",
+      "slug": "GOOGLEDRIVE_LIST_SHARED_DRIVES",
+      "kind": "read"
+    },
+    {
+      "name": "List Team Drives (Deprecated)",
+      "slug": "GOOGLEDRIVE_LIST_TEAM_DRIVES",
+      "kind": "read"
+    },
+    {
+      "name": "Modify File Labels",
+      "slug": "GOOGLEDRIVE_MODIFY_FILE_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Move File",
+      "slug": "GOOGLEDRIVE_MOVE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Export or download a file",
+      "slug": "GOOGLEDRIVE_PARSE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Patch Permission",
+      "slug": "GOOGLEDRIVE_PATCH_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Patch Property (v2 API)",
+      "slug": "GOOGLEDRIVE_PATCH_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Read Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_READ_SPREADSHEET_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Resumable Upload",
+      "slug": "GOOGLEDRIVE_RESUMABLE_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Stop Watch Channel",
+      "slug": "GOOGLEDRIVE_STOP_WATCH_CHANNEL",
+      "kind": "write"
+    },
+    {
+      "name": "Trash File",
+      "slug": "GOOGLEDRIVE_TRASH_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Unhide Shared Drive",
+      "slug": "GOOGLEDRIVE_UNHIDE_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Untrash File",
+      "slug": "GOOGLEDRIVE_UNTRASH_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Comment",
+      "slug": "GOOGLEDRIVE_UPDATE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Shared Drive",
+      "slug": "GOOGLEDRIVE_UPDATE_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Update File Metadata (PATCH v2)",
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Update Property (v2 API)",
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Update File (Metadata)",
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_PUT",
+      "kind": "write"
+    },
+    {
+      "name": "Update File Revision Metadata",
+      "slug": "GOOGLEDRIVE_UPDATE_FILE_REVISION_METADATA",
+      "kind": "write"
+    },
+    {
+      "name": "Update Permission",
+      "slug": "GOOGLEDRIVE_UPDATE_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Reply",
+      "slug": "GOOGLEDRIVE_UPDATE_REPLY",
+      "kind": "send"
+    },
+    {
+      "name": "Update Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_UPDATE_SPREADSHEET_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Update Team Drive (Deprecated)",
+      "slug": "GOOGLEDRIVE_UPDATE_TEAM_DRIVE",
+      "kind": "write"
+    },
+    {
+      "name": "Upload File",
+      "slug": "GOOGLEDRIVE_UPLOAD_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Upload File from URL to Drive",
+      "slug": "GOOGLEDRIVE_UPLOAD_FROM_URL",
+      "kind": "write"
+    },
+    {
+      "name": "Upload/Update File Content",
+      "slug": "GOOGLEDRIVE_UPLOAD_UPDATE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Watch Drive Changes",
+      "slug": "GOOGLEDRIVE_WATCH_CHANGES",
+      "kind": "write"
+    },
+    {
+      "name": "Watch File for Changes",
+      "slug": "GOOGLEDRIVE_WATCH_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Write Spreadsheet Values",
+      "slug": "GOOGLEDRIVE_WRITE_SPREADSHEET_VALUES",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/googledrive",
+  "fetched_at": "2026-11-12"
+}

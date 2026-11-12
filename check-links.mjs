@@ -65,7 +65,66 @@ for (const [short, to] of Object.entries(redirects)) {
   if (!target) problems.push(`redirect ${short} goes to ${to}, which is not there`);
   else if (hash && !idsIn(target).has(hash)) problems.push(`redirect ${short} goes to ${to}, but that page has no #${hash}`);
 }
-for (const m of fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8').matchAll(/<loc>https?:\/\/[^/]+([^<]*)<\/loc>/g)) if (!fileFor(m[1] || '/')) problems.push(`sitemap lists ${m[1]}, which is not there`);
+// the sitemap index and each sitemap in it: every page listed is there, says it is its own canonical, and is not noindex
+const locs = (file) => [...fs.readFileSync(file, 'utf8').matchAll(/<loc>https?:\/\/[^/]+([^<]*)<\/loc>/g)].map((m) => m[1] || '/');
+const listed = new Set();
+for (const at of locs(path.join(root, 'sitemap.xml'))) {
+  const file = fileFor(at);
+  if (!file) { problems.push(`sitemap lists ${at}, which is not there`); continue; }
+  if (!at.endsWith('.xml')) { listed.add(at); continue; }
+  for (const page of locs(file)) {
+    const html = fileFor(page);
+    if (!html) { problems.push(`${at} lists ${page}, which is not there`); continue; }
+    listed.add(page);
+    const src = fs.readFileSync(html, 'utf8');
+    if (/<meta name="robots" content="[^"]*noindex/.test(src)) problems.push(`${at} lists ${page}, which says noindex`);
+    const canon = /<link rel="canonical" href="https?:\/\/[^/]+([^"]*)">/.exec(src)?.[1];
+    if (canon !== undefined && (canon || '/') !== page) problems.push(`${page} is in ${at} but its canonical is ${canon}`);
+  }
+}
+// every seo page (seo/) that is live needs at least three other pages linking to it, besides the footer
+const inbound = new Map();
+for (const file of pages.filter((f) => f.endsWith('.html'))) {
+  const from = addressOf(file) || '/', src = fs.readFileSync(file, 'utf8').replace(/<footer[\s\S]*<\/footer>/, '');
+  for (const at of new Set([...src.matchAll(/\shref="(\/[^"#?]*)/g)].map((m) => m[1].replace(/\/$/, '') || '/'))) if (at !== from) inbound.set(at, (inbound.get(at) || 0) + 1);
+}
+for (const file of pages.filter((f) => f.endsWith('.html'))) {
+  const at = addressOf(file) || '/', src = fs.readFileSync(file, 'utf8');
+  if (!/<main id="main" class="inner p-doc p-seo\b/.test(src) || !listed.has(at)) continue;
+  if ((inbound.get(at) || 0) < 3) problems.push(`${at} has ${inbound.get(at) || 0} pages linking to it (needs 3)`);
+}
+
+// structured data: every block parses, says what it is, and has what google needs for its type, with absolute addresses
+const abs = (u) => typeof u === 'string' && /^https:\/\/[^/]+\//.test(u);
+const isoDay = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d);
+let blocks = 0;
+for (const file of pages.filter((f) => f.endsWith('.html'))) {
+  const at = addressOf(file) || '/';
+  for (const [, raw] of fs.readFileSync(file, 'utf8').matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    blocks++;
+    let d; try { d = JSON.parse(raw); } catch { problems.push(`${at}: structured data that does not parse`); continue; }
+    const bad = (why) => problems.push(`${at}: ${d['@type']} ${why}`);
+    if (d['@context'] !== 'https://schema.org' || !d['@type']) { problems.push(`${at}: structured data without @context or @type`); continue; }
+    if (d['@type'] === 'BreadcrumbList') {
+      const items = d.itemListElement || [];
+      if (items.length < 2) bad('has fewer than 2 items');
+      items.forEach((it, i) => { if (it.position !== i + 1 || !it.name || !abs(it.item)) bad(`item ${i + 1} needs position ${i + 1}, a name and an absolute item`); });
+    } else if (d['@type'] === 'Article') {
+      if (!d.headline || d.headline.length > 110) bad('needs a headline of at most 110 characters');
+      if (!abs(d.image)) bad('needs an absolute image');
+      if (!isoDay(d.datePublished) || !isoDay(d.dateModified) || d.dateModified < d.datePublished) bad('needs datePublished and a dateModified not before it');
+      if (!d.author?.name || !d.publisher?.name) bad('needs an author and a publisher');
+    } else if (d['@type'] === 'Organization') {
+      if (!d.name || !abs(d.url) || !abs(d.logo)) bad('needs a name, url and logo');
+    } else if (d['@type'] === 'SoftwareApplication') {
+      if (!d.name || !d.offers || d.offers.price === undefined) bad('needs a name and an offer with a price');
+      if (d.aggregateRating || d.review) bad('carries ratings or reviews; only real ones may ever go here');
+    } else if (d['@type'] === 'FAQPage') {
+      if (!(d.mainEntity || []).length) bad('has no questions');
+    } else problems.push(`${at}: structured data of a type this check doesn't know (${d['@type']}); add a rule for it`);
+  }
+}
+console.log(`structured data: ${blocks} blocks checked`);
 
 if (problems.length) { console.error(problems.join('\n')); console.error(`\n${problems.length} broken, ${checked} links checked in ${pages.length} files`); process.exit(1); }
 console.log(`all good: ${checked} links in ${pages.length} files, ${Object.keys(redirects).length} redirects`);

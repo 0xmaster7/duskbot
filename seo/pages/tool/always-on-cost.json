@@ -1,0 +1,32 @@
+{
+  "path": "/tools/always-on-cost",
+  "type": "tool",
+  "title": "Always-on AI agent cost calculator: laptop, server or cloud",
+  "nav": "always-on cost calculator",
+  "h1": "what does it cost to keep an ai agent running?",
+  "description": "A free calculator: the monthly cost of keeping AI bots running on a spare computer, a rented server or Dusk Cloud, from your own electricity price and time.",
+  "keyword": "always on ai agent cost",
+  "keywords": ["cost to run ai agent 24/7", "ai agent hosting cost", "vps vs cloud for ai agents"],
+  "answer": "type in your electricity price, your server's price and how much your time is worth, and the table shows what a month of keeping bots running costs in each place. a laptop is free but sleeps. a spare computer costs electricity and care. a rented server costs its bill and care. dusk cloud is a flat $20 or $50 a month, and we look after it.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent; arithmetic checked by hand for the default values", "at": "2026-11-12" },
+  "tags": ["always-on", "cloud", "server", "cost", "calculator"],
+  "connectors": [],
+  "related": ["/agents-when-laptop-closed", "/run-claude-code-24-7", "/guides/how-much-does-an-ai-agent-cost"],
+  "art": { "props": ["s-coins", "p-chart"], "bubble": "about $3 of power" },
+  "og_line": "laptop, spare computer, server or cloud.",
+  "tool": "always-on-cost",
+  "method": "a spare computer's electricity is its idle draw in watts, divided by 1,000 for kilowatts, times the hours a day you keep it on, times 30.4 days in an average month, times your price per kwh. at the starting values, 20 watts for 24 hours at $0.20 per kwh, that's 0.02 × 24 × 30.4 × 0.20 = about $2.92 a month.\n\nyour time is the hours a month you'd spend on updates, restarts and backups, times what an hour of it is worth to you. it starts at zero because only you know it, but it's usually the biggest number on the page.\n\na rented server is the monthly price your hosting company charges, plus your time. dusk bot charges nothing to run on [your own server](/docs/your-own-server); it needs ubuntu 22.04 or 24.04 and 2 gb of memory or more.\n\ndusk cloud prices are from [our pricing page](/pricing): plus is $20 a month or $200 a year, pro is $50 a month or $500 a year, and we keep the computer running and back it up daily.\n\nwhat this leaves out: the price of buying a spare computer in the first place, your internet connection, and your ai plan. every option uses the ai you sign in to, billed by your provider.",
+  "sections": [
+    { "h": "reading the result", "md": "if your laptop is only open while you work and you only use bots then, the free row is the honest answer: stay where you are.\n\nthe other rows matter once you want routines to run before you wake, or to text a bot from your phone at night. then compare the spare computer and server rows with your time included. a server that costs a few dollars but takes an evening a month to look after is rarely the cheapest option once that evening has a price.\n\nthe page [where do ai agents run when your laptop is closed](/agents-when-laptop-closed) walks through what each option is like to live with, beyond the cost." }
+  ],
+  "faq": [
+    { "q": "where do the starting numbers come from?", "a": "they are examples, not measurements. the right watts are on your computer's spec sheet or a plug-in power meter, and the right electricity price is on your bill." },
+    { "q": "does the calculator send my numbers anywhere?", "a": "no. it runs in this page in your browser and sends nothing." }
+  ],
+  "sources": [
+    { "label": "dusk bot pricing", "url": "/pricing" },
+    { "label": "dusk bot docs: dusk cloud", "url": "/docs/dusk-cloud" },
+    { "label": "dusk bot docs: your own server", "url": "/docs/your-own-server" }
+  ]
+}

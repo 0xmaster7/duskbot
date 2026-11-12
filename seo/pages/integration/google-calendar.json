@@ -1,0 +1,154 @@
+{
+  "path": "/integrations/google-calendar",
+  "type": "integration",
+  "title": "Google Calendar AI assistant for gaps and meeting plans",
+  "nav": "google calendar",
+  "h1": "a calendar bot that shows your options before changes",
+  "description": "Connect Google Calendar to Dusk Bot for availability checks, focus-time proposals and recurring meeting reviews. Three routines with clear edit boundaries.",
+  "keyword": "claude google calendar",
+  "keywords": [
+    "google calendar mcp",
+    "ai to manage my calendar",
+    "ai agent to manage my calendar"
+  ],
+  "answer": "a bot in dusk bot can find google calendar events, look for free slots and help plan a week around existing commitments. connect your calendar and pick the ai for the bot. start by asking for options in chat. moving or creating an event is an app change, so tell a writing routine to ask before it changes anything.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "calendar",
+    "availability",
+    "focus time",
+    "planning"
+  ],
+  "connectors": [
+    "googlecalendar"
+  ],
+  "related": [
+    "/routines/weekly-calendar-preview",
+    "/routines/meeting-prep-brief",
+    "/integrations/outlook"
+  ],
+  "art": {
+    "logo": "calendar",
+    "label": "Google Calendar",
+    "props": [
+      "s-clock",
+      "s-notebook"
+    ],
+    "bubble": "room for focused work"
+  },
+  "og_line": "see the gaps before changing the week.",
+  "app": {
+    "name": "Google Calendar",
+    "toolkit": "googlecalendar",
+    "intro": "calendar planning starts with the right calendar and time zone. a bot can inspect events and find free slots, then explain its choices in chat. these actions also include event changes, which you can leave disabled.",
+    "highlight": [
+      {
+        "slug": "GOOGLECALENDAR_LIST_CALENDARS",
+        "use": "identify which calendars belong in a planning check"
+      },
+      {
+        "slug": "GOOGLECALENDAR_GET_CALENDAR",
+        "use": "inspect the calendar you want the routine to use"
+      },
+      {
+        "slug": "GOOGLECALENDAR_GET_CURRENT_DATE_TIME",
+        "use": "anchor a request such as tomorrow in a concrete date and time"
+      },
+      {
+        "slug": "GOOGLECALENDAR_FIND_EVENT",
+        "use": "locate the weekly planning meeting you mean"
+      },
+      {
+        "slug": "GOOGLECALENDAR_FIND_FREE_SLOTS",
+        "use": "look for an uninterrupted opening between commitments"
+      },
+      {
+        "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
+        "use": "inspect occurrences of a recurring event"
+      },
+      {
+        "slug": "GOOGLECALENDAR_CREATE_EVENT",
+        "use": "place an agreed block on the calendar when writes are allowed"
+      },
+      {
+        "slug": "GOOGLECALENDAR_UPDATE_EVENT",
+        "use": "change a specified appointment under your routine's instructions"
+      }
+    ],
+    "setup": "sign in to google calendar from **Connected apps** and enable it for your planning bot. tell the bot which calendar counts as work and what time zone to use. connect other accounts separately if your commitments are split across them, with a distinct label for each."
+  },
+  "routines_intro": "copy a message and make the working hours yours. each routine has a different purpose, and none requires the bot to move meetings on its own.",
+  "routines": [
+    {
+      "name": "focus block shortlist",
+      "message": "every sunday at 6 in the evening, find two uninterrupted 90-minute slots on my work calendar for the coming week, between 9 and 5. avoid lunchtime. explain the options here. do not create or change events.",
+      "when": "sundays at 18:00",
+      "output": "two proposed focus blocks with dates and times"
+    },
+    {
+      "name": "tomorrow's breathing room",
+      "message": "every weekday at 4:30, inspect tomorrow's work calendar. show stretches of back-to-back meetings and any gap shorter than 15 minutes. suggest where i could request breathing room, but leave the calendar unchanged.",
+      "when": "weekdays at 16:30",
+      "output": "a pressure check for the next day"
+    },
+    {
+      "name": "recurring meeting review",
+      "message": "on the last friday of each month at 11, find next month's occurrences of the recurring meetings i named here. list their dates and how much calendar space they occupy. ask which i want to keep reviewing. do not cancel any.",
+      "when": "last friday of the month at 11:00",
+      "output": "a recurring-meeting inventory"
+    }
+  ],
+  "asks": "calendar edits need their own boundary. adding an event, changing its time or deleting it is not documented as asking first under the sending rule. the reliable start for a planning assistant is to keep change actions disabled.\n\nif you later allow event writes, give an explicit rule such as \"ask me before you change anything\". name the exact calendar and event. the bot can be limited to an action list, so a bot allowed to create a focus block need not receive every calendar management action.",
+  "cannot": [
+    "move or create events when its app grant only permits reading. a suggested slot in chat does not itself reserve that time.",
+    "include commitments from accounts you never connected. a free-slot search only helps when the bot has the calendars that matter to your request.",
+    "deliver a pre-work check from an asleep computer. missed desktop schedules less than 12 hours old run once when you return; older runs are skipped. dusk cloud runs routines on time."
+  ],
+  "sections": [
+    {
+      "h": "say what free means to you",
+      "md": "an empty hour may be lunch, travel or time you do not want to offer. put working hours and breaks into the request. ask the bot what time zone its routine uses if dates look wrong. the [weekly calendar preview](/routines/weekly-calendar-preview) gives a broader view of the same week."
+    },
+    {
+      "h": "planning and preparation are different jobs",
+      "md": "once you choose which meetings matter, a [meeting prep routine](/routines/meeting-prep-brief) can focus on the background you need. if your appointments live in microsoft instead, start with the [outlook integration](/integrations/outlook) rather than assuming a google connection reaches them."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can ai manage my google calendar without moving meetings?",
+      "a": "yes. ask it to find events or free slots and return suggestions in chat. keep event-changing actions disabled for that bot."
+    },
+    {
+      "q": "will it ask before rescheduling something?",
+      "a": "do not assume so. rescheduling is an app edit, and the sending rule does not promise an approval card for it. add an explicit ask-first instruction before granting writes."
+    },
+    {
+      "q": "why did my calendar routine run at the wrong time?",
+      "a": "ask the bot which time zone the routine is in. include your intended time zone and working hours when you set it up, then check the next runs on its routine card."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: connected calendars",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: schedules and time zones",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: troubleshooting",
+      "url": "/docs/troubleshooting"
+    },
+    {
+      "label": "dusk bot docs: permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

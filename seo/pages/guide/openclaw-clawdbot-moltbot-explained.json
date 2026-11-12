@@ -1,0 +1,102 @@
+{
+  "path": "/guides/openclaw-clawdbot-moltbot-explained",
+  "type": "guide",
+  "title": "Did OpenAI buy OpenClaw? The names and timeline",
+  "nav": "openclaw, clawdbot and moltbot",
+  "h1": "did openai buy openclaw?",
+  "description": "What changed from Clawd and Moltbot to OpenClaw, when its creator joined OpenAI, and what the independent foundation says about the project.",
+  "keyword": "openclaw bought by openai",
+  "keywords": [
+    "clawdbot vs moltbot",
+    "openclaw founder",
+    "openclaw foundation",
+    "cloudbot ai"
+  ],
+  "answer": "no. the documented story is that peter steinberger, openclaw's creator, joined openai, while the project moved to an independent foundation. that is different from openai buying openclaw. clawd, clawdbot and moltbot are names you may meet in the project's history. as of 12 november 2026, the foundation says the project remains open and independent.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "openclaw",
+    "history",
+    "foundation"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/is-openclaw-safe",
+    "/alternatives/openclaw"
+  ],
+  "art": {
+    "label": "OpenClaw",
+    "props": [
+      "s-signpost",
+      "s-clock"
+    ],
+    "bubble": "same project, new name"
+  },
+  "og_line": "the names changed. follow the dates.",
+  "sections": [
+    {
+      "h": "why the names are confusing",
+      "md": "the naming history starts with **clawd** in november 2025. after anthropic's legal team asked for a rename, the project became **moltbot**, then **openclaw**, announced on 29 january 2026. the spelling **clawdbot** also survives in a repository docker advisory.[^2]\n\nso an old tutorial title can use a name you no longer see on the homepage. that does not by itself make the tutorial fake. it does mean you should compare its date, install instructions and settings with current documentation. do not assume an old command remains the right way to install the present app just because the mascot looks familiar."
+    },
+    {
+      "h": "the dated timeline",
+      "md": "- **november 2025:** the naming history begins with clawd. moltbot follows the rename request; the naming account does not give a separate exact date for that intermediate name.[^2]\n- **29 january 2026:** openclaw is announced under its present name.[^2]\n- **14 february 2026:** peter steinberger announces that he is joining openai and says openclaw will move to a foundation and stay independent.[^3]\n- **8 july 2026:** the openclaw foundation is announced as a us 501(c)(3), with full-time staff. its announcement says openai has committed to keeping the project open and independent.[^1]\n\nkeep those events separate when reading a headline. a creator taking a new job, a product changing its name and a foundation being established answer different questions."
+    },
+    {
+      "h": "what joining openai does and does not establish",
+      "md": "the february announcement is about the creator's move and the project's future home. the july announcement describes the foundation. neither supports telling readers that openai bought the app or that it became an openai product.[^1][^3]\n\nthere is still a reason the two names appear together in search results: the creator joined openai and the foundation describes a commitment from openai. that relationship is part of the record. it is not a reason to infer ownership, product support, a safety guarantee or the terms on which an ai account can be connected. those would need their own evidence."
+    },
+    {
+      "h": "what openclaw is today",
+      "md": "openclaw describes itself as an open-source personal ai assistant you run on your computer or server and use from chat apps. its repository uses the mit license. these are current product and license facts checked on 12 november 2026, rather than conclusions drawn from the older names.[^4][^5]\n\nif you are deciding whether to run it, the historical name is less useful than the current setup and maintenance requirements. the [openclaw alternative guide](/alternatives/openclaw) helps compare the shape of the work. the [openclaw safety guide](/guides/is-openclaw-safe) separates published advisories, malicious skills and the security work reported afterwards."
+    },
+    {
+      "h": "how to read the next announcement",
+      "md": "check who is speaking, the date, and the exact thing announced. a maintainer's post is evidence about their own plans. a foundation announcement is evidence about the organization it describes. a software repository is where you check the current license and code history.\n\nwhen someone shares an acquisition claim, ask for the acquisition announcement rather than another retelling of the founder joining a company. when someone shares a clawd or moltbot setup guide, ask which release it covers. this page explains the documented naming and organizational history; it cannot certify an old download, third-party host or similarly named service."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is the difference between clawdbot and moltbot?",
+      "a": "they appear in the history of the project now called openclaw. the naming account says clawd, then moltbot, then openclaw; clawdbot also appears in an older repository advisory.[^2]"
+    },
+    {
+      "q": "who founded openclaw?",
+      "a": "peter steinberger is identified as its creator. he announced his move to openai on 14 february 2026.[^3]"
+    },
+    {
+      "q": "is openclaw still independent?",
+      "a": "the foundation announcement says it is open and independent, and says openai committed to keeping it that way. that is the status recorded as of 12 november 2026.[^1]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw foundation announcement",
+      "url": "https://openclaw.ai/blog/introducing-openclaw-foundation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw naming history",
+      "url": "https://openclaw.ai/blog/introducing-openclaw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "peter steinberger: openclaw announcement",
+      "url": "https://steipete.me/posts/2026/openclaw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw homepage",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw repository and license",
+      "url": "https://github.com/openclaw/openclaw",
+      "checked": "2026-11-12"
+    }
+  ]
+}

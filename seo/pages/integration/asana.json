@@ -1,0 +1,146 @@
+{
+  "path": "/integrations/asana",
+  "type": "integration",
+  "title": "Asana AI assistant for project handoffs and task reviews",
+  "nav": "asana",
+  "h1": "an asana assistant for the work between tasks",
+  "description": "Connect Asana to Dusk Bot for dependency checks, handoff lists and project reviews. Copy three routines and see the actions and limits behind them.",
+  "answer": "an asana bot can pull together project tasks, comments and dependencies so you can see what is holding up a handoff. dusk bot lets you give that job to a bot using the ai you already sign in to. start with read-only project reviews, then allow specific task changes when you know which ones you want.",
+  "tags": [
+    "projects",
+    "handoffs",
+    "dependencies"
+  ],
+  "connectors": [
+    "asana"
+  ],
+  "related": [
+    "/integrations/linear",
+    "/integrations/jira",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "asana",
+    "label": "Asana",
+    "props": [
+      "s-notebook",
+      "s-signpost"
+    ],
+    "bubble": "what blocks the handoff"
+  },
+  "og_line": "find the work holding up the handoff.",
+  "app": {
+    "name": "Asana",
+    "toolkit": "asana",
+    "intro": "a task title rarely explains a delay. ask the bot to read the project, its task comments and the dependencies together. these actions let a review name the unfinished work instead of guessing from a due date.",
+    "highlight": [
+      {
+        "slug": "ASANA_GET_TASKS_FROM_A_PROJECT",
+        "use": "collect the tasks in the launch project for a handoff review"
+      },
+      {
+        "slug": "ASANA_GET_STORIES_FOR_TASK",
+        "use": "read task comments before calling something blocked"
+      },
+      {
+        "slug": "ASANA_LIST_TASK_DEPENDENCIES",
+        "use": "check which tasks must finish before the handoff can happen"
+      },
+      {
+        "slug": "ASANA_GET_TASK_SUBTASKS",
+        "use": "look for unfinished details hidden below a parent task"
+      },
+      {
+        "slug": "ASANA_GET_PROJECT_STATUS_UPDATES",
+        "use": "compare the latest project update with the current task list"
+      },
+      {
+        "slug": "ASANA_GET_SECTIONS_IN_PROJECT",
+        "use": "find the right section before suggesting a move"
+      },
+      {
+        "slug": "ASANA_CREATE_A_TASK",
+        "use": "turn an agreed next step into a task with the details you supplied"
+      },
+      {
+        "slug": "ASANA_UPDATE_A_TASK",
+        "use": "apply a task correction after you have set the rule for changes"
+      }
+    ],
+    "setup": "in **Connected apps**, allow the project bot to use asana. keep it read only for the first review. tell it the workspace and project you mean, especially if several projects share a name. an exact list of allowed actions can keep task creation available while leaving unrelated changes out of reach."
+  },
+  "routines_intro": "send one of these messages after naming your project. the result belongs in your dusk bot chat, where you can correct the interpretation before giving the bot permission to edit tasks.",
+  "routines": [
+    {
+      "name": "check tomorrow's handoff",
+      "message": "every afternoon at 3, review the asana tasks in our launch project due tomorrow. inspect their subtasks and dependencies. list unfinished prerequisites and the person assigned to each, where recorded. keep all task dates unchanged.",
+      "when": "daily at 15:00",
+      "output": "a handoff checklist in chat"
+    },
+    {
+      "name": "compare the status note",
+      "message": "every monday at 10, read the latest status update in the website project and compare it with its tasks. point out claims of completion that still have unfinished subtasks. cite the task names and separate missing information from contradictions.",
+      "when": "mondays at 10:00",
+      "output": "questions for the project owner, without a new status post"
+    },
+    {
+      "name": "prepare a contractor return",
+      "message": "every thursday at 2, find tasks assigned to the contractor i named in the design project. read the comments and list questions still awaiting our answer. group them by task. do not reassign work or post comments.",
+      "when": "thursdays at 14:00",
+      "output": "a reply checklist for the next contractor check-in"
+    }
+  ],
+  "asks": "read-only access prevents task creation, edits and section moves before a call reaches asana. if you later enable changes, write \"ask me before you change anything\" into the routine when you want to review them. do not assume a due-date edit or reassignment has a separate approval card.\n\nsends through connected apps ask first by default, unless you set a daily sending allowance. that sending rule is separate from permission to change project records. use a small allowed action list for a bot whose only writing job is creating agreed tasks.",
+  "cannot": [
+    "work on a project outside the access available to its connected account. a similarly named project is not a reason to guess; give the bot the exact project.",
+    "create tasks or correct assignments while the asana connection for that bot is read only. the review routines above deliberately leave those records alone.",
+    "run a scheduled handoff check on a sleeping desktop. local routines pause when your computer sleeps or dusk bot closes; dusk cloud can keep them running."
+  ],
+  "sections": [
+    {
+      "h": "give a blocked task some context",
+      "md": "tell the bot what counts as blocked for your team. an unfinished dependency is useful evidence; a quiet comment thread is a question to investigate. ask it to show both the evidence and what it could not find.\n\nif delivery also lives in [jira](/integrations/jira), connect that app separately. teams working mainly in [linear](/integrations/linear) can start with its issue review instead."
+    },
+    {
+      "h": "keep the review small",
+      "md": "choose a project and a decision: can we hand this off, what needs an answer, or does the status note match the tasks? asking for everything in a workspace makes it harder to notice a wrong assumption. pause or edit the schedule from **Automations** after the first few runs."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are people actually using an asana ai agent for?",
+      "a": "a useful first job is reading related task details before a check-in. the routines here cover prerequisites, status discrepancies and unanswered contractor questions. they produce a review you can act on without giving the bot editing rights."
+    },
+    {
+      "q": "can i use claude with asana without moving my tasks?",
+      "a": "yes. asana stays the place where the tasks live. connect it in dusk bot and choose the ai for your bot. switching the bot's ai keeps its chats and memory."
+    },
+    {
+      "q": "will the bot move deadlines without checking?",
+      "a": "do not rely on task changes asking first. keep asana read only, restrict the allowed actions, or explicitly tell the routine to ask before changing anything."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "asana mcp",
+  "keywords": [
+    "claude asana",
+    "asana ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

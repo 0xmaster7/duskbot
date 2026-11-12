@@ -1,0 +1,146 @@
+{
+  "path": "/integrations/twitter",
+  "type": "integration",
+  "title": "X AI assistant for mentions, source lists and post drafts",
+  "nav": "x (twitter)",
+  "h1": "an x assistant that brings the conversation to you",
+  "description": "Use Dusk Bot with X for mention reviews, focused searches and post preparation. See the custom connection requirement and what needs approval.",
+  "answer": "an x assistant can collect mentions, read posts from a list and help prepare something worth replying to. dusk bot uses the twitter toolkit for these actions, but it is not a ready-made sign-in: you need your own composio project key and auth configuration. once connected, keep research read only and review any posts before they go out.",
+  "tags": [
+    "social",
+    "mentions",
+    "research"
+  ],
+  "connectors": [
+    "twitter"
+  ],
+  "related": [
+    "/use-cases/social-media-posting",
+    "/use-cases/competitor-monitoring",
+    "/integrations/linkedin"
+  ],
+  "art": {
+    "label": "X",
+    "props": [
+      "p-newspaper",
+      "p-magnifier"
+    ],
+    "bubble": "which mentions need me"
+  },
+  "og_line": "read the conversation before you post.",
+  "app": {
+    "name": "X",
+    "toolkit": "twitter",
+    "intro": "a focused list or search is easier to review than an open-ended feed. tell the bot whose posts matter and what kind of question deserves your attention. it can gather the source posts before suggesting a reply in your dusk bot chat.",
+    "highlight": [
+      {
+        "slug": "TWITTER_USER_LOOKUP_ME",
+        "use": "confirm the identity connected to the routine"
+      },
+      {
+        "slug": "TWITTER_GET_USER_MENTIONS",
+        "use": "collect mentions for a response review"
+      },
+      {
+        "slug": "TWITTER_LIST_POSTS_TIMELINE_BY_LIST_ID",
+        "use": "read a named source list for a topic brief"
+      },
+      {
+        "slug": "TWITTER_RECENT_SEARCH",
+        "use": "find recent posts matching the topic and terms you supply"
+      },
+      {
+        "slug": "TWITTER_POST_LOOKUP_BY_POST_ID",
+        "use": "open the source post before discussing a reply"
+      },
+      {
+        "slug": "TWITTER_GET_USER_POSTS",
+        "use": "review your recent posts before proposing another angle"
+      },
+      {
+        "slug": "TWITTER_GET_POST_ANALYTICS",
+        "use": "retrieve analytics for a specified post rather than guessing performance"
+      },
+      {
+        "slug": "TWITTER_CREATION_OF_A_POST",
+        "use": "publish an agreed post under the bot's sending approval setting"
+      }
+    ],
+    "setup": "as of 12 november 2026, this toolkit has no composio-managed sign-in. set up your own composio project key and auth config under **Settings**, **API keys**. on dusk cloud, ask support first. do not plan a live routine until the connection works and the bot has confirmed the intended x account."
+  },
+  "routines_intro": "choose a small source list and a single topic before scheduling these. the first two leave x untouched. the third prepares copy in chat, which you can revise without publishing anything.",
+  "routines": [
+    {
+      "name": "mentions that deserve an answer",
+      "message": "every weekday at 11, review my x mentions. bring me direct product questions and reports of something broken, with the original post and a short reason to answer. skip praise without a question. do not like, follow or reply.",
+      "when": "weekdays at 11:00",
+      "output": "a response queue with source posts"
+    },
+    {
+      "name": "read a specialist list",
+      "message": "every wednesday at 8, read the x list id i gave you for packaging design. pick posts about materials or production constraints, group repeated ideas, and show the posts behind each point. leave opinions labelled as opinions.",
+      "when": "wednesdays at 8:00",
+      "output": "a sourced topic note in chat"
+    },
+    {
+      "name": "prepare a useful follow-up",
+      "message": "every friday at 1, read the x posts i published this week. suggest one follow-up that answers an unfinished question. write the proposed copy in our chat and name the earlier post it builds on. do not publish it.",
+      "when": "fridays at 13:00",
+      "output": "one proposed follow-up for your review"
+    }
+  ],
+  "asks": "publishing posts and sending messages ask you first by default. you can set a daily amount a bot may send on its own, so keep that setting at asking if you want every publication reviewed. draft text in your dusk bot chat does not need an x publishing action.\n\na read-only connection also prevents likes, follows, bookmarks and other changes. do not count on a send approval to supervise those actions. if you enable any of them, write \"ask me before you change anything\" into the routine and narrow its allowed action list to the work you actually want.",
+  "cannot": [
+    "connect through a composio-managed sign-in in this catalog. a working custom auth setup is a prerequisite, not a step the routine can skip.",
+    "start from a documented toolkit trigger here: the catalog lists no triggers. use scheduled reads for these routines rather than promising an immediate mention alert.",
+    "post or follow accounts with read-only permission. permission to research a topic does not give a bot permission to engage with it.",
+    "check mentions on a desktop that is asleep. local runs stop with the computer or app; choose dusk cloud if the schedule must continue while you are away."
+  ],
+  "sections": [
+    {
+      "h": "choose between listening and publishing",
+      "md": "a listening routine should give you the question, its source and why it matters. a [competitor monitoring routine](/use-cases/competitor-monitoring) can use the same discipline without turning every mention into a reply.\n\nfor a publication workflow, see [social media posting](/use-cases/social-media-posting). decide who checks the wording and which claims need evidence before enabling sends."
+    },
+    {
+      "h": "avoid a brief full of repeated claims",
+      "md": "tell the bot to group posts that repeat the same announcement and keep the original source where it can identify one. a busy thread is evidence of discussion, not evidence that the claim inside it is true. ask for unanswered questions alongside the summary."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude automate twitter through dusk bot?",
+      "a": "a bot using your chosen ai can call the listed x actions after you supply the custom composio connection. the toolkit is named twitter even though this page calls the app x. connection setup comes before automation."
+    },
+    {
+      "q": "will it reply to every mention?",
+      "a": "the mention routine above only prepares a queue. posting is a separate send action with approval by default. leave the bot read only if you want research without engagement."
+    },
+    {
+      "q": "can it alert me the second someone mentions me?",
+      "a": "there is no trigger listed for this toolkit. schedule a mention check and choose a useful cadence. this page does not promise instant monitoring."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude twitter",
+  "keywords": [
+    "twitter ai agent",
+    "automate twitter with ai"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "path": "/run-claude-code-24-7",
+  "type": "pillar",
+  "title": "Run Claude Code 24/7: laptop, server or Dusk Cloud",
+  "nav": "claude code around the clock",
+  "h1": "how to run claude code 24/7",
+  "description": "Choose where a Claude Code bot lives, understand overnight limits, and compare your laptop, your own server and Dusk Cloud.",
+  "keyword": "run claude code 24/7",
+  "keywords": [
+    "can claude code run 24 7",
+    "claude code overnight",
+    "claude code unattended",
+    "claude code vps",
+    "claude code background agent"
+  ],
+  "answer": "a dusk bot with claude code as its engine needs a computer that stays on. your laptop works while it is awake and dusk is open; your own server or dusk cloud can keep the bot available overnight. that does not mean an endless ai allowance or work without supervision. as of 12 november 2026, anthropic also offers its own cloud sessions and scheduled tasks.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude-code",
+    "always-on",
+    "hosting",
+    "cloud"
+  ],
+  "connectors": [],
+  "related": [
+    "/agents-when-laptop-closed",
+    "/guides/claude-scheduled-tasks",
+    "/claude-code-from-your-phone",
+    "/tools/always-on-cost"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "s-server"
+    ],
+    "bubble": "back in the morning"
+  },
+  "og_line": "choose a home for overnight work.",
+  "table": {
+    "h": "three homes for a dusk bot",
+    "intro": "these are dusk costs as of 12 november 2026. ai usage is separate, and a rented server has its own bill. keeping a machine available does not remove the ai provider's limits.",
+    "cols": [
+      "home",
+      "what stays running",
+      "what you pay"
+    ],
+    "rows": [
+      {
+        "label": "your laptop",
+        "cells": [
+          "dusk and the computer must stay awake",
+          "free for personal use; your own ai costs"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      },
+      {
+        "label": "your own server",
+        "cells": [
+          "a server you maintain; bots can have private desktops there",
+          "dusk charges nothing for the server option; hosting and ai are yours"
+        ],
+        "src": [
+          3,
+          4
+        ]
+      },
+      {
+        "label": "dusk cloud",
+        "cells": [
+          "a computer dusk hosts, with daily backups",
+          "plus $20 monthly; pro $50 monthly; ai billed separately"
+        ],
+        "src": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "available all night is different from working forever",
+      "md": "decide what should happen overnight before deciding where it runs. a bounded job has a finish: inspect the files you gave it, write a summary, and stop. a repeating job needs a routine, a time and a place for its result. neither benefits from a vague instruction to keep busy until morning.\n\nin dusk, a bot can keep several threads and you can steer it with another message while it works. if the ai plan runs out, the bot says so. you can wait for its reset or change the ai. the bot retains its chats, files and memory. a computer being on all day cannot create more provider allowance.[^5]\n\nfor the general hosting decision, [where agents run with the laptop closed](/agents-when-laptop-closed) covers a spare computer as well."
+    },
+    {
+      "h": "start with a laptop for work you can watch",
+      "md": "a laptop is a reasonable place to try the first few runs. leave dusk open and keep the computer awake. under **Settings**, **Remote access**, **Keep this computer awake** helps when you need to reach it from a paired phone.[^6]\n\nthe limit is concrete: local routines do not run during sleep or while the app is closed. if a run was missed by less than 12 hours, dusk runs it once when you return; older missed runs are skipped. do not leave an urgent overnight deadline depending on a sleeping laptop.[^7]\n\nwrite a small instruction such as: 'each weekday at 7, read the planning document i attached and list decisions i still need to make. put the list in this chat. do not change the document.' watch a run before relying on it."
+    },
+    {
+      "h": "use a server if you want to maintain the machine",
+      "md": "dusk's own-server option needs ubuntu 22.04 or 24.04, at least 2 gb of memory and root or sudo access. the app gives you a line to paste, with setup taking about ten minutes. you do not need a domain or open ports. the app and server communicate through a relay sealed with a key only they hold.[^3]\n\nyou look after the server. choose a fresh one rather than an existing machine full of work you did not intend to share. this option fits someone willing to manage the hosting bill and the computer, rather than someone who only wants a morning result. compare your actual quote in the [always-on cost calculator](/tools/always-on-cost)."
+    },
+    {
+      "h": "move to dusk cloud when the laptop should be free to sleep",
+      "md": "pick a plan and sign in under **Settings**, **Dusk Cloud**. a welcome moves your bots with chats, memory and routines. plus has two bot computers awake at once; pro has five. the machine is yours rather than shared, and dusk handles daily backups.[^1]\n\npair your phone with that cloud computer if you want to reply while your laptop is off. [claude code from your phone](/claude-code-from-your-phone) explains the difference between this bot chat and anthropic's remote control. the phone is a way to reach the work, not the computer doing it.[^6]"
+    },
+    {
+      "h": "what anthropic says about sign-in and its own cloud",
+      "md": "as of 12 november 2026, anthropic's legal page describes an end user signing in to the unmodified claude code binary, including on a hosted platform. it requires running the binary as published, leaving its authentication methods available, and meeting its commercial hosting terms. it also bars developers from offering claude.ai login or intermediating its credentials. those are conditions to read, not a verdict about dusk or another app. check your provider's current terms.[^8]\n\nanthropic's own cloud sessions continue after the laptop closes, and its cloud scheduled tasks can repeat a saved configuration. if your work already fits those options, a second hosted computer may be unnecessary. use the [claude scheduler guide](/guides/claude-scheduled-tasks) to separate cloud tasks, local tasks and an open-session loop.[^9][^10]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "how do you run claude code unattended overnight?",
+      "a": "give it one bounded task, decide where it may read or write, and leave a route for questions. in dusk, start with **Ask for approval** for commands and file changes. give connected apps read-only access if the job only needs reading.[^4]"
+    },
+    {
+      "q": "will dusk cloud remove claude limits?",
+      "a": "no. dusk cloud pays for the computer, not your ai usage. the docs suggest a bigger ai plan or an api key for heavy around-the-clock work.[^1]"
+    },
+    {
+      "q": "can i answer an overnight approval from my phone?",
+      "a": "yes. approval cards can arrive on a paired phone. pairing to your laptop depends on it staying on; pairing to dusk cloud works with the laptop off. the browser version of the phone app does not send notifications, so open it to check.[^4][^6]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: your own server",
+      "url": "/docs/your-own-server"
+    },
+    {
+      "label": "dusk bot: computer and approvals",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "anthropic: legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cloud sessions",
+      "url": "https://code.claude.com/docs/en/claude-code-on-the-web",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cloud scheduled tasks",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "path": "/routines/weekly-calendar-preview",
+  "type": "routine",
+  "title": "Weekly calendar preview routine: clashes flagged every Sunday",
+  "nav": "weekly calendar preview",
+  "h1": "a sunday evening preview of next week's calendar",
+  "description": "A copy-ready routine: every Sunday at 6pm a bot reads next week's calendar, flags clashes, back-to-back days and missing prep, and suggests what to move.",
+  "keyword": "ai weekly calendar summary",
+  "keywords": ["weekly calendar preview", "ai calendar assistant routine", "google calendar weekly summary ai"],
+  "answer": "paste one message into a chat with your bot and every sunday at 6pm it reads next week's calendar, lists each day in a line or two, and flags what will hurt: meetings that overlap, days with no gap for lunch, and meetings that need something prepared. it suggests what to move but changes nothing in your calendar unless you ask.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent, against dusk bot docs and the composio google calendar catalog", "at": "2026-11-12" },
+  "tags": ["calendar", "routine", "weekly", "planning"],
+  "connectors": ["googlecalendar", "outlook"],
+  "related": ["/integrations/google-calendar", "/use-cases/daily-briefing", "/scheduled-ai-tasks"],
+  "art": { "props": ["s-clock", "p-mug"], "bubble": "tuesday is too full" },
+  "og_line": "clashes and crunch days, flagged every sunday.",
+  "routine": {
+    "message": "every sunday at 6pm, read my calendar for monday to friday next week.\n\nfor each day give me one or two lines: how many meetings, the first and last, and anything unusual. then flag, in this order:\n- meetings that overlap\n- days with no 30-minute gap between 11:30 and 2\n- meetings with \"review\", \"pitch\" or \"interview\" in the title, so i can prepare\n\nsuggest what i could move, but don't change, accept or decline anything. if the week looks fine, just say \"next week looks fine\" and nothing else.",
+    "when": "sundays at 18:00 in your time zone",
+    "needs": "google calendar or outlook connected; reading is enough",
+    "output": "next week\n\nmon: 3 meetings, 10:00 to 15:30. fine.\ntue: 7 meetings, 9:00 to 18:00. no lunch gap.\nwed: 2 meetings. quiet.\nthu: 4 meetings. \"pitch review\" at 14:00, prepare the deck.\nfri: 1 meeting.\n\nclash: tue 11:00 \"design sync\" overlaps \"1:1 with sam\" (11:30).\nsuggestion: move the 1:1 to wednesday, which is open."
+  },
+  "knobs": [
+    "change the window: \"monday to sunday\" or \"just tomorrow\" turns it into a daily look ahead",
+    "change what counts as prep: add the words that matter in your work, like \"board\", \"demo\" or \"client\"",
+    "send it somewhere else: \"post it in my planning group chat\" or \"email it to me\" instead of telling you in the chat",
+    "let it act: \"if two meetings clash, ask me which to move and then move it\" (this needs write access to the calendar)",
+    "add the inbox: \"also list emails from this week that mention a meeting next week\" if mail is connected too"
+  ],
+  "fails": [
+    "it reads the wrong calendar. if you have several, name the ones you want: \"only my work calendar and the team calendar\". listing calendars is one of the things it can do, so ask it which ones it sees.",
+    "times are off by an hour or more. ask the bot \"what time zone is this routine in?\" and tell it yours; put your time zone in **About me** so every bot knows.",
+    "it didn't run. on your own computer nothing runs while it's asleep or dusk bot is closed; a run missed by less than 12 hours runs once when you're back. **Automations** in the sidebar shows what happened to each run.",
+    "the list is too long to read. say \"shorter\" or \"only tell me about problems\" after the first run; it keeps the change."
+  ],
+  "sections": [
+    { "h": "why sunday, and why it only reads", "md": "a preview the night before the week starts gives you time to move things while people can still say yes. keeping it read-only means you can turn it on for any bot without worrying: it needs only read access to your calendar, and dusk bot refuses any change from a bot that may only read.\n\nif you want it to move meetings later, give that bot write access and say so in the routine, with \"ask me before you move anything\" in the same message. read what it proposes the first few times before you say yes." }
+  ],
+  "faq": [
+    { "q": "does it work with outlook calendars?", "a": "yes. connect outlook instead of google calendar and send the same message." },
+    { "q": "can i pause it on holiday?", "a": "yes. the routine's card has **Pause**, and **Automations** in the sidebar lists every routine. or just tell the bot \"skip the next two sundays\"." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: troubleshooting, a routine ran at the wrong time", "url": "/docs/troubleshooting" },
+    { "label": "dusk bot docs: memory, about me", "url": "/docs/memory" }
+  ]
+}

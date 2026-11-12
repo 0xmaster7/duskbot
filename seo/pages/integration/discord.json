@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/discord",
+  "type": "integration",
+  "title": "Discord AI connection: account checks, with clear limits",
+  "nav": "discord",
+  "h1": "what this discord connection can actually do",
+  "description": "See the Discord actions available to Dusk Bot: account, server and invite checks. This toolkit cannot read channel chats or send Discord messages.",
+  "answer": "this discord connection is for account and server lookups, not a bot that reads your channels and chats back. the available actions can inspect your profile, list your servers, resolve invites and check server widgets. dusk bot can put those checks on a schedule, but this toolkit has no actions for reading channel messages or sending replies.",
+  "tags": [
+    "discord",
+    "accounts",
+    "server-checks"
+  ],
+  "connectors": [
+    "discord"
+  ],
+  "related": [
+    "/integrations/slack",
+    "/ai-group-chat",
+    "/guides/claude-code-telegram-discord-slack"
+  ],
+  "art": {
+    "logo": "discord",
+    "label": "Discord",
+    "props": [
+      "p-magnifier",
+      "s-key"
+    ],
+    "bubble": "check the right server"
+  },
+  "og_line": "account checks, with honest chat limits.",
+  "app": {
+    "name": "Discord",
+    "toolkit": "discord",
+    "intro": "the useful starting point is identity: which account is connected, which servers it belongs to, and what an invite points to. these are lookup tools. their presence does not mean the bot can search the discussions inside those servers.",
+    "highlight": [
+      {
+        "slug": "DISCORD_GET_MY_USER",
+        "use": "confirm the signed-in profile before reviewing any servers"
+      },
+      {
+        "slug": "DISCORD_LIST_MY_GUILDS",
+        "use": "list the servers associated with the connected account"
+      },
+      {
+        "slug": "DISCORD_GET_MY_GUILD_MEMBER",
+        "use": "inspect your own membership in a specified server"
+      },
+      {
+        "slug": "DISCORD_INVITE_RESOLVE",
+        "use": "resolve an invite you provide before you share it"
+      },
+      {
+        "slug": "DISCORD_GET_GUILD_WIDGET",
+        "use": "inspect the widget data returned for a particular server"
+      },
+      {
+        "slug": "DISCORD_GET_GUILD_TEMPLATE",
+        "use": "read a specified server template for a setup review"
+      },
+      {
+        "slug": "DISCORD_LIST_MY_CONNECTIONS",
+        "use": "review the external connections returned for your account"
+      },
+      {
+        "slug": "DISCORD_GET_MY_OAUTH2_AUTHORIZATION",
+        "use": "inspect the current authorization when checking which account is connected"
+      }
+    ],
+    "setup": "connect discord and give the bot read-only access. ask it to confirm your profile first, then provide the server, invite or template you want checked. this avoids building a routine around the wrong account. the sign-in takes place on discord's page; your password does not go to the bot."
+  },
+  "routines_intro": "these routines are deliberately about account housekeeping and links you supply. none depends on listening to a channel. name the servers and give the relevant invite or template when setting one up.",
+  "routines": [
+    {
+      "name": "review my server list",
+      "message": "on the first monday of each month at 9, list my discord servers and group their names into communities, work and unsure using the categories i gave you. show unsure entries for me to review. never leave a server or change my account.",
+      "when": "first monday monthly at 9:00",
+      "output": "a membership review in dusk bot chat"
+    },
+    {
+      "name": "check the welcome invite",
+      "message": "every friday at noon, resolve the discord invite i gave you for our welcome email. report the destination it returns and flag a failed lookup. do not create invites or claim the link works if the lookup fails.",
+      "when": "fridays at 12:00",
+      "output": "an invite destination check before the next mailing"
+    },
+    {
+      "name": "prepare a server setup review",
+      "message": "every tuesday at 11, retrieve the discord server template i supplied and its server widget, if available. summarise the returned information for our onboarding review. state which lookup failed rather than filling in missing details.",
+      "when": "tuesdays at 11:00",
+      "output": "a short setup note based on returned data"
+    }
+  ],
+  "asks": "these lookups do not send a discord message. the toolkit shown here has no send-message action, so enabling write access would not turn the routines into a channel assistant. keep the connection read only for this work.\n\nsome other listed actions change account or application settings. if you give a bot access to those actions, put \"ask me before you change anything\" into its instructions. dusk bot's default approval for sends does not establish an approval rule for account changes. you can disable this app for a bot without changing what the rest of your bots may use.",
+  "cannot": [
+    "read a channel history, search server conversations or summarise yesterday's discussion through this toolkit. no channel-message reading action appears in its catalog.",
+    "send channel replies or direct messages here. this is not a way to place a conversational ai teammate inside a discord server.",
+    "treat a missing widget result as a full server audit. a routine should report what the lookup returned and what it could not inspect.",
+    "perform recurring checks while dusk bot is closed on your own computer. a server-list review waits for a running machine; dusk cloud is an option for scheduled work."
+  ],
+  "sections": [
+    {
+      "h": "if you meant a chat with several bots",
+      "md": "you can have several bots talk together in a [dusk bot group chat](/ai-group-chat). that conversation is separate from discord. each bot keeps its own job and permissions, and you can choose who answers.\n\nif your actual job is reviewing work conversations, inspect the available [slack actions](/integrations/slack) before choosing a connector. do not assume two messaging apps expose the same tools."
+    },
+    {
+      "h": "make failed checks useful",
+      "md": "ask for a clear difference between \"this invite resolved to the wrong server\" and \"the invite could not be resolved\". one identifies a destination problem; the other leaves the destination unknown. keep the supplied link in the routine so you can tell which link the bot checked."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i talk to claude in my discord server through this connection?",
+      "a": "no. the discord toolkit here does not include channel-message reading or sending. it supports account, server and application lookups, which is a narrower job than chatting in a server."
+    },
+    {
+      "q": "can it summarise messages while my laptop is closed?",
+      "a": "this connection cannot retrieve channel messages in the first place. separately, local scheduled jobs stop while your computer sleeps. hosting a bot elsewhere does not add missing discord actions."
+    },
+    {
+      "q": "what is a useful discord routine if it cannot read chats?",
+      "a": "check a welcome invite you already use, review your own server memberships, or retrieve a supplied server template. these are bounded checks supported by the actions listed here."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending and permissions",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude discord",
+  "keywords": [
+    "chatgpt discord",
+    "discord mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

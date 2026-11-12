@@ -1,0 +1,307 @@
+{
+  "toolkit": "googlesheets",
+  "name": "Google Sheets",
+  "version": "20261101_00",
+  "description": "Google Sheets is a cloud-based spreadsheet tool enabling real-time collaboration, data analysis, and integration with other Google Workspace apps",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 58,
+  "triggers_count": 16,
+  "tools": [
+    {
+      "name": "Add Sheet to Existing Spreadsheet",
+      "slug": "GOOGLESHEETS_ADD_SHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Aggregate Column Data",
+      "slug": "GOOGLESHEETS_AGGREGATE_COLUMN_DATA",
+      "kind": "write"
+    },
+    {
+      "name": "Append Dimension",
+      "slug": "GOOGLESHEETS_APPEND_DIMENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Auto-Resize Rows or Columns",
+      "slug": "GOOGLESHEETS_AUTO_RESIZE_DIMENSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Clear Values By Data Filter",
+      "slug": "GOOGLESHEETS_BATCH_CLEAR_VALUES_BY_DATA_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Batch get spreadsheet",
+      "slug": "GOOGLESHEETS_BATCH_GET",
+      "kind": "write"
+    },
+    {
+      "name": "Batch update spreadsheet (Deprecated)",
+      "slug": "GOOGLESHEETS_BATCH_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Update Values by Data Filter",
+      "slug": "GOOGLESHEETS_BATCH_UPDATE_VALUES_BY_DATA_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Basic Filter",
+      "slug": "GOOGLESHEETS_CLEAR_BASIC_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Clear spreadsheet values",
+      "slug": "GOOGLESHEETS_CLEAR_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Create Chart in Google Sheets",
+      "slug": "GOOGLESHEETS_CREATE_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Create a Google Sheet",
+      "slug": "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+      "kind": "write"
+    },
+    {
+      "name": "Create spreadsheet column",
+      "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Create spreadsheet row",
+      "slug": "GOOGLESHEETS_CREATE_SPREADSHEET_ROW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Chart from Google Sheets",
+      "slug": "GOOGLESHEETS_DELETE_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Dimension (Rows/Columns)",
+      "slug": "GOOGLESHEETS_DELETE_DIMENSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Sheet",
+      "slug": "GOOGLESHEETS_DELETE_SHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Execute SQL on Spreadsheet",
+      "slug": "GOOGLESHEETS_EXECUTE_SQL",
+      "kind": "write"
+    },
+    {
+      "name": "Export Drive Spreadsheet",
+      "slug": "GOOGLESHEETS_EXPORT_DRIVE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Export Sheet as PDF",
+      "slug": "GOOGLESHEETS_EXPORT_SHEET_AS_PDF",
+      "kind": "write"
+    },
+    {
+      "name": "Find and Replace in Spreadsheet",
+      "slug": "GOOGLESHEETS_FIND_REPLACE",
+      "kind": "read"
+    },
+    {
+      "name": "Find worksheet by title (Deprecated)",
+      "slug": "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+      "kind": "read"
+    },
+    {
+      "name": "Format cell",
+      "slug": "GOOGLESHEETS_FORMAT_CELL",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Get Spreadsheet Values (Deprecated)",
+      "slug": "GOOGLESHEETS_GET_BATCH_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Get conditional format rules",
+      "slug": "GOOGLESHEETS_GET_CONDITIONAL_FORMAT_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Data Validation Rules",
+      "slug": "GOOGLESHEETS_GET_DATA_VALIDATION_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive File Metadata",
+      "slug": "GOOGLESHEETS_GET_DRIVE_FILE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get sheet names",
+      "slug": "GOOGLESHEETS_GET_SHEET_NAMES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Spreadsheet by Data Filter",
+      "slug": "GOOGLESHEETS_GET_SPREADSHEET_BY_DATA_FILTER",
+      "kind": "read"
+    },
+    {
+      "name": "Get spreadsheet info",
+      "slug": "GOOGLESHEETS_GET_SPREADSHEET_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Schema",
+      "slug": "GOOGLESHEETS_GET_TABLE_SCHEMA",
+      "kind": "read"
+    },
+    {
+      "name": "Insert Dimension in Google Sheet",
+      "slug": "GOOGLESHEETS_INSERT_DIMENSION",
+      "kind": "write"
+    },
+    {
+      "name": "List Charts in Google Sheets",
+      "slug": "GOOGLESHEETS_LIST_CHARTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Changes",
+      "slug": "GOOGLESHEETS_LIST_DRIVE_CHANGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Tables in Spreadsheet",
+      "slug": "GOOGLESHEETS_LIST_TABLES",
+      "kind": "read"
+    },
+    {
+      "name": "Look up spreadsheet row",
+      "slug": "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW",
+      "kind": "read"
+    },
+    {
+      "name": "Move or Resize Chart in Google Sheets",
+      "slug": "GOOGLESHEETS_MOVE_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Move Spreadsheet to Folder",
+      "slug": "GOOGLESHEETS_MOVE_SPREADSHEET_TO_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Mutate conditional format rules",
+      "slug": "GOOGLESHEETS_MUTATE_CONDITIONAL_FORMAT_RULES",
+      "kind": "write"
+    },
+    {
+      "name": "Query Spreadsheet Table",
+      "slug": "GOOGLESHEETS_QUERY_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Search Developer Metadata",
+      "slug": "GOOGLESHEETS_SEARCH_DEVELOPER_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Search Spreadsheets",
+      "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
+      "kind": "read"
+    },
+    {
+      "name": "Set Basic Filter",
+      "slug": "GOOGLESHEETS_SET_BASIC_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Set Data Validation Rule",
+      "slug": "GOOGLESHEETS_SET_DATA_VALIDATION_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Create sheet from JSON",
+      "slug": "GOOGLESHEETS_SHEET_FROM_JSON",
+      "kind": "write"
+    },
+    {
+      "name": "Sort Range",
+      "slug": "GOOGLESHEETS_SORT_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Copy Sheet to Another Spreadsheet",
+      "slug": "GOOGLESHEETS_SPREADSHEETS_SHEETS_COPY_TO",
+      "kind": "write"
+    },
+    {
+      "name": "Append Values to Spreadsheet",
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Clear Spreadsheet Values",
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Get Spreadsheet Values by Data Filter",
+      "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_GET_BY_DATA_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Update Chart in Google Sheets",
+      "slug": "GOOGLESHEETS_UPDATE_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Update Dimension Properties (Hide/Unhide & Resize)",
+      "slug": "GOOGLESHEETS_UPDATE_DIMENSION_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Update Sheet Properties",
+      "slug": "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Update Spreadsheet Properties",
+      "slug": "GOOGLESHEETS_UPDATE_SPREADSHEET_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch update spreadsheet values",
+      "slug": "GOOGLESHEETS_UPDATE_VALUES_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert Rows (Smart Update/Insert)",
+      "slug": "GOOGLESHEETS_UPSERT_ROWS",
+      "kind": "write"
+    },
+    {
+      "name": "Get spreadsheet values",
+      "slug": "GOOGLESHEETS_VALUES_GET",
+      "kind": "write"
+    },
+    {
+      "name": "Update spreadsheet values",
+      "slug": "GOOGLESHEETS_VALUES_UPDATE",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/googlesheets",
+  "fetched_at": "2026-11-12"
+}

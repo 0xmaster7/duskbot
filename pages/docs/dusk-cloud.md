@@ -52,7 +52,7 @@ after that the app is a window onto your cloud. you use it exactly the same way.
 | **works with the laptop shut** | no | yes | yes |
 | **who looks after it** | you | we do | you |
 
-start on your computer, move to the cloud when you want bots that never sleep. you can keep both and switch from the menu at the top of the sidebar. running a server yourself is covered in [your own server](/docs/your-own-server).
+start on your computer, move to the cloud when you want bots that never sleep. you can keep both and switch from the menu at the top of the sidebar. running a server yourself is covered in [your own server](/docs/your-own-server), and [where do ai agents run when your laptop is closed](/agents-when-laptop-closed) puts all the options side by side.
 
 ## if you stop
 

@@ -1,0 +1,357 @@
+{
+  "toolkit": "youtube",
+  "name": "YouTube",
+  "version": "20261101_00",
+  "description": "YouTube is a video-sharing platform with user-generated content, live streaming, and monetization opportunities, widely used for marketing, education, and entertainment",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 68,
+  "triggers_count": 4,
+  "tools": [
+    {
+      "name": "Add Video to Playlist",
+      "slug": "YOUTUBE_ADD_VIDEO_TO_PLAYLIST",
+      "kind": "write"
+    },
+    {
+      "name": "Bind Live Broadcast",
+      "slug": "YOUTUBE_BIND_LIVE_BROADCAST",
+      "kind": "send"
+    },
+    {
+      "name": "Insert Channel Section",
+      "slug": "YOUTUBE_CREATE_CHANNEL_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Insert Comment Reply",
+      "slug": "YOUTUBE_CREATE_COMMENT_REPLY",
+      "kind": "send"
+    },
+    {
+      "name": "Create Live Broadcast",
+      "slug": "YOUTUBE_CREATE_LIVE_BROADCAST",
+      "kind": "send"
+    },
+    {
+      "name": "Create YouTube Live Stream",
+      "slug": "YOUTUBE_CREATE_LIVE_STREAM",
+      "kind": "write"
+    },
+    {
+      "name": "Create Playlist",
+      "slug": "YOUTUBE_CREATE_PLAYLIST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete caption track",
+      "slug": "YOUTUBE_DELETE_CAPTION_TRACK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Channel Section",
+      "slug": "YOUTUBE_DELETE_CHANNEL_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "YOUTUBE_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Live Broadcast",
+      "slug": "YOUTUBE_DELETE_LIVE_BROADCAST",
+      "kind": "send"
+    },
+    {
+      "name": "Delete Playlist",
+      "slug": "YOUTUBE_DELETE_PLAYLIST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Playlist Item",
+      "slug": "YOUTUBE_DELETE_PLAYLIST_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Video",
+      "slug": "YOUTUBE_DELETE_VIDEO",
+      "kind": "write"
+    },
+    {
+      "name": "Get Channel Activities",
+      "slug": "YOUTUBE_GET_CHANNEL_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get channel ID by handle",
+      "slug": "YOUTUBE_GET_CHANNEL_ID_BY_HANDLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Channel Statistics",
+      "slug": "YOUTUBE_GET_CHANNEL_STATISTICS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Playlists by ID",
+      "slug": "YOUTUBE_GET_PLAYLISTS_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Video Details Batch",
+      "slug": "YOUTUBE_GET_VIDEO_DETAILS_BATCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get Video Rating",
+      "slug": "YOUTUBE_GET_VIDEO_RATING",
+      "kind": "read"
+    },
+    {
+      "name": "List captions",
+      "slug": "YOUTUBE_LIST_CAPTION_TRACK",
+      "kind": "read"
+    },
+    {
+      "name": "List Channels",
+      "slug": "YOUTUBE_LIST_CHANNELS",
+      "kind": "read"
+    },
+    {
+      "name": "List Channel Sections",
+      "slug": "YOUTUBE_LIST_CHANNEL_SECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List channel videos",
+      "slug": "YOUTUBE_LIST_CHANNEL_VIDEOS",
+      "kind": "read"
+    },
+    {
+      "name": "List Comments",
+      "slug": "YOUTUBE_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Comment Threads (Deprecated)",
+      "slug": "YOUTUBE_LIST_COMMENT_THREADS",
+      "kind": "read"
+    },
+    {
+      "name": "List Comment Threads",
+      "slug": "YOUTUBE_LIST_COMMENT_THREADS2",
+      "kind": "read"
+    },
+    {
+      "name": "List I18n Languages",
+      "slug": "YOUTUBE_LIST_I18N_LANGUAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List I18n Regions",
+      "slug": "YOUTUBE_LIST_I18N_REGIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List YouTube Job Reports",
+      "slug": "YOUTUBE_LIST_JOB_REPORTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Live Broadcasts",
+      "slug": "YOUTUBE_LIST_LIVE_BROADCASTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Live Chat Messages",
+      "slug": "YOUTUBE_LIST_LIVE_CHAT_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Live Streams",
+      "slug": "YOUTUBE_LIST_LIVE_STREAMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Most Popular Videos",
+      "slug": "YOUTUBE_LIST_MOST_POPULAR_VIDEOS",
+      "kind": "read"
+    },
+    {
+      "name": "List Playlist Images",
+      "slug": "YOUTUBE_LIST_PLAYLIST_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Playlist Items",
+      "slug": "YOUTUBE_LIST_PLAYLIST_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Rated Videos",
+      "slug": "YOUTUBE_LIST_RATED_VIDEOS",
+      "kind": "read"
+    },
+    {
+      "name": "List YouTube Reporting Jobs",
+      "slug": "YOUTUBE_LIST_REPORTING_JOBS",
+      "kind": "read"
+    },
+    {
+      "name": "List YouTube Report Types",
+      "slug": "YOUTUBE_LIST_REPORT_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "List Super Chat Events",
+      "slug": "YOUTUBE_LIST_SUPER_CHAT_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List user playlists",
+      "slug": "YOUTUBE_LIST_USER_PLAYLISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List user subscriptions",
+      "slug": "YOUTUBE_LIST_USER_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Video Abuse Report Reasons",
+      "slug": "YOUTUBE_LIST_VIDEO_ABUSE_REPORT_REASONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Video Categories",
+      "slug": "YOUTUBE_LIST_VIDEO_CATEGORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Download YouTube caption track",
+      "slug": "YOUTUBE_LOAD_CAPTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Mark Comment as Spam",
+      "slug": "YOUTUBE_MARK_COMMENT_AS_SPAM",
+      "kind": "write"
+    },
+    {
+      "name": "Multipart upload video",
+      "slug": "YOUTUBE_MULTIPART_UPLOAD_VIDEO",
+      "kind": "write"
+    },
+    {
+      "name": "Post Comment on Video",
+      "slug": "YOUTUBE_POST_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Query YouTube Analytics",
+      "slug": "YOUTUBE_QUERY_ANALYTICS",
+      "kind": "write"
+    },
+    {
+      "name": "Rate Video",
+      "slug": "YOUTUBE_RATE_VIDEO",
+      "kind": "write"
+    },
+    {
+      "name": "Report Video for Abuse",
+      "slug": "YOUTUBE_REPORT_VIDEO_ABUSE",
+      "kind": "write"
+    },
+    {
+      "name": "Search YouTube",
+      "slug": "YOUTUBE_SEARCH_YOU_TUBE",
+      "kind": "read"
+    },
+    {
+      "name": "Set Comment Moderation Status",
+      "slug": "YOUTUBE_SET_COMMENT_MODERATION_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Subscribe to channel",
+      "slug": "YOUTUBE_SUBSCRIBE_CHANNEL",
+      "kind": "write"
+    },
+    {
+      "name": "Transition Live Broadcast",
+      "slug": "YOUTUBE_TRANSITION_LIVE_BROADCAST",
+      "kind": "send"
+    },
+    {
+      "name": "Unsubscribe from channel",
+      "slug": "YOUTUBE_UNSUBSCRIBE_CHANNEL",
+      "kind": "write"
+    },
+    {
+      "name": "Update caption track",
+      "slug": "YOUTUBE_UPDATE_CAPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update channel",
+      "slug": "YOUTUBE_UPDATE_CHANNEL",
+      "kind": "write"
+    },
+    {
+      "name": "Update Channel Section",
+      "slug": "YOUTUBE_UPDATE_CHANNEL_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Comment",
+      "slug": "YOUTUBE_UPDATE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Playlist",
+      "slug": "YOUTUBE_UPDATE_PLAYLIST",
+      "kind": "write"
+    },
+    {
+      "name": "Update Playlist Item",
+      "slug": "YOUTUBE_UPDATE_PLAYLIST_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update thumbnail",
+      "slug": "YOUTUBE_UPDATE_THUMBNAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Update video",
+      "slug": "YOUTUBE_UPDATE_VIDEO",
+      "kind": "write"
+    },
+    {
+      "name": "Upload caption media",
+      "slug": "YOUTUBE_UPLOAD_CAPTION_MEDIA",
+      "kind": "write"
+    },
+    {
+      "name": "Upload caption track",
+      "slug": "YOUTUBE_UPLOAD_CAPTION_TRACK",
+      "kind": "write"
+    },
+    {
+      "name": "Upload channel banner",
+      "slug": "YOUTUBE_UPLOAD_CHANNEL_BANNER",
+      "kind": "write"
+    },
+    {
+      "name": "Upload video",
+      "slug": "YOUTUBE_UPLOAD_VIDEO",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/youtube",
+  "fetched_at": "2026-11-12"
+}

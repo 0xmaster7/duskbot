@@ -1,0 +1,112 @@
+{
+  "path": "/guides/claude-subscription-vs-api",
+  "type": "guide",
+  "title": "Claude plan vs API costs: prices and worked examples",
+  "nav": "claude plan and api costs",
+  "h1": "claude plan vs api: compare the bill you will pay",
+  "description": "Current Claude Pro, Max and Ultra prices, Sonnet and Opus API rates, and clearly labelled calculations for three invented workloads.",
+  "keyword": "claude code api key vs subscription",
+  "keywords": [
+    "claude max vs api cost",
+    "chatgpt plus vs api",
+    "claude code without api key"
+  ],
+  "answer": "as of 12 november 2026, claude pro costs $20 monthly, max $100 and ultra $200 before tax. the api charges by input and output tokens, with sonnet 5.5 at $2 and $10 per million respectively. neither price alone answers which is cheaper: compare your actual usage, any included api credits and the access method your provider documents. a plan is not a fixed token bundle.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "blocked",
+    "why": "owner to confirm subscription and vendor-terms wording before this page ships"
+  },
+  "tags": [
+    "claude",
+    "api",
+    "pricing",
+    "cost"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/how-much-does-an-ai-agent-cost",
+    "/guides/apps-that-use-your-ai-subscription",
+    "/tools/always-on-cost"
+  ],
+  "art": {
+    "props": [
+      "s-coins",
+      "p-receipt"
+    ],
+    "bubble": "show the arithmetic"
+  },
+  "og_line": "compare usage before comparing prices.",
+  "sections": [
+    {
+      "h": "the plan prices and api rates",
+      "md": "as of 12 november 2026, anthropic's pricing page lists these individual plans. prices exclude tax.[^1]\n\n| plan | price | detail relevant to this comparison |\n| --- | --- | --- |\n| pro | $20 billed monthly | $200 up front for annual billing, shown as $17 a month |\n| max | $100 a month | 5x pro usage and $100 a month in api credits |\n| ultra | $200 a month | 10x pro weekly usage and $200 a month in api credits |\n\nmax and ultra are different plan names on the current page. do not use an old '$200 max' comparison to identify today's tier. anthropic also says pro, max and ultra include claude code alongside its web, desktop and mobile apps.[^1][^2]\n\nas of the same date, the api pricing page lists sonnet 5.5 at $2 per million input tokens and $10 per million output tokens. opus 5.5 is $4 input and $20 output per million. input and output must be counted separately; multiplying all tokens by the cheaper input rate understates the bill.[^3]"
+    },
+    {
+      "h": "example calculations, not typical bills",
+      "md": "these are invented workloads to show the arithmetic. they are not measured bot usage or promises about how much work fits a plan. amounts below cover the stated input and output only, before credits and any other charges.\n\n- **example, a small sonnet workload:** 1 million input tokens and 0.1 million output tokens. `(1 × $2) + (0.1 × $10) = $3`. that token subtotal is below pro's $20 monthly sticker price, but it does not buy the same product or establish what pro would allow.[^1][^3]\n- **example, a larger sonnet workload:** 8 million input and 2 million output tokens. `(8 × $2) + (2 × $10) = $36`. that exceeds $20 in raw api usage. it still does not prove this workload fits pro's limits.[^3]\n- **example, the same token counts on opus:** `(8 × $4) + (2 × $20) = $72`. changing the model changes the token subtotal even when counts stay the same.[^3]\n\nfor your own calculation, use input millions times the input rate, plus output millions times the output rate. then check credits and the actual billing terms for your account. do not convert a monthly plan price into an invented number of included tokens."
+    },
+    {
+      "h": "included api credits change the comparison",
+      "md": "as of 12 november 2026, the pricing page lists $100 in monthly api credits with max and $200 with ultra. the support article updated 7 october also discusses included credits on max, ultra and team, while saying signed-in agent sdk and `claude -p` still draw from plan limits.[^1][^4]\n\nkeep these quantities separate in your notes: the plan payment, included credits, raw api charges and anything due beyond credits. do not add the full raw api subtotal to a plan payment if your provider has applied credits to it. equally, do not assume all possible charges are covered simply because a monthly credit exists. check your provider's current billing details.\n\nfor someone already paying for max, the useful question may be whether existing credits cover the proposed work. for someone buying a plan only for one task, the whole plan price matters."
+    },
+    {
+      "h": "the login route is a terms question too",
+      "md": "as of 12 november 2026, anthropic's legal page describes end-user sign-in to the unmodified claude code binary, including hosted settings. it also restricts developers offering claude.ai login, routing requests through users' plan credentials and intermediating credentials or session tokens.[^5]\n\na separate login article says anthropic may allow certain third-party tools at its discretion and draw their usage from credits rather than plan limits. these statements do not establish that a specific third-party app qualifies. check your provider's current terms before choosing an access method for unattended work.[^6]\n\nthe [dated sign-in log](/guides/apps-that-use-your-ai-subscription) is useful when two forum posts seem to contradict each other."
+    },
+    {
+      "h": "add the computer only if you need one",
+      "md": "dusk's ai usage is billed by the ai provider, separately from dusk. personal use on your own computer is free. dusk cloud plus costs $20 monthly and pro $50 monthly; that pays for a hosted computer, not ai allowance.[^7]\n\nuse the [always-on cost calculator](/tools/always-on-cost) for the hosting part, and the [agent cost guide](/guides/how-much-does-an-ai-agent-cost) for other product prices. an inexpensive token calculation is not a complete monthly budget if the bot also needs a paid machine."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is claude max cheaper than the api?",
+      "a": "it depends on the work and the credits already included in your account. as of 12 november 2026, max costs $100 monthly and lists $100 in monthly api credits. compare actual usage and billing rather than treating max as a token count.[^1]"
+    },
+    {
+      "q": "does claude code need api-key billing?",
+      "a": "as of 12 november 2026, anthropic documents claude code access with pro, max and ultra. the code legal page also describes api-key authentication. the access method and its terms determine how a particular setup is billed.[^2][^5]"
+    },
+    {
+      "q": "what should i measure before choosing?",
+      "a": "record input and output tokens separately for an api workload, the model, and credits actually applied. for a signed-in plan, check usage limits in the provider's own account. do not assume one unit of 'agent work' has a fixed price."
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: individual plan pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: claude code with paid plans",
+      "url": "https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: api pricing",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: agent sdk and credits",
+      "url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: code legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: login and usage credits",
+      "url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: cloud and ai costs",
+      "url": "/docs/dusk-cloud"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "path": "/guides/claude-code-for-email",
+  "type": "guide",
+  "title": "Claude Code for email: a careful inbox cleanup guide",
+  "nav": "claude code for email",
+  "h1": "claude code for email: clean up one slice first",
+  "description": "Use a Claude Code bot in Dusk Bot to inspect a small part of Gmail, review a cleanup proposal and make bounded label changes without deleting mail.",
+  "keyword": "claude code for email",
+  "keywords": [
+    "claude code email agent",
+    "i used claude code to clean up my gmail inbox",
+    "claude gmail"
+  ],
+  "answer": "for email cleanup, start by asking a claude code bot to inspect a small slice of mail and propose changes, with no permission to change it yet. in dusk bot you can connect gmail to that bot as read only. review the full threads before allowing a bounded label change. this is a one-time cleanup method, separate from a daily inbox brief or automatic reply routine.[^1][^2]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "email",
+    "claude-code",
+    "gmail",
+    "cleanup",
+    "permissions"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/use-cases/email-triage",
+    "/integrations/outlook",
+    "/guides/claude-code-for-non-developers"
+  ],
+  "art": {
+    "label": "Claude Code",
+    "props": [
+      "s-mailbox",
+      "p-magnifier"
+    ],
+    "bubble": "show me the candidates"
+  },
+  "og_line": "inspect a small slice before changing mail.",
+  "sections": [
+    {
+      "h": "first make the scope small enough to inspect",
+      "md": "the phrase \"clean up my inbox\" leaves too much undecided. choose one sender and a date range. decide whether the aim is finding old reference mail, gathering messages about a finished project or identifying newsletters you no longer read. leave deletion out of the first task.\n\ngive the bot those boundaries and require a list of candidate threads with a reason for each. ask it to explain uncertainty instead of guessing whether a message matters. this method is about clearing up a specific backlog. for ongoing sorting and reply drafts, use the separate [email triage workflow](/use-cases/email-triage)."
+    },
+    {
+      "h": "connect gmail to one bot, read only",
+      "md": "dusk bot can run claude code as the ai app behind a bot you text. choose the bot, connect gmail in **Connected apps**, and allow that bot to read only. sign-in happens on google's page. composio holds the connection; dusk bot does not store the gmail provider tokens.[^1][^3]\n\nif you have more than one account, label them and specify the account in the request. dusk supports up to five usable accounts per app. a successful connection does not mean the bot chose the mailbox you intended. check the account before treating a missing search result as evidence that the mail is absent.[^1]"
+    },
+    {
+      "h": "inspect threads, not just subject lines",
+      "md": "the gmail catalog includes fetching emails and fetching a message by thread id. ask the bot to inspect the conversation before deciding that an old-looking subject belongs in a cleanup group. a thread can contain a later reply you still need.[^2]\n\nfor each candidate, require the sender, why it matches your scope and the reason for the proposed label. look through the messages yourself before proceeding. the [gmail integration guide](/integrations/gmail) lists the available actions; this walkthrough focuses on the order to use them, rather than repeating every possible inbox routine."
+    },
+    {
+      "h": "allow one visible label change",
+      "md": "when the candidate list looks right, choose the exact messages and the label you want. the catalog supports creating a label and modifying email labels. if the bot needs write access for that step, grant only what the task needs, or restrict it to the relevant actions. keep sends and deletion out of the job.[^1][^2]\n\nwrite \"ask me before you change anything\" into the instructions if you want confirmation before each app change. **Ask for approval** for commands and file edits is not a documented guarantee that every label change asks. read-only access is the enforced boundary during the inspection phase.[^1][^4]"
+    },
+    {
+      "h": "check the change before widening the cleanup",
+      "md": "after the label step, ask for a report of the messages changed and anything left unresolved. compare that with gmail. check that messages outside the chosen sender and date range were not included. if the grouping is wrong, stop and correct the criteria before trying another slice.\n\ndo not turn a correct label change into authority to bulk delete. sending asks first in dusk bot unless you choose a daily allowance, but that protection does not automatically cover other mailbox changes. approval to send is not the cleanup safeguard here. narrow action access, an explicit instruction and your own inspection are the safeguards.[^1]"
+    },
+    {
+      "h": "where the standard connection stops",
+      "md": "gmail filters, the vacation responder, imap or pop, forwarding, send-as and delegates need extra google permissions beyond the standard connection. the bot should tell you about that limit. with your own composio project you can add those permissions; on dusk cloud you ask support.[^1]\n\na label cleanup therefore should not be sold as a complete mailbox-configuration service. it also cannot know why you kept an old message unless you explain it. if your mail is in microsoft rather than google, start with the [outlook integration](/integrations/outlook) and its own actions instead of assuming gmail labels translate directly."
+    },
+    {
+      "h": "only repeat a method after you understand it",
+      "md": "finish this as a manual task first. if you later want a recurring review, specify its source, timing, destination and when to leave mail alone. dusk routines on your computer stop while it sleeps or the app is closed; dusk cloud keeps them running.[^5]\n\nif choosing and steering the bot is the unfamiliar part, the [non-developer guide](/guides/claude-code-for-non-developers) starts before account access. the aim is a cleanup you can explain and verify, not a large number of messages changed in one run."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i use claude code to clean up my gmail inbox?",
+      "a": "a claude code bot in dusk bot can use the documented gmail actions when you connect the account and allow the bot access. begin with read-only inspection and a small proposal, then decide which label changes to permit.[^1][^2][^3]"
+    },
+    {
+      "q": "will it ask before changing labels?",
+      "a": "do not assume that. keep it read-only during inspection, then write \"ask me before you change anything\" if you allow changes and want them supervised. the separate send-approval rule covers sends, not all mailbox edits.[^1]"
+    },
+    {
+      "q": "can it set up filters instead?",
+      "a": "filters need additional google permissions beyond the standard connection. a filter action appearing in the catalog does not mean the standard account grant is sufficient.[^1][^2]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: ai setup",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot docs: approval settings",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

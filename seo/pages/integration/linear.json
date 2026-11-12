@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/linear",
+  "type": "integration",
+  "title": "Linear AI agent for issue context and cycle reviews",
+  "nav": "linear",
+  "h1": "a linear bot that spots missing context before planning",
+  "description": "Connect Linear to Dusk Bot for issue readiness, cycle checks and project updates. Copy routines that flag gaps without inventing priorities or owners.",
+  "keyword": "linear mcp",
+  "keywords": [
+    "claude linear",
+    "linear ai agent"
+  ],
+  "answer": "a bot in dusk bot can search linear issues, read comments and inspect cycles before helping you plan. give it a team and a small question, such as which issues lack enough detail to start. it can also create and update issues when allowed. use reading access for planning reports, and explicit ask-first instructions before granting tracker edits.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "planning",
+    "issues",
+    "cycles",
+    "product"
+  ],
+  "connectors": [
+    "linear"
+  ],
+  "related": [
+    "/integrations/github",
+    "/integrations/notion",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "linear",
+    "label": "Linear",
+    "props": [
+      "s-signpost",
+      "p-magnifier"
+    ],
+    "bubble": "what is blocking this"
+  },
+  "og_line": "better issue context before the planning call.",
+  "app": {
+    "name": "Linear",
+    "toolkit": "linear",
+    "intro": "issue status is only one part of readiness. the description may lack a clear outcome, or comments may contain an unresolved question. these actions let the bot gather that context without assuming it has authority over your team's priorities.",
+    "highlight": [
+      {
+        "slug": "LINEAR_SEARCH_ISSUES",
+        "use": "look for existing work before suggesting a new issue"
+      },
+      {
+        "slug": "LINEAR_GET_LINEAR_ISSUE",
+        "use": "read the full issue before assessing whether it is ready"
+      },
+      {
+        "slug": "LINEAR_LIST_COMMENTS",
+        "use": "find unanswered questions in the issue discussion"
+      },
+      {
+        "slug": "LINEAR_GET_CYCLES_BY_TEAM_ID",
+        "use": "inspect the cycles for the team you named"
+      },
+      {
+        "slug": "LINEAR_LIST_LINEAR_STATES",
+        "use": "learn the team's actual workflow states"
+      },
+      {
+        "slug": "LINEAR_LIST_PROJECT_UPDATES",
+        "use": "collect project updates for a planning review"
+      },
+      {
+        "slug": "LINEAR_CREATE_LINEAR_ISSUE",
+        "use": "create an agreed issue from a prepared brief"
+      },
+      {
+        "slug": "LINEAR_UPDATE_ISSUE",
+        "use": "apply a specified field change after you set the boundary"
+      }
+    ],
+    "setup": "add linear in **Connected apps**, complete linear's sign-in and allow your planning bot to use it. give the team name and a few issue references to establish the scope. explain what your ready and blocked states mean rather than asking the bot to guess from their names."
+  },
+  "routines_intro": "these routines look at issue quality, cycle questions and project communication separately. send one to your bot, then inspect its first few runs before expanding the scope.",
+  "routines": [
+    {
+      "name": "ready to start check",
+      "message": "every monday at 10, read the acme team issues in our ready state. flag any that lack a clear expected outcome or contain unanswered questions in comments. quote the missing or conflicting context. do not change state, priority or owner.",
+      "when": "mondays at 10:00",
+      "output": "a readiness review for the planning call"
+    },
+    {
+      "name": "cycle question list",
+      "message": "every thursday at 2, inspect the current cycle for the acme team and read the issues we marked blocked. group the blockers by the decision or input explicitly requested in their comments. mark unclear blockers as unclear. leave linear unchanged.",
+      "when": "thursdays at 14:00",
+      "output": "a list of decisions needed before work can continue"
+    },
+    {
+      "name": "project update gaps",
+      "message": "every second tuesday at 4, read recent linear project updates for the projects i linked here. list projects with no update in the last two weeks, and questions that the latest update leaves open. do not publish a new update or edit a project.",
+      "when": "alternate tuesdays at 16:00",
+      "output": "a project communication checklist"
+    }
+  ],
+  "asks": "creating an issue and changing its priority, owner or state are tracker changes. they are not documented as stopping at a sending card. keep a reviewer on read-only access so its findings cannot quietly change the plan.\n\nif you want it to maintain issues later, restrict its action list and say \"ask me before you change anything\". posting a comment or project update is a send, with **Allow** / **Deny** by default unless you have granted a daily sending amount.",
+  "cannot": [
+    "assign work, change priority or create issues with a read-only linear permission. a suggested issue outline in dusk chat stays within a much smaller job.",
+    "know that a ticket is complete from its state name alone. ask for the description and comments behind a conclusion, and leave ambiguous readiness for a person to decide.",
+    "carry out a cycle review on a sleeping laptop. desktop routines need the app open; an always-on dusk cloud machine can perform the scheduled review while you are away."
+  ],
+  "sections": [
+    {
+      "h": "keep a blocker tied to its evidence",
+      "md": "tell the bot which states to inspect and ask it to point to the issue or comment behind every blocker. if implementation discussion lives in [github](/integrations/github), connect that source separately before asking for code context. a title that sounds similar is not enough to declare two issues duplicates."
+    },
+    {
+      "h": "write the rule before allowing the update",
+      "md": "define the fields a routine may maintain and where missing values should be reported. a team decision in [notion](/integrations/notion) can supply context, but the bot should not turn an old note into a new priority without your instruction. [product managers](/for/product-managers) can use these small reviews around planning rather than delegating every tracker change."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i connect claude to linear without writing an mcp setup?",
+      "a": "you can choose claude or another ai for a bot in dusk bot and connect linear through **Connected apps**. a bot uses the composio actions listed here, so you don't set up a separate server."
+    },
+    {
+      "q": "can the bot just tell me what is blocked?",
+      "a": "yes. grant reading access and ask it to inspect your blocked issues and their comments. give it the team and state names, and have it report the supporting context in chat."
+    },
+    {
+      "q": "will issue creation ask me first?",
+      "a": "issue creation is an app change, not one of the documented sends. include an explicit ask-first instruction and avoid granting create access to a bot that only needs to review."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and action permissions",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled work",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval controls",
+      "url": "/docs/computer"
+    }
+  ]
+}

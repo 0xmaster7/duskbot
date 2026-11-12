@@ -32,6 +32,8 @@ then just ask:
 - "find the latest invoice from acme in my email and file it in drive."
 - "open an issue in linear for the checkout bug and assign it to me."
 
+each app has its own page in [integrations](/integrations): what a bot can do there, what it asks first, and routines to copy.
+
 reading and drafting happen freely. sending (emails, messages, posts, payments) asks you first, unless you set a daily amount it may send on its own.
 
 ## something not on the list?

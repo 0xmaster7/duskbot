@@ -1,0 +1,156 @@
+{
+  "path": "/integrations/notion",
+  "type": "integration",
+  "title": "Notion AI agent for page upkeep and clearer project notes",
+  "nav": "notion",
+  "h1": "a notion bot that keeps the next step easy to find",
+  "description": "Give a bot in Dusk Bot a focused Notion job: check incomplete records, collect decisions or flag stale pages. Real actions, routines and edit limits.",
+  "keyword": "claude notion",
+  "keywords": [
+    "claude notion integration",
+    "notion ai agent",
+    "chatgpt notion",
+    "ai bot for notion",
+    "notion mcp"
+  ],
+  "answer": "connect notion and a bot in dusk bot can find pages, read their text and update the records you tell it to maintain. it works with the ai you choose for that bot. begin with a report of missing information in chat. page edits and database updates need clear boundaries because the sending rule does not make them ask first.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "knowledge",
+    "project notes",
+    "databases",
+    "upkeep"
+  ],
+  "connectors": [
+    "notion"
+  ],
+  "related": [
+    "/integrations/obsidian",
+    "/integrations/linear",
+    "/for/product-managers"
+  ],
+  "art": {
+    "logo": "notion",
+    "label": "Notion",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "what is missing here"
+  },
+  "og_line": "clearer notes, with a smaller edit scope.",
+  "app": {
+    "name": "Notion",
+    "toolkit": "notion",
+    "intro": "a useful notion bot knows which page is the source and which page may receive new text. these actions let it read a workspace, inspect a record and add a bounded update without treating every page as a blank canvas.",
+    "highlight": [
+      {
+        "slug": "NOTION_SEARCH_NOTION_PAGE",
+        "use": "find the project home by its title"
+      },
+      {
+        "slug": "NOTION_GET_PAGE_MARKDOWN",
+        "use": "read a document as text before suggesting a revision"
+      },
+      {
+        "slug": "NOTION_FETCH_ALL_BLOCK_CONTENTS",
+        "use": "collect page blocks for a content review"
+      },
+      {
+        "slug": "NOTION_FETCH_DATABASE",
+        "use": "inspect the database before interpreting its records"
+      },
+      {
+        "slug": "NOTION_FETCH_ROW",
+        "use": "check the fields on a particular project record"
+      },
+      {
+        "slug": "NOTION_FETCH_COMMENTS",
+        "use": "include review comments when assessing an unfinished page"
+      },
+      {
+        "slug": "NOTION_APPEND_TEXT_BLOCKS",
+        "use": "add a dated decision note beneath an agreed heading"
+      },
+      {
+        "slug": "NOTION_UPDATE_ROW_DATABASE",
+        "use": "update a specific record after you define the field rules"
+      }
+    ],
+    "setup": "connect notion through **Connected apps** and give access to the bot responsible for documentation. notion handles the sign-in. share a page reference in the chat and identify the destination separately. start by asking the bot to read and describe what it found before enabling any upkeep."
+  },
+  "routines_intro": "pick one source of truth for each job. the routines below keep incomplete fields, decision capture and document age as separate questions.",
+  "routines": [
+    {
+      "name": "record completeness",
+      "message": "each monday at 2, inspect the notion project records i linked in this chat. list any missing owner, next step or target date. do not fill gaps by guessing and do not edit the records. group your findings by project.",
+      "when": "mondays at 14:00",
+      "output": "an incomplete-record checklist"
+    },
+    {
+      "name": "decision note draft",
+      "message": "every thursday at 4, read the acme meeting notes page in notion. collect decisions explicitly agreed this week and the reason stated for each. prepare an addition for the decision log here. ask me before you change anything in notion.",
+      "when": "thursdays at 16:00",
+      "output": "a proposed decision-log addition"
+    },
+    {
+      "name": "old instructions check",
+      "message": "on the first monday of each month at 10, read the notion onboarding pages linked here. flag dated instructions, unresolved comments and references that need an owner to check them. explain what needs verification; do not rewrite or archive pages.",
+      "when": "first monday of the month at 10:00",
+      "output": "a maintenance list with reasons to inspect each page"
+    }
+  ],
+  "asks": "notion page edits and record updates are app changes. they are not promised an **Allow** card by the sending rule. a read-only bot cannot make those changes, and an action restriction can narrow a writer to only the tools it needs.\n\nif you want a writer to propose its work first, include \"ask me before you change anything\" in the routine. comments are posts, so sending controls apply to posting them; keep comments disabled if the job is only to review privately.",
+  "cannot": [
+    "rewrite, move or archive a notion page under read-only access. a private summary of that page is a different job and does not require those changes.",
+    "turn an absent owner or date into a fact. the records and notes have to supply that information; the routine should flag a gap for you rather than quietly assigning someone.",
+    "maintain a workspace on schedule while the local machine is asleep. cloud hosting keeps the bot available; the desktop app needs to stay open on an awake computer."
+  ],
+  "sections": [
+    {
+      "h": "separate the evidence from the destination",
+      "md": "give the bot the meeting notes as a source and the decision log as a possible destination. explain which headings it may append beneath. if delivery work is tracked in [linear](/integrations/linear), let the notion page link to it instead of asking the bot to infer progress from prose."
+    },
+    {
+      "h": "choose the place where notes belong",
+      "md": "a connected notion workspace and an [obsidian folder](/integrations/obsidian) are different setups. the former uses app actions; the latter is a set of files on your computer. for a broader planning workflow, the [product manager page](/for/product-managers) connects these smaller jobs to a working week."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i use claude with notion pages?",
+      "a": "yes. choose claude or another supported ai for a bot in dusk bot, then connect notion and grant the actions needed for the page job. the bot keeps its own chats and memory."
+    },
+    {
+      "q": "can it maintain my wiki without changing everything?",
+      "a": "start with a reader that reports pages needing attention. for writing, name the destination and allowed edit, and tell the routine to ask before making any change."
+    },
+    {
+      "q": "does a bot remember the way we write project notes?",
+      "a": "you can tell it your rules and it can keep memory notes. read and edit those notes in the bot's **Memory** settings, rather than relying on an unwritten convention."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: bot memory",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot docs: app permissions",
+      "url": "/docs/computer"
+    }
+  ]
+}

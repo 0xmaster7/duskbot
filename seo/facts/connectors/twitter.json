@@ -1,0 +1,437 @@
+{
+  "toolkit": "twitter",
+  "name": "Twitter",
+  "version": "20261101_00",
+  "description": "Twitter, Inc. was an American social media company based in San Francisco, California, which operated and was named for named for its flagship social media network prior to its rebrand as X.",
+  "managed_sign_in": false,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 84,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Add a list member",
+      "slug": "TWITTER_ADD_LIST_MEMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Add post to bookmarks",
+      "slug": "TWITTER_ADD_POST_TO_BOOKMARKS",
+      "kind": "send"
+    },
+    {
+      "name": "Append Media Upload",
+      "slug": "TWITTER_APPEND_MEDIA_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Get bookmarks by user",
+      "slug": "TWITTER_BOOKMARKS_BY_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Create activity subscription",
+      "slug": "TWITTER_CREATE_ACTIVITY_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create compliance job",
+      "slug": "TWITTER_CREATE_COMPLIANCE_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create group DM conversation",
+      "slug": "TWITTER_CREATE_DM_CONVERSATION",
+      "kind": "send"
+    },
+    {
+      "name": "Create a list",
+      "slug": "TWITTER_CREATE_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a post",
+      "slug": "TWITTER_CREATION_OF_A_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Delete direct message",
+      "slug": "TWITTER_DELETE_DM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete list",
+      "slug": "TWITTER_DELETE_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Get followers by user id",
+      "slug": "TWITTER_FOLLOWERS_BY_USER_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Get following by user ID",
+      "slug": "TWITTER_FOLLOWING_BY_USER_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Follow a list",
+      "slug": "TWITTER_FOLLOW_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Follow a user",
+      "slug": "TWITTER_FOLLOW_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Search full archive of tweets",
+      "slug": "TWITTER_FULL_ARCHIVE_SEARCH",
+      "kind": "write"
+    },
+    {
+      "name": "Get users blocked by user ID",
+      "slug": "TWITTER_GET_BLOCKED_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve compliance job by id",
+      "slug": "TWITTER_GET_COMPLIANCE_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve compliance jobs",
+      "slug": "TWITTER_GET_COMPLIANCE_JOBS",
+      "kind": "read"
+    },
+    {
+      "name": "Get DM events for a DM conversation",
+      "slug": "TWITTER_GET_DM_CONVERSATION_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get DM events by ID",
+      "slug": "TWITTER_GET_DM_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Lookup list by ID",
+      "slug": "TWITTER_GET_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get list followers",
+      "slug": "TWITTER_GET_LIST_FOLLOWERS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch list members by id",
+      "slug": "TWITTER_GET_LIST_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Media Upload Status",
+      "slug": "TWITTER_GET_MEDIA_UPLOAD_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get muted users",
+      "slug": "TWITTER_GET_MUTED_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch OpenAPI specification",
+      "slug": "TWITTER_GET_OPENAPI_SPEC",
+      "kind": "read"
+    },
+    {
+      "name": "Get Post analytics",
+      "slug": "TWITTER_GET_POST_ANALYTICS",
+      "kind": "read"
+    },
+    {
+      "name": "Get post retweeters",
+      "slug": "TWITTER_GET_POST_RETWEETERS_ACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve retweets of a post",
+      "slug": "TWITTER_GET_POST_RETWEETS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch tweet usage data",
+      "slug": "TWITTER_GET_POST_USAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get recent direct message events",
+      "slug": "TWITTER_GET_RECENT_DM_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Look up space by ID",
+      "slug": "TWITTER_GET_SPACE_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve posts from a space",
+      "slug": "TWITTER_GET_SPACE_POSTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get spaces by creator IDs",
+      "slug": "TWITTER_GET_SPACES_BY_CREATORS",
+      "kind": "read"
+    },
+    {
+      "name": "Get space information by IDs",
+      "slug": "TWITTER_GET_SPACES_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch space ticket buyers list",
+      "slug": "TWITTER_GET_SPACE_TICKET_BUYERS",
+      "kind": "read"
+    },
+    {
+      "name": "Look up user by ID",
+      "slug": "TWITTER_GET_USER_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get user's followed lists",
+      "slug": "TWITTER_GET_USER_FOLLOWED_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a user's list memberships",
+      "slug": "TWITTER_GET_USER_LIST_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user mentions",
+      "slug": "TWITTER_GET_USER_MENTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a user's owned lists",
+      "slug": "TWITTER_GET_USER_OWNED_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a user's pinned lists",
+      "slug": "TWITTER_GET_USER_PINNED_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user posts",
+      "slug": "TWITTER_GET_USER_POSTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user public keys",
+      "slug": "TWITTER_GET_USER_PUBLIC_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "Look up users by IDs",
+      "slug": "TWITTER_GET_USERS_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Set reply visibility",
+      "slug": "TWITTER_HIDE_REPLIES",
+      "kind": "write"
+    },
+    {
+      "name": "Initialize Media Upload",
+      "slug": "TWITTER_INITIALIZE_MEDIA_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "List chat conversations",
+      "slug": "TWITTER_LIST_CHAT_CONVERSATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List post likers",
+      "slug": "TWITTER_LIST_POST_LIKERS",
+      "kind": "read"
+    },
+    {
+      "name": "List posts timeline by list ID",
+      "slug": "TWITTER_LIST_POSTS_TIMELINE_BY_LIST_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Mute user by ID",
+      "slug": "TWITTER_MUTE_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Pin a list",
+      "slug": "TWITTER_PIN_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete tweet",
+      "slug": "TWITTER_POST_DELETE_BY_POST_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Look up post by id",
+      "slug": "TWITTER_POST_LOOKUP_BY_POST_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Get tweets by IDs",
+      "slug": "TWITTER_POST_LOOKUP_BY_POST_IDS",
+      "kind": "send"
+    },
+    {
+      "name": "Search recent tweets",
+      "slug": "TWITTER_RECENT_SEARCH",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a list member",
+      "slug": "TWITTER_REMOVE_LIST_MEMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a bookmarked post",
+      "slug": "TWITTER_REMOVE_POST_FROM_BOOKMARKS",
+      "kind": "send"
+    },
+    {
+      "name": "Retrieve DM conversation events",
+      "slug": "TWITTER_RETRIEVE_DM_CONVERSATION_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve posts that quote a post",
+      "slug": "TWITTER_RETRIEVE_POSTS_THAT_QUOTE_A_POST",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve liked tweets by user ID",
+      "slug": "TWITTER_RETURNS_POST_OBJECTS_LIKED_BY_THE_PROVIDED_USER_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Retweet post",
+      "slug": "TWITTER_RETWEET_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Get full archive search counts",
+      "slug": "TWITTER_SEARCH_FULL_ARCHIVE_COUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search X news",
+      "slug": "TWITTER_SEARCH_NEWS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch recent tweet counts",
+      "slug": "TWITTER_SEARCH_RECENT_COUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search for spaces",
+      "slug": "TWITTER_SEARCH_SPACES",
+      "kind": "read"
+    },
+    {
+      "name": "Send a new message to a user",
+      "slug": "TWITTER_SEND_A_NEW_MESSAGE_TO_A_USER",
+      "kind": "send"
+    },
+    {
+      "name": "Send a new message to a DM conversation",
+      "slug": "TWITTER_SEND_DM_TO_CONVERSATION",
+      "kind": "send"
+    },
+    {
+      "name": "Get tweets label stream",
+      "slug": "TWITTER_STREAM_POST_LABELS",
+      "kind": "send"
+    },
+    {
+      "name": "Unfollow a list",
+      "slug": "TWITTER_UNFOLLOW_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Unfollow user",
+      "slug": "TWITTER_UNFOLLOW_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Unlike post",
+      "slug": "TWITTER_UNLIKE_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Unmute a user by user ID",
+      "slug": "TWITTER_UNMUTE_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Unpin a list",
+      "slug": "TWITTER_UNPIN_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Unretweet post",
+      "slug": "TWITTER_UNRETWEET_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Update list attributes",
+      "slug": "TWITTER_UPDATE_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Upload Large Media",
+      "slug": "TWITTER_UPLOAD_LARGE_MEDIA",
+      "kind": "write"
+    },
+    {
+      "name": "Upload Media",
+      "slug": "TWITTER_UPLOAD_MEDIA",
+      "kind": "write"
+    },
+    {
+      "name": "Get user reverse chronological timeline",
+      "slug": "TWITTER_USER_HOME_TIMELINE_BY_USER_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Like a tweet",
+      "slug": "TWITTER_USER_LIKE_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Look up user by username",
+      "slug": "TWITTER_USER_LOOKUP_BY_USERNAME",
+      "kind": "write"
+    },
+    {
+      "name": "Look up users by username",
+      "slug": "TWITTER_USER_LOOKUP_BY_USERNAMES",
+      "kind": "write"
+    },
+    {
+      "name": "Get authenticated user",
+      "slug": "TWITTER_USER_LOOKUP_ME",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/twitter",
+  "fetched_at": "2026-11-12"
+}

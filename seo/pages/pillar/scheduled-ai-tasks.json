@@ -1,0 +1,212 @@
+{
+  "path": "/scheduled-ai-tasks",
+  "type": "pillar",
+  "title": "Scheduled AI tasks: compare four vendors and Dusk",
+  "nav": "scheduled ai tasks",
+  "h1": "scheduled ai tasks: what runs, where and when",
+  "description": "Compare Claude, ChatGPT, Gemini and Grok schedulers with Dusk routines, including current limits and ten small jobs worth repeating.",
+  "keyword": "claude scheduled tasks",
+  "keywords": [
+    "chatgpt scheduled tasks",
+    "gemini scheduled actions",
+    "grok tasks",
+    "claude cowork scheduled tasks",
+    "ai cron jobs",
+    "schedule ai tasks"
+  ],
+  "answer": "scheduled ai tasks save an instruction and repeat it later. as of 12 november 2026, claude, chatgpt, gemini and grok each have their own version, with different limits and places where the work runs. dusk routines belong to a bot whose ai you choose. start with the scheduler already in your app if it fits; choose a separate bot when you want its own chats, memory and job.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "scheduling",
+    "routine",
+    "claude",
+    "chatgpt",
+    "gemini",
+    "grok"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-scheduled-tasks",
+    "/guides/chatgpt-scheduled-tasks",
+    "/guides/gemini-scheduled-actions",
+    "/guides/grok-tasks",
+    "/agents-when-laptop-closed"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "s-notebook"
+    ],
+    "bubble": "same time tomorrow"
+  },
+  "og_line": "a small job, done again tomorrow.",
+  "table": {
+    "h": "what the schedulers currently offer",
+    "intro": "as of 12 november 2026. the limits below describe different things: active schedules, runs per hour and timing options. a blank limit is not an unlimited allowance.",
+    "cols": [
+      "scheduler",
+      "what it repeats",
+      "published boundary"
+    ],
+    "rows": [
+      {
+        "label": "claude apps and cowork",
+        "cells": [
+          "a saved prompt, remotely; hourly, daily, weekly, weekdays or manual",
+          "paid plans: pro, max, ultra, team and enterprise; no linked personal finance accounts"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "claude code cloud scheduled tasks",
+        "cells": [
+          "a prompt with repositories and connectors; schedule, api call or github event",
+          "minimum one-hour interval; 100 scheduled runs per hour per account; plan usage applies"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "chatgpt scheduled tasks",
+        "cells": [
+          "one-time or recurring tasks, monitoring and supported events",
+          "active tasks: free/go 3, plus 5, business/edu 10, pro/enterprise 15"
+        ],
+        "src": [
+          3
+        ]
+      },
+      {
+        "label": "gemini schedules",
+        "cells": [
+          "daily, weekly or monthly actions; prepares content in the hour before delivery",
+          "10 active schedules; keep activity must be on; gradual account rollout"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "grok automations and grok bot routines",
+        "cells": [
+          "automations describe recurring work and events; bot routines run in the cloud",
+          "plans page lists cloud agents and automations under x subscription premium"
+        ],
+        "src": [
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "label": "dusk routines",
+        "cells": [
+          "a bot job on a schedule or a connected-app event",
+          "your computer must be awake with dusk open, or put the bot on dusk cloud"
+        ],
+        "src": [
+          8
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "choose the trigger before the tool",
+      "md": "a clock is right for work that has a useful deadline: a reading digest before breakfast or a review every friday. an event is right when there is nothing to do until something arrives. avoid a frequent timer that repeatedly asks whether the same document has changed when a less frequent review would do.\n\nas of 12 november 2026, chatgpt documents event-triggered tasks for plus, pro, business, enterprise and edu, but not free or go. claude code cloud tasks also document github events and api calls. these are vendor-specific features; a schedule in one app does not establish that another has the same trigger.[^2][^3]\n\nread the [claude task guide](/guides/claude-scheduled-tasks) for the difference between cowork and code, or the [chatgpt limits guide](/guides/chatgpt-scheduled-tasks) when choosing a plan."
+    },
+    {
+      "h": "ten small routine ideas",
+      "md": "these are instructions to adapt, not measured results or promises about a vendor's connected apps. give the chosen bot the relevant document or reading material first.\n\n1. **daily priority:** 'at 8 on weekdays, read my attached plan and suggest the one decision to make first.'\n2. **meeting rehearsal:** 'every tuesday at 9, turn my briefing notes into three questions to practise.'\n3. **friday reflection:** 'friday at 4, ask what went well and what i want to change next week.'\n4. **study check:** 'each evening, quiz me on five terms from the notes i shared.'\n5. **writing nudge:** 'on monday morning, give me one writing prompt based on my draft.'\n6. **project vocabulary:** 'each wednesday, explain one unfamiliar term from our project document.'\n7. **weekly contradiction check:** 'on thursday, flag statements in the attached proposal that disagree with each other.'\n8. **travel preparation:** 'each saturday until my trip, ask which checklist items still need a decision.'\n9. **reading review:** 'every sunday, compare the two articles i gave you and list where they disagree.'\n10. **monthly reset:** 'on the first of each month, help me review my goals before suggesting new ones.'\n\nkeep the first version read-only. a reminder to think is useful even when you do not want the bot making changes."
+    },
+    {
+      "h": "make a dusk routine by saying what should repeat",
+      "md": "tell a bot the job, the schedule and where to put the result. it replies with a card showing the schedule and next runs. use **Edit**, **Pause** or **Undo** if the card does not match your intention. **Automations** in the sidebar lists routines with a calendar and run history.[^8]\n\nadd a quiet condition such as 'if the document is unchanged, say nothing.' check the first few runs. if the timing looks wrong, ask the bot which time zone it is using. a correct schedule attached to the wrong time zone still produces a bad morning.[^8][^9]\n\nfor connected apps, reading and drafting can happen freely. sends ask first unless you give the bot a daily allowance. other app changes need their own boundary: keep access read-only or write 'ask me before you change anything' in the routine.[^10]"
+    },
+    {
+      "h": "check where the saved job actually runs",
+      "md": "as of 12 november 2026, claude's current cowork tasks run remotely, while older tasks created before 6 october that ran locally remain local. claude code also has desktop local tasks that need an awake computer. grok bot documents cloud routines. do not infer an offline guarantee for every product just because it has a schedule.[^1][^11][^6]\n\nin dusk, laptop sleep and a closed app stop local routines. a run missed by less than 12 hours runs once when you return; an older one is skipped. [choose an always-on home](/agents-when-laptop-closed) if that delay matters.[^8]\n\n[gemini schedules](/guides/gemini-scheduled-actions) have their own delivery window. [grok tasks](/guides/grok-tasks) use different names for automations and bot routines. check your provider's current terms and scheduler docs before moving unattended work between tools."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are people actually using scheduled ai tasks for?",
+      "a": "small repeated reading, practice and planning jobs are good places to start. choose one result you can judge quickly. add more only when the first one is worth keeping."
+    },
+    {
+      "q": "can scheduled tasks run when my laptop is closed?",
+      "a": "it depends where they run. as of 12 november 2026, anthropic documents remote cowork tasks and cloud code tasks, and xai documents cloud grok bot routines. a local dusk routine needs an awake machine; dusk cloud is the hosted option.[^1][^2][^6][^8]"
+    },
+    {
+      "q": "is the old chatgpt agent still the scheduler to use?",
+      "a": "as of 12 november 2026, openai says chatgpt agent is no longer available and points to chatgpt work for longer multi-step tasks. use the current scheduled-tasks documentation for scheduling limits, rather than old agent-mode quotas.[^12][^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: cowork scheduled tasks",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: code cloud tasks",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: scheduled tasks",
+      "url": "https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: gemini schedules",
+      "url": "https://support.google.com/gemini/answer/16316416?hl=en",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: automations",
+      "url": "https://grok.com/tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: grok bot routines",
+      "url": "https://docs.x.ai/grok-bot/skills-routines-and-automations",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: plans",
+      "url": "https://grok.com/plans",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: troubleshooting",
+      "url": "/docs/troubleshooting"
+    },
+    {
+      "label": "dusk bot: connected apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "anthropic: code desktop tasks",
+      "url": "https://code.claude.com/docs/en/desktop-scheduled-tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: agent availability",
+      "url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+      "checked": "2026-11-12"
+    }
+  ]
+}

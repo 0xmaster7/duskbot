@@ -1,0 +1,118 @@
+{
+  "path": "/ai-chief-of-staff",
+  "type": "pillar",
+  "title": "AI chief of staff: a lead bot and three routines",
+  "nav": "ai chief of staff",
+  "h1": "an ai chief of staff for the loose ends",
+  "description": "Build a lead bot that hands work to specialists. Copy morning brief, inbox sweep and weekly review routines, with clear limits on what the lead decides.",
+  "keyword": "ai chief of staff",
+  "keywords": [
+    "ai chief of staff claude",
+    "ai executive assistant",
+    "ai executive assistant claude",
+    "ai chief of staff prompt"
+  ],
+  "answer": "an ai chief of staff can help collect loose ends, separate decisions from updates and hand preparation work to other bots. in dusk bot, make a lead bot, put it in a small group and set **Who answers** to **Leader**. the lead assigns tasks through @mentions. use recurring briefs to feed that conversation, while keeping priorities, promises and final decisions with you.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "coordination",
+    "leader",
+    "briefing",
+    "review"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar"
+  ],
+  "related": [
+    "/ai-group-chat",
+    "/use-cases/daily-briefing",
+    "/use-cases/email-triage",
+    "/ai-executive-assistant"
+  ],
+  "art": {
+    "props": [
+      "s-map",
+      "s-notebook"
+    ],
+    "bubble": "what needs you?"
+  },
+  "og_line": "bring the decisions back to you.",
+  "sections": [
+    {
+      "h": "give the lead a coordination job",
+      "md": "a chief of staff setup should reduce the work of keeping track. do not give the lead every account and hope it discovers your priorities. tell it what to gather, whom to ask and what needs your judgment.\n\ncreate a lead bot with this job: \"coordinate preparation in our group. @mention the specialist whose job fits each task. distinguish confirmed information, missing information and decisions for me. do not assign priorities or make promises on my behalf. ask me before you change anything.\"\n\nadd two specialists to a group with it: a bot named inbox for reading mail and a bot named calendar for calendar preparation. set **Who answers** to **Leader** and select the lead. give the specialists narrow jobs instead of three versions of the same assistant. each bot keeps its own ai and permissions in the room.[^1]"
+    },
+    {
+      "h": "make the handoff visible",
+      "md": "use the group instructions for a shared rule: \"every handoff must name the question and what evidence is needed. return open questions to the lead. the lead asks me when priorities conflict.\"\n\nthen send the room a bounded request: \"help me prepare for tomorrow. @calendar, find the events i need to prepare for. @inbox, read the threads i identify for those events. lead: give me a list of decisions after their replies, without changing any events or sending anything.\"\n\nthe [group chat guide](/ai-group-chat) explains the room settings. do not assume a routine result in a specialist's private chat is automatically delivered to the group. bring those findings into the room explicitly. the routine messages below each return to the chat where you set them up; the lead coordinates the review once you share the material."
+    },
+    {
+      "h": "morning brief: find the decisions before the day starts",
+      "md": "give the calendar reader google calendar access. the connector has **Find event** and **Find free slots** read actions, so begin with finding events rather than rearranging them.[^6]\n\nsend: \"every weekday at 7:45am, find today's calendar events and return a preparation list here. show the event time, what the event description establishes and any preparation question it leaves open. do not infer that i agreed to work just because an event mentions it. do not change the calendar.\"\n\ncheck the routine's schedule card, especially the time zone. read the early briefs against your calendar. when you bring one to the lead, ask which questions need an answer before the first meeting.\n\nthis is a preparation routine, not a claim that the bot knows your whole day. the [daily briefing page](/use-cases/daily-briefing) is useful if you want to narrow the brief further."
+    },
+    {
+      "h": "inbox sweep: surface requests without answering them",
+      "md": "connect gmail to the inbox reader and keep it read only for this job. the connector can fetch emails and read threads.[^5] the lead does not need write access just to help you decide what deserves attention.\n\nsend the inbox reader: \"every weekday at 11:30am, read new mail in the work account since the last sweep. list direct requests, stated deadlines and questions that need my judgment. point back to the relevant thread. do not label, archive, draft or send. say when a deadline is your interpretation rather than explicit text. return the list here.\"\n\nask the lead to compare the findings with your stated priorities after you share them in the group. a demanding subject line is not evidence that a request matters more than the work already planned.\n\nif a scheduled sweep is too noisy, narrow it to named senders or a search you have checked. the [email triage guide](/use-cases/email-triage) covers that smaller job."
+    },
+    {
+      "h": "weekly review: inspect promises rather than count activity",
+      "md": "put this routine on the lead: \"every friday at 3pm, review the commitments and decisions i have recorded in this chat this week. list what is resolved, what is still open and what has no clear owner. do not mark work done merely because we discussed it. ask me to confirm next week's priorities. return the review here and change nothing elsewhere.\"\n\nthis version has a deliberate boundary: it reviews what you recorded in that chat. bring in the specialist summaries or relevant files before asking for a broader review. attached documents can give it more material; missing context should become a question, not a confident status update.\n\ncheck the resulting schedule and use **Edit**, **Pause** or **Undo** on the routine card as needed. **Automations** shows schedules and run history.[^3]"
+    },
+    {
+      "h": "keep authority and operating hours explicit",
+      "md": "app access belongs to each bot. use read-only connections for the two readers. if you later allow changes, include \"ask me before you change anything\" in the routine. sends have a separate approval setting; do not assume every calendar edit or inbox change will ask automatically.[^4]\n\nlocal schedules need the computer awake and dusk bot running. a job missed by less than 12 hours runs once when you return; older runs are skipped. move to dusk cloud if the morning brief must run while your own computer is off.[^3]\n\nkeep priority calls, sensitive conversations and commitments with a person. if you mainly need meeting preparation and reply drafts, the [executive assistant setup](/ai-executive-assistant) is the more direct starting point. this setup earns its extra bots only when coordinating several streams of preparation helps."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is a useful ai chief of staff prompt?",
+      "a": "name the handoff and the limit: coordinate specialists, separate facts from open questions, and bring decisions to me. then add the sources and the result you need for each task. a title by itself is too broad a prompt."
+    },
+    {
+      "q": "what are people actually using scheduled tasks for?",
+      "a": "the three jobs here are calendar preparation, surfacing inbox requests and reviewing recorded commitments. treat them as routines to try, not measured results. each returns a list you can check instead of quietly changing your working day."
+    },
+    {
+      "q": "does the leader get access to every specialist's apps?",
+      "a": "no. each bot retains its own permissions in the group. give the calendar reader calendar access and the inbox reader inbox access. the leader's job is to hand off questions and bring the replies together."
+    },
+    {
+      "q": "can it decide what my team should do next?",
+      "a": "keep that decision with you. ask it to prepare options and identify missing owners or conflicting deadlines. confirm priorities yourself before asking anyone to act on them."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: leader groups and separate permissions",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot docs: bot jobs and attached context",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: routines and missed runs",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: app access and sends",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: gmail actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google calendar actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "path": "/ai-employees",
+  "type": "pillar",
+  "title": "AI employees: useful jobs, real costs and limits",
+  "nav": "ai employees",
+  "h1": "ai employees you can give a clear job",
+  "description": "Choose useful jobs for AI employees, compare Dusk Bot, Sintra and Lindy costs, and learn what to hand to a bot and what still needs a person.",
+  "keyword": "ai employees",
+  "keywords": [
+    "ai employee",
+    "ai teammates",
+    "hire ai employees",
+    "ai employees for business",
+    "ai coworker"
+  ],
+  "answer": "ai employees are bots you give jobs to, not people you hire. in dusk bot, each has a name, a job, chats, memory and an ai you choose. they can help with bounded work such as reviewing a document or running a recurring check. you still decide what matters, check the work and own the outcome. budget for dusk's work license or hosting where needed, plus your ai provider's charges.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "jobs",
+    "cost",
+    "business",
+    "bots"
+  ],
+  "connectors": [],
+  "related": [
+    "/ai-teammates",
+    "/alternatives/sintra",
+    "/alternatives/lindy",
+    "/guides/how-much-does-an-ai-agent-cost"
+  ],
+  "art": {
+    "props": [
+      "p-briefcase",
+      "s-coins"
+    ],
+    "bubble": "one clear job"
+  },
+  "og_line": "give a bot a job you can check.",
+  "table": {
+    "h": "compare the bill before the job titles",
+    "intro": "as of 12 november 2026. these are different things to buy, not equal amounts of work. a credit does not mean the same thing across products, and dusk's hosting price does not include ai usage.",
+    "cols": [
+      "option",
+      "listed price",
+      "what to budget around it"
+    ],
+    "rows": [
+      {
+        "label": "dusk on your computer",
+        "cells": [
+          "free for personal use",
+          "your ai costs; work use needs a work license"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "dusk cloud plus",
+        "cells": [
+          "$20/month or $200/year",
+          "your ai costs; work licensing still needs attention"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "dusk cloud pro",
+        "cells": [
+          "$50/month or $500/year",
+          "includes a work license for one person; ai billed separately"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "sintra",
+        "cells": [
+          "$48.50/month promotional one-month price, list $97",
+          "all 12 helpers and 250 monthly credits; longer commitments have other rates"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "lindy team",
+        "cells": [
+          "from $29.99/month per active user",
+          "3,000 credits; top-ups $10 per 1,000 credits; no rollover"
+        ],
+        "src": [
+          5
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "buy a result you can describe",
+      "md": "start with the work that keeps returning to your desk. can you name the input, the result and the point where a person takes over? that is a better buying question than how many employees an app offers.\n\na useful first job might be checking a proposal against an attached brief. a poor first job is running sales. the first has an end you can inspect. the second bundles judgment, relationships and promises into a title.\n\ndusk bot lets you define each bot's job in plain words through **New bot**. change the job later if it turns out to be too broad. a name and a friendly shape help you find it; they do not make it responsible for a business decision.[^1]"
+    },
+    {
+      "h": "a small roster with separate responsibilities",
+      "md": "try these as job descriptions for bots you create, rather than claims about a ready-made staff pack:\n\n- **brief reader:** read the files i attach, pull out requirements and mark anything the files do not settle.\n- **draft writer:** turn the approved brief into a first draft. keep facts from the brief separate from suggestions.\n- **second reader:** compare that draft with the brief. flag missing requirements and unsupported claims. leave the final wording to me.\n\nattach the relevant documents to their chats. each bot has its own memory and can keep several threads. give the reviewer the source material too; asking it whether another bot sounds convincing is a weaker check than asking what the source actually supports.\n\nif the work becomes a shared conversation, the [small-team guide](/ai-teammates) covers handoffs and human ownership."
+    },
+    {
+      "h": "write the job as a message before making it repeat",
+      "md": "send a bounded request first: \"read the attached supplier proposal against the requirements file. return missing requirements and questions for me. do not contact the supplier or change either file.\"\n\ncheck whether the bot finds the right document, distinguishes a fact from a guess and stops at the requested result. correct the job description when it misunderstands. adding more bots will not repair an unclear brief.\n\nonly then make a repeated job. for a folder you deliberately give the bot, try: \"every thursday at 4pm, review the proposal files in this project folder. list unresolved questions in this chat. ask me before you change anything.\"\n\na routine returns a schedule card with the next runs. inspect it, watch the early runs, and use **Pause** if the job keeps needing repair. local routines need your computer awake and the app open.[^6]"
+    },
+    {
+      "h": "read the costs as separate decisions",
+      "md": "dusk has no model of its own. ai usage is billed by your ai provider on your plan with them. a cloud plan pays for the computer that keeps bots running, not an unlimited supply of thinking. check your provider's current terms before choosing how to sign in.\n\nwork use needs a work license even when you run the app on your own machine. pro includes one for one person; team plans start at $100/month. for a separate work license, check [pricing](/pricing) for the option you need.\n\nfor another buying model, [sintra](/alternatives/sintra) offers role-based helpers. [lindy](/alternatives/lindy) prices its team offering by active user and credits. compare the tasks you need with the credits and billing commitment, rather than treating a monthly headline as your finished-work budget."
+    },
+    {
+      "h": "what still needs a human employee",
+      "md": "keep a person responsible for customer promises, hiring decisions, disputes and final approval of public claims. use bots to prepare material for that person. a neat draft can still misunderstand the situation.\n\nthere is no measured time-saving or success-rate claim behind this page. judge a trial against your actual work: how much did you need to correct, what did it miss, and was reviewing it easier than doing it yourself? do not count a task as delegated while you are quietly redoing all of it.\n\na human hire and a bot are different decisions. if you need someone to take responsibility, build relationships or handle unclear situations throughout the day, a list of bot roles is not a staffing plan."
+    },
+    {
+      "h": "start without giving the whole business away",
+      "md": "use one non-sensitive document and one job. connect apps only when that job needs them, and allow each bot only the relevant access. reading and drafting are separate from sending: sends ask first unless you allow a daily amount. other app changes are not documented as asking automatically. keep access read only, or write \"ask me before you change anything\" into the job.[^7]\n\nkeep the trial if its work is useful after review. narrow it if the checks are taking over your day. the [cost guide](/guides/how-much-does-an-ai-agent-cost) can help you think through the bill once you know which job is worth keeping."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can ai employees replace my staff?",
+      "a": "do not plan on that. give bots bounded tasks with a person checking the result. a job title does not give a bot human accountability or the context your staff hold."
+    },
+    {
+      "q": "can a non-technical business owner set this up?",
+      "a": "in dusk bot you create a bot with a name and a job in plain words, then text it. begin with an attached document before connecting business accounts. that gives you something small to check."
+    },
+    {
+      "q": "is anyone running several agents without spending a fortune?",
+      "a": "compare the whole bill: app or hosting, work licensing and ai usage. dusk's local app is free for personal use, but that does not make business use or the ai itself free. set a narrow job before paying to keep it running all day."
+    },
+    {
+      "q": "does each bot need the same ai?",
+      "a": "no. each dusk bot has its own model. you can change it later while keeping that bot's chats, files and memory. check the ai provider's terms and charges for your chosen setup."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: bot jobs and models",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot docs: personal use, work licenses and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot pricing",
+      "url": "/pricing"
+    },
+    {
+      "label": "sintra pricing",
+      "url": "https://sintra.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "lindy pricing",
+      "url": "https://www.lindy.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: app access and sending",
+      "url": "/docs/files-and-apps"
+    }
+  ]
+}

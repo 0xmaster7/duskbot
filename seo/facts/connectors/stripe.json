@@ -1,0 +1,2193 @@
+{
+  "toolkit": "stripe",
+  "name": "Stripe",
+  "version": "20261101_00",
+  "description": "Stripe offers online payment infrastructure, fraud prevention, and APIs enabling businesses to accept and manage payments globally",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 435,
+  "triggers_count": 40,
+  "tools": [
+    {
+      "name": "Accept quote",
+      "slug": "STRIPE_ACCEPT_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Activate billing alert",
+      "slug": "STRIPE_ACTIVATE_BILLING_ALERT",
+      "kind": "write"
+    },
+    {
+      "name": "Add lines to invoice",
+      "slug": "STRIPE_ADD_INVOICE_LINES",
+      "kind": "send"
+    },
+    {
+      "name": "Advance test clock",
+      "slug": "STRIPE_ADVANCE_TEST_CLOCK",
+      "kind": "write"
+    },
+    {
+      "name": "Apply customer balance to payment intent",
+      "slug": "STRIPE_APPLY_CUSTOMER_BALANCE",
+      "kind": "write"
+    },
+    {
+      "name": "Archive billing alert",
+      "slug": "STRIPE_ARCHIVE_BILLING_ALERT",
+      "kind": "write"
+    },
+    {
+      "name": "Attach source to customer",
+      "slug": "STRIPE_ATTACH_CUSTOMER_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Attach payment to invoice",
+      "slug": "STRIPE_ATTACH_INVOICE_PAYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Attach payment method to customer",
+      "slug": "STRIPE_ATTACH_PAYMENT_METHOD",
+      "kind": "write"
+    },
+    {
+      "name": "Attach feature to product",
+      "slug": "STRIPE_ATTACH_PRODUCT_FEATURE",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel payment intent",
+      "slug": "STRIPE_CANCEL_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel Quote",
+      "slug": "STRIPE_CANCEL_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel setup intent",
+      "slug": "STRIPE_CANCEL_SETUP_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel subscription",
+      "slug": "STRIPE_CANCEL_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel subscription schedule",
+      "slug": "STRIPE_CANCEL_SUBSCRIPTION_SCHEDULE",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel Terminal Reader Action",
+      "slug": "STRIPE_CANCEL_TERMINAL_READER_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Capture Charge",
+      "slug": "STRIPE_CAPTURE_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Capture payment intent",
+      "slug": "STRIPE_CAPTURE_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Close Dispute",
+      "slug": "STRIPE_CLOSE_DISPUTE",
+      "kind": "write"
+    },
+    {
+      "name": "Set Terminal Reader Display",
+      "slug": "STRIPE_COLLECT_TERMINAL_READER_INPUTS",
+      "kind": "write"
+    },
+    {
+      "name": "Collect payment method on Terminal Reader",
+      "slug": "STRIPE_COLLECT_TERMINAL_READER_PAYMENT_METHOD",
+      "kind": "write"
+    },
+    {
+      "name": "Confirm payment intent",
+      "slug": "STRIPE_CONFIRM_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Confirm setup intent",
+      "slug": "STRIPE_CONFIRM_SETUP_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Confirm PaymentIntent on Terminal Reader",
+      "slug": "STRIPE_CONFIRM_TERMINAL_READER_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Card Payments Capability",
+      "slug": "STRIPE_CREATE_ACCOUNTS_CAPABILITIES_CARD_PAYMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create Account Session",
+      "slug": "STRIPE_CREATE_ACCOUNT_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Apple Pay Domain",
+      "slug": "STRIPE_CREATE_APPLE_PAY_DOMAIN",
+      "kind": "send"
+    },
+    {
+      "name": "Create apps secret",
+      "slug": "STRIPE_CREATE_APPS_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Create Bank Account Token",
+      "slug": "STRIPE_CREATE_BANK_ACCOUNT_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create billing alert",
+      "slug": "STRIPE_CREATE_BILLING_ALERT",
+      "kind": "write"
+    },
+    {
+      "name": "Create billing credit grant",
+      "slug": "STRIPE_CREATE_BILLING_CREDIT_GRANT",
+      "kind": "write"
+    },
+    {
+      "name": "Create billing meter",
+      "slug": "STRIPE_CREATE_BILLING_METER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Billing Meter Event V2",
+      "slug": "STRIPE_CREATE_BILLING_METER_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Billing Meter Event Adjustment",
+      "slug": "STRIPE_CREATE_BILLING_METER_EVENT_ADJUSTMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Billing Meter Event Session",
+      "slug": "STRIPE_CREATE_BILLING_METER_EVENT_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Billing Portal Configuration",
+      "slug": "STRIPE_CREATE_BILLING_PORTAL_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Billing Portal Session",
+      "slug": "STRIPE_CREATE_BILLING_PORTAL_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create charge (deprecated)",
+      "slug": "STRIPE_CREATE_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create Charge Refund",
+      "slug": "STRIPE_CREATE_CHARGE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Create Checkout Session",
+      "slug": "STRIPE_CREATE_CHECKOUT_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Coupon",
+      "slug": "STRIPE_CREATE_COUPON",
+      "kind": "write"
+    },
+    {
+      "name": "Create Credit Note",
+      "slug": "STRIPE_CREATE_CREDIT_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Customer",
+      "slug": "STRIPE_CREATE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Customer Balance Transaction",
+      "slug": "STRIPE_CREATE_CUSTOMER_BALANCE_TRANSACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create customer bank account",
+      "slug": "STRIPE_CREATE_CUSTOMER_BANK_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Create customer card",
+      "slug": "STRIPE_CREATE_CUSTOMER_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Customer Session",
+      "slug": "STRIPE_CREATE_CUSTOMER_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create card or payment source",
+      "slug": "STRIPE_CREATE_CUSTOMER_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Create customer subscription",
+      "slug": "STRIPE_CREATE_CUSTOMER_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Customer Tax ID",
+      "slug": "STRIPE_CREATE_CUSTOMER_TAX_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Create CVC Update Token",
+      "slug": "STRIPE_CREATE_CVC_UPDATE_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Feature Entitlement",
+      "slug": "STRIPE_CREATE_ENTITLEMENT_FEATURE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Ephemeral Key",
+      "slug": "STRIPE_CREATE_EPHEMERAL_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Create File",
+      "slug": "STRIPE_CREATE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Create File Link",
+      "slug": "STRIPE_CREATE_FILE_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Financial Connections Session",
+      "slug": "STRIPE_CREATE_FINANCIAL_CONNECTIONS_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create FX Quote",
+      "slug": "STRIPE_CREATE_FX_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Create an invoice",
+      "slug": "STRIPE_CREATE_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Create invoice item",
+      "slug": "STRIPE_CREATE_INVOICE_ITEM",
+      "kind": "send"
+    },
+    {
+      "name": "Create payment intent",
+      "slug": "STRIPE_CREATE_PAYMENT_INTENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Payment Link",
+      "slug": "STRIPE_CREATE_PAYMENT_LINK",
+      "kind": "send"
+    },
+    {
+      "name": "Create payment method",
+      "slug": "STRIPE_CREATE_PAYMENT_METHOD",
+      "kind": "send"
+    },
+    {
+      "name": "Create payment method configuration",
+      "slug": "STRIPE_CREATE_PAYMENT_METHOD_CONFIGURATION",
+      "kind": "send"
+    },
+    {
+      "name": "Create payment method domain",
+      "slug": "STRIPE_CREATE_PAYMENT_METHOD_DOMAIN",
+      "kind": "send"
+    },
+    {
+      "name": "Create PII Token",
+      "slug": "STRIPE_CREATE_PII_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create a plan",
+      "slug": "STRIPE_CREATE_PLAN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Preview Invoice",
+      "slug": "STRIPE_CREATE_PREVIEW_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Create a price",
+      "slug": "STRIPE_CREATE_PRICE",
+      "kind": "write"
+    },
+    {
+      "name": "Create product",
+      "slug": "STRIPE_CREATE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Promotion Code",
+      "slug": "STRIPE_CREATE_PROMOTION_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a quote",
+      "slug": "STRIPE_CREATE_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Refund",
+      "slug": "STRIPE_CREATE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Create a Report Run",
+      "slug": "STRIPE_CREATE_REPORT_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Reversal Tax Transaction",
+      "slug": "STRIPE_CREATE_REVERSAL_TAX_TRANSACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Setup Intent",
+      "slug": "STRIPE_CREATE_SETUP_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a shipping rate",
+      "slug": "STRIPE_CREATE_SHIPPING_RATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Source",
+      "slug": "STRIPE_CREATE_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Create subscription",
+      "slug": "STRIPE_CREATE_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create subscription item",
+      "slug": "STRIPE_CREATE_SUBSCRIPTION_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create subscription schedule",
+      "slug": "STRIPE_CREATE_SUBSCRIPTION_SCHEDULE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tax Calculation",
+      "slug": "STRIPE_CREATE_TAX_CALCULATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tax ID",
+      "slug": "STRIPE_CREATE_TAX_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Create tax rate",
+      "slug": "STRIPE_CREATE_TAX_RATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tax Registration",
+      "slug": "STRIPE_CREATE_TAX_REGISTRATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tax Transaction from Calculation",
+      "slug": "STRIPE_CREATE_TAX_TRANSACTION_FROM_CALCULATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Terminal Configuration",
+      "slug": "STRIPE_CREATE_TERMINAL_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Terminal Connection Token",
+      "slug": "STRIPE_CREATE_TERMINAL_CONNECTION_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Terminal Location",
+      "slug": "STRIPE_CREATE_TERMINAL_LOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Terminal Onboarding Link",
+      "slug": "STRIPE_CREATE_TERMINAL_ONBOARDING_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Terminal Reader",
+      "slug": "STRIPE_CREATE_TERMINAL_READER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Test Clock",
+      "slug": "STRIPE_CREATE_TEST_CLOCK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Test Confirmation Token (Test Mode Only)",
+      "slug": "STRIPE_CREATE_TEST_CONFIRMATION_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create CVC update token",
+      "slug": "STRIPE_CREATE_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Transfer",
+      "slug": "STRIPE_CREATE_TRANSFER",
+      "kind": "send"
+    },
+    {
+      "name": "Create usage record",
+      "slug": "STRIPE_CREATE_USAGE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Deactivate billing alert",
+      "slug": "STRIPE_DEACTIVATE_BILLING_ALERT",
+      "kind": "write"
+    },
+    {
+      "name": "Deactivate Billing Meter",
+      "slug": "STRIPE_DEACTIVATE_BILLING_METER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Apple Pay Domain",
+      "slug": "STRIPE_DELETE_APPLE_PAY_DOMAIN",
+      "kind": "send"
+    },
+    {
+      "name": "Delete apps secret",
+      "slug": "STRIPE_DELETE_APPS_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete coupon",
+      "slug": "STRIPE_DELETE_COUPON",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer (Deprecated)",
+      "slug": "STRIPE_DELETE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer bank account",
+      "slug": "STRIPE_DELETE_CUSTOMER_BANK_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer discount",
+      "slug": "STRIPE_DELETE_CUSTOMER_DISCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer",
+      "slug": "STRIPE_DELETE_CUSTOMERS_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel customer subscription",
+      "slug": "STRIPE_DELETE_CUSTOMER_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer subscription discount",
+      "slug": "STRIPE_DELETE_CUSTOMER_SUBSCRIPTION_DISCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer tax ID",
+      "slug": "STRIPE_DELETE_CUSTOMER_TAX_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Delete ephemeral key",
+      "slug": "STRIPE_DELETE_EPHEMERAL_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete draft invoice",
+      "slug": "STRIPE_DELETE_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete invoice item",
+      "slug": "STRIPE_DELETE_INVOICEITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete plan",
+      "slug": "STRIPE_DELETE_PLAN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete product",
+      "slug": "STRIPE_DELETE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete product feature",
+      "slug": "STRIPE_DELETE_PRODUCT_FEATURE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete subscription discount",
+      "slug": "STRIPE_DELETE_SUBSCRIPTION_DISCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete subscription item",
+      "slug": "STRIPE_DELETE_SUBSCRIPTION_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete tax ID",
+      "slug": "STRIPE_DELETE_TAX_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Terminal Configuration",
+      "slug": "STRIPE_DELETE_TERMINAL_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Terminal Location",
+      "slug": "STRIPE_DELETE_TERMINAL_LOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Terminal Reader",
+      "slug": "STRIPE_DELETE_TERMINAL_READER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete test clock",
+      "slug": "STRIPE_DELETE_TEST_CLOCK",
+      "kind": "write"
+    },
+    {
+      "name": "Void an invoice",
+      "slug": "STRIPE_DELETE_V1_INVOICES_VOID_AN_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel subscription",
+      "slug": "STRIPE_DELETEV1_SUBSCRIPTIONS_LIST_SUBSCRIPTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Detach payment from invoice",
+      "slug": "STRIPE_DETACH_PAYMENT_FROM_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Detach payment method",
+      "slug": "STRIPE_DETACH_PAYMENT_METHOD",
+      "kind": "write"
+    },
+    {
+      "name": "Disable Event Destination",
+      "slug": "STRIPE_DISABLE_EVENT_DESTINATION",
+      "kind": "write"
+    },
+    {
+      "name": "Download File Contents",
+      "slug": "STRIPE_DOWNLOAD_FILE_CONTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Download Quote PDF",
+      "slug": "STRIPE_DOWNLOAD_QUOTE_PDF",
+      "kind": "read"
+    },
+    {
+      "name": "Expire billing credit grant",
+      "slug": "STRIPE_EXPIRE_BILLING_CREDIT_GRANT",
+      "kind": "write"
+    },
+    {
+      "name": "Expire Checkout Session",
+      "slug": "STRIPE_EXPIRE_CHECKOUT_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Finalize an invoice",
+      "slug": "STRIPE_FINALIZE_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Finalize quote",
+      "slug": "STRIPE_FINALIZE_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Find a secret by name and scope",
+      "slug": "STRIPE_FIND_APPS_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "Find tax association",
+      "slug": "STRIPE_FIND_TAX_ASSOCIATION",
+      "kind": "read"
+    },
+    {
+      "name": "Fund Test Mode Cash Balance",
+      "slug": "STRIPE_FUND_TEST_CASH_BALANCE",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Account",
+      "slug": "STRIPE_GET_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "List Account Capabilities",
+      "slug": "STRIPE_GET_ACCOUNT_CAPABILITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Account Capability",
+      "slug": "STRIPE_GET_ACCOUNT_CAPABILITY",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Person from Account",
+      "slug": "STRIPE_GET_ACCOUNT_PERSON",
+      "kind": "read"
+    },
+    {
+      "name": "List all persons for an account",
+      "slug": "STRIPE_GET_ACCOUNT_PERSONS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Account",
+      "slug": "STRIPE_GET_ACCOUNTS_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Account Token",
+      "slug": "STRIPE_GET_ACCOUNT_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve active entitlement",
+      "slug": "STRIPE_GET_ACTIVE_ENTITLEMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Apple Pay Domain",
+      "slug": "STRIPE_GET_APPLE_PAY_DOMAIN",
+      "kind": "read"
+    },
+    {
+      "name": "List Balance Transactions (Deprecated)",
+      "slug": "STRIPE_GET_BALANCE_HISTORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get balance settings overview",
+      "slug": "STRIPE_GET_BALANCE_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Balance Transaction",
+      "slug": "STRIPE_GET_BALANCE_TRANSACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Billing Alert",
+      "slug": "STRIPE_GET_BILLING_ALERT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Billing Credit Balance Summary",
+      "slug": "STRIPE_GET_BILLING_CREDIT_BALANCE_SUMMARY",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve credit balance transaction",
+      "slug": "STRIPE_GET_BILLING_CREDIT_BALANCE_TRANSACTIONS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List billing credit grants",
+      "slug": "STRIPE_GET_BILLING_CREDIT_GRANTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve billing credit grant",
+      "slug": "STRIPE_GET_BILLING_CREDIT_GRANTS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List billing meters",
+      "slug": "STRIPE_GET_BILLING_METERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Billing Meter",
+      "slug": "STRIPE_GET_BILLING_METERS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List portal configurations",
+      "slug": "STRIPE_GET_BILLING_PORTAL_CONFIGURATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get billing portal configuration",
+      "slug": "STRIPE_GET_BILLING_PORTAL_CONFIGURATIONS_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Charge Dispute",
+      "slug": "STRIPE_GET_CHARGES_CHARGE_DISPUTE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Charge Refund Details",
+      "slug": "STRIPE_GET_CHARGES_CHARGE_REFUNDS_REFUND",
+      "kind": "read"
+    },
+    {
+      "name": "Get Checkout Session Line Items",
+      "slug": "STRIPE_GET_CHECKOUT_SESSIONS_SESSION_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve climate product",
+      "slug": "STRIPE_GET_CLIMATE_PRODUCTS_PRODUCT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve climate supplier details",
+      "slug": "STRIPE_GET_CLIMATE_SUPPLIERS_SUPPLIER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Confirmation Token",
+      "slug": "STRIPE_GET_CONFIRMATION_TOKENS_CONFIRMATION_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Country Spec",
+      "slug": "STRIPE_GET_COUNTRY_SPECS_COUNTRY",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Coupon Details",
+      "slug": "STRIPE_GET_COUPON",
+      "kind": "read"
+    },
+    {
+      "name": "Get Credit Note Lines",
+      "slug": "STRIPE_GET_CREDIT_NOTES_CREDIT_NOTE_LINES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a credit note",
+      "slug": "STRIPE_GET_CREDIT_NOTES_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Preview Credit Note",
+      "slug": "STRIPE_GET_CREDIT_NOTES_PREVIEW",
+      "kind": "read"
+    },
+    {
+      "name": "Get Credit Note Preview Lines",
+      "slug": "STRIPE_GET_CREDIT_NOTES_PREVIEW_LINES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer cash balance transaction",
+      "slug": "STRIPE_GET_CUSTOMERS_CASH_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List customer balance transactions",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Customer Balance Transaction",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_BALANCE_TXNS_TXN",
+      "kind": "read"
+    },
+    {
+      "name": "List customer bank accounts",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_BANK_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer bank account",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_BANK_ACCOUNTS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List all cards",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_CARDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer card",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_CARDS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get customer cash balance",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_CASH_BALANCE",
+      "kind": "read"
+    },
+    {
+      "name": "List cash balance transactions",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_CASH_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get customer discount",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_DISCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "List customer payment methods",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_PAYMENT_METHODS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer's payment method",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_PAYMENT_METHODS_PAYMENT_METHOD",
+      "kind": "read"
+    },
+    {
+      "name": "List customer sources",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_SOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer source",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_SOURCES_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List customer subscriptions",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer subscription",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_SUBS_SUB_EXPOSED_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get customer subscription discount",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_SUBS_SUB_EXPOSED_ID_DISCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "List customer tax IDs",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_TAX_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a customer tax ID",
+      "slug": "STRIPE_GET_CUSTOMERS_CUSTOMER_TAX_IDS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List active entitlements",
+      "slug": "STRIPE_GET_ENTITLEMENTS_ACTIVE_ENTITLEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve entitlements feature",
+      "slug": "STRIPE_GET_ENTITLEMENTS_FEATURES_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List events",
+      "slug": "STRIPE_GET_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve event",
+      "slug": "STRIPE_GET_EVENTS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve file link",
+      "slug": "STRIPE_GET_FILE_LINKS_LINK",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve File",
+      "slug": "STRIPE_GET_FILES_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Financial Connections Session",
+      "slug": "STRIPE_GET_FINANCIAL_CONNECTIONS_SESSIONS_SESSION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve FX Quote",
+      "slug": "STRIPE_GET_FX_QUOTE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Invoice Item",
+      "slug": "STRIPE_GET_INVOICEITEMS_INVOICEITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve an invoice payment",
+      "slug": "STRIPE_GET_INVOICE_PAYMENTS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Invoice",
+      "slug": "STRIPE_GET_INVOICES_INVOICE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Invoice Line Items",
+      "slug": "STRIPE_GET_INVOICES_INVOICE_LINES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Linked Account",
+      "slug": "STRIPE_GET_LINKED_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve mandate",
+      "slug": "STRIPE_GET_MANDATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get monthly recurring revenue",
+      "slug": "STRIPE_GET_MONTHLY_RECURRING_REVENUE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Payment Attempt Record",
+      "slug": "STRIPE_GET_PAYMENT_ATTEMPT_RECORDS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get payment intent amount details line items",
+      "slug": "STRIPE_GET_PAYMENT_INTENT_AMOUNT_DETAILS_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve payment link",
+      "slug": "STRIPE_GET_PAYMENT_LINK",
+      "kind": "read"
+    },
+    {
+      "name": "Get payment link line items",
+      "slug": "STRIPE_GET_PAYMENT_LINKS_PAYMENT_LINK_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve payment method",
+      "slug": "STRIPE_GET_PAYMENT_METHOD",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve payment method configuration",
+      "slug": "STRIPE_GET_PAYMENT_METHOD_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Payment Method Domain",
+      "slug": "STRIPE_GET_PAYMENT_METHOD_DOMAIN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Payment Record",
+      "slug": "STRIPE_GET_PAYMENT_RECORD",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a payout",
+      "slug": "STRIPE_GET_PAYOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve plan",
+      "slug": "STRIPE_GET_PLAN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a price",
+      "slug": "STRIPE_GET_PRICES_PRICE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a product",
+      "slug": "STRIPE_GET_PRODUCTS_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve product feature",
+      "slug": "STRIPE_GET_PRODUCTS_PRODUCT_FEATURES_ID",
+      "kind": "read"
+    },
+    {
+      "name": "List Stripe promotion codes",
+      "slug": "STRIPE_GET_PROMOTION_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "Get quote details",
+      "slug": "STRIPE_GET_QUOTES_QUOTE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Quote Computed Upfront Line Items",
+      "slug": "STRIPE_GET_QUOTES_QUOTE_COMPUTED_UPFRONT_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Quote Line Items",
+      "slug": "STRIPE_GET_QUOTES_QUOTE_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Radar Value List",
+      "slug": "STRIPE_GET_RADAR_VALUE_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "List Radar value list items",
+      "slug": "STRIPE_GET_RADAR_VALUE_LIST_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a refund",
+      "slug": "STRIPE_GET_REFUNDS_REFUND",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a Report Run",
+      "slug": "STRIPE_GET_REPORTING_REPORT_RUNS_REPORT_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a report type",
+      "slug": "STRIPE_GET_REPORTING_REPORT_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "List setup attempts",
+      "slug": "STRIPE_GET_SETUP_ATTEMPTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve setup intent",
+      "slug": "STRIPE_GET_SETUP_INTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Shipping Rate",
+      "slug": "STRIPE_GET_SHIPPING_RATE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve source",
+      "slug": "STRIPE_GET_SOURCES_SOURCE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve subscription",
+      "slug": "STRIPE_GET_SUBSCRIPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve subscription item",
+      "slug": "STRIPE_GET_SUBSCRIPTION_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve subscription schedule",
+      "slug": "STRIPE_GET_SUBSCRIPTION_SCHEDULES_SCHEDULE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Tax Calculation",
+      "slug": "STRIPE_GET_TAX_CALCULATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tax Calculation Line Items",
+      "slug": "STRIPE_GET_TAX_CALCULATIONS_CALCULATION_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve tax code",
+      "slug": "STRIPE_GET_TAX_CODE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve tax ID",
+      "slug": "STRIPE_GET_TAX_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a tax rate",
+      "slug": "STRIPE_GET_TAX_RATE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve tax registration",
+      "slug": "STRIPE_GET_TAX_REGISTRATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tax Settings",
+      "slug": "STRIPE_GET_TAX_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Tax Transaction",
+      "slug": "STRIPE_GET_TAX_TRANSACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get tax transaction line items",
+      "slug": "STRIPE_GET_TAX_TRANSACTIONS_TRANSACTION_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve terminal configuration",
+      "slug": "STRIPE_GET_TERMINAL_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Terminal Location",
+      "slug": "STRIPE_GET_TERMINAL_LOCATION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Terminal Reader",
+      "slug": "STRIPE_GET_TERMINAL_READER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve test clock",
+      "slug": "STRIPE_GET_TEST_CLOCK",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Token",
+      "slug": "STRIPE_GET_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve transfer reversal",
+      "slug": "STRIPE_GET_TRANSFER_REVERSAL",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Upcoming Invoice Line Items",
+      "slug": "STRIPE_GET_UPCOMING_INVOICE_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Stripe customers",
+      "slug": "STRIPE_GET_V1_CUSTOMERS_SEARCH_CUSTOMERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Dispute Details",
+      "slug": "STRIPE_GET_V1_DISPUTES_DISPUTES",
+      "kind": "read"
+    },
+    {
+      "name": "List Invoice Payments",
+      "slug": "STRIPE_GET_V1_INVOICE_PAYMENTS_OVERVIEW2",
+      "kind": "read"
+    },
+    {
+      "name": "List payment method configurations",
+      "slug": "STRIPE_GET_V1_PAYMENT_METHOD_CONFIGS_LIST_PAYMENT_METHOD2",
+      "kind": "read"
+    },
+    {
+      "name": "List payment method domains",
+      "slug": "STRIPE_GET_V1_PAYMENT_METHOD_DOMAINS",
+      "kind": "read"
+    },
+    {
+      "name": "List payment methods",
+      "slug": "STRIPE_GET_V1_PAYMENT_METHODS_PAYMENT_METHODS2",
+      "kind": "read"
+    },
+    {
+      "name": "List Radar Early Fraud Warnings",
+      "slug": "STRIPE_GET_V1_RADAR_EARLY_FRAUD_WARNINGS_OVERVIEW",
+      "kind": "read"
+    },
+    {
+      "name": "Get Radar value lists overview",
+      "slug": "STRIPE_GET_V1_RADAR_VALUE_LISTS_OVERVIEW_RADAR_VALUE_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get reporting report types overview",
+      "slug": "STRIPE_GET_V1_REPORTING_REPORT_TYPES_OVERVIEW_REPORTING",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shipping Rates Overview",
+      "slug": "STRIPE_GET_V1_SHIPPING_RATES_OVERVIEW2",
+      "kind": "read"
+    },
+    {
+      "name": "List subscription schedules",
+      "slug": "STRIPE_GET_V1_SUBSCRIPTION_SCHEDULES_OVERVIEW2",
+      "kind": "read"
+    },
+    {
+      "name": "Get tax codes",
+      "slug": "STRIPE_GET_V1_TAX_CODES_TAX_CODE2",
+      "kind": "read"
+    },
+    {
+      "name": "List tax IDs",
+      "slug": "STRIPE_GET_V1_TAX_IDS_OVERVIEW2",
+      "kind": "read"
+    },
+    {
+      "name": "Get tax rates",
+      "slug": "STRIPE_GET_V1_TAX_RATES_TAX_RATE2",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve V2 Core Event",
+      "slug": "STRIPE_GET_V2_CORE_EVENTS_RETRIEVE_AN_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "List subscription item period summaries",
+      "slug": "STRIPE_LIST_ALL_SUBSCRIPTION_ITEM_PERIOD_SUMMARIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Apple Pay domains",
+      "slug": "STRIPE_LIST_APPLE_PAY_DOMAINS",
+      "kind": "read"
+    },
+    {
+      "name": "List Application Fees",
+      "slug": "STRIPE_LIST_APPLICATION_FEES",
+      "kind": "read"
+    },
+    {
+      "name": "List apps secrets",
+      "slug": "STRIPE_LIST_APPS_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List Balance Transactions",
+      "slug": "STRIPE_LIST_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List billing alerts",
+      "slug": "STRIPE_LIST_BILLING_ALERTS",
+      "kind": "read"
+    },
+    {
+      "name": "List credit balance transactions",
+      "slug": "STRIPE_LIST_BILLING_CREDIT_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Charge Refunds",
+      "slug": "STRIPE_LIST_CHARGE_REFUNDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Charges",
+      "slug": "STRIPE_LIST_CHARGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Checkout Sessions",
+      "slug": "STRIPE_LIST_CHECKOUT_SESSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Climate Orders",
+      "slug": "STRIPE_LIST_CLIMATE_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List climate products",
+      "slug": "STRIPE_LIST_CLIMATE_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "List climate suppliers",
+      "slug": "STRIPE_LIST_CLIMATE_SUPPLIERS",
+      "kind": "read"
+    },
+    {
+      "name": "List country specs",
+      "slug": "STRIPE_LIST_COUNTRY_SPECS",
+      "kind": "read"
+    },
+    {
+      "name": "List Stripe coupons",
+      "slug": "STRIPE_LIST_COUPONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Credit Notes",
+      "slug": "STRIPE_LIST_CREDIT_NOTES",
+      "kind": "read"
+    },
+    {
+      "name": "List customers",
+      "slug": "STRIPE_LIST_CUSTOMERS",
+      "kind": "read"
+    },
+    {
+      "name": "List customer subscriptions",
+      "slug": "STRIPE_LIST_CUSTOMER_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Disputes",
+      "slug": "STRIPE_LIST_DISPUTES",
+      "kind": "read"
+    },
+    {
+      "name": "List entitlements features",
+      "slug": "STRIPE_LIST_ENTITLEMENTS_FEATURES",
+      "kind": "read"
+    },
+    {
+      "name": "List file links",
+      "slug": "STRIPE_LIST_FILE_LINKS",
+      "kind": "read"
+    },
+    {
+      "name": "List files",
+      "slug": "STRIPE_LIST_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "List Financial Connections Accounts",
+      "slug": "STRIPE_LIST_FINANCIAL_CONNECTIONS_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "List forwarding requests",
+      "slug": "STRIPE_LIST_FORWARDING_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "List FX quotes",
+      "slug": "STRIPE_LIST_FX_QUOTES",
+      "kind": "read"
+    },
+    {
+      "name": "List Invoice Items",
+      "slug": "STRIPE_LIST_INVOICEITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Invoice Payments",
+      "slug": "STRIPE_LIST_INVOICE_PAYMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Invoice Rendering Templates",
+      "slug": "STRIPE_LIST_INVOICE_RENDERING_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List Invoices",
+      "slug": "STRIPE_LIST_INVOICES",
+      "kind": "read"
+    },
+    {
+      "name": "List meter event summaries",
+      "slug": "STRIPE_LIST_METER_EVENT_SUMMARIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Payment Attempt Records",
+      "slug": "STRIPE_LIST_PAYMENT_ATTEMPT_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "List payment intents",
+      "slug": "STRIPE_LIST_PAYMENT_INTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List payment links",
+      "slug": "STRIPE_LIST_PAYMENT_LINKS",
+      "kind": "read"
+    },
+    {
+      "name": "List Payouts",
+      "slug": "STRIPE_LIST_PAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "List plans",
+      "slug": "STRIPE_LIST_PLANS",
+      "kind": "read"
+    },
+    {
+      "name": "List prices",
+      "slug": "STRIPE_LIST_PRICES",
+      "kind": "read"
+    },
+    {
+      "name": "List products",
+      "slug": "STRIPE_LIST_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "List product features",
+      "slug": "STRIPE_LIST_PRODUCTS_PRODUCT_FEATURES",
+      "kind": "read"
+    },
+    {
+      "name": "List Stripe promotion codes",
+      "slug": "STRIPE_LIST_PROMOTION_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "List Quotes",
+      "slug": "STRIPE_LIST_QUOTES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Radar Early Fraud Warnings",
+      "slug": "STRIPE_LIST_RADAR_EARLY_FRAUD_WARNINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Radar Reviews",
+      "slug": "STRIPE_LIST_RADAR_REVIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "List Refunds",
+      "slug": "STRIPE_LIST_REFUNDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Report Runs",
+      "slug": "STRIPE_LIST_REPORTING_REPORT_RUNS",
+      "kind": "read"
+    },
+    {
+      "name": "List open reviews",
+      "slug": "STRIPE_LIST_REVIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "List SetupAttempts",
+      "slug": "STRIPE_LIST_SETUP_ATTEMPTS",
+      "kind": "read"
+    },
+    {
+      "name": "List setup intents",
+      "slug": "STRIPE_LIST_SETUP_INTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Sigma scheduled query runs",
+      "slug": "STRIPE_LIST_SIGMA_SCHEDULED_QUERY_RUNS",
+      "kind": "read"
+    },
+    {
+      "name": "List subscription items",
+      "slug": "STRIPE_LIST_SUBSCRIPTION_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List subscriptions",
+      "slug": "STRIPE_LIST_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List tax codes",
+      "slug": "STRIPE_LIST_TAX_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "List tax rates",
+      "slug": "STRIPE_LIST_TAX_RATES",
+      "kind": "read"
+    },
+    {
+      "name": "List tax registrations",
+      "slug": "STRIPE_LIST_TAX_REGISTRATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List terminal configurations",
+      "slug": "STRIPE_LIST_TERMINAL_CONFIGURATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List terminal locations",
+      "slug": "STRIPE_LIST_TERMINAL_LOCATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List terminal readers",
+      "slug": "STRIPE_LIST_TERMINAL_READERS",
+      "kind": "read"
+    },
+    {
+      "name": "List test clocks",
+      "slug": "STRIPE_LIST_TEST_CLOCKS",
+      "kind": "read"
+    },
+    {
+      "name": "List Top-ups",
+      "slug": "STRIPE_LIST_TOPUPS",
+      "kind": "read"
+    },
+    {
+      "name": "List transfers",
+      "slug": "STRIPE_LIST_TRANSFERS",
+      "kind": "read"
+    },
+    {
+      "name": "List V2 Core Event Destinations",
+      "slug": "STRIPE_LIST_V2_CORE_EVENT_DESTINATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List v2 core events",
+      "slug": "STRIPE_LIST_V2_CORE_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Mark invoice as uncollectible",
+      "slug": "STRIPE_MARK_INVOICE_UNCOLLECTIBLE",
+      "kind": "write"
+    },
+    {
+      "name": "Migrate subscription to flexible billing",
+      "slug": "STRIPE_MIGRATE_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Pay an invoice",
+      "slug": "STRIPE_PAY_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Void billing credit grant",
+      "slug": "STRIPE_POST_BILLING_CREDIT_GRANTS_VOID_CREDIT_GRANT",
+      "kind": "send"
+    },
+    {
+      "name": "Update Charge",
+      "slug": "STRIPE_POST_CHARGES_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Update customer subscription",
+      "slug": "STRIPE_POST_CUSTOMERS_CUSTOMER_SUBS_SUB_EXPOSED_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Verify customer bank account",
+      "slug": "STRIPE_POST_CUSTOMERS_SOURCES_VERIFY_THE_BANK_ACCOUNT",
+      "kind": "send"
+    },
+    {
+      "name": "Update file link",
+      "slug": "STRIPE_POST_FILE_LINKS_LINK",
+      "kind": "send"
+    },
+    {
+      "name": "Void an invoice",
+      "slug": "STRIPE_POST_INVOICES_INVOICE_VOID",
+      "kind": "send"
+    },
+    {
+      "name": "Report Payment Record",
+      "slug": "STRIPE_POST_PAYMENT_RECORDS_REPORT_PAYMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Update setup intent",
+      "slug": "STRIPE_POST_SETUP_INTENTS_INTENT",
+      "kind": "send"
+    },
+    {
+      "name": "Update subscription item",
+      "slug": "STRIPE_POST_SUBSCRIPTION_ITEMS_ITEM",
+      "kind": "send"
+    },
+    {
+      "name": "Update subscription",
+      "slug": "STRIPE_POST_SUBSCRIPTIONS_SUBSCRIPTION_EXPOSED_ID",
+      "kind": "send"
+    },
+    {
+      "name": "Update Terminal Configuration",
+      "slug": "STRIPE_POST_TERMINAL_CONFIGURATIONS_CONFIGURATION",
+      "kind": "send"
+    },
+    {
+      "name": "Process payment on terminal reader",
+      "slug": "STRIPE_POST_TERMINAL_READERS_READER_PROCESS_PAYMENT_INTENT",
+      "kind": "send"
+    },
+    {
+      "name": "Set Reader Display",
+      "slug": "STRIPE_POST_TERMINAL_READERS_READER_SET_READER_DISPLAY",
+      "kind": "send"
+    },
+    {
+      "name": "Set Terminal Reader Display",
+      "slug": "STRIPE_POST_TERMINAL_READERS_SET_READER_DISPLAY",
+      "kind": "send"
+    },
+    {
+      "name": "Update Account Capability",
+      "slug": "STRIPE_POST_V1_ACCOUNTS_CAPABILITIES_CAPABILITIES",
+      "kind": "send"
+    },
+    {
+      "name": "Update balance settings overview",
+      "slug": "STRIPE_POST_V1_BALANCE_SETTINGS_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Update Billing Portal Configuration",
+      "slug": "STRIPE_POST_V1_BILLING_PORTAL_CONFIGS_OVERVIEW_BILLING",
+      "kind": "send"
+    },
+    {
+      "name": "Update and retrieve Checkout Session",
+      "slug": "STRIPE_POST_V1_CHECKOUT_SESSIONS_RETRIEVE_A_CHECKOUT",
+      "kind": "send"
+    },
+    {
+      "name": "Update Credit Note",
+      "slug": "STRIPE_POST_V1_CREDIT_NOTES_CREDIT_NOTE2",
+      "kind": "send"
+    },
+    {
+      "name": "Create or Retrieve Customer Funding Instructions",
+      "slug": "STRIPE_POST_V1_CUSTOMERS_FUNDING_INSTRUCTIONS_FUND_A_TEST",
+      "kind": "send"
+    },
+    {
+      "name": "Search Stripe customers",
+      "slug": "STRIPE_POST_V1_CUSTOMERS_SEARCH_CUSTOMERS",
+      "kind": "send"
+    },
+    {
+      "name": "Void an invoice",
+      "slug": "STRIPE_POST_V1_INVOICES_FINALIZE_VOID_AN_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Update Invoice Line Item",
+      "slug": "STRIPE_POST_V1_INVOICES_LINES_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Remove lines from invoice",
+      "slug": "STRIPE_POST_V1_INVOICES_REMOVE_LINES_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Void invoice",
+      "slug": "STRIPE_POST_V1_INVOICES_SEND_VOID_AN_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Void an invoice",
+      "slug": "STRIPE_POST_V1_INVOICES_VOID_AN_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Update payment method configuration",
+      "slug": "STRIPE_POST_V1_PAYMENT_METHOD_CONFIGS_LIST_PAYMENT_METHOD2",
+      "kind": "send"
+    },
+    {
+      "name": "Update Payment Method Domain",
+      "slug": "STRIPE_POST_V1_PAYMENT_METHOD_DOMAINS_PAYMENT_METHOD",
+      "kind": "send"
+    },
+    {
+      "name": "Report Payment Attempt",
+      "slug": "STRIPE_POST_V1_PAYMENT_RECORDS_REPORT_ATTEMPT",
+      "kind": "send"
+    },
+    {
+      "name": "Report Payment Attempt Canceled",
+      "slug": "STRIPE_POST_V1_PAYMENT_RECORDS_REPORT_CANCELED",
+      "kind": "send"
+    },
+    {
+      "name": "Report payment attempt guaranteed overview",
+      "slug": "STRIPE_POST_V1_PAYMENT_RECORDS_REPORT_GUARANTEED",
+      "kind": "send"
+    },
+    {
+      "name": "Report payment attempt information",
+      "slug": "STRIPE_POST_V1_PAYMENT_RECORDS_REPORT_INFO",
+      "kind": "send"
+    },
+    {
+      "name": "Report Payment Record Refund",
+      "slug": "STRIPE_POST_V1_PAYMENT_RECORDS_REPORT_REFUND_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Update payout metadata",
+      "slug": "STRIPE_POST_V1_PAYOUTS_RETRIEVE_A_PAYOUT",
+      "kind": "send"
+    },
+    {
+      "name": "Update Plan Overview",
+      "slug": "STRIPE_POST_V1_PLANS_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Update Promotion Code",
+      "slug": "STRIPE_POST_V1_PROMOTION_CODES_PROMOTION_CODE",
+      "kind": "send"
+    },
+    {
+      "name": "Update Shipping Rate",
+      "slug": "STRIPE_POST_V1_SHIPPING_RATES_OVERVIEW2",
+      "kind": "send"
+    },
+    {
+      "name": "Update subscription schedule",
+      "slug": "STRIPE_POST_V1_SUBSCRIPTION_SCHEDULES_OVERVIEW2",
+      "kind": "send"
+    },
+    {
+      "name": "Release subscription schedule",
+      "slug": "STRIPE_POST_V1_SUBSCRIPTION_SCHEDULES_RELEASE_OVERVIEW",
+      "kind": "send"
+    },
+    {
+      "name": "Update subscription",
+      "slug": "STRIPE_POST_V1_SUBSCRIPTIONS_LIST_SUBSCRIPTIONS",
+      "kind": "send"
+    },
+    {
+      "name": "Update Tax Rate",
+      "slug": "STRIPE_POST_V1_TAX_RATES_TAX_RATE2",
+      "kind": "send"
+    },
+    {
+      "name": "Create Meter Event Adjustment",
+      "slug": "STRIPE_POST_V2_BILLING_METER_EVENT_ADJUSTMENTS_METER_EVENT",
+      "kind": "send"
+    },
+    {
+      "name": "Present payment method on reader",
+      "slug": "STRIPE_PRESENT_PAYMENT_METHOD",
+      "kind": "write"
+    },
+    {
+      "name": "Process setup intent on terminal reader",
+      "slug": "STRIPE_PROCESS_SETUP_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Reactivate Billing Meter",
+      "slug": "STRIPE_REACTIVATE_BILLING_METER",
+      "kind": "write"
+    },
+    {
+      "name": "Report Payment Attempt Failed",
+      "slug": "STRIPE_REPORT_PAYMENT_ATTEMPT_FAILED",
+      "kind": "write"
+    },
+    {
+      "name": "Resume subscription",
+      "slug": "STRIPE_RESUME_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Balance",
+      "slug": "STRIPE_RETRIEVE_BALANCE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Charge Details",
+      "slug": "STRIPE_RETRIEVE_CHARGE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Checkout Session",
+      "slug": "STRIPE_RETRIEVE_CHECKOUT_SESSION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve customer",
+      "slug": "STRIPE_RETRIEVE_CUSTOMER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve payment intent",
+      "slug": "STRIPE_RETRIEVE_PAYMENT_INTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Promotion Code",
+      "slug": "STRIPE_RETRIEVE_PROMOTION_CODE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Upcoming Invoice",
+      "slug": "STRIPE_RETRIEVE_UPCOMING_INVOICE",
+      "kind": "read"
+    },
+    {
+      "name": "Search Stripe charges",
+      "slug": "STRIPE_SEARCH_CHARGES",
+      "kind": "read"
+    },
+    {
+      "name": "Search Stripe customers",
+      "slug": "STRIPE_SEARCH_CUSTOMERS",
+      "kind": "read"
+    },
+    {
+      "name": "Search invoices",
+      "slug": "STRIPE_SEARCH_INVOICES",
+      "kind": "read"
+    },
+    {
+      "name": "Search payment intents",
+      "slug": "STRIPE_SEARCH_PAYMENT_INTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Stripe prices",
+      "slug": "STRIPE_SEARCH_PRICES",
+      "kind": "read"
+    },
+    {
+      "name": "Search Stripe products",
+      "slug": "STRIPE_SEARCH_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search subscriptions",
+      "slug": "STRIPE_SEARCH_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Send invoice for manual payment",
+      "slug": "STRIPE_SEND_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Set reader display",
+      "slug": "STRIPE_SET_READER_DISPLAY",
+      "kind": "write"
+    },
+    {
+      "name": "Set terminal reader display",
+      "slug": "STRIPE_SET_TERMINAL_READER_DISPLAY",
+      "kind": "write"
+    },
+    {
+      "name": "Simulate successful input collection",
+      "slug": "STRIPE_SUCCEED_TEST_TERMINAL_READER_INPUT_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Simulate Terminal Reader Input Collection Timeout",
+      "slug": "STRIPE_TIMEOUT_TEST_TERMINAL_READER_INPUT_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Application Fee Refund",
+      "slug": "STRIPE_UPDATE_APPLICATION_FEE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Update billing credit grant",
+      "slug": "STRIPE_UPDATE_BILLING_CREDIT_GRANT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Billing Meter",
+      "slug": "STRIPE_UPDATE_BILLING_METER",
+      "kind": "write"
+    },
+    {
+      "name": "Update Billing Portal Configuration",
+      "slug": "STRIPE_UPDATE_BILLING_PORTAL_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Cash Balance Settings",
+      "slug": "STRIPE_UPDATE_CASH_BALANCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Charge",
+      "slug": "STRIPE_UPDATE_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Update Charge Dispute",
+      "slug": "STRIPE_UPDATE_CHARGE_DISPUTE",
+      "kind": "send"
+    },
+    {
+      "name": "Update Charge Refund",
+      "slug": "STRIPE_UPDATE_CHARGE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Update Checkout Session",
+      "slug": "STRIPE_UPDATE_CHECKOUT_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Coupon",
+      "slug": "STRIPE_UPDATE_COUPON",
+      "kind": "write"
+    },
+    {
+      "name": "Update Customer",
+      "slug": "STRIPE_UPDATE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Update Customer Balance Transaction",
+      "slug": "STRIPE_UPDATE_CUSTOMER_BALANCE_TXN",
+      "kind": "write"
+    },
+    {
+      "name": "Update customer bank account",
+      "slug": "STRIPE_UPDATE_CUSTOMER_BANK_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Update customer bank account",
+      "slug": "STRIPE_UPDATE_CUSTOMER_BANK_ACCOUNT_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update customer card",
+      "slug": "STRIPE_UPDATE_CUSTOMER_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Update customer source",
+      "slug": "STRIPE_UPDATE_CUSTOMER_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Customer Subscription",
+      "slug": "STRIPE_UPDATE_CUSTOMER_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Dispute",
+      "slug": "STRIPE_UPDATE_DISPUTE",
+      "kind": "write"
+    },
+    {
+      "name": "Update entitlements feature",
+      "slug": "STRIPE_UPDATE_ENTITLEMENT_FEATURE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Event Destination",
+      "slug": "STRIPE_UPDATE_EVENT_DESTINATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update External Account",
+      "slug": "STRIPE_UPDATE_EXTERNAL_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Invoice",
+      "slug": "STRIPE_UPDATE_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Update invoice item",
+      "slug": "STRIPE_UPDATE_INVOICEITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk update invoice line items",
+      "slug": "STRIPE_UPDATE_INVOICE_LINES",
+      "kind": "write"
+    },
+    {
+      "name": "Update Payment Intent",
+      "slug": "STRIPE_UPDATE_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Payment Link",
+      "slug": "STRIPE_UPDATE_PAYMENT_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Update Payment Method",
+      "slug": "STRIPE_UPDATE_PAYMENT_METHOD",
+      "kind": "write"
+    },
+    {
+      "name": "Update a price",
+      "slug": "STRIPE_UPDATE_PRICE",
+      "kind": "write"
+    },
+    {
+      "name": "Update product",
+      "slug": "STRIPE_UPDATE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Promotion Code",
+      "slug": "STRIPE_UPDATE_PROMOTION_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Quote",
+      "slug": "STRIPE_UPDATE_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Source",
+      "slug": "STRIPE_UPDATE_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Subscription",
+      "slug": "STRIPE_UPDATE_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Subscription Schedule",
+      "slug": "STRIPE_UPDATE_SUBSCRIPTION_SCHEDULE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Tax Registration",
+      "slug": "STRIPE_UPDATE_TAX_REGISTRATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Tax Settings",
+      "slug": "STRIPE_UPDATE_TAX_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update Terminal Location",
+      "slug": "STRIPE_UPDATE_TERMINAL_LOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Terminal Reader",
+      "slug": "STRIPE_UPDATE_TERMINAL_READER",
+      "kind": "write"
+    },
+    {
+      "name": "Validate payment method domain",
+      "slug": "STRIPE_VALIDATE_PAYMENT_METHOD_DOMAIN",
+      "kind": "write"
+    },
+    {
+      "name": "Verify microdeposits on setup intent",
+      "slug": "STRIPE_VERIFY_MICRODEPOSITS",
+      "kind": "write"
+    },
+    {
+      "name": "Verify microdeposits on payment intent",
+      "slug": "STRIPE_VERIFY_MICRODEPOSITS_PAYMENT_INTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Void a credit note",
+      "slug": "STRIPE_VOID_CREDIT_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Void an invoice",
+      "slug": "STRIPE_VOID_INVOICE",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "STRIPE_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/stripe",
+  "fetched_at": "2026-11-12"
+}

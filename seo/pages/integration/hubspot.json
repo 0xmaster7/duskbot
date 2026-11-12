@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/hubspot",
+  "type": "integration",
+  "title": "HubSpot AI assistant for customer handovers and CRM notes",
+  "nav": "hubspot",
+  "h1": "a hubspot assistant for the customer handover",
+  "description": "Use Dusk Bot to review HubSpot contacts, company links and open tickets. Copy customer handover routines and keep CRM changes under your instructions.",
+  "answer": "a hubspot bot can connect the pieces of a customer handover: contacts, company records, deals and tickets available to your account. dusk bot lets you ask for those checks in plain words and schedule the ones you repeat. begin with read-only reviews. when you want notes or tasks created in hubspot, allow those specific actions and state when the bot should ask you first.",
+  "tags": [
+    "crm",
+    "customer-handover",
+    "tickets"
+  ],
+  "connectors": [
+    "hubspot"
+  ],
+  "related": [
+    "/integrations/salesforce",
+    "/integrations/gmail",
+    "/use-cases/lead-research"
+  ],
+  "art": {
+    "logo": "hubspot",
+    "label": "HubSpot",
+    "props": [
+      "p-briefcase",
+      "s-notebook"
+    ],
+    "bubble": "bring the handover together"
+  },
+  "og_line": "a handover with the customer records beside it.",
+  "app": {
+    "name": "HubSpot",
+    "toolkit": "hubspot",
+    "intro": "start from a named customer, not a request to summarise the whole crm. searches find candidate records; associations help check how those records are linked. a good handover distinguishes a confirmed company link from two records that merely look related.",
+    "highlight": [
+      {
+        "slug": "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA",
+        "use": "find contacts matching the intake criteria you specify"
+      },
+      {
+        "slug": "HUBSPOT_SEARCH_COMPANIES",
+        "use": "locate candidate company records for a handover"
+      },
+      {
+        "slug": "HUBSPOT_GET_COMPANY",
+        "use": "read a known company before writing its account brief"
+      },
+      {
+        "slug": "HUBSPOT_LIST_OBJECT_ASSOCIATIONS",
+        "use": "inspect how a customer record is linked to other crm records"
+      },
+      {
+        "slug": "HUBSPOT_SEARCH_TICKETS",
+        "use": "find tickets matching the queue rules your team supplies"
+      },
+      {
+        "slug": "HUBSPOT_GET_TICKET",
+        "use": "open a ticket before flagging it for attention"
+      },
+      {
+        "slug": "HUBSPOT_CREATE_NOTE",
+        "use": "save a customer note based on facts you explicitly supplied"
+      },
+      {
+        "slug": "HUBSPOT_CREATE_TASK",
+        "use": "record an agreed follow-up with the details you specified"
+      }
+    ],
+    "setup": "connect hubspot and allow it for the customer operations bot. choose reading first. give the bot a company record or enough criteria to find candidates, then have it confirm the match. if you allow note or task creation, use an exact action list instead of enabling every crm change."
+  },
+  "routines_intro": "choose a different routine for each handover problem. these are instructions to send, not sample customer records. define the relevant fields and thresholds in the same chat so the bot knows what your team considers incomplete.",
+  "routines": [
+    {
+      "name": "new customer handover gaps",
+      "message": "every monday at 2, find the hubspot companies in the onboarding list i supplied. inspect their contact associations and company details. flag missing links and unclear account matches for our handover call. do not create contacts or link records based on similar names.",
+      "when": "mondays at 14:00",
+      "output": "an onboarding gap list with candidate records"
+    },
+    {
+      "name": "ticket queue age review",
+      "message": "every weekday at 9, search the hubspot ticket queue i named. use our age and status rules to identify tickets needing a person. open each candidate ticket before reporting it. include recorded owner and age where available, and never close a ticket.",
+      "when": "weekdays at 9:00",
+      "output": "a ticket attention list for the support lead"
+    },
+    {
+      "name": "save approved handover notes",
+      "message": "every friday at 3, review only the hubspot handover notes i marked approved in this chat. check the company match, then ask me before creating a note with the approved text. if the match is unclear, stop and show the candidates. never add a new customer claim.",
+      "when": "fridays at 15:00",
+      "output": "approved text saved as a note after the review you requested"
+    }
+  ],
+  "asks": "the first two routines work with read-only hubspot access. the note routine needs permission to create notes, and its request to ask first is part of the instruction you gave it. hubspot note creation, record linking and task creation are not documented as automatically stopping for approval.\n\nsending an email or message through connected apps has a separate setting: asking first is the default, with an optional daily allowance. do not confuse permission to save a crm note with permission to contact the customer. if a bot only needs notes, leave other writing actions out of its allowed list.",
+  "cannot": [
+    "repair company associations or create notes while limited to reads. a gap list and a repair job need different access.",
+    "prove that similarly named contacts belong to the same company. ask it to show the actual links and the criteria behind a proposed match.",
+    "send customer email through the read actions highlighted here. connect the relevant mail app separately when correspondence is part of the task.",
+    "produce a scheduled support review from a sleeping local computer. keep dusk bot running on an awake machine or use dusk cloud for work that must continue while you are away."
+  ],
+  "sections": [
+    {
+      "h": "link evidence matters in a crm",
+      "md": "ask the bot to show whether it found an association or merely a likely match. a familiar company name is useful for a search, but should not become an automatic record link. if your team uses [salesforce](/integrations/salesforce), its own action catalog is the right starting point for a comparable review.\n\nkeep [lead research](/use-cases/lead-research) distinct from the customer record. research findings should arrive as claims to review before they become saved crm facts."
+    },
+    {
+      "h": "separate a note from a customer reply",
+      "md": "an internal handover may include uncertainty that should not be copied into a customer message. give the bot approved note text and a specific destination. if a later job needs [gmail](/integrations/gmail), specify the account and ask for a draft that you can review against the crm evidence."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is a practical hubspot ai agent routine?",
+      "a": "check whether new customer records have the contact links needed for onboarding. it is a bounded task with visible evidence and a useful result even when you keep the bot read only."
+    },
+    {
+      "q": "can claude add notes to hubspot for me?",
+      "a": "a bot in dusk bot using your chosen ai can use the create-note action when permitted. the routine above explicitly asks before saving. that instruction matters because crm note changes are not documented as automatically requiring approval."
+    },
+    {
+      "q": "can it merge duplicate contacts safely on its own?",
+      "a": "the routines here do not merge contacts. they report unclear matches and missing links for review. keep the bot read only when the job is finding possible duplicates rather than deciding which records to combine."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude hubspot",
+  "keywords": [
+    "hubspot ai agent",
+    "hubspot mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

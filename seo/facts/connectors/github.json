@@ -1,0 +1,4542 @@
+{
+  "toolkit": "github",
+  "name": "GitHub",
+  "version": "20261104_00",
+  "description": "GitHub is a code hosting platform for version control and collaboration, offering Git-based repository management, issue tracking, and continuous integration features",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 905,
+  "triggers_count": 46,
+  "tools": [
+    {
+      "name": "Abort Repository Migration",
+      "slug": "GITHUB_ABORT_REPOSITORY_MIGRATION",
+      "kind": "write"
+    },
+    {
+      "name": "Accept a repository invitation",
+      "slug": "GITHUB_ACCEPT_REPOSITORY_INVITATION",
+      "kind": "write"
+    },
+    {
+      "name": "Add app access restrictions",
+      "slug": "GITHUB_ADD_APP_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Add a repository collaborator",
+      "slug": "GITHUB_ADD_A_REPOSITORY_COLLABORATOR",
+      "kind": "write"
+    },
+    {
+      "name": "Add assignees to an issue",
+      "slug": "GITHUB_ADD_ASSIGNEES_TO_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Add email for auth user",
+      "slug": "GITHUB_ADD_EMAIL_ADDRESS_FOR_AUTHENTICATED_USER",
+      "kind": "send"
+    },
+    {
+      "name": "Add field to user project",
+      "slug": "GITHUB_ADD_FIELD_TO_USER_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Add item to user project",
+      "slug": "GITHUB_ADD_ITEM_TO_USER_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Add labels to an issue",
+      "slug": "GITHUB_ADD_LABELS_TO_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Add org runner labels",
+      "slug": "GITHUB_ADD_ORG_RUNNER_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Add or update team membership for a user",
+      "slug": "GITHUB_ADD_OR_UPDATE_TEAM_MEMBERSHIP_FOR_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Add or update team project permissions",
+      "slug": "GITHUB_ADD_OR_UPDATE_TEAM_PROJECT_PERMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Add or update team repository permissions",
+      "slug": "GITHUB_ADD_OR_UPDATE_TEAM_REPOSITORY_PERMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Add project collaborator",
+      "slug": "GITHUB_ADD_PROJECT_COLLABORATOR",
+      "kind": "write"
+    },
+    {
+      "name": "Add a repository to an app installation",
+      "slug": "GITHUB_ADD_REPOSITORY_TO_APP_INSTALLATION",
+      "kind": "write"
+    },
+    {
+      "name": "Add repo to org secret with selected access",
+      "slug": "GITHUB_ADD_REPO_TO_ORG_SECRET_WITH_SELECTED_ACCESS",
+      "kind": "write"
+    },
+    {
+      "name": "Add selected repo to org secret",
+      "slug": "GITHUB_ADD_REPO_TO_ORG_SECRET_WITH_SELECTED_VISIBILITY",
+      "kind": "write"
+    },
+    {
+      "name": "Add runner labels",
+      "slug": "GITHUB_ADD_RUNNER_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Add selected repository to an organization secret",
+      "slug": "GITHUB_ADD_SELECTED_REPOSITORY_TO_ORGANIZATION_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Add selected repository to an organization variable",
+      "slug": "GITHUB_ADD_SELECTED_REPOSITORY_TO_ORGANIZATION_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Add a selected repository to a user secret",
+      "slug": "GITHUB_ADD_SELECTED_REPOSITORY_TO_USER_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Add social accounts for the authenticated user",
+      "slug": "GITHUB_ADD_SOCIAL_ACCOUNTS_FOR_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Add status check contexts",
+      "slug": "GITHUB_ADD_STATUS_CHECK_CONTEXTS",
+      "kind": "write"
+    },
+    {
+      "name": "Add sub-issue to an issue",
+      "slug": "GITHUB_ADD_SUB_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Add team access restrictions",
+      "slug": "GITHUB_ADD_TEAM_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Add user access restrictions",
+      "slug": "GITHUB_ADD_USER_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Add users to codespaces access for an organization",
+      "slug": "GITHUB_ADD_USERS_TO_CODESPACES_ACCESS_FOR_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Get GitHub API root",
+      "slug": "GITHUB_API_ROOT",
+      "kind": "write"
+    },
+    {
+      "name": "Approve a workflow run for a fork pull request",
+      "slug": "GITHUB_APPROVE_WORKFLOW_RUN_FOR_FORK_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Assign an organization role to a team",
+      "slug": "GITHUB_ASSIGN_ORGANIZATION_ROLE_TO_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Assign an organization role to a user",
+      "slug": "GITHUB_ASSIGN_ORGANIZATION_ROLE_TO_USER",
+      "kind": "write"
+    },
+    {
+      "name": "List Docker Migration Conflicting Packages",
+      "slug": "GITHUB_AUTH_USER_DOCKER_CONFLICT_PACKAGES_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Block a user",
+      "slug": "GITHUB_BLOCK_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Block a user from an organization",
+      "slug": "GITHUB_BLOCK_USER_FROM_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel a GitHub Pages deployment",
+      "slug": "GITHUB_CANCEL_GITHUB_PAGES_DEPLOYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel sponsorship",
+      "slug": "GITHUB_CANCEL_SPONSORSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel a workflow run",
+      "slug": "GITHUB_CANCEL_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Check if following user",
+      "slug": "GITHUB_CHECK_FOLLOWING",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a gist is starred",
+      "slug": "GITHUB_CHECK_IF_GIST_IS_STARRED",
+      "kind": "read"
+    },
+    {
+      "name": "Check if pull request merged",
+      "slug": "GITHUB_CHECK_IF_PULL_REQUEST_HAS_BEEN_MERGED",
+      "kind": "read"
+    },
+    {
+      "name": "Check if pull request merged",
+      "slug": "GITHUB_CHECK_IF_PULL_REQUEST_MERGED",
+      "kind": "read"
+    },
+    {
+      "name": "Check if repo starred by auth user",
+      "slug": "GITHUB_CHECK_IF_REPO_STARRED_BY_AUTH_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user can be assigned",
+      "slug": "GITHUB_CHECK_IF_USER_CAN_BE_ASSIGNED",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user can be assigned to an issue",
+      "slug": "GITHUB_CHECK_IF_USER_CAN_BE_ASSIGNED_TO_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user follows another user",
+      "slug": "GITHUB_CHECK_IF_USER_FOLLOWS_ANOTHER_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user is blocked by the authenticated user",
+      "slug": "GITHUB_CHECK_IF_USER_IS_BLOCKED_BY_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user is blocked by an organization",
+      "slug": "GITHUB_CHECK_IF_USER_IS_BLOCKED_BY_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Check if a user is a repository collaborator",
+      "slug": "GITHUB_CHECK_IF_USER_IS_REPOSITORY_COLLABORATOR",
+      "kind": "read"
+    },
+    {
+      "name": "Check organization membership for user",
+      "slug": "GITHUB_CHECK_ORGANIZATION_MEMBERSHIP_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check if person is followed by authenticated user",
+      "slug": "GITHUB_CHECK_PERSON_FOLLOWED_BY_AUTH_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check private vulnerability reporting status",
+      "slug": "GITHUB_CHECK_PRIVATE_VULNERABILITY_REPORTING_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Check public organization membership",
+      "slug": "GITHUB_CHECK_PUBLIC_ORGANIZATION_MEMBERSHIP_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Check if repository is starred",
+      "slug": "GITHUB_CHECK_REPOSITORY_STARRED",
+      "kind": "read"
+    },
+    {
+      "name": "Check team permissions for a project",
+      "slug": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Check team permissions for a repository",
+      "slug": "GITHUB_CHECK_TEAM_PERMISSIONS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Check a token",
+      "slug": "GITHUB_CHECK_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "Clear Project V2 Item Field Value",
+      "slug": "GITHUB_CLEAR_PROJECT_V2_ITEM_FIELD_VALUE",
+      "kind": "write"
+    },
+    {
+      "name": "Clear repository cache by key",
+      "slug": "GITHUB_CLEAR_REPOSITORY_CACHE_BY_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Clear self-hosted runner org labels",
+      "slug": "GITHUB_CLEAR_SELF_HOSTED_RUNNER_ORG_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Close an issue",
+      "slug": "GITHUB_CLOSE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Close a pull request",
+      "slug": "GITHUB_CLOSE_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Commit Multiple Files",
+      "slug": "GITHUB_COMMIT_MULTIPLE_FILES",
+      "kind": "write"
+    },
+    {
+      "name": "Compare two commits",
+      "slug": "GITHUB_COMPARE_TWO_COMMITS",
+      "kind": "write"
+    },
+    {
+      "name": "Configure JIT runner for an org",
+      "slug": "GITHUB_CONFIGURE_JIT_RUNNER_FOR_ORG",
+      "kind": "write"
+    },
+    {
+      "name": "Configure OIDC subject claim template",
+      "slug": "GITHUB_CONFIGURE_OIDC_SUBJECT_CLAIM_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Convert an organization member to outside collaborator",
+      "slug": "GITHUB_CONVERT_ORG_MEMBER_TO_OUTSIDE_COLLABORATOR",
+      "kind": "write"
+    },
+    {
+      "name": "Convert Pull Request to Draft",
+      "slug": "GITHUB_CONVERT_PULL_REQUEST_TO_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a blob",
+      "slug": "GITHUB_CREATE_A_BLOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create a check run",
+      "slug": "GITHUB_CREATE_A_CHECK_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Create a check suite",
+      "slug": "GITHUB_CREATE_A_CHECK_SUITE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a codespace for the authenticated user",
+      "slug": "GITHUB_CREATE_A_CODESPACE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Create a codespace from a pull request",
+      "slug": "GITHUB_CREATE_A_CODESPACE_FROM_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a codespace in a repository",
+      "slug": "GITHUB_CREATE_A_CODESPACE_IN_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a commit",
+      "slug": "GITHUB_CREATE_A_COMMIT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a commit comment",
+      "slug": "GITHUB_CREATE_A_COMMIT_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a commit status",
+      "slug": "GITHUB_CREATE_A_COMMIT_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Create a custom organization role",
+      "slug": "GITHUB_CREATE_A_CUSTOM_ORGANIZATION_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a deploy key",
+      "slug": "GITHUB_CREATE_A_DEPLOY_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a deployment",
+      "slug": "GITHUB_CREATE_A_DEPLOYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a deployment branch policy",
+      "slug": "GITHUB_CREATE_A_DEPLOYMENT_BRANCH_POLICY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a deployment status",
+      "slug": "GITHUB_CREATE_A_DEPLOYMENT_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Create a discussion",
+      "slug": "GITHUB_CREATE_A_DISCUSSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a discussion comment",
+      "slug": "GITHUB_CREATE_A_DISCUSSION_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a fork",
+      "slug": "GITHUB_CREATE_A_FORK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a gist",
+      "slug": "GITHUB_CREATE_A_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a gist comment",
+      "slug": "GITHUB_CREATE_A_GIST_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a GitHub App from a manifest",
+      "slug": "GITHUB_CREATE_A_GITHUB_APP_FROM_A_MANIFEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a github pages deployment",
+      "slug": "GITHUB_CREATE_A_GITHUB_PAGES_DEPLOYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a github pages site",
+      "slug": "GITHUB_CREATE_A_GITHUB_PAGES_SITE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a label",
+      "slug": "GITHUB_CREATE_A_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Create a milestone",
+      "slug": "GITHUB_CREATE_A_MILESTONE",
+      "kind": "write"
+    },
+    {
+      "name": "Create an autolink reference for a repository",
+      "slug": "GITHUB_CREATE_AN_AUTOLINK_REFERENCE_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create an environment variable",
+      "slug": "GITHUB_CREATE_AN_ENVIRONMENT_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create an issue",
+      "slug": "GITHUB_CREATE_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Create an issue comment",
+      "slug": "GITHUB_CREATE_AN_ISSUE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create an organization project",
+      "slug": "GITHUB_CREATE_AN_ORGANIZATION_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create an organization repository",
+      "slug": "GITHUB_CREATE_AN_ORGANIZATION_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create an organization variable",
+      "slug": "GITHUB_CREATE_AN_ORGANIZATION_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create an organization webhook",
+      "slug": "GITHUB_CREATE_AN_ORGANIZATION_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a project card",
+      "slug": "GITHUB_CREATE_A_PROJECT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Create a project column (Classic - Deprecated)",
+      "slug": "GITHUB_CREATE_A_PROJECT_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Create a pull request",
+      "slug": "GITHUB_CREATE_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a reference",
+      "slug": "GITHUB_CREATE_A_REFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a registration token for an organization",
+      "slug": "GITHUB_CREATE_A_REGISTRATION_TOKEN_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a registration token for a repository",
+      "slug": "GITHUB_CREATE_A_REGISTRATION_TOKEN_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a release",
+      "slug": "GITHUB_CREATE_A_RELEASE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a remove token for an organization",
+      "slug": "GITHUB_CREATE_A_REMOVE_TOKEN_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a remove token for a repository",
+      "slug": "GITHUB_CREATE_A_REMOVE_TOKEN_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a reply for a review comment",
+      "slug": "GITHUB_CREATE_A_REPLY_FOR_A_REVIEW_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a repository dispatch event",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_DISPATCH_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository for the authenticated user",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository from an unpublished codespace",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_FROM_AN_UNPUBLISHED_CODESPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository project",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository ruleset",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_RULESET",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository using a template",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_USING_A_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository variable",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a repository webhook",
+      "slug": "GITHUB_CREATE_A_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a review comment for a pull request",
+      "slug": "GITHUB_CREATE_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+      "kind": "send"
+    },
+    {
+      "name": "Create a review for a pull request",
+      "slug": "GITHUB_CREATE_A_REVIEW_FOR_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create a scoped access token",
+      "slug": "GITHUB_CREATE_A_SCOPED_ACCESS_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create a dependency snapshot",
+      "slug": "GITHUB_CREATE_A_SNAPSHOT_OF_DEPENDENCIES_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a tag object",
+      "slug": "GITHUB_CREATE_A_TAG_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a tag protection state for a repository",
+      "slug": "GITHUB_CREATE_A_TAG_PROTECTION_STATE_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a team",
+      "slug": "GITHUB_CREATE_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Create a temporary private fork",
+      "slug": "GITHUB_CREATE_A_TEMPORARY_PRIVATE_FORK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a tree",
+      "slug": "GITHUB_CREATE_A_TREE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a user project",
+      "slug": "GITHUB_CREATE_A_USER_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a workflow dispatch event",
+      "slug": "GITHUB_CREATE_A_WORKFLOW_DISPATCH_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a branch",
+      "slug": "GITHUB_CREATE_BRANCH",
+      "kind": "write"
+    },
+    {
+      "name": "Create commit signature protection",
+      "slug": "GITHUB_CREATE_COMMIT_SIGNATURE_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a custom deployment protection rule on an environment",
+      "slug": "GITHUB_CREATE_DEPLOYMENT_PROTECTION_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Create draft item for user project",
+      "slug": "GITHUB_CREATE_DRAFT_ITEM_FOR_USER_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create inference chat completions",
+      "slug": "GITHUB_CREATE_INFERENCE_CHAT_COMPLETIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create inference embeddings",
+      "slug": "GITHUB_CREATE_INFERENCE_EMBEDDINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Create issue type",
+      "slug": "GITHUB_CREATE_ISSUE_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Create JIT runner config for repo",
+      "slug": "GITHUB_CREATE_JIT_RUNNER_CONFIG",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update an environment",
+      "slug": "GITHUB_CREATE_OR_UPDATE_AN_ENVIRONMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update an environment secret",
+      "slug": "GITHUB_CREATE_OR_UPDATE_AN_ENVIRONMENT_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update an organization secret",
+      "slug": "GITHUB_CREATE_OR_UPDATE_AN_ORGANIZATION_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update a repository secret",
+      "slug": "GITHUB_CREATE_OR_UPDATE_A_REPOSITORY_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update a secret for the authenticated user",
+      "slug": "GITHUB_CREATE_OR_UPDATE_A_SECRET_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update custom properties for an organization",
+      "slug": "GITHUB_CREATE_OR_UPDATE_CUSTOM_PROPERTIES_FOR_AN_ORG",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update a custom property for an organization",
+      "slug": "GITHUB_CREATE_OR_UPDATE_CUSTOM_PROPERTY_ORG",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update file contents",
+      "slug": "GITHUB_CREATE_OR_UPDATE_FILE_CONTENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create or Update GitHub Pages Site",
+      "slug": "GITHUB_CREATE_OR_UPDATE_GITHUB_PAGES_SITE",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update repo secret with encrypted value",
+      "slug": "GITHUB_CREATE_OR_UPDATE_REPO_SECRET_WITH_ENCRYPTED_VALUE",
+      "kind": "write"
+    },
+    {
+      "name": "Create reaction for a commit comment",
+      "slug": "GITHUB_CREATE_REACTION_FOR_A_COMMIT_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reaction for an issue",
+      "slug": "GITHUB_CREATE_REACTION_FOR_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Create reaction for an issue comment",
+      "slug": "GITHUB_CREATE_REACTION_FOR_AN_ISSUE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reaction for a pull request review comment",
+      "slug": "GITHUB_CREATE_REACTION_FOR_A_PULL_REQUEST_REVIEW_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create reaction for a release",
+      "slug": "GITHUB_CREATE_REACTION_FOR_A_RELEASE",
+      "kind": "write"
+    },
+    {
+      "name": "Create reaction for a team discussion",
+      "slug": "GITHUB_CREATE_REACTION_FOR_A_TEAM_DISCUSSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create reaction for a team discussion comment",
+      "slug": "GITHUB_CREATE_REACTION_FOR_A_TEAM_DISCUSSION_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create repository",
+      "slug": "GITHUB_CREATE_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create sponsorship",
+      "slug": "GITHUB_CREATE_SPONSORSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Create Sponsors Tier",
+      "slug": "GITHUB_CREATE_SPONSORS_TIER",
+      "kind": "write"
+    },
+    {
+      "name": "Create or Update Organization Secret with LibSodium",
+      "slug": "GITHUB_CREATE_UPDATE_ORG_SECRET_WITH_LIB_SODIUM",
+      "kind": "write"
+    },
+    {
+      "name": "Create user list",
+      "slug": "GITHUB_CREATE_USER_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Create view for user project",
+      "slug": "GITHUB_CREATE_VIEW_FOR_USER_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Decline a repository invitation",
+      "slug": "GITHUB_DECLINE_A_REPOSITORY_INVITATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete access restrictions",
+      "slug": "GITHUB_DELETE_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete admin branch protection",
+      "slug": "GITHUB_DELETE_ADMIN_BRANCH_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a file",
+      "slug": "GITHUB_DELETE_A_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a package version for the authenticated user",
+      "slug": "GITHUB_DELETE_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an app authorization",
+      "slug": "GITHUB_DELETE_APP_AUTHORIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an app token",
+      "slug": "GITHUB_DELETE_APP_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a reference",
+      "slug": "GITHUB_DELETE_A_REFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a release",
+      "slug": "GITHUB_DELETE_A_RELEASE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a release asset",
+      "slug": "GITHUB_DELETE_A_RELEASE_ASSET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a release reaction",
+      "slug": "GITHUB_DELETE_A_RELEASE_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository",
+      "slug": "GITHUB_DELETE_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository invitation",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_INVITATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository ruleset",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_RULESET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository secret",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository subscription",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository variable",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a repository webhook",
+      "slug": "GITHUB_DELETE_A_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a review comment for a pull request",
+      "slug": "GITHUB_DELETE_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an artifact",
+      "slug": "GITHUB_DELETE_ARTIFACT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a secret for the authenticated user",
+      "slug": "GITHUB_DELETE_A_SECRET_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a self hosted runner from an organization",
+      "slug": "GITHUB_DELETE_A_SELF_HOSTED_RUNNER_FROM_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a self hosted runner from a repository",
+      "slug": "GITHUB_DELETE_A_SELF_HOSTED_RUNNER_FROM_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a tag protection state for a repository",
+      "slug": "GITHUB_DELETE_A_TAG_PROTECTION_STATE_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a team",
+      "slug": "GITHUB_DELETE_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a thread subscription",
+      "slug": "GITHUB_DELETE_A_THREAD_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an autolink reference from a repository",
+      "slug": "GITHUB_DELETE_AUTOLINK_REFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a workflow run",
+      "slug": "GITHUB_DELETE_A_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete branch protection",
+      "slug": "GITHUB_DELETE_BRANCH_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a code scanning analysis from a repository",
+      "slug": "GITHUB_DELETE_CODE_SCANNING_ANALYSIS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a codespace for the authenticated user",
+      "slug": "GITHUB_DELETE_CODESPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a commit comment",
+      "slug": "GITHUB_DELETE_COMMIT_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a commit comment reaction",
+      "slug": "GITHUB_DELETE_COMMIT_COMMENT_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete commit signature protection",
+      "slug": "GITHUB_DELETE_COMMIT_SIGNATURE_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a custom organization role",
+      "slug": "GITHUB_DELETE_CUSTOM_ORGANIZATION_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete dependabot secret by name",
+      "slug": "GITHUB_DELETE_DEPENDEBOT_SECRET_BY_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a deploy key",
+      "slug": "GITHUB_DELETE_DEPLOY_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a deployment",
+      "slug": "GITHUB_DELETE_DEPLOYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a deployment branch policy",
+      "slug": "GITHUB_DELETE_DEPLOYMENT_BRANCH_POLICY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a discussion",
+      "slug": "GITHUB_DELETE_DISCUSSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a discussion comment",
+      "slug": "GITHUB_DELETE_DISCUSSION_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete authenticated user email address",
+      "slug": "GITHUB_DELETE_EMAIL_ADDRESS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an environment",
+      "slug": "GITHUB_DELETE_ENVIRONMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an environment secret",
+      "slug": "GITHUB_DELETE_ENVIRONMENT_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an environment variable",
+      "slug": "GITHUB_DELETE_ENVIRONMENT_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a gist",
+      "slug": "GITHUB_DELETE_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a gist comment",
+      "slug": "GITHUB_DELETE_GIST_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete GitHub Actions cache by ID",
+      "slug": "GITHUB_DELETE_GITHUB_ACTIONS_CACHE_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a GitHub Pages site",
+      "slug": "GITHUB_DELETE_GITHUB_PAGES_SITE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an issue comment",
+      "slug": "GITHUB_DELETE_ISSUE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an issue comment reaction",
+      "slug": "GITHUB_DELETE_ISSUE_COMMENT_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an issue reaction",
+      "slug": "GITHUB_DELETE_ISSUE_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a label",
+      "slug": "GITHUB_DELETE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a milestone",
+      "slug": "GITHUB_DELETE_MILESTONE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an organization",
+      "slug": "GITHUB_DELETE_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an organization secret",
+      "slug": "GITHUB_DELETE_ORGANIZATION_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an organization variable",
+      "slug": "GITHUB_DELETE_ORGANIZATION_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an organization webhook",
+      "slug": "GITHUB_DELETE_ORGANIZATION_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a codespace from the organization",
+      "slug": "GITHUB_DELETE_ORG_CODESPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a package for an organization",
+      "slug": "GITHUB_DELETE_ORG_PACKAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a package for the authenticated user",
+      "slug": "GITHUB_DELETE_PACKAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete package version",
+      "slug": "GITHUB_DELETE_PACKAGE_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete package version for an organization",
+      "slug": "GITHUB_DELETE_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete package version for a user",
+      "slug": "GITHUB_DELETE_PACKAGE_VERSION_FOR_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a pending review for a pull request",
+      "slug": "GITHUB_DELETE_PENDING_REVIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a project",
+      "slug": "GITHUB_DELETE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a project card (Classic - Deprecated)",
+      "slug": "GITHUB_DELETE_PROJECT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a project field (column)",
+      "slug": "GITHUB_DELETE_PROJECT_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete project item for user",
+      "slug": "GITHUB_DELETE_PROJECT_ITEM_FOR_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a pull request comment reaction",
+      "slug": "GITHUB_DELETE_PULL_REQUEST_COMMENT_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete pull request review protection",
+      "slug": "GITHUB_DELETE_PULL_REQUEST_REVIEW_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete repo codespace secret by name",
+      "slug": "GITHUB_DELETE_REPO_CODESPACE_SECRET_BY_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Delete social accounts for the authenticated user",
+      "slug": "GITHUB_DELETE_SOCIAL_ACCOUNTS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete team discussion comment reaction",
+      "slug": "GITHUB_DELETE_TEAM_DISCUSSION_COMMENT_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete team discussion reaction",
+      "slug": "GITHUB_DELETE_TEAM_DISCUSSION_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User List",
+      "slug": "GITHUB_DELETE_USER_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a package for a user",
+      "slug": "GITHUB_DELETE_USER_PACKAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete workflow run logs",
+      "slug": "GITHUB_DELETE_WORKFLOW_RUN_LOGS",
+      "kind": "write"
+    },
+    {
+      "name": "Disable a custom protection rule for an environment",
+      "slug": "GITHUB_DISABLE_A_CUSTOM_PROTECTION_RULE_FOR_AN_ENVIRONMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Disable a workflow",
+      "slug": "GITHUB_DISABLE_A_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Disable private vulnerability reporting for a repository",
+      "slug": "GITHUB_DISABLE_PRIVATE_VULN_REPORTING_FOR_REPO",
+      "kind": "write"
+    },
+    {
+      "name": "Disable Repository Actions In Org",
+      "slug": "GITHUB_DISABLE_REPOSITORY_ACTIONS_IN_ORG",
+      "kind": "write"
+    },
+    {
+      "name": "Dismiss a review for a pull request",
+      "slug": "GITHUB_DISMISS_A_REVIEW_FOR_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Download an artifact",
+      "slug": "GITHUB_DOWNLOAD_AN_ARTIFACT",
+      "kind": "read"
+    },
+    {
+      "name": "Download a repository tarball",
+      "slug": "GITHUB_DOWNLOAD_A_REPOSITORY_ARCHIVE_TAR",
+      "kind": "read"
+    },
+    {
+      "name": "Download a repository archive ZIP",
+      "slug": "GITHUB_DOWNLOAD_A_REPOSITORY_ARCHIVE_ZIP",
+      "kind": "read"
+    },
+    {
+      "name": "Download job logs for a workflow run",
+      "slug": "GITHUB_DOWNLOAD_JOB_LOGS_FOR_A_WORKFLOW_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Download workflow run attempt logs",
+      "slug": "GITHUB_DOWNLOAD_WORKFLOW_RUN_ATTEMPT_LOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Download workflow run logs",
+      "slug": "GITHUB_DOWNLOAD_WORKFLOW_RUN_LOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Enable a workflow",
+      "slug": "GITHUB_ENABLE_A_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Enable GitHub actions in selected repositories",
+      "slug": "GITHUB_ENABLE_GITHUB_ACTIONS_IN_SELECTED_REPOSITORIES",
+      "kind": "write"
+    },
+    {
+      "name": "Enable private vulnerability reporting for a repository",
+      "slug": "GITHUB_ENABLE_PRIVATE_VULN_REPORTING_FOR_REPO",
+      "kind": "write"
+    },
+    {
+      "name": "Enable repo for Github Actions",
+      "slug": "GITHUB_ENABLE_REPO_FOR_GITHUB_ACTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Encrypt and update dev secret",
+      "slug": "GITHUB_ENCRYPT_AND_UPDATE_DEV_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Encrypt org dev env secret",
+      "slug": "GITHUB_ENCRYPT_ORG_DEV_ENV_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Export a codespace for the authenticated user",
+      "slug": "GITHUB_EXPORT_A_CODESPACE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Export an SBOM for a repository",
+      "slug": "GITHUB_EXPORT_SBOM_FOR_REPO",
+      "kind": "write"
+    },
+    {
+      "name": "Find Pull Requests",
+      "slug": "GITHUB_FIND_PULL_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Find Repositories",
+      "slug": "GITHUB_FIND_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Follow Organization (GraphQL)",
+      "slug": "GITHUB_FOLLOW_ORGANIZATION_GRAPHQL",
+      "kind": "write"
+    },
+    {
+      "name": "Follow a user",
+      "slug": "GITHUB_FOLLOW_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Follow User (GraphQL)",
+      "slug": "GITHUB_FOLLOW_USER_GRAPHQL",
+      "kind": "write"
+    },
+    {
+      "name": "Force cancel a workflow run",
+      "slug": "GITHUB_FORCE_CANCEL_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Fork a gist",
+      "slug": "GITHUB_FORK_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Generate release notes content for a release",
+      "slug": "GITHUB_GENERATE_RELEASE_NOTES",
+      "kind": "write"
+    },
+    {
+      "name": "Get a blob",
+      "slug": "GITHUB_GET_A_BLOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get a branch",
+      "slug": "GITHUB_GET_A_BRANCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get access restrictions",
+      "slug": "GITHUB_GET_ACCESS_RESTRICTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a commit",
+      "slug": "GITHUB_GET_A_COMMIT",
+      "kind": "read"
+    },
+    {
+      "name": "Get admin branch protection",
+      "slug": "GITHUB_GET_ADMIN_BRANCH_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get all API versions",
+      "slug": "GITHUB_GET_ALL_API_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all contributor commit activity",
+      "slug": "GITHUB_GET_ALL_CONTRIBUTOR_COMMIT_ACTIVITY",
+      "kind": "read"
+    },
+    {
+      "name": "Get all deployment protection rules for an environment",
+      "slug": "GITHUB_GET_ALL_DEPLOYMENT_PROTECTION_RULES_FOR_ENV",
+      "kind": "read"
+    },
+    {
+      "name": "Get a milestone",
+      "slug": "GITHUB_GET_A_MILESTONE",
+      "kind": "read"
+    },
+    {
+      "name": "Get an app",
+      "slug": "GITHUB_GET_AN_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Get an artifact",
+      "slug": "GITHUB_GET_AN_ARTIFACT",
+      "kind": "read"
+    },
+    {
+      "name": "Get an assignment",
+      "slug": "GITHUB_GET_AN_ASSIGNMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get an autolink reference of a repository",
+      "slug": "GITHUB_GET_AN_AUTOLINK_REFERENCE_OF_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get an environment",
+      "slug": "GITHUB_GET_AN_ENVIRONMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get an environment public key",
+      "slug": "GITHUB_GET_AN_ENVIRONMENT_PUBLIC_KEY",
+      "kind": "read"
+    },
+    {
+      "name": "Get an environment secret",
+      "slug": "GITHUB_GET_AN_ENVIRONMENT_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "Get an environment variable",
+      "slug": "GITHUB_GET_AN_ENVIRONMENT_VARIABLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get an issue",
+      "slug": "GITHUB_GET_AN_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "Get an issue comment",
+      "slug": "GITHUB_GET_AN_ISSUE_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get an issue event",
+      "slug": "GITHUB_GET_AN_ISSUE_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization",
+      "slug": "GITHUB_GET_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization public key",
+      "slug": "GITHUB_GET_AN_ORGANIZATION_PUBLIC_KEY",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization role",
+      "slug": "GITHUB_GET_AN_ORGANIZATION_ROLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization secret",
+      "slug": "GITHUB_GET_AN_ORGANIZATION_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization variable",
+      "slug": "GITHUB_GET_AN_ORGANIZATION_VARIABLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get an organization webhook",
+      "slug": "GITHUB_GET_AN_ORGANIZATION_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get a package for an organization",
+      "slug": "GITHUB_GET_A_PACKAGE_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a package for a user",
+      "slug": "GITHUB_GET_A_PACKAGE_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get a package for the authenticated user",
+      "slug": "GITHUB_GET_A_PACKAGE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get a package version for an organization",
+      "slug": "GITHUB_GET_A_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a package version for a user",
+      "slug": "GITHUB_GET_A_PACKAGE_VERSION_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get authenticated user package version",
+      "slug": "GITHUB_GET_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get a project",
+      "slug": "GITHUB_GET_A_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a project card",
+      "slug": "GITHUB_GET_A_PROJECT_CARD",
+      "kind": "read"
+    },
+    {
+      "name": "Get a project column (Classic - Deprecated)",
+      "slug": "GITHUB_GET_A_PROJECT_COLUMN",
+      "kind": "read"
+    },
+    {
+      "name": "Get a pull request",
+      "slug": "GITHUB_GET_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a reference",
+      "slug": "GITHUB_GET_A_REFERENCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a release",
+      "slug": "GITHUB_GET_A_RELEASE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a release asset",
+      "slug": "GITHUB_GET_A_RELEASE_ASSET",
+      "kind": "read"
+    },
+    {
+      "name": "Get a release by tag name",
+      "slug": "GITHUB_GET_A_RELEASE_BY_TAG_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository",
+      "slug": "GITHUB_GET_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository public key",
+      "slug": "GITHUB_GET_A_REPOSITORY_PUBLIC_KEY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository readme",
+      "slug": "GITHUB_GET_A_REPOSITORY_README",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository readme for a directory",
+      "slug": "GITHUB_GET_A_REPOSITORY_README_FOR_A_DIRECTORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository ruleset",
+      "slug": "GITHUB_GET_A_REPOSITORY_RULESET",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository rule suite",
+      "slug": "GITHUB_GET_A_REPOSITORY_RULE_SUITE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository secret",
+      "slug": "GITHUB_GET_A_REPOSITORY_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository subscription",
+      "slug": "GITHUB_GET_A_REPOSITORY_SUBSCRIPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository variable",
+      "slug": "GITHUB_GET_A_REPOSITORY_VARIABLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a repository webhook",
+      "slug": "GITHUB_GET_A_REPOSITORY_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get a review comment for a pull request",
+      "slug": "GITHUB_GET_A_REVIEW_COMMENT_FOR_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a review for a pull request",
+      "slug": "GITHUB_GET_A_REVIEW_FOR_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a secret for the authenticated user",
+      "slug": "GITHUB_GET_A_SECRET_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get a self hosted runner for an organization",
+      "slug": "GITHUB_GET_A_SELF_HOSTED_RUNNER_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a self hosted runner for a repository",
+      "slug": "GITHUB_GET_A_SELF_HOSTED_RUNNER_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get assignment grades",
+      "slug": "GITHUB_GET_ASSIGNMENT_GRADES",
+      "kind": "read"
+    },
+    {
+      "name": "Get a tag",
+      "slug": "GITHUB_GET_A_TAG",
+      "kind": "read"
+    },
+    {
+      "name": "Get a team by name",
+      "slug": "GITHUB_GET_A_TEAM_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Get a thread",
+      "slug": "GITHUB_GET_A_THREAD",
+      "kind": "read"
+    },
+    {
+      "name": "Get a thread subscription for the authenticated user",
+      "slug": "GITHUB_GET_A_THREAD_SUBSCRIPTION_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repository files and directories",
+      "slug": "GITHUB_GET_A_TREE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a user",
+      "slug": "GITHUB_GET_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get authenticated user organization membership",
+      "slug": "GITHUB_GET_AUTHENTICATED_USER_ORGANIZATION_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get a webhook configuration for an organization",
+      "slug": "GITHUB_GET_A_WEBHOOK_CONFIGURATION_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a webhook configuration for a repository",
+      "slug": "GITHUB_GET_A_WEBHOOK_CONFIGURATION_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a webhook delivery for an organization webhook",
+      "slug": "GITHUB_GET_A_WEBHOOK_DELIVERY_FOR_AN_ORGANIZATION_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get a workflow",
+      "slug": "GITHUB_GET_A_WORKFLOW",
+      "kind": "read"
+    },
+    {
+      "name": "Get a workflow run",
+      "slug": "GITHUB_GET_A_WORKFLOW_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Get a workflow run attempt",
+      "slug": "GITHUB_GET_A_WORKFLOW_RUN_ATTEMPT",
+      "kind": "read"
+    },
+    {
+      "name": "Get billing usage report for user",
+      "slug": "GITHUB_GET_BILLING_USAGE_REPORT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get branch protection",
+      "slug": "GITHUB_GET_BRANCH_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get catalog models",
+      "slug": "GITHUB_GET_CATALOG_MODELS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a check run",
+      "slug": "GITHUB_GET_CHECK_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Get a check suite",
+      "slug": "GITHUB_GET_CHECK_SUITE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a classroom",
+      "slug": "GITHUB_GET_CLASSROOM",
+      "kind": "read"
+    },
+    {
+      "name": "Get a code of conduct",
+      "slug": "GITHUB_GET_CODE_OF_CONDUCT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Code of Conduct (GraphQL)",
+      "slug": "GITHUB_GET_CODE_OF_CONDUCT_GRAPH_QL",
+      "kind": "read"
+    },
+    {
+      "name": "Get a CodeQL database for a repository",
+      "slug": "GITHUB_GET_CODEQL_DATABASE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a code scanning alert",
+      "slug": "GITHUB_GET_CODE_SCANNING_ALERT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a code scanning analysis for a repository",
+      "slug": "GITHUB_GET_CODE_SCANNING_ANALYSIS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a code scanning default setup configuration",
+      "slug": "GITHUB_GET_CODE_SCANNING_DEFAULT_SETUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get a codespace for the authenticated user",
+      "slug": "GITHUB_GET_CODESPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get commit authors",
+      "slug": "GITHUB_GET_COMMIT_AUTHORS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a commit comment",
+      "slug": "GITHUB_GET_COMMIT_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a commit object",
+      "slug": "GITHUB_GET_COMMIT_OBJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get commit signature protection",
+      "slug": "GITHUB_GET_COMMIT_SIGNATURE_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get commit statuses",
+      "slug": "GITHUB_GET_COMMIT_STATUSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get community profile metrics",
+      "slug": "GITHUB_GET_COMMUNITY_PROFILE_METRICS",
+      "kind": "read"
+    },
+    {
+      "name": "Get contextual information for a user",
+      "slug": "GITHUB_GET_CONTEXTUAL_INFORMATION_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get a custom deployment protection rule",
+      "slug": "GITHUB_GET_CUSTOM_DEPLOYMENT_PROTECTION_RULE",
+      "kind": "read"
+    },
+    {
+      "name": "Get default attributes for a codespace",
+      "slug": "GITHUB_GET_DEFAULT_ATTRIBUTES_FOR_A_CODESPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get default workflow permissions for an organization",
+      "slug": "GITHUB_GET_DEFAULT_WORKFLOW_PERMISSIONS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get default workflow permissions for a repository",
+      "slug": "GITHUB_GET_DEFAULT_WORKFLOW_PERMISSIONS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Dependabot alert",
+      "slug": "GITHUB_GET_DEPENDABOT_ALERT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a diff of the dependencies between commits",
+      "slug": "GITHUB_GET_DEPENDENCY_DIFF",
+      "kind": "read"
+    },
+    {
+      "name": "Get a deploy key",
+      "slug": "GITHUB_GET_DEPLOY_KEY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a deployment",
+      "slug": "GITHUB_GET_DEPLOYMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a deployment branch policy",
+      "slug": "GITHUB_GET_DEPLOYMENT_BRANCH_POLICY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a deployment status",
+      "slug": "GITHUB_GET_DEPLOYMENT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get details about a codespace export",
+      "slug": "GITHUB_GET_DETAILS_ABOUT_A_CODESPACE_EXPORT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a discussion",
+      "slug": "GITHUB_GET_DISCUSSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get a discussion comment",
+      "slug": "GITHUB_GET_DISCUSSION_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get emojis",
+      "slug": "GITHUB_GET_EMOJIS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Enterprise Member Invitation",
+      "slug": "GITHUB_GET_ENTERPRISE_MEMBER_INVITATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get feeds",
+      "slug": "GITHUB_GET_FEEDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a gist",
+      "slug": "GITHUB_GET_GIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a gist comment",
+      "slug": "GITHUB_GET_GIST_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a gist revision",
+      "slug": "GITHUB_GET_GIST_REVISION",
+      "kind": "read"
+    },
+    {
+      "name": "Get GitHub Actions cache usage for an organization",
+      "slug": "GITHUB_GET_GITHUB_ACTIONS_CACHE_USAGE_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get github actions cache usage for a repository",
+      "slug": "GITHUB_GET_GITHUB_ACTIONS_CACHE_USAGE_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get github actions permissions for an organization",
+      "slug": "GITHUB_GET_GITHUB_ACTIONS_PERMISSIONS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get GitHub Actions permissions for a repository",
+      "slug": "GITHUB_GET_GITHUB_ACTIONS_PERMISSIONS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get billing premium request usage",
+      "slug": "GITHUB_GET_GITHUB_BILLING_PREMIUM_REQUEST_USAGE_REPORT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get billing usage summary for user",
+      "slug": "GITHUB_GET_GITHUB_BILLING_USAGE_SUMMARY_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get github meta information",
+      "slug": "GITHUB_GET_GITHUB_META_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get github pages build",
+      "slug": "GITHUB_GET_GITHUB_PAGES_BUILD",
+      "kind": "read"
+    },
+    {
+      "name": "Get a gitignore template",
+      "slug": "GITHUB_GET_GITIGNORE_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a global security advisory",
+      "slug": "GITHUB_GET_GLOBAL_SECURITY_ADVISORY",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch GraphQL Node",
+      "slug": "GITHUB_GET_GRAPHQL_NODE",
+      "kind": "read"
+    },
+    {
+      "name": "Get GraphQL rate limit",
+      "slug": "GITHUB_GET_GRAPHQL_RATE_LIMIT",
+      "kind": "read"
+    },
+    {
+      "name": "Get information about a sarif upload",
+      "slug": "GITHUB_GET_INFORMATION_ABOUT_A_SARIF_UPLOAD",
+      "kind": "read"
+    },
+    {
+      "name": "Get interaction restrictions for an organization",
+      "slug": "GITHUB_GET_INTERACTION_RESTRICTIONS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get interaction restrictions for a repository",
+      "slug": "GITHUB_GET_INTERACTION_RESTRICTIONS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get interaction restrictions for public repositories",
+      "slug": "GITHUB_GET_INTERACTION_RESTRICTIONS_FOR_PUBLIC_REPOS",
+      "kind": "read"
+    },
+    {
+      "name": "Get issue comments",
+      "slug": "GITHUB_GET_ISSUE_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a label",
+      "slug": "GITHUB_GET_LABEL",
+      "kind": "read"
+    },
+    {
+      "name": "Get large files",
+      "slug": "GITHUB_GET_LARGE_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "Get latest pages build",
+      "slug": "GITHUB_GET_LATEST_PAGES_BUILD",
+      "kind": "read"
+    },
+    {
+      "name": "Get a license",
+      "slug": "GITHUB_GET_LICENSE",
+      "kind": "read"
+    },
+    {
+      "name": "Get License (GraphQL)",
+      "slug": "GITHUB_GET_LICENSE_GRAPH_QL",
+      "kind": "read"
+    },
+    {
+      "name": "Get octocat",
+      "slug": "GITHUB_GET_OCTOCAT",
+      "kind": "read"
+    },
+    {
+      "name": "Customize OIDC subject claim template",
+      "slug": "GITHUB_GET_OIDC_SUBJECT_CLAIM_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get allowed actions and workflows for an org",
+      "slug": "GITHUB_GET_ORG_ALLOWED_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization audit log",
+      "slug": "GITHUB_GET_ORGANIZATION_AUDIT_LOG",
+      "kind": "read"
+    },
+    {
+      "name": "Get a custom property for an organization",
+      "slug": "GITHUB_GET_ORGANIZATION_CUSTOM_PROPERTY",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization membership for user",
+      "slug": "GITHUB_GET_ORGANIZATION_MEMBERSHIP_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization project item",
+      "slug": "GITHUB_GET_ORGANIZATION_PROJECT_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization public key for Codespaces secrets",
+      "slug": "GITHUB_GET_ORGANIZATION_PUBLIC_KEY",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Public Key For Secret Encryption",
+      "slug": "GITHUB_GET_ORGANIZATION_PUBLIC_KEY_FOR_DEPENDABOT",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization teams",
+      "slug": "GITHUB_GET_ORGANIZATION_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get org dev environment secret safely",
+      "slug": "GITHUB_GET_ORG_DEV_ENVIRONMENT_SECRET_SAFELY",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom OIDC subject claim template",
+      "slug": "GITHUB_GET_ORG_OIDC_SUBJECT_CLAIM_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a dns health check for github pages",
+      "slug": "GITHUB_GET_PAGES_DNS_HEALTH_CHECK",
+      "kind": "read"
+    },
+    {
+      "name": "Get a GitHub Pages site",
+      "slug": "GITHUB_GET_PAGES_SITE",
+      "kind": "read"
+    },
+    {
+      "name": "Get page views",
+      "slug": "GITHUB_GET_PAGE_VIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "Get parent issue",
+      "slug": "GITHUB_GET_PARENT_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "Get pending deployments for a workflow run",
+      "slug": "GITHUB_GET_PENDING_DEPLOYMENTS_FOR_A_WORKFLOW_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Get project permission for a user",
+      "slug": "GITHUB_GET_PROJECT_PERMISSION_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get public key for secret encryption",
+      "slug": "GITHUB_GET_PUBLIC_KEY_FOR_SECRET_ENCRYPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get public key for the authenticated user",
+      "slug": "GITHUB_GET_PUBLIC_KEY_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get pull request review protection",
+      "slug": "GITHUB_GET_PULL_REQUEST_REVIEW_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Pull Requests",
+      "slug": "GITHUB_GET_PULL_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get rate limit status for the authenticated user",
+      "slug": "GITHUB_GET_RATE_LIMIT_STATUS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Raw Repository Content",
+      "slug": "GITHUB_GET_RAW_REPOSITORY_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get allowed actions and workflows for a repository",
+      "slug": "GITHUB_GET_REPO_ALLOWED_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository development environment secret",
+      "slug": "GITHUB_GET_REPO_DEV_ENV_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository attestations",
+      "slug": "GITHUB_GET_REPOS_ATTESTATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository clones",
+      "slug": "GITHUB_GET_REPOSITORY_CLONES",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository content",
+      "slug": "GITHUB_GET_REPOSITORY_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository Discussion thread",
+      "slug": "GITHUB_GET_REPOSITORY_DISCUSSION_THREAD",
+      "kind": "read"
+    },
+    {
+      "name": "Get Repository via GraphQL",
+      "slug": "GITHUB_GET_REPOSITORY_GRAPH_QL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Repository Owner",
+      "slug": "GITHUB_GET_REPOSITORY_OWNER",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository permissions for a user",
+      "slug": "GITHUB_GET_REPOSITORY_PERMISSIONS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve repo public key for encryption",
+      "slug": "GITHUB_GET_REPOSITORY_PUBLIC_KEY_FOR_ENCRYPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository secret securely",
+      "slug": "GITHUB_GET_REPOSITORY_SECRET_SECURELY",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository security advisory",
+      "slug": "GITHUB_GET_REPOSITORY_SECURITY_ADVISORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get repository star history",
+      "slug": "GITHUB_GET_REPOSITORY_STAR_HISTORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a delivery for a repository webhook",
+      "slug": "GITHUB_GET_REPOSITORY_WEBHOOK_DELIVERY",
+      "kind": "read"
+    },
+    {
+      "name": "Get rules for a branch",
+      "slug": "GITHUB_GET_RULES_FOR_A_BRANCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get Organization Dependabot Secret",
+      "slug": "GITHUB_GET_SINGLE_ORG_SECRET_WITHOUT_DECRYPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get status checks protection",
+      "slug": "GITHUB_GET_STATUS_CHECKS_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get team members",
+      "slug": "GITHUB_GET_TEAM_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get team membership for a user",
+      "slug": "GITHUB_GET_TEAM_MEMBERSHIP_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get teams with access to the protected branch",
+      "slug": "GITHUB_GET_TEAMS_WITH_ACCESS_TO_THE_PROTECTED_BRANCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get the authenticated user",
+      "slug": "GITHUB_GET_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get the combined status for a specific reference",
+      "slug": "GITHUB_GET_THE_COMBINED_STATUS_FOR_A_SPECIFIC_REFERENCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get the hourly commit count for each day",
+      "slug": "GITHUB_GET_THE_HOURLY_COMMIT_COUNT_FOR_EACH_DAY",
+      "kind": "read"
+    },
+    {
+      "name": "Get the last year of commit activity",
+      "slug": "GITHUB_GET_THE_LAST_YEAR_OF_COMMIT_ACTIVITY",
+      "kind": "read"
+    },
+    {
+      "name": "Get the latest release",
+      "slug": "GITHUB_GET_THE_LATEST_RELEASE",
+      "kind": "read"
+    },
+    {
+      "name": "Get the license for a repository",
+      "slug": "GITHUB_GET_THE_LICENSE_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get the review history for a workflow run",
+      "slug": "GITHUB_GET_THE_REVIEW_HISTORY_FOR_A_WORKFLOW_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "Get the status of a GitHub Pages deployment",
+      "slug": "GITHUB_GET_THE_STATUS_OF_A_GITHUB_PAGES_DEPLOYMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get the weekly commit activity",
+      "slug": "GITHUB_GET_THE_WEEKLY_COMMIT_ACTIVITY",
+      "kind": "read"
+    },
+    {
+      "name": "Get the weekly commit count",
+      "slug": "GITHUB_GET_THE_WEEKLY_COMMIT_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get the Zen of GitHub",
+      "slug": "GITHUB_GET_THE_ZEN_OF_GITHUB",
+      "kind": "read"
+    },
+    {
+      "name": "Get top referral paths",
+      "slug": "GITHUB_GET_TOP_REFERRAL_PATHS",
+      "kind": "read"
+    },
+    {
+      "name": "Get top referral sources",
+      "slug": "GITHUB_GET_TOP_REFERRAL_SOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get user by ID",
+      "slug": "GITHUB_GET_USER_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get user project item",
+      "slug": "GITHUB_GET_USER_PROJECT_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get user attestations by subject digest",
+      "slug": "GITHUB_GET_USERS_ATTESTATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get user's projects v2",
+      "slug": "GITHUB_GET_USERS_PROJECTS_V2",
+      "kind": "read"
+    },
+    {
+      "name": "Get users with access to the protected branch",
+      "slug": "GITHUB_GET_USERS_WITH_ACCESS_TO_THE_PROTECTED_BRANCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get Viewer via GraphQL",
+      "slug": "GITHUB_GET_VIEWER_GRAPHQL",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow external access level",
+      "slug": "GITHUB_GET_WORKFLOW_EXTERNAL_ACCESS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a job for a workflow run",
+      "slug": "GITHUB_GET_WORKFLOW_RUN_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow run usage",
+      "slug": "GITHUB_GET_WORKFLOW_RUN_USAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow usage",
+      "slug": "GITHUB_GET_WORKFLOW_USAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Check if repo starred by auth user",
+      "slug": "GITHUB_IS_REPOSITORY_STARRED_BY_THE_USER",
+      "kind": "write"
+    },
+    {
+      "name": "List accepted assignments for an assignment",
+      "slug": "GITHUB_LIST_ACCEPTED_ASSIGNMENTS_FOR_AN_ASSIGNMENT",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories accessible via GitHub App installation",
+      "slug": "GITHUB_LIST_ACCESSIBLE_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List app installations for user token",
+      "slug": "GITHUB_LIST_APP_INSTALLATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get apps with access to the protected branch",
+      "slug": "GITHUB_LIST_APPS_WITH_ACCESS_TO_THE_PROTECTED_BRANCH",
+      "kind": "read"
+    },
+    {
+      "name": "List artifacts for a repository",
+      "slug": "GITHUB_LIST_ARTIFACTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List assignees",
+      "slug": "GITHUB_LIST_ASSIGNEES",
+      "kind": "read"
+    },
+    {
+      "name": "List assignments for a classroom",
+      "slug": "GITHUB_LIST_ASSIGNMENTS_FOR_A_CLASSROOM",
+      "kind": "read"
+    },
+    {
+      "name": "List attestation repositories",
+      "slug": "GITHUB_LIST_ATTESTATION_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List authenticated user SSH keys",
+      "slug": "GITHUB_LIST_AUTHENTICATED_USER_SSH_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "List available machine types for a repository",
+      "slug": "GITHUB_LIST_AVAILABLE_MACHINE_TYPES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List branches",
+      "slug": "GITHUB_LIST_BRANCHES",
+      "kind": "read"
+    },
+    {
+      "name": "List branches for head commit",
+      "slug": "GITHUB_LIST_BRANCHES_FOR_HEAD_COMMIT",
+      "kind": "read"
+    },
+    {
+      "name": "List check run annotations",
+      "slug": "GITHUB_LIST_CHECK_RUN_ANNOTATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List check runs for a git ref",
+      "slug": "GITHUB_LIST_CHECK_RUNS_FOR_A_REF",
+      "kind": "read"
+    },
+    {
+      "name": "List check runs in a check suite",
+      "slug": "GITHUB_LIST_CHECK_RUNS_IN_A_CHECK_SUITE",
+      "kind": "read"
+    },
+    {
+      "name": "List check suites for a git reference",
+      "slug": "GITHUB_LIST_CHECK_SUITES_FOR_A_GIT_REFERENCE",
+      "kind": "read"
+    },
+    {
+      "name": "List child teams",
+      "slug": "GITHUB_LIST_CHILD_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "List classrooms",
+      "slug": "GITHUB_LIST_CLASSROOMS",
+      "kind": "read"
+    },
+    {
+      "name": "List codeowners errors",
+      "slug": "GITHUB_LIST_CODEOWNERS_ERRORS",
+      "kind": "read"
+    },
+    {
+      "name": "List CodeQL databases for a repository",
+      "slug": "GITHUB_LIST_CODEQL_DATABASES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List code scanning alerts for an organization",
+      "slug": "GITHUB_LIST_CODE_SCANNING_ALERTS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List code scanning alerts for a repository",
+      "slug": "GITHUB_LIST_CODE_SCANNING_ALERTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List code scanning analyses for a repository",
+      "slug": "GITHUB_LIST_CODE_SCANNING_ANALYSES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get all codes of conduct",
+      "slug": "GITHUB_LIST_CODES_OF_CONDUCT",
+      "kind": "read"
+    },
+    {
+      "name": "List Codes of Conduct (GraphQL)",
+      "slug": "GITHUB_LIST_CODES_OF_CONDUCT_GRAPHQL",
+      "kind": "read"
+    },
+    {
+      "name": "List codespaces for a user in organization",
+      "slug": "GITHUB_LIST_CODESPACES_FOR_A_USER_IN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List codespaces for the authenticated user",
+      "slug": "GITHUB_LIST_CODESPACES_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List codespaces for the organization",
+      "slug": "GITHUB_LIST_CODESPACES_FOR_THE_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List comment changes across organization",
+      "slug": "GITHUB_LIST_COMMENT_CHANGES",
+      "kind": "read"
+    },
+    {
+      "name": "List comments for a pull request review",
+      "slug": "GITHUB_LIST_COMMENTS_FOR_A_PULL_REQUEST_REVIEW",
+      "kind": "read"
+    },
+    {
+      "name": "List commit comments",
+      "slug": "GITHUB_LIST_COMMIT_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List commit comments for a repository",
+      "slug": "GITHUB_LIST_COMMIT_COMMENTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List commits",
+      "slug": "GITHUB_LIST_COMMITS",
+      "kind": "read"
+    },
+    {
+      "name": "List commits on a pull request",
+      "slug": "GITHUB_LIST_COMMITS_ON_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "Get all commonly used licenses",
+      "slug": "GITHUB_LIST_COMMONLY_USED_LICENSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get all custom properties for an organization",
+      "slug": "GITHUB_LIST_CUSTOM_PROPERTIES_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get all custom property values for a repository",
+      "slug": "GITHUB_LIST_CUSTOM_PROPERTY_VALUES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List custom property values for organization repositories",
+      "slug": "GITHUB_LIST_CUSTOM_PROPERTY_VALUES_FOR_ORG_REPOS",
+      "kind": "read"
+    },
+    {
+      "name": "List deliveries for an organization webhook",
+      "slug": "GITHUB_LIST_DELIVERIES_FOR_AN_ORGANIZATION_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "List deliveries for a repository webhook",
+      "slug": "GITHUB_LIST_DELIVERIES_FOR_A_REPOSITORY_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "List deploy keys",
+      "slug": "GITHUB_LIST_DEPLOY_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "List deployment branch policies",
+      "slug": "GITHUB_LIST_DEPLOYMENT_BRANCH_POLICIES",
+      "kind": "read"
+    },
+    {
+      "name": "List deployments",
+      "slug": "GITHUB_LIST_DEPLOYMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List deployment statuses",
+      "slug": "GITHUB_LIST_DEPLOYMENT_STATUSES",
+      "kind": "read"
+    },
+    {
+      "name": "List discussion comments",
+      "slug": "GITHUB_LIST_DISCUSSION_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List discussions",
+      "slug": "GITHUB_LIST_DISCUSSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List email addresses for the authenticated user",
+      "slug": "GITHUB_LIST_EMAIL_ADDRESSES_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List environment custom deployment rules",
+      "slug": "GITHUB_LIST_ENVIRONMENT_CUSTOM_DEPLOYMENT_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "List environments",
+      "slug": "GITHUB_LIST_ENVIRONMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List environment secrets",
+      "slug": "GITHUB_LIST_ENVIRONMENT_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List environment variables",
+      "slug": "GITHUB_LIST_ENVIRONMENT_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List events for the authenticated user",
+      "slug": "GITHUB_LIST_EVENTS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List events for user",
+      "slug": "GITHUB_LIST_EVENTS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List events received by the authenticated user",
+      "slug": "GITHUB_LIST_EVENTS_RECEIVED_BY_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List followers of a user",
+      "slug": "GITHUB_LIST_FOLLOWERS_OF_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List followers of the authenticated user",
+      "slug": "GITHUB_LIST_FOLLOWERS_OF_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List following for user",
+      "slug": "GITHUB_LIST_FOLLOWING_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List forks",
+      "slug": "GITHUB_LIST_FORKS",
+      "kind": "read"
+    },
+    {
+      "name": "List gist comments",
+      "slug": "GITHUB_LIST_GIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List gist commits",
+      "slug": "GITHUB_LIST_GIST_COMMITS",
+      "kind": "read"
+    },
+    {
+      "name": "List gist forks",
+      "slug": "GITHUB_LIST_GIST_FORKS",
+      "kind": "read"
+    },
+    {
+      "name": "List gists for a user",
+      "slug": "GITHUB_LIST_GISTS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List gists for the authenticated user",
+      "slug": "GITHUB_LIST_GISTS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List github actions caches for a repository",
+      "slug": "GITHUB_LIST_GITHUB_ACTIONS_CACHES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List GitHub Pages builds",
+      "slug": "GITHUB_LIST_GITHUB_PAGES_BUILDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all gitignore templates",
+      "slug": "GITHUB_LIST_GITIGNORE_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List global security advisories",
+      "slug": "GITHUB_LIST_GLOBAL_SECURITY_ADVISORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List GPG keys for a user",
+      "slug": "GITHUB_LIST_GPG_KEYS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List installation requests for the authenticated app",
+      "slug": "GITHUB_LIST_INSTALLATION_REQUESTS_FOR_THE_AUTHENTICATED_APP",
+      "kind": "read"
+    },
+    {
+      "name": "List instances of a code scanning alert",
+      "slug": "GITHUB_LIST_INSTANCES_OF_A_CODE_SCANNING_ALERT",
+      "kind": "read"
+    },
+    {
+      "name": "List issue comments",
+      "slug": "GITHUB_LIST_ISSUE_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List issue comments for a repository",
+      "slug": "GITHUB_LIST_ISSUE_COMMENTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List issue dependencies blocked by",
+      "slug": "GITHUB_LIST_ISSUE_DEPENDENCIES_BLOCKED_BY",
+      "kind": "read"
+    },
+    {
+      "name": "List issue dependencies blocking",
+      "slug": "GITHUB_LIST_ISSUE_DEPENDENCIES_BLOCKING",
+      "kind": "read"
+    },
+    {
+      "name": "List issue events",
+      "slug": "GITHUB_LIST_ISSUE_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List issue events for a repository",
+      "slug": "GITHUB_LIST_ISSUE_EVENTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List issues for user",
+      "slug": "GITHUB_LIST_ISSUES_ASSIGNED_TO_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List issue types",
+      "slug": "GITHUB_LIST_ISSUE_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "List jobs for a workflow run",
+      "slug": "GITHUB_LIST_JOBS_FOR_A_WORKFLOW_RUN",
+      "kind": "read"
+    },
+    {
+      "name": "List jobs for a workflow run attempt",
+      "slug": "GITHUB_LIST_JOBS_FOR_A_WORKFLOW_RUN_ATTEMPT",
+      "kind": "read"
+    },
+    {
+      "name": "List labels for an issue",
+      "slug": "GITHUB_LIST_LABELS_FOR_AN_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "List labels for a repository",
+      "slug": "GITHUB_LIST_LABELS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List labels for a self-hosted runner for a repository",
+      "slug": "GITHUB_LIST_LABELS_FOR_A_SELF_HOSTED_RUNNER_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List labels for issues in a milestone",
+      "slug": "GITHUB_LIST_LABELS_FOR_ISSUES_IN_A_MILESTONE",
+      "kind": "read"
+    },
+    {
+      "name": "List labels for a self-hosted runner for an organization",
+      "slug": "GITHUB_LIST_LABELS_FOR_SELF_HOSTED_RUNNER_ORG",
+      "kind": "read"
+    },
+    {
+      "name": "List Licenses (GraphQL)",
+      "slug": "GITHUB_LIST_LICENSES_GRAPH_QL",
+      "kind": "read"
+    },
+    {
+      "name": "List machine types for a codespace",
+      "slug": "GITHUB_LIST_MACHINE_TYPES_FOR_A_CODESPACE",
+      "kind": "read"
+    },
+    {
+      "name": "List matching references",
+      "slug": "GITHUB_LIST_MATCHING_REFERENCES",
+      "kind": "read"
+    },
+    {
+      "name": "List milestones",
+      "slug": "GITHUB_LIST_MILESTONES",
+      "kind": "read"
+    },
+    {
+      "name": "List notifications for authenticated user",
+      "slug": "GITHUB_LIST_NOTIFICATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List notifications for the authenticated user (Deprecated)",
+      "slug": "GITHUB_LIST_NOTIFICATIONS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List organization app installations",
+      "slug": "GITHUB_LIST_ORGANIZATION_APP_INSTALLATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List org level codespaces secrets",
+      "slug": "GITHUB_LIST_ORGANIZATION_CODESPACES_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization events for the authenticated user",
+      "slug": "GITHUB_LIST_ORGANIZATION_EVENTS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List organization members",
+      "slug": "GITHUB_LIST_ORGANIZATION_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization memberships for authenticated user",
+      "slug": "GITHUB_LIST_ORGANIZATION_MEMBERSHIPS_FOR_THE_AUTHENTICATED_U",
+      "kind": "read"
+    },
+    {
+      "name": "List organization projects",
+      "slug": "GITHUB_LIST_ORGANIZATION_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization repositories",
+      "slug": "GITHUB_LIST_ORGANIZATION_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get all organization roles for an organization",
+      "slug": "GITHUB_LIST_ORGANIZATION_ROLES_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List organizations",
+      "slug": "GITHUB_LIST_ORGANIZATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization secrets",
+      "slug": "GITHUB_LIST_ORGANIZATION_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List organizations for a user",
+      "slug": "GITHUB_LIST_ORGANIZATIONS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List organizations for the authenticated user",
+      "slug": "GITHUB_LIST_ORGANIZATIONS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List organizations for a user",
+      "slug": "GITHUB_LIST_ORGANIZATIONS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List organization variables",
+      "slug": "GITHUB_LIST_ORGANIZATION_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List organization webhooks",
+      "slug": "GITHUB_LIST_ORGANIZATION_WEBHOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization fine-grained permissions",
+      "slug": "GITHUB_LIST_ORG_FINE_GRAINED_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization issues assigned to the authenticated user",
+      "slug": "GITHUB_LIST_ORG_ISSUES_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List package versions for an organization package",
+      "slug": "GITHUB_LIST_ORG_PACKAGE_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization project view items",
+      "slug": "GITHUB_LIST_ORG_PROJECT_VIEW_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization repositories with Github Actions enabled",
+      "slug": "GITHUB_LIST_ORG_REPOS_WITH_GITHUB_ACTIONS_ENABLED",
+      "kind": "read"
+    },
+    {
+      "name": "List org resource access tokens",
+      "slug": "GITHUB_LIST_ORG_RESOURCE_ACCESS_TOKENS",
+      "kind": "read"
+    },
+    {
+      "name": "List org resources with personal tokens",
+      "slug": "GITHUB_LIST_ORG_RESOURCES_WITH_PERSONAL_TOKENS",
+      "kind": "read"
+    },
+    {
+      "name": "List organization Dependabot secrets without values",
+      "slug": "GITHUB_LIST_ORG_SECRETS_WITHOUT_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "List outside collaborators for an organization",
+      "slug": "GITHUB_LIST_OUTSIDE_COLLABORATORS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List owned package versions",
+      "slug": "GITHUB_LIST_OWNED_PACKAGE_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List packages for an organization",
+      "slug": "GITHUB_LIST_PACKAGES_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List packages for a user",
+      "slug": "GITHUB_LIST_PACKAGES_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List packages for the authenticated user's namespace",
+      "slug": "GITHUB_LIST_PACKAGES_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List package versions for a package owned by a user",
+      "slug": "GITHUB_LIST_PACKAGE_VERSIONS_FOR_A_PACKAGE_OWNED_BY_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List pending team invitations",
+      "slug": "GITHUB_LIST_PENDING_TEAM_INVITATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List project cards (Classic - Deprecated)",
+      "slug": "GITHUB_LIST_PROJECT_CARDS",
+      "kind": "read"
+    },
+    {
+      "name": "List project collaborators (classic)",
+      "slug": "GITHUB_LIST_PROJECT_COLLABORATORS",
+      "kind": "read"
+    },
+    {
+      "name": "List project columns",
+      "slug": "GITHUB_LIST_PROJECT_COLUMNS",
+      "kind": "read"
+    },
+    {
+      "name": "List project fields for user",
+      "slug": "GITHUB_LIST_PROJECT_FIELDS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List project items for user",
+      "slug": "GITHUB_LIST_PROJECT_ITEMS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List items for user project view",
+      "slug": "GITHUB_LIST_PROJECT_VIEW_ITEMS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List public email addresses for the authenticated user",
+      "slug": "GITHUB_LIST_PUBLIC_EMAILS_FOR_AUTH_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List public events",
+      "slug": "GITHUB_LIST_PUBLIC_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List public events for a network of repositories",
+      "slug": "GITHUB_LIST_PUBLIC_EVENTS_FOR_A_NETWORK_OF_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List public events for a user",
+      "slug": "GITHUB_LIST_PUBLIC_EVENTS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List public events received by a user",
+      "slug": "GITHUB_LIST_PUBLIC_EVENTS_RECEIVED_BY_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List public gists",
+      "slug": "GITHUB_LIST_PUBLIC_GISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List public keys for a user",
+      "slug": "GITHUB_LIST_PUBLIC_KEYS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List public organization events",
+      "slug": "GITHUB_LIST_PUBLIC_ORGANIZATION_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List public organization members",
+      "slug": "GITHUB_LIST_PUBLIC_ORGANIZATION_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "List public repositories",
+      "slug": "GITHUB_LIST_PUBLIC_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List pull requests",
+      "slug": "GITHUB_LIST_PULL_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "List pull requests associated with a commit",
+      "slug": "GITHUB_LIST_PULL_REQUESTS_ASSOCIATED_WITH_A_COMMIT",
+      "kind": "read"
+    },
+    {
+      "name": "List pull requests files",
+      "slug": "GITHUB_LIST_PULL_REQUESTS_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for a commit comment",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_A_COMMIT_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for an issue",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_AN_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for an issue comment",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_AN_ISSUE_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for a pull request review comment",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_A_PULL_REQUEST_REVIEW_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for a release",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_A_RELEASE",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for a team discussion",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_A_TEAM_DISCUSSION",
+      "kind": "read"
+    },
+    {
+      "name": "List reactions for a team discussion comment",
+      "slug": "GITHUB_LIST_REACTIONS_FOR_A_TEAM_DISCUSSION_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "List release assets",
+      "slug": "GITHUB_LIST_RELEASE_ASSETS",
+      "kind": "read"
+    },
+    {
+      "name": "List releases",
+      "slug": "GITHUB_LIST_RELEASES",
+      "kind": "read"
+    },
+    {
+      "name": "List repo access by token",
+      "slug": "GITHUB_LIST_REPO_ACCESS_BY_TOKEN",
+      "kind": "read"
+    },
+    {
+      "name": "List repo codespaces for authenticated user",
+      "slug": "GITHUB_LIST_REPO_CODESPACES",
+      "kind": "read"
+    },
+    {
+      "name": "List repo dev container configs for user",
+      "slug": "GITHUB_LIST_REPO_DEV_CONTAINER_CONFIGS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List authenticated user's repository invitations",
+      "slug": "GITHUB_LIST_REPO_INVITATIONS_FOR_AUTH_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repository notifications for the authenticated user",
+      "slug": "GITHUB_LIST_REPO_NOTIFICATIONS_FOR_AUTH_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repo secrets without values",
+      "slug": "GITHUB_LIST_REPO_SECRETS_WITHOUT_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories",
+      "slug": "GITHUB_LIST_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List repos accessible to app installation",
+      "slug": "GITHUB_LIST_REPOSITORIES_ACCESSIBLE_TO_THE_APP_INSTALLATION",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories for a user",
+      "slug": "GITHUB_LIST_REPOSITORIES_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories for the authenticated user",
+      "slug": "GITHUB_LIST_REPOSITORIES_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories starred by a user",
+      "slug": "GITHUB_LIST_REPOSITORIES_STARRED_BY_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories starred by the authenticated user",
+      "slug": "GITHUB_LIST_REPOSITORIES_STARRED_BY_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories watched by a user",
+      "slug": "GITHUB_LIST_REPOSITORIES_WATCHED_BY_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repositories watched by the authenticated user",
+      "slug": "GITHUB_LIST_REPOSITORIES_WATCHED_BY_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List repos with ghactions cache usage",
+      "slug": "GITHUB_LIST_REPOSITORIES_WITH_GITHUB_ACTIONS_CACHE_USAGE",
+      "kind": "read"
+    },
+    {
+      "name": "List repository activities",
+      "slug": "GITHUB_LIST_REPOSITORY_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get all autolinks of a repository",
+      "slug": "GITHUB_LIST_REPOSITORY_AUTOLINKS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository collaborators",
+      "slug": "GITHUB_LIST_REPOSITORY_COLLABORATORS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository contributors",
+      "slug": "GITHUB_LIST_REPOSITORY_CONTRIBUTORS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository Dependabot alerts",
+      "slug": "GITHUB_LIST_REPOSITORY_DEPENDABOT_ALERTS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository events",
+      "slug": "GITHUB_LIST_REPOSITORY_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository invitations",
+      "slug": "GITHUB_LIST_REPOSITORY_INVITATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository issues",
+      "slug": "GITHUB_LIST_REPOSITORY_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository languages",
+      "slug": "GITHUB_LIST_REPOSITORY_LANGUAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository organization secrets",
+      "slug": "GITHUB_LIST_REPOSITORY_ORGANIZATION_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository organization variables",
+      "slug": "GITHUB_LIST_REPOSITORY_ORGANIZATION_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository projects",
+      "slug": "GITHUB_LIST_REPOSITORY_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all repository rulesets",
+      "slug": "GITHUB_LIST_REPOSITORY_RULESETS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository rule suites",
+      "slug": "GITHUB_LIST_REPOSITORY_RULE_SUITES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository secrets",
+      "slug": "GITHUB_LIST_REPOSITORY_SECRETS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository secrets without decrypting",
+      "slug": "GITHUB_LIST_REPOSITORY_SECRETS_WITHOUT_DECRYPTING",
+      "kind": "read"
+    },
+    {
+      "name": "List repository security advisories",
+      "slug": "GITHUB_LIST_REPOSITORY_SECURITY_ADVISORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository tags",
+      "slug": "GITHUB_LIST_REPOSITORY_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository teams",
+      "slug": "GITHUB_LIST_REPOSITORY_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all repository topics",
+      "slug": "GITHUB_LIST_REPOSITORY_TOPICS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository variables",
+      "slug": "GITHUB_LIST_REPOSITORY_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List repository webhooks",
+      "slug": "GITHUB_LIST_REPOSITORY_WEBHOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "List repository workflows",
+      "slug": "GITHUB_LIST_REPOSITORY_WORKFLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all requested reviewers for a pull request",
+      "slug": "GITHUB_LIST_REQUESTED_REVIEWERS_FOR_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "List review comments in a repository",
+      "slug": "GITHUB_LIST_REVIEW_COMMENTS_IN_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List review comments on a pull request",
+      "slug": "GITHUB_LIST_REVIEW_COMMENTS_ON_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "List reviews for a pull request",
+      "slug": "GITHUB_LIST_REVIEWS_FOR_A_PULL_REQUEST",
+      "kind": "read"
+    },
+    {
+      "name": "List runner applications for an organization",
+      "slug": "GITHUB_LIST_RUNNER_APPLICATIONS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List runner applications for a repository",
+      "slug": "GITHUB_LIST_RUNNER_APPLICATIONS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List secret scanning alerts for a repository",
+      "slug": "GITHUB_LIST_SECRET_SCANNING_ALERTS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List secrets for the authenticated user",
+      "slug": "GITHUB_LIST_SECRETS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List security advisories (GraphQL)",
+      "slug": "GITHUB_LIST_SECURITY_ADVISORIES_GRAPHQL",
+      "kind": "read"
+    },
+    {
+      "name": "List security vulnerabilities",
+      "slug": "GITHUB_LIST_SECURITY_VULNERABILITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List selected repositories for a Codespaces organization secret",
+      "slug": "GITHUB_LIST_SELECTED_REPOSITORIES_FOR_AN_ORGANIZATION_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "List selected repositories for a user secret",
+      "slug": "GITHUB_LIST_SELECTED_REPOSITORIES_FOR_A_USER_SECRET",
+      "kind": "read"
+    },
+    {
+      "name": "List selected repos for secret access",
+      "slug": "GITHUB_LIST_SELECTED_REPOSITORIES_FOR_SECRET_ACCESS",
+      "kind": "read"
+    },
+    {
+      "name": "List selected repositories for an organization variable",
+      "slug": "GITHUB_LIST_SELECTED_REPOS_ORG_VARIABLE",
+      "kind": "read"
+    },
+    {
+      "name": "List self hosted runners for an organization",
+      "slug": "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List self hosted runners for a repository",
+      "slug": "GITHUB_LIST_SELF_HOSTED_RUNNERS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List social accounts for a user",
+      "slug": "GITHUB_LIST_SOCIAL_ACCOUNTS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List social accounts for the authenticated user",
+      "slug": "GITHUB_LIST_SOCIAL_ACCOUNTS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List Sponsorable Users and Organizations",
+      "slug": "GITHUB_LIST_SPONSORABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List SSH signing keys for user",
+      "slug": "GITHUB_LIST_SSH_SIGNING_KEYS_FOR_A_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List stargazers",
+      "slug": "GITHUB_LIST_STARGAZERS",
+      "kind": "read"
+    },
+    {
+      "name": "List starred gists",
+      "slug": "GITHUB_LIST_STARRED_GISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List starred repositories for user",
+      "slug": "GITHUB_LIST_STARRED_REPOSITORIES_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get all status check contexts",
+      "slug": "GITHUB_LIST_STATUS_CHECK_CONTEXTS",
+      "kind": "read"
+    },
+    {
+      "name": "List sub-issues for an issue",
+      "slug": "GITHUB_LIST_SUB_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "List marketplace subscriptions for authenticated user",
+      "slug": "GITHUB_LIST_SUBSCRIPTIONS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List stubbed subscriptions for the authenticated user",
+      "slug": "GITHUB_LIST_SUBSCRIPTIONS_FOR_THE_AUTHENTICATED_USER_STUBBED",
+      "kind": "read"
+    },
+    {
+      "name": "List tag protection states for a repository",
+      "slug": "GITHUB_LIST_TAG_PROTECTION_STATES_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List team members",
+      "slug": "GITHUB_LIST_TEAM_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "List team projects",
+      "slug": "GITHUB_LIST_TEAM_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "List team repositories",
+      "slug": "GITHUB_LIST_TEAM_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List teams",
+      "slug": "GITHUB_LIST_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "List teams for the authenticated user",
+      "slug": "GITHUB_LIST_TEAMS_FOR_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List teams assigned to an organization role",
+      "slug": "GITHUB_LIST_TEAMS_THAT_ARE_ASSIGNED_TO_AN_ORGANIZATION_ROLE",
+      "kind": "read"
+    },
+    {
+      "name": "List the people a user follows",
+      "slug": "GITHUB_LIST_THE_PEOPLE_A_USER_FOLLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "List people the authenticated user follows",
+      "slug": "GITHUB_LIST_THE_PEOPLE_THE_AUTHENTICATED_USER_FOLLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "List timeline events for an issue",
+      "slug": "GITHUB_LIST_TIMELINE_EVENTS_FOR_AN_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "List token access repositories",
+      "slug": "GITHUB_LIST_TOKEN_ACCESS_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "List user projects",
+      "slug": "GITHUB_LIST_USER_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "List users",
+      "slug": "GITHUB_LIST_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List users blocked by an organization",
+      "slug": "GITHUB_LIST_USERS_BLOCKED_BY_AN_ORGANIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "List users blocked by the authenticated user",
+      "slug": "GITHUB_LIST_USERS_BLOCKED_BY_THE_AUTHENTICATED_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List users assigned org role",
+      "slug": "GITHUB_LIST_USERS_THAT_ARE_ASSIGNED_TO_AN_ORGANIZATION_ROLE",
+      "kind": "read"
+    },
+    {
+      "name": "List watchers",
+      "slug": "GITHUB_LIST_WATCHERS",
+      "kind": "read"
+    },
+    {
+      "name": "List workflow run artifacts",
+      "slug": "GITHUB_LIST_WORKFLOW_RUN_ARTIFACTS",
+      "kind": "read"
+    },
+    {
+      "name": "List workflow runs for a repository",
+      "slug": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_REPOSITORY",
+      "kind": "read"
+    },
+    {
+      "name": "List workflow runs for a workflow",
+      "slug": "GITHUB_LIST_WORKFLOW_RUNS_FOR_A_WORKFLOW",
+      "kind": "read"
+    },
+    {
+      "name": "Lock an issue",
+      "slug": "GITHUB_LOCK_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Lookup Enterprise Administrator Invitation",
+      "slug": "GITHUB_LOOKUP_ENTERPRISE_ADMINISTRATOR_INVITATION",
+      "kind": "read"
+    },
+    {
+      "name": "Lookup GitHub Resource",
+      "slug": "GITHUB_LOOKUP_GITHUB_RESOURCE",
+      "kind": "read"
+    },
+    {
+      "name": "Lookup nodes by IDs",
+      "slug": "GITHUB_LOOKUP_NODES_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Lookup Organization (GraphQL)",
+      "slug": "GITHUB_LOOKUP_ORGANIZATION_GRAPH_QL",
+      "kind": "read"
+    },
+    {
+      "name": "Look Up Topic by Name",
+      "slug": "GITHUB_LOOKUP_TOPIC_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Manage access control for organization codespaces",
+      "slug": "GITHUB_MANAGE_ACCESS_CONTROL_FOR_ORGANIZATION_CODESPACES",
+      "kind": "write"
+    },
+    {
+      "name": "Manage custom properties for org repos",
+      "slug": "GITHUB_MANAGE_CUSTOM_PROPERTIES_FOR_ORG_REPOS",
+      "kind": "write"
+    },
+    {
+      "name": "Manage issue blocking dependency",
+      "slug": "GITHUB_MANAGE_ISSUE_BLOCKING_DEPENDENCY",
+      "kind": "write"
+    },
+    {
+      "name": "List selected repositories for a GitHub Actions organization secret",
+      "slug": "GITHUB_MANAGE_SECRETS_IN_SELECTED_REPOSITORIES",
+      "kind": "write"
+    },
+    {
+      "name": "Map a commit author",
+      "slug": "GITHUB_MAP_A_COMMIT_AUTHOR",
+      "kind": "write"
+    },
+    {
+      "name": "Mark a thread as done",
+      "slug": "GITHUB_MARK_A_THREAD_AS_DONE",
+      "kind": "write"
+    },
+    {
+      "name": "Mark a thread as read",
+      "slug": "GITHUB_MARK_A_THREAD_AS_READ",
+      "kind": "write"
+    },
+    {
+      "name": "Mark notifications as read",
+      "slug": "GITHUB_MARK_NOTIFICATIONS_AS_READ",
+      "kind": "write"
+    },
+    {
+      "name": "Mark pull request ready for review",
+      "slug": "GITHUB_MARK_PULL_REQUEST_READY_FOR_REVIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Mark repository notifications as read",
+      "slug": "GITHUB_MARK_REPOSITORY_NOTIFICATIONS_AS_READ",
+      "kind": "write"
+    },
+    {
+      "name": "Merge a branch",
+      "slug": "GITHUB_MERGE_A_BRANCH",
+      "kind": "write"
+    },
+    {
+      "name": "Merge a pull request",
+      "slug": "GITHUB_MERGE_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Move a project card (Classic - Deprecated)",
+      "slug": "GITHUB_MOVE_A_PROJECT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Move a project column (Classic - Deprecated)",
+      "slug": "GITHUB_MOVE_A_PROJECT_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Ping an organization webhook",
+      "slug": "GITHUB_PING_AN_ORGANIZATION_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Ping a repository webhook",
+      "slug": "GITHUB_PING_A_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Privately report a security vulnerability",
+      "slug": "GITHUB_PRIVATELY_REPORT_A_SECURITY_VULNERABILITY",
+      "kind": "write"
+    },
+    {
+      "name": "Publish Sponsors Tier (GraphQL)",
+      "slug": "GITHUB_PUBLISH_SPONSORS_TIER_GRAPH_QL",
+      "kind": "send"
+    },
+    {
+      "name": "Redeliver a delivery for an organization webhook",
+      "slug": "GITHUB_REDELIVER_A_DELIVERY_FOR_AN_ORGANIZATION_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Redeliver a delivery for a repository webhook",
+      "slug": "GITHUB_REDELIVER_A_DELIVERY_FOR_A_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a custom property for an organization",
+      "slug": "GITHUB_REMOVE_A_CUSTOM_PROPERTY_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a label from an issue",
+      "slug": "GITHUB_REMOVE_A_LABEL_FROM_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove all labels from an issue",
+      "slug": "GITHUB_REMOVE_ALL_LABELS_FROM_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove all organization roles for a team",
+      "slug": "GITHUB_REMOVE_ALL_ORGANIZATION_ROLES_FOR_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Remove all organization roles for a user",
+      "slug": "GITHUB_REMOVE_ALL_ORGANIZATION_ROLES_FOR_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove an organization member",
+      "slug": "GITHUB_REMOVE_AN_ORGANIZATION_MEMBER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove an organization role from a team",
+      "slug": "GITHUB_REMOVE_AN_ORGANIZATION_ROLE_FROM_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Remove an organization role from a user",
+      "slug": "GITHUB_REMOVE_AN_ORGANIZATION_ROLE_FROM_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove app access restrictions",
+      "slug": "GITHUB_REMOVE_APP_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a project from a team",
+      "slug": "GITHUB_REMOVE_A_PROJECT_FROM_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a repository collaborator",
+      "slug": "GITHUB_REMOVE_A_REPOSITORY_COLLABORATOR",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a repository from an app installation",
+      "slug": "GITHUB_REMOVE_A_REPOSITORY_FROM_AN_APP_INSTALLATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a repository from a team",
+      "slug": "GITHUB_REMOVE_A_REPOSITORY_FROM_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a selected repository from a user secret",
+      "slug": "GITHUB_REMOVE_A_SELECTED_REPOSITORY_FROM_A_USER_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Remove assignees from an issue",
+      "slug": "GITHUB_REMOVE_ASSIGNEES_FROM_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove custom label from repo runner",
+      "slug": "GITHUB_REMOVE_CUSTOM_LABEL_FROM_REPO_RUNNER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove custom label from self hosted runner",
+      "slug": "GITHUB_REMOVE_CUSTOM_LABEL_FROM_SELF_HOSTED_RUNNER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove custom labels from self hosted repo runner",
+      "slug": "GITHUB_REMOVE_CUSTOM_LABELS_FROM_SELF_HOSTED_REPO_RUNNER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove interaction restrictions for an organization",
+      "slug": "GITHUB_REMOVE_INTERACTION_RESTRICTIONS_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove interaction restrictions for a repository",
+      "slug": "GITHUB_REMOVE_INTERACTION_RESTRICTIONS_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Remove org dev env secret by name",
+      "slug": "GITHUB_REMOVE_ORG_DEV_ENV_SECRET_BY_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Remove org secret by name",
+      "slug": "GITHUB_REMOVE_ORG_SECRET_BY_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Remove outside collaborator from an organization",
+      "slug": "GITHUB_REMOVE_OUTSIDE_COLLABORATOR_FROM_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove public org membership",
+      "slug": "GITHUB_REMOVE_PUBLIC_ORG_MEMBERSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Remove user public repo interaction restrictions",
+      "slug": "GITHUB_REMOVE_PUBLIC_REPO_INTERACTION_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove repository from organization dev environment secret",
+      "slug": "GITHUB_REMOVE_REPO_FROM_ORG_DEV_ENV_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Remove selected repo from org secret",
+      "slug": "GITHUB_REMOVE_REPO_FROM_ORG_SECRET_WITH_SELECTED_VISIBILITY",
+      "kind": "write"
+    },
+    {
+      "name": "Remove requested reviewers from a pull request",
+      "slug": "GITHUB_REMOVE_REQUESTED_REVIEWERS_FROM_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Remove review request",
+      "slug": "GITHUB_REMOVE_REVIEW_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Remove selected repository from an organization secret",
+      "slug": "GITHUB_REMOVE_SELECTED_REPO_FROM_ORG_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Remove selected repository from an organization variable",
+      "slug": "GITHUB_REMOVE_SELECTED_REPO_FROM_ORG_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove status check contexts",
+      "slug": "GITHUB_REMOVE_STATUS_CHECK_CONTEXTS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove status check protection",
+      "slug": "GITHUB_REMOVE_STATUS_CHECK_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove team access restrictions",
+      "slug": "GITHUB_REMOVE_TEAM_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove team membership",
+      "slug": "GITHUB_REMOVE_TEAM_MEMBERSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Remove team membership for a user",
+      "slug": "GITHUB_REMOVE_TEAM_MEMBERSHIP_FOR_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove user access restrictions",
+      "slug": "GITHUB_REMOVE_USER_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove user as a collaborator (classic project)",
+      "slug": "GITHUB_REMOVE_USER_AS_A_COLLABORATOR",
+      "kind": "write"
+    },
+    {
+      "name": "Remove users from codespaces access for an organization",
+      "slug": "GITHUB_REMOVE_USERS_CODESPACES_ACCESS_ORG",
+      "kind": "write"
+    },
+    {
+      "name": "Rename a branch",
+      "slug": "GITHUB_RENAME_A_BRANCH",
+      "kind": "write"
+    },
+    {
+      "name": "Render a markdown document",
+      "slug": "GITHUB_RENDER_A_MARKDOWN_DOCUMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Render Markdown (Raw Mode)",
+      "slug": "GITHUB_RENDER_MARKDOWN_RAW",
+      "kind": "write"
+    },
+    {
+      "name": "Reopen an issue",
+      "slug": "GITHUB_REOPEN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Reopen Pull Request",
+      "slug": "GITHUB_REOPEN_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Replace all repository topics",
+      "slug": "GITHUB_REPLACE_ALL_REPOSITORY_TOPICS",
+      "kind": "write"
+    },
+    {
+      "name": "Replace org secret visibility to selected",
+      "slug": "GITHUB_REPLACE_ORG_SECRET_VISIBILITY_TO_SELECTED",
+      "kind": "write"
+    },
+    {
+      "name": "Replace repository access for an org Codespaces secret",
+      "slug": "GITHUB_REPLACE_REPO_ACCESS_ON_ORG_DEV_ENV_SECRET_SET",
+      "kind": "write"
+    },
+    {
+      "name": "Request a github pages build",
+      "slug": "GITHUB_REQUEST_A_GITHUB_PAGES_BUILD",
+      "kind": "write"
+    },
+    {
+      "name": "Request reviewers for a pull request",
+      "slug": "GITHUB_REQUEST_REVIEWERS",
+      "kind": "write"
+    },
+    {
+      "name": "Add reviewers to a specific pull request",
+      "slug": "GITHUB_REQUEST_REVIEWERS_FOR_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Rerequest a check run",
+      "slug": "GITHUB_REREQUEST_A_CHECK_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Rerequest a check suite",
+      "slug": "GITHUB_REREQUEST_A_CHECK_SUITE",
+      "kind": "write"
+    },
+    {
+      "name": "Re-run a job from a workflow run",
+      "slug": "GITHUB_RE_RUN_A_JOB_FROM_A_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Rerun a workflow",
+      "slug": "GITHUB_RE_RUN_A_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Rerun failed jobs from a workflow run",
+      "slug": "GITHUB_RE_RUN_FAILED_JOBS_FROM_A_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Reset a token",
+      "slug": "GITHUB_RESET_A_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a package for an organization",
+      "slug": "GITHUB_RESTORE_A_PACKAGE_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a package for a user",
+      "slug": "GITHUB_RESTORE_A_PACKAGE_FOR_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a package for the authenticated user",
+      "slug": "GITHUB_RESTORE_A_PACKAGE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a package version for the authenticated user",
+      "slug": "GITHUB_RESTORE_A_PACKAGE_VERSION_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Restore package version for an organization",
+      "slug": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Restore package version for a user",
+      "slug": "GITHUB_RESTORE_PACKAGE_VERSION_FOR_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Retire Sponsors Tier",
+      "slug": "GITHUB_RETIRE_SPONSORS_TIER",
+      "kind": "write"
+    },
+    {
+      "name": "Review access with personal token",
+      "slug": "GITHUB_REVIEW_ACCESS_WITH_PERSONAL_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Review Custom Deployment Rules For Workflow Run",
+      "slug": "GITHUB_REVIEW_DEPLOYMENT_PROTECTION_RULES",
+      "kind": "write"
+    },
+    {
+      "name": "Review pending deployments for a workflow run",
+      "slug": "GITHUB_REVIEW_PENDING_DEPLOYMENTS_FOR_A_WORKFLOW_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Review PAT Requests in Bulk",
+      "slug": "GITHUB_REVIEW_RESOURCE_REQUESTS_WITH_FINE_GRAINED_TOKENS",
+      "kind": "write"
+    },
+    {
+      "name": "Revoke an installation access token",
+      "slug": "GITHUB_REVOKE_AN_INSTALLATION_ACCESS_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Run GraphQL Query",
+      "slug": "GITHUB_RUN_GRAPH_QL_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Run GraphQL Relay Query",
+      "slug": "GITHUB_RUN_GRAPH_QL_RELAY_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Search code",
+      "slug": "GITHUB_SEARCH_CODE",
+      "kind": "read"
+    },
+    {
+      "name": "Search code (all pages)",
+      "slug": "GITHUB_SEARCH_CODE_ALL_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Search commits",
+      "slug": "GITHUB_SEARCH_COMMITS",
+      "kind": "read"
+    },
+    {
+      "name": "Search commits by author across repos",
+      "slug": "GITHUB_SEARCH_COMMITS_BY_AUTHOR",
+      "kind": "read"
+    },
+    {
+      "name": "GitHub GraphQL Search",
+      "slug": "GITHUB_SEARCH_GITHUB_GRAPHQL",
+      "kind": "read"
+    },
+    {
+      "name": "Search issues and pull requests",
+      "slug": "GITHUB_SEARCH_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "Search issues and pull requests",
+      "slug": "GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search labels",
+      "slug": "GITHUB_SEARCH_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "Search repositories",
+      "slug": "GITHUB_SEARCH_REPOSITORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Search topics",
+      "slug": "GITHUB_SEARCH_TOPICS",
+      "kind": "read"
+    },
+    {
+      "name": "Search users",
+      "slug": "GITHUB_SEARCH_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Set admin branch protection",
+      "slug": "GITHUB_SET_ADMIN_BRANCH_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Set app access restrictions",
+      "slug": "GITHUB_SET_APP_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Set a repository subscription",
+      "slug": "GITHUB_SET_A_REPOSITORY_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Set a thread subscription",
+      "slug": "GITHUB_SET_A_THREAD_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Set default workflow permissions for an organization",
+      "slug": "GITHUB_SET_DEFAULT_WORKFLOW_PERMISSIONS_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Set default workflow permissions for a repository",
+      "slug": "GITHUB_SET_DEFAULT_WORKFLOW_PERMISSIONS_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Set primary email visibility",
+      "slug": "GITHUB_SET_EMAIL_VISIBILITY",
+      "kind": "write"
+    },
+    {
+      "name": "Set GitHub Actions permissions for an organization",
+      "slug": "GITHUB_SET_GITHUB_ACTIONS_PERMISSIONS_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Set github actions permissions for a repository",
+      "slug": "GITHUB_SET_GITHUB_ACTIONS_PERMISSIONS_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Set interaction restrictions for an organization",
+      "slug": "GITHUB_SET_INTERACTION_RESTRICTIONS_FOR_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Set interaction restrictions for a repository",
+      "slug": "GITHUB_SET_INTERACTION_RESTRICTIONS_FOR_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Set interaction restrictions for your public repositories",
+      "slug": "GITHUB_SET_INTERACTION_RESTRICTIONS_FOR_YOUR_PUBLIC_REPOS",
+      "kind": "write"
+    },
+    {
+      "name": "Set labels for an issue",
+      "slug": "GITHUB_SET_LABELS_FOR_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Set custom OIDC subject claim template",
+      "slug": "GITHUB_SET_OIDC_SUBJECT_CLAIM_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Set allowed actions and workflows for an organization",
+      "slug": "GITHUB_SET_ORG_ALLOWED_ACTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Set custom labels for a self-hosted runner for an organization",
+      "slug": "GITHUB_SET_ORG_RUNNER_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Set repo allowed actions",
+      "slug": "GITHUB_SET_REPO_ALLOWED_ACTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Set custom labels for repo runner",
+      "slug": "GITHUB_SET_REPO_RUNNER_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Set selected repositories for an organization variable",
+      "slug": "GITHUB_SET_SELECTED_REPOS_FOR_ORG_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Set selected repositories for an organization secret",
+      "slug": "GITHUB_SET_SELECTED_REPOSITORIES_FOR_AN_ORGANIZATION_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Set selected repositories for a user secret",
+      "slug": "GITHUB_SET_SELECTED_REPOSITORIES_FOR_A_USER_SECRET",
+      "kind": "write"
+    },
+    {
+      "name": "Set status check contexts",
+      "slug": "GITHUB_SET_STATUS_CHECK_CONTEXTS",
+      "kind": "write"
+    },
+    {
+      "name": "Set team access restrictions",
+      "slug": "GITHUB_SET_TEAM_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Set user access restrictions",
+      "slug": "GITHUB_SET_USER_ACCESS_RESTRICTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Set User Interaction Limit (GraphQL)",
+      "slug": "GITHUB_SET_USER_INTERACTION_LIMIT_GRAPH_QL",
+      "kind": "write"
+    },
+    {
+      "name": "Set workflow access level outside repository",
+      "slug": "GITHUB_SET_WORKFLOW_EXTERNAL_ACCESS",
+      "kind": "write"
+    },
+    {
+      "name": "Star a gist",
+      "slug": "GITHUB_STAR_A_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Star a specified repository (requires owner and repo)",
+      "slug": "GITHUB_STAR_A_REPOSITORY_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Start a codespace for the authenticated user",
+      "slug": "GITHUB_START_A_CODESPACE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Stop a codespace for an organization user",
+      "slug": "GITHUB_STOP_A_CODESPACE_FOR_AN_ORGANIZATION_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Stop a codespace for the authenticated user",
+      "slug": "GITHUB_STOP_A_CODESPACE_FOR_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Submit a review for a pull request",
+      "slug": "GITHUB_SUBMIT_A_REVIEW_FOR_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Sync a fork branch with the upstream repository",
+      "slug": "GITHUB_SYNC_FORK_BRANCH_WITH_UPSTREAM",
+      "kind": "write"
+    },
+    {
+      "name": "Test the push repository webhook",
+      "slug": "GITHUB_TEST_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Transfer a repository",
+      "slug": "GITHUB_TRANSFER_A_REPOSITORY",
+      "kind": "send"
+    },
+    {
+      "name": "Unblock a user",
+      "slug": "GITHUB_UNBLOCK_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Unblock a user from an organization",
+      "slug": "GITHUB_UNBLOCK_USER_FROM_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Unfollow a user",
+      "slug": "GITHUB_UNFOLLOW_A_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Unfollow organization",
+      "slug": "GITHUB_UNFOLLOW_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Unfollow user",
+      "slug": "GITHUB_UNFOLLOW_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Unlock an issue",
+      "slug": "GITHUB_UNLOCK_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Unlock an organization repository",
+      "slug": "GITHUB_UNLOCK_ORGANIZATION_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Unlock a user repository",
+      "slug": "GITHUB_UNLOCK_USER_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Unstar a gist",
+      "slug": "GITHUB_UNSTAR_A_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Unstar a repository",
+      "slug": "GITHUB_UNSTAR_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Update a check run",
+      "slug": "GITHUB_UPDATE_A_CHECK_RUN",
+      "kind": "write"
+    },
+    {
+      "name": "Update a code scanning alert",
+      "slug": "GITHUB_UPDATE_A_CODE_SCANNING_ALERT",
+      "kind": "write"
+    },
+    {
+      "name": "Update a commit comment",
+      "slug": "GITHUB_UPDATE_A_COMMIT_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update a custom organization role",
+      "slug": "GITHUB_UPDATE_A_CUSTOM_ORGANIZATION_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a deployment branch policy",
+      "slug": "GITHUB_UPDATE_A_DEPLOYMENT_BRANCH_POLICY",
+      "kind": "write"
+    },
+    {
+      "name": "Update a discussion",
+      "slug": "GITHUB_UPDATE_A_DISCUSSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a discussion comment",
+      "slug": "GITHUB_UPDATE_A_DISCUSSION_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update a gist",
+      "slug": "GITHUB_UPDATE_A_GIST",
+      "kind": "write"
+    },
+    {
+      "name": "Update a gist comment",
+      "slug": "GITHUB_UPDATE_A_GIST_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update a label",
+      "slug": "GITHUB_UPDATE_A_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Update a milestone",
+      "slug": "GITHUB_UPDATE_A_MILESTONE",
+      "kind": "write"
+    },
+    {
+      "name": "Update an environment variable",
+      "slug": "GITHUB_UPDATE_AN_ENVIRONMENT_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update an issue",
+      "slug": "GITHUB_UPDATE_AN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Update an issue comment",
+      "slug": "GITHUB_UPDATE_AN_ISSUE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update an organization",
+      "slug": "GITHUB_UPDATE_AN_ORGANIZATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update an organization variable",
+      "slug": "GITHUB_UPDATE_AN_ORGANIZATION_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update an organization webhook",
+      "slug": "GITHUB_UPDATE_AN_ORGANIZATION_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Update a project",
+      "slug": "GITHUB_UPDATE_A_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Update a pull request",
+      "slug": "GITHUB_UPDATE_A_PULL_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Update a pull request branch",
+      "slug": "GITHUB_UPDATE_A_PULL_REQUEST_BRANCH",
+      "kind": "write"
+    },
+    {
+      "name": "Update a reference",
+      "slug": "GITHUB_UPDATE_A_REFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a release",
+      "slug": "GITHUB_UPDATE_A_RELEASE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a release asset",
+      "slug": "GITHUB_UPDATE_A_RELEASE_ASSET",
+      "kind": "write"
+    },
+    {
+      "name": "Update a repository",
+      "slug": "GITHUB_UPDATE_A_REPOSITORY",
+      "kind": "write"
+    },
+    {
+      "name": "Update a repository invitation",
+      "slug": "GITHUB_UPDATE_A_REPOSITORY_INVITATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a repository ruleset",
+      "slug": "GITHUB_UPDATE_A_REPOSITORY_RULESET",
+      "kind": "write"
+    },
+    {
+      "name": "Update a repository variable",
+      "slug": "GITHUB_UPDATE_A_REPOSITORY_VARIABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a repository webhook",
+      "slug": "GITHUB_UPDATE_A_REPOSITORY_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Update a team",
+      "slug": "GITHUB_UPDATE_A_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Update branch protection",
+      "slug": "GITHUB_UPDATE_BRANCH_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a code scanning default setup configuration",
+      "slug": "GITHUB_UPDATE_CODE_SCANNING_DEFAULT_SETUP",
+      "kind": "write"
+    },
+    {
+      "name": "Update a codespace for the authenticated user",
+      "slug": "GITHUB_UPDATE_CODESPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Git LFS Preference",
+      "slug": "GITHUB_UPDATE_GIT_LFS_PREFERENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update issue type",
+      "slug": "GITHUB_UPDATE_ISSUE_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a webhook configuration for an organization",
+      "slug": "GITHUB_UPDATE_ORGANIZATION_WEBHOOK_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update an existing project card (Classic - Deprecated)",
+      "slug": "GITHUB_UPDATE_PROJECT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Update an existing project column (Classic - Deprecated)",
+      "slug": "GITHUB_UPDATE_PROJECT_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Update a review for a pull request",
+      "slug": "GITHUB_UPDATE_PULL_REQUEST_REVIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Update a review comment for a pull request",
+      "slug": "GITHUB_UPDATE_PULL_REQUEST_REVIEW_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update pull request review protection",
+      "slug": "GITHUB_UPDATE_PULL_REQUEST_REVIEW_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update repository preferences for check suites",
+      "slug": "GITHUB_UPDATE_REPOSITORY_PREFERENCES_FOR_CHECK_SUITES",
+      "kind": "write"
+    },
+    {
+      "name": "Update a webhook configuration for a repository",
+      "slug": "GITHUB_UPDATE_REPOSITORY_WEBHOOK_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update resource access with tokens",
+      "slug": "GITHUB_UPDATE_RESOURCE_ACCESS_WITH_TOKENS",
+      "kind": "write"
+    },
+    {
+      "name": "Update status check protection",
+      "slug": "GITHUB_UPDATE_STATUS_CHECK_PROTECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Subscription",
+      "slug": "GITHUB_UPDATE_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update the authenticated user",
+      "slug": "GITHUB_UPDATE_THE_AUTHENTICATED_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Revoke Token Organization Access",
+      "slug": "GITHUB_UPDATE_TOKEN_ORG_ACCESS",
+      "kind": "write"
+    },
+    {
+      "name": "Update User List",
+      "slug": "GITHUB_UPDATE_USER_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Update user lists for item",
+      "slug": "GITHUB_UPDATE_USER_LISTS_FOR_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Project V2 Item for User",
+      "slug": "GITHUB_UPDATE_USER_PROJECT_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Change User Status",
+      "slug": "GITHUB_UPDATE_USER_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Upload a release asset",
+      "slug": "GITHUB_UPLOAD_RELEASE_ASSET",
+      "kind": "write"
+    },
+    {
+      "name": "Upload an analysis as sarif data",
+      "slug": "GITHUB_UPLOAD_SARIF_ANALYSIS",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update repository custom property values",
+      "slug": "GITHUB_UPSERT_REPO_CUSTOM_PROPERTY_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Validate credential",
+      "slug": "GITHUB_VALIDATE_CREDENTIAL",
+      "kind": "write"
+    },
+    {
+      "name": "Verify dev container permissions accepted",
+      "slug": "GITHUB_VERIFY_DEV_CONTAINER_PERMISSIONS_ACCEPTED",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "GITHUB_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/github",
+  "fetched_at": "2026-11-12"
+}

@@ -1,0 +1,49 @@
+{
+  "path": "/for/product-managers",
+  "type": "role",
+  "title": "AI assistant for product managers: tickets to decisions",
+  "nav": "product managers",
+  "h1": "an ai assistant for product managers with scattered context",
+  "description": "Read Linear, Jira and Slack together without letting a bot run the roadmap. Copy routines for blockers, feedback evidence and release update drafts.",
+  "keyword": "ai agent for product managers",
+  "keywords": ["ai assistant for project managers", "claude jira", "claude linear"],
+  "answer": "give a product bot a named project and a few relevant channels. it can read linear or jira issues, find the discussion behind them in slack and bring back a short list of decisions that need you. keep the bot read-only at first. the useful handoff is evidence and a proposed next step, with prioritisation and delivery promises still owned by your team.",
+  "updated": "2026-11-12",
+  "review": { "status": "needs_review" },
+  "tags": ["product", "role", "issues", "feedback", "releases"],
+  "connectors": ["linear", "jira", "slack"],
+  "related": ["/integrations/linear", "/integrations/jira", "/routines/slack-channel-digest"],
+  "art": { "props": ["p-chart", "p-bubbles"], "bubble": "one decision needed" },
+  "og_line": "bring the evidence to the next decision.",
+  "day_h": "from morning blockers to a release note",
+  "day": [
+    { "when": "before standup", "what": "review unresolved issues in one project and pull out explicit blockers from their comments" },
+    { "when": "after customer feedback", "what": "ask the bot to find related tickets, keeping the customer's request separate from the proposed solution" },
+    { "when": "before planning", "what": "compare a small set of jira or linear issues and list missing acceptance criteria, without changing estimates" },
+    { "when": "after shipping", "what": "draft a release update from the issues you confirm shipped, with uncertainty called out" },
+    { "when": "end of day", "what": "read a [slack channel digest](/routines/slack-channel-digest) for decisions and open questions in the channels you chose" }
+  ],
+  "pack": [
+    { "name": "the standup evidence list", "message": "every weekday at 8:45, read open issues and comments in the linear project i named. show only explicit blockers, unanswered questions and work needing a decision from me. link each item to its issue and say who last raised it. don't infer that quiet work is blocked. don't change status, priority, assignees or estimates.", "note": "use [linear](/integrations/linear) reads; swap in one named jira project if that is your team's source" },
+    { "name": "the feedback trail", "message": "every tuesday at 2, read the past week's messages in the slack feedback channel i chose. group requests by the problem described. search the jira project i named for related issues. give me the message reference and issue reference together, distinguishing a possible match from a confirmed one. propose questions for discovery; create nothing.", "note": "[jira](/integrations/jira) issue searches and slack history are enough; no ticket-writing access needed" },
+    { "name": "the release update draft", "message": "every friday at noon, read the release issue list i supplied and its latest comments. draft a short update here: confirmed shipped work, unresolved rollout questions and what i need to verify. don't treat a closed ticket as proof a customer can use the feature. don't post the update or edit the roadmap.", "note": "give the bot the exact release scope so it does not combine unrelated teams' work" }
+  ],
+  "sections": [
+    { "h": "choose one home for each fact", "md": "tell the bot which tracker owns delivery status and which slack channels carry discussion. a copied ticket in another system should not become a second vote that the same work shipped. name project boundaries in the routine, not just a broad keyword.\n\nthe connector catalogs support reading issues and comments in both trackers. you do not need to connect both if your team uses only one. a smaller source set makes a missing or contradictory detail easier to spot." },
+    { "h": "ask for the disagreement, not a smoother story", "md": "a useful product brief preserves conflict. if a ticket says one thing and a later message says another, ask the bot to show both references and leave the conclusion open. include the date of the evidence so an old decision does not sound current.\n\nleave priority calls to the people who understand the tradeoffs. a list of repeated requests can inform discovery, but repetition alone is not a reason to move an item ahead of reliability, accessibility or an existing commitment." },
+    { "h": "read first, publish deliberately", "md": "set tracker and slack permissions to read-only in **Connected apps** for this pack. the bot can report in its own chat without editing tickets or announcing dates. if you later allow tracker changes, add \"ask me before you change anything\" to the instructions. those changes are not covered by the sending prompt.\n\nsending a slack message asks first unless you choose a daily sending amount. company work also needs a work license; the app's free personal use does not cover running product work. see [account and billing](/docs/account-and-billing)." }
+  ],
+  "faq": [
+    { "q": "what would a product manager actually schedule an ai to do?", "a": "collect evidence for standup, connect feedback to existing issues and prepare a release update for review. start with work whose result you can check against a handful of source links." },
+    { "q": "can it work with jira instead of linear?", "a": "yes. the jira catalog includes issue search, issue reads and comments. name the project and rewrite the routine around your jira scope; connecting linear is optional." },
+    { "q": "will it update tickets while summarising them?", "a": "with read-only access it cannot. keep that permission while trying the pack. granting write access later is a separate choice, so give explicit instructions about which changes need your review." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: connected apps and permissions", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: account and billing", "url": "/docs/account-and-billing" },
+    { "label": "composio: linear actions", "url": "https://docs.composio.dev/toolkits/linear", "checked": "2026-11-12" },
+    { "label": "composio: jira actions", "url": "https://docs.composio.dev/toolkits/jira", "checked": "2026-11-12" },
+    { "label": "composio: slack actions", "url": "https://docs.composio.dev/toolkits/slack", "checked": "2026-11-12" }
+  ]
+}

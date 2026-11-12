@@ -1,0 +1,318 @@
+{
+  "toolkit": "notion",
+  "name": "Notion",
+  "version": "20261101_00",
+  "description": "Notion centralizes notes, docs, wikis, and tasks in a unified workspace, letting teams build custom workflows for collaboration and knowledge management",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 60,
+  "triggers_count": 8,
+  "tools": [
+    {
+      "name": "Add multiple content blocks (bulk, user-friendly)",
+      "slug": "NOTION_ADD_MULTIPLE_PAGE_CONTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Add single content block to Notion page (Deprecated)",
+      "slug": "NOTION_ADD_PAGE_CONTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Append raw Notion blocks (advanced API)",
+      "slug": "NOTION_APPEND_BLOCK_CHILDREN",
+      "kind": "write"
+    },
+    {
+      "name": "Append code blocks (code, quote, equation)",
+      "slug": "NOTION_APPEND_CODE_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Append layout blocks (divider, TOC, columns)",
+      "slug": "NOTION_APPEND_LAYOUT_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Append media blocks (image, video, audio, files)",
+      "slug": "NOTION_APPEND_MEDIA_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Append table blocks",
+      "slug": "NOTION_APPEND_TABLE_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Append task blocks (to-do, toggle, callout)",
+      "slug": "NOTION_APPEND_TASK_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Append text blocks (paragraphs, headings, lists)",
+      "slug": "NOTION_APPEND_TEXT_BLOCKS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive Notion Page",
+      "slug": "NOTION_ARCHIVE_NOTION_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create comment",
+      "slug": "NOTION_CREATE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Notion Database",
+      "slug": "NOTION_CREATE_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Notion file upload",
+      "slug": "NOTION_CREATE_FILE_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Notion page",
+      "slug": "NOTION_CREATE_NOTION_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Notion view",
+      "slug": "NOTION_CREATE_VIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Create Notion view query",
+      "slug": "NOTION_CREATE_VIEW_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a block",
+      "slug": "NOTION_DELETE_BLOCK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Notion view",
+      "slug": "NOTION_DELETE_VIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Notion view query",
+      "slug": "NOTION_DELETE_VIEW_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Duplicate page",
+      "slug": "NOTION_DUPLICATE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Fetch All Notion Block Contents",
+      "slug": "NOTION_FETCH_ALL_BLOCK_CONTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Notion Block Children",
+      "slug": "NOTION_FETCH_BLOCK_CONTENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Notion block metadata",
+      "slug": "NOTION_FETCH_BLOCK_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch comments",
+      "slug": "NOTION_FETCH_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Notion Data",
+      "slug": "NOTION_FETCH_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Database",
+      "slug": "NOTION_FETCH_DATABASE",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch database row",
+      "slug": "NOTION_FETCH_ROW",
+      "kind": "read"
+    },
+    {
+      "name": "Get About Me (Deprecated)",
+      "slug": "NOTION_GET_ABOUT_ME",
+      "kind": "read"
+    },
+    {
+      "name": "Get about user",
+      "slug": "NOTION_GET_ABOUT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get page markdown",
+      "slug": "NOTION_GET_PAGE_MARKDOWN",
+      "kind": "read"
+    },
+    {
+      "name": "Get page property",
+      "slug": "NOTION_GET_PAGE_PROPERTY_ACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get plugin",
+      "slug": "NOTION_GET_PLUGIN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Notion view query results",
+      "slug": "NOTION_GET_VIEW_QUERY_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Insert row database",
+      "slug": "NOTION_INSERT_ROW_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Insert Row From Natural Language",
+      "slug": "NOTION_INSERT_ROW_FROM_NL",
+      "kind": "write"
+    },
+    {
+      "name": "List data source templates",
+      "slug": "NOTION_LIST_DATA_SOURCE_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List Notion file uploads",
+      "slug": "NOTION_LIST_FILE_UPLOADS",
+      "kind": "read"
+    },
+    {
+      "name": "List plugins",
+      "slug": "NOTION_LIST_PLUGINS",
+      "kind": "read"
+    },
+    {
+      "name": "List users",
+      "slug": "NOTION_LIST_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Notion views",
+      "slug": "NOTION_LIST_VIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "Move Page",
+      "slug": "NOTION_MOVE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Query database",
+      "slug": "NOTION_QUERY_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Query database with filter",
+      "slug": "NOTION_QUERY_DATABASE_WITH_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Query data source",
+      "slug": "NOTION_QUERY_DATA_SOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Replace page content (with backup)",
+      "slug": "NOTION_REPLACE_PAGE_CONTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Comment",
+      "slug": "NOTION_RETRIEVE_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Database Property",
+      "slug": "NOTION_RETRIEVE_DATABASE_PROPERTY",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Notion file upload",
+      "slug": "NOTION_RETRIEVE_FILE_UPLOAD",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve page",
+      "slug": "NOTION_RETRIEVE_PAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Notion view",
+      "slug": "NOTION_RETRIEVE_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "Search Notion pages and databases",
+      "slug": "NOTION_SEARCH_NOTION_PAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Send file upload",
+      "slug": "NOTION_SEND_FILE_UPLOAD",
+      "kind": "send"
+    },
+    {
+      "name": "Update block",
+      "slug": "NOTION_UPDATE_BLOCK",
+      "kind": "write"
+    },
+    {
+      "name": "Update Page",
+      "slug": "NOTION_UPDATE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update page markdown",
+      "slug": "NOTION_UPDATE_PAGE_MARKDOWN",
+      "kind": "write"
+    },
+    {
+      "name": "Update Database Row (Page)",
+      "slug": "NOTION_UPDATE_ROW_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Update database schema",
+      "slug": "NOTION_UPDATE_SCHEMA_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Notion view",
+      "slug": "NOTION_UPDATE_VIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert database rows",
+      "slug": "NOTION_UPSERT_ROW_DATABASE",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "NOTION_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/notion",
+  "fetched_at": "2026-11-12"
+}

@@ -1,0 +1,258 @@
+{
+  "toolkit": "linear",
+  "name": "Linear",
+  "version": "20261101_00",
+  "description": "Linear is a streamlined issue tracking and project planning tool for modern teams, featuring fast workflows, keyboard shortcuts, and GitHub integrations",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 48,
+  "triggers_count": 12,
+  "tools": [
+    {
+      "name": "Archive issue",
+      "slug": "LINEAR_ARCHIVE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Archive Project",
+      "slug": "LINEAR_ARCHIVE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Archive Project Update",
+      "slug": "LINEAR_ARCHIVE_PROJECT_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create attachment",
+      "slug": "LINEAR_CREATE_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Add reaction to comment",
+      "slug": "LINEAR_CREATE_COMMENT_REACTION",
+      "kind": "send"
+    },
+    {
+      "name": "Create a comment",
+      "slug": "LINEAR_CREATE_LINEAR_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create linear issue",
+      "slug": "LINEAR_CREATE_LINEAR_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Create issue relation",
+      "slug": "LINEAR_CREATE_LINEAR_ISSUE_RELATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a label",
+      "slug": "LINEAR_CREATE_LINEAR_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project",
+      "slug": "LINEAR_CREATE_LINEAR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project Milestone",
+      "slug": "LINEAR_CREATE_PROJECT_MILESTONE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project Update",
+      "slug": "LINEAR_CREATE_PROJECT_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Team",
+      "slug": "LINEAR_CREATE_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete issue",
+      "slug": "LINEAR_DELETE_LINEAR_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Get all teams (Deprecated)",
+      "slug": "LINEAR_GET_ALL_LINEAR_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "Download issue files",
+      "slug": "LINEAR_GET_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a comment",
+      "slug": "LINEAR_GET_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get current user",
+      "slug": "LINEAR_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get cycles by team ID",
+      "slug": "LINEAR_GET_CYCLES_BY_TEAM_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get create issue default params",
+      "slug": "LINEAR_GET_ISSUE_DEFAULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Linear issue",
+      "slug": "LINEAR_GET_LINEAR_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Linear project",
+      "slug": "LINEAR_GET_LINEAR_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Update",
+      "slug": "LINEAR_GET_PROJECT_UPDATE",
+      "kind": "read"
+    },
+    {
+      "name": "List comments",
+      "slug": "LINEAR_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List issue drafts",
+      "slug": "LINEAR_LIST_ISSUE_DRAFTS",
+      "kind": "read"
+    },
+    {
+      "name": "List issues by team ID",
+      "slug": "LINEAR_LIST_ISSUES_BY_TEAM_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get all cycles",
+      "slug": "LINEAR_LIST_LINEAR_CYCLES",
+      "kind": "read"
+    },
+    {
+      "name": "List Linear issues",
+      "slug": "LINEAR_LIST_LINEAR_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "Get labels",
+      "slug": "LINEAR_LIST_LINEAR_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "List linear projects",
+      "slug": "LINEAR_LIST_LINEAR_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Linear states",
+      "slug": "LINEAR_LIST_LINEAR_STATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get teams",
+      "slug": "LINEAR_LIST_LINEAR_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Linear users",
+      "slug": "LINEAR_LIST_LINEAR_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List project updates",
+      "slug": "LINEAR_LIST_PROJECT_UPDATES",
+      "kind": "read"
+    },
+    {
+      "name": "Remove label from Linear issue",
+      "slug": "LINEAR_REMOVE_ISSUE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Remove reaction from comment",
+      "slug": "LINEAR_REMOVE_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Resolve comment",
+      "slug": "LINEAR_RESOLVE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Run Query or Mutation",
+      "slug": "LINEAR_RUN_QUERY_OR_MUTATION",
+      "kind": "write"
+    },
+    {
+      "name": "Search Linear issues",
+      "slug": "LINEAR_SEARCH_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "Unarchive Project Update",
+      "slug": "LINEAR_UNARCHIVE_PROJECT_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Unresolve a comment",
+      "slug": "LINEAR_UNRESOLVE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update issue",
+      "slug": "LINEAR_UPDATE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a comment",
+      "slug": "LINEAR_UPDATE_LINEAR_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Project",
+      "slug": "LINEAR_UPDATE_LINEAR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Project Update",
+      "slug": "LINEAR_UPDATE_PROJECT_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Team",
+      "slug": "LINEAR_UPDATE_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Validate credential",
+      "slug": "LINEAR_VALIDATE_CREDENTIAL",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "LINEAR_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/linear",
+  "fetched_at": "2026-11-12"
+}

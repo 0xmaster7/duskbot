@@ -1,0 +1,162 @@
+{
+  "toolkit": "linkedin",
+  "name": "LinkedIn",
+  "version": "20261101_00",
+  "description": "LinkedIn is a professional networking platform enabling job seekers, companies, and thought leaders to connect, share content, and discover business opportunities",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 29,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Create article or URL share",
+      "slug": "LINKEDIN_CREATE_ARTICLE_OR_URL_SHARE",
+      "kind": "send"
+    },
+    {
+      "name": "Create comment on LinkedIn post",
+      "slug": "LINKEDIN_CREATE_COMMENT_ON_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Create a LinkedIn post",
+      "slug": "LINKEDIN_CREATE_LINKED_IN_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Create video post",
+      "slug": "LINKEDIN_CREATE_VIDEO_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "LINKEDIN_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete LinkedIn Post",
+      "slug": "LINKEDIN_DELETE_LINKED_IN_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Delete Post",
+      "slug": "LINKEDIN_DELETE_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Delete UGC Post (Legacy)",
+      "slug": "LINKEDIN_DELETE_UGC_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Get ad targeting facets",
+      "slug": "LINKEDIN_GET_AD_TARGETING_FACETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get audience counts",
+      "slug": "LINKEDIN_GET_AUDIENCE_COUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get company info",
+      "slug": "LINKEDIN_GET_COMPANY_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get group definition",
+      "slug": "LINKEDIN_GET_GROUP_DEFINITION",
+      "kind": "read"
+    },
+    {
+      "name": "Get image details",
+      "slug": "LINKEDIN_GET_IMAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get images",
+      "slug": "LINKEDIN_GET_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Get my info",
+      "slug": "LINKEDIN_GET_MY_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get network size",
+      "slug": "LINKEDIN_GET_NETWORK_SIZE",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization page statistics",
+      "slug": "LINKEDIN_GET_ORG_PAGE_STATS",
+      "kind": "read"
+    },
+    {
+      "name": "Get person profile",
+      "slug": "LINKEDIN_GET_PERSON",
+      "kind": "read"
+    },
+    {
+      "name": "Get post content",
+      "slug": "LINKEDIN_GET_POST_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get share statistics",
+      "slug": "LINKEDIN_GET_SHARE_STATS",
+      "kind": "read"
+    },
+    {
+      "name": "Get videos",
+      "slug": "LINKEDIN_GET_VIDEOS",
+      "kind": "read"
+    },
+    {
+      "name": "Initialize document upload",
+      "slug": "LINKEDIN_INITIALIZE_DOCUMENT_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Initialize image upload",
+      "slug": "LINKEDIN_INITIALIZE_IMAGE_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "List reactions on entity",
+      "slug": "LINKEDIN_LIST_REACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Register image upload",
+      "slug": "LINKEDIN_REGISTER_IMAGE_UPLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Search ad targeting entities",
+      "slug": "LINKEDIN_SEARCH_AD_TARGETING_ENTITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Upload document",
+      "slug": "LINKEDIN_UPLOAD_DOCUMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Upload video",
+      "slug": "LINKEDIN_UPLOAD_VIDEO",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "LINKEDIN_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/linkedin",
+  "fetched_at": "2026-11-12"
+}

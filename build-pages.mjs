@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { DuskPixel, CROWD, COLOURS, bodyName, colourName } from './mascot-src/pixel/crowd.js';
 import { buildDocs } from './build-docs.mjs';
+import { buildSeo, seoFooter } from './seo/build-seo.mjs';
+import { writeSitemaps, robotsTxt } from './seo/sitemaps.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, 'public', 'landing');
@@ -226,13 +228,15 @@ const FOOT = [
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/license', 'license']]],
 ];
+// the seo hubs (seo/), once any of their pages is live
+{ const hubs = seoFooter(); if (hubs.length) FOOT.splice(2, 0, ['guides', hubs]); }
 const OG = { home: 'og-home.jpg' };
 const ogImage = (name) => `${SITE_URL}/art/${OG[name] || (has(`art/og-${name}.jpg`) ? `og-${name}.jpg` : 'og.jpg')}`;
 const ld = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 
 // page: its name (home, download, docs ...); at: its address on the site; section: the nav item it sits under;
 // kind: extra classes on <main>; scripts, styles: more files after the shared ones; jsonld: structured data for search engines
-export function layout({ title, description, body, page, at, section = page, og = section, kind = '', scripts = [], styles = [], jsonld = [], noindex = false }) {
+export function layout({ title, description, body, page, at, section = page, og = section, ogImage: ogFile, ogType = 'website', ogAlt, kind = '', scripts = [], styles = [], jsonld = [], noindex = false }) {
   const home = page === 'home';
   const address = at ?? (home ? '/' : `/${page}`);
   const here_ = (href) => (href === address ? ' aria-current="page"' : href === `/${section}` ? ' class="is-here"' : '');
@@ -252,17 +256,17 @@ export function layout({ title, description, body, page, at, section = page, og 
 <meta name="description" content="${esc(description)}">
 <meta name="theme-color" content="#ffffff">${noindex ? '\n<meta name="robots" content="noindex">' : `\n<link rel="canonical" href="${SITE_URL}${address === '/' ? '/' : address}">`}
 <meta property="og:site_name" content="Dusk Bot">
-<meta property="og:type" content="website">
+<meta property="og:type" content="${ogType}">
 <meta property="og:url" content="${SITE_URL}${address}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:image" content="${ogImage(og)}">
+<meta property="og:image" content="${ogFile ? SITE_URL + ogFile : ogImage(og)}">${ogAlt ? `\n<meta property="og:image:alt" content="${esc(ogAlt)}">` : ''}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
-<meta name="twitter:image" content="${ogImage(og)}">
+<meta name="twitter:image" content="${ogFile ? SITE_URL + ogFile : ogImage(og)}">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" href="${stamped('art/icon-192.png')}" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="${stamped('art/apple-touch-icon.png')}">
@@ -291,11 +295,11 @@ ${trackerTag()}${tail}
 
 // every page that is written, for the sitemap and the log
 const built = [];
-function write(address, html, { index = true } = {}) {
+function write(address, html, { index = true, group = 'core', lastmodKey } = {}) {
   const file = address === '/' ? path.join(site, 'index.html') : address.endsWith('.html') ? path.join(site, address) : path.join(site, address, 'index.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
-  built.push({ address, index });
+  built.push({ address, index, group, lastmodKey: lastmodKey || html });
 }
 const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 // the questions on a page, as schema.org wants them: from <details><summary>q</summary>…a…</details>
@@ -303,6 +307,8 @@ const faqLd = (html) => {
   const qs = [...html.matchAll(/<details[^>]*><summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g)].map((m) => ({ '@type': 'Question', name: text(m[1]), acceptedAnswer: { '@type': 'Answer', text: text(m[2]) } }));
   return qs.length ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qs }] : [];
 };
+// who makes the site, on the home and about pages; sameAs lists only profiles the site itself links to
+const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: 'Dusk Bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png`, email: 'hello@dusk.bot', sameAs: ['https://x.com/duskbot_hq'] };
 const appLd = {
   '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Dusk Bot', url: `${SITE_URL}/`, image: `${SITE_URL}/art/og.jpg`,
   applicationCategory: 'ProductivityApplication', operatingSystem: 'macOS, Windows, Linux',
@@ -319,7 +325,7 @@ const pages = JSON.parse(fs.readFileSync(path.join(here, 'pages.json'), 'utf8'))
 for (const page of pages) {
   const body = withStrips(fs.readFileSync(path.join(here, 'pages', `${page.name}.html`), 'utf8'));
   const at = page.name === 'home' ? '/' : page.name === '404' ? '/404.html' : `/${page.name}`;
-  const jsonld = page.name === 'home' ? [appLd, ...faqLd(macros(body))] : faqLd(macros(body));
+  const jsonld = page.name === 'home' ? [appLd, orgLd, ...faqLd(macros(body))] : page.name === 'about' ? [orgLd, ...faqLd(macros(body))] : faqLd(macros(body));
   write(at, layout({ ...page, page: page.name, at, kind: page.kind || `p-${page.name}`, body, jsonld, noindex: page.name === '404' }), { index: page.name !== '404' });
 }
 
@@ -361,16 +367,24 @@ for (const [name, colour] of CREW) fs.writeFileSync(path.join(bots_, `${name}.sv
 fs.writeFileSync(path.join(bots_, 'kit-white.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400" shape-rendering="crispEdges">${pixelBot('kit').replace('fill="#fff" d', 'fill="#212121" d').replace('currentColor', '#fff')}</svg>\n`);
 
 const docs = buildDocs({ here, site, markdown, layout, macros, strip, slug, text, write, esc, icon });
+const seo = buildSeo({ site, markdown, layout, macros, text, write, esc, icon, bot, SITE_URL, release });
 
 // the rest of what a site answers: where robots may go, every page, the installable-app manifest, and the short addresses
-fs.writeFileSync(path.join(site, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /demo/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
-fs.writeFileSync(path.join(site, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${built.filter((p) => p.index).map((p) => `  <url><loc>${SITE_URL}${p.address}</loc></url>`).join('\n')}\n</urlset>\n`);
+fs.writeFileSync(path.join(site, 'robots.txt'), robotsTxt(SITE_URL));
+// the sitemap index, one sitemap for the core pages, one for the hubs and one per seo cohort, each with real lastmod dates
+writeSitemaps({ site, SITE_URL, built, cohorts: seo.cohorts });
+// the indexnow key, at the site root where search engines look for it (seo/jobs/indexnow.mjs uses it)
+const indexNowKey = fs.readFileSync(path.join(here, 'seo', 'indexnow-key.txt'), 'utf8').trim();
+for (const f of fs.readdirSync(site)) if (/^[0-9a-f]{32}\.txt$/.test(f) && f !== `${indexNowKey}.txt`) fs.rmSync(path.join(site, f));
+fs.writeFileSync(path.join(site, `${indexNowKey}.txt`), indexNowKey);
+// pages taken down for good, which server.js answers with 410
+fs.writeFileSync(path.join(site, '_gone.json'), JSON.stringify(seo.gone));
 fs.writeFileSync(path.join(site, 'site.webmanifest'), JSON.stringify({
   name: 'Dusk Bot', short_name: 'Dusk Bot', description: 'Your own team of AI bots, in a chat app.', start_url: '/', display: 'browser', background_color: '#ffffff', theme_color: '#ffffff',
   icons: [{ src: '/art/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/art/icon-512.png', sizes: '512x512', type: 'image/png' }, { src: '/art/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
 }, null, 2) + '\n');
 // server.js reads this: short and old addresses, each sent on to the page that answers it
-const redirects = JSON.parse(fs.readFileSync(path.join(here, 'redirects.json'), 'utf8'));
+const redirects = { ...JSON.parse(fs.readFileSync(path.join(here, 'redirects.json'), 'utf8')), ...seo.redirects };
 for (const [from, to] of Object.entries(redirects)) {
   const target = to.split('#')[0];
   if (target.startsWith('/') && !built.some((p) => p.address === target) && !fs.existsSync(path.join(site, target))) throw new Error(`redirects.json: ${from} goes to ${to}, which is not a page`);

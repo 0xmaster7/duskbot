@@ -1,0 +1,49 @@
+{
+  "path": "/for/students",
+  "type": "role",
+  "title": "AI assistant for students: study routines you control",
+  "nav": "students",
+  "h1": "an ai assistant for students who want to learn",
+  "description": "Build reading lists, draft flashcards from your own notes and check deadlines. Three study routines, with clear limits on handing in AI work.",
+  "keyword": "ai assistant for students",
+  "keywords": ["ai agent for students", "best ai agent for students"],
+  "answer": "give a study bot your reading list, your own notes and the deadlines you have checked. ask it to break reading into small sessions, draft questions for practice and remind you what is due. dusk bot is free for personal use on your computer. use it to help you understand the material, with your course rules deciding where ai help belongs.",
+  "updated": "2026-11-12",
+  "review": { "status": "needs_review" },
+  "tags": ["students", "role", "study", "notes", "deadlines"],
+  "connectors": ["googlecalendar"],
+  "related": ["/personal-ai-agent", "/routines/weekly-calendar-preview", "/scheduled-ai-tasks"],
+  "art": { "props": ["p-cap", "s-books"], "bubble": "try explaining it" },
+  "og_line": "study help that leaves the learning to you.",
+  "day_h": "small study jobs through the day",
+  "day": [
+    { "when": "before class", "what": "ask for today's reading from the list you attached, with the chapter references kept beside each item" },
+    { "when": "after a lecture", "what": "drop in your notes and ask for flashcard drafts, with uncertain answers marked for checking" },
+    { "when": "study break", "what": "ask the bot to quiz you on one topic and wait for your answer before giving a hint" },
+    { "when": "evening", "what": "a deadline check reads your named calendar and lists what needs attention tomorrow" },
+    { "when": "sunday", "what": "use a [weekly calendar preview](/routines/weekly-calendar-preview) to spot an assignment and an exam competing for the same afternoon" }
+  ],
+  "pack": [
+    { "name": "the reading planner", "message": "every sunday at 5pm, use the reading list i attached and the progress i last reported. split the unread items into short sessions for the coming week. keep the original chapter or page references. don't invent extra reading or assume i finished something. show me the plan here and ask which sessions fit.", "note": "attach the current list first; tell the bot when your course changes it" },
+    { "name": "the flashcard drafter", "message": "every wednesday at 6pm, look at the lecture notes i attached this week. draft question-and-answer flashcards using only those notes. put a note reference beside each answer. list gaps separately instead of filling them from memory. keep the cards in this chat so i can correct them before studying.", "note": "a draft card is something to check against your material, not an answer key" },
+    { "name": "the deadline check", "message": "every evening at 7, read my study calendar for deadlines in the next three days. show the assignment name, due time and how soon it is due. don't move events or mark work complete. if there are no deadlines, stay quiet. ask me about any event whose deadline is unclear.", "note": "connect google calendar with read-only access; see [scheduled tasks](/scheduled-ai-tasks) for how routines run" }
+  ],
+  "sections": [
+    { "h": "start with material you can check", "md": "attach your own notes using **Attach files**, then give the bot one narrow job. a useful first request is to explain a confusing paragraph and ask you a question about it. you can steer the reply as it works.\n\nkeep the reading list and deadline source nearby. a bot cannot know that a lecturer changed the syllabus unless you give it the new material. for broader everyday planning, see the [personal ai agent setup](/personal-ai-agent)." },
+    { "h": "help with learning, not handing in work", "md": "write the boundary into the bot's job: help me practise, ask questions and point out gaps; don't produce assessed work for me to submit. follow your course's rules on ai assistance and disclosure.\n\ntry answering a question before opening the bot's explanation. if the explanation disagrees with your notes, bring the disagreement to your lecturer or tutor. keep a person responsible for checking references, reasoning and the final work." },
+    { "h": "free app, separate ai costs", "md": "personal use on your own computer includes every app feature, with no account or card. the ai is separate and billed by your provider on your plan with them. dusk bot also supports a local model through ollama or lm studio. this is not a promise of free ai usage.\n\na reminder on your laptop cannot run while that laptop sleeps or the app is closed. keep your course's own deadline system as your reference, and check **Automations** to see whether the routine ran." }
+  ],
+  "faq": [
+    { "q": "what are useful ai agent routines for student life?", "a": "start with organising reading, turning your notes into practice questions and checking upcoming deadlines. each has a source you can inspect and leaves the actual learning with you." },
+    { "q": "can i text the study bot from my phone?", "a": "yes, pair the phone with dusk bot. the current phone version opens in your browser and can be added to your home screen; it sends no notifications. a bot on your computer can answer only while that computer is on and running dusk bot." },
+    { "q": "will it know all my assignment deadlines?", "a": "only the ones in the material or connected calendar you let it read. enter and check the official due dates yourself, including the time zone." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: account and billing", "url": "/docs/account-and-billing" },
+    { "label": "dusk bot docs: getting started", "url": "/docs/getting-started" },
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: phone", "url": "/docs/phone" },
+    { "label": "composio: google calendar actions", "url": "https://docs.composio.dev/toolkits/googlecalendar", "checked": "2026-11-12" }
+  ]
+}

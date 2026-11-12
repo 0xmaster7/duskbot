@@ -1,0 +1,254 @@
+{
+ "/": {
+  "hash": "6b2643d4c29b0c14",
+  "lastmod": "2026-11-12"
+ },
+ "/download": {
+  "hash": "a17790857f473c03",
+  "lastmod": "2026-11-12"
+ },
+ "/waitlist": {
+  "hash": "1d57dfd7f1af1112",
+  "lastmod": "2026-11-12"
+ },
+ "/pricing": {
+  "hash": "80da939f974a1fca",
+  "lastmod": "2026-11-12"
+ },
+ "/about": {
+  "hash": "0b2f12b9131c9f9a",
+  "lastmod": "2026-11-12"
+ },
+ "/contact": {
+  "hash": "16afcc8f87790aef",
+  "lastmod": "2026-11-12"
+ },
+ "/brand": {
+  "hash": "8a7534750d694e9a",
+  "lastmod": "2026-11-12"
+ },
+ "/changelog": {
+  "hash": "7eb5ba7ed27a7cc3",
+  "lastmod": "2026-11-12"
+ },
+ "/terms": {
+  "hash": "701c0b01b5a30a36",
+  "lastmod": "2026-11-12"
+ },
+ "/privacy": {
+  "hash": "071e80f24476578d",
+  "lastmod": "2026-11-12"
+ },
+ "/license": {
+  "hash": "906c0e0b98f54507",
+  "lastmod": "2026-11-12"
+ },
+ "/security": {
+  "hash": "5717937c23df4134",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/getting-started": {
+  "hash": "21eb900a5b19c285",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/dusk-cloud": {
+  "hash": "e237c1b54c870c18",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/phone": {
+  "hash": "34ddcc271699e557",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/your-own-server": {
+  "hash": "ad80c5a717f5c792",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/tips": {
+  "hash": "e2d525e02a273bcf",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/bots": {
+  "hash": "23b0908bced0a567",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/routines": {
+  "hash": "90f344cb77cbfa31",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/group-chats": {
+  "hash": "4c163daa8f47621f",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/memory": {
+  "hash": "091d7494007802b5",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/files-and-apps": {
+  "hash": "9789733b5a47ee98",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/computer": {
+  "hash": "9a60fc61e904850f",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/account-and-billing": {
+  "hash": "9686f82fbe899361",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/privacy-and-data": {
+  "hash": "49d30835ae9d65e7",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/troubleshooting": {
+  "hash": "6a9726b95c974e1a",
+  "lastmod": "2026-11-12"
+ },
+ "/docs/faq": {
+  "hash": "89e4736b07931591",
+  "lastmod": "2026-11-12"
+ },
+ "/docs": {
+  "hash": "dbdb89858b859687",
+  "lastmod": "2026-11-12"
+ },
+ "/agents-when-laptop-closed": {
+  "hash": "ad7d90522c765397",
+  "lastmod": "2026-11-12"
+ },
+ "/ai-agent-that-controls-your-computer": {
+  "hash": "8e6fee1fc2c58692",
+  "lastmod": "2026-11-12"
+ },
+ "/ai-chief-of-staff": {
+  "hash": "166dceabb6bfa607",
+  "lastmod": "2026-11-12"
+ },
+ "/ai-employees": {
+  "hash": "bb5914da269e9030",
+  "lastmod": "2026-11-12"
+ },
+ "/ai-executive-assistant": {
+  "hash": "c4d968ca7cccd8bc",
+  "lastmod": "2026-11-12"
+ },
+ "/ai-group-chat": {
+  "hash": "f98728f9a34d7bf9",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/claude-cowork": {
+  "hash": "8368472e82d65408",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/hermes-agent": {
+  "hash": "8400aede1f64eeb1",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/manus": {
+  "hash": "dec2f65b51557207",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/openclaw": {
+  "hash": "5fff2a346cf96ec2",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/openclaw-hosting": {
+  "hash": "b20dcfbeab404a1e",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/openclaw-no-setup": {
+  "hash": "570597fbb5a0d827",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives/poke": {
+  "hash": "ad1b45be4d53279d",
+  "lastmod": "2026-11-12"
+ },
+ "/for/founders": {
+  "hash": "6eb58fea6f5105c1",
+  "lastmod": "2026-11-12"
+ },
+ "/guides/is-it-safe-to-let-ai-control-your-computer": {
+  "hash": "980a309a2720449f",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/excel": {
+  "hash": "0991134638b1735b",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/github": {
+  "hash": "1418758f54d1a4e6",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/gmail": {
+  "hash": "4943fca74814420f",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-calendar": {
+  "hash": "70e512fb0efbf6dc",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/google-sheets": {
+  "hash": "c8d29a9cdc3ec600",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/notion": {
+  "hash": "2cb777e726b61012",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/outlook": {
+  "hash": "4a179d8066f5210f",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations/slack": {
+  "hash": "2458244c9fd9f8e0",
+  "lastmod": "2026-11-12"
+ },
+ "/personal-ai-agent": {
+  "hash": "68cc38e0fb665a46",
+  "lastmod": "2026-11-12"
+ },
+ "/run-claude-code-24-7": {
+  "hash": "e0a3ba01c3f08361",
+  "lastmod": "2026-11-12"
+ },
+ "/scheduled-ai-tasks": {
+  "hash": "241b5b3668d7e602",
+  "lastmod": "2026-11-12"
+ },
+ "/tools/always-on-cost": {
+  "hash": "46e20451369df33a",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/daily-briefing": {
+  "hash": "a300df4b12b7bb34",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases/email-triage": {
+  "hash": "a47627c6bca3bc2b",
+  "lastmod": "2026-11-12"
+ },
+ "/vs/openclaw-vs-hermes-agent": {
+  "hash": "0ab30934a4cdc444",
+  "lastmod": "2026-11-12"
+ },
+ "/guides": {
+  "hash": "8111fcc1e0bd149c",
+  "lastmod": "2026-11-12"
+ },
+ "/alternatives": {
+  "hash": "712511b6455c6905",
+  "lastmod": "2026-11-12"
+ },
+ "/integrations": {
+  "hash": "6a6874caafece957",
+  "lastmod": "2026-11-12"
+ },
+ "/use-cases": {
+  "hash": "97f54a09eed79916",
+  "lastmod": "2026-11-12"
+ },
+ "/tools": {
+  "hash": "80e44ad6e3ca5478",
+  "lastmod": "2026-11-12"
+ }
+}

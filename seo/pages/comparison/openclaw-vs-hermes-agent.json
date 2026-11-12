@@ -1,0 +1,228 @@
+{
+  "path": "/vs/openclaw-vs-hermes-agent",
+  "title": "OpenClaw vs Hermes Agent: where Dusk Bot fits",
+  "nav": "openclaw vs hermes agent",
+  "h1": "openclaw vs hermes agent: which one should you run?",
+  "description": "Compare OpenClaw, Hermes Agent and Dusk Bot on setup, agent teams, scheduling and hosting, with dated sources and no performance rankings.",
+  "answer": "openclaw and hermes agent are both open-source agents you can run on your computer or server. openclaw puts chat channels and agent routing around a gateway. hermes adds persistent memory and skills the agent creates itself.[^1][^3] dusk bot is a third option if you want named bots with separate jobs in an app. choose by how you want to run and organise the work, rather than a claimed winner on intelligence.",
+  "tags": [
+    "openclaw",
+    "hermes",
+    "comparison",
+    "self-hosted"
+  ],
+  "related": [
+    "/vs/openclaw",
+    "/alternatives/hermes-agent",
+    "/ai-group-chat"
+  ],
+  "competitor": {
+    "key": "openclaw",
+    "name": "OpenClaw",
+    "url": "https://openclaw.ai/"
+  },
+  "art": {
+    "props": [
+      "s-server",
+      "p-bubbles"
+    ],
+    "label": "OpenClaw / Hermes Agent",
+    "bubble": "choose your setup"
+  },
+  "og_line": "two open agents, a third way to work.",
+  "verdict": {
+    "them_title": "openclaw or hermes agent",
+    "them": [
+      "you want mit-licensed software you can modify: both fit that requirement",
+      "you prefer routing agents through chat apps; compare openclaw's bindings with hermes's subagents before deciding"
+    ],
+    "dusk": [
+      "you want a few named teammates with their own jobs, chats and memory",
+      "you prefer moving your bots to a computer we host when you need them running overnight"
+    ]
+  },
+  "compare": {
+    "h": "three ways to keep an agent running",
+    "intro": "these are documented differences as of 12 november 2026. hermes is not simply a hosted openclaw, and dusk bot is not an open-source fork of either. model quality is outside this comparison.",
+    "cols": [
+      "OpenClaw",
+      "Hermes Agent",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "starting point",
+        "cells": [
+          "personal assistant reached through chat apps",
+          "agent with persistent memory and self-created skills",
+          "desktop app with a small team of bots"
+        ],
+        "src": [
+          1,
+          3,
+          6
+        ]
+      },
+      {
+        "label": "installation",
+        "cells": [
+          "terminal onboarding or desktop installers",
+          "desktop download or terminal installer; connect a model provider",
+          "download, sign in to your ai, make a bot"
+        ],
+        "src": [
+          2,
+          4,
+          6
+        ]
+      },
+      {
+        "label": "hosting choice",
+        "cells": [
+          "your machine or server; no first-party hosted tier",
+          "your machine or server; paid nous portal plans include a cloud agent",
+          "your computer, your server or dusk cloud"
+        ],
+        "src": [
+          1,
+          3,
+          7
+        ]
+      },
+      {
+        "label": "separate workers",
+        "cells": [
+          "isolated agents with workspaces and sessions; bindings route messages",
+          "isolated subagents; desktop lets you choose their model and provider",
+          "bots keep their own ai and permissions in group chats"
+        ],
+        "src": [
+          5,
+          3,
+          8
+        ]
+      },
+      {
+        "label": "recurring work",
+        "cells": [
+          "scheduler with recurring jobs and webhooks",
+          "natural-language scheduling through its gateway",
+          "routines made in chat, with a schedule card and run history"
+        ],
+        "src": [
+          9,
+          3,
+          10
+        ]
+      },
+      {
+        "label": "software and ongoing costs",
+        "cells": [
+          "mit software is free; model usage is separate",
+          "mit software is free; nous portal paid plans start at $20 monthly",
+          "personal desktop use is free; cloud plus is $20 monthly; ai billed separately"
+        ],
+        "src": [
+          1,
+          3,
+          7,
+          11
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot. this comparison uses the saved product sources checked on 12 november 2026 and our documented behaviour. we did not run identical tasks in the three products. installation claims are not measured setup times, and separate agents are not proof of better answers. we leave out security rankings because disclosure counts cannot establish which product is safer.",
+  "sections": [
+    {
+      "h": "start with where you want the conversation",
+      "md": "if your aim is to text an agent from whatsapp or telegram, both openclaw and hermes document those channels.[^1][^3] look at that fit before choosing based on a screenshot of a desktop app. a chat channel, a model provider and a running machine are separate parts of the setup.\n\nopenclaw documents bindings that route conversations to isolated agents.[^5] hermes describes subagents with their own conversation and terminal.[^3] neither description makes one the automatic choice for every team. for a closer look at the gateway route, read [openclaw vs dusk bot](/vs/openclaw)."
+    },
+    {
+      "h": "what to check before installing",
+      "md": "1. choose the machine that will run the work. both open projects support your own server; hermes also offers a cloud agent through paid nous portal plans.[^1][^3]\n2. use the documented desktop installer or terminal path. do not assume openclaw requires docker or that hermes requires a terminal.[^2][^4]\n3. connect the model provider and read its current terms. a working sign-in does not settle what the provider permits.\n4. start with a bounded task, such as comparing two files you supply. inspect the result before handing over anything sensitive.\n\n[hermes agent alternatives](/alternatives/hermes-agent) covers other ways to package that work if neither setup fits."
+    },
+    {
+      "h": "when a small bot team fits better",
+      "md": "dusk bot lets you give one bot the job of reading a project brief and another the job of questioning its assumptions. put them in a group and choose **Only when mentioned** to control who answers, or **Leader** to have one bot hand out the work. each keeps its own ai and permissions.[^8]\n\nthat is useful when you want visible roles in a conversation. it does not establish that a group will outperform one careful agent. the [ai group chat guide](/ai-group-chat) explains the handoffs. for a recurring review, remember that desktop routines stop while the app is closed or the machine sleeps; use dusk cloud if they need to run then.[^10]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "did anyone create a group chat of agents?",
+      "a": "dusk bot supports several bots in one thread, with mentions and a leader option.[^8] openclaw documents multiple isolated agents and group-chat use; hermes documents isolated subagents.[^5][^3] those are different interaction patterns, so decide whether you want a conversation you participate in or work handed to subagents."
+    },
+    {
+      "q": "where do your agents actually run when your laptop is closed?",
+      "a": "a local installation still needs its machine running. openclaw can live on your server; hermes offers server installation and an optional cloud agent on paid nous portal plans.[^1][^3] dusk cloud hosts the machine for dusk bots.[^7]"
+    },
+    {
+      "q": "is hermes agent paid or free?",
+      "a": "as of 12 november 2026, its mit-licensed software is free. nous portal has a free tier and paid plans starting at $20 a month. model and hosting choices determine the ongoing bill.[^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw homepage",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw installation docs",
+      "url": "https://docs.openclaw.ai/start/getting-started",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent homepage",
+      "url": "https://hermes-agent.nousresearch.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent repository and quickstart",
+      "url": "https://github.com/NousResearch/hermes-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw multi-agent routing",
+      "url": "https://docs.openclaw.ai/concepts/multi-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: first setup",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: hosting choices",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: group chats",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "openclaw automations",
+      "url": "https://docs.openclaw.ai/automation/cron-jobs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: routine schedules",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: ai and app billing",
+      "url": "/docs/account-and-billing"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "openclaw vs hermes",
+  "keywords": [
+    "hermes agent vs openclaw",
+    "openclaw vs hermes agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "connectors": []
+}

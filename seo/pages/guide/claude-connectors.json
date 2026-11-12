@@ -1,0 +1,215 @@
+{
+  "path": "/guides/claude-connectors",
+  "type": "guide",
+  "title": "Claude connectors explained: choose useful app access",
+  "nav": "claude connectors",
+  "h1": "claude connectors: connect the job you actually need",
+  "description": "Understand Claude connectors, compare them with Dusk Bot connected apps, and pick from 20 app tasks without granting access to everything.",
+  "keyword": "claude connectors",
+  "keywords": [
+    "claude connectors list",
+    "chatgpt connectors",
+    "claude connectors not working"
+  ],
+  "answer": "claude connectors let claude retrieve data and take actions in apps and services. anthropic lists them in its connectors directory, with use cases, read and write capabilities and availability. dusk bot has a separate connected-app flow through composio. decide which task needs access first, then connect the app in the product you will use. a connection in one product is not the setup for another.[^1][^3]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "claude",
+    "connectors",
+    "apps",
+    "permissions"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar",
+    "googledrive",
+    "googlesheets",
+    "slack",
+    "notion",
+    "github",
+    "linear",
+    "figma",
+    "stripe",
+    "hubspot",
+    "airtable",
+    "asana",
+    "outlook",
+    "canva",
+    "salesforce",
+    "youtube",
+    "jira",
+    "excel",
+    "discord"
+  ],
+  "related": [
+    "/guides/what-is-mcp",
+    "/guides/claude-skills",
+    "/integrations/gmail",
+    "/integrations/slack",
+    "/integrations/github"
+  ],
+  "art": {
+    "label": "Claude",
+    "props": [
+      "s-plug",
+      "p-briefcase"
+    ],
+    "bubble": "one useful connection"
+  },
+  "og_line": "pick a task before you connect an app.",
+  "sections": [
+    {
+      "h": "what anthropic means by connectors",
+      "md": "as of 12 november 2026, anthropic says web connectors are available to all users and work across claude, claude desktop, claude code and the api. the pricing page marks connectors as included on free, pro, max and ultra. check the individual directory entry for the connector's capabilities and availability.[^1][^2]\n\nanthropic also describes custom connectors for services that support mcp. the [mcp guide](/guides/what-is-mcp) explains the standard. do not read a broad plan entitlement as a promise that every connector exposes every action in an app. the directory entry is the place to check the specific connection."
+    },
+    {
+      "h": "how dusk connected apps differ",
+      "md": "dusk bot connects apps through composio. open **Connected apps**, sign in on the app's own page, then choose which bots may use the connection. each bot can have an app off, read only, or read and write, with an exact action list also possible. reading restrictions are enforced before calls reach the app.[^3]\n\nthis is a separate setup from anthropic's connectors directory. dusk bot does not store the provider tokens for these connections; composio holds them, and **Disconnect** revokes the grant upstream. when comparing instructions, first check which product's connection screen they describe.[^3]"
+    },
+    {
+      "h": "twenty app tasks to consider in dusk bot",
+      "md": "these are suggested jobs grounded in dusk's composio action catalog, not a claim that all twenty are in anthropic's directory. choose the ones your actual work needs.\n\n- **[gmail](/integrations/gmail)**: find messages for one sender before writing a follow-up list.[^4]\n- **google calendar**: find the event you need to prepare for.[^5]\n- **google drive**: find a source file by name before asking for a summary.[^6]\n- **google sheets**: read a spreadsheet range for a small status check.[^7]\n- **[slack](/integrations/slack)**: search messages for a decision you need to trace.[^8]\n- **notion**: search pages and databases for the right project home.[^9]\n- **[github](/integrations/github)**: list issues assigned to you for a work review.[^10]\n- **linear**: list a team's issues before planning the next discussion.[^11]\n- **figma**: retrieve file data for a design handoff check.[^12]\n- **stripe**: list invoices for a billing review, without taking a payment.[^13]\n- **hubspot**: list contacts for a review of your contact records.[^14]\n- **airtable**: list records from the table you want to inspect.[^15]\n- **asana**: get tasks for a status summary.[^16]\n- **outlook**: list messages when your work inbox lives there.[^17]\n- **canva**: list your designs to locate the right asset.[^18]\n- **salesforce**: find contacts by name before preparing account notes.[^19]\n- **youtube**: list channel videos for a content inventory.[^20]\n- **jira**: search issues for a focused project review.[^21]\n- **excel**: list worksheets before choosing the one to read.[^22]\n- **discord**: list your server memberships for an account review.[^23]"
+    },
+    {
+      "h": "connect fewer things, then test the result",
+      "md": "begin with a question you can answer by reading one app. check whether the bot used the right account and material. connect another app only when that job needs it. a long list of available services is not a reason to give a bot access to all of them.\n\nif your problem is repeated formatting or a method the ai keeps forgetting, [skills](/guides/claude-skills) address a different need. more app access will not repair unclear instructions. keep an explicit source and destination in each request so you can tell where information came from and where the result will go."
+    },
+    {
+      "h": "write access is a separate choice",
+      "md": "in dusk bot, sends such as emails, messages, posts and payments ask first unless you choose a daily amount the bot may send on its own. that sending rule does not mean every other change asks. labels, page edits and similar changes should stay read-only during a trial, or carry an explicit \"ask me before you change anything\" instruction.[^3]\n\nif a connection is not working, check which product you connected it in, which account you selected and whether that bot is allowed to use it. avoid broadening access just to make an unclear error disappear. the right connection with a small permission set is easier to inspect than several overlapping ones."
+    }
+  ],
+  "faq": [
+    {
+      "q": "why are my claude connectors not working?",
+      "a": "first check the connector's own directory entry for availability and supported actions. if you are using dusk bot, inspect its separate **Connected apps** setup and the access allowed for that bot.[^1][^3]"
+    },
+    {
+      "q": "do claude connectors need a paid plan?",
+      "a": "anthropic's pricing page marks connectors yes on free, pro, max and ultra as of 12 november 2026. check the individual connector entry for its availability.[^1][^2]"
+    },
+    {
+      "q": "can i connect multiple gmail accounts in dusk bot?",
+      "a": "yes. dusk bot supports up to five usable accounts per app, each with a label. name the intended account in the task rather than leaving the bot to guess.[^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: connectors",
+      "url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "composio: gmail",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google calendar",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google drive",
+      "url": "https://docs.composio.dev/toolkits/googledrive",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: google sheets",
+      "url": "https://docs.composio.dev/toolkits/googlesheets",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: slack",
+      "url": "https://docs.composio.dev/toolkits/slack",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: notion",
+      "url": "https://docs.composio.dev/toolkits/notion",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: github",
+      "url": "https://docs.composio.dev/toolkits/github",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: linear",
+      "url": "https://docs.composio.dev/toolkits/linear",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: figma",
+      "url": "https://docs.composio.dev/toolkits/figma",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: stripe",
+      "url": "https://docs.composio.dev/toolkits/stripe",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: hubspot",
+      "url": "https://docs.composio.dev/toolkits/hubspot",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: airtable",
+      "url": "https://docs.composio.dev/toolkits/airtable",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: asana",
+      "url": "https://docs.composio.dev/toolkits/asana",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: outlook",
+      "url": "https://docs.composio.dev/toolkits/outlook",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: canva",
+      "url": "https://docs.composio.dev/toolkits/canva",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: salesforce",
+      "url": "https://docs.composio.dev/toolkits/salesforce",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: youtube",
+      "url": "https://docs.composio.dev/toolkits/youtube",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: jira",
+      "url": "https://docs.composio.dev/toolkits/jira",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: excel",
+      "url": "https://docs.composio.dev/toolkits/excel",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: discord",
+      "url": "https://docs.composio.dev/toolkits/discord",
+      "checked": "2026-11-12"
+    }
+  ]
+}

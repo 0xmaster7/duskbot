@@ -1,0 +1,151 @@
+{
+  "path": "/integrations/whatsapp",
+  "type": "integration",
+  "title": "WhatsApp Business AI assistant, with personal chat limits",
+  "nav": "whatsapp",
+  "h1": "a whatsapp business assistant, not a personal inbox reader",
+  "description": "Connect the WhatsApp Business API to Dusk Bot for template checks and customer reply preparation. It cannot read your personal WhatsApp chats.",
+  "answer": "this connection works with the whatsapp business api only. it cannot read your personal whatsapp chats. a bot in dusk bot can inspect business message history available through the toolkit, check templates and prepare customer replies. sending asks first by default. if you just want to text your dusk bot bots from your phone, that uses dusk bot's separate phone connection.",
+  "tags": [
+    "business-messaging",
+    "customer-support",
+    "templates"
+  ],
+  "connectors": [
+    "whatsapp"
+  ],
+  "related": [
+    "/integrations/hubspot",
+    "/integrations/shopify",
+    "/for/small-business-owners"
+  ],
+  "art": {
+    "label": "WhatsApp",
+    "props": [
+      "s-phone",
+      "s-notebook"
+    ],
+    "bubble": "business replies to review"
+  },
+  "og_line": "business messages, with personal chat limits.",
+  "app": {
+    "name": "WhatsApp",
+    "toolkit": "whatsapp",
+    "intro": "use this for a connected business account and its returned records. start by checking the business profile and phone numbers, then define which conversation or template you want reviewed. a business history action does not turn this into access to a personal phone inbox.",
+    "highlight": [
+      {
+        "slug": "WHATSAPP_GET_BUSINESS_PROFILE",
+        "use": "review the customer-facing business information"
+      },
+      {
+        "slug": "WHATSAPP_GET_PHONE_NUMBERS",
+        "use": "confirm which business numbers belong to the account"
+      },
+      {
+        "slug": "WHATSAPP_GET_MESSAGE_HISTORY",
+        "use": "inspect business message history available to the connection"
+      },
+      {
+        "slug": "WHATSAPP_GET_MESSAGE_TEMPLATES",
+        "use": "list existing templates before proposing new wording"
+      },
+      {
+        "slug": "WHATSAPP_GET_TEMPLATE_STATUS",
+        "use": "check the returned status of a specific template"
+      },
+      {
+        "slug": "WHATSAPP_GET_MEDIA_INFO",
+        "use": "inspect the media information for a supplied business attachment"
+      },
+      {
+        "slug": "WHATSAPP_SEND_MESSAGE",
+        "use": "send an agreed customer message with the bot's sending approval"
+      },
+      {
+        "slug": "WHATSAPP_SEND_TEMPLATE_MESSAGE",
+        "use": "send an existing template message after reviewing the recipient and content"
+      }
+    ],
+    "setup": "connect a whatsapp business account, then confirm the account and business phone number with the bot. keep its app permission read only while testing the checks below. a personal whatsapp account is not a supported substitute. choose the specific bot allowed to use the business connection in **Connected apps**."
+  },
+  "routines_intro": "give each routine a business account and a narrow purpose. these messages request checks or proposed wording in dusk bot, so you can see whether the bot understands your support process before allowing sends.",
+  "routines": [
+    {
+      "name": "template readiness check",
+      "message": "every weekday at 8, check the status of the whatsapp business templates i named for appointment reminders. list anything that is not in the status we need, quoting the returned status. do not edit templates or send reminders.",
+      "when": "weekdays at 8:00",
+      "output": "a template readiness list in chat"
+    },
+    {
+      "name": "prepare a customer handover",
+      "message": "every day at 4, inspect the available whatsapp business history for the conversation ids i gave you. summarise unresolved customer questions and draft possible replies here. say when history is unavailable. do not send messages or invent order details.",
+      "when": "daily at 16:00",
+      "output": "a handover note and proposed replies"
+    },
+    {
+      "name": "check the business contact details",
+      "message": "each monday at 9, retrieve our whatsapp business profile and phone numbers. compare the returned details with the contact details i approved in this chat. show discrepancies for me to review and leave the profile unchanged.",
+      "when": "mondays at 9:00",
+      "output": "a contact information check"
+    }
+  ],
+  "asks": "customer messages, including template sends, ask for approval unless you have given the bot a daily sending allowance. keep that allowance off while checking that it selects the right business number, recipient and wording. a reply drafted in dusk bot chat has not been sent to the customer.\n\ntemplate edits and business profile changes are different from sends. do not assume they stop for a sending approval. keep them unavailable through read-only access, or tell the bot \"ask me before you change anything\" and allow only the actions needed for its job.",
+  "cannot": [
+    "read personal whatsapp chats, family groups or the inbox of an ordinary personal account. the connector explicitly supports whatsapp business accounts only.",
+    "guarantee a complete customer conversation when the history lookup does not return it. tell the routine to report that gap rather than write a confident answer from missing context.",
+    "send a customer reply while the bot has read-only permission, even if it can write suggested reply text in your dusk bot chat.",
+    "check template status overnight on a computer that sleeps. scheduled work needs dusk bot running on an awake machine; dusk cloud keeps routines running with your computer off."
+  ],
+  "sections": [
+    {
+      "h": "phone access is a separate choice",
+      "md": "to talk to your own bots from an iphone or android phone, use [dusk bot phone pairing](/docs/phone). that does not require reading your personal whatsapp account. until the store apps arrive, pairing opens dusk bot in your phone's browser.\n\nif a reply depends on a customer record in [hubspot](/integrations/hubspot) or an order in [shopify](/integrations/shopify), connect the relevant app separately and ask the bot to check it before suggesting an answer."
+    },
+    {
+      "h": "keep a reply grounded in records",
+      "md": "give the bot the business conversation ids and the facts it may use. tell it which questions need a person, such as an exception to your refund policy. a sensible draft can say it needs more information; it should not promise a delivery date that is absent from the records."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt read my personal whatsapp messages through this?",
+      "a": "no. this toolkit is for the whatsapp business api and does not support personal whatsapp accounts. choosing a different ai for the bot in dusk bot does not change that boundary."
+    },
+    {
+      "q": "can i text my bots from my phone?",
+      "a": "yes, through dusk bot's phone connection. scan the pairing code and use the phone browser version while the store apps are on their way. a phone paired with your computer needs that computer on and running dusk bot."
+    },
+    {
+      "q": "will it automatically answer customers?",
+      "a": "the routines here prepare replies for review. sending is a separate action that asks first by default. you choose any daily allowance; it is not required for these read-only checks."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval and sending",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: phone",
+      "url": "/docs/phone"
+    }
+  ],
+  "keyword": "chatgpt whatsapp",
+  "keywords": [
+    "whatsapp mcp",
+    "openclaw whatsapp",
+    "ai assistant whatsapp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

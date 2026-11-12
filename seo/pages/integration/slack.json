@@ -1,0 +1,155 @@
+{
+  "path": "/integrations/slack",
+  "type": "integration",
+  "title": "Slack AI bot for thread summaries and channel catch-ups",
+  "nav": "slack",
+  "h1": "a slack assistant that finds the decision in the thread",
+  "description": "Read Slack threads with a bot in Dusk Bot, collect decisions and prepare replies. Three focused routines, plus controls for reading and posting.",
+  "keyword": "claude slack",
+  "keywords": [
+    "claude slack integration",
+    "slack ai bot",
+    "slack ai agent",
+    "slack mcp"
+  ],
+  "answer": "a bot in dusk bot can search slack messages, read channel history and follow a thread before it briefs you. use it to catch up on a project or find an unanswered question, with the ai you picked. replies can stay in your dusk chat until you want them posted. sending to slack asks first by default.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "team chat",
+    "threads",
+    "decisions",
+    "catch-up"
+  ],
+  "connectors": [
+    "slack"
+  ],
+  "related": [
+    "/routines/slack-channel-digest",
+    "/integrations/github",
+    "/integrations/notion"
+  ],
+  "art": {
+    "logo": "slack",
+    "label": "Slack",
+    "props": [
+      "p-bubbles",
+      "p-newspaper"
+    ],
+    "bubble": "here is the decision"
+  },
+  "og_line": "catch up without losing the thread.",
+  "app": {
+    "name": "Slack",
+    "toolkit": "slack",
+    "intro": "a short message can mean something different after ten replies. give the bot a channel and a question, then let it read the conversation around each match instead of treating search hits as the whole story.",
+    "highlight": [
+      {
+        "slug": "SLACK_SEARCH_MESSAGES",
+        "use": "find discussion of a launch date across the messages you can access"
+      },
+      {
+        "slug": "SLACK_FETCH_CONVERSATION_HISTORY",
+        "use": "collect the recent conversation in one named project channel"
+      },
+      {
+        "slug": "SLACK_FETCH_MESSAGE_THREAD_FROM_A_CONVERSATION",
+        "use": "read replies before deciding whether a question is still unanswered"
+      },
+      {
+        "slug": "SLACK_RETRIEVE_MESSAGE_PERMALINK_URL",
+        "use": "include a link back to the message behind a summary"
+      },
+      {
+        "slug": "SLACK_LIST_PINNED_ITEMS",
+        "use": "check pinned instructions before drafting a channel update"
+      },
+      {
+        "slug": "SLACK_FIND_USER_BY_EMAIL_ADDRESS",
+        "use": "identify the teammate you mean before addressing a message"
+      },
+      {
+        "slug": "SLACK_SEARCH_FILES",
+        "use": "locate the file shared during a discussion"
+      },
+      {
+        "slug": "SLACK_SEND_MESSAGE",
+        "use": "post the wording you requested, subject to the bot's send controls"
+      }
+    ],
+    "setup": "connect slack from **Connected apps** and select the bot that may read it. start with one channel and reading access. slack handles its own sign-in; the password is not shown to the bot. give the channel name and any threads you want excluded before scheduling a catch-up."
+  },
+  "routines_intro": "these jobs help with three different moments: returning to a busy channel, spotting a question, and preparing a handover. send the one you need to your bot.",
+  "routines": [
+    {
+      "name": "decision catch-up",
+      "message": "every weekday at 11, read yesterday's conversation in #acme-launch, including replies. list decisions, open questions and dates people proposed. distinguish proposals from agreements and link each item. report here only.",
+      "when": "weekdays at 11:00",
+      "output": "a linked account of decisions and unresolved discussion"
+    },
+    {
+      "name": "support question watch",
+      "message": "when a new slack message arrives in #acme-help, check whether it asks a product question. read its thread and tell me if a reply is still needed. suggest wording here, but do not post or react.",
+      "when": "when a message arrives in the named channel",
+      "output": "a private suggestion in dusk chat"
+    },
+    {
+      "name": "handover draft",
+      "message": "every friday at noon, read this week's #acme-operations discussion and pinned items. prepare a handover with unfinished work and the people explicitly named for it. mark missing owners as unknown. leave the draft here for me.",
+      "when": "fridays at 12:00",
+      "output": "a handover draft awaiting your review"
+    }
+  ],
+  "asks": "slack posts and messages use the sending control. with **Ask every time**, you review an **Allow** / **Deny** card before a message goes out. you can instead grant a daily sending amount to that bot.\n\nchannel settings and other app changes are separate from sending. for a bot that only briefs you, a read-only grant is the useful boundary: it cannot post, react or change the channel. if you later grant writes, put \"ask me before you change anything\" in the routine where you need supervision.",
+  "cannot": [
+    "answer from messages outside the connected account's access. give it a reachable conversation rather than expecting a search to reveal every discussion in the company.",
+    "write a slack reply with reading access alone. a draft in your dusk chat is still possible; posting needs the app action and the sending permission.",
+    "monitor overnight from a desktop that has gone to sleep. slack events arrive at once, but the bot still needs a running machine to do its work. dusk cloud keeps routines running."
+  ],
+  "sections": [
+    {
+      "h": "ask for the message behind the claim",
+      "md": "a useful digest lets you open the source conversation. ask for message links and separate what was decided from what was merely suggested. for a reusable channel-only version, see the [slack channel digest](/routines/slack-channel-digest). keep sensitive channels outside the brief unless you need them."
+    },
+    {
+      "h": "hand off only what belongs elsewhere",
+      "md": "discussion may point to work in [github](/integrations/github) or a decision page in [notion](/integrations/notion). ask for those references in the summary. connecting another app is a separate step; reading a slack link does not give a bot access to the linked workspace."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a slack ai bot summarise a whole thread?",
+      "a": "yes. the listed thread action retrieves conversation replies. ask it to read those replies before summarising, especially when the first message is a question rather than a decision."
+    },
+    {
+      "q": "will it talk in my channels on its own?",
+      "a": "a read-only slack bot cannot post. if you allow sending actions, posts ask first by default unless you set a daily sending amount."
+    },
+    {
+      "q": "can i read the catch-up from my phone?",
+      "a": "yes. pair your phone to where your bots live. a phone paired to your own computer needs that computer awake and running dusk bot; pairing to dusk cloud works with the computer off."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: connected apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled work",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: sending controls",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: phone access",
+      "url": "/docs/phone"
+    }
+  ]
+}

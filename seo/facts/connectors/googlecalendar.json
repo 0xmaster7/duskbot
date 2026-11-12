@@ -1,0 +1,267 @@
+{
+  "toolkit": "googlecalendar",
+  "name": "Google Calendar",
+  "version": "20261103_00",
+  "description": "Google Calendar is a time management tool providing scheduling features, event reminders, and integration with email and other apps for streamlined organization",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 50,
+  "triggers_count": 6,
+  "tools": [
+    {
+      "name": "Delete ACL Rule",
+      "slug": "GOOGLECALENDAR_ACL_DELETE",
+      "kind": "write"
+    },
+    {
+      "name": "Get ACL Rule",
+      "slug": "GOOGLECALENDAR_ACL_GET",
+      "kind": "write"
+    },
+    {
+      "name": "Create ACL Rule",
+      "slug": "GOOGLECALENDAR_ACL_INSERT",
+      "kind": "write"
+    },
+    {
+      "name": "List ACL Rules",
+      "slug": "GOOGLECALENDAR_ACL_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Patch ACL Rule",
+      "slug": "GOOGLECALENDAR_ACL_PATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Update ACL Rule",
+      "slug": "GOOGLECALENDAR_ACL_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Watch ACL Changes",
+      "slug": "GOOGLECALENDAR_ACL_WATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Batch Events",
+      "slug": "GOOGLECALENDAR_BATCH_EVENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Calendar from List",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_DELETE",
+      "kind": "write"
+    },
+    {
+      "name": "Get Single Calendar by ID",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_GET",
+      "kind": "write"
+    },
+    {
+      "name": "Insert Calendar into List",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_INSERT",
+      "kind": "write"
+    },
+    {
+      "name": "Patch Calendar List Entry",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_PATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Update Calendar List Entry",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Watch Calendar List",
+      "slug": "GOOGLECALENDAR_CALENDAR_LIST_WATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Calendar",
+      "slug": "GOOGLECALENDAR_CALENDARS_DELETE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Calendar",
+      "slug": "GOOGLECALENDAR_CALENDARS_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Stop Channel",
+      "slug": "GOOGLECALENDAR_CHANNELS_STOP",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Calendar",
+      "slug": "GOOGLECALENDAR_CLEAR_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Get Color Definitions",
+      "slug": "GOOGLECALENDAR_COLORS_GET",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new calendar",
+      "slug": "GOOGLECALENDAR_CREATE_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Create Event",
+      "slug": "GOOGLECALENDAR_CREATE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete event",
+      "slug": "GOOGLECALENDAR_DELETE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a calendar",
+      "slug": "GOOGLECALENDAR_DUPLICATE_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Get Event",
+      "slug": "GOOGLECALENDAR_EVENTS_GET",
+      "kind": "read"
+    },
+    {
+      "name": "Import Event",
+      "slug": "GOOGLECALENDAR_EVENTS_IMPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Get Event Instances",
+      "slug": "GOOGLECALENDAR_EVENTS_INSTANCES",
+      "kind": "write"
+    },
+    {
+      "name": "List Events",
+      "slug": "GOOGLECALENDAR_EVENTS_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "List Events from All Calendars",
+      "slug": "GOOGLECALENDAR_EVENTS_LIST_ALL_CALENDARS",
+      "kind": "write"
+    },
+    {
+      "name": "Move Event",
+      "slug": "GOOGLECALENDAR_EVENTS_MOVE",
+      "kind": "write"
+    },
+    {
+      "name": "Watch Events",
+      "slug": "GOOGLECALENDAR_EVENTS_WATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Find event",
+      "slug": "GOOGLECALENDAR_FIND_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Find free slots",
+      "slug": "GOOGLECALENDAR_FIND_FREE_SLOTS",
+      "kind": "read"
+    },
+    {
+      "name": "Query Calendar Availability",
+      "slug": "GOOGLECALENDAR_FREE_BUSY_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Get Google Calendar",
+      "slug": "GOOGLECALENDAR_GET_CALENDAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get Calendar Profile (Deprecated)",
+      "slug": "GOOGLECALENDAR_GET_CALENDAR_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get current date and time",
+      "slug": "GOOGLECALENDAR_GET_CURRENT_DATE_TIME",
+      "kind": "read"
+    },
+    {
+      "name": "Get Current Google Calendar User",
+      "slug": "GOOGLECALENDAR_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "List Buildings",
+      "slug": "GOOGLECALENDAR_LIST_BUILDINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Calendar Resources",
+      "slug": "GOOGLECALENDAR_LIST_CALENDAR_RESOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "List Google Calendars",
+      "slug": "GOOGLECALENDAR_LIST_CALENDARS",
+      "kind": "read"
+    },
+    {
+      "name": "List Calendar Settings (Deprecated)",
+      "slug": "GOOGLECALENDAR_LIST_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Patch Calendar",
+      "slug": "GOOGLECALENDAR_PATCH_CALENDAR",
+      "kind": "write"
+    },
+    {
+      "name": "Patch Event",
+      "slug": "GOOGLECALENDAR_PATCH_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Quick Add Event",
+      "slug": "GOOGLECALENDAR_QUICK_ADD",
+      "kind": "write"
+    },
+    {
+      "name": "Remove attendee from event",
+      "slug": "GOOGLECALENDAR_REMOVE_ATTENDEE",
+      "kind": "write"
+    },
+    {
+      "name": "Get Calendar Setting",
+      "slug": "GOOGLECALENDAR_SETTINGS_GET",
+      "kind": "write"
+    },
+    {
+      "name": "List Settings",
+      "slug": "GOOGLECALENDAR_SETTINGS_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Watch Settings",
+      "slug": "GOOGLECALENDAR_SETTINGS_WATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Sync Events (Deprecated)",
+      "slug": "GOOGLECALENDAR_SYNC_EVENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Update Google event",
+      "slug": "GOOGLECALENDAR_UPDATE_EVENT",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/googlecalendar",
+  "fetched_at": "2026-11-12"
+}

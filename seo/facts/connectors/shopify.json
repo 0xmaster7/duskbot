@@ -1,0 +1,2358 @@
+{
+  "toolkit": "shopify",
+  "name": "Shopify",
+  "version": "20261104_00",
+  "description": "Shopify is an e-commerce platform. This toolkit is GraphQL-first for new Admin API automations while retaining legacy REST compatibility actions for older workflows and numeric-ID interoperability",
+  "managed_sign_in": false,
+  "auth": [
+    "OAuth2",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 468,
+  "triggers_count": 45,
+  "tools": [
+    {
+      "name": "Accept Fulfillment Cancellation Request",
+      "slug": "SHOPIFY_ACCEPT_FULFILLMENT_CANCELLATION_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Accept Fulfillment Request",
+      "slug": "SHOPIFY_ACCEPT_FULFILLMENT_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Activate One-Time Charge",
+      "slug": "SHOPIFY_ACTIVATE_ONE_TIME_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Add product to custom collection (Deprecated)",
+      "slug": "SHOPIFY_ADD_PRODUCT_TO_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Add product to custom collection",
+      "slug": "SHOPIFY_ADD_PRODUCT_TO_CUSTOM_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Adjust inventory levels",
+      "slug": "SHOPIFY_ADJUST_INVENTORY_LEVEL",
+      "kind": "write"
+    },
+    {
+      "name": "Apply fulfillment hold",
+      "slug": "SHOPIFY_APPLY_FULFILLMENT_HOLD",
+      "kind": "write"
+    },
+    {
+      "name": "Approve a comment",
+      "slug": "SHOPIFY_APPROVE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk create products via GraphQL",
+      "slug": "SHOPIFY_BULK_CREATE_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk delete customer addresses (Deprecated)",
+      "slug": "SHOPIFY_BULK_DELETE_CUSTOMER_ADDRESSES",
+      "kind": "write"
+    },
+    {
+      "name": "Delete metafields in bulk",
+      "slug": "SHOPIFY_BULK_DELETE_METAFIELDS",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk delete metaobjects",
+      "slug": "SHOPIFY_BULK_DELETE_METAOBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Run Shopify bulk query operation",
+      "slug": "SHOPIFY_BULK_QUERY_OPERATION",
+      "kind": "write"
+    },
+    {
+      "name": "Calculate a refund",
+      "slug": "SHOPIFY_CALCULATE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Cancel App Subscription",
+      "slug": "SHOPIFY_CANCEL_APP_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel Shopify bulk operation",
+      "slug": "SHOPIFY_CANCEL_BULK_OPERATION",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel a fulfillment",
+      "slug": "SHOPIFY_CANCEL_FULFILLMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel a Fulfillment Order",
+      "slug": "SHOPIFY_CANCEL_FULFILLMENT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel an order",
+      "slug": "SHOPIFY_CANCEL_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel Recurring Application Charge",
+      "slug": "SHOPIFY_CANCEL_RECURRING_APPLICATION_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Close Fulfillment Order",
+      "slug": "SHOPIFY_CLOSE_FULFILLMENT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Close an order",
+      "slug": "SHOPIFY_CLOSE_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Complete a draft order",
+      "slug": "SHOPIFY_COMPLETE_DRAFT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Connect inventory item to location",
+      "slug": "SHOPIFY_CONNECT_INVENTORY_LEVEL",
+      "kind": "write"
+    },
+    {
+      "name": "Count articles in blog",
+      "slug": "SHOPIFY_COUNT_ARTICLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get blogs count",
+      "slug": "SHOPIFY_COUNT_BLOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve count of custom collections (Deprecated)",
+      "slug": "SHOPIFY_COUNT_CUSTOM_COLLECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get draft orders count",
+      "slug": "SHOPIFY_COUNT_DRAFT_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Count all the events (Deprecated)",
+      "slug": "SHOPIFY_COUNT_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Count fulfillments for order",
+      "slug": "SHOPIFY_COUNT_FULFILLMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a count of locations (Deprecated)",
+      "slug": "SHOPIFY_COUNT_LOCATION",
+      "kind": "read"
+    },
+    {
+      "name": "Count shop metafields",
+      "slug": "SHOPIFY_COUNT_METAFIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Count orders (Deprecated)",
+      "slug": "SHOPIFY_COUNT_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve page count",
+      "slug": "SHOPIFY_COUNT_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Count price rules",
+      "slug": "SHOPIFY_COUNT_PRICE_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "Count product images",
+      "slug": "SHOPIFY_COUNT_PRODUCT_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Count product listings",
+      "slug": "SHOPIFY_COUNT_PRODUCT_LISTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a count of products",
+      "slug": "SHOPIFY_COUNT_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Count product variants",
+      "slug": "SHOPIFY_COUNT_PRODUCT_VARIANTS",
+      "kind": "read"
+    },
+    {
+      "name": "Count script tags",
+      "slug": "SHOPIFY_COUNT_SCRIPT_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "Receive a count of all webhooks (Deprecated)",
+      "slug": "SHOPIFY_COUNT_WEBHOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "Create a metafield",
+      "slug": "SHOPIFY_CREATE_A_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create A New Product Image (Deprecated)",
+      "slug": "SHOPIFY_CREATE_A_NEW_PRODUCT_IMAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create app subscription",
+      "slug": "SHOPIFY_CREATE_APP_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Article",
+      "slug": "SHOPIFY_CREATE_ARTICLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Comment for Article",
+      "slug": "SHOPIFY_CREATE_ARTICLE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a new blog",
+      "slug": "SHOPIFY_CREATE_BLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Create carrier service",
+      "slug": "SHOPIFY_CREATE_CARRIER_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Create checkout payment",
+      "slug": "SHOPIFY_CREATE_CHECKOUT_PAYMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Country",
+      "slug": "SHOPIFY_CREATE_COUNTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a custom collection",
+      "slug": "SHOPIFY_CREATE_CUSTOM_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Customer",
+      "slug": "SHOPIFY_CREATE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Generate Customer Account Activation URL",
+      "slug": "SHOPIFY_CREATE_CUSTOMER_ACCOUNT_ACTIVATION_URL",
+      "kind": "write"
+    },
+    {
+      "name": "Create customer address",
+      "slug": "SHOPIFY_CREATE_CUSTOMER_ADDRESS",
+      "kind": "write"
+    },
+    {
+      "name": "Create delegate access token",
+      "slug": "SHOPIFY_CREATE_DELEGATE_ACCESS_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Discount Code",
+      "slug": "SHOPIFY_CREATE_DISCOUNT_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Discount Codes Batch",
+      "slug": "SHOPIFY_CREATE_DISCOUNT_CODE_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new draft order",
+      "slug": "SHOPIFY_CREATE_DRAFT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create EventBridge webhook subscription",
+      "slug": "SHOPIFY_CREATE_EVENT_BRIDGE_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Fulfillment",
+      "slug": "SHOPIFY_CREATE_FULFILLMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Fulfillment Event",
+      "slug": "SHOPIFY_CREATE_FULFILLMENT_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Fulfillment Service",
+      "slug": "SHOPIFY_CREATE_FULFILLMENT_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Gift Card",
+      "slug": "SHOPIFY_CREATE_GIFT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Marketing Event Engagements",
+      "slug": "SHOPIFY_CREATE_MARKETING_ENGAGEMENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create Marketing Event",
+      "slug": "SHOPIFY_CREATE_MARKETING_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create blog metafield",
+      "slug": "SHOPIFY_CREATE_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Mobile Platform Application",
+      "slug": "SHOPIFY_CREATE_MOBILE_PLATFORM_APPLICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create One-Time Application Charge",
+      "slug": "SHOPIFY_CREATE_ONE_TIME_APPLICATION_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create an order",
+      "slug": "SHOPIFY_CREATE_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create order risk",
+      "slug": "SHOPIFY_CREATE_ORDER_RISK",
+      "kind": "write"
+    },
+    {
+      "name": "Create transaction for order",
+      "slug": "SHOPIFY_CREATE_ORDER_TRANSACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new page",
+      "slug": "SHOPIFY_CREATE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Price Rule",
+      "slug": "SHOPIFY_CREATE_PRICE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a product (Deprecated)",
+      "slug": "SHOPIFY_CREATE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Product Image (Deprecated)",
+      "slug": "SHOPIFY_CREATE_PRODUCT_IMAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create product metafield",
+      "slug": "SHOPIFY_CREATE_PRODUCT_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Product Resource Feedback",
+      "slug": "SHOPIFY_CREATE_PRODUCT_RESOURCE_FEEDBACK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new product variant",
+      "slug": "SHOPIFY_CREATE_PRODUCT_VARIANT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Pub/Sub webhook subscription",
+      "slug": "SHOPIFY_CREATE_PUB_SUB_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create recurring application charge",
+      "slug": "SHOPIFY_CREATE_RECURRING_APPLICATION_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create Redirect",
+      "slug": "SHOPIFY_CREATE_REDIRECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create order refund",
+      "slug": "SHOPIFY_CREATE_REFUND",
+      "kind": "send"
+    },
+    {
+      "name": "Create Resource Feedback",
+      "slug": "SHOPIFY_CREATE_RESOURCE_FEEDBACK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new product (Deprecated)",
+      "slug": "SHOPIFY_CREATES_A_NEW_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Script Tag",
+      "slug": "SHOPIFY_CREATE_SCRIPT_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Create Smart Collection",
+      "slug": "SHOPIFY_CREATE_SMART_COLLECTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create or Update Theme Asset",
+      "slug": "SHOPIFY_CREATES_OR_UPDATES_AN_ASSET_FOR_A_THEME",
+      "kind": "write"
+    },
+    {
+      "name": "Create Storefront Access Token",
+      "slug": "SHOPIFY_CREATE_STOREFRONT_ACCESS_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Theme",
+      "slug": "SHOPIFY_CREATE_THEME",
+      "kind": "write"
+    },
+    {
+      "name": "Create Usage Charge",
+      "slug": "SHOPIFY_CREATE_USAGE_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Create Webhook (Deprecated)",
+      "slug": "SHOPIFY_CREATE_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Create webhook subscription",
+      "slug": "SHOPIFY_CREATE_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Customize Recurring Application Charge",
+      "slug": "SHOPIFY_CUSTOMIZE_RECURRING_APPLICATION_CHARGE",
+      "kind": "send"
+    },
+    {
+      "name": "Delete Article",
+      "slug": "SHOPIFY_DELETE_ARTICLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a blog",
+      "slug": "SHOPIFY_DELETE_BLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Carrier Service",
+      "slug": "SHOPIFY_DELETE_CARRIER_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove product from collection",
+      "slug": "SHOPIFY_DELETE_COLLECT",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a comment",
+      "slug": "SHOPIFY_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete country",
+      "slug": "SHOPIFY_DELETE_COUNTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete custom collection (Deprecated)",
+      "slug": "SHOPIFY_DELETE_CUSTOM_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a customer",
+      "slug": "SHOPIFY_DELETE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete customer address",
+      "slug": "SHOPIFY_DELETE_CUSTOMER_ADDRESS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete dispute evidence file",
+      "slug": "SHOPIFY_DELETE_DISPUTE_EVIDENCE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a draft order",
+      "slug": "SHOPIFY_DELETE_DRAFT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete fulfillment event",
+      "slug": "SHOPIFY_DELETE_FULFILLMENT_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Remove fulfillment service",
+      "slug": "SHOPIFY_DELETE_FULFILLMENT_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete inventory levels",
+      "slug": "SHOPIFY_DELETE_INVENTORY_LEVEL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a marketing event",
+      "slug": "SHOPIFY_DELETE_MARKETING_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a metafield by its ID",
+      "slug": "SHOPIFY_DELETE_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete metaobject",
+      "slug": "SHOPIFY_DELETE_METAOBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete metaobject definition",
+      "slug": "SHOPIFY_DELETE_METAOBJECT_DEFINITION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Mobile Platform Application",
+      "slug": "SHOPIFY_DELETE_MOBILE_PLATFORM_APPLICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an order",
+      "slug": "SHOPIFY_DELETE_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete order risk",
+      "slug": "SHOPIFY_DELETE_ORDER_RISK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a page",
+      "slug": "SHOPIFY_DELETE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete price rule",
+      "slug": "SHOPIFY_DELETE_PRICE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a product",
+      "slug": "SHOPIFY_DELETE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete product image",
+      "slug": "SHOPIFY_DELETE_PRODUCT_IMAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete product metafield",
+      "slug": "SHOPIFY_DELETE_PRODUCT_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Remove product variant",
+      "slug": "SHOPIFY_DELETE_PRODUCT_VARIANT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete redirect",
+      "slug": "SHOPIFY_DELETE_REDIRECT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a custom collection",
+      "slug": "SHOPIFY_DELETES_A_CUSTOM_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a discount code",
+      "slug": "SHOPIFY_DELETES_A_DISCOUNT_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a saved search",
+      "slug": "SHOPIFY_DELETE_SAVED_SEARCH",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Script Tag",
+      "slug": "SHOPIFY_DELETE_SCRIPT_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Delete smart collection",
+      "slug": "SHOPIFY_DELETE_SMART_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Storefront Access Token",
+      "slug": "SHOPIFY_DELETE_STOREFRONT_ACCESS_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete theme",
+      "slug": "SHOPIFY_DELETE_THEME",
+      "kind": "write"
+    },
+    {
+      "name": "Delete theme asset",
+      "slug": "SHOPIFY_DELETE_THEME_ASSET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete webhook subscription (Deprecated)",
+      "slug": "SHOPIFY_DELETE_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete webhook subscription",
+      "slug": "SHOPIFY_DELETE_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete web presence",
+      "slug": "SHOPIFY_DELETE_WEB_PRESENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Disable a Gift Card",
+      "slug": "SHOPIFY_DISABLE_GIFT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Enable standard metaobject definition",
+      "slug": "SHOPIFY_ENABLE_STANDARD_METAOBJECT_DEFINITION",
+      "kind": "write"
+    },
+    {
+      "name": "Get abandonment",
+      "slug": "SHOPIFY_GET_ABANDONMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get abandonment by abandoned checkout ID",
+      "slug": "SHOPIFY_GET_ABANDONMENT_BY_ABANDONED_CHECKOUT_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get a list of access scopes",
+      "slug": "SHOPIFY_GET_ACCESS_SCOPES",
+      "kind": "read"
+    },
+    {
+      "name": "Get App",
+      "slug": "SHOPIFY_GET_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Get app by handle",
+      "slug": "SHOPIFY_GET_APP_BY_HANDLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get app installation details",
+      "slug": "SHOPIFY_GET_APP_INSTALLATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Application Charge By ID",
+      "slug": "SHOPIFY_GET_APPLICATION_CHARGE_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get Application Charges",
+      "slug": "SHOPIFY_GET_APPLICATION_CHARGES",
+      "kind": "read"
+    },
+    {
+      "name": "Get application credit",
+      "slug": "SHOPIFY_GET_APPLICATION_CREDIT",
+      "kind": "read"
+    },
+    {
+      "name": "Get application credits",
+      "slug": "SHOPIFY_GET_APPLICATION_CREDITS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Article",
+      "slug": "SHOPIFY_GET_ARTICLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Batch Discount Codes",
+      "slug": "SHOPIFY_GET_BATCH_DISCOUNT_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Single Blog",
+      "slug": "SHOPIFY_GET_BLOG",
+      "kind": "read"
+    },
+    {
+      "name": "Get blog article tags",
+      "slug": "SHOPIFY_GET_BLOG_ARTICLE_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get bulk operation status",
+      "slug": "SHOPIFY_GET_BULK_OPERATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get carrier service",
+      "slug": "SHOPIFY_GET_CARRIER_SERVICE",
+      "kind": "read"
+    },
+    {
+      "name": "Get carrier services",
+      "slug": "SHOPIFY_GET_CARRIER_SERVICES",
+      "kind": "read"
+    },
+    {
+      "name": "Get catalogs count",
+      "slug": "SHOPIFY_GET_CATALOGS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get checkout payment",
+      "slug": "SHOPIFY_GET_CHECKOUT_PAYMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get checkout profile",
+      "slug": "SHOPIFY_GET_CHECKOUT_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get checkouts count",
+      "slug": "SHOPIFY_GET_CHECKOUTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get collect by ID",
+      "slug": "SHOPIFY_GET_COLLECT_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get collection by ID",
+      "slug": "SHOPIFY_GET_COLLECTION_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get collection by identifier",
+      "slug": "SHOPIFY_GET_COLLECTION_BY_IDENTIFIER",
+      "kind": "read"
+    },
+    {
+      "name": "Get collection listing",
+      "slug": "SHOPIFY_GET_COLLECTION_LISTING",
+      "kind": "read"
+    },
+    {
+      "name": "Get collects",
+      "slug": "SHOPIFY_GET_COLLECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get collects count",
+      "slug": "SHOPIFY_GET_COLLECTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Comment",
+      "slug": "SHOPIFY_GET_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get count of comments",
+      "slug": "SHOPIFY_GET_COMMENTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get consent policy",
+      "slug": "SHOPIFY_GET_CONSENT_POLICY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Countries",
+      "slug": "SHOPIFY_GET_COUNTRIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get countries count",
+      "slug": "SHOPIFY_GET_COUNTRIES_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get provinces count for country",
+      "slug": "SHOPIFY_GET_COUNTRIES_PARAM_COUNTRY_ID_PROVINCES_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Province for Country",
+      "slug": "SHOPIFY_GET_COUNTRIES_PARAM_COUNTRY_ID_PROVINCES_PARAM_PROVI",
+      "kind": "read"
+    },
+    {
+      "name": "Get country",
+      "slug": "SHOPIFY_GET_COUNTRY",
+      "kind": "read"
+    },
+    {
+      "name": "Get provinces for country",
+      "slug": "SHOPIFY_GET_COUNTRY_PROVINCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Currencies",
+      "slug": "SHOPIFY_GET_CURRENCIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get current user",
+      "slug": "SHOPIFY_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom collection by ID",
+      "slug": "SHOPIFY_GET_CUSTOM_COLLECTION_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom collections",
+      "slug": "SHOPIFY_GET_CUSTOM_COLLECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom collections count",
+      "slug": "SHOPIFY_GET_CUSTOM_COLLECTIONS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a single customer",
+      "slug": "SHOPIFY_GET_CUSTOMER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Customer Address",
+      "slug": "SHOPIFY_GET_CUSTOMER_ADDRESS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Customer Addresses",
+      "slug": "SHOPIFY_GET_CUSTOMER_ADDRESSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get customer orders",
+      "slug": "SHOPIFY_GET_CUSTOMER_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get customers count",
+      "slug": "SHOPIFY_GET_CUSTOMERS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Search Customers",
+      "slug": "SHOPIFY_GET_CUSTOMERS_SEARCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get Discount Code",
+      "slug": "SHOPIFY_GET_DISCOUNT_CODE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Discount Code Creation Job",
+      "slug": "SHOPIFY_GET_DISCOUNT_CODE_BATCH_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get discount codes count",
+      "slug": "SHOPIFY_GET_DISCOUNT_CODES_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Discount Code Location",
+      "slug": "SHOPIFY_GET_DISCOUNT_CODES_LOOKUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get dispute evidence",
+      "slug": "SHOPIFY_GET_DISPUTE_EVIDENCE",
+      "kind": "read"
+    },
+    {
+      "name": "Receive a single draft order",
+      "slug": "SHOPIFY_GET_DRAFT_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get event by ID",
+      "slug": "SHOPIFY_GET_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get events list (Deprecated)",
+      "slug": "SHOPIFY_GET_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillments by fulfillment order",
+      "slug": "SHOPIFY_GET_FULFILLMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Fulfillment Event",
+      "slug": "SHOPIFY_GET_FULFILLMENT_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillment events",
+      "slug": "SHOPIFY_GET_FULFILLMENT_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillment orders for order (Deprecated)",
+      "slug": "SHOPIFY_GET_FULFILLMENT_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves fulfillments by fulfillment order (Deprecated)",
+      "slug": "SHOPIFY_GET_FULFILLMENT_ORDER_FULFILLMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillment order locations for move",
+      "slug": "SHOPIFY_GET_FULFILLMENT_ORDER_LOCATIONS_FOR_MOVE",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillment order locations for move (Deprecated)",
+      "slug": "SHOPIFY_GET_FULFILLMENT_ORDER_MOVE_LOCATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get fulfillment orders for order",
+      "slug": "SHOPIFY_GET_FULFILLMENT_ORDERS_FOR_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Fulfillment Service",
+      "slug": "SHOPIFY_GET_FULFILLMENT_SERVICE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Fulfillment Services",
+      "slug": "SHOPIFY_GET_FULFILLMENT_SERVICES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Gift Card By ID",
+      "slug": "SHOPIFY_GET_GIFT_CARD_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a list of gift cards",
+      "slug": "SHOPIFY_GET_GIFT_CARDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a count of gift cards",
+      "slug": "SHOPIFY_GET_GIFT_CARDS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Inventory Item",
+      "slug": "SHOPIFY_GET_INVENTORY_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Inventory Items",
+      "slug": "SHOPIFY_GET_INVENTORY_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Inventory Levels",
+      "slug": "SHOPIFY_GET_INVENTORY_LEVELS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Inventory Levels For Location",
+      "slug": "SHOPIFY_GET_INVENTORY_LEVELS_FOR_LOCATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get location",
+      "slug": "SHOPIFY_GET_LOCATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get locations count",
+      "slug": "SHOPIFY_GET_LOCATIONS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a single marketing event",
+      "slug": "SHOPIFY_GET_MARKETING_EVENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get marketing events count",
+      "slug": "SHOPIFY_GET_MARKETING_EVENTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get blog metafields",
+      "slug": "SHOPIFY_GET_METAFIELD",
+      "kind": "read"
+    },
+    {
+      "name": "Get metafield by ID",
+      "slug": "SHOPIFY_GET_METAFIELD_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get metafields",
+      "slug": "SHOPIFY_GET_METAFIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get shop metafields count (Deprecated)",
+      "slug": "SHOPIFY_GET_METAFIELDS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get mobile platform application",
+      "slug": "SHOPIFY_GET_MOBILE_PLATFORM_APPLICATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get order",
+      "slug": "SHOPIFY_GET_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve order fulfillments",
+      "slug": "SHOPIFY_GET_ORDER_FULFILLMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get order list (Deprecated)",
+      "slug": "SHOPIFY_GET_ORDER_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get specific refund for order",
+      "slug": "SHOPIFY_GET_ORDER_REFUND_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get refunds for order",
+      "slug": "SHOPIFY_GET_ORDER_REFUNDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Order Risks (Deprecated)",
+      "slug": "SHOPIFY_GET_ORDER_RISK",
+      "kind": "read"
+    },
+    {
+      "name": "Get order risks",
+      "slug": "SHOPIFY_GET_ORDER_RISKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get order by id (Deprecated)",
+      "slug": "SHOPIFY_GET_ORDERSBY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get orders with filters",
+      "slug": "SHOPIFY_GET_ORDERS_WITH_FILTERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get order transactions count",
+      "slug": "SHOPIFY_GET_ORDER_TRANSACTIONS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get page by ID",
+      "slug": "SHOPIFY_GET_PAGE_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get payment dispute",
+      "slug": "SHOPIFY_GET_PAYMENT_DISPUTE",
+      "kind": "read"
+    },
+    {
+      "name": "Get payments balance",
+      "slug": "SHOPIFY_GET_PAYMENTS_BALANCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get payments payout",
+      "slug": "SHOPIFY_GET_PAYMENTS_PAYOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Policies",
+      "slug": "SHOPIFY_GET_POLICIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Price Rule",
+      "slug": "SHOPIFY_GET_PRICE_RULE",
+      "kind": "read"
+    },
+    {
+      "name": "Check Batch Listing Support for Price Rule",
+      "slug": "SHOPIFY_GET_PRICE_RULE_BATCH_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Discount Codes for Price Rule",
+      "slug": "SHOPIFY_GET_PRICE_RULE_DISCOUNT_CODES",
+      "kind": "read"
+    },
+    {
+      "name": "Get product",
+      "slug": "SHOPIFY_GET_PRODUCT",
+      "kind": "read"
+    },
+    {
+      "name": "Get product image",
+      "slug": "SHOPIFY_GET_PRODUCT_IMAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Product Images (Deprecated)",
+      "slug": "SHOPIFY_GET_PRODUCT_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Get product listing",
+      "slug": "SHOPIFY_GET_PRODUCT_LISTING",
+      "kind": "read"
+    },
+    {
+      "name": "Get product metafield",
+      "slug": "SHOPIFY_GET_PRODUCT_METAFIELD",
+      "kind": "read"
+    },
+    {
+      "name": "Get product metafields",
+      "slug": "SHOPIFY_GET_PRODUCT_METAFIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get products (Deprecated)",
+      "slug": "SHOPIFY_GET_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get products in collection (Deprecated)",
+      "slug": "SHOPIFY_GET_PRODUCTS_IN_COLLECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get products (paginated)",
+      "slug": "SHOPIFY_GET_PRODUCTS_PAGINATED",
+      "kind": "read"
+    },
+    {
+      "name": "Receive a single product variant",
+      "slug": "SHOPIFY_GET_PRODUCT_VARIANT",
+      "kind": "read"
+    },
+    {
+      "name": "Get recurring application charge",
+      "slug": "SHOPIFY_GET_RECURRING_APPLICATION_CHARGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get recurring application charges",
+      "slug": "SHOPIFY_GET_RECURRING_APPLICATION_CHARGES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a single redirect (Deprecated)",
+      "slug": "SHOPIFY_GET_REDIRECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get redirect by ID",
+      "slug": "SHOPIFY_GET_REDIRECT_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get redirects",
+      "slug": "SHOPIFY_GET_REDIRECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get redirects count",
+      "slug": "SHOPIFY_GET_REDIRECTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a specific refund (Deprecated)",
+      "slug": "SHOPIFY_GET_REFUND",
+      "kind": "read"
+    },
+    {
+      "name": "Get Script Tag",
+      "slug": "SHOPIFY_GET_SCRIPTTAG",
+      "kind": "read"
+    },
+    {
+      "name": "Get segments count",
+      "slug": "SHOPIFY_GET_SEGMENTS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shipping Zones",
+      "slug": "SHOPIFY_GET_SHIPPING_ZONES",
+      "kind": "read"
+    },
+    {
+      "name": "Get shop billing address",
+      "slug": "SHOPIFY_GET_SHOP_BILLING_ADDRESS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shop Configuration",
+      "slug": "SHOPIFY_GET_SHOP_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shop Details (Deprecated)",
+      "slug": "SHOPIFY_GET_SHOP_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve metafield by ID (Deprecated)",
+      "slug": "SHOPIFY_GET_SHOP_METAFIELD",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve metafields from resource endpoint (Deprecated)",
+      "slug": "SHOPIFY_GET_SHOP_METAFIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a single smart collection (Deprecated)",
+      "slug": "SHOPIFY_GET_SMART_COLLECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get smart collection by ID",
+      "slug": "SHOPIFY_GET_SMART_COLLECTION_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get smart collections",
+      "slug": "SHOPIFY_GET_SMART_COLLECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get smart collections count",
+      "slug": "SHOPIFY_GET_SMART_COLLECTIONS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get storefront access tokens",
+      "slug": "SHOPIFY_GET_STOREFRONT_ACCESS_TOKENS",
+      "kind": "read"
+    },
+    {
+      "name": "Get tender transactions",
+      "slug": "SHOPIFY_GET_TENDER_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a single theme",
+      "slug": "SHOPIFY_GET_THEME",
+      "kind": "read"
+    },
+    {
+      "name": "Get themes",
+      "slug": "SHOPIFY_GET_THEMES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Theme Asset",
+      "slug": "SHOPIFY_GET_THEMES_PARAM_THEME_ID_ASSETS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a specific transaction",
+      "slug": "SHOPIFY_GET_TRANSACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get usage charge",
+      "slug": "SHOPIFY_GET_USAGE_CHARGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get user",
+      "slug": "SHOPIFY_GET_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Webhook",
+      "slug": "SHOPIFY_GET_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get webhook subscriptions count",
+      "slug": "SHOPIFY_GET_WEBHOOK_SUBSCRIPTIONS_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Shopify GraphQL Admin execute",
+      "slug": "SHOPIFY_GRAPH_QL_ADMIN_EXECUTE",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL collections and publication-ready collection reads",
+      "slug": "SHOPIFY_GRAPH_QL_COLLECTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL customers and customer search",
+      "slug": "SHOPIFY_GRAPH_QL_CUSTOMERS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL discounts and discount search",
+      "slug": "SHOPIFY_GRAPH_QL_DISCOUNTS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL draft orders",
+      "slug": "SHOPIFY_GRAPH_QL_DRAFT_ORDERS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL inventory items and levels",
+      "slug": "SHOPIFY_GRAPH_QL_INVENTORY",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL metafields and metaobjects",
+      "slug": "SHOPIFY_GRAPH_QL_METAFIELDS_METAOBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL orders and order search",
+      "slug": "SHOPIFY_GRAPH_QL_ORDERS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL products, variants, media, and publishing",
+      "slug": "SHOPIFY_GRAPH_QL_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Execute Shopify GraphQL query",
+      "slug": "SHOPIFY_GRAPH_QL_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL shop and app metadata",
+      "slug": "SHOPIFY_GRAPH_QL_SHOP",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL webhook subscriptions",
+      "slug": "SHOPIFY_GRAPH_QL_WEBHOOKS",
+      "kind": "write"
+    },
+    {
+      "name": "Shopify GraphQL write operations",
+      "slug": "SHOPIFY_GRAPH_QL_WRITE_OPERATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "List abandoned checkouts",
+      "slug": "SHOPIFY_LIST_ABANDONED_CHECKOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves all application credits (Deprecated)",
+      "slug": "SHOPIFY_LIST_APPLICATION_CREDITS",
+      "kind": "read"
+    },
+    {
+      "name": "List article authors",
+      "slug": "SHOPIFY_LIST_ARTICLE_AUTHORS",
+      "kind": "read"
+    },
+    {
+      "name": "List article tags",
+      "slug": "SHOPIFY_LIST_ARTICLE_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "List assigned fulfillment orders",
+      "slug": "SHOPIFY_LIST_ASSIGNED_FULFILLMENT_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List available locales",
+      "slug": "SHOPIFY_LIST_AVAILABLE_LOCALES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve list of articles from blog",
+      "slug": "SHOPIFY_LIST_BLOG_ARTICLES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a list of all blogs",
+      "slug": "SHOPIFY_LIST_BLOGS",
+      "kind": "read"
+    },
+    {
+      "name": "List bulk operations",
+      "slug": "SHOPIFY_LIST_BULK_OPERATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List channels",
+      "slug": "SHOPIFY_LIST_CHANNELS",
+      "kind": "read"
+    },
+    {
+      "name": "List checkout profiles",
+      "slug": "SHOPIFY_LIST_CHECKOUT_PROFILES",
+      "kind": "read"
+    },
+    {
+      "name": "List collection listing product IDs",
+      "slug": "SHOPIFY_LIST_COLLECTION_LISTING_PRODUCT_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Collection Listings",
+      "slug": "SHOPIFY_LIST_COLLECTION_LISTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve products in collection",
+      "slug": "SHOPIFY_LIST_COLLECTION_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve list of collects (Deprecated)",
+      "slug": "SHOPIFY_LIST_COLLECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve a list of comments",
+      "slug": "SHOPIFY_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Receive a list of all countries (Deprecated)",
+      "slug": "SHOPIFY_LIST_COUNTRIES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a list of currencies enabled on a shop (Deprecated)",
+      "slug": "SHOPIFY_LIST_CURRENCIES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve custom collections (Deprecated)",
+      "slug": "SHOPIFY_LIST_CUSTOM_COLLECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get customer orders (Deprecated)",
+      "slug": "SHOPIFY_LIST_CUSTOMER_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a list of customers",
+      "slug": "SHOPIFY_LIST_CUSTOMERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Deprecated API Calls",
+      "slug": "SHOPIFY_LIST_DEPRECATED_API_CALLS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve list of draft orders",
+      "slug": "SHOPIFY_LIST_DRAFT_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a List of Inventory Levels (Deprecated)",
+      "slug": "SHOPIFY_LIST_INVENTORY_LEVELS",
+      "kind": "read"
+    },
+    {
+      "name": "List Location Inventory Levels",
+      "slug": "SHOPIFY_LIST_LOCATION_INVENTORY_LEVELS",
+      "kind": "read"
+    },
+    {
+      "name": "List locations",
+      "slug": "SHOPIFY_LIST_LOCATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve all marketing events",
+      "slug": "SHOPIFY_LIST_MARKETING_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Mobile Platform Applications",
+      "slug": "SHOPIFY_LIST_MOBILE_PLATFORM_APPLICATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List orders (Deprecated)",
+      "slug": "SHOPIFY_LIST_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve refunds for order (Deprecated)",
+      "slug": "SHOPIFY_LIST_ORDER_REFUNDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieves a list of orders (Deprecated)",
+      "slug": "SHOPIFY_LIST_ORDERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve list of pages",
+      "slug": "SHOPIFY_LIST_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Payment Disputes",
+      "slug": "SHOPIFY_LIST_PAYMENT_DISPUTES",
+      "kind": "read"
+    },
+    {
+      "name": "List Payments Balance Transactions",
+      "slug": "SHOPIFY_LIST_PAYMENTS_BALANCE_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Payments Payouts",
+      "slug": "SHOPIFY_LIST_PAYMENTS_PAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Payment Terms Templates",
+      "slug": "SHOPIFY_LIST_PAYMENT_TERMS_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "Receive A List Of All Product Images",
+      "slug": "SHOPIFY_LIST_PRODUCT_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Product Listing Product IDs",
+      "slug": "SHOPIFY_LIST_PRODUCT_LISTING_PRODUCT_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Product Listings",
+      "slug": "SHOPIFY_LIST_PRODUCT_LISTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Product Resource Feedback",
+      "slug": "SHOPIFY_LIST_PRODUCT_RESOURCE_FEEDBACK",
+      "kind": "read"
+    },
+    {
+      "name": "Get product variants",
+      "slug": "SHOPIFY_LIST_PRODUCT_VARIANTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get resource feedback",
+      "slug": "SHOPIFY_LIST_RESOURCE_FEEDBACKS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve all script tags",
+      "slug": "SHOPIFY_LIST_SCRIPT_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Theme Assets (Deprecated)",
+      "slug": "SHOPIFY_LIST_THEME_ASSETS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve order transactions",
+      "slug": "SHOPIFY_LIST_TRANSACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List usage charges",
+      "slug": "SHOPIFY_LIST_USAGE_CHARGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Users",
+      "slug": "SHOPIFY_LIST_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Mark Comment as Not Spam",
+      "slug": "SHOPIFY_MARK_COMMENT_AS_NOT_SPAM",
+      "kind": "write"
+    },
+    {
+      "name": "Mark Comment as Spam",
+      "slug": "SHOPIFY_MARK_COMMENT_AS_SPAM",
+      "kind": "write"
+    },
+    {
+      "name": "Modify an existing product variant",
+      "slug": "SHOPIFY_MODIFY_AN_EXISTING_PRODUCT_VARIANT",
+      "kind": "write"
+    },
+    {
+      "name": "Modify existing webhook (Deprecated)",
+      "slug": "SHOPIFY_MODIFY_EXISTING_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Move Fulfillment Order to New Location",
+      "slug": "SHOPIFY_MOVE_FULFILLMENT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Open Fulfillment Order",
+      "slug": "SHOPIFY_OPEN_FULFILLMENT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Pin metafield definition",
+      "slug": "SHOPIFY_PIN_METAFIELD_DEFINITION",
+      "kind": "write"
+    },
+    {
+      "name": "Publish collection listing",
+      "slug": "SHOPIFY_PUBLISH_COLLECTION_LISTING",
+      "kind": "send"
+    },
+    {
+      "name": "Publish product listing",
+      "slug": "SHOPIFY_PUBLISH_PRODUCT_LISTING",
+      "kind": "send"
+    },
+    {
+      "name": "Query app by API key",
+      "slug": "SHOPIFY_QUERY_APP_BY_KEY",
+      "kind": "write"
+    },
+    {
+      "name": "Query business entities",
+      "slug": "SHOPIFY_QUERY_BUSINESS_ENTITIES",
+      "kind": "write"
+    },
+    {
+      "name": "Query business entity",
+      "slug": "SHOPIFY_QUERY_BUSINESS_ENTITY",
+      "kind": "write"
+    },
+    {
+      "name": "Query catalogs",
+      "slug": "SHOPIFY_QUERY_CATALOGS",
+      "kind": "write"
+    },
+    {
+      "name": "Query channel by ID",
+      "slug": "SHOPIFY_QUERY_CHANNEL",
+      "kind": "write"
+    },
+    {
+      "name": "Query consent policy regions",
+      "slug": "SHOPIFY_QUERY_CONSENT_POLICY_REGIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Query current app installation",
+      "slug": "SHOPIFY_QUERY_CURRENT_APP_INSTALLATION",
+      "kind": "write"
+    },
+    {
+      "name": "Query current Shopify bulk operation",
+      "slug": "SHOPIFY_QUERY_CURRENT_BULK_OPERATION",
+      "kind": "write"
+    },
+    {
+      "name": "Query customer account pages",
+      "slug": "SHOPIFY_QUERY_CUSTOMER_ACCOUNT_PAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Query deletion events",
+      "slug": "SHOPIFY_QUERY_DELETION_EVENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Query disputes",
+      "slug": "SHOPIFY_QUERY_DISPUTES",
+      "kind": "write"
+    },
+    {
+      "name": "Query domain",
+      "slug": "SHOPIFY_QUERY_DOMAIN",
+      "kind": "write"
+    },
+    {
+      "name": "Query events",
+      "slug": "SHOPIFY_QUERY_EVENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Query events count",
+      "slug": "SHOPIFY_QUERY_EVENTS_COUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Query job",
+      "slug": "SHOPIFY_QUERY_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Query metafield definition by ID",
+      "slug": "SHOPIFY_QUERY_METAFIELD_DEFINITION",
+      "kind": "write"
+    },
+    {
+      "name": "Query metafield definitions",
+      "slug": "SHOPIFY_QUERY_METAFIELD_DEFINITIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Query metafield definition types",
+      "slug": "SHOPIFY_QUERY_METAFIELD_DEFINITION_TYPES",
+      "kind": "write"
+    },
+    {
+      "name": "Query node by ID",
+      "slug": "SHOPIFY_QUERY_NODE",
+      "kind": "write"
+    },
+    {
+      "name": "Query nodes by IDs",
+      "slug": "SHOPIFY_QUERY_NODES",
+      "kind": "write"
+    },
+    {
+      "name": "Query online store",
+      "slug": "SHOPIFY_QUERY_ONLINE_STORE",
+      "kind": "write"
+    },
+    {
+      "name": "Query product duplicate job",
+      "slug": "SHOPIFY_QUERY_PRODUCT_DUPLICATE_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Query public API versions",
+      "slug": "SHOPIFY_QUERY_PUBLIC_API_VERSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Query publication by ID",
+      "slug": "SHOPIFY_QUERY_PUBLICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Query server pixel configuration",
+      "slug": "SHOPIFY_QUERY_SERVER_PIXEL",
+      "kind": "write"
+    },
+    {
+      "name": "Query Shop (GraphQL)",
+      "slug": "SHOPIFY_QUERY_SHOP",
+      "kind": "write"
+    },
+    {
+      "name": "Query shop billing preferences",
+      "slug": "SHOPIFY_QUERY_SHOP_BILLING_PREFERENCES",
+      "kind": "write"
+    },
+    {
+      "name": "Query Shopify Functions",
+      "slug": "SHOPIFY_QUERY_SHOPIFY_FUNCTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Query Shop Pay payment request receipts",
+      "slug": "SHOPIFY_QUERY_SHOP_PAY_PAYMENT_REQUEST_RECEIPTS",
+      "kind": "send"
+    },
+    {
+      "name": "Query standard metafield templates",
+      "slug": "SHOPIFY_QUERY_STANDARD_METAFIELD_DEFINITION_TEMPLATES",
+      "kind": "write"
+    },
+    {
+      "name": "Query taxonomy",
+      "slug": "SHOPIFY_QUERY_TAXONOMY",
+      "kind": "write"
+    },
+    {
+      "name": "Query webhook subscription by ID",
+      "slug": "SHOPIFY_QUERY_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Query webhook subscriptions",
+      "slug": "SHOPIFY_QUERY_WEBHOOK_SUBSCRIPTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Get product images count (Deprecated)",
+      "slug": "SHOPIFY_RECEIVE_A_COUNT_OF_ALL_PRODUCT_IMAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Receive a single fulfillment",
+      "slug": "SHOPIFY_RECEIVE_A_SINGLE_FULFILLMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Receive a single webhook (Deprecated)",
+      "slug": "SHOPIFY_RECEIVE_A_SINGLE_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Reject fulfillment cancellation request",
+      "slug": "SHOPIFY_REJECT_FULFILLMENT_CANCELLATION_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Reject Fulfillment Request",
+      "slug": "SHOPIFY_REJECT_FULFILLMENT_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Release fulfillment hold",
+      "slug": "SHOPIFY_RELEASE_FULFILLMENT_HOLD",
+      "kind": "write"
+    },
+    {
+      "name": "Release fulfillment order hold (Deprecated)",
+      "slug": "SHOPIFY_RELEASE_FULFILLMENT_ORDER_HOLD",
+      "kind": "write"
+    },
+    {
+      "name": "Reopen a closed order",
+      "slug": "SHOPIFY_REOPEN_CLOSED_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Reschedule Fulfillment Order",
+      "slug": "SHOPIFY_RESCHEDULE_FULFILLMENT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Restore Comment",
+      "slug": "SHOPIFY_RESTORE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve a specific metafield (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVE_A_SPECIFIC_METAFIELD",
+      "kind": "read"
+    },
+    {
+      "name": "Get resource metafields",
+      "slug": "SHOPIFY_RETRIEVE_LIST_METAFIELDS_RESOURCE_S_ENDPOINT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve abandoned checkouts (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_LIST_OF_ABANDONED_CHECKOUTS",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieves a list of all article tags (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_LIST_OF_ALL_ARTICLE_TAGS",
+      "kind": "write"
+    },
+    {
+      "name": "Get Price Rules List",
+      "slug": "SHOPIFY_RETRIEVES_A_LIST_OF_PRICE_RULES",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve a list of products (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_LIST_OF_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieves a list of webhooks (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_LIST_OF_WEBHOOKS",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieves an order count (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_AN_ORDER_COUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve a single location by its ID (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_SINGLE_LOCATION_BY_ITS_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Get order risk by ID",
+      "slug": "SHOPIFY_RETRIEVES_A_SINGLE_ORDER_RISK_BY_ITS_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Single Price Rule (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_SINGLE_PRICE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve a single product (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_SINGLE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Specific Fulfillment Event (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_A_SPECIFIC_FULFILLMENT_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "List article tags from blog (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_LIST_ALL_ARTICLE_TAGS_SPECIFIC_BLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve Discount Codes for Batch Job (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_LIST_DISCOUNT_CODES_DISCOUNT_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve storefront access tokens (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_LIST_STOREFRONT_ACCESS_TOKENS_THAT_HAVE",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve specific fulfillment order",
+      "slug": "SHOPIFY_RETRIEVE_SPECIFIC_FULFILLMENT_ORDER",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Shop Configuration (Deprecated)",
+      "slug": "SHOPIFY_RETRIEVES_THE_SHOP_S_CONFIGURATION",
+      "kind": "write"
+    },
+    {
+      "name": "Revoke app access scopes",
+      "slug": "SHOPIFY_REVOKE_APP_ACCESS_SCOPES",
+      "kind": "write"
+    },
+    {
+      "name": "Run bulk mutation operation",
+      "slug": "SHOPIFY_RUN_BULK_MUTATION_OPERATION",
+      "kind": "write"
+    },
+    {
+      "name": "Run Shopify bulk operation query",
+      "slug": "SHOPIFY_RUN_BULK_OPERATION_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Search Gift Cards",
+      "slug": "SHOPIFY_SEARCHES_FOR_GIFT_CARDS",
+      "kind": "write"
+    },
+    {
+      "name": "Send Account Invite to Customer (Deprecated)",
+      "slug": "SHOPIFY_SEND_CUSTOMER_ACCOUNT_INVITE",
+      "kind": "send"
+    },
+    {
+      "name": "Send Customer Account Invite",
+      "slug": "SHOPIFY_SEND_CUSTOMER_INVITE",
+      "kind": "send"
+    },
+    {
+      "name": "Send an invoice",
+      "slug": "SHOPIFY_SEND_INVOICE",
+      "kind": "send"
+    },
+    {
+      "name": "Set Default Customer Address",
+      "slug": "SHOPIFY_SET_DEFAULT_CUSTOMER_ADDRESS",
+      "kind": "write"
+    },
+    {
+      "name": "Set Fulfillment Orders Deadline",
+      "slug": "SHOPIFY_SET_FULFILLMENT_ORDERS_DEADLINE",
+      "kind": "write"
+    },
+    {
+      "name": "Set inventory level",
+      "slug": "SHOPIFY_SET_INVENTORY_LEVEL",
+      "kind": "write"
+    },
+    {
+      "name": "Set metafields",
+      "slug": "SHOPIFY_SET_METAFIELDS",
+      "kind": "write"
+    },
+    {
+      "name": "Submit Fulfillment Cancellation Request",
+      "slug": "SHOPIFY_SUBMIT_FULFILLMENT_CANCELLATION_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Submit Fulfillment Request",
+      "slug": "SHOPIFY_SUBMIT_FULFILLMENT_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Trigger Shopify Flow",
+      "slug": "SHOPIFY_TRIGGER_SHOPIFY_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Unpublish collection listing",
+      "slug": "SHOPIFY_UNPUBLISH_COLLECTION_LISTING",
+      "kind": "write"
+    },
+    {
+      "name": "Unpublish product listing",
+      "slug": "SHOPIFY_UNPUBLISH_PRODUCT_LISTING",
+      "kind": "write"
+    },
+    {
+      "name": "Update app subscription line item capped amount",
+      "slug": "SHOPIFY_UPDATE_APP_SUBSCRIPTION_LINE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Article",
+      "slug": "SHOPIFY_UPDATE_ARTICLE",
+      "kind": "write"
+    },
+    {
+      "name": "Modify an existing blog",
+      "slug": "SHOPIFY_UPDATE_BLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Update carrier service",
+      "slug": "SHOPIFY_UPDATE_CARRIER_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Comment",
+      "slug": "SHOPIFY_UPDATE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Country (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_COUNTRIES_PARAM_COUNTRY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update Province Tax Information",
+      "slug": "SHOPIFY_UPDATE_COUNTRIES_PARAM_COUNTRY_ID_PROVINCES_PARAM_PR",
+      "kind": "write"
+    },
+    {
+      "name": "Update Country",
+      "slug": "SHOPIFY_UPDATE_COUNTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Update custom collection",
+      "slug": "SHOPIFY_UPDATE_CUSTOM_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Customer",
+      "slug": "SHOPIFY_UPDATE_CUSTOMER",
+      "kind": "write"
+    },
+    {
+      "name": "Update Customer Address",
+      "slug": "SHOPIFY_UPDATE_CUSTOMER_ADDRESS",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk delete customer addresses",
+      "slug": "SHOPIFY_UPDATE_CUSTOMERS_PARAM_CUSTOMER_ID_ADDRESSES_SET",
+      "kind": "write"
+    },
+    {
+      "name": "Update dispute evidence",
+      "slug": "SHOPIFY_UPDATE_DISPUTE_EVIDENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Modify an existing draft order",
+      "slug": "SHOPIFY_UPDATE_DRAFT_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update EventBridge webhook subscription",
+      "slug": "SHOPIFY_UPDATE_EVENT_BRIDGE_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Fulfillment Service",
+      "slug": "SHOPIFY_UPDATE_FULFILLMENT_SERVICE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Fulfillment Tracking",
+      "slug": "SHOPIFY_UPDATE_FULFILLMENT_TRACKING",
+      "kind": "write"
+    },
+    {
+      "name": "Update an Existing Gift Card",
+      "slug": "SHOPIFY_UPDATE_GIFT_CARD",
+      "kind": "write"
+    },
+    {
+      "name": "Update inventory item",
+      "slug": "SHOPIFY_UPDATE_INVENTORY_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Marketing Event",
+      "slug": "SHOPIFY_UPDATE_MARKETING_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update blog metafield (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update metafield by ID",
+      "slug": "SHOPIFY_UPDATE_METAFIELD_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update metafield definition",
+      "slug": "SHOPIFY_UPDATE_METAFIELD_DEFINITION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a metafield (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_METAFIELD_GENERIC",
+      "kind": "write"
+    },
+    {
+      "name": "Update a metafield (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_METAFIELD_RESOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Mobile Platform Application",
+      "slug": "SHOPIFY_UPDATE_MOBILE_PLATFORM_APPLICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Order",
+      "slug": "SHOPIFY_UPDATE_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update order risk",
+      "slug": "SHOPIFY_UPDATE_ORDER_RISK",
+      "kind": "write"
+    },
+    {
+      "name": "Update Page",
+      "slug": "SHOPIFY_UPDATE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Price Rule",
+      "slug": "SHOPIFY_UPDATE_PRICE_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Product Image",
+      "slug": "SHOPIFY_UPDATE_PRODUCT_IMAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update product metafield",
+      "slug": "SHOPIFY_UPDATE_PRODUCT_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update Product",
+      "slug": "SHOPIFY_UPDATE_PRODUCTS_PARAM_PRODUCT_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk update product variants via GraphQL",
+      "slug": "SHOPIFY_UPDATE_PRODUCT_VARIANTS_BULK",
+      "kind": "write"
+    },
+    {
+      "name": "Update Province for Country (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_PROVINCE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Pub/Sub webhook subscription",
+      "slug": "SHOPIFY_UPDATE_PUB_SUB_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update redirect",
+      "slug": "SHOPIFY_UPDATE_REDIRECT",
+      "kind": "write"
+    },
+    {
+      "name": "Update redirect (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_REDIRECT_ALT",
+      "kind": "write"
+    },
+    {
+      "name": "Updates An Article (Deprecated)",
+      "slug": "SHOPIFY_UPDATES_AN_ARTICLE",
+      "kind": "write"
+    },
+    {
+      "name": "Updates An Existing Discount Code",
+      "slug": "SHOPIFY_UPDATES_AN_EXISTING_DISCOUNT_CODE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a product (Deprecated)",
+      "slug": "SHOPIFY_UPDATES_A_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Script Tag",
+      "slug": "SHOPIFY_UPDATE_SCRIPT_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Update a metafield (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_SHOP_METAFIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update Smart Collection",
+      "slug": "SHOPIFY_UPDATE_SMART_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update smart collection (Deprecated)",
+      "slug": "SHOPIFY_UPDATE_SMART_COLLECTION_ALT",
+      "kind": "write"
+    },
+    {
+      "name": "Update smart collection product order",
+      "slug": "SHOPIFY_UPDATE_SMART_COLLECTION_ORDER",
+      "kind": "write"
+    },
+    {
+      "name": "Modify existing theme",
+      "slug": "SHOPIFY_UPDATE_THEME",
+      "kind": "write"
+    },
+    {
+      "name": "Update webhook subscription",
+      "slug": "SHOPIFY_UPDATE_WEBHOOK_SUBSCRIPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Upload dispute evidence file",
+      "slug": "SHOPIFY_UPLOAD_DISPUTE_EVIDENCE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Validate Access",
+      "slug": "SHOPIFY_VALIDATE_ACCESS",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/shopify",
+  "fetched_at": "2026-11-12"
+}

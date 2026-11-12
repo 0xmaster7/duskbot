@@ -1,0 +1,114 @@
+{
+  "path": "/guides/grok-tasks",
+  "type": "guide",
+  "title": "Grok tasks and automations: what runs in the cloud",
+  "nav": "grok tasks and automations",
+  "h1": "grok tasks, automations and bot routines",
+  "description": "Understand Grok Automations, cloud Grok Bot routines, current X subscription prices and the separate role of the Grok Build CLI.",
+  "keyword": "grok tasks",
+  "keywords": [
+    "grok agent",
+    "grok agent mode"
+  ],
+  "answer": "as of 12 november 2026, grok's tasks page presents automations for recurring work and supported events. grok bot documentation separately describes routines that run in the cloud while your laptop is closed. standalone supergrok has been folded into the x subscription for new customers. choose the feature and check the current plan page before assuming an old grok tasks tutorial describes today's product.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "grok",
+    "automations",
+    "xai",
+    "cloud"
+  ],
+  "connectors": [],
+  "related": [
+    "/scheduled-ai-tasks",
+    "/guides/how-much-does-an-ai-agent-cost",
+    "/use-your-ai-subscription"
+  ],
+  "art": {
+    "props": [
+      "s-cloud",
+      "s-clock"
+    ],
+    "bubble": "a routine up there"
+  },
+  "og_line": "check the feature as well as the plan.",
+  "sections": [
+    {
+      "h": "three names to keep separate",
+      "md": "as of 12 november 2026, grok.com/tasks calls its feature **Automations** and describes recurring work, reacting to events and notifications. grok bot's own documentation calls a scheduled workflow a routine and says those routines run in the cloud with your laptop closed.[^1][^2]\n\ngrok build is another product: a coding agent with an interactive terminal interface, headless scripts or bots, and acp use in other apps. a tutorial for that cli is not automatically a tutorial for the automations page or a grok bot routine.[^3]\n\nstart by naming the result you need. a recurring reading brief, a cloud workflow and a script running on a machine you maintain may overlap in purpose, but they leave you with different setup questions. do not infer one product's settings from another's name."
+    },
+    {
+      "h": "check the current x subscription rather than an old supergrok price",
+      "md": "as of 12 november 2026, grok's plans page lists cloud agents and automations, and grok bot, under premium in the x subscription. xai introduced that subscription on 12 october 2026, bringing together grok, grok bot, cursor and x premium. standalone supergrok was folded in for new customers; existing subscribers can keep their plan.[^4][^5]\n\nthe announcement lists monthly prices of $8 for plus, $30 for premium, $100 for super and $200 for ultra. those are the stated dollar prices, not a guarantee of your local checkout amount. the plan page viewed from india showed local currency, so check your own billing screen.[^5]\n\nthe [agent cost guide](/guides/how-much-does-an-ai-agent-cost) separates product prices from machine and model costs. a similarly priced plan elsewhere need not include the same work."
+    },
+    {
+      "h": "turn a vague recurring request into a reviewable one",
+      "md": "before scheduling, write down the source, question, output and quiet condition. here are three proposed instructions to adapt; they are not sample results or promises of a particular integration.\n\n- **public topic watch:** 'review public announcements about the transport project i named. separate confirmed decisions from speculation. give the original source and date. if nothing material changed, keep the reply short.'\n- **research follow-up:** 'revisit the question in this brief once a week. explain what new evidence changes the answer, and what remains unresolved.'\n- **planning prompt:** 'each monday, ask which one of these goals needs a decision. wait for my answer before expanding the plan.'\n\ntest the instruction once before repeating it. if the result is too broad, reduce the source set or make the question narrower. adding more runs to an unclear task usually gives you more unclear results. do not assume scheduling grants access to private accounts."
+    },
+    {
+      "h": "cloud routines and local cli scripts need different checks",
+      "md": "as of 12 november 2026, xai says grok bot routines run in the cloud with the laptop closed. grok build's docs instead describe scripts, bots and acp usage, with browser authentication at first launch and api keys in non-browser environments.[^2][^3]\n\nxai's consumer terms say you must not share credentials or make the account available to anyone else, and you remain responsible for activity under it. the cli feature description is not a terms decision about any particular third-party app. check your provider's current terms before choosing that route.[^6]\n\nfor a broader sign-in explanation, [automation with the ai you already sign in to](/use-your-ai-subscription) describes dusk's official-app setup alongside the provider boundaries."
+    },
+    {
+      "h": "when a dusk routine is the better shape for the job",
+      "md": "choose around how you want to work with the bot. in dusk, each bot has its own job, chats, memory and ai. you create a routine by sending a message, then inspect the card with its schedule and next runs. **Automations** in dusk's sidebar lists routine history.[^7][^8]\n\nthat fits someone who wants repeated work and follow-up questions in one bot's conversation. it does not turn a local bot into a cloud one: routines on your computer stop when the machine sleeps or dusk closes. dusk cloud is the hosted option.[^8]\n\ncompare [scheduled ai tasks](/scheduled-ai-tasks) before moving a working routine. if grok bot already does the one job you need in the cloud, another home for the same job may add setup without adding value."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can grok tasks work with my laptop closed?",
+      "a": "as of 12 november 2026, xai specifically documents grok bot routines running in the cloud while the laptop is closed. do not automatically apply that statement to a grok build script running on your own machine.[^2][^3]"
+    },
+    {
+      "q": "is supergrok still a separate plan?",
+      "a": "as of 12 november 2026, the x subscription has replaced standalone supergrok for new customers. xai says existing supergrok subscribers can keep their plan. check which product your current bill names before comparing prices.[^5]"
+    },
+    {
+      "q": "what should i try as my first recurring grok task?",
+      "a": "choose a narrow question whose answer you can check, such as a weekly review of public updates on one topic. ask for source dates and uncertainty. keep the first version away from actions you cannot easily reverse."
+    }
+  ],
+  "sources": [
+    {
+      "label": "xai: automations page",
+      "url": "https://grok.com/tasks",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: grok bot routines",
+      "url": "https://docs.x.ai/grok-bot/skills-routines-and-automations",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: grok build overview",
+      "url": "https://docs.x.ai/build/overview",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: plans",
+      "url": "https://grok.com/plans",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: x subscription announcement",
+      "url": "https://x.ai/news/x-subscription",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: consumer terms",
+      "url": "https://x.ai/legal/terms-of-service",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

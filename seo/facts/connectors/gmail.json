@@ -1,0 +1,332 @@
+{
+  "toolkit": "gmail",
+  "name": "Gmail",
+  "version": "20261105_00",
+  "description": "Gmail is Google’s email service, featuring spam protection, search functions, and seamless integration with other G Suite apps for productivity",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 63,
+  "triggers_count": 2,
+  "tools": [
+    {
+      "name": "Modify email labels",
+      "slug": "GMAIL_ADD_LABEL_TO_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Batch delete Gmail messages",
+      "slug": "GMAIL_BATCH_DELETE_MESSAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch modify Gmail messages",
+      "slug": "GMAIL_BATCH_MODIFY_MESSAGES",
+      "kind": "write"
+    },
+    {
+      "name": "Create email draft",
+      "slug": "GMAIL_CREATE_EMAIL_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Gmail filter",
+      "slug": "GMAIL_CREATE_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Create label",
+      "slug": "GMAIL_CREATE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Draft",
+      "slug": "GMAIL_DELETE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Gmail filter",
+      "slug": "GMAIL_DELETE_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete label from account (permanent)",
+      "slug": "GMAIL_DELETE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete message",
+      "slug": "GMAIL_DELETE_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete thread",
+      "slug": "GMAIL_DELETE_THREAD",
+      "kind": "write"
+    },
+    {
+      "name": "Fetch emails",
+      "slug": "GMAIL_FETCH_EMAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch message by message ID",
+      "slug": "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch Message by Thread ID",
+      "slug": "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Forward email message",
+      "slug": "GMAIL_FORWARD_MESSAGE",
+      "kind": "send"
+    },
+    {
+      "name": "Get Gmail attachment",
+      "slug": "GMAIL_GET_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Auto-Forwarding Settings",
+      "slug": "GMAIL_GET_AUTO_FORWARDING",
+      "kind": "read"
+    },
+    {
+      "name": "Get contacts",
+      "slug": "GMAIL_GET_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Draft",
+      "slug": "GMAIL_GET_DRAFT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Gmail filter",
+      "slug": "GMAIL_GET_FILTER",
+      "kind": "read"
+    },
+    {
+      "name": "Get label details",
+      "slug": "GMAIL_GET_LABEL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Language Settings",
+      "slug": "GMAIL_GET_LANGUAGE_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get People",
+      "slug": "GMAIL_GET_PEOPLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Profile",
+      "slug": "GMAIL_GET_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Vacation Settings",
+      "slug": "GMAIL_GET_VACATION_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Import message",
+      "slug": "GMAIL_IMPORT_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Insert message into mailbox",
+      "slug": "GMAIL_INSERT_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "List CSE identities",
+      "slug": "GMAIL_LIST_CSE_IDENTITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List CSE key pairs",
+      "slug": "GMAIL_LIST_CSE_KEYPAIRS",
+      "kind": "read"
+    },
+    {
+      "name": "List Drafts",
+      "slug": "GMAIL_LIST_DRAFTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Gmail filters",
+      "slug": "GMAIL_LIST_FILTERS",
+      "kind": "read"
+    },
+    {
+      "name": "List forwarding addresses",
+      "slug": "GMAIL_LIST_FORWARDING_ADDRESSES",
+      "kind": "read"
+    },
+    {
+      "name": "List Gmail history",
+      "slug": "GMAIL_LIST_HISTORY",
+      "kind": "read"
+    },
+    {
+      "name": "List Gmail labels",
+      "slug": "GMAIL_LIST_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "List Gmail messages (Deprecated)",
+      "slug": "GMAIL_LIST_MESSAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List send-as aliases",
+      "slug": "GMAIL_LIST_SEND_AS",
+      "kind": "read"
+    },
+    {
+      "name": "List S/MIME configs",
+      "slug": "GMAIL_LIST_SMIME_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "List threads",
+      "slug": "GMAIL_LIST_THREADS",
+      "kind": "read"
+    },
+    {
+      "name": "Modify thread labels",
+      "slug": "GMAIL_MODIFY_THREAD_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Trash thread",
+      "slug": "GMAIL_MOVE_THREAD_TO_TRASH",
+      "kind": "write"
+    },
+    {
+      "name": "Move to Trash",
+      "slug": "GMAIL_MOVE_TO_TRASH",
+      "kind": "write"
+    },
+    {
+      "name": "Patch Label",
+      "slug": "GMAIL_PATCH_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Patch send-as alias",
+      "slug": "GMAIL_PATCH_SEND_AS",
+      "kind": "send"
+    },
+    {
+      "name": "Remove label (Deprecated)",
+      "slug": "GMAIL_REMOVE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Reply to email thread",
+      "slug": "GMAIL_REPLY_TO_THREAD",
+      "kind": "send"
+    },
+    {
+      "name": "Search People",
+      "slug": "GMAIL_SEARCH_PEOPLE",
+      "kind": "read"
+    },
+    {
+      "name": "Send Draft",
+      "slug": "GMAIL_SEND_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Send Email",
+      "slug": "GMAIL_SEND_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Get IMAP Settings",
+      "slug": "GMAIL_SETTINGS_GET_IMAP",
+      "kind": "write"
+    },
+    {
+      "name": "Get POP settings",
+      "slug": "GMAIL_SETTINGS_GET_POP",
+      "kind": "write"
+    },
+    {
+      "name": "Get send-as alias",
+      "slug": "GMAIL_SETTINGS_SEND_AS_GET",
+      "kind": "send"
+    },
+    {
+      "name": "Stop watch notifications",
+      "slug": "GMAIL_STOP_WATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Untrash Message",
+      "slug": "GMAIL_UNTRASH_MESSAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Untrash thread",
+      "slug": "GMAIL_UNTRASH_THREAD",
+      "kind": "write"
+    },
+    {
+      "name": "Update Google Contact",
+      "slug": "GMAIL_UPDATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Update draft",
+      "slug": "GMAIL_UPDATE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Update IMAP settings",
+      "slug": "GMAIL_UPDATE_IMAP_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update Label",
+      "slug": "GMAIL_UPDATE_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Update Language Settings",
+      "slug": "GMAIL_UPDATE_LANGUAGE_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update POP settings",
+      "slug": "GMAIL_UPDATE_POP_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update send-as alias",
+      "slug": "GMAIL_UPDATE_SEND_AS",
+      "kind": "send"
+    },
+    {
+      "name": "Update Vacation Settings",
+      "slug": "GMAIL_UPDATE_VACATION_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "GMAIL_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/gmail",
+  "fetched_at": "2026-11-12"
+}

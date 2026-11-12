@@ -1,0 +1,155 @@
+{
+  "path": "/integrations/github",
+  "type": "integration",
+  "title": "GitHub AI assistant for issues, pull requests and releases",
+  "nav": "github",
+  "h1": "a github bot that reads the work before you weigh in",
+  "description": "Give a bot in Dusk Bot a GitHub repo to follow. Get issue triage, pull request context and release notes, with clear limits on what it can change.",
+  "keyword": "claude github",
+  "keywords": [
+    "chatgpt github",
+    "claude github integration",
+    "github ai agent",
+    "github mcp"
+  ],
+  "answer": "connect github to a bot in dusk bot and ask it to read issues, inspect pull request files or gather changes for a release. choose claude, chatgpt or another ai for the bot. start with a reader that reports in your chat; add specific write actions only when you want labels, assignments or comments changed.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "development",
+    "issues",
+    "pull requests",
+    "releases"
+  ],
+  "connectors": [
+    "github"
+  ],
+  "related": [
+    "/routines/github-issue-triage",
+    "/integrations/linear",
+    "/integrations/slack"
+  ],
+  "art": {
+    "logo": "github",
+    "label": "GitHub",
+    "props": [
+      "p-folder",
+      "p-magnifier"
+    ],
+    "bubble": "what needs a review"
+  },
+  "og_line": "issues and pull requests, with context.",
+  "app": {
+    "name": "GitHub",
+    "toolkit": "github",
+    "intro": "github work often starts with a question: is this report new, what changed, or who is waiting? these actions let a bot collect the evidence before suggesting a next step.",
+    "highlight": [
+      {
+        "slug": "GITHUB_SEARCH_ISSUES_AND_PULL_REQUESTS",
+        "use": "look for earlier reports of the same error before calling a bug new"
+      },
+      {
+        "slug": "GITHUB_GET_AN_ISSUE",
+        "use": "read the reproduction steps and the original report"
+      },
+      {
+        "slug": "GITHUB_GET_ISSUE_COMMENTS",
+        "use": "check whether someone already found a workaround"
+      },
+      {
+        "slug": "GITHUB_LIST_PULL_REQUESTS_FILES",
+        "use": "see which files a proposed change touches"
+      },
+      {
+        "slug": "GITHUB_LIST_REVIEWS_FOR_A_PULL_REQUEST",
+        "use": "read reviewer feedback before summarising what is blocked"
+      },
+      {
+        "slug": "GITHUB_LIST_COMMITS",
+        "use": "gather commit messages for a release briefing"
+      },
+      {
+        "slug": "GITHUB_ADD_LABELS_TO_AN_ISSUE",
+        "use": "apply a triage label after you have agreed the rules"
+      },
+      {
+        "slug": "GITHUB_CREATE_AN_ISSUE_COMMENT",
+        "use": "post a requested follow-up through the sending approval setting"
+      }
+    ],
+    "setup": "open **Connected apps**, connect github and give access to the bot doing repository work. sign-in takes place on github's page. tell the bot the exact owner and repository, then choose read-only access for its first review. an action being in the catalog does not mean you have allowed that bot to use it."
+  },
+  "routines_intro": "try these as messages to a repository bot. each keeps the decision in your chat, so you can check the evidence before adding writes.",
+  "routines": [
+    {
+      "name": "new report check",
+      "message": "when a github issue opens in acme/widget, read it and search existing issues for the same error. tell me possible duplicates and which reproduction details are missing. do not label, assign, close or comment.",
+      "when": "when a github issue opens",
+      "output": "a triage note with issue references"
+    },
+    {
+      "name": "review waiting room",
+      "message": "every tuesday at 10, read open pull requests in acme/widget and their reviews. group them into waiting for author, waiting for reviewer and unclear. cite the review that supports each choice. leave everything unchanged.",
+      "when": "tuesdays at 10:00",
+      "output": "a review queue grouped by the next person needed"
+    },
+    {
+      "name": "release reading list",
+      "message": "every thursday at 3, list commits in acme/widget since monday. draft a release outline in this chat, grouping fixes and additions. mark anything whose user impact is unclear. do not create a release or tag.",
+      "when": "thursdays at 15:00",
+      "output": "an unpublished release outline"
+    }
+  ],
+  "asks": "posting an issue comment is a send: by default it brings up **Allow** or **Deny**. a daily sending amount can change that, so check the bot's sending setting before enabling comments.\n\nlabels, assignments, issue closure and merges are other kinds of changes. do not assume they pause for a send card. keep the bot read-only for review work, or include \"ask me before you change anything\" in a routine that needs write access.",
+  "cannot": [
+    "merge, label or assign with a read-only github grant. the permission check stops a write before it reaches the app; reading a pull request is not permission to merge it.",
+    "keep triaging on a sleeping laptop. local event routines need dusk bot running and the computer awake. use dusk cloud if the repository needs attention while your machine is off.",
+    "prove a fix works just by reading an issue or diff. these routines collect repository evidence; they do not establish that you ran the code or reproduced the bug."
+  ],
+  "sections": [
+    {
+      "h": "give it a repository boundary",
+      "md": "name the repo in every routine, especially if your account can reach several. explain what your labels mean before allowing label changes. a report without reproduction steps should remain uncertain, rather than becoming a confident diagnosis. the [issue triage routine](/routines/github-issue-triage) is a useful next step."
+    },
+    {
+      "h": "keep discussion and tracking together",
+      "md": "if the team plans in [linear](/integrations/linear), let that tracker own priority. github can supply the issue and code context. a [slack digest](/integrations/slack) can cover discussion, but a suggestion in chat should not silently become a change to a release plan."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can i connect claude to github without building my own bot?",
+      "a": "yes. connect github in dusk bot and pick the ai for your bot. the connection and the ai choice are separate; switching the ai keeps that bot's chats and memory."
+    },
+    {
+      "q": "can it close issues without asking me?",
+      "a": "do not rely on a sending prompt for issue closure. leave github read-only if you only want advice, or explicitly instruct the routine to ask before any change."
+    },
+    {
+      "q": "where does my issue triage bot run when my laptop is closed?",
+      "a": "on your own computer it pauses during sleep or while dusk bot is closed. dusk cloud provides an always-on machine for routines."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: bots",
+      "url": "/docs/bots"
+    }
+  ]
+}

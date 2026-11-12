@@ -1,0 +1,158 @@
+{
+  "toolkit": "airtable",
+  "name": "Airtable",
+  "version": "20261101_00",
+  "description": "Airtable merges spreadsheet functionality with database power, enabling teams to organize projects, track tasks, and collaborate through customizable views, automation, and integrations for data management",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 28,
+  "triggers_count": 6,
+  "tools": [
+    {
+      "name": "Create base",
+      "slug": "AIRTABLE_CREATE_BASE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Comment",
+      "slug": "AIRTABLE_CREATE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Field",
+      "slug": "AIRTABLE_CREATE_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create multiple records (Deprecated)",
+      "slug": "AIRTABLE_CREATE_MULTIPLE_RECORDS",
+      "kind": "write"
+    },
+    {
+      "name": "Create a record (Deprecated)",
+      "slug": "AIRTABLE_CREATE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Record From Natural Language",
+      "slug": "AIRTABLE_CREATE_RECORD_FROM_NATURAL_LANGUAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create records",
+      "slug": "AIRTABLE_CREATE_RECORDS",
+      "kind": "write"
+    },
+    {
+      "name": "Create table",
+      "slug": "AIRTABLE_CREATE_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "AIRTABLE_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete multiple records",
+      "slug": "AIRTABLE_DELETE_MULTIPLE_RECORDS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Record",
+      "slug": "AIRTABLE_DELETE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Get Attachment Info",
+      "slug": "AIRTABLE_GET_ATTACHMENT_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Base Metadata",
+      "slug": "AIRTABLE_GET_BASE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Base Schema",
+      "slug": "AIRTABLE_GET_BASE_SCHEMA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Record",
+      "slug": "AIRTABLE_GET_RECORD",
+      "kind": "read"
+    },
+    {
+      "name": "Get user information",
+      "slug": "AIRTABLE_GET_USER_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "List bases",
+      "slug": "AIRTABLE_LIST_BASES",
+      "kind": "read"
+    },
+    {
+      "name": "List Comments",
+      "slug": "AIRTABLE_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List records",
+      "slug": "AIRTABLE_LIST_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "Update Comment",
+      "slug": "AIRTABLE_UPDATE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Field",
+      "slug": "AIRTABLE_UPDATE_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update multiple records",
+      "slug": "AIRTABLE_UPDATE_MULTIPLE_RECORDS",
+      "kind": "write"
+    },
+    {
+      "name": "Update multiple records (PUT)",
+      "slug": "AIRTABLE_UPDATE_MULTIPLE_RECORDS_PUT",
+      "kind": "write"
+    },
+    {
+      "name": "Update record",
+      "slug": "AIRTABLE_UPDATE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Update record (PUT)",
+      "slug": "AIRTABLE_UPDATE_RECORD_PUT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table",
+      "slug": "AIRTABLE_UPDATE_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Upload attachment",
+      "slug": "AIRTABLE_UPLOAD_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "AIRTABLE_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/airtable",
+  "fetched_at": "2026-11-12"
+}

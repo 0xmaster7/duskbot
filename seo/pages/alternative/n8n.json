@@ -1,0 +1,209 @@
+{
+  "path": "/alternatives/n8n",
+  "type": "alternative",
+  "title": "An n8n alternative if you would rather text a bot",
+  "nav": "n8n",
+  "h1": "an n8n alternative for people who do not want to build workflows",
+  "description": "Compare n8n workflows with Dusk Bot routines: who builds the steps, where they run, EUR execution prices and the limits of a chat-based approach.",
+  "keyword": "n8n alternative for non technical",
+  "keywords": [
+    "n8n ai agent",
+    "openclaw vs n8n",
+    "make.com alternative"
+  ],
+  "answer": "n8n fits when you want to build a workflow on a visual canvas and control its steps. dusk bot fits when you want to describe a job to a bot, review its work and steer it with another message. both can live on a server, so hosting is not the main difference. the choice is whether you want to maintain a process or keep giving a teammate instructions.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "n8n",
+    "alternatives"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/gumloop",
+    "/alternatives/openclaw",
+    "/scheduled-ai-tasks"
+  ],
+  "competitor": {
+    "key": "n8n",
+    "name": "n8n",
+    "url": "https://n8n.io/"
+  },
+  "art": {
+    "props": [
+      "s-plug",
+      "s-notebook"
+    ],
+    "label": "n8n",
+    "bubble": "steps or a job?"
+  },
+  "og_line": "build the steps, or describe the job.",
+  "verdict": {
+    "them_title": "n8n",
+    "them": [
+      "you want a visual canvas for multi-step workflows and agents",
+      "you want self-hosted community software under its sustainable use license",
+      "you prefer a price based on workflow executions rather than steps or users"
+    ],
+    "dusk": [
+      "you want to create a routine by describing it in a chat",
+      "you want ongoing chats and memory attached to a bot with one job",
+      "you want an app on your computer before deciding whether to host the bots"
+    ]
+  },
+  "compare": {
+    "h": "a workflow canvas beside a bot conversation",
+    "intro": "n8n prices are quoted in eur exactly as n8n's page showed them on 12 november 2026. the annual billing basis matters. these are plan allowances, not measured jobs completed.",
+    "cols": [
+      "n8n",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "how you define work",
+        "cells": [
+          "visual canvas for workflows and ai agents",
+          "give a bot a job in plain words; ask it for routines"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "places to run",
+        "cells": [
+          "n8n cloud or your own server; community edition can be self-hosted",
+          "local computer, a server you maintain, or dusk cloud"
+        ],
+        "src": [
+          2,
+          4
+        ]
+      },
+      {
+        "label": "getting it running",
+        "cells": [
+          "cloud trial; self-host install script requires docker",
+          "download the desktop app and sign in to an ai"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "cloud entry price",
+        "cells": [
+          "starter 20 eur/month billed annually, with 2,500 executions",
+          "dusk cloud plus $20/month or $200/year; ai usage separate"
+        ],
+        "src": [
+          2,
+          4
+        ]
+      },
+      {
+        "label": "larger plan",
+        "cells": [
+          "pro 50 eur/month billed annually, with 10,000 executions",
+          "dusk cloud pro $50/month or $500/year; 5 bot computers awake at once"
+        ],
+        "src": [
+          2,
+          4
+        ]
+      },
+      {
+        "label": "what the meter counts",
+        "cells": [
+          "workflow executions, rather than each step or each user",
+          "cloud hosting has its own price; the ai provider bills usage"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "free use and license",
+        "cells": [
+          "free self-hosted community edition; fair-code sustainable use license, not osi open source",
+          "free personal use locally; source-available, with a work license required for work"
+        ],
+        "src": [
+          1,
+          5,
+          6
+        ]
+      }
+    ]
+  },
+  "method": "the n8n facts here come from its repository and pricing page recorded on 12 november 2026. we make dusk bot and used our own docs for that column. no identical workflow was built and timed in both, and no execution-to-ai-usage conversion was measured. the eur figures are as shown on n8n's pricing page on 12 november 2026, not a currency conversion or a promise about the checkout in your country.",
+  "sections": [
+    {
+      "h": "first decide who should spell out the steps",
+      "md": "n8n is a workflow platform with a visual canvas, including ai agents and multi-step processes.[^1] choose that shape if you want the process represented as steps you can inspect. a conversational bot is a different way to hand over responsibility: you describe the goal, then inspect what it did. neither approach removes the need to check the result.\n\nfor instance, try asking a dusk bot: \"every friday at 4, review the notes in this project folder. list unresolved questions with the filename for each. do not edit the notes.\" routines are created in chat, and files can live in a project folder you give the bot.[^7][^8] do not read that as a promise that it will always interpret every note correctly."
+    },
+    {
+      "h": "execution pricing is useful, but not the whole budget",
+      "md": "as of 12 november 2026, n8n starter is 20 eur/month billed annually for 2,500 executions; pro is 50 eur/month billed annually for 10,000. business is 667 eur/month billed annually for 40,000 executions and is self-hosted only. community edition is free to self-host.[^2]\n\na workflow execution is the billing unit, not each step or user. do not equate one execution with one dusk message or one ai task. they are different meters. n8n's cloud offering also includes ai model access and assistant credits.[^2] [gumloop](/alternatives/gumloop) has another credit model worth comparing if that is your main concern."
+    },
+    {
+      "h": "a server does not turn one tool into the other",
+      "md": "both products give you hosting choices. n8n offers its cloud and self-hosting; dusk offers your computer, your own server and dusk cloud.[^2][^4] if you are comparing [openclaw](/alternatives/openclaw) too, keep the interface question separate from the server question.\n\nlocal dusk jobs stop when the app closes or the computer sleeps. a run missed by less than 12 hours runs once when you return; older ones are skipped.[^7] for a friday report that must arrive while you are away, choose where it will actually run before relying on [scheduled tasks](/scheduled-ai-tasks).\n\nwhen connecting apps, start a new bot with read-only access. if you later allow changes, put \"ask me before you change anything\" in the routine. sends have their own approval setting; other app changes are not documented to ask first.[^8] your ai provider's current terms still decide what its sign-in allows."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is there an n8n alternative for non-technical people?",
+      "a": "dusk bot is worth trying if your aim is to give a bot a small job in plain words. it does not give you n8n's visual workflow canvas. write down whether you need to control the sequence or mainly review the final work before choosing."
+    },
+    {
+      "q": "where do your agents actually run when your laptop is closed?",
+      "a": "n8n can run in its cloud or on your server.[^2] dusk bots can run on dusk cloud or your own server. the local dusk app cannot keep a job going while your computer sleeps.[^4][^7]"
+    },
+    {
+      "q": "is n8n open source?",
+      "a": "its repository calls it fair-code under the sustainable use license, with separate enterprise licensing. that is not osi open source. dusk bot is source-available too, with free personal use and a work license for work.[^1][^6]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "n8n repository",
+      "url": "https://github.com/n8n-io/n8n",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "n8n pricing",
+      "url": "https://n8n.io/pricing/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: faq",
+      "url": "/docs/faq"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: files and apps",
+      "url": "/docs/files-and-apps"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "path": "/use-cases/email-triage",
+  "type": "use-case",
+  "title": "AI email triage: a bot that sorts your inbox and drafts replies",
+  "nav": "email triage",
+  "h1": "ai email triage: let a bot sort your inbox and draft the replies",
+  "description": "Set up an AI bot that reads new mail, puts what needs you on top, files the rest and drafts replies you approve. The exact routine, guard rails and limits.",
+  "keyword": "ai email triage",
+  "keywords": ["ai inbox triage", "ai email sorting", "ai email assistant drafts replies", "ai inbox cleaner"],
+  "answer": "give one bot one job: read what came in, put the few emails that need you at the top, file the rest under labels, and leave replies in drafts. you send it a routine once, in plain words, and it runs every morning or as mail arrives. it never sends anything unless you tap allow, so the worst case is a draft you delete.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent, against dusk bot docs", "at": "2026-11-12" },
+  "tags": ["email", "inbox", "drafts", "routine", "triage"],
+  "connectors": ["gmail", "outlook"],
+  "related": ["/integrations/gmail", "/integrations/outlook", "/use-cases/daily-briefing"],
+  "art": { "props": ["s-mailbox", "p-folder"], "bubble": "4 for you, 31 filed" },
+  "og_line": "the routine, the guard rails, the limits.",
+  "routine": {
+    "intro": "this is the one message to send. it works the same with gmail or outlook; connect one of them first.",
+    "message": "you're my inbox helper. every weekday at 7:30, read everything that came into my inbox since yesterday at 7:30.\n\n1. put a label \"needs me\" on anything from a person that asks me something or needs a decision. list those first, one line each: who, what they want, by when.\n2. label newsletters \"read later\" and receipts \"receipts\". don't list them.\n3. for each \"needs me\" email from a client, write a short reply in my voice and leave it in drafts.\n4. never send, archive or delete anything. if you're unsure where something goes, leave it and tell me.",
+    "when": "weekdays at 7:30, or say \"as mail arrives\" for a version that runs on new mail",
+    "needs": "gmail or outlook connected, with read and write access for this one bot",
+    "output": "4 need you today\n\n1. sam (acme): wants the revised quote by thursday. draft ready.\n2. priya: can you do a call at 3 tomorrow? draft says yes, 3 works.\n3. bank: card ending 0412 expires next month. no reply needed.\n4. jo (landlord): boiler visit, needs a yes for monday morning.\n\nfiled: 22 under read later, 9 under receipts.\nnot sure: 1 email from an address i don't know, left in the inbox."
+  },
+  "sections": [
+    { "h": "why one bot, one job", "md": "a bot that only does your inbox builds the right memory: who your clients are, how you sign off, which senders are noise. tell it once, \"dana approves anything over $500\" or \"recruiters go under read later\", and it keeps a note you can read and edit later.\n\nkeep your inbox bot out of everything else. it doesn't need your slack or your files, and you choose which connected apps each bot may use." },
+    { "h": "the first week", "md": "1. for the first few days, add \"list what you would label, but don't label anything yet\" to the routine, and keep the bot on **Ask for approval**.\n2. read the first few runs and correct it right in the chat: \"shorter\", \"skip newsletters entirely\", \"anything from the bank goes under receipts\".\n3. once the list looks right for a few days, take that line out so it labels on its own. sending stays behind **Allow**.\n\nmost of the work is in those first corrections. after that you mostly glance at the list." },
+    { "h": "every morning or as mail arrives", "md": "a scheduled routine runs at a time you pick. an event routine starts when new mail matches what you said, for example \"whenever an email arrives from @acme.com, draft a reply\". gmail is checked about every 15 minutes, so an event routine starts within that time, not the moment mail lands.\n\non your own computer, routines run only while it's awake and dusk bot is open; a run missed by less than 12 hours runs once when you're back. if you want triage done before you wake, put the bot on [dusk cloud](/docs/dusk-cloud), which stays on." },
+    { "h": "where it gets things wrong", "md": "it can file a real person under read later, especially someone writing from a new address. the routine above asks it to leave anything it's unsure about in the inbox and tell you, which catches most of these. it also can't know context it was never given: if a client changed their name or a project ended, say so once and it updates its notes." }
+  ],
+  "safeguards": [
+    "it never sends: sending stops at a card with **Allow** and **Deny**, unless you set a daily amount it may send on its own",
+    "it never archives or deletes in this routine, so nothing disappears from your inbox",
+    "give it read and write access to your mail app only, and to no other app",
+    "start on **Ask for approval** and loosen up once a week of runs look right",
+    "[[⌘ .]] stops it mid-run if something looks wrong"
+  ],
+  "faq": [
+    { "q": "does it work with outlook as well as gmail?", "a": "yes. connect outlook in **Connected apps** and send the same routine. labels become outlook folders or categories; tell the bot which you use." },
+    { "q": "can it sort two inboxes?", "a": "yes. connect both accounts with labels like `work` and `personal`, and name the one you mean in the routine, or make one routine per inbox." },
+    { "q": "will it learn my writing style?", "a": "it learns from what you tell it and from your corrections, and keeps notes you can see under the bot's **Memory**. the more specific you are (\"no exclamation marks\", \"sign off with just my first name\"), the closer the drafts get." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: tips for using bots", "url": "/docs/tips" },
+    { "label": "dusk bot docs: a bot's computer, asking first", "url": "/docs/computer" }
+  ]
+}

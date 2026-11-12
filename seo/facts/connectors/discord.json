@@ -1,0 +1,157 @@
+{
+  "toolkit": "discord",
+  "name": "Discord",
+  "version": "20261101_00",
+  "description": "An instant messaging and VoIP social platform.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 28,
+  "triggers_count": 1,
+  "tools": [
+    {
+      "name": "Consume Entitlement (Deprecated)",
+      "slug": "DISCORD_CONSUME_ENTITLEMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Test Entitlement (Deprecated)",
+      "slug": "DISCORD_DELETE_TEST_ENTITLEMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete User Application Role Connection",
+      "slug": "DISCORD_DELETE_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Edit Application Command Permissions",
+      "slug": "DISCORD_EDIT_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Get Application Command Permissions",
+      "slug": "DISCORD_GET_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Batch Application Command Permissions",
+      "slug": "DISCORD_GET_BATCH_APPLICATION_COMMAND_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Current User Application Entitlements",
+      "slug": "DISCORD_GET_CURRENT_USER_APPLICATION_ENTITLEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Gateway",
+      "slug": "DISCORD_GET_GATEWAY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Guild Template",
+      "slug": "DISCORD_GET_GUILD_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Guild Widget",
+      "slug": "DISCORD_GET_GUILD_WIDGET",
+      "kind": "read"
+    },
+    {
+      "name": "Get Guild Widget PNG",
+      "slug": "DISCORD_GET_GUILD_WIDGET_PNG",
+      "kind": "read"
+    },
+    {
+      "name": "Get Invite (Deprecated)",
+      "slug": "DISCORD_GET_INVITE",
+      "kind": "read"
+    },
+    {
+      "name": "Get my guild member",
+      "slug": "DISCORD_GET_MY_GUILD_MEMBER",
+      "kind": "read"
+    },
+    {
+      "name": "Get my OAuth2 authorization",
+      "slug": "DISCORD_GET_MY_OAUTH2_AUTHORIZATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get My User",
+      "slug": "DISCORD_GET_MY_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get OpenID Connect userinfo",
+      "slug": "DISCORD_GET_OPENID_CONNECT_USERINFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Public Keys",
+      "slug": "DISCORD_GET_PUBLIC_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "Get SKU Subscription",
+      "slug": "DISCORD_GET_SKU_SUBSCRIPTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get User",
+      "slug": "DISCORD_GET_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Application Role Connection",
+      "slug": "DISCORD_GET_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Resolve Invite",
+      "slug": "DISCORD_INVITE_RESOLVE",
+      "kind": "send"
+    },
+    {
+      "name": "Leave Guild (Deprecated)",
+      "slug": "DISCORD_LEAVE_GUILD",
+      "kind": "write"
+    },
+    {
+      "name": "List My Connections",
+      "slug": "DISCORD_LIST_MY_CONNECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List My Guilds",
+      "slug": "DISCORD_LIST_MY_GUILDS",
+      "kind": "read"
+    },
+    {
+      "name": "List SKU Subscriptions",
+      "slug": "DISCORD_LIST_SKU_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Sticker Packs",
+      "slug": "DISCORD_LIST_STICKER_PACKS",
+      "kind": "read"
+    },
+    {
+      "name": "Modify Current User (Deprecated)",
+      "slug": "DISCORD_MODIFY_CURRENT_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Update User Application Role Connection",
+      "slug": "DISCORD_UPDATE_USER_APPLICATION_ROLE_CONNECTION",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/discord",
+  "fetched_at": "2026-11-12"
+}

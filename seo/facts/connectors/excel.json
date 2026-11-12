@@ -1,0 +1,643 @@
+{
+  "toolkit": "excel",
+  "name": "Excel",
+  "version": "20261103_00",
+  "description": "Microsoft Excel is a powerful spreadsheet application for data analysis, calculations, and visualization, enabling users to organize and process data with formulas, charts, and pivot tables",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 125,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Add Chart",
+      "slug": "EXCEL_ADD_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Add Named Item",
+      "slug": "EXCEL_ADD_NAMED_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Add SharePoint Worksheet",
+      "slug": "EXCEL_ADD_SHAREPOINT_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Add Table",
+      "slug": "EXCEL_ADD_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Add Table Column",
+      "slug": "EXCEL_ADD_TABLE_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Add Table Row",
+      "slug": "EXCEL_ADD_TABLE_ROW",
+      "kind": "write"
+    },
+    {
+      "name": "Add Workbook Permission",
+      "slug": "EXCEL_ADD_WORKBOOK_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Add Worksheet",
+      "slug": "EXCEL_ADD_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Apply Table Filter",
+      "slug": "EXCEL_APPLY_TABLE_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Apply Table Sort",
+      "slug": "EXCEL_APPLY_TABLE_SORT",
+      "kind": "write"
+    },
+    {
+      "name": "Autofit Range",
+      "slug": "EXCEL_AUTOFIT_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Calculate Workbook Function",
+      "slug": "EXCEL_CALCULATE_FUNCTION",
+      "kind": "write"
+    },
+    {
+      "name": "Calculate Excel Workbook",
+      "slug": "EXCEL_CALCULATE_WORKBOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Range",
+      "slug": "EXCEL_CLEAR_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Table Filter",
+      "slug": "EXCEL_CLEAR_TABLE_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Clear All Table Filters",
+      "slug": "EXCEL_CLEAR_TABLE_FILTERS",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Table Sort",
+      "slug": "EXCEL_CLEAR_TABLE_SORT",
+      "kind": "write"
+    },
+    {
+      "name": "Close Excel Session",
+      "slug": "EXCEL_CLOSE_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Convert Table To Range",
+      "slug": "EXCEL_CONVERT_TABLE_TO_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Copy Drive Item",
+      "slug": "EXCEL_COPY_DRIVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create Comment",
+      "slug": "EXCEL_CREATE_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Folder",
+      "slug": "EXCEL_CREATE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Upload Session",
+      "slug": "EXCEL_CREATE_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Workbook",
+      "slug": "EXCEL_CREATE_WORKBOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Workbook Sharing Link",
+      "slug": "EXCEL_CREATE_WORKBOOK_SHARING_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Drive Item",
+      "slug": "EXCEL_DELETE_DRIVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Named Item",
+      "slug": "EXCEL_DELETE_NAMED_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Range",
+      "slug": "EXCEL_DELETE_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Table",
+      "slug": "EXCEL_DELETE_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Table Column",
+      "slug": "EXCEL_DELETE_TABLE_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Table Row",
+      "slug": "EXCEL_DELETE_TABLE_ROW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Worksheet",
+      "slug": "EXCEL_DELETE_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Download Workbook",
+      "slug": "EXCEL_DOWNLOAD_WORKBOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Export Workbook to PDF",
+      "slug": "EXCEL_EXPORT_WORKBOOK_TO_PDF",
+      "kind": "write"
+    },
+    {
+      "name": "Get Excel Application",
+      "slug": "EXCEL_GET_APPLICATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get chart",
+      "slug": "EXCEL_GET_CHART",
+      "kind": "read"
+    },
+    {
+      "name": "Get Chart Axis",
+      "slug": "EXCEL_GET_CHART_AXIS",
+      "kind": "read"
+    },
+    {
+      "name": "Get chart component",
+      "slug": "EXCEL_GET_CHART_COMPONENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Chart Data Labels",
+      "slug": "EXCEL_GET_CHART_DATA_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "Get chart image",
+      "slug": "EXCEL_GET_CHART_IMAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Chart Legend",
+      "slug": "EXCEL_GET_CHART_LEGEND",
+      "kind": "read"
+    },
+    {
+      "name": "Get chart point",
+      "slug": "EXCEL_GET_CHART_POINT",
+      "kind": "read"
+    },
+    {
+      "name": "Get chart series",
+      "slug": "EXCEL_GET_CHART_SERIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Comment",
+      "slug": "EXCEL_GET_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Comment Reply",
+      "slug": "EXCEL_GET_COMMENT_REPLY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Derived Range",
+      "slug": "EXCEL_GET_DERIVED_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive Item",
+      "slug": "EXCEL_GET_DRIVE_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Named Item",
+      "slug": "EXCEL_GET_NAMED_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Named Item Range",
+      "slug": "EXCEL_GET_NAMED_ITEM_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Excel Operation Status",
+      "slug": "EXCEL_GET_OPERATION_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Pivot Table",
+      "slug": "EXCEL_GET_PIVOT_TABLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Projected Worksheet Subresource",
+      "slug": "EXCEL_GET_PROJECTED_WORKSHEET_SUBRESOURCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Range",
+      "slug": "EXCEL_GET_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Range Format",
+      "slug": "EXCEL_GET_RANGE_FORMAT",
+      "kind": "read"
+    },
+    {
+      "name": "Create Excel Session",
+      "slug": "EXCEL_GET_SESSION",
+      "kind": "read"
+    },
+    {
+      "name": "Get SharePoint Range",
+      "slug": "EXCEL_GET_SHAREPOINT_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get SharePoint Worksheet",
+      "slug": "EXCEL_GET_SHAREPOINT_WORKSHEET",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table",
+      "slug": "EXCEL_GET_TABLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get table column",
+      "slug": "EXCEL_GET_TABLE_COLUMN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Column Cell",
+      "slug": "EXCEL_GET_TABLE_COLUMN_CELL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Column Range",
+      "slug": "EXCEL_GET_TABLE_COLUMN_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Range",
+      "slug": "EXCEL_GET_TABLE_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Row",
+      "slug": "EXCEL_GET_TABLE_ROW",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Row Range",
+      "slug": "EXCEL_GET_TABLE_ROW_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Table Sort",
+      "slug": "EXCEL_GET_TABLE_SORT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Visible Range",
+      "slug": "EXCEL_GET_VISIBLE_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get workbook",
+      "slug": "EXCEL_GET_WORKBOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worksheet",
+      "slug": "EXCEL_GET_WORKSHEET",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worksheet Protection",
+      "slug": "EXCEL_GET_WORKSHEET_PROTECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worksheet Row Range",
+      "slug": "EXCEL_GET_WORKSHEET_ROW_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worksheet Used Range",
+      "slug": "EXCEL_GET_WORKSHEET_USED_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Insert Range",
+      "slug": "EXCEL_INSERT_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "List chart points",
+      "slug": "EXCEL_LIST_CHART_POINTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Charts",
+      "slug": "EXCEL_LIST_CHARTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Chart Series",
+      "slug": "EXCEL_LIST_CHART_SERIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Comment Replies",
+      "slug": "EXCEL_LIST_COMMENT_REPLIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Comments",
+      "slug": "EXCEL_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Item Children",
+      "slug": "EXCEL_LIST_DRIVE_ITEM_CHILDREN",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Item Versions",
+      "slug": "EXCEL_LIST_DRIVE_ITEM_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Files",
+      "slug": "EXCEL_LIST_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "List Named Items",
+      "slug": "EXCEL_LIST_NAMED_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Pivot Tables",
+      "slug": "EXCEL_LIST_PIVOT_TABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List SharePoint Tables",
+      "slug": "EXCEL_LIST_SHAREPOINT_TABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List SharePoint Worksheets",
+      "slug": "EXCEL_LIST_SHAREPOINT_WORKSHEETS",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Lists",
+      "slug": "EXCEL_LIST_SITE_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Table Columns",
+      "slug": "EXCEL_LIST_TABLE_COLUMNS",
+      "kind": "read"
+    },
+    {
+      "name": "List Table Rows",
+      "slug": "EXCEL_LIST_TABLE_ROWS",
+      "kind": "read"
+    },
+    {
+      "name": "List Tables",
+      "slug": "EXCEL_LIST_TABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List Workbook Permissions",
+      "slug": "EXCEL_LIST_WORKBOOK_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Workbook Tables",
+      "slug": "EXCEL_LIST_WORKBOOK_TABLES",
+      "kind": "read"
+    },
+    {
+      "name": "List Worksheets",
+      "slug": "EXCEL_LIST_WORKSHEETS",
+      "kind": "read"
+    },
+    {
+      "name": "Merge Cells",
+      "slug": "EXCEL_MERGE_CELLS",
+      "kind": "write"
+    },
+    {
+      "name": "Protect Worksheet",
+      "slug": "EXCEL_PROTECT_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Reapply All Table Filters",
+      "slug": "EXCEL_REAPPLY_TABLE_FILTERS",
+      "kind": "write"
+    },
+    {
+      "name": "Reapply Table Sort",
+      "slug": "EXCEL_REAPPLY_TABLE_SORT",
+      "kind": "write"
+    },
+    {
+      "name": "Refresh Pivot Tables",
+      "slug": "EXCEL_REFRESH_PIVOT_TABLES",
+      "kind": "write"
+    },
+    {
+      "name": "Refresh Excel Session",
+      "slug": "EXCEL_REFRESH_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Resolve Shared Workbook",
+      "slug": "EXCEL_RESOLVE_SHARED_WORKBOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Revoke Workbook Permission",
+      "slug": "EXCEL_REVOKE_WORKBOOK_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Run Graph Mutation Batch",
+      "slug": "EXCEL_RUN_GRAPH_MUTATION_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Run Graph Read Batch",
+      "slug": "EXCEL_RUN_GRAPH_READ_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Search Drive Files",
+      "slug": "EXCEL_SEARCH_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "Search Microsoft 365 Content",
+      "slug": "EXCEL_SEARCH_MICROSOFT_365_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Search Sites",
+      "slug": "EXCEL_SEARCH_SITES",
+      "kind": "read"
+    },
+    {
+      "name": "Set chart data",
+      "slug": "EXCEL_SET_CHART_DATA",
+      "kind": "write"
+    },
+    {
+      "name": "Set chart position",
+      "slug": "EXCEL_SET_CHART_POSITION",
+      "kind": "write"
+    },
+    {
+      "name": "Sort Range",
+      "slug": "EXCEL_SORT_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Unmerge Range",
+      "slug": "EXCEL_UNMERGE_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Unprotect Worksheet",
+      "slug": "EXCEL_UNPROTECT_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Update Chart",
+      "slug": "EXCEL_UPDATE_CHART",
+      "kind": "write"
+    },
+    {
+      "name": "Update chart component",
+      "slug": "EXCEL_UPDATE_CHART_COMPONENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Chart Legend",
+      "slug": "EXCEL_UPDATE_CHART_LEGEND",
+      "kind": "write"
+    },
+    {
+      "name": "Update chart series",
+      "slug": "EXCEL_UPDATE_CHART_SERIES",
+      "kind": "write"
+    },
+    {
+      "name": "Update Drive Item",
+      "slug": "EXCEL_UPDATE_DRIVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Named Item",
+      "slug": "EXCEL_UPDATE_NAMED_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Range",
+      "slug": "EXCEL_UPDATE_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Range Format",
+      "slug": "EXCEL_UPDATE_RANGE_FORMAT",
+      "kind": "write"
+    },
+    {
+      "name": "Update SharePoint Range",
+      "slug": "EXCEL_UPDATE_SHAREPOINT_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table",
+      "slug": "EXCEL_UPDATE_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table Column",
+      "slug": "EXCEL_UPDATE_TABLE_COLUMN",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table Column Range",
+      "slug": "EXCEL_UPDATE_TABLE_COLUMN_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table Row",
+      "slug": "EXCEL_UPDATE_TABLE_ROW",
+      "kind": "write"
+    },
+    {
+      "name": "Update Worksheet",
+      "slug": "EXCEL_UPDATE_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Upload Workbook from URL",
+      "slug": "EXCEL_UPLOAD_WORKBOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "EXCEL_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/excel",
+  "fetched_at": "2026-11-12"
+}

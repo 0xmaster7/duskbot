@@ -1,0 +1,92 @@
+{
+  "path": "/guides/is-openclaw-safe",
+  "type": "guide",
+  "title": "Is OpenClaw safe? Security reports and practical limits",
+  "nav": "openclaw safety",
+  "h1": "is openclaw safe enough for your accounts?",
+  "description": "A dated look at OpenClaw advisories, the ClawHub skills audit and reported security work, plus practical limits for any agent you run.",
+  "keyword": "is openclaw safe",
+  "keywords": [
+    "openclaw security",
+    "openclaw security issues",
+    "openclaw safe"
+  ],
+  "answer": "openclaw has a substantial public security history, so treat it as software that needs careful setup and upkeep, not something to give every account at once. as of 12 november 2026, its repository lists 722 published advisories. that is a historical count, not a count of flaws still present in your install. the useful question is which versions and permissions affect you.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "security",
+    "openclaw",
+    "skills",
+    "permissions"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/is-it-safe-to-let-ai-control-your-computer",
+    "/alternatives/openclaw",
+    "/guides/what-is-mcp"
+  ],
+  "art": {
+    "label": "OpenClaw",
+    "props": [
+      "p-shield",
+      "p-magnifier"
+    ],
+    "bubble": "check the version"
+  },
+  "og_line": "look at access, versions and skills.",
+  "sections": [
+    {
+      "h": "what the advisory numbers tell you",
+      "md": "as of 12 november 2026, github lists **722 published security advisories**: 14 critical, 249 high, 390 medium and 69 low. the first was published on 31 january 2026. the record includes a one-click remote code execution advisory involving authentication-token theft, along with gateway privilege-escalation and sandbox-escape advisories from february to april.[^1]\n\nthose are reasons to read the advisory for the version you run. they are not proof that every release is vulnerable to every issue. a published-advisory total alone cannot tell you whether your installation is patched, exposed or compromised. compare the affected versions and fixes with your actual install before connecting sensitive accounts."
+    },
+    {
+      "h": "the malicious skills audit is a separate problem",
+      "md": "a vulnerability in the agent and a malicious add-on are different risks. koi security audited 2,857 clawhub skills and found 341 malicious ones, according to the hacker news report dated 2 february 2026. this was a particular audit, not a current measurement of the whole catalog.[^2]\n\na skill can look useful while asking you to run something unrelated to its job. before adding one, read its instructions and any scripts it carries. avoid instructions that require unexplained commands or secrets. if you cannot tell what the package does, leave it out. popularity is not a substitute for understanding what you are installing."
+    },
+    {
+      "h": "give the security work its due",
+      "md": "openclaw reports that it has worked with virustotal and nvidia on skill scanning and completed a trail of bits audit through the patch the planet initiative. those are meaningful responses to the earlier reports. they do not establish that every skill or configuration is safe.[^1]\n\nread the current advisory details rather than treating an old headline as a verdict forever. open development makes reports visible; visibility helps you inspect the history, but does not replace updating your own system. if you need someone else to maintain the machine, compare the responsibilities in [openclaw alternatives](/alternatives/openclaw)."
+    },
+    {
+      "h": "a smaller first job for any agent",
+      "md": "start on a separate machine or in a workspace without your private files. connect one account, with reading access only if the task is a summary. leave payments, publishing and broad file access out of the trial. decide what a wrong action would cost before enabling it.\n\nask for a short explanation of the sources used and inspect the result yourself. then add only the access the next job needs. our [computer-use safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) goes through supervision and stopping a bot. a separate computer reduces what is in reach; it does not make a connected account harmless."
+    },
+    {
+      "h": "how to set a boundary in dusk bot",
+      "md": "in dusk bot, **Connected apps** lets you choose access per bot: off, read only, or read and write. read-only restrictions are enforced before a call reaches the app. sending has a separate choice: **Ask every time** or **Allow a daily amount**.[^3]\n\nother app changes, such as labels and page edits, are not documented as always asking. keep the bot read-only or say \"ask me before you change anything\". only add trusted servers under **Plugins**, **MCP servers**; the [mcp explainer](/guides/what-is-mcp) describes that connection boundary. these controls help define a job. they are not a claim that dusk bot or any agent is risk-free."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is openclaw safe for non-technical users?",
+      "a": "only take on the access and upkeep you understand. if advisory versions, permissions or add-on code are unfamiliar, start with a low-stakes reading task or get help before giving it important accounts."
+    },
+    {
+      "q": "does 722 advisories mean 722 open bugs?",
+      "a": "no. it is the published repository advisory count on 12 november 2026. you need each advisory's affected-version and remediation details to assess an installation.[^1]"
+    },
+    {
+      "q": "are all clawhub skills malicious?",
+      "a": "the cited audit found 341 malicious skills among 2,857 examined. it does not say every skill is malicious, or establish today's catalog-wide rate.[^2]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "openclaw repository security advisories",
+      "url": "https://github.com/openclaw/openclaw/security/advisories",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "the hacker news: koi clawhub audit",
+      "url": "https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: connected apps",
+      "url": "/docs/files-and-apps"
+    }
+  ]
+}

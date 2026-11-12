@@ -1,0 +1,297 @@
+{
+  "path": "/alternatives/ai-assistant-you-text",
+  "type": "alternative",
+  "title": "AI assistants you text: iMessage, WhatsApp or their own app",
+  "nav": "ai you text",
+  "h1": "ai assistants you text: choose the channel and the computer",
+  "description": "Compare Poke, OpenClaw, Hermes Agent, Genspark Claw and Dusk Bot by messaging channel, setup and what stays running when your laptop is off.",
+  "keyword": "ai assistant that texts you",
+  "keywords": [
+    "ai agent imessage",
+    "text an ai assistant",
+    "ai assistant whatsapp",
+    "personal ai assistant whatsapp"
+  ],
+  "answer": "an ai assistant you text can mean a contact in imessage, an agent linked to whatsapp or telegram, or bots inside their own app. poke fits the contact model. openclaw and hermes connect messaging apps to an agent you can run yourself. genspark claw offers chat channels with cloud or local work. dusk bot keeps the conversation in its own app. choose both where you want to talk and where the work should run.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "texting",
+    "alternatives",
+    "phone"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/poke",
+    "/alternatives/openclaw",
+    "/alternatives/hermes-agent",
+    "/alternatives/genspark"
+  ],
+  "competitor": {
+    "key": "ai-assistant-you-text",
+    "name": "AI you text",
+    "url": "https://dusk.bot/alternatives/ai-assistant-you-text"
+  },
+  "art": {
+    "props": [
+      "s-mobile",
+      "p-bubbles"
+    ],
+    "label": "AI you text",
+    "bubble": "where should we talk?"
+  },
+  "og_line": "pick the channel, then the computer.",
+  "verdict": {
+    "them_title": "a messaging-app assistant",
+    "them": [
+      "you want the assistant beside people you already text in imessage, whatsapp or telegram",
+      "your chosen tool supports the channel you need and you accept its hosting or setup model",
+      "you value staying in one messaging app more than a dedicated place for a team of bots"
+    ],
+    "dusk": [
+      "you want a separate app for several named bots with different jobs and memories",
+      "you want to choose an ai per bot and keep conversations when you switch that ai",
+      "you want phone pairing to your own computer, a server or dusk cloud, rather than a chat-channel integration"
+    ]
+  },
+  "compare": {
+    "h": "five ways to text an assistant",
+    "intro": "channel support below comes from the named product pages checked on 12 november 2026. a phone conversation does not by itself mean the job survives your laptop sleeping.",
+    "cols": [
+      "Poke",
+      "OpenClaw",
+      "Hermes Agent",
+      "Genspark Claw",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "where the messages go",
+        "cells": [
+          "apple messages (imessage), whatsapp, telegram, rcs",
+          "whatsapp, telegram, imessage, discord, slack, signal and other channels",
+          "telegram, whatsapp, discord, slack, signal, email, desktop or terminal",
+          "whatsapp, slack, teams, telegram and others; also its own email address",
+          "dusk desktop app or paired phone browser; store apps on the way"
+        ],
+        "src": [
+          1,
+          4,
+          7,
+          9,
+          12
+        ]
+      },
+      {
+        "label": "how you start",
+        "cells": [
+          "sign up and message it; no install",
+          "onboard a gateway through terminal or desktop installers",
+          "desktop download or terminal installer, then connect a model provider",
+          "choose a cloud plan and connect apps in Channels; local desktop mode also offered",
+          "download dusk, sign in to your ai, then pair the phone"
+        ],
+        "src": [
+          1,
+          5,
+          8,
+          9,
+          12,
+          13
+        ]
+      },
+      {
+        "label": "where the work lives",
+        "cells": [
+          "hosted cloud agent",
+          "your machine or server; no official hosted tier",
+          "your machine or server; optional cloud agent on paid nous plans",
+          "dedicated cloud computer or local mode in its desktop app",
+          "your computer, your own server or dusk cloud"
+        ],
+        "src": [
+          3,
+          4,
+          7,
+          9,
+          14
+        ]
+      },
+      {
+        "label": "how ai usage is paid",
+        "cells": [
+          "models included in poke plans; names not disclosed",
+          "your connected model provider bills the ai",
+          "your chosen provider, nous portal or local models",
+          "genspark models paid with shared credits",
+          "ai you sign in to, an api key or a local model; provider bills usage"
+        ],
+        "src": [
+          2,
+          6,
+          7,
+          10,
+          13,
+          18
+        ]
+      },
+      {
+        "label": "work that starts later",
+        "cells": [
+          "reminders and scheduled tasks; background automations on pro",
+          "built-in scheduler with delivery to chat channels",
+          "plain-language cron scheduling through the gateway",
+          "scheduled tasks and background monitoring consume credits",
+          "routines created in chat; local computer must be awake"
+        ],
+        "src": [
+          11,
+          16,
+          7,
+          9,
+          15
+        ]
+      },
+      {
+        "label": "can the laptop be off?",
+        "cells": [
+          "work runs in poke's cloud",
+          "run the agent on your server instead of the laptop",
+          "use a server or the optional hosted cloud agent",
+          "use the cloud computer rather than local mode",
+          "pair to dusk cloud; pairing to your computer needs it on with dusk running"
+        ],
+        "src": [
+          3,
+          4,
+          7,
+          9,
+          12,
+          14
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot. this channel comparison uses product pages and docs recorded on 12 november 2026. we did not run identical tasks across the five products, test message delivery times or verify every listed channel ourselves. channel availability and hosting are compared separately because receiving a text is not evidence that the underlying job can run with your computer off.",
+  "sections": [
+    {
+      "h": "if imessage is the requirement, start there",
+      "md": "poke's docs list apple messages, along with whatsapp, telegram and rcs.[^1] openclaw also lists imessage among its channels.[^4] those are options to investigate when \"text the ai\" means keeping it beside ordinary contacts. they have different setup and hosting arrangements, so sharing a channel does not make them interchangeable.\n\ndusk uses its own app. pairing opens a browser version on iphone or android, which you can add to the home screen. store apps are still on the way, and the browser version sends no notifications.[^12] do not choose it expecting an imessage contact. the [poke comparison](/alternatives/poke) is a closer next read for that requirement."
+    },
+    {
+      "h": "whatsapp and telegram leave you another decision",
+      "md": "openclaw, hermes and genspark claw all list whatsapp and telegram.[^4][^7][^9] first choose where the agent will live, then check the channel setup. [openclaw](/alternatives/openclaw) runs on your machine or server, while [hermes agent](/alternatives/hermes-agent) also offers a hosted cloud agent through paid nous plans.[^4][^7]\n\n[genspark claw](/alternatives/genspark) offers a dedicated cloud computer or local desktop mode. its cloud setup docs direct you to connect messaging apps through **Channels**.[^9] that does not make local work independent of your computer. keep the hosting decision visible when comparing assistants on a phone. whichever agent you choose, check your model provider's current terms before relying on its sign-in."
+    },
+    {
+      "h": "give the first text a clear boundary",
+      "md": "a first message can establish how you want the assistant to behave: \"help me plan a weekly review. ask which notes to use, show me the proposed schedule, and ask me before you change anything.\" that is a suggested instruction, not a test result or a feature claim about every product.\n\nin dusk, routine creation returns a card showing the schedule and next runs, with **Edit**, **Pause** and **Undo**. inspect that card before depending on the routine.[^15] a desktop routine cannot run while dusk is closed or the computer sleeps. a recent missed run may catch up once; older ones are skipped.[^15]\n\nphone access also has a practical limit: pairing to your computer works only while it is on and running dusk. pair to dusk cloud if you need to talk with the computer off.[^12][^14] a channel is where you give instructions; it is not the computer doing the work."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is there an ai agent for imessage?",
+      "a": "poke lists apple messages, and openclaw lists imessage among its channels. poke is hosted; openclaw runs on your own machine or server. check those setup differences before choosing just by channel.[^1][^3][^4]"
+    },
+    {
+      "q": "how are people running agents from their phone?",
+      "a": "some assistants are hosted and reached through messaging apps; others connect those apps to an agent on a computer or server. dusk pairs its own phone browser to where your bots live. local pairing needs that computer on; cloud pairing works with it off.[^12][^14]"
+    },
+    {
+      "q": "can an assistant text me first?",
+      "a": "poke describes proactive messages, and its site lists reminders and background automations.[^11] that does not establish the same behaviour for every assistant in the table. check the specific trigger and delivery channel you need."
+    },
+    {
+      "q": "does dusk bot work in whatsapp?",
+      "a": "no. you talk to dusk bot's bots in its own desktop app, and from your phone through the paired phone app.[^12][^13]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "poke docs and messaging channels",
+      "url": "https://poke.com/docs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke pricing and model inclusion",
+      "url": "https://poke.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "cognition: poke as a cloud agent",
+      "url": "https://cognition.com/blog/interaction",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw homepage and channels",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw getting started",
+      "url": "https://docs.openclaw.ai/start/getting-started",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw model connections",
+      "url": "https://docs.openclaw.ai/concepts/oauth",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent homepage",
+      "url": "https://hermes-agent.nousresearch.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "hermes agent repository setup",
+      "url": "https://github.com/NousResearch/hermes-agent",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "genspark claw help",
+      "url": "https://www.genspark.ai/helpcenter/genspark-claw",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "genspark model pricing",
+      "url": "https://www.genspark.ai/business/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke homepage and proactive tasks",
+      "url": "https://poke.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "openclaw scheduled jobs",
+      "url": "https://docs.openclaw.ai/automation/cron-jobs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "hermes agent: model providers",
+      "url": "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+      "checked": "2026-11-12"
+    }
+  ]
+}

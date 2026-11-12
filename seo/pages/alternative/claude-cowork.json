@@ -1,0 +1,228 @@
+{
+  "path": "/alternatives/claude-cowork",
+  "type": "alternative",
+  "title": "Claude Cowork alternatives: platforms and AI choice",
+  "nav": "claude cowork",
+  "h1": "claude cowork alternatives beyond the old platform gap",
+  "description": "Claude Cowork is becoming Claude and now covers Windows and Linux beta. Compare its platforms, paid plans and engine choice with Dusk Bot.",
+  "keyword": "claude cowork alternative",
+  "keywords": [
+    "claude desktop alternative",
+    "claude cowork windows",
+    "claude cowork vs chatgpt agent",
+    "claude cowork pricing"
+  ],
+  "answer": "a claude cowork alternative should solve a need you still have today. windows support alone is no longer a reason to switch: claude covers macos, windows, linux beta, web and phones. as of 12 november 2026, cowork is being renamed to just claude. dusk bot's distinct choice is a small team whose ai can differ by bot, with local, own-server and hosted places to run.[^1][^2][^3][^4][^7]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "claude",
+    "cowork",
+    "platforms",
+    "models"
+  ],
+  "connectors": [],
+  "related": [
+    "/vs/claude-cowork",
+    "/guides/claude-cowork-windows",
+    "/guides/claude-cowork-pricing"
+  ],
+  "competitor": {
+    "key": "claude-cowork",
+    "name": "Claude Cowork",
+    "url": "https://claude.com/product/cowork"
+  },
+  "art": {
+    "props": [
+      "p-laptop",
+      "s-signpost"
+    ],
+    "label": "Claude Cowork",
+    "bubble": "which ai answers?"
+  },
+  "og_line": "platform support is no longer the whole story.",
+  "verdict": {
+    "them_title": "claude",
+    "them": [
+      "you want anthropic's own agent experience across folders, apps and connectors",
+      "you want hand-off and scheduled tasks within a paid claude plan, including phone-started work in the cloud"
+    ],
+    "dusk": [
+      "you want one bot for each job and the option to give those bots different ai engines",
+      "you want to choose whether chats and memory live on your disk, your own server or a dusk cloud computer"
+    ]
+  },
+  "compare": {
+    "h": "check today's platforms before switching",
+    "intro": "the name and plan rollout are as of 12 november 2026. linux support is beta in both columns; it should not be read as a promise that every linux distribution is supported.",
+    "cols": [
+      "Claude, formerly Cowork",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "desktop systems",
+        "cells": [
+          "macos and windows; ubuntu/debian linux beta with cowork available",
+          "macos 12+, windows 10/11 64-bit, ubuntu 24.04 beta"
+        ],
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "label": "phone and web",
+        "cells": [
+          "web, ios and android",
+          "paired phone browser added to the home screen; store apps on the way"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "which engine",
+        "cells": [
+          "anthropic claude models; enterprise can use claude through its own cloud provider",
+          "each bot can use a different ai, api provider or local model"
+        ],
+        "src": [
+          6,
+          3,
+          7
+        ]
+      },
+      {
+        "label": "entry cost",
+        "cells": [
+          "paid plan needed for hand-off and scheduling; pro $20 monthly",
+          "personal desktop use is free; the ai provider bills ai usage"
+        ],
+        "src": [
+          1,
+          6,
+          8
+        ]
+      },
+      {
+        "label": "work while the laptop is shut",
+        "cells": [
+          "tasks started from the phone keep working in the cloud",
+          "pair with dusk cloud for access while your computer is off"
+        ],
+        "src": [
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "label": "recurring tasks",
+        "cells": [
+          "schedule daily, weekly, monthly or another cadence",
+          "ask a bot for a routine; local runs depend on an awake app"
+        ],
+        "src": [
+          1,
+          9
+        ]
+      },
+      {
+        "label": "separate jobs",
+        "cells": [
+          "agent mode works across chosen folders, apps and connectors",
+          "named bots with separate chats and memory, also able to share a group thread"
+        ],
+        "src": [
+          1,
+          7,
+          10
+        ]
+      }
+    ]
+  },
+  "method": "this is a documentation comparison by the people who make dusk bot. we did not run matching file tasks on every operating system or benchmark the engines. we checked anthropic's pages on 12 november 2026; the rename is a rollout notice, so the wording in your installed app may differ. the table compares documented availability, not equal quality on each platform.",
+  "sections": [
+    {
+      "h": "cowork is becoming part of claude",
+      "md": "the current product banner says cowork is now just claude, rolling out to pro, max and ultra, with more plans to follow. file tasks can bring in those capabilities automatically.[^1] searching for cowork still makes sense, but the app may no longer use that name in the same place.\n\nclaude's free plan does not include hand-off and scheduled tasks in anthropic's pricing table. pro is $20 a month with monthly billing as of 12 november 2026.[^6] see the [cowork pricing guide](/guides/claude-cowork-pricing) when the plan, rather than the product name, is your sticking point."
+    },
+    {
+      "h": "windows and linux deserve a current answer",
+      "md": "claude already has a windows desktop app. its download page also lists a linux beta for ubuntu and debian with cowork available.[^2] an alternative page that treats it as mac-only is giving you an old reason to leave. the [windows guide](/guides/claude-cowork-windows) is the narrower starting point if that was your question.\n\ndusk bot supports ubuntu 24.04 in beta through .deb or appimage, alongside macos and windows.[^3] do not infer support for every linux setup from that. on phones, dusk currently pairs through a browser version that sends no notifications. that is a meaningful limit beside claude's ios and android apps.[^5][^2]"
+    },
+    {
+      "h": "engine choice is the clearer fork",
+      "md": "claude is the direct route if you want anthropic's models in anthropic's app.[^6] dusk bot has no model of its own. it runs the ai vendors' own command-line apps, with your sign-in on the machine where your bots live.[^3][^11] check your provider's current terms before choosing a sign-in; being listed in an app is not vendor endorsement.\n\nyou can switch a dusk bot's ai while it keeps its chats, files and memory.[^7] that helps if your jobs call for different engines, but it gives you another decision to manage. [claude cowork versus dusk bot](/vs/claude-cowork) is useful if you want to weigh that flexibility against staying in one provider's product."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is there a claude cowork alternative for windows?",
+      "a": "dusk bot supports windows 10 and 11, but claude itself now supports windows too. first check whether the current claude app meets your need before changing tools just for the operating system.[^2][^3]"
+    },
+    {
+      "q": "is claude cowork free or paid?",
+      "a": "the hand-off and scheduling features require a paid claude plan. as of 12 november 2026, pro is $20 monthly; free does not include those features. the rename to claude does not make them part of the free tier.[^1][^6]"
+    },
+    {
+      "q": "where does my agent run when my laptop is closed?",
+      "a": "claude says tasks started from the phone continue in its cloud. for dusk bot, your own sleeping computer cannot run routines; dusk cloud is the hosted option. these are both documented routes, not a unique capability of either app.[^1][^4][^9]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "claude cowork product and rename notice",
+      "url": "https://claude.com/product/cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude download platforms",
+      "url": "https://claude.com/download",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk desktop and ai setup",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "claude pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot model switching",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk routine timing",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk group chats",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk ai apps on the bot machine",
+      "url": "/docs/your-own-server"
+    }
+  ]
+}

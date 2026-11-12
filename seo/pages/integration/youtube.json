@@ -1,0 +1,146 @@
+{
+  "path": "/integrations/youtube",
+  "type": "integration",
+  "title": "YouTube AI assistant for comments and channel reviews",
+  "nav": "youtube",
+  "h1": "a youtube assistant for the work around your videos",
+  "description": "Review YouTube comments, playlists and channel data with Dusk Bot. See available caption actions, three routines and the limits on video summaries.",
+  "answer": "a youtube bot can gather comments, inspect video details and review playlists so you can decide what to answer or organise next. dusk bot can schedule those jobs with the ai you already sign in to. the toolkit also has caption actions, but a video listing is not its spoken content: ask for a caption-based summary only when a caption track is actually available to the connection.",
+  "tags": [
+    "video",
+    "comments",
+    "channel-review"
+  ],
+  "connectors": [
+    "youtube"
+  ],
+  "related": [
+    "/integrations/twitter",
+    "/use-cases/market-research",
+    "/use-cases/newsletter"
+  ],
+  "art": {
+    "label": "YouTube",
+    "props": [
+      "p-newspaper",
+      "p-bubbles"
+    ],
+    "bubble": "questions worth answering next"
+  },
+  "og_line": "turn comments into a useful review list.",
+  "app": {
+    "name": "YouTube",
+    "toolkit": "youtube",
+    "intro": "start with the part of the channel you need help with. comments support a question review, playlist items support an organisation check, and video details support a title or description review. none of those alone proves what a speaker said in the video.",
+    "highlight": [
+      {
+        "slug": "YOUTUBE_LIST_CHANNEL_VIDEOS",
+        "use": "collect videos from the channel you specify"
+      },
+      {
+        "slug": "YOUTUBE_GET_VIDEO_DETAILS_BATCH",
+        "use": "read details for several selected videos before reviewing them"
+      },
+      {
+        "slug": "YOUTUBE_LIST_COMMENT_THREADS2",
+        "use": "gather comment threads to identify viewer questions"
+      },
+      {
+        "slug": "YOUTUBE_LIST_COMMENTS",
+        "use": "inspect comments needed for a reply review"
+      },
+      {
+        "slug": "YOUTUBE_LIST_PLAYLIST_ITEMS",
+        "use": "check which videos are in a supplied playlist"
+      },
+      {
+        "slug": "YOUTUBE_LIST_CAPTION_TRACK",
+        "use": "check whether the connection returns a caption track"
+      },
+      {
+        "slug": "YOUTUBE_LOAD_CAPTIONS",
+        "use": "download a caption track when available to the account"
+      },
+      {
+        "slug": "YOUTUBE_CREATE_COMMENT_REPLY",
+        "use": "send a reviewed answer to a viewer under the sending approval setting"
+      }
+    ],
+    "setup": "connect youtube, then identify the channel and videos you want the bot to review. give a comment reviewer only read access at first. dusk bot counts caption download as a change, so a read-only bot cannot call it; an exact action allowance can keep that separate from publishing or moderation."
+  },
+  "routines_intro": "tell the bot whether it is reviewing your channel or researching supplied videos. each message below asks for evidence the toolkit can return and leaves publishing and moderation out of the job.",
+  "routines": [
+    {
+      "name": "viewer question notebook",
+      "message": "every tuesday at 10, read comment threads on the youtube videos i listed for our beginner series. group practical viewer questions by topic. include the video and comment behind each question. do not reply or moderate comments.",
+      "when": "tuesdays at 10:00",
+      "output": "a topic notebook for your next recording"
+    },
+    {
+      "name": "playlist coverage check",
+      "message": "on the first friday of each month at noon, list the items in the onboarding playlist i gave you. compare their titles with our supplied lesson checklist. flag missing topics as candidates for review, not proof that a lesson is absent from the videos.",
+      "when": "first friday monthly at 12:00",
+      "output": "a playlist coverage review"
+    },
+    {
+      "name": "video description housekeeping",
+      "message": "every thursday at 3, read the details of the channel videos i marked for review. check their descriptions against the contact address and resource links i supplied. show mismatches and the current wording. do not update the videos.",
+      "when": "thursdays at 15:00",
+      "output": "a description correction list in chat"
+    }
+  ],
+  "asks": "posting comments and replies asks for approval by default. if you allow a daily sending amount, a bot may send within it, so leave the default in place when you want each viewer reply reviewed.\n\nediting video details, changing playlists and moderating comments are separate changes. do not assume the send approval covers them. a read-only bot cannot make those calls. if you choose to permit them, specify the allowed actions and write \"ask me before you change anything\" into the routine. the question notebook above can stay entirely read only.",
+  "cannot": [
+    "promise a transcript for any video link. the toolkit lists caption tracks and can download an available track, but this catalog does not establish access to every video's captions.",
+    "summarise the spoken content from titles, descriptions or comments alone. ask for a metadata review when that is all the connection returned.",
+    "download caption content with read-only access in this catalog. the download action is classified as a change even though its name may sound like a read.",
+    "collect scheduled channel reviews from a sleeping computer. local jobs require dusk bot to be running; dusk cloud is available for routines that need an awake host."
+  ],
+  "sections": [
+    {
+      "h": "comments can guide the next useful video",
+      "md": "ask for questions a creator can answer, with repeated questions grouped together. a viewer describing a problem is useful context; it is not proof that your instructions caused it. keep the original comment beside the summary so you can judge the tone yourself.\n\nfor broader topic work, start with [market research](/use-cases/market-research). if you turn a review into a [newsletter](/use-cases/newsletter), distinguish caption evidence from your own commentary."
+    },
+    {
+      "h": "choose the right input for a summary",
+      "md": "for a video-content summary, tell the bot to look for a caption track and stop with a clear explanation if it cannot obtain one. for a channel planning job, video details and viewer questions may be enough. naming that distinction in the request prevents a polished summary of content the bot never retrieved."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude summarise any youtube video with this?",
+      "a": "not on the evidence in this catalog. caption listing and download actions exist, but access to a track must succeed first. if the bot only has metadata, it should describe the metadata and state that limit."
+    },
+    {
+      "q": "can it answer youtube comments for me?",
+      "a": "the toolkit includes a comment reply action. dusk bot asks before sends by default. the viewer question routine here does not use that action; it only brings questions to your chat."
+    },
+    {
+      "q": "what is a useful youtube routine beyond video summaries?",
+      "a": "review recurring viewer questions, check a playlist against your lesson plan, or compare video descriptions with your current resource links. each produces a concrete review without claiming to watch the video."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: approval and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude youtube",
+  "keywords": [
+    "chatgpt youtube",
+    "youtube mcp"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

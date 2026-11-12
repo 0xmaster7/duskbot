@@ -1,0 +1,224 @@
+{
+  "path": "/vs/lindy",
+  "title": "Lindy vs Dusk Bot: team credits or separate bots?",
+  "nav": "lindy",
+  "h1": "lindy vs dusk bot: shared work, credits and control",
+  "description": "Compare Lindy’s active-user pricing, pooled credits and scheduled routines with Dusk Bot’s separate bot roles, permissions and hosting costs.",
+  "answer": "lindy presents itself as a hosted ai employee for email, meetings, leads and reports, reached through tools such as slack and email.[^1] dusk bot gives you a small team of named bots, each with its own job, memory and ai. lindy's paid team plan pools credits and charges per active user; dusk separates ai costs from its app and hosting.[^2][^5] choose by how your team shares work and accounts for usage, not by the word employee.",
+  "tags": [
+    "lindy",
+    "comparison",
+    "team",
+    "credits"
+  ],
+  "related": [
+    "/for/small-business-owners",
+    "/ai-chief-of-staff",
+    "/alternatives/lindy"
+  ],
+  "competitor": {
+    "key": "lindy",
+    "name": "Lindy",
+    "url": "https://www.lindy.ai/"
+  },
+  "art": {
+    "props": [
+      "p-briefcase",
+      "p-receipt"
+    ],
+    "label": "Lindy",
+    "bubble": "who uses the credits?"
+  },
+  "og_line": "check the team bill and the boundaries.",
+  "verdict": {
+    "them_title": "lindy",
+    "them": [
+      "you want a hosted assistant for shared work in slack, email and text",
+      "you prefer a team credit pool and model selection within that service"
+    ],
+    "dusk": [
+      "you want separate bots with different ai choices and app permissions",
+      "you want to begin on your own computer and decide on hosting after trying a few bounded jobs"
+    ]
+  },
+  "compare": {
+    "h": "how the assistant fits a working team",
+    "intro": "the prices here are the saved monthly usd figures as of 12 november 2026. a credit pool is not a guaranteed count of meetings, reports or other completed jobs.",
+    "cols": [
+      "Lindy",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "product shape",
+        "cells": [
+          "hosted ai employee for email, meetings, leads and reports",
+          "desktop app where you keep a small team of bots"
+        ],
+        "src": [
+          1,
+          4
+        ]
+      },
+      {
+        "label": "places to talk",
+        "cells": [
+          "web, slack, email, imessage and phone calls",
+          "desktop chats, voice or calls; phone access through a paired browser today"
+        ],
+        "src": [
+          2,
+          4,
+          7
+        ]
+      },
+      {
+        "label": "entry offer",
+        "cells": [
+          "$50 in credits lasting 7 days",
+          "free for personal use on your own computer; work use needs a license"
+        ],
+        "src": [
+          2,
+          5,
+          11
+        ]
+      },
+      {
+        "label": "paid team starting point",
+        "cells": [
+          "from $29.99 monthly per active user for 3,000 credits",
+          "team plans from $100 monthly with a dedicated machine and shared bots; ai separate"
+        ],
+        "src": [
+          2,
+          6,
+          5
+        ]
+      },
+      {
+        "label": "usage accounting",
+        "cells": [
+          "pooled credits; no rollover; top-ups are $10 per 1,000 credits",
+          "ai billed by its provider; dusk hosting has its own plan"
+        ],
+        "src": [
+          2,
+          5,
+          6
+        ]
+      },
+      {
+        "label": "scheduled work",
+        "cells": [
+          "scheduled routines and daily briefs",
+          "routines made by asking; local runs depend on an awake computer"
+        ],
+        "src": [
+          2,
+          8
+        ]
+      },
+      {
+        "label": "connections and scope",
+        "cells": [
+          "pricing lists 3,000+ integrations and mcp support",
+          "60+ connected apps; choose app access per bot, including read-only"
+        ],
+        "src": [
+          2,
+          9
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot. this page compares published features and billing structures from saved sources checked on 12 november 2026; we did not run identical tasks. lindy's integration total is its own claim, not a count of tested workflows. we have not measured credit consumption or verified the vendor's compliance claims, and do not use either as a quality score.",
+  "sections": [
+    {
+      "h": "a small-business trial should answer one question",
+      "md": "pick a recurring task whose result you can inspect, such as turning the meeting notes you provide into a list of decisions and owners. ask: \"use only these notes. separate explicit commitments from suggestions. if an owner is not named, leave it unresolved.\" judge whether the result is usable before adding connected accounts.\n\nlindy explicitly targets meetings and reports.[^1] in dusk bot, you can attach notes and keep a bot whose job is to review them.[^9][^4] that does not mean either tool has been tested on your meeting format. [bots for small-business owners](/for/small-business-owners) helps choose a job small enough to evaluate."
+    },
+    {
+      "h": "read the credit pool as a spending rule",
+      "md": "as of 12 november 2026, lindy's team tier starts at $29.99 per active user monthly for 3,000 credits. credits are pooled, do not roll over and can be topped up at $10 per 1,000.[^2] check what makes a user active before calculating a team bill; lindy's pricing page doesn't define that term.\n\nits free offer is $50 in credits for 7 days.[^2] it is a trial allowance, so do not budget as though it refreshes every month. nor can we say how many reports those credits buy.\n\ndusk cloud team plans start at $100 a month, with a dedicated machine and shared bots. ai usage is still separate.[^6][^5] ask which people need work licensing and hosting before comparing those figures to a per-user service. [lindy alternatives](/alternatives/lindy) covers other arrangements if neither budget fits."
+    },
+    {
+      "h": "an approval claim needs a clear boundary",
+      "md": "lindy says actions with outside impact need approval.[^1] that is the vendor's description, not a finding from our testing. its compliance claims also need your own review if they matter to procurement. we do not claim dusk bot has equivalent certifications.\n\nin dusk bot, connected-app sends ask first unless you allow a daily amount. other connected-app changes are not documented as asking first. keep a new reviewer on read-only access or explicitly write \"ask me before you change anything\".[^9] command and file approval levels are separate controls.[^10]\n\na [chief-of-staff bot](/ai-chief-of-staff) can begin by gathering questions rather than acting on them. that makes the first review about the quality of the work, while you keep the authority to change things."
+    }
+  ],
+  "faq": [
+    {
+      "q": "does lindy ai have a free plan?",
+      "a": "as of 12 november 2026, the listed free offer is $50 in credits lasting 7 days. team pricing starts at $29.99 monthly per active user. lindy's pricing page doesn't show a free allowance that renews.[^2]"
+    },
+    {
+      "q": "can i text lindy instead of opening another app?",
+      "a": "the pricing page lists imessage as well as slack, email and phone calls.[^2] this page does not confirm whatsapp or telegram support. dusk bot has its own paired phone interface, with store apps still on the way.[^7]"
+    },
+    {
+      "q": "is lindy ai better than openclaw for a business owner?",
+      "a": "lindy is a hosted service, while openclaw runs on your computer or server and has no first-party hosted tier.[^1][^3] that changes who looks after the machine. it does not establish which completes your business task more accurately. compare a bounded trial and the full usage bill before deciding."
+    }
+  ],
+  "sources": [
+    {
+      "label": "lindy: product and approval claims",
+      "url": "https://www.lindy.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "lindy: plan, credit and feature table",
+      "url": "https://www.lindy.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openclaw: hosting arrangement",
+      "url": "https://openclaw.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: distinct jobs and ai choices",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: billing and personal use",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: team hosting",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: phone access",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: recurring work",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: attachments and app permissions",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: file and command approvals",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: work license",
+      "url": "/docs/faq"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "lindy ai vs openclaw",
+  "keywords": [
+    "lindy vs zapier",
+    "lindy ai review"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": []
+}

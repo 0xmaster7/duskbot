@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/figma",
+  "type": "integration",
+  "title": "Figma AI assistant for comments, components and handoffs",
+  "nav": "figma",
+  "h1": "a figma bot that gathers the handoff details",
+  "description": "Connect Figma to Dusk Bot to review comments, inspect components and gather file context. Three handoff routines with honest limits on design editing.",
+  "keyword": "claude figma",
+  "keywords": [
+    "figma ai agent",
+    "figma mcp"
+  ],
+  "answer": "a bot in dusk bot can read figma files, gather comments and inspect components or variables through the figma connection. ask it to prepare a review list or a handoff inventory with the ai you choose. this is a catalog of specific app actions, not a promise that the bot can redraw any screen or build a finished product.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "design",
+    "handoff",
+    "components",
+    "review"
+  ],
+  "connectors": [
+    "figma"
+  ],
+  "related": [
+    "/integrations/canva",
+    "/integrations/linear",
+    "/integrations/github"
+  ],
+  "art": {
+    "logo": "figma",
+    "label": "Figma",
+    "props": [
+      "s-palette",
+      "s-signpost"
+    ],
+    "bubble": "what needs a decision"
+  },
+  "og_line": "comments and components, ready for review.",
+  "app": {
+    "name": "Figma",
+    "toolkit": "figma",
+    "intro": "a handoff can stall because a comment is unresolved, a component is unclear or the file has changed since the last review. give a bot a file reference and one of those questions. it can gather the details before anyone edits the design.",
+    "highlight": [
+      {
+        "slug": "FIGMA_GET_FILE_METADATA",
+        "use": "confirm which design file the review concerns"
+      },
+      {
+        "slug": "FIGMA_GET_COMMENTS_IN_A_FILE",
+        "use": "collect feedback before turning it into a review agenda"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_NODES",
+        "use": "inspect the specific frames or nodes you name"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_COMPONENTS",
+        "use": "inventory components present in the handoff file"
+      },
+      {
+        "slug": "FIGMA_GET_FILE_STYLES",
+        "use": "read the file styles for a design reference list"
+      },
+      {
+        "slug": "FIGMA_GET_LOCAL_VARIABLES",
+        "use": "inspect local variables before discussing their use"
+      },
+      {
+        "slug": "FIGMA_GET_VERSIONS_OF_A_FILE",
+        "use": "check the file's version history for review context"
+      },
+      {
+        "slug": "FIGMA_ADD_A_COMMENT_TO_A_FILE",
+        "use": "post an agreed review question through the sending controls"
+      }
+    ],
+    "setup": "add figma in **Connected apps**, sign in through figma and choose which bot may use it. share the file reference and identify the frames that matter. for review work, allow reading actions first so a request to inspect a component does not become permission to alter variables."
+  },
+  "routines_intro": "use a separate routine for review feedback, implementation handoff and design references. the messages below produce private notes rather than comments posted into the file.",
+  "routines": [
+    {
+      "name": "review agenda",
+      "message": "every wednesday at 11, read comments in the acme checkout figma file. group questions by frame and distinguish requests for a decision from small corrections. include the comment reference. draft an agenda here; do not post or react.",
+      "when": "wednesdays at 11:00",
+      "output": "a frame-by-frame review agenda"
+    },
+    {
+      "name": "handoff inventory",
+      "message": "every thursday at 5, inspect the frames i named in the acme checkout file and list their components and styles. note where the available file data does not answer a handoff question. do not change the file or create development tickets.",
+      "when": "thursdays at 17:00",
+      "output": "a component and style inventory with open questions"
+    },
+    {
+      "name": "design reference refresh",
+      "message": "on the first tuesday of each month at 9, read local variables and file versions for the acme design library. prepare a current reference list and identify the file version you inspected. do not claim a value changed unless you have evidence. leave variables untouched.",
+      "when": "first tuesday of the month at 09:00",
+      "output": "a dated reference note tied to the inspected file"
+    }
+  ],
+  "asks": "a comment posted to figma is a send. it asks with **Allow** and **Deny** by default, unless you permit a daily sending amount. keep the first review agendas in dusk chat if the bot should not speak in the file.\n\nvariable changes and other design data edits are different from comment posts. they are not documented as asking first under sending controls. leave those actions disabled for a review bot, or put \"ask me before you change anything\" into a routine that truly needs them.",
+  "cannot": [
+    "promise arbitrary visual editing from this catalog. it includes variables and development resources, but no general action to draw or rearrange every layer on a canvas.",
+    "post comments or change variables through a read-only figma grant. reading a file for a handoff is a smaller permission than maintaining its design data.",
+    "offer an instant figma-event routine from these facts. composio lists no figma events, so these examples run on a schedule. local reviews also pause while the computer sleeps."
+  ],
+  "sections": [
+    {
+      "h": "ask what the file actually establishes",
+      "md": "an inventory can name a component without proving it is the right choice for the implementation. request frame references and mark unanswered questions explicitly. if those questions become work in [linear](/integrations/linear), review the proposed issue before granting tracker writes."
+    },
+    {
+      "h": "a handoff is not an implementation",
+      "md": "a [github bot](/integrations/github) can read code context through its own connection, but a figma review alone does not establish what shipped. keep those sources distinct in the report. for export and campaign asset work, the [canva integration](/integrations/canva) has a different action list and different limits."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude read my figma file?",
+      "a": "a bot in dusk bot can use the listed figma reading actions with claude or another ai you choose. connect the account, allow that bot and give it a specific file or frame reference."
+    },
+    {
+      "q": "can it turn my design into a finished app?",
+      "a": "this page documents file inspection and handoff actions, not a finished-app workflow. use the bot to collect implementation questions and verify the resulting work separately."
+    },
+    {
+      "q": "will it post design feedback without telling me?",
+      "a": "a read-only bot cannot post comments. with comment access, sending asks first by default unless you grant a daily sending amount. a private review in dusk chat avoids posting altogether."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and action limits",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: scheduled reviews",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: comments and approvals",
+      "url": "/docs/computer"
+    }
+  ]
+}

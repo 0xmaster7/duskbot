@@ -39,4 +39,6 @@ how much it may do without asking is up to you, per bot:
 
 sending in your name (emails, posts, payments) is separate: **Ask every time**, or **Allow a daily amount**.
 
+for what can go wrong and the checks worth making with any tool like this, see [is it safe to let ai control your computer?](/guides/is-it-safe-to-let-ai-control-your-computer)
+
 > careful: you're responsible for what you approve. read the card before you tap **Allow**, especially when it sends, buys or deletes. [[⌘ .]] stops a bot at any moment.

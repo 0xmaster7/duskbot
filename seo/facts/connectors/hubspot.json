@@ -1,0 +1,1788 @@
+{
+  "toolkit": "hubspot",
+  "name": "HubSpot",
+  "version": "20261104_00",
+  "description": "HubSpot is an inbound marketing, sales, and customer service platform integrating CRM, email automation, and analytics to facilitate lead nurturing and seamless customer experiences",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 354,
+  "triggers_count": 2,
+  "tools": [
+    {
+      "name": "Add asset association",
+      "slug": "HUBSPOT_ADD_ASSET_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Add token to event template",
+      "slug": "HUBSPOT_ADD_TOKEN_TO_EVENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Archive batch of feedback submissions by id",
+      "slug": "HUBSPOT_ARCHIVE_BATCH_OF_FEEDBACK_SUBMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive batch of line items by id",
+      "slug": "HUBSPOT_ARCHIVE_BATCH_OF_LINE_ITEMS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive batch of objects by id",
+      "slug": "HUBSPOT_ARCHIVE_BATCH_OF_OBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive batch of properties",
+      "slug": "HUBSPOT_ARCHIVE_BATCH_OF_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Archive a batch of quotes by id",
+      "slug": "HUBSPOT_ARCHIVE_BATCH_OF_QUOTES",
+      "kind": "write"
+    },
+    {
+      "name": "Archive companies",
+      "slug": "HUBSPOT_ARCHIVE_COMPANIES",
+      "kind": "write"
+    },
+    {
+      "name": "Archive company",
+      "slug": "HUBSPOT_ARCHIVE_COMPANY",
+      "kind": "write"
+    },
+    {
+      "name": "Archive contact",
+      "slug": "HUBSPOT_ARCHIVE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Archive contacts",
+      "slug": "HUBSPOT_ARCHIVE_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive a CRM object by ID",
+      "slug": "HUBSPOT_ARCHIVE_CRM_OBJECT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Archive deals",
+      "slug": "HUBSPOT_ARCHIVE_DEALS",
+      "kind": "write"
+    },
+    {
+      "name": "ArchiveEmail email",
+      "slug": "HUBSPOT_ARCHIVE_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Archive emails",
+      "slug": "HUBSPOT_ARCHIVE_EMAILS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive feedback submission",
+      "slug": "HUBSPOT_ARCHIVE_FEEDBACK_SUBMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Archive line item by id",
+      "slug": "HUBSPOT_ARCHIVE_LINE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Archive product",
+      "slug": "HUBSPOT_ARCHIVE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Archive products",
+      "slug": "HUBSPOT_ARCHIVE_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Archive property by object type and name",
+      "slug": "HUBSPOT_ARCHIVE_PROPERTY_BY_OBJECT_TYPE_AND_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Archive property group",
+      "slug": "HUBSPOT_ARCHIVE_PROPERTY_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Archive quote object by id",
+      "slug": "HUBSPOT_ARCHIVE_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Archive ticket",
+      "slug": "HUBSPOT_ARCHIVE_TICKET",
+      "kind": "write"
+    },
+    {
+      "name": "Archive tickets",
+      "slug": "HUBSPOT_ARCHIVE_TICKETS",
+      "kind": "write"
+    },
+    {
+      "name": "Audit pipeline changes by id",
+      "slug": "HUBSPOT_AUDIT_PIPELINE_CHANGES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch archive association labels",
+      "slug": "HUBSPOT_BATCH_ARCHIVE_ASSOCIATION_LABELS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch archive associations",
+      "slug": "HUBSPOT_BATCH_ARCHIVE_ASSOCIATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch create contact-company associations",
+      "slug": "HUBSPOT_BATCH_CREATE_CONTACT_COMPANY_ASSOCIATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch create deal-company associations",
+      "slug": "HUBSPOT_BATCH_CREATE_DEAL_COMPANY_ASSOCIATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch create default associations",
+      "slug": "HUBSPOT_BATCH_CREATE_DEFAULT_ASSOCIATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch read companies by properties",
+      "slug": "HUBSPOT_BATCH_READ_COMPANIES_BY_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Batch read list memberships",
+      "slug": "HUBSPOT_BATCH_READ_LIST_MEMBERSHIPS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch read workflow ID mappings",
+      "slug": "HUBSPOT_BATCH_READ_WORKFLOW_ID_MAPPINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch read workflows",
+      "slug": "HUBSPOT_BATCH_READ_WORKFLOWS",
+      "kind": "write"
+    },
+    {
+      "name": "Batch update quotes",
+      "slug": "HUBSPOT_BATCH_UPDATE_QUOTES",
+      "kind": "write"
+    },
+    {
+      "name": "Cancel active import",
+      "slug": "HUBSPOT_CANCEL_IMPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Clone marketing email",
+      "slug": "HUBSPOT_CLONE_MARKETING_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Configure calling extension settings",
+      "slug": "HUBSPOT_CONFIGURE_CALLING_EXTENSION_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Create A/B test variation",
+      "slug": "HUBSPOT_CREATE_AB_TEST_VARIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new property group",
+      "slug": "HUBSPOT_CREATE_AND_RETURN_A_NEW_PROPERTY_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new marketing email",
+      "slug": "HUBSPOT_CREATE_A_NEW_MARKETING_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Create association for object type",
+      "slug": "HUBSPOT_CREATE_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create association label",
+      "slug": "HUBSPOT_CREATE_ASSOCIATION_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Create batch of feedback submissions",
+      "slug": "HUBSPOT_CREATE_BATCH_OF_FEEDBACK_SUBMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Create batch of objects",
+      "slug": "HUBSPOT_CREATE_BATCH_OF_OBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create batch of properties",
+      "slug": "HUBSPOT_CREATE_BATCH_OF_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Create batch of quotes",
+      "slug": "HUBSPOT_CREATE_BATCH_OF_QUOTES",
+      "kind": "write"
+    },
+    {
+      "name": "Create blog post",
+      "slug": "HUBSPOT_CREATE_BLOG_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Create campaign",
+      "slug": "HUBSPOT_CREATE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Create campaigns",
+      "slug": "HUBSPOT_CREATE_CAMPAIGNS",
+      "kind": "write"
+    },
+    {
+      "name": "Create campaign spend item",
+      "slug": "HUBSPOT_CREATE_CAMPAIGN_SPEND_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create companies",
+      "slug": "HUBSPOT_CREATE_COMPANIES",
+      "kind": "write"
+    },
+    {
+      "name": "Create company",
+      "slug": "HUBSPOT_CREATE_COMPANY",
+      "kind": "write"
+    },
+    {
+      "name": "Create contact",
+      "slug": "HUBSPOT_CREATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Contact From Natural Language",
+      "slug": "HUBSPOT_CREATE_CONTACT_FROM_NL",
+      "kind": "write"
+    },
+    {
+      "name": "Create contacts",
+      "slug": "HUBSPOT_CREATE_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create content template",
+      "slug": "HUBSPOT_CREATE_CONTENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create CRM Object From Natural Language",
+      "slug": "HUBSPOT_CREATE_CRM_OBJECT_FROM_NL",
+      "kind": "write"
+    },
+    {
+      "name": "Create CRM object with properties",
+      "slug": "HUBSPOT_CREATE_CRM_OBJECT_WITH_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Create deal",
+      "slug": "HUBSPOT_CREATE_DEAL",
+      "kind": "write"
+    },
+    {
+      "name": "Create Deal From Natural Language",
+      "slug": "HUBSPOT_CREATE_DEAL_FROM_NL",
+      "kind": "write"
+    },
+    {
+      "name": "Create deals",
+      "slug": "HUBSPOT_CREATE_DEALS",
+      "kind": "write"
+    },
+    {
+      "name": "Create default association",
+      "slug": "HUBSPOT_CREATE_DEFAULT_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create email",
+      "slug": "HUBSPOT_CREATE_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Create emails",
+      "slug": "HUBSPOT_CREATE_EMAILS",
+      "kind": "write"
+    },
+    {
+      "name": "Create engagement",
+      "slug": "HUBSPOT_CREATE_ENGAGEMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create event template for app",
+      "slug": "HUBSPOT_CREATE_EVENT_TEMPLATE_FOR_APP",
+      "kind": "write"
+    },
+    {
+      "name": "Create feedback submission",
+      "slug": "HUBSPOT_CREATE_FEEDBACK_SUBMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create landing page",
+      "slug": "HUBSPOT_CREATE_LANDING_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create line item",
+      "slug": "HUBSPOT_CREATE_LINE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create line items",
+      "slug": "HUBSPOT_CREATE_LINE_ITEMS",
+      "kind": "write"
+    },
+    {
+      "name": "Create list",
+      "slug": "HUBSPOT_CREATE_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Create meeting",
+      "slug": "HUBSPOT_CREATE_MEETING",
+      "kind": "write"
+    },
+    {
+      "name": "Create note",
+      "slug": "HUBSPOT_CREATE_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Create object association",
+      "slug": "HUBSPOT_CREATE_OBJECT_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create new object schema with custom properties",
+      "slug": "HUBSPOT_CREATE_OBJECT_SCHEMA",
+      "kind": "write"
+    },
+    {
+      "name": "Create or update draft version",
+      "slug": "HUBSPOT_CREATE_OR_UPDATE_DRAFT_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create pipeline for object type",
+      "slug": "HUBSPOT_CREATE_PIPELINE",
+      "kind": "write"
+    },
+    {
+      "name": "Create pipeline stage",
+      "slug": "HUBSPOT_CREATE_PIPELINE_STAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create product",
+      "slug": "HUBSPOT_CREATE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Create products",
+      "slug": "HUBSPOT_CREATE_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Create property for specified object type",
+      "slug": "HUBSPOT_CREATE_PROPERTY_FOR_SPECIFIED_OBJECT_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Create quote object",
+      "slug": "HUBSPOT_CREATE_QUOTE_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create site page",
+      "slug": "HUBSPOT_CREATE_SITE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Create task",
+      "slug": "HUBSPOT_CREATE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create ticket",
+      "slug": "HUBSPOT_CREATE_TICKET",
+      "kind": "write"
+    },
+    {
+      "name": "Create tickets",
+      "slug": "HUBSPOT_CREATE_TICKETS",
+      "kind": "write"
+    },
+    {
+      "name": "Create timeline event based on template",
+      "slug": "HUBSPOT_CREATE_TIMELINE_EVENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create multiple timeline events batch",
+      "slug": "HUBSPOT_CREATE_TIMELINE_EVENTS_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Create workflow",
+      "slug": "HUBSPOT_CREATE_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Delete association label",
+      "slug": "HUBSPOT_DELETE_ASSOCIATION_LABEL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete call",
+      "slug": "HUBSPOT_DELETE_CALL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete calling extension settings",
+      "slug": "HUBSPOT_DELETE_CALLING_EXTENSION_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete campaign",
+      "slug": "HUBSPOT_DELETE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Archive a batch of campaigns",
+      "slug": "HUBSPOT_DELETE_CAMPAIGNS_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently delete company for GDPR compliance",
+      "slug": "HUBSPOT_DELETE_COMPANY_GDPR",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently delete contact for GDPR compliance",
+      "slug": "HUBSPOT_DELETE_CONTACT_GDPR",
+      "kind": "write"
+    },
+    {
+      "name": "Delete CRM list",
+      "slug": "HUBSPOT_DELETE_CRM_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Archive deal (GDPR permanent delete not supported for deals)",
+      "slug": "HUBSPOT_DELETE_DEAL_GDPR",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently delete line items for gdpr",
+      "slug": "HUBSPOT_DELETE_LINE_ITEMS_GDPR",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a marketing email",
+      "slug": "HUBSPOT_DELETE_MARKETING_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete meeting",
+      "slug": "HUBSPOT_DELETE_MEETING",
+      "kind": "write"
+    },
+    {
+      "name": "Delete note",
+      "slug": "HUBSPOT_DELETE_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete pipeline by id",
+      "slug": "HUBSPOT_DELETE_PIPELINE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete pipeline stage by id",
+      "slug": "HUBSPOT_DELETE_PIPELINE_STAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete schema by object type",
+      "slug": "HUBSPOT_DELETE_SCHEMA",
+      "kind": "write"
+    },
+    {
+      "name": "Delete task",
+      "slug": "HUBSPOT_DELETE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete timeline event template",
+      "slug": "HUBSPOT_DELETE_TIMELINE_EVENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete video conferencing app settings",
+      "slug": "HUBSPOT_DELETE_VIDEO_CONFERENCING_APP_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete workflow",
+      "slug": "HUBSPOT_DELETE_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Download CMS source file",
+      "slug": "HUBSPOT_DOWNLOAD_CMS_SOURCE_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Enroll contact in sequence",
+      "slug": "HUBSPOT_ENROLL_CONTACT_IN_SEQUENCE",
+      "kind": "write"
+    },
+    {
+      "name": "Enroll contact in workflow",
+      "slug": "HUBSPOT_ENROLL_CONTACT_IN_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Fetch import error details",
+      "slug": "HUBSPOT_FETCH_IMPORT_ERROR_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch recording settings by app ID",
+      "slug": "HUBSPOT_FETCH_RECORDING_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch revenue",
+      "slug": "HUBSPOT_FETCH_REVENUE",
+      "kind": "read"
+    },
+    {
+      "name": "Get the variation of an A/B marketing email",
+      "slug": "HUBSPOT_GET_AB_EMAIL_VARIATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Account Information",
+      "slug": "HUBSPOT_GET_ACCOUNT_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get active imports list",
+      "slug": "HUBSPOT_GET_ACTIVE_IMPORTS_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get aggregated statistic intervals",
+      "slug": "HUBSPOT_GET_AGGREGATED_STATISTIC_INTERVALS",
+      "kind": "read"
+    },
+    {
+      "name": "Get aggregated statistics",
+      "slug": "HUBSPOT_GET_AGGREGATED_STATISTICS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all marketing emails for a HubSpot account",
+      "slug": "HUBSPOT_GET_ALL_MARKETING_EMAILS_FOR_A_HUBSPOT_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get blog post",
+      "slug": "HUBSPOT_GET_BLOG_POST",
+      "kind": "read"
+    },
+    {
+      "name": "Get blog settings",
+      "slug": "HUBSPOT_GET_BLOG_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get blog tag",
+      "slug": "HUBSPOT_GET_BLOG_TAG",
+      "kind": "read"
+    },
+    {
+      "name": "Get campaign",
+      "slug": "HUBSPOT_GET_CAMPAIGN",
+      "kind": "read"
+    },
+    {
+      "name": "Get campaign metrics",
+      "slug": "HUBSPOT_GET_CAMPAIGN_METRICS",
+      "kind": "read"
+    },
+    {
+      "name": "Get campaigns",
+      "slug": "HUBSPOT_GET_CAMPAIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "Get CMS source metadata",
+      "slug": "HUBSPOT_GET_CMS_SOURCE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get communication status",
+      "slug": "HUBSPOT_GET_COMMUNICATION_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get company",
+      "slug": "HUBSPOT_GET_COMPANY",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact IDs",
+      "slug": "HUBSPOT_GET_CONTACT_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact sequence enrollment",
+      "slug": "HUBSPOT_GET_CONTACT_SEQUENCE_ENROLLMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact workflow enrollments",
+      "slug": "HUBSPOT_GET_CONTACT_WORKFLOW_ENROLLMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get CRM export status",
+      "slug": "HUBSPOT_GET_CRM_EXPORT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get CRM list",
+      "slug": "HUBSPOT_GET_CRM_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get CRM list by name",
+      "slug": "HUBSPOT_GET_CRM_LIST_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Get CRM lists by IDs",
+      "slug": "HUBSPOT_GET_CRM_LISTS_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get deal",
+      "slug": "HUBSPOT_GET_DEAL",
+      "kind": "read"
+    },
+    {
+      "name": "Get deals",
+      "slug": "HUBSPOT_GET_DEALS",
+      "kind": "read"
+    },
+    {
+      "name": "Get emails",
+      "slug": "HUBSPOT_GET_EMAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Get email subscription status",
+      "slug": "HUBSPOT_GET_EMAIL_SUBSCRIPTION_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get engagement",
+      "slug": "HUBSPOT_GET_ENGAGEMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get specific event template for app",
+      "slug": "HUBSPOT_GET_EVENT_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get exchange rate",
+      "slug": "HUBSPOT_GET_EXCHANGE_RATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get file",
+      "slug": "HUBSPOT_GET_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get file import status",
+      "slug": "HUBSPOT_GET_FILE_IMPORT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get file signed URL",
+      "slug": "HUBSPOT_GET_FILE_SIGNED_URL",
+      "kind": "read"
+    },
+    {
+      "name": "Get form",
+      "slug": "HUBSPOT_GET_FORM",
+      "kind": "read"
+    },
+    {
+      "name": "Get import record information",
+      "slug": "HUBSPOT_GET_IMPORT_RECORD_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get landing page",
+      "slug": "HUBSPOT_GET_LANDING_PAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get landing page draft",
+      "slug": "HUBSPOT_GET_LANDING_PAGE_DRAFT",
+      "kind": "read"
+    },
+    {
+      "name": "Get draft version of a marketing email",
+      "slug": "HUBSPOT_GET_MARKETING_EMAIL_DRAFT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a revision of a marketing email",
+      "slug": "HUBSPOT_GET_MARKETING_EMAIL_REVISION",
+      "kind": "read"
+    },
+    {
+      "name": "Get revisions of a marketing email",
+      "slug": "HUBSPOT_GET_MARKETING_EMAIL_REVISIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get marketing event participation breakdown",
+      "slug": "HUBSPOT_GET_MARKETING_EVENT_PARTICIPATION_BREAKDOWN",
+      "kind": "read"
+    },
+    {
+      "name": "Return pipeline by id",
+      "slug": "HUBSPOT_GET_PIPELINE_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get pipeline stage audit",
+      "slug": "HUBSPOT_GET_PIPELINE_STAGE_AUDIT",
+      "kind": "read"
+    },
+    {
+      "name": "Get private app daily API usage",
+      "slug": "HUBSPOT_GET_PRIVATE_APP_DAILY_API_USAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get product",
+      "slug": "HUBSPOT_GET_PRODUCT",
+      "kind": "read"
+    },
+    {
+      "name": "Get products",
+      "slug": "HUBSPOT_GET_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get quote by id",
+      "slug": "HUBSPOT_GET_QUOTE",
+      "kind": "read"
+    },
+    {
+      "name": "Get record list memberships",
+      "slug": "HUBSPOT_GET_RECORD_LIST_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get segment members",
+      "slug": "HUBSPOT_GET_SEGMENT_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sequence",
+      "slug": "HUBSPOT_GET_SEQUENCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get settings user",
+      "slug": "HUBSPOT_GET_SETTINGS_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get site page",
+      "slug": "HUBSPOT_GET_SITE_PAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get site page draft",
+      "slug": "HUBSPOT_GET_SITE_PAGE_DRAFT",
+      "kind": "read"
+    },
+    {
+      "name": "Get source analytics totals",
+      "slug": "HUBSPOT_GET_SOURCE_ANALYTICS_TOTALS",
+      "kind": "read"
+    },
+    {
+      "name": "Get the details of a specified marketing email",
+      "slug": "HUBSPOT_GET_THE_DETAILS_OF_A_SPECIFIED_MARKETING_EMAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Get ticket",
+      "slug": "HUBSPOT_GET_TICKET",
+      "kind": "read"
+    },
+    {
+      "name": "Get tickets",
+      "slug": "HUBSPOT_GET_TICKETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow by ID",
+      "slug": "HUBSPOT_GET_WORKFLOW_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow performance",
+      "slug": "HUBSPOT_GET_WORKFLOW_PERFORMANCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get workflow revision",
+      "slug": "HUBSPOT_GET_WORKFLOW_REVISION",
+      "kind": "read"
+    },
+    {
+      "name": "Get all workflows",
+      "slug": "HUBSPOT_GET_WORKFLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "List all engagements",
+      "slug": "HUBSPOT_LIST_ALL_ENGAGEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List assets",
+      "slug": "HUBSPOT_LIST_ASSETS",
+      "kind": "read"
+    },
+    {
+      "name": "List associated engagements",
+      "slug": "HUBSPOT_LIST_ASSOCIATED_ENGAGEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List association labels",
+      "slug": "HUBSPOT_LIST_ASSOCIATION_LABELS",
+      "kind": "read"
+    },
+    {
+      "name": "List association types",
+      "slug": "HUBSPOT_LIST_ASSOCIATION_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "List audit logs",
+      "slug": "HUBSPOT_LIST_AUDIT_LOGS",
+      "kind": "read"
+    },
+    {
+      "name": "List automation flows",
+      "slug": "HUBSPOT_LIST_AUTOMATION_FLOWS",
+      "kind": "read"
+    },
+    {
+      "name": "List blog posts",
+      "slug": "HUBSPOT_LIST_BLOG_POSTS",
+      "kind": "read"
+    },
+    {
+      "name": "List call dispositions",
+      "slug": "HUBSPOT_LIST_CALL_DISPOSITIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List companies",
+      "slug": "HUBSPOT_LIST_COMPANIES",
+      "kind": "read"
+    },
+    {
+      "name": "List company activities",
+      "slug": "HUBSPOT_LIST_COMPANY_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List company calls",
+      "slug": "HUBSPOT_LIST_COMPANY_CALLS",
+      "kind": "read"
+    },
+    {
+      "name": "List company meetings",
+      "slug": "HUBSPOT_LIST_COMPANY_MEETINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List contact notes",
+      "slug": "HUBSPOT_LIST_CONTACT_NOTES",
+      "kind": "read"
+    },
+    {
+      "name": "List contact properties",
+      "slug": "HUBSPOT_LIST_CONTACT_PROPERTIES",
+      "kind": "read"
+    },
+    {
+      "name": "List contacts",
+      "slug": "HUBSPOT_LIST_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "List contact tasks",
+      "slug": "HUBSPOT_LIST_CONTACT_TASKS",
+      "kind": "read"
+    },
+    {
+      "name": "List content templates",
+      "slug": "HUBSPOT_LIST_CONTENT_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List conversation channels",
+      "slug": "HUBSPOT_LIST_CONVERSATION_CHANNELS",
+      "kind": "read"
+    },
+    {
+      "name": "List conversation inboxes",
+      "slug": "HUBSPOT_LIST_CONVERSATION_INBOXES",
+      "kind": "read"
+    },
+    {
+      "name": "List conversation threads",
+      "slug": "HUBSPOT_LIST_CONVERSATION_THREADS",
+      "kind": "read"
+    },
+    {
+      "name": "List deal activities",
+      "slug": "HUBSPOT_LIST_DEAL_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List deal meetings",
+      "slug": "HUBSPOT_LIST_DEAL_MEETINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List deals",
+      "slug": "HUBSPOT_LIST_DEALS",
+      "kind": "read"
+    },
+    {
+      "name": "List domains",
+      "slug": "HUBSPOT_LIST_DOMAINS",
+      "kind": "read"
+    },
+    {
+      "name": "List email campaign IDs",
+      "slug": "HUBSPOT_LIST_EMAIL_CAMPAIGN_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "List email campaigns",
+      "slug": "HUBSPOT_LIST_EMAIL_CAMPAIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "List email events",
+      "slug": "HUBSPOT_LIST_EMAIL_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Emails",
+      "slug": "HUBSPOT_LIST_EMAILS",
+      "kind": "read"
+    },
+    {
+      "name": "List event occurrences",
+      "slug": "HUBSPOT_LIST_EVENT_OCCURRENCES",
+      "kind": "read"
+    },
+    {
+      "name": "List all event templates for app",
+      "slug": "HUBSPOT_LIST_EVENT_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List feedback submissions page",
+      "slug": "HUBSPOT_LIST_FEEDBACK_SUBMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List forms",
+      "slug": "HUBSPOT_LIST_FORMS",
+      "kind": "read"
+    },
+    {
+      "name": "List form submissions",
+      "slug": "HUBSPOT_LIST_FORM_SUBMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List granted OAuth scopes",
+      "slug": "HUBSPOT_LIST_GRANTED_SCOPES",
+      "kind": "read"
+    },
+    {
+      "name": "List landing page revisions",
+      "slug": "HUBSPOT_LIST_LANDING_PAGE_REVISIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List landing pages",
+      "slug": "HUBSPOT_LIST_LANDING_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List login activity",
+      "slug": "HUBSPOT_LIST_LOGIN_ACTIVITY",
+      "kind": "read"
+    },
+    {
+      "name": "List meeting links",
+      "slug": "HUBSPOT_LIST_MEETING_LINKS",
+      "kind": "read"
+    },
+    {
+      "name": "List object associations",
+      "slug": "HUBSPOT_LIST_OBJECT_ASSOCIATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List products",
+      "slug": "HUBSPOT_LIST_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "List quotes page",
+      "slug": "HUBSPOT_LIST_QUOTES",
+      "kind": "read"
+    },
+    {
+      "name": "List recently modified engagements",
+      "slug": "HUBSPOT_LIST_RECENTLY_MODIFIED_ENGAGEMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List sequences",
+      "slug": "HUBSPOT_LIST_SEQUENCES",
+      "kind": "read"
+    },
+    {
+      "name": "List settings users",
+      "slug": "HUBSPOT_LIST_SETTINGS_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List site pages",
+      "slug": "HUBSPOT_LIST_SITE_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "List teams",
+      "slug": "HUBSPOT_LIST_TEAMS",
+      "kind": "read"
+    },
+    {
+      "name": "List tickets",
+      "slug": "HUBSPOT_LIST_TICKETS",
+      "kind": "read"
+    },
+    {
+      "name": "List user roles",
+      "slug": "HUBSPOT_LIST_USER_ROLES",
+      "kind": "read"
+    },
+    {
+      "name": "Map legacy list ID",
+      "slug": "HUBSPOT_MAP_LEGACY_LIST_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Merge two companies of same type",
+      "slug": "HUBSPOT_MERGE_COMPANIES",
+      "kind": "write"
+    },
+    {
+      "name": "Merge contacts",
+      "slug": "HUBSPOT_MERGE_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge deals",
+      "slug": "HUBSPOT_MERGE_DEALS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge emails",
+      "slug": "HUBSPOT_MERGE_EMAILS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge two feedback submissions",
+      "slug": "HUBSPOT_MERGE_FEEDBACK_SUBMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge two line items of same type",
+      "slug": "HUBSPOT_MERGE_LINE_ITEMS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge two objects of same type",
+      "slug": "HUBSPOT_MERGE_OBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge products",
+      "slug": "HUBSPOT_MERGE_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Merge two quotes of same type",
+      "slug": "HUBSPOT_MERGE_QUOTES",
+      "kind": "write"
+    },
+    {
+      "name": "Merge tickets",
+      "slug": "HUBSPOT_MERGE_TICKETS",
+      "kind": "write"
+    },
+    {
+      "name": "Move list to folder",
+      "slug": "HUBSPOT_MOVE_LIST_TO_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Partially update CRM object by ID",
+      "slug": "HUBSPOT_PARTIALLY_UPDATE_CRM_OBJECT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently delete contact via GDPR",
+      "slug": "HUBSPOT_PERMANENTLY_DELETE_CONTACT_VIA_GDPR",
+      "kind": "write"
+    },
+    {
+      "name": "Publish landing page draft",
+      "slug": "HUBSPOT_PUBLISH_LANDING_PAGE_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Publish or send a marketing email",
+      "slug": "HUBSPOT_PUBLISH_MARKETING_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Publish site page draft",
+      "slug": "HUBSPOT_PUBLISH_SITE_PAGE_DRAFT",
+      "kind": "send"
+    },
+    {
+      "name": "Purge schema by object type",
+      "slug": "HUBSPOT_PURGE_SCHEMA",
+      "kind": "write"
+    },
+    {
+      "name": "Read a CRM property by name",
+      "slug": "HUBSPOT_READ_A_CRM_PROPERTY_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Read all properties for object type",
+      "slug": "HUBSPOT_READ_ALL_PROPERTIES_FOR_OBJECT_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Read a page of objects by type",
+      "slug": "HUBSPOT_READ_APAGE_OF_OBJECTS_BY_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Batch read associations",
+      "slug": "HUBSPOT_READ_ASSOCIATIONS_BATCH",
+      "kind": "read"
+    },
+    {
+      "name": "Read a batch of CRM object properties",
+      "slug": "HUBSPOT_READ_BATCH_CRM_OBJECT_PROPERTIES",
+      "kind": "read"
+    },
+    {
+      "name": "Read batch feedback submissions by id or property",
+      "slug": "HUBSPOT_READ_BATCH_FEEDBACK_SUBMISSIONS_BY_ID_OR_PROPERTY",
+      "kind": "read"
+    },
+    {
+      "name": "Read batch of crm objects by id or property values",
+      "slug": "HUBSPOT_READ_BATCH_OF_CRM_OBJECTS_BY_ID_OR_PROPERTY_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Read batch of line items by id or property values",
+      "slug": "HUBSPOT_READ_BATCH_OF_LINE_ITEMS_BY_ID_OR_PROPERTY_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Read batch of quotes by property values",
+      "slug": "HUBSPOT_READ_BATCH_OF_QUOTES_BY_PROPERTY_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Read budget",
+      "slug": "HUBSPOT_READ_BUDGET",
+      "kind": "read"
+    },
+    {
+      "name": "Read contact",
+      "slug": "HUBSPOT_READ_CONTACT",
+      "kind": "read"
+    },
+    {
+      "name": "Read contacts",
+      "slug": "HUBSPOT_READ_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Read crm object by id",
+      "slug": "HUBSPOT_READ_CRM_OBJECT_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "ReadEmail Email",
+      "slug": "HUBSPOT_READ_EMAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Read feedback submission by id",
+      "slug": "HUBSPOT_READ_FEEDBACK_SUBMISSION_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Read legacy contact profile",
+      "slug": "HUBSPOT_READ_LEGACY_CONTACT_PROFILE",
+      "kind": "read"
+    },
+    {
+      "name": "Read legacy contact profiles by email",
+      "slug": "HUBSPOT_READ_LEGACY_CONTACT_PROFILES_BY_EMAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Read legacy contact profiles by VID",
+      "slug": "HUBSPOT_READ_LEGACY_CONTACT_PROFILES_BY_VID",
+      "kind": "read"
+    },
+    {
+      "name": "Read a property group",
+      "slug": "HUBSPOT_READ_PROPERTY_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Read property groups for object type",
+      "slug": "HUBSPOT_READ_PROPERTY_GROUPS_FOR_OBJECT_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Remove asset association",
+      "slug": "HUBSPOT_REMOVE_ASSET_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove association between CRM records",
+      "slug": "HUBSPOT_REMOVE_ASSOCIATION",
+      "kind": "write"
+    },
+    {
+      "name": "Remove association from schema",
+      "slug": "HUBSPOT_REMOVE_ASSOCIATION_FROM_SCHEMA",
+      "kind": "write"
+    },
+    {
+      "name": "Remove contact secondary email",
+      "slug": "HUBSPOT_REMOVE_CONTACT_SECONDARY_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Remove deal",
+      "slug": "HUBSPOT_REMOVE_DEAL",
+      "kind": "write"
+    },
+    {
+      "name": "Remove settings user",
+      "slug": "HUBSPOT_REMOVE_SETTINGS_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove token from event template",
+      "slug": "HUBSPOT_REMOVE_TOKEN_FROM_EVENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Rename CRM list",
+      "slug": "HUBSPOT_RENAME_CRM_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Render event detail template",
+      "slug": "HUBSPOT_RENDER_EVENT_DETAIL_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Render event header or detail as html",
+      "slug": "HUBSPOT_RENDER_EVENT_HEADER_OR_DETAIL_AS_HTML",
+      "kind": "write"
+    },
+    {
+      "name": "Replace all properties of pipeline",
+      "slug": "HUBSPOT_REPLACE_ALL_PROPERTIES_OF_PIPELINE",
+      "kind": "write"
+    },
+    {
+      "name": "Replace pipeline stage properties",
+      "slug": "HUBSPOT_REPLACE_PIPELINE_STAGE_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Reset draft",
+      "slug": "HUBSPOT_RESET_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a revision of a marketing email to draft state",
+      "slug": "HUBSPOT_RESTORE_EMAIL_REVISION",
+      "kind": "write"
+    },
+    {
+      "name": "Restore a revision of a marketing email",
+      "slug": "HUBSPOT_RESTORE_MARKETING_EMAIL_REVISION",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve all object schemas",
+      "slug": "HUBSPOT_RETRIEVE_ALL_OBJECT_SCHEMAS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve all pipelines for specified object type",
+      "slug": "HUBSPOT_RETRIEVE_ALL_PIPELINES_FOR_SPECIFIED_OBJECT_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve calling settings for app",
+      "slug": "HUBSPOT_RETRIEVE_CALLING_SETTINGS_FOR_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve line item by id",
+      "slug": "HUBSPOT_RETRIEVE_LINE_ITEM_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve line items list",
+      "slug": "HUBSPOT_RETRIEVE_LINE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve existing object schema",
+      "slug": "HUBSPOT_RETRIEVE_OBJECT_SCHEMA",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve owner by ID or user ID",
+      "slug": "HUBSPOT_RETRIEVE_OWNER_BY_ID_OR_USER_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve owners",
+      "slug": "HUBSPOT_RETRIEVE_OWNERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve page of crm owners",
+      "slug": "HUBSPOT_RETRIEVE_PAGE_OF_CRM_OWNERS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve pipeline stage by id",
+      "slug": "HUBSPOT_RETRIEVE_PIPELINE_STAGE_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve pipeline stages",
+      "slug": "HUBSPOT_RETRIEVE_PIPELINE_STAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve timeline event by ids",
+      "slug": "HUBSPOT_RETRIEVE_TIMELINE_EVENT_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve video conference settings by id",
+      "slug": "HUBSPOT_RETRIEVE_VIDEO_CONFERENCE_SETTINGS_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Schedule blog post",
+      "slug": "HUBSPOT_SCHEDULE_BLOG_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Schedule landing page",
+      "slug": "HUBSPOT_SCHEDULE_LANDING_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Schedule site page",
+      "slug": "HUBSPOT_SCHEDULE_SITE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Search campaigns",
+      "slug": "HUBSPOT_SEARCH_CAMPAIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "Search CMS content",
+      "slug": "HUBSPOT_SEARCH_CMS_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Search companies",
+      "slug": "HUBSPOT_SEARCH_COMPANIES",
+      "kind": "read"
+    },
+    {
+      "name": "Search contacts by criteria",
+      "slug": "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA",
+      "kind": "read"
+    },
+    {
+      "name": "Search CRM lists",
+      "slug": "HUBSPOT_SEARCH_CRM_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search crm objects by criteria",
+      "slug": "HUBSPOT_SEARCH_CRM_OBJECTS_BY_CRITERIA",
+      "kind": "read"
+    },
+    {
+      "name": "Search deals",
+      "slug": "HUBSPOT_SEARCH_DEALS",
+      "kind": "read"
+    },
+    {
+      "name": "Search emails",
+      "slug": "HUBSPOT_SEARCH_EMAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Search feedback submissions",
+      "slug": "HUBSPOT_SEARCH_FEEDBACK_SUBMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Search files",
+      "slug": "HUBSPOT_SEARCH_FILES",
+      "kind": "read"
+    },
+    {
+      "name": "Search line items by criteria",
+      "slug": "HUBSPOT_SEARCH_LINE_ITEMS_BY_CRITERIA",
+      "kind": "read"
+    },
+    {
+      "name": "Search products",
+      "slug": "HUBSPOT_SEARCH_PRODUCTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search quotes by criteria",
+      "slug": "HUBSPOT_SEARCH_QUOTES_BY_CRITERIA",
+      "kind": "read"
+    },
+    {
+      "name": "Search tickets",
+      "slug": "HUBSPOT_SEARCH_TICKETS",
+      "kind": "read"
+    },
+    {
+      "name": "Set call recording settings",
+      "slug": "HUBSPOT_SET_CALL_RECORDING_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Initiate data import process",
+      "slug": "HUBSPOT_START_IMPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Unenroll contact from workflow",
+      "slug": "HUBSPOT_UNENROLL_CONTACT_FROM_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Update a marketing email",
+      "slug": "HUBSPOT_UPDATE_A_MARKETING_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Update batch feedback submissions",
+      "slug": "HUBSPOT_UPDATE_BATCH_FEEDBACK_SUBMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update a batch of objects by id or property values",
+      "slug": "HUBSPOT_UPDATE_BATCH_OF_OBJECTS_BY_IDOR_PROPERTY_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Update blog post",
+      "slug": "HUBSPOT_UPDATE_BLOG_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Update calling app recording settings",
+      "slug": "HUBSPOT_UPDATE_CALLING_APP_RECORDING_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Modify calling extension settings",
+      "slug": "HUBSPOT_UPDATE_CALLING_EXTENSION_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update campaign",
+      "slug": "HUBSPOT_UPDATE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Update a batch of campaigns",
+      "slug": "HUBSPOT_UPDATE_CAMPAIGNS",
+      "kind": "write"
+    },
+    {
+      "name": "Update companies",
+      "slug": "HUBSPOT_UPDATE_COMPANIES",
+      "kind": "write"
+    },
+    {
+      "name": "Update company",
+      "slug": "HUBSPOT_UPDATE_COMPANY",
+      "kind": "write"
+    },
+    {
+      "name": "Update contact",
+      "slug": "HUBSPOT_UPDATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Update contacts",
+      "slug": "HUBSPOT_UPDATE_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Update specific CRM property",
+      "slug": "HUBSPOT_UPDATE_CRM_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Update deal",
+      "slug": "HUBSPOT_UPDATE_DEAL",
+      "kind": "write"
+    },
+    {
+      "name": "Update deals",
+      "slug": "HUBSPOT_UPDATE_DEALS",
+      "kind": "write"
+    },
+    {
+      "name": "UpdateEmail Email",
+      "slug": "HUBSPOT_UPDATE_EMAIL",
+      "kind": "write"
+    },
+    {
+      "name": "Update emails",
+      "slug": "HUBSPOT_UPDATE_EMAILS",
+      "kind": "write"
+    },
+    {
+      "name": "Update email subscriptions",
+      "slug": "HUBSPOT_UPDATE_EMAIL_SUBSCRIPTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update existing event template",
+      "slug": "HUBSPOT_UPDATE_EVENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Update feedback submission by id",
+      "slug": "HUBSPOT_UPDATE_FEEDBACK_SUBMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update landing page",
+      "slug": "HUBSPOT_UPDATE_LANDING_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update landing page draft",
+      "slug": "HUBSPOT_UPDATE_LANDING_PAGE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Update line item object partially",
+      "slug": "HUBSPOT_UPDATE_LINE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update a batch of line items",
+      "slug": "HUBSPOT_UPDATE_LINE_ITEMS",
+      "kind": "write"
+    },
+    {
+      "name": "Update list filters",
+      "slug": "HUBSPOT_UPDATE_LIST_FILTERS",
+      "kind": "write"
+    },
+    {
+      "name": "Update list memberships",
+      "slug": "HUBSPOT_UPDATE_LIST_MEMBERSHIPS",
+      "kind": "write"
+    },
+    {
+      "name": "Update existing object schema",
+      "slug": "HUBSPOT_UPDATE_OBJECT_SCHEMA",
+      "kind": "write"
+    },
+    {
+      "name": "Partially update pipeline by id",
+      "slug": "HUBSPOT_UPDATE_PIPELINE",
+      "kind": "write"
+    },
+    {
+      "name": "Update pipeline stage by ids",
+      "slug": "HUBSPOT_UPDATE_PIPELINE_STAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update product",
+      "slug": "HUBSPOT_UPDATE_PRODUCT",
+      "kind": "write"
+    },
+    {
+      "name": "Update products",
+      "slug": "HUBSPOT_UPDATE_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Partially update property group",
+      "slug": "HUBSPOT_UPDATE_PROPERTY_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Partial update quote by quote id",
+      "slug": "HUBSPOT_UPDATE_QUOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Update site page",
+      "slug": "HUBSPOT_UPDATE_SITE_PAGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update site page draft",
+      "slug": "HUBSPOT_UPDATE_SITE_PAGE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Update ticket",
+      "slug": "HUBSPOT_UPDATE_TICKET",
+      "kind": "write"
+    },
+    {
+      "name": "Update tickets",
+      "slug": "HUBSPOT_UPDATE_TICKETS",
+      "kind": "write"
+    },
+    {
+      "name": "Update token on event template",
+      "slug": "HUBSPOT_UPDATE_TOKEN_ON_EVENT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Update video conference app settings",
+      "slug": "HUBSPOT_UPDATE_VIDEO_CONFERENCE_APP_SETTINGS",
+      "kind": "write"
+    },
+    {
+      "name": "Update workflow",
+      "slug": "HUBSPOT_UPDATE_WORKFLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert companies",
+      "slug": "HUBSPOT_UPSERT_COMPANIES",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert contacts",
+      "slug": "HUBSPOT_UPSERT_CONTACTS",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "HUBSPOT_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/hubspot",
+  "fetched_at": "2026-11-12"
+}

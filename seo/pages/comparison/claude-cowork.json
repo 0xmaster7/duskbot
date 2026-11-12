@@ -1,0 +1,224 @@
+{
+  "path": "/vs/claude-cowork",
+  "title": "Claude Cowork vs Dusk Bot: tasks or a bot team?",
+  "nav": "claude cowork",
+  "h1": "claude cowork vs dusk bot: files, schedules and bot teams",
+  "description": "Cowork is becoming part of Claude. Compare its file tasks and cloud schedules with Dusk Bot, including the limits of local routines.",
+  "answer": "claude cowork is becoming part of claude: as of 12 november 2026, anthropic says file tasks bring in cowork automatically.[^1] it fits people who want to hand work to claude in its own app. dusk bot fits people who want separate bots with different jobs and ai choices. both offer scheduled work. new cowork tasks on pro, max and ultra run in the cloud, so laptop sleep is no longer the dividing line.[^2]",
+  "tags": [
+    "claude",
+    "cowork",
+    "comparison",
+    "files"
+  ],
+  "related": [
+    "/guides/claude-cowork-pricing",
+    "/guides/claude-scheduled-tasks",
+    "/ai-teammates"
+  ],
+  "competitor": {
+    "key": "claude-cowork",
+    "name": "Claude Cowork",
+    "url": "https://claude.com/product/cowork"
+  },
+  "art": {
+    "props": [
+      "p-folder",
+      "s-clock"
+    ],
+    "label": "Claude Cowork",
+    "bubble": "hand over a task"
+  },
+  "og_line": "claude tasks or separate bot teammates.",
+  "verdict": {
+    "them_title": "claude cowork",
+    "them": [
+      "you want file work in claude's own app, without a terminal",
+      "you want claude's remote scheduled tasks included in a paid claude plan"
+    ],
+    "dusk": [
+      "you want one bot for reviewing work and another for planning, with separate memory",
+      "you want to choose an ai for each bot and keep its chats when you change that choice"
+    ]
+  },
+  "compare": {
+    "h": "what changes in daily work",
+    "intro": "cowork is the name many people still search for. this table follows the documented claude experience as of 12 november 2026, including the move to remote tasks.",
+    "cols": [
+      "Claude Cowork",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "how you start",
+        "cells": [
+          "describe an outcome in claude; no terminal required",
+          "create a named bot, give it a job and text it"
+        ],
+        "src": [
+          3,
+          6
+        ]
+      },
+      {
+        "label": "file work",
+        "cells": [
+          "works across selected folders, apps and connectors",
+          "attach files in chat; work is kept in the bot or project folder"
+        ],
+        "src": [
+          1,
+          7
+        ]
+      },
+      {
+        "label": "ai choice",
+        "cells": [
+          "claude models within claude plans",
+          "choose the ai per bot; changing it keeps chats, files and memory"
+        ],
+        "src": [
+          4,
+          6
+        ]
+      },
+      {
+        "label": "scheduled sessions",
+        "cells": [
+          "paid plans support remote recurring tasks, including while the laptop sleeps",
+          "desktop routines need an awake machine and open app; dusk cloud keeps running"
+        ],
+        "src": [
+          5,
+          8,
+          9
+        ]
+      },
+      {
+        "label": "working with others",
+        "cells": [
+          "plugins can include subagents; large projects can run in chunks",
+          "bots can share a thread and hand work over with mentions"
+        ],
+        "src": [
+          1,
+          10
+        ]
+      },
+      {
+        "label": "what you pay",
+        "cells": [
+          "paid claude plan; pro is $20 monthly",
+          "personal computer use is free; cloud plus is $20 monthly; ai usage is separate"
+        ],
+        "src": [
+          3,
+          4,
+          9,
+          11
+        ]
+      }
+    ]
+  },
+  "method": "we publish dusk bot, and this is a documented feature comparison rather than a test of output quality. we did not run identical tasks in cowork and dusk bot. vendor claims come from the saved sources checked on 12 november 2026. where older desktop advice conflicts with the newer cloud-task docs, this page uses the newer behaviour and names the affected plans.",
+  "sections": [
+    {
+      "h": "cowork vs claude code is a different question",
+      "md": "cowork brings claude code's agent architecture to work beyond coding, with no terminal required.[^3] claude code's cloud scheduled tasks package a prompt, repositories and connectors. they can start on a schedule, an api call or a github event.[^12] if your work starts with a code repository, that distinction matters more than whether the interface looks like a chat.\n\nfor documents you want handed back for review, cowork is a direct fit. dusk bot's case is a lasting set of roles: a reader who remembers your preferences and a separate planner who keeps a different job. [ai teammates](/ai-teammates) explains that arrangement."
+    },
+    {
+      "h": "a fair first task is a document review",
+      "md": "try a narrow request with files you are comfortable sharing: \"read these two versions of the proposal. list changed promises and questions i need to answer. do not edit either file.\" this asks for a review you can check against the originals. it makes no promise about which product will produce the better answer.\n\nin dusk bot, attach the documents and start the bot on **Ask for approval** for command and file changes. if you connect an app, give this reviewer read-only access. that restriction is separate from command approvals; it prevents app actions that change things.[^7][^13]"
+    },
+    {
+      "h": "do not choose from an old laptop-sleep comparison",
+      "md": "anthropic's current docs say new cowork tasks on pro, max and ultra run in the cloud, with the local-only option removed from 6 october 2026.[^2] scheduled tasks now run remotely too, though older tasks created before that date can remain local.[^5] [claude scheduled tasks](/guides/claude-scheduled-tasks) covers the distinction.\n\ndusk desktop routines still depend on the app and machine being awake. dusk cloud changes where your bots live rather than adding a different model: ai usage stays on your provider's bill.[^8][^9][^11] compare the whole arrangement, including a work license when needed. the [cowork pricing guide](/guides/claude-cowork-pricing) is the next stop if price is the deciding point."
+    }
+  ],
+  "faq": [
+    {
+      "q": "is claude cowork free or paid?",
+      "a": "as of 12 november 2026, cowork requires a paid claude plan. pro costs $20 a month on monthly billing. there is no separate cowork price.[^3][^4] dusk bot is free for personal use on your computer; work use needs a work license.[^11]"
+    },
+    {
+      "q": "does cowork stop when my laptop is closed?",
+      "a": "not for new pro, max and ultra tasks: those run in the cloud. remote scheduled tasks also keep their cadence while the computer sleeps. older local tasks need separate attention.[^2][^5]"
+    },
+    {
+      "q": "can i run claude and another ai as separate teammates?",
+      "a": "in dusk bot, each bot has its own ai choice, and group chats let bots work in the same thread.[^6][^10] check each provider's current terms for the way you sign in and run it. this comparison does not establish provider permission for a particular routine."
+    }
+  ],
+  "sources": [
+    {
+      "label": "claude cowork product and status",
+      "url": "https://claude.com/product/cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: cowork on web, desktop and mobile",
+      "url": "https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: get started with cowork",
+      "url": "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "claude pricing",
+      "url": "https://claude.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: recurring cowork tasks",
+      "url": "https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: jobs and ai choices",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: files and app permissions",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: when routines run",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: hosted computers",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: shared threads",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot: personal and work use",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "anthropic: claude code cloud scheduled tasks",
+      "url": "https://code.claude.com/docs/en/routines",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: command and file approvals",
+      "url": "/docs/computer"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "claude cowork vs claude code",
+  "keywords": [
+    "claude desktop vs cowork",
+    "claude cowork vs chatgpt agent",
+    "claude cowork use cases"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": []
+}

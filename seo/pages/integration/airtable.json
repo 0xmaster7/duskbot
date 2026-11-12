@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/airtable",
+  "type": "integration",
+  "title": "Airtable AI assistant for record checks and intake work",
+  "nav": "airtable",
+  "h1": "an airtable assistant that learns the table before writing",
+  "description": "Review Airtable records, inspect fields and prepare intake work with Dusk Bot. Copy three routines and see why record edits need explicit limits.",
+  "answer": "an airtable bot can read a base schema, list records and check the details of a row before preparing a review or adding approved intake work. connect airtable to dusk bot and identify the base and table you mean. start with read-only checks; creating records, uploading attachments and changing fields require permission to make changes, so define the writing rules separately.",
+  "tags": [
+    "records",
+    "intake",
+    "tables"
+  ],
+  "connectors": [
+    "airtable"
+  ],
+  "related": [
+    "/integrations/google-sheets",
+    "/integrations/notion",
+    "/use-cases/file-organizer"
+  ],
+  "art": {
+    "logo": "airtable",
+    "label": "Airtable",
+    "props": [
+      "s-notebook",
+      "p-folder"
+    ],
+    "bubble": "check the fields first"
+  },
+  "og_line": "read the fields before filling the rows.",
+  "app": {
+    "name": "Airtable",
+    "toolkit": "airtable",
+    "intro": "ask the bot to inspect the base schema before interpreting a record. column names can look familiar while meaning something specific to your team. these actions cover finding the base, reading its structure and checking records, with writing kept as a separate choice.",
+    "highlight": [
+      {
+        "slug": "AIRTABLE_LIST_BASES",
+        "use": "find the intended base before starting an intake job"
+      },
+      {
+        "slug": "AIRTABLE_GET_BASE_SCHEMA",
+        "use": "inspect tables and field definitions before interpreting rows"
+      },
+      {
+        "slug": "AIRTABLE_LIST_RECORDS",
+        "use": "collect the records needed for a defined review"
+      },
+      {
+        "slug": "AIRTABLE_GET_RECORD",
+        "use": "open a specific record before flagging a missing value"
+      },
+      {
+        "slug": "AIRTABLE_LIST_COMMENTS",
+        "use": "read discussion attached to a record for context"
+      },
+      {
+        "slug": "AIRTABLE_GET_ATTACHMENT_INFO",
+        "use": "inspect the attachment information for a record review"
+      },
+      {
+        "slug": "AIRTABLE_CREATE_RECORDS",
+        "use": "add agreed intake rows after checking the destination fields"
+      },
+      {
+        "slug": "AIRTABLE_UPDATE_RECORD",
+        "use": "apply a specific record correction when you permit edits"
+      }
+    ],
+    "setup": "connect airtable in **Connected apps** and give your records bot read-only access for its first review. name the base and table, then ask it to describe the fields it will use. when you later allow writing, use the exact actions the job needs rather than giving an intake bot access to field or table changes."
+  },
+  "routines_intro": "these routines use three different tables people often maintain. replace the table references with your own and explain the relevant fields. the messages contain instructions, not invented rows or sample results.",
+  "routines": [
+    {
+      "name": "editorial readiness check",
+      "message": "every monday at 9, read the airtable content table i specified. check records due this week against our required title, owner and asset fields. list missing values and inspect attachment information where relevant. do not change publishing status or dates.",
+      "when": "mondays at 9:00",
+      "output": "a content readiness checklist"
+    },
+    {
+      "name": "event logistics gaps",
+      "message": "every thursday at noon, review the airtable event table i named. compare upcoming records with our venue and contact checklist. inspect record comments before flagging a question as unanswered. leave uncertain answers marked as questions and do not edit records.",
+      "when": "thursdays at 12:00",
+      "output": "an event logistics question list"
+    },
+    {
+      "name": "approved intake capture",
+      "message": "every weekday at 5, review the intake items i marked approved in this chat. inspect the airtable table schema, check for an existing matching record using the match rule i supplied, and ask me before adding new rows. bring uncertain matches here without overwriting anything.",
+      "when": "weekdays at 17:00",
+      "output": "approved intake records after your requested review"
+    }
+  ],
+  "asks": "the readiness and logistics reviews can stay read only. the intake routine needs record creation, and it explicitly requests your review before adding rows. creating or updating airtable records is not documented as automatically asking first.\n\nkeep field creation, table updates and deletion outside the intake bot's allowed actions. if you enable record edits, write \"ask me before you change anything\" when you want every proposed change reviewed. sends through connected apps ask first by default, with an optional daily allowance, but that rule does not establish approval for changes inside a base.",
+  "cannot": [
+    "add intake rows, upload attachments or repair records with read-only access. it can prepare the proposed values in your dusk bot chat instead.",
+    "decide what a blank field means without your rule. it might mean not supplied, not needed, or awaiting a decision; tell the routine which cases to flag.",
+    "guarantee that an intake item is new just because its title differs. supply a matching rule and have the bot report ambiguous records rather than overwrite them.",
+    "run an evening intake job on a computer that has gone to sleep. your local routines require an awake computer and running dusk bot; dusk cloud keeps scheduled work available with that computer off."
+  ],
+  "sections": [
+    {
+      "h": "a schema check is part of the job",
+      "md": "have the bot show which fields it will read and which it intends to fill. give required values and a rule for matching existing records. a field that looks like a free-text note may carry a team convention the bot does not know.\n\nif your work is mainly a spreadsheet, compare the [google sheets integration](/integrations/google-sheets). if the source is a workspace page, inspect the separate [notion integration](/integrations/notion) before planning a cross-app job."
+    },
+    {
+      "h": "make intake easy to inspect",
+      "md": "keep approved intake items in a small batch and name the target table. ask the bot to return the destination records after creating them, so you can compare the saved values with what you supplied. a separate [file organisation routine](/use-cases/file-organizer) can help plan where supporting files belong without treating their presence as permission to change a base."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt work with my airtable base?",
+      "a": "a bot in dusk bot using your selected ai can call these airtable actions after you connect the account. begin by listing bases and reading the intended schema, then choose a record review with clear fields."
+    },
+    {
+      "q": "can it add records without changing the table structure?",
+      "a": "you can allow record creation through an exact action list while leaving field and table changes unavailable. the approved intake routine asks you before adding rows because that instruction is explicit, not an automatic approval guarantee."
+    },
+    {
+      "q": "what is a useful airtable routine for everyday work?",
+      "a": "check whether this week's content records have an owner and the required assets, or collect unanswered logistics questions before an event. both jobs produce a review without requiring record edits."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude airtable",
+  "keywords": [
+    "airtable mcp",
+    "airtable ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

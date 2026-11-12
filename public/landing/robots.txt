@@ -1,5 +1,55 @@
+User-agent: Googlebot
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
+
 User-agent: *
 Allow: /
 Disallow: /demo/
+Disallow: /explore/
+Disallow: /api/
 
 Sitemap: https://dusk.bot/sitemap.xml

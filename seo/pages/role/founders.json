@@ -1,0 +1,47 @@
+{
+  "path": "/for/founders",
+  "type": "role",
+  "title": "AI agents for founders and solopreneurs: a starter team",
+  "nav": "founders",
+  "h1": "ai agents for founders and solopreneurs",
+  "description": "A small team of AI bots for a founder running most things alone: inbox, investor updates, customer follow-ups, research. Routines to copy, and where to stop.",
+  "keyword": "ai assistant for startup founders",
+  "keywords": ["ai agent for founders", "ai for solopreneurs", "ai chief of staff for founders", "solo founder ai tools"],
+  "answer": "start with three bots, each with one job: an inbox helper that tells you what needs you, a researcher that reads so you don't have to, and a writer that drafts updates and posts from what you shipped. text them like teammates from your laptop or phone. they think with the ai you already sign in to, and they ask before anything goes out in your name.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent, against dusk bot docs", "at": "2026-11-12" },
+  "tags": ["founder", "role", "inbox", "research", "writing", "team"],
+  "connectors": ["gmail", "googlecalendar", "notion", "slack", "stripe"],
+  "related": ["/use-cases/email-triage", "/use-cases/daily-briefing", "/ai-chief-of-staff", "/ai-employees"],
+  "art": { "props": ["p-briefcase", "p-chart"], "bubble": "update drafted" },
+  "og_line": "a starter team, and the routines to copy.",
+  "day_h": "a founder's day with three bots",
+  "day": [
+    { "when": "7:30", "what": "the inbox helper lists the 3 to 5 emails that need you, with drafts ready for clients" },
+    { "when": "8:00", "what": "a short brief: today's calendar, anything that clashes, and yesterday's new signups or payments if you connected [stripe](/integrations/stripe)" },
+    { "when": "during the day", "what": "you text the researcher from your phone: \"find the five closest competitors to our pricing page and what each charges\"" },
+    { "when": "after a release", "what": "the writer drafts the changelog note and two short posts from what you shipped. it posts nothing until you say so" },
+    { "when": "friday 4pm", "what": "the writer drafts the weekly investor update from your notes, numbers and the week's group chat" }
+  ],
+  "pack": [
+    { "name": "the inbox helper", "message": "you're my inbox helper. every weekday at 7:30, read what came in since yesterday. list the emails that need me first, one line each: who, what, by when. draft short replies to customers and investors in my voice and leave them in drafts. never send anything yourself.", "note": "full version and guard rails on [ai email triage](/use-cases/email-triage)" },
+    { "name": "the researcher", "message": "you're my researcher. when i ask about a company, a market or a person, read their site, their pricing page and recent news, and come back with a straight answer, a short table and the links you used. say clearly when you couldn't find something instead of guessing.", "note": "on its own computer it can open sites and click through them; you can watch, and take the mouse" },
+    { "name": "the weekly update", "message": "every friday at 4, draft my weekly investor update: what shipped, numbers (ask me for any you can't find), what's next, and one ask. keep it under 250 words, plain, no hype. put it in a google doc and send me the link. don't email anyone.", "note": "needs google docs or drive connected; it asks before sending anything" }
+  ],
+  "sections": [
+    { "h": "why three small bots beat one big one", "md": "a bot with one job gets better at it. it builds the right memory (your customers, your tone, your numbers) and it's easy to check on. a single bot doing everything mixes your investor voice with your support voice and you end up checking all of it.\n\nwhen work passes between them, put them in one [group chat](/ai-group-chat): the researcher finds it, the writer drafts it, and you step in when one needs a yes. set the group to **Leader** and one bot hands out the tasks." },
+    { "h": "what it costs a founder", "md": "the app is free for personal use on your own computer. using it for your company needs a work license, which the pro plan includes for one person. the ai is billed by your provider on your plan with them.\n\nif you want the 7:30 run to happen while your laptop is shut, the bots need a computer that stays on: [dusk cloud](/pricing) is $20 a month for plus or $50 for pro, or you can run them on [your own server](/docs/your-own-server)." },
+    { "h": "what not to hand over yet", "md": "don't let a bot send money, sign anything, or email investors on its own. keep those behind **Allow**, and give the writer no access to your bank or payment apps at all; it doesn't need them.\n\nbe careful with anything a customer told you in confidence. bots keep notes, and while the notes are plain files you control, it's simpler to keep sensitive threads out of a bot's reach." }
+  ],
+  "faq": [
+    { "q": "do i need to know how to code?", "a": "no. you make a bot with **New bot**, give it a job in plain words, and set up routines by texting them. connecting apps is a sign-in on the app's own page." },
+    { "q": "can i run it from my phone?", "a": "yes. pair your phone once by scanning a code, then text any bot from anywhere. if your bots live on your laptop, the laptop has to be on; on dusk cloud they answer with it shut." },
+    { "q": "is this an ai chief of staff?", "a": "close. a lead bot in a group chat can hand work to the others, which is most of what people mean. see [ai chief of staff](/ai-chief-of-staff) for that setup." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: tips for using bots", "url": "/docs/tips" },
+    { "label": "dusk bot docs: group chats", "url": "/docs/group-chats" },
+    { "label": "dusk bot docs: account and billing", "url": "/docs/account-and-billing" },
+    { "label": "dusk bot docs: a bot's computer", "url": "/docs/computer" }
+  ]
+}

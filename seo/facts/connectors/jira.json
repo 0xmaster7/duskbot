@@ -1,0 +1,749 @@
+{
+  "toolkit": "jira",
+  "name": "Jira",
+  "version": "20261104_00",
+  "description": "A tool for bug tracking, issue tracking, and agile project management.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 146,
+  "triggers_count": 17,
+  "tools": [
+    {
+      "name": "Add Attachment",
+      "slug": "JIRA_ADD_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Add Comment",
+      "slug": "JIRA_ADD_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Add Field to Screen Tab",
+      "slug": "JIRA_ADD_FIELD_TO_SCREEN_TAB",
+      "kind": "write"
+    },
+    {
+      "name": "Add Users to Project Role",
+      "slug": "JIRA_ADD_USERS_TO_PROJECT_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Add User to Group",
+      "slug": "JIRA_ADD_USER_TO_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Add Watcher to Issue",
+      "slug": "JIRA_ADD_WATCHER_TO_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Add Worklog",
+      "slug": "JIRA_ADD_WORKLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Analyse Jira Expression",
+      "slug": "JIRA_ANALYSE_EXPRESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Assign Issue",
+      "slug": "JIRA_ASSIGN_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk Create Issues",
+      "slug": "JIRA_BULK_CREATE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk Move Issues",
+      "slug": "JIRA_BULK_MOVE_ISSUES",
+      "kind": "write"
+    },
+    {
+      "name": "Check User Permissions",
+      "slug": "JIRA_CHECK_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Create Board",
+      "slug": "JIRA_CREATE_BOARD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Component",
+      "slug": "JIRA_CREATE_COMPONENT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Custom Field Context",
+      "slug": "JIRA_CREATE_CUSTOM_FIELD_CONTEXT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Filter",
+      "slug": "JIRA_CREATE_FILTER",
+      "kind": "write"
+    },
+    {
+      "name": "Create Group",
+      "slug": "JIRA_CREATE_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Create Issue",
+      "slug": "JIRA_CREATE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Link Issues",
+      "slug": "JIRA_CREATE_ISSUE_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Issue Link Type",
+      "slug": "JIRA_CREATE_ISSUE_LINK_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Issue Type",
+      "slug": "JIRA_CREATE_ISSUE_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Get JQL Autocomplete Data",
+      "slug": "JIRA_CREATE_JQL_AUTOCOMPLETEDATA",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project",
+      "slug": "JIRA_CREATE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Screen",
+      "slug": "JIRA_CREATE_SCREEN",
+      "kind": "write"
+    },
+    {
+      "name": "Create Screen Scheme",
+      "slug": "JIRA_CREATE_SCREEN_SCHEME",
+      "kind": "write"
+    },
+    {
+      "name": "Create Service Desk Request",
+      "slug": "JIRA_CREATE_SERVICE_DESK_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create Sprint",
+      "slug": "JIRA_CREATE_SPRINT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Version",
+      "slug": "JIRA_CREATE_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Attachment",
+      "slug": "JIRA_DELETE_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Comment",
+      "slug": "JIRA_DELETE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Issue",
+      "slug": "JIRA_DELETE_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Issue Form",
+      "slug": "JIRA_DELETE_ISSUE_FORM",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Issue Link",
+      "slug": "JIRA_DELETE_ISSUE_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Statuses",
+      "slug": "JIRA_DELETE_STATUSES",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Version",
+      "slug": "JIRA_DELETE_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Worklog",
+      "slug": "JIRA_DELETE_WORKLOG",
+      "kind": "write"
+    },
+    {
+      "name": "Edit Issue",
+      "slug": "JIRA_EDIT_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Evaluate Jira Expression",
+      "slug": "JIRA_EVALUATE_JIRA_EXPRESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Bulk Fetch Issues",
+      "slug": "JIRA_FETCH_BULK_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "Find Users (Deprecated)",
+      "slug": "JIRA_FIND_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Find Users 2",
+      "slug": "JIRA_FIND_USERS2",
+      "kind": "read"
+    },
+    {
+      "name": "Find Users For Picker",
+      "slug": "JIRA_FIND_USERS_FOR_PICKER",
+      "kind": "read"
+    },
+    {
+      "name": "Find Users With Permissions",
+      "slug": "JIRA_FIND_USERS_WITH_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get All Groups",
+      "slug": "JIRA_GET_ALL_GROUPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get All Issue Type Schemes",
+      "slug": "JIRA_GET_ALL_ISSUE_TYPE_SCHEMES",
+      "kind": "read"
+    },
+    {
+      "name": "Get all projects",
+      "slug": "JIRA_GET_ALL_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Statuses",
+      "slug": "JIRA_GET_ALL_STATUSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get All Users",
+      "slug": "JIRA_GET_ALL_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Attachment",
+      "slug": "JIRA_GET_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Attachment Meta",
+      "slug": "JIRA_GET_ATTACHMENT_META",
+      "kind": "read"
+    },
+    {
+      "name": "Get Board",
+      "slug": "JIRA_GET_BOARD",
+      "kind": "read"
+    },
+    {
+      "name": "Get Board Configuration",
+      "slug": "JIRA_GET_BOARD_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Comment",
+      "slug": "JIRA_GET_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Component",
+      "slug": "JIRA_GET_COMPONENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Create Field Metadata for Issue Type",
+      "slug": "JIRA_GET_CREATE_METADATA_ISSUE_TYPE_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Current User",
+      "slug": "JIRA_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Dashboard Item Properties",
+      "slug": "JIRA_GET_DASHBOARD_ITEM_PROPERTIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Dashboards",
+      "slug": "JIRA_GET_DASHBOARDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Favorite Filters",
+      "slug": "JIRA_GET_FAVORITE_FILTERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get fields",
+      "slug": "JIRA_GET_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom fields paginated",
+      "slug": "JIRA_GET_FIELDS_PAGINATED",
+      "kind": "read"
+    },
+    {
+      "name": "Get Filter",
+      "slug": "JIRA_GET_FILTER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Group",
+      "slug": "JIRA_GET_GROUP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Service Management Info",
+      "slug": "JIRA_GET_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue",
+      "slug": "JIRA_GET_ISSUE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Changelogs",
+      "slug": "JIRA_GET_ISSUE_CHANGELOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Create Issue Metadata (Deprecated)",
+      "slug": "JIRA_GET_ISSUE_CREATE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Edit Meta",
+      "slug": "JIRA_GET_ISSUE_EDIT_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Link",
+      "slug": "JIRA_GET_ISSUE_LINK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Link Type",
+      "slug": "JIRA_GET_ISSUE_LINK_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Link Types",
+      "slug": "JIRA_GET_ISSUE_LINK_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "Get issue picker",
+      "slug": "JIRA_GET_ISSUE_PICKER_SUGGESTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Property",
+      "slug": "JIRA_GET_ISSUE_PROPERTY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Resolutions",
+      "slug": "JIRA_GET_ISSUE_RESOLUTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Type",
+      "slug": "JIRA_GET_ISSUE_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get issue types",
+      "slug": "JIRA_GET_ISSUE_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Watchers",
+      "slug": "JIRA_GET_ISSUE_WATCHERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Worklogs (Deprecated)",
+      "slug": "JIRA_GET_ISSUE_WORKLOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get JQL autocomplete reference data",
+      "slug": "JIRA_GET_JQL_AUTOCOMPLETEDATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get JQL autocomplete suggestions",
+      "slug": "JIRA_GET_JQL_AUTOCOMPLETEDATA_SUGGESTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get My Permissions",
+      "slug": "JIRA_GET_MY_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Locale Preference",
+      "slug": "JIRA_GET_MYPREFERENCES_LOCALE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Permissions",
+      "slug": "JIRA_GET_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Permitted Projects",
+      "slug": "JIRA_GET_PERMITTED_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project",
+      "slug": "JIRA_GET_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Permission Scheme",
+      "slug": "JIRA_GET_PROJECT_PERMISSION_SCHEME",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Roles",
+      "slug": "JIRA_GET_PROJECT_ROLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Templates",
+      "slug": "JIRA_GET_PROJECT_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Type",
+      "slug": "JIRA_GET_PROJECT_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Versions",
+      "slug": "JIRA_GET_PROJECT_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Workflow Schemes",
+      "slug": "JIRA_GET_PROJECT_WORKFLOW_SCHEMES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Recent Projects",
+      "slug": "JIRA_GET_RECENT_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Remote Links",
+      "slug": "JIRA_GET_REMOTE_ISSUE_LINKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Server Info",
+      "slug": "JIRA_GET_SERVER_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Service Desk Request Type Fields",
+      "slug": "JIRA_GET_SERVICE_DESK_REQUEST_TYPE_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Sprint",
+      "slug": "JIRA_GET_SPRINT",
+      "kind": "read"
+    },
+    {
+      "name": "Get System Avatars",
+      "slug": "JIRA_GET_SYSTEM_AVATARS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Transitions",
+      "slug": "JIRA_GET_TRANSITIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Universal Avatar Type Owner",
+      "slug": "JIRA_GET_UNIVERSAL_AVATAR_TYPE_OWNER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Universal Avatar View Type",
+      "slug": "JIRA_GET_UNIVERSAL_AVATAR_VIEW_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get User",
+      "slug": "JIRA_GET_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Groups",
+      "slug": "JIRA_GET_USER_GROUPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Avatar Image",
+      "slug": "JIRA_GET_VIEW_TYPE_AVATAR",
+      "kind": "read"
+    },
+    {
+      "name": "Get Issue Votes",
+      "slug": "JIRA_GET_VOTES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worklogs",
+      "slug": "JIRA_GET_WORKLOG",
+      "kind": "read"
+    },
+    {
+      "name": "Get Worklogs By IDs",
+      "slug": "JIRA_GET_WORKLOGS_BY_IDS",
+      "kind": "read"
+    },
+    {
+      "name": "List All Projects (Deprecated)",
+      "slug": "JIRA_LIST_ALL_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Assignable Users",
+      "slug": "JIRA_LIST_ASSIGNABLE_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Board Quick Filters",
+      "slug": "JIRA_LIST_BOARD_QUICK_FILTERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Boards",
+      "slug": "JIRA_LIST_BOARDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Comments by IDs",
+      "slug": "JIRA_LIST_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Custom Field Context Default Values",
+      "slug": "JIRA_LIST_CUSTOM_FIELD_CONTEXT_DEFAULT_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "List Custom Field Context Issue Type Mappings",
+      "slug": "JIRA_LIST_CUSTOM_FIELD_CONTEXT_ISSUE_TYPE_MAPPINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Custom Field Context Options",
+      "slug": "JIRA_LIST_CUSTOM_FIELD_CONTEXT_OPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Custom Field Context Project Mappings",
+      "slug": "JIRA_LIST_CUSTOM_FIELD_CONTEXT_PROJECT_MAPPINGS",
+      "kind": "read"
+    },
+    {
+      "name": "List Custom Field Contexts",
+      "slug": "JIRA_LIST_CUSTOM_FIELD_CONTEXTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Dashboard Gadgets",
+      "slug": "JIRA_LIST_DASHBOARD_GADGETS",
+      "kind": "read"
+    },
+    {
+      "name": "List Field Scheme Fields",
+      "slug": "JIRA_LIST_FIELD_SCHEME_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Jira Filters",
+      "slug": "JIRA_LIST_FILTERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Group Members",
+      "slug": "JIRA_LIST_GROUP_MEMBERS",
+      "kind": "read"
+    },
+    {
+      "name": "List Groups (Picker)",
+      "slug": "JIRA_LIST_GROUPS_PICKER",
+      "kind": "read"
+    },
+    {
+      "name": "List Issue Comments",
+      "slug": "JIRA_LIST_ISSUE_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Issue Forms",
+      "slug": "JIRA_LIST_ISSUE_FORMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Issue Property Keys",
+      "slug": "JIRA_LIST_ISSUE_PROPERTY_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "List Project Types",
+      "slug": "JIRA_LIST_PROJECT_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "List Screen Tab Fields",
+      "slug": "JIRA_LIST_SCREEN_TAB_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "List Screen Tabs",
+      "slug": "JIRA_LIST_SCREEN_TABS",
+      "kind": "read"
+    },
+    {
+      "name": "List Sprints",
+      "slug": "JIRA_LIST_SPRINTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Updated Worklogs",
+      "slug": "JIRA_LIST_UPDATED_WORKLOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Move Issues to Sprint",
+      "slug": "JIRA_MOVE_ISSUE_TO_SPRINT",
+      "kind": "write"
+    },
+    {
+      "name": "Parse JQL Queries",
+      "slug": "JIRA_PARSE_JQL_QUERIES",
+      "kind": "write"
+    },
+    {
+      "name": "Remove User from Group",
+      "slug": "JIRA_REMOVE_USER_FROM_GROUP",
+      "kind": "write"
+    },
+    {
+      "name": "Remove User from Project Role",
+      "slug": "JIRA_REMOVE_USER_FROM_PROJECT_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Watcher from Issue",
+      "slug": "JIRA_REMOVE_WATCHER_FROM_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Search Approximate Count",
+      "slug": "JIRA_SEARCH_APPROXIMATE_COUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Search Dashboards",
+      "slug": "JIRA_SEARCH_DASHBOARDS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Issues Using JQL (GET)",
+      "slug": "JIRA_SEARCH_FOR_ISSUES_USING_JQL_GET",
+      "kind": "read"
+    },
+    {
+      "name": "Search Issues Using JQL Enhanced (POST)",
+      "slug": "JIRA_SEARCH_FOR_ISSUES_USING_JQL_POST",
+      "kind": "read"
+    },
+    {
+      "name": "Search issues",
+      "slug": "JIRA_SEARCH_ISSUES",
+      "kind": "read"
+    },
+    {
+      "name": "Send Notification for Issue",
+      "slug": "JIRA_SEND_NOTIFICATION_FOR_ISSUE",
+      "kind": "send"
+    },
+    {
+      "name": "Set Issue Property",
+      "slug": "JIRA_SET_ISSUE_PROPERTY",
+      "kind": "write"
+    },
+    {
+      "name": "Transition Issue",
+      "slug": "JIRA_TRANSITION_ISSUE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Comment",
+      "slug": "JIRA_UPDATE_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Sprint",
+      "slug": "JIRA_UPDATE_SPRINT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Version",
+      "slug": "JIRA_UPDATE_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "JIRA_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/jira",
+  "fetched_at": "2026-11-12"
+}

@@ -1,0 +1,212 @@
+{
+  "path": "/vs/manus",
+  "title": "Manus vs Dusk Bot: finished tasks and recurring roles",
+  "nav": "manus",
+  "h1": "manus vs dusk bot: a task service or bots you keep",
+  "description": "Compare Manus credits, cloud tasks and automation limits with Dusk Bot roles and separate AI billing, without guessing a cost per task.",
+  "answer": "manus is a general-purpose agent that works in cloud computers and produces things such as research, websites and slides.[^1] dusk bot is an app for keeping bots with lasting jobs, chats and memory. manus packages models and tasks into credit-based plans; dusk separates the app or hosted computer from your ai provider's bill.[^2][^5] choose by the work you want to hand over and how you prefer to budget, rather than an unsupported cost-per-task claim.",
+  "tags": [
+    "manus",
+    "comparison",
+    "credits",
+    "cloud"
+  ],
+  "related": [
+    "/use-cases/market-research",
+    "/guides/how-much-does-an-ai-agent-cost",
+    "/alternatives/manus"
+  ],
+  "competitor": {
+    "key": "manus",
+    "name": "Manus",
+    "url": "https://manus.im/"
+  },
+  "art": {
+    "props": [
+      "p-receipt",
+      "s-cloud"
+    ],
+    "label": "Manus",
+    "bubble": "count the credits"
+  },
+  "og_line": "task credits and bot costs, explained.",
+  "verdict": {
+    "them_title": "manus",
+    "them": [
+      "you want a cloud task service that produces research, slides or websites",
+      "you want the agent's models packaged into a credit-based plan rather than arranging separate ai billing"
+    ],
+    "dusk": [
+      "you want a small set of bots that keep their roles and memory between jobs",
+      "you want to choose an ai per bot and decide separately whether to pay for hosting"
+    ]
+  },
+  "compare": {
+    "h": "compare the budget and the handoff",
+    "intro": "plan figures are monthly usd prices as of 12 november 2026. credits and model usage are different units. these rows do not convert one into the other.",
+    "cols": [
+      "Manus",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "main arrangement",
+        "cells": [
+          "general-purpose cloud agent producing research and other deliverables",
+          "named bots with jobs, independent chats and memory"
+        ],
+        "src": [
+          1,
+          4
+        ]
+      },
+      {
+        "label": "starting a conversation",
+        "cells": [
+          "web use needs no installation; telegram can be linked",
+          "desktop app; phone browser pairs with the computer or cloud"
+        ],
+        "src": [
+          3,
+          6,
+          7
+        ]
+      },
+      {
+        "label": "free option",
+        "cells": [
+          "300 daily credits, manus 2.0 lite, 3 concurrent tasks and 2 automations",
+          "personal use on your own computer, with every feature; ai usage is separate"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      },
+      {
+        "label": "monthly paid starting point",
+        "cells": [
+          "pro: $20 for 4,000 monthly credits, 20 concurrent tasks and 20 automations",
+          "cloud plus: $20 for hosting; your ai provider bills model usage"
+        ],
+        "src": [
+          2,
+          8,
+          5
+        ]
+      },
+      {
+        "label": "ai arrangement",
+        "cells": [
+          "manus models in the plan; pro lists manus flex for your own keys",
+          "sign in to the ai you already use, add an api key or choose a local model"
+        ],
+        "src": [
+          2,
+          6
+        ]
+      },
+      {
+        "label": "repeated work",
+        "cells": [
+          "plans include an automation allowance; recurring chat summaries documented",
+          "routines have schedules, pause controls and run history; desktop must be awake"
+        ],
+        "src": [
+          2,
+          3,
+          9
+        ]
+      }
+    ]
+  },
+  "method": "we build dusk bot. we read manus's own product and pricing pages on 12 november 2026, compared them with dusk bot's docs, and did not run identical tasks through both. manus credit consumption for a matching job was not measured, so there is no claim that either product is cheaper per report. the table also does not rank their research accuracy or finished documents.",
+  "sections": [
+    {
+      "h": "ask whether you are buying a task or keeping a role",
+      "md": "manus describes an agent that can produce research, websites, slides, images and video.[^1] if you want a particular deliverable from a hosted service, that is a direct place to start. its telegram integration also describes recurring tasks delivered back into chat.[^3]\n\nin dusk bot you keep a bot with a job and memory you can edit. changing the bot's ai keeps its chats, files and memory.[^4] that can suit an ongoing reviewer who follows how your plans develop. it is a different way to organise work, not evidence that a persistent bot will produce a better report. the [market research use case](/use-cases/market-research) helps narrow the brief before choosing a service."
+    },
+    {
+      "h": "the price calculation has an unknown",
+      "md": "as of 12 november 2026, manus pro lists $20 a month and 4,000 monthly credits. max lists $200 and 40,000 monthly credits, with pay-as-you-go after credits.[^2] the free tier's 300 daily credits are a daily allowance, not the same kind of monthly pool.\n\nwe cannot turn those figures into a reliable number of research reports. nothing on manus's pricing page tells you how many credits your task will use. write down the work you expect, inspect actual usage on a trial and then compare the plan.\n\nfor dusk bot, the bill depends on where the bots live and which ai you choose. your own computer is free for personal use; cloud plus is $20 a month and pro is $50. ai usage stays with your provider.[^5][^8] work use needs a work license, which cloud pro includes for one person.[^8][^11] [ai agent costs](/guides/how-much-does-an-ai-agent-cost) covers those separate budget lines."
+    },
+    {
+      "h": "test with a brief that exposes missing evidence",
+      "md": "give the service a small set of documents and ask: \"compare the proposals against these requirements. show which claims are supported by the files and mark missing evidence. do not treat a missing answer as a yes.\" check a few claims against the originals before accepting the conclusion.\n\nwith a dusk bot, keep that first review within attached files. you can inspect and edit the bot's saved notes under **Memory** and turn off **Let this bot use memory** if you do not want it drawing on stored notes.[^10] memory is not a source citation. if you want other ways to package the job, [manus alternatives](/alternatives/manus) is the broader comparison."
+    }
+  ],
+  "faq": [
+    {
+      "q": "how many free credits does manus ai give?",
+      "a": "its pricing page lists 300 credits a day on free as of 12 november 2026, with manus 2.0 lite, 3 concurrent tasks and 2 automations. that allowance does not establish how many of your tasks will finish.[^2]"
+    },
+    {
+      "q": "what should i compare before switching from manus?",
+      "a": "compare the task you need, the allowed usage and where the work lives. if recurring research is the reason for switching, test the same narrow brief and inspect sources as well as usage. we haven't measured which one does a given task better, so this page names no winner and no saving per task."
+    },
+    {
+      "q": "can i message manus from telegram?",
+      "a": "yes. the telegram launch post documents linking the account and using manus agents there, including recurring summaries.[^3] dusk bot uses its own desktop and paired phone interface; its store phone apps are still on the way.[^7]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "manus: cloud agent and deliverables",
+      "url": "https://manus.im/blog/manus-joins-meta-for-next-era-of-innovation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "manus: current plan and credit table",
+      "url": "https://manus.im/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "manus: agents on telegram",
+      "url": "https://manus.im/blog/manus-agents-telegram",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: lasting jobs and model changes",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: personal use and ai billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: setup and model options",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: current phone interface",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: hosting prices",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: schedule controls",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: saved notes and memory switch",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot: work licensing",
+      "url": "/docs/faq"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "manus ai vs claude",
+  "keywords": [
+    "manus ai vs chatgpt",
+    "openclaw vs manus"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": []
+}

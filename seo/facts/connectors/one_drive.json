@@ -1,0 +1,528 @@
+{
+  "toolkit": "one_drive",
+  "name": "OneDrive",
+  "version": "20261101_00",
+  "description": "OneDrive is Microsoft’s cloud storage solution enabling users to store, sync, and share files across devices, offering offline access, real-time collaboration, and enterprise-grade security",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 102,
+  "triggers_count": 9,
+  "tools": [
+    {
+      "name": "Add Workbook Worksheet",
+      "slug": "ONE_DRIVE_ADD_WORKBOOK_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Calculate Workbook",
+      "slug": "ONE_DRIVE_CALCULATE_WORKBOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Check In Drive Item",
+      "slug": "ONE_DRIVE_CHECKIN_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Checkout Drive Item",
+      "slug": "ONE_DRIVE_CHECKOUT_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Clear Workbook Range",
+      "slug": "ONE_DRIVE_CLEAR_WORKBOOK_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Close Workbook Session",
+      "slug": "ONE_DRIVE_CLOSE_WORKBOOK_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Copy Item",
+      "slug": "ONE_DRIVE_COPY_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create Drive Item Permission",
+      "slug": "ONE_DRIVE_CREATE_ITEM_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Sharing Link",
+      "slug": "ONE_DRIVE_CREATE_LINK",
+      "kind": "write"
+    },
+    {
+      "name": "Create SharePoint List Item",
+      "slug": "ONE_DRIVE_CREATE_SHAREPOINT_LIST_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create Upload Session",
+      "slug": "ONE_DRIVE_CREATE_UPLOAD_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Create Upload Session By Path",
+      "slug": "ONE_DRIVE_CREATE_UPLOAD_SESSION_BY_PATH",
+      "kind": "write"
+    },
+    {
+      "name": "Create Workbook Session",
+      "slug": "ONE_DRIVE_CREATE_WORKBOOK_SESSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Item",
+      "slug": "ONE_DRIVE_DELETE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Permanently Delete Drive Item",
+      "slug": "ONE_DRIVE_DELETE_ITEM_PERMANENTLY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Drive Item Permission",
+      "slug": "ONE_DRIVE_DELETE_ITEM_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Shares Permission",
+      "slug": "ONE_DRIVE_DELETE_SHARE_PERMISSION",
+      "kind": "send"
+    },
+    {
+      "name": "Delete SharePoint Item Permission",
+      "slug": "ONE_DRIVE_DELETE_SHAREPOINT_ITEM_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Workbook Range",
+      "slug": "ONE_DRIVE_DELETE_WORKBOOK_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Workbook Worksheet",
+      "slug": "ONE_DRIVE_DELETE_WORKBOOK_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Discard Checkout",
+      "slug": "ONE_DRIVE_DISCARD_CHECKOUT",
+      "kind": "write"
+    },
+    {
+      "name": "Download a file",
+      "slug": "ONE_DRIVE_DOWNLOAD_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Download file by path",
+      "slug": "ONE_DRIVE_DOWNLOAD_FILE_BY_PATH",
+      "kind": "read"
+    },
+    {
+      "name": "Download item as format",
+      "slug": "ONE_DRIVE_DOWNLOAD_ITEM_AS_FORMAT",
+      "kind": "read"
+    },
+    {
+      "name": "Download Item Thumbnail",
+      "slug": "ONE_DRIVE_DOWNLOAD_ITEM_THUMBNAIL",
+      "kind": "read"
+    },
+    {
+      "name": "Download Drive Item Version Content",
+      "slug": "ONE_DRIVE_DOWNLOAD_ITEM_VERSION",
+      "kind": "read"
+    },
+    {
+      "name": "Download Thumbnail by Path",
+      "slug": "ONE_DRIVE_DOWNLOAD_THUMBNAIL_BY_PATH",
+      "kind": "read"
+    },
+    {
+      "name": "Follow Drive Item",
+      "slug": "ONE_DRIVE_FOLLOW_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Format Workbook Range",
+      "slug": "ONE_DRIVE_FORMAT_WORKBOOK_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Get document comments",
+      "slug": "ONE_DRIVE_GET_DOCUMENT_COMMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive",
+      "slug": "ONE_DRIVE_GET_DRIVE",
+      "kind": "read"
+    },
+    {
+      "name": "Get DriveItem by Sharing URL",
+      "slug": "ONE_DRIVE_GET_DRIVE_ITEM_BY_SHARING_URL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive Item List Item",
+      "slug": "ONE_DRIVE_GET_DRIVE_ITEM_LIST_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drives Following",
+      "slug": "ONE_DRIVE_GET_FOLLOWED_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Group Drive",
+      "slug": "ONE_DRIVE_GET_GROUP_DRIVE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Item Metadata",
+      "slug": "ONE_DRIVE_GET_ITEM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Item by Path",
+      "slug": "ONE_DRIVE_GET_ITEM_BY_PATH",
+      "kind": "read"
+    },
+    {
+      "name": "Get Item Permissions",
+      "slug": "ONE_DRIVE_GET_ITEM_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Item Thumbnails",
+      "slug": "ONE_DRIVE_GET_ITEM_THUMBNAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Item Versions",
+      "slug": "ONE_DRIVE_GET_ITEM_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Recent Items",
+      "slug": "ONE_DRIVE_GET_RECENT_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive Root Folder",
+      "slug": "ONE_DRIVE_GET_ROOT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shared Item by ShareId",
+      "slug": "ONE_DRIVE_GET_SHARE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Shared Items",
+      "slug": "ONE_DRIVE_GET_SHARED_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get SharePoint List Items",
+      "slug": "ONE_DRIVE_GET_SHAREPOINT_LIST_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Site Details",
+      "slug": "ONE_DRIVE_GET_SITE",
+      "kind": "read"
+    },
+    {
+      "name": "Get SharePoint Site Page Content",
+      "slug": "ONE_DRIVE_GET_SITE_PAGE_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Drive Special Folder",
+      "slug": "ONE_DRIVE_GET_SPECIAL_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Profile",
+      "slug": "ONE_DRIVE_GET_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workbook Range Fill",
+      "slug": "ONE_DRIVE_GET_WORKBOOK_RANGE_FILL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workbook Used Range",
+      "slug": "ONE_DRIVE_GET_WORKBOOK_USED_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workbook Worksheet",
+      "slug": "ONE_DRIVE_GET_WORKBOOK_WORKSHEET",
+      "kind": "read"
+    },
+    {
+      "name": "Grant Shares Permission",
+      "slug": "ONE_DRIVE_GRANT_SHARE_PERMISSION",
+      "kind": "send"
+    },
+    {
+      "name": "Grant SharePoint Item Permission",
+      "slug": "ONE_DRIVE_GRANT_SHAREPOINT_ITEM_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Inspect Workbook Table",
+      "slug": "ONE_DRIVE_INSPECT_WORKBOOK_TABLE",
+      "kind": "write"
+    },
+    {
+      "name": "Invite User to Drive Item",
+      "slug": "ONE_DRIVE_INVITE_USER_TO_ITEM",
+      "kind": "send"
+    },
+    {
+      "name": "List Drive Activities",
+      "slug": "ONE_DRIVE_LIST_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List All Drive Items",
+      "slug": "ONE_DRIVE_LIST_ALL_DRIVE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Bundles",
+      "slug": "ONE_DRIVE_LIST_BUNDLES",
+      "kind": "read"
+    },
+    {
+      "name": "List Drives",
+      "slug": "ONE_DRIVE_LIST_DRIVES",
+      "kind": "read"
+    },
+    {
+      "name": "List Folder Children",
+      "slug": "ONE_DRIVE_LIST_FOLDER_CHILDREN",
+      "kind": "read"
+    },
+    {
+      "name": "List Followed Sites",
+      "slug": "ONE_DRIVE_LIST_FOLLOWED_SITES",
+      "kind": "read"
+    },
+    {
+      "name": "List Drive Item Activities",
+      "slug": "ONE_DRIVE_LIST_ITEM_ACTIVITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List OneDrive Shared Items",
+      "slug": "ONE_DRIVE_LIST_ONEDRIVE_SHARED_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Root Drive Changes",
+      "slug": "ONE_DRIVE_LIST_ROOT_DRIVE_CHANGES",
+      "kind": "read"
+    },
+    {
+      "name": "List Shares Permission",
+      "slug": "ONE_DRIVE_LIST_SHARE_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List SharePoint Item Permissions",
+      "slug": "ONE_DRIVE_LIST_SHAREPOINT_ITEM_PERMISSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List SharePoint List Items Delta",
+      "slug": "ONE_DRIVE_LIST_SHAREPOINT_LIST_ITEMS_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Columns",
+      "slug": "ONE_DRIVE_LIST_SITE_COLUMNS",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Drive Items Delta",
+      "slug": "ONE_DRIVE_LIST_SITE_ITEMS_DELTA",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Lists",
+      "slug": "ONE_DRIVE_LIST_SITE_LISTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Recycle Bin Items",
+      "slug": "ONE_DRIVE_LIST_SITE_RECYCLE_BIN_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "List Site Subsites",
+      "slug": "ONE_DRIVE_LIST_SITE_SUBSITES",
+      "kind": "read"
+    },
+    {
+      "name": "List Subscriptions",
+      "slug": "ONE_DRIVE_LIST_SUBSCRIPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Workbook Names",
+      "slug": "ONE_DRIVE_LIST_WORKBOOK_NAMES",
+      "kind": "read"
+    },
+    {
+      "name": "List Workbook Worksheets",
+      "slug": "ONE_DRIVE_LIST_WORKBOOK_WORKSHEETS",
+      "kind": "read"
+    },
+    {
+      "name": "Move Item",
+      "slug": "ONE_DRIVE_MOVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Create folder",
+      "slug": "ONE_DRIVE_ONEDRIVE_CREATE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new text file",
+      "slug": "ONE_DRIVE_ONEDRIVE_CREATE_TEXT_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Find Item",
+      "slug": "ONE_DRIVE_ONEDRIVE_FIND_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Find Folder",
+      "slug": "ONE_DRIVE_ONEDRIVE_FIND_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "List OneDrive items",
+      "slug": "ONE_DRIVE_ONEDRIVE_LIST_ITEMS",
+      "kind": "write"
+    },
+    {
+      "name": "Upload file",
+      "slug": "ONE_DRIVE_ONEDRIVE_UPLOAD_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Preview Drive Item",
+      "slug": "ONE_DRIVE_PREVIEW_DRIVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Read Workbook Range",
+      "slug": "ONE_DRIVE_READ_WORKBOOK_RANGE",
+      "kind": "read"
+    },
+    {
+      "name": "Restore Deleted Item",
+      "slug": "ONE_DRIVE_RESTORE_DRIVE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Restore Item Version",
+      "slug": "ONE_DRIVE_RESTORE_ITEM_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Revoke Sharing Link Grants",
+      "slug": "ONE_DRIVE_REVOKE_SHARING_LINK_GRANTS",
+      "kind": "write"
+    },
+    {
+      "name": "Search Drive Items",
+      "slug": "ONE_DRIVE_SEARCH_DRIVE_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Items",
+      "slug": "ONE_DRIVE_SEARCH_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Search SharePoint Sites",
+      "slug": "ONE_DRIVE_SEARCH_SHAREPOINT_SITES",
+      "kind": "read"
+    },
+    {
+      "name": "Track Folder Changes",
+      "slug": "ONE_DRIVE_TRACK_FOLDER_CHANGES",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Drive Following",
+      "slug": "ONE_DRIVE_UNFOLLOW_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Update Drive Item Metadata",
+      "slug": "ONE_DRIVE_UPDATE_DRIVE_ITEM_METADATA",
+      "kind": "write"
+    },
+    {
+      "name": "Update Drive Item Permissions",
+      "slug": "ONE_DRIVE_UPDATE_DRIVE_ITEMS_PERMISSIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Update File Content",
+      "slug": "ONE_DRIVE_UPDATE_FILE_CONTENT",
+      "kind": "write"
+    },
+    {
+      "name": "Update SharePoint Item Permission",
+      "slug": "ONE_DRIVE_UPDATE_SHAREPOINT_ITEM_PERMISSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update SharePoint List Item Fields",
+      "slug": "ONE_DRIVE_UPDATE_SHAREPOINT_LIST_ITEM_FIELDS",
+      "kind": "write"
+    },
+    {
+      "name": "Update Table Column Range",
+      "slug": "ONE_DRIVE_UPDATE_TABLE_COLUMN_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Workbook Range",
+      "slug": "ONE_DRIVE_UPDATE_WORKBOOK_RANGE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Workbook Worksheet",
+      "slug": "ONE_DRIVE_UPDATE_WORKBOOK_WORKSHEET",
+      "kind": "write"
+    },
+    {
+      "name": "Write Workbook Cell",
+      "slug": "ONE_DRIVE_WRITE_WORKBOOK_CELL",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/one_drive",
+  "fetched_at": "2026-11-12"
+}

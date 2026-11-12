@@ -1,0 +1,282 @@
+{
+  "toolkit": "canva",
+  "name": "Canva",
+  "version": "20261101_00",
+  "description": "Canva offers a drag-and-drop design suite for creating social media graphics, presentations, and marketing materials with prebuilt templates and a vast element library",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 53,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Access user specific brand templates list",
+      "slug": "CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST",
+      "kind": "write"
+    },
+    {
+      "name": "Create Asset Upload Job",
+      "slug": "CANVA_CREATE_ASSET_UPLOAD_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create Canva Design Export Job (Deprecated)",
+      "slug": "CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create canva design with optional asset (Deprecated)",
+      "slug": "CANVA_CREATE_CANVA_DESIGN_WITH_OPTIONAL_ASSET",
+      "kind": "write"
+    },
+    {
+      "name": "Create comment reply in design (Deprecated)",
+      "slug": "CANVA_CREATE_COMMENT_REPLY_IN_DESIGN",
+      "kind": "send"
+    },
+    {
+      "name": "Create design comment in preview api (Deprecated)",
+      "slug": "CANVA_CREATE_DESIGN_COMMENT_IN_PREVIEW_API",
+      "kind": "send"
+    },
+    {
+      "name": "Create Design Import Job",
+      "slug": "CANVA_CREATE_DESIGN_IMPORT_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create design merge job",
+      "slug": "CANVA_CREATE_DESIGN_MERGE_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create Design Resize Job",
+      "slug": "CANVA_CREATE_DESIGN_RESIZE_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create URL Asset Upload Job",
+      "slug": "CANVA_CREATE_URL_ASSET_UPLOAD_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Delete asset by id",
+      "slug": "CANVA_DELETE_ASSET_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Exchange oauth 2 0 access or refresh token",
+      "slug": "CANVA_EXCHANGE_OAUTH20_ACCESS_OR_REFRESH_TOKEN",
+      "kind": "write"
+    },
+    {
+      "name": "Fetch asset upload job status",
+      "slug": "CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch canva connect signing public keys",
+      "slug": "CANVA_FETCH_CANVA_CONNECT_SIGNING_PUBLIC_KEYS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch current user details",
+      "slug": "CANVA_FETCH_CURRENT_USER_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Fetch design metadata and access information",
+      "slug": "CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get design comment thread replies",
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get specific design comment reply",
+      "slug": "CANVA_GET_DESIGN_COMMENT_REPLY",
+      "kind": "read"
+    },
+    {
+      "name": "Get design dataset",
+      "slug": "CANVA_GET_DESIGN_DATASET",
+      "kind": "read"
+    },
+    {
+      "name": "Get design export job result",
+      "slug": "CANVA_GET_DESIGN_EXPORT_JOB_RESULT",
+      "kind": "read"
+    },
+    {
+      "name": "Get design generation job",
+      "slug": "CANVA_GET_DESIGN_GENERATION_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get design merge job",
+      "slug": "CANVA_GET_DESIGN_MERGE_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get designs designid comments threadid",
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_COMMENTS_THREADID",
+      "kind": "read"
+    },
+    {
+      "name": "Get design export formats",
+      "slug": "CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS",
+      "kind": "read"
+    },
+    {
+      "name": "Get URL asset upload job status",
+      "slug": "CANVA_GET_URL_ASSET_UPLOADS_JOBID",
+      "kind": "read"
+    },
+    {
+      "name": "Get URL import job status",
+      "slug": "CANVA_GET_URL_IMPORTS_JOBID",
+      "kind": "read"
+    },
+    {
+      "name": "Get user capabilities",
+      "slug": "CANVA_GET_USERS_ME_CAPABILITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Initiate canva design autofill job",
+      "slug": "CANVA_INITIATE_CANVA_DESIGN_AUTOFILL_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "List design pages with pagination",
+      "slug": "CANVA_LIST_DESIGN_PAGES_WITH_PAGINATION",
+      "kind": "read"
+    },
+    {
+      "name": "List folder items by type with sorting",
+      "slug": "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING",
+      "kind": "read"
+    },
+    {
+      "name": "List User Designs",
+      "slug": "CANVA_LIST_USER_DESIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "Move item to specified folder",
+      "slug": "CANVA_MOVE_ITEM_TO_SPECIFIED_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create new Canva design",
+      "slug": "CANVA_POST_DESIGNS",
+      "kind": "send"
+    },
+    {
+      "name": "Post designs designid comments",
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS",
+      "kind": "send"
+    },
+    {
+      "name": "Create reply to comment thread",
+      "slug": "CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES",
+      "kind": "send"
+    },
+    {
+      "name": "Start design export job",
+      "slug": "CANVA_POST_EXPORTS",
+      "kind": "send"
+    },
+    {
+      "name": "Create folder",
+      "slug": "CANVA_POST_FOLDERS",
+      "kind": "send"
+    },
+    {
+      "name": "Create URL Import Job",
+      "slug": "CANVA_POST_URL_IMPORTS",
+      "kind": "send"
+    },
+    {
+      "name": "Remove folder and move contents to trash",
+      "slug": "CANVA_REMOVE_FOLDER_AND_MOVE_CONTENTS_TO_TRASH",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve app public key set",
+      "slug": "CANVA_RETRIEVE_APP_PUBLIC_KEY_SET",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve asset metadata by id",
+      "slug": "CANVA_RETRIEVE_ASSET_METADATA_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve brand template dataset definition",
+      "slug": "CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve brand template metadata",
+      "slug": "CANVA_RETRIEVE_CANVA_ENTERPRISE_BRAND_TEMPLATE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve design autofill job status",
+      "slug": "CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve design import job status",
+      "slug": "CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Design Resize Job Status",
+      "slug": "CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve folder details by id",
+      "slug": "CANVA_RETRIEVE_FOLDER_DETAILS_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieveuserprofiledata",
+      "slug": "CANVA_RETRIEVE_USER_PROFILE_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Revoke oauth tokens",
+      "slug": "CANVA_REVOKE_OAUTH_TOKENS",
+      "kind": "write"
+    },
+    {
+      "name": "Update asset s name and tags by id",
+      "slug": "CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update folder details by id",
+      "slug": "CANVA_UPDATE_FOLDER_DETAILS_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Validate oauth token properties",
+      "slug": "CANVA_VALIDATE_OAUTH_TOKEN_PROPERTIES",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "CANVA_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/canva",
+  "fetched_at": "2026-11-12"
+}

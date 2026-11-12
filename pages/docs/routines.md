@@ -34,6 +34,8 @@ this needs the app to be [connected](/docs/files-and-apps#connected-apps). gmail
 - **say when to stay quiet.** "only tell me if something changed."
 - **watch the first few runs** and correct it in the chat.
 
+for whole jobs set up this way, with the message to send and the guard rails, see [use cases](/use-cases).
+
 ## your computer has to be on
 
 routines run inside dusk bot. on your own computer, nothing runs while it's asleep or the app is closed. a run missed by less than 12 hours runs once when you're back; older ones are skipped.

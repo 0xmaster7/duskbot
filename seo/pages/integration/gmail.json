@@ -1,0 +1,163 @@
+{
+  "path": "/integrations/gmail",
+  "type": "integration",
+  "title": "Gmail AI assistant: Claude, ChatGPT or Gemini in your inbox",
+  "nav": "gmail",
+  "h1": "a gmail assistant that sorts, drafts and briefs you",
+  "description": "Connect Gmail to a bot in Dusk Bot running on Claude, ChatGPT or Gemini. What it can really do in your inbox, what it asks first, and three routines to copy.",
+  "keyword": "claude gmail",
+  "keywords": [
+    "chatgpt gmail",
+    "gmail ai assistant",
+    "ai email assistant for gmail",
+    "gemini gmail automation"
+  ],
+  "answer": "connect gmail once and a bot can search your mail, read whole threads, file things under labels and write drafts in your voice, using claude, chatgpt, gemini or whichever ai you picked for it. it reads and drafts on its own and asks before anything leaves your outbox. a routine can brief you every morning or react to new mail within about 15 minutes.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent, against dusk bot docs and the composio gmail catalog",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "email",
+    "google",
+    "inbox",
+    "drafts",
+    "briefing"
+  ],
+  "connectors": [
+    "gmail"
+  ],
+  "related": [
+    "/use-cases/email-triage",
+    "/use-cases/daily-briefing",
+    "/integrations/google-calendar",
+    "/integrations/outlook"
+  ],
+  "art": {
+    "logo": "gmail",
+    "label": "Gmail",
+    "props": [
+      "s-mailbox",
+      "p-folder"
+    ],
+    "bubble": "3 need you today"
+  },
+  "og_line": "what a bot can really do in your inbox.",
+  "app": {
+    "name": "Gmail",
+    "toolkit": "gmail",
+    "intro": "a bot works in gmail through the same actions a person would use: it searches, opens a thread, adds a label, saves a draft. here are the ones that come up most in real inbox work.",
+    "highlight": [
+      {
+        "slug": "GMAIL_FETCH_EMAILS",
+        "use": "search with gmail's own words, like `from:acme newer_than:7d` or `is:unread`"
+      },
+      {
+        "slug": "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
+        "use": "read a whole conversation before answering it, not just the last reply"
+      },
+      {
+        "slug": "GMAIL_GET_ATTACHMENT",
+        "use": "open the invoice or contract a message carries"
+      },
+      {
+        "slug": "GMAIL_ADD_LABEL_TO_EMAIL",
+        "use": "file mail under labels like `needs me` or `receipts`"
+      },
+      {
+        "slug": "GMAIL_CREATE_EMAIL_DRAFT",
+        "use": "write a reply and leave it in drafts for you to read"
+      },
+      {
+        "slug": "GMAIL_UPDATE_DRAFT",
+        "use": "fix a draft when you say \"shorter\" or \"warmer\""
+      },
+      {
+        "slug": "GMAIL_SEND_EMAIL",
+        "use": "send, only after you tap **Allow** (or within a daily amount you set)"
+      },
+      {
+        "slug": "GMAIL_MOVE_TO_TRASH",
+        "use": "clear out what you told it to clear; tell it to check with you first"
+      }
+    ],
+    "setup": "you can connect more than one gmail account. give each a label when you connect it, like `work` or `personal`, and tell the bot which one you mean. up to five accounts per app can be connected at once.\n\non [dusk cloud](/docs/dusk-cloud) connected apps are included; on your own computer the app connects through dusk bot's own connection service by default, so there is no key to set up."
+  },
+  "routines_intro": "a routine is a job a bot does without being asked again. you make one by sending it, in plain words. these three are a good start; change the times and the words to fit you.",
+  "routines": [
+    {
+      "name": "morning inbox brief",
+      "message": "every weekday at 8, read what came into my gmail since yesterday evening. tell me the 3 to 5 things that need me today, one line each, with who it's from. skip newsletters and receipts. don't reply to anything.",
+      "when": "weekdays at 8:00",
+      "output": "a short list in your chat, nothing changed in gmail"
+    },
+    {
+      "name": "draft replies to clients",
+      "message": "whenever an email arrives from anyone at @acme.com, read the whole thread and draft a reply in my voice: short, friendly, no exclamation marks. leave it in drafts and tell me it's there. never send it yourself.",
+      "when": "when a matching email arrives (checked about every 15 minutes)",
+      "output": "a draft in gmail and a one-line note in your chat"
+    },
+    {
+      "name": "friday receipts sweep",
+      "message": "every friday at 4, find this week's receipts and invoices in gmail, add the label receipts to each, and give me a table of sender, amount and date. if an amount is over $500, put it at the top.",
+      "when": "fridays at 16:00",
+      "output": "labelled emails and a table in your chat"
+    }
+  ],
+  "asks": "reading and drafting happen on their own. anything that leaves your outbox, like sending, replying or forwarding, stops and shows you a card with **Allow** and **Deny** first, in the app, on your phone or in a call. you can let a bot send a daily amount on its own instead, and you choose that per bot. one thing to know: a bot on **Full access** that has no sending rule of its own may send up to 25 a day without asking, so give a full-access bot **Ask every time** under sending.\n\nbefore a bot touches gmail at all, it has to be one you allowed in **Connected apps**, and you can keep it to reading only. a bot that may only read cannot label, draft, trash or send; dusk bot refuses those calls before they reach google.\n\nthe gmail sign-in happens on google's own page. your google password never reaches a bot, and dusk bot does not keep gmail's sign-in tokens: composio, the connection service, holds the connection, and **Disconnect** removes it there too.",
+  "cannot": [
+    "create gmail filters, set your vacation responder, or change imap, pop, forwarding and send-as settings with the standard connection. google asks for extra permissions for those that the standard connection doesn't request, and the bot will tell you so instead of retrying. with your own composio project you can add them.",
+    "keep watching while your computer sleeps. on your own computer, routines and new-mail reactions pause when it's asleep or the app is closed; a run missed by less than 12 hours runs once when you're back. on dusk cloud they keep going.",
+    "react the very second mail lands. gmail is checked about every 15 minutes, so a \"whenever an email arrives\" routine can take that long to start.",
+    "read more than five gmail accounts at once, or an account you connected somewhere else. each account is connected from dusk bot, with its own label.",
+    "unsend. once you allow a send, it's gone, like any email you send yourself."
+  ],
+  "sections": [
+    {
+      "h": "which ai does the work",
+      "md": "dusk bot has no model of its own. each bot thinks with an ai you sign in to on your own computer, like claude, chatgpt, gemini or grok, or an api key, or a model you run yourself. your inbox bot can use one and your researcher another, and you can switch either at any time without losing chats or memory.\n\nso \"claude for gmail\" and \"chatgpt for gmail\" are the same setup here: connect gmail once, then pick the ai in the bot's model picker. what you say to the bot goes from your machine to that ai on your plan with them, not through us. what the bot does inside gmail goes to google through our relay and composio."
+    },
+    {
+      "h": "make it remember how you write",
+      "md": "tell the bot once and it keeps a note: \"i sign off with just my first name\", \"dana approves anything over $500\", \"never draft replies to recruiters\". the notes are plain files you can read and edit under the bot's **Memory**. after a week of small corrections like \"shorter\" or \"skip newsletters\", most people only glance at the drafts."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can it work with two gmail accounts?",
+      "a": "yes. connect each one with its own label, like `work` and `personal`, and say which you mean: \"brief me on work mail only\". up to five accounts per app."
+    },
+    {
+      "q": "will it send email without asking me?",
+      "a": "not unless you let it. sending asks first by default. you can set a daily amount a bot may send on its own, per bot, and change it back at any time."
+    },
+    {
+      "q": "does dusk bot see my email?",
+      "a": "the bot reads it to do the job, on the machine your bots run on, and the text goes to the ai you picked. dusk bot's account never sees your messages. see [privacy and your data](/docs/privacy-and-data)."
+    },
+    {
+      "q": "what does it cost?",
+      "a": "the app is free for personal use on your own computer. the ai is billed by your ai provider on your plan with them. if you want routines to run while your laptop is shut, [dusk cloud](/pricing) starts at $20 a month."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer, asking first",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: privacy and your data",
+      "url": "/docs/privacy-and-data"
+    }
+  ]
+}

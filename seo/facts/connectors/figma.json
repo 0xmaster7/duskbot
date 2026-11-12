@@ -1,0 +1,283 @@
+{
+  "toolkit": "figma",
+  "name": "Figma",
+  "version": "20261101_00",
+  "description": "A collaborative interface design tool.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "API Key"
+  ],
+  "tools_count": 53,
+  "triggers_count": 0,
+  "tools": [
+    {
+      "name": "Add a comment to a file",
+      "slug": "FIGMA_ADD_A_COMMENT_TO_A_FILE",
+      "kind": "send"
+    },
+    {
+      "name": "Add a reaction to a comment",
+      "slug": "FIGMA_ADD_A_REACTION_TO_A_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create a webhook",
+      "slug": "FIGMA_CREATE_A_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Create dev resources",
+      "slug": "FIGMA_CREATE_DEV_RESOURCES",
+      "kind": "write"
+    },
+    {
+      "name": "Create, modify, or delete variables",
+      "slug": "FIGMA_CREATE_MODIFY_DELETE_VARIABLES",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a comment",
+      "slug": "FIGMA_DELETE_A_COMMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a reaction",
+      "slug": "FIGMA_DELETE_A_REACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a webhook",
+      "slug": "FIGMA_DELETE_A_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete dev resource",
+      "slug": "FIGMA_DELETE_DEV_RESOURCE",
+      "kind": "write"
+    },
+    {
+      "name": "Design tokens to tailwind",
+      "slug": "FIGMA_DESIGN_TOKENS_TO_TAILWIND",
+      "kind": "write"
+    },
+    {
+      "name": "Detect Background Layers",
+      "slug": "FIGMA_DETECT_BACKGROUND",
+      "kind": "write"
+    },
+    {
+      "name": "Discover Figma Resources",
+      "slug": "FIGMA_DISCOVER_FIGMA_RESOURCES",
+      "kind": "write"
+    },
+    {
+      "name": "Download Figma Images",
+      "slug": "FIGMA_DOWNLOAD_FIGMA_IMAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Extract design tokens",
+      "slug": "FIGMA_EXTRACT_DESIGN_TOKENS",
+      "kind": "write"
+    },
+    {
+      "name": "Extract Prototype Interactions",
+      "slug": "FIGMA_EXTRACT_PROTOTYPE_INTERACTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Get activity logs",
+      "slug": "FIGMA_GET_ACTIVITY_LOGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a webhook",
+      "slug": "FIGMA_GET_A_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get comments in a file",
+      "slug": "FIGMA_GET_COMMENTS_IN_A_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get component (Deprecated)",
+      "slug": "FIGMA_GET_COMPONENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get component",
+      "slug": "FIGMA_GET_COMPONENT2",
+      "kind": "read"
+    },
+    {
+      "name": "Get component set",
+      "slug": "FIGMA_GET_COMPONENT_SET",
+      "kind": "read"
+    },
+    {
+      "name": "Get current user",
+      "slug": "FIGMA_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get dev resources",
+      "slug": "FIGMA_GET_DEV_RESOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get file components",
+      "slug": "FIGMA_GET_FILE_COMPONENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get file component sets",
+      "slug": "FIGMA_GET_FILE_COMPONENT_SETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get file json",
+      "slug": "FIGMA_GET_FILE_JSON",
+      "kind": "read"
+    },
+    {
+      "name": "Get file metadata",
+      "slug": "FIGMA_GET_FILE_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get file nodes",
+      "slug": "FIGMA_GET_FILE_NODES",
+      "kind": "read"
+    },
+    {
+      "name": "Get files in a project",
+      "slug": "FIGMA_GET_FILES_IN_A_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get file styles",
+      "slug": "FIGMA_GET_FILE_STYLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get image fills",
+      "slug": "FIGMA_GET_IMAGE_FILLS",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics component action data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_COMPONENT_ACTION_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics component usage data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_COMPONENT_USAGE_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics style action data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_STYLE_ACTION_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics style usage data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_STYLE_USAGE_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics variable action data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_VARIABLE_ACTION_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get library analytics variable usage data",
+      "slug": "FIGMA_GET_LIBRARY_ANALYTICS_VARIABLE_USAGE_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get local variables",
+      "slug": "FIGMA_GET_LOCAL_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get payments",
+      "slug": "FIGMA_GET_PAYMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get projects in a team",
+      "slug": "FIGMA_GET_PROJECTS_IN_A_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get published variables",
+      "slug": "FIGMA_GET_PUBLISHED_VARIABLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get reactions for a comment",
+      "slug": "FIGMA_GET_REACTIONS_FOR_A_COMMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get SCIM service provider config",
+      "slug": "FIGMA_GET_SCIM_SERVICE_PROVIDER_CONFIG",
+      "kind": "read"
+    },
+    {
+      "name": "Get style",
+      "slug": "FIGMA_GET_STYLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get team components",
+      "slug": "FIGMA_GET_TEAM_COMPONENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get team component sets",
+      "slug": "FIGMA_GET_TEAM_COMPONENT_SETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get team styles",
+      "slug": "FIGMA_GET_TEAM_STYLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get webhooks",
+      "slug": "FIGMA_GET_TEAM_WEBHOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get versions of a file",
+      "slug": "FIGMA_GET_VERSIONS_OF_A_FILE",
+      "kind": "read"
+    },
+    {
+      "name": "Get webhook requests",
+      "slug": "FIGMA_GET_WEBHOOK_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Render images of file nodes",
+      "slug": "FIGMA_RENDER_IMAGES_OF_FILE_NODES",
+      "kind": "write"
+    },
+    {
+      "name": "Update a webhook",
+      "slug": "FIGMA_UPDATE_A_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Update dev resources",
+      "slug": "FIGMA_UPDATE_DEV_RESOURCES",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/figma",
+  "fetched_at": "2026-11-12"
+}

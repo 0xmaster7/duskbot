@@ -1,0 +1,18 @@
+{
+  "_about": "the release gate (seo/jobs/release.mjs). every number here is a starting calibration from omb-ref/seo-research/02-programmatic-playbook.md sections 3.3 to 3.5, not a google rule. retune after the first three cohorts.",
+  "hold_days_after_seed": 14,
+  "measure_day": 21,
+  "gate": {
+    "index_rate": { "green": 0.7, "amber": 0.5 },
+    "index_rate_late": { "green": 0.8, "after_week": 17 },
+    "seed_index_rate": { "green": 0.6, "at_day": 14 },
+    "not_indexed_share": { "green": 0.25, "amber": 0.4 },
+    "impressions_share": { "green": 0.3, "green_after_week_10": 0.4, "amber": 0.2 },
+    "update_drop": { "amber": 0.15, "red": 0.3 }
+  },
+  "caps": { "max_share_of_indexed": 0.25, "max_growth_vs_last": 2, "per_day": 8 },
+  "freeze": [
+    { "from": "2026-11-10", "until": "2026-12-08", "why": "google november 2026 core update, rolling out since 10 november; hold releases until about two weeks after it ends (status.search.google.com)" }
+  ],
+  "prune": { "refresh_day": 60, "decide_day": 120, "idle_indexed_days": 180 }
+}

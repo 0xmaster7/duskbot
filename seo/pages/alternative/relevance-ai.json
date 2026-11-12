@@ -1,0 +1,225 @@
+{
+  "path": "/alternatives/relevance-ai",
+  "type": "alternative",
+  "title": "Relevance AI alternatives for people who do not build agents",
+  "nav": "relevance ai",
+  "h1": "relevance ai alternatives for a smaller job",
+  "description": "Compare Relevance AI with Dusk Bot, including the conflicting pricing pages, workforce setup and when a smaller team of bots fits better.",
+  "keyword": "relevance ai alternatives",
+  "keywords": [
+    "relevance ai pricing",
+    "relevance ai review"
+  ],
+  "answer": "relevance ai is aimed at companies building business agent teams, especially for sales and operations. dusk bot is a smaller starting point if you want to give a few bots jobs yourself. before comparing prices, note that relevance ai's own marketing page and docs disagree about available plans. this page keeps that conflict visible rather than treating the lowest documented price as a confirmed offer for new buyers.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "relevance-ai",
+    "alternatives"
+  ],
+  "connectors": [],
+  "related": [
+    "/alternatives/gumloop",
+    "/ai-teammates",
+    "/for/founders"
+  ],
+  "competitor": {
+    "key": "relevance-ai",
+    "name": "Relevance AI",
+    "url": "https://relevanceai.com/"
+  },
+  "art": {
+    "props": [
+      "p-briefcase",
+      "p-bubbles"
+    ],
+    "label": "Relevance AI",
+    "bubble": "how much setup?"
+  },
+  "og_line": "a workforce, or a few focused bots.",
+  "verdict": {
+    "them_title": "relevance ai",
+    "them": [
+      "you are buying a business agent deployment and want to discuss it with a sales team",
+      "you need its documented native and pipedream connection catalogue",
+      "you want a platform offering unlimited workforces and curated multi-agent systems"
+    ],
+    "dusk": [
+      "you want to define a bot by naming it and describing one job",
+      "you prefer separate bot memories and control over whether group conversations become memory",
+      "you want to try personal work on your own computer before choosing hosting"
+    ]
+  },
+  "compare": {
+    "h": "business deployment beside a personal bot team",
+    "intro": "as of 12 november 2026, relevance ai has inconsistent plan information on its own site. the table preserves which page says what. it does not confirm that a docs-only plan can be bought.",
+    "cols": [
+      "Relevance AI",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "intended starting point",
+        "cells": [
+          "platform for business agent teams, mainly sales and operations",
+          "app for a small team of bots, each with a name and job"
+        ],
+        "src": [
+          1,
+          6
+        ]
+      },
+      {
+        "label": "setup route",
+        "cells": [
+          "marketing page directs buyers to sales and offers an embedded deployment team",
+          "new bot: choose a name, shape, colour and job in plain words"
+        ],
+        "src": [
+          2,
+          6
+        ]
+      },
+      {
+        "label": "hosting",
+        "cells": [
+          "their cloud",
+          "your disk, your own server or dusk cloud"
+        ],
+        "src": [
+          2,
+          7
+        ]
+      },
+      {
+        "label": "published plan information",
+        "cells": [
+          "marketing: enterprise custom; docs: pro and team prices, with free retired",
+          "personal desktop use free; cloud plus $20/month and pro $50/month"
+        ],
+        "src": [
+          2,
+          3,
+          7,
+          8
+        ]
+      },
+      {
+        "label": "usage units",
+        "cells": [
+          "actions plus vendor credits; optional own api keys on every plan",
+          "your ai provider bills ai usage; it is never on the dusk bill"
+        ],
+        "src": [
+          3,
+          4,
+          8
+        ]
+      },
+      {
+        "label": "app catalogue",
+        "cells": [
+          "docs list 2,000+ integrations through native and pipedream connections",
+          "60+ connected apps; per-bot access can be off, read only or read and write"
+        ],
+        "src": [
+          5,
+          9
+        ]
+      },
+      {
+        "label": "working as a team",
+        "cells": [
+          "unlimited workforces and curated multi-agent systems",
+          "group chats with everyone, mentioned bots only, or a leader handing out tasks"
+        ],
+        "src": [
+          2,
+          10
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot, and this is a comparison of documented offerings, not an independent performance review. we read relevance ai's own pages on 12 november 2026. those pages disagree on plans, so we have not resolved the disagreement by guessing. we did not run identical tasks through both products or test a sales-led deployment.",
+  "sections": [
+    {
+      "h": "get a plan confirmed before budgeting",
+      "md": "as of 12 november 2026, relevance ai's marketing pricing page shows enterprise with custom pricing and a request to talk to sales.[^2] its docs still list pro at $19/month billed annually or $29 monthly, and team at $234/month billed annually or $349 monthly. the docs say the free plan is retired for new and existing accounts.[^3]\n\nthose are conflicting buying instructions from the same company. ask relevance ai which plans are available to a new account, which billing period applies and what is included in writing. we cannot tell you that the docs price will be offered at checkout.\n\nthe docs also list pro allowances of 2,500 actions and 10,000 vendor credits, plus extra usage at $80 per 1,000 actions and $20 per 10,000 vendor credits.[^3] ask about both meters, rather than treating credits as another name for completed jobs."
+    },
+    {
+      "h": "do you need a workforce or one careful reader?",
+      "md": "relevance ai describes a platform for business workforces, with unlimited workforces and curated multi-agent systems.[^1][^2] that is worth considering when deployment is an organisation-wide project. if you are still deciding what one agent should do, start with the smallest handoff you can review.\n\na dusk instruction to try is: \"read these attached sales handoff notes. separate confirmed commitments from questions nobody has answered. keep the source filename with each item, and leave the originals alone.\" attaching files is supported; this message proposes a task, not a proven outcome.[^9]\n\nif you need several viewpoints, [ai teammates](/ai-teammates) explains that model of work. in dusk, a group can have one leader handing work to other bots. each retains its own ai and permissions. group chat learning is off unless you enable it for the bot.[^10][^11]"
+    },
+    {
+      "h": "keep the first deployment narrow",
+      "md": "a [founder](/for/founders) trying a first assistant has a different buying problem from a company commissioning a sales workforce. list the documents, apps and decisions the first bot actually needs. do not connect every account because it is available.\n\ndusk lets you choose app access per bot, including read-only access. sending messages or emails asks first unless you set a daily allowance. other app changes are not documented to require approval, so keep the bot read-only or include \"ask me before you change anything\" in its instructions.[^9]\n\nif what you really want is a building platform with different billing, [gumloop](/alternatives/gumloop) belongs in the comparison too. a smaller interface does not establish that one product is safer or more accurate; we have not measured either. check the current terms of any ai provider you sign in to as well."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is the current relevance ai price?",
+      "a": "its own pages disagree as of 12 november 2026. marketing shows enterprise custom pricing; docs list pro and team prices. ask sales to confirm availability before using those docs figures in a budget.[^2][^3]"
+    },
+    {
+      "q": "can non-technical business owners use an agent team?",
+      "a": "start by writing one job and deciding how you will check it. relevance ai offers a deployment route through its sales team.[^2] dusk lets you make bots in an app and put them in group chats.[^6][^10] neither approach makes unclear instructions clear by itself."
+    },
+    {
+      "q": "can i bring my own model credentials to relevance ai?",
+      "a": "its plan docs say own api keys are optional on every plan, alongside vendor credits for model and tool costs. that is separate from which commercial plan a new buyer can get.[^4]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "relevance ai homepage",
+      "url": "https://relevanceai.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "relevance ai marketing pricing",
+      "url": "https://relevanceai.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "relevance ai docs pricing",
+      "url": "https://relevanceai.com/docs/get-started/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "relevance ai subscription plans",
+      "url": "https://relevanceai.com/docs/admin/subscriptions/plans",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "relevance ai integrations introduction",
+      "url": "https://relevanceai.com/docs/integrations/introduction",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: group chats",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot: memory",
+      "url": "/docs/memory"
+    }
+  ]
+}

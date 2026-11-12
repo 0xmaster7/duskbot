@@ -1,0 +1,92 @@
+{
+  "path": "/guides/claude-skills",
+  "type": "guide",
+  "title": "Claude skills: what they are and how to add one",
+  "nav": "claude skills",
+  "h1": "claude skills for people who do not write code",
+  "description": "Learn what Claude skills contain, where to add a custom skill, and how to tell a reusable method apart from an app connection or a schedule.",
+  "keyword": "claude skills",
+  "keywords": [
+    "claude skills for non developers",
+    "ai agent skills",
+    "claude skills marketplace"
+  ],
+  "answer": "a claude skill is a folder containing instructions, scripts and resources for a particular kind of work. claude loads it when it needs that method. think of it as a reusable working guide, rather than a new ai or an app connection. anthropic says skills are available across its plans, including free, with code execution enabled, as of 12 november 2026.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "claude",
+    "skills",
+    "instructions"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/what-is-mcp",
+    "/guides/claude-connectors",
+    "/guides/claude-code-for-non-developers"
+  ],
+  "art": {
+    "label": "Claude",
+    "props": [
+      "s-books",
+      "p-folder"
+    ],
+    "bubble": "keep the method handy"
+  },
+  "og_line": "a reusable method, with its materials.",
+  "sections": [
+    {
+      "h": "what belongs in a skill",
+      "md": "anthropic describes skills as folders of instructions, scripts and resources that claude loads dynamically for specialized tasks. the folder gives the task a repeatable method instead of making you explain that method afresh each time.[^1]\n\nfor a document task, useful material could be your writing rules, an approved reference document and a checklist for reviewing the result. those are things to prepare for your own skill, not a claim that a particular packaged skill includes them. keep the method clear enough that you could follow it yourself. vague instructions such as \"make this excellent\" give neither you nor the ai much to check."
+    },
+    {
+      "h": "how to add a custom skill on an individual plan",
+      "md": "anthropic's documented path, checked on 12 november 2026, is:[^2]\n\n1. open **Settings**, then **Capabilities**.\n2. enable **Code execution and file creation**.\n3. open **Customize**, then **Skills**.\n4. upload your custom skill as a zip of the skill folder.\n\nstart with one folder whose contents you understand. read any scripts before enabling it, especially if you got the zip from someone else. these steps describe the individual-plan interface. they are not installation steps for another app, and they do not establish that every downloaded skill is compatible or safe."
+    },
+    {
+      "h": "skill, connector and scheduled task are different choices",
+      "md": "use a skill when the missing piece is **how to do the work**: the order of checks, the required format or the reference material. use a connector when the missing piece is **access to an app**. use a schedule when the missing piece is **when to repeat the work**.\n\nanthropic says connectors can retrieve data and take actions in connected services. read [claude connectors](/guides/claude-connectors) for that access question. [mcp](/guides/what-is-mcp) explains the connection standard. adding instructions does not, by itself, prove that an ai has permission to read your team's files or change an account.[^3]"
+    },
+    {
+      "h": "give the method a small test",
+      "md": "choose one document you can inspect without specialist help. ask for a review against the skill's checklist and require a reason for each proposed change. compare the result with the actual source document, rather than asking the same ai whether it did well.\n\nthen change the input: try a document with a missing section, a conflicting date or a deliberately blank field. a useful method should expose the gap rather than fill it with a guess. keep private material out of the trial until you understand the workflow. these are checks you can do yourself; they are not measured claims about how reliably a skill will work."
+    },
+    {
+      "h": "where a skill is the wrong fix",
+      "md": "a skill cannot make an unavailable account available, repair an unclear brief or guarantee a correct answer. if each job has a different audience and purpose, a short instruction written for that job may be easier to inspect than a growing folder of general rules.\n\nif the real goal is a desktop helper rather than managing reusable instructions, the [non-developer guide](/guides/claude-code-for-non-developers) covers starting with a bounded file task. before adopting someone else's skill, ask what problem it solves that your ordinary prompt does not. keep the smaller approach if it already gives you work you can review. a folder full of rules is useful only when those rules fit the task."
+    }
+  ],
+  "faq": [
+    {
+      "q": "do i need a paid plan for claude skills?",
+      "a": "anthropic lists skills on free, pro, max, ultra, team and enterprise. code execution must be enabled. this was checked on 12 november 2026.[^1]"
+    },
+    {
+      "q": "are skills the same as claude connectors?",
+      "a": "no. a skill supplies instructions and resources for a method. a connector gives claude access to an app or service and its supported actions.[^1][^3]"
+    },
+    {
+      "q": "can i upload my own skill without writing scripts?",
+      "a": "the documented upload is a zip of a skill folder. anthropic describes instructions and resources as part of skills, as well as scripts. use only contents you understand; this guide does not require you to add a script.[^1][^2]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: what are skills",
+      "url": "https://support.claude.com/en/articles/12512176-what-are-skills",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: using skills in claude",
+      "url": "https://support.claude.com/en/articles/12512180-using-skills-in-claude",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: connectors",
+      "url": "https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities",
+      "checked": "2026-11-12"
+    }
+  ]
+}

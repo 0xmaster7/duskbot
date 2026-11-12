@@ -1,0 +1,147 @@
+{
+  "path": "/integrations/linkedin",
+  "type": "integration",
+  "title": "LinkedIn AI assistant for post reviews, not inbox outreach",
+  "nav": "linkedin",
+  "h1": "a linkedin assistant with a specific set of tools",
+  "description": "See what Dusk Bot can do with LinkedIn’s 29 catalog actions: post preparation, selected statistics and company lookups, with no inbox messaging action.",
+  "answer": "the linkedin toolkit has 29 actions as of 12 november 2026. it supports publishing posts, retrieving specified post content, company information and selected statistics. it does not list inbox messaging, connection requests or general people search. use a bot in dusk bot for bounded content and page reviews, with the ai you already sign in to, rather than planning an outreach workflow the actions cannot support.",
+  "tags": [
+    "professional-social",
+    "publishing",
+    "page-review"
+  ],
+  "connectors": [
+    "linkedin"
+  ],
+  "related": [
+    "/use-cases/social-media-posting",
+    "/integrations/twitter",
+    "/use-cases/lead-research"
+  ],
+  "art": {
+    "label": "LinkedIn",
+    "props": [
+      "p-briefcase",
+      "p-newspaper"
+    ],
+    "bubble": "review before you publish"
+  },
+  "og_line": "a content assistant with clear boundaries.",
+  "app": {
+    "name": "LinkedIn",
+    "toolkit": "linkedin",
+    "intro": "the catalog is small enough to be specific about the job. give the bot the post or organisation you mean. profile and company lookup actions should not be described as an unrestricted prospect search, and ad targeting search is not people search.",
+    "highlight": [
+      {
+        "slug": "LINKEDIN_GET_MY_INFO",
+        "use": "confirm the connected identity before preparing a publication"
+      },
+      {
+        "slug": "LINKEDIN_GET_COMPANY_INFO",
+        "use": "retrieve information for a specified company"
+      },
+      {
+        "slug": "LINKEDIN_GET_POST_CONTENT",
+        "use": "read the specified post before suggesting a follow-up"
+      },
+      {
+        "slug": "LINKEDIN_GET_SHARE_STATS",
+        "use": "inspect returned share statistics for a review"
+      },
+      {
+        "slug": "LINKEDIN_GET_ORG_PAGE_STATS",
+        "use": "review organisation page statistics available to the connection"
+      },
+      {
+        "slug": "LINKEDIN_LIST_REACTIONS",
+        "use": "inspect the reactions returned for a specified post"
+      },
+      {
+        "slug": "LINKEDIN_CREATE_LINKED_IN_POST",
+        "use": "publish an agreed post after the sending approval"
+      },
+      {
+        "slug": "LINKEDIN_CREATE_COMMENT_ON_POST",
+        "use": "send a reviewed comment on a particular post"
+      }
+    ],
+    "setup": "connect linkedin and ask the bot to confirm its identity before preparing posts. start with reading for a page review, and supply the post references or company details it should inspect. the presence of an action in the catalog does not mean the connected account can retrieve every organisation's private data."
+  },
+  "routines_intro": "these scheduled jobs begin with posts or organisations you identify. they do not depend on a general feed reader, inbox watcher or prospect search. the suggested copy stays in dusk bot chat.",
+  "routines": [
+    {
+      "name": "page review before the team meeting",
+      "message": "every monday at 11, retrieve the available page statistics for the linkedin organisation i specified. describe the returned measures and their reporting period. flag missing data and avoid attributing changes to a campaign without evidence. do not change or publish anything.",
+      "when": "mondays at 11:00",
+      "output": "a page review note with the returned reporting period"
+    },
+    {
+      "name": "follow-up from a supplied post",
+      "message": "every wednesday at 2, read the linkedin post references i keep in this chat. propose a follow-up to one that leaves a useful question open. include the source post, the question and proposed wording here. do not publish or comment.",
+      "when": "wednesdays at 14:00",
+      "output": "one follow-up proposal grounded in a source post"
+    },
+    {
+      "name": "company wording check",
+      "message": "each month on the first day at 10, retrieve the linkedin company information for the company i named. compare its returned description with the approved description i gave you. list wording differences for our review without claiming you can edit the company page.",
+      "when": "first day monthly at 10:00",
+      "output": "a company description comparison"
+    }
+  ],
+  "asks": "creating posts and sending comments asks first under dusk bot's default sending setting. a daily allowance can let a bot send within the amount you choose, so keep asking enabled if every public word needs your review. preparing proposed wording in your chat is separate from publication.\n\nread-only access blocks uploads, publishing and deletion actions. if you enable changes, do not treat a sending approval as a promise that every other action asks too. use an exact allowed action list, and write \"ask me before you change anything\" when you want broader review of changes.",
+  "cannot": [
+    "read or send linkedin inbox messages through this toolkit. there is no direct-message action among the 29 listed actions.",
+    "send connection requests or run a general people search here. the ad targeting search action is not a substitute for either.",
+    "promise a full feed or comment-inbox digest. the catalog has specified post retrieval, reactions and comment creation, but no general feed reader or comment-listing action.",
+    "start a linkedin event routine from a listed trigger: this catalog has zero triggers. the routines on this page use schedules instead.",
+    "run the scheduled page review when your local computer is sleeping. use dusk cloud if the job needs to continue with your desktop off."
+  ],
+  "sections": [
+    {
+      "h": "content work needs sources you can point to",
+      "md": "supply the post references and the approved company wording. that gives the bot something concrete to compare instead of asking it to invent what your company should say. for [social media posting](/use-cases/social-media-posting), decide on a review step before allowing publication.\n\nif your goal is [lead research](/use-cases/lead-research), separate that research from this connector. this action list does not establish access to arbitrary people, email addresses or phone numbers."
+    },
+    {
+      "h": "ask for a smaller statistics brief",
+      "md": "choose the measures your team already uses and ask for the reporting period beside them. a change in reactions is not proof of sales impact. if the statistics action fails or returns only part of the request, the useful result is a clear gap to investigate."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can a linkedin ai agent send connection requests and messages?",
+      "a": "not through this toolkit. neither connection requests nor direct messaging appears in its 29 actions. post and comment creation are supported actions, with sending approval in dusk bot by default."
+    },
+    {
+      "q": "can claude write my linkedin posts?",
+      "a": "you can ask a bot in dusk bot using your chosen ai to prepare wording in chat. the create-post action is available if you later allow publication. tell it which facts and source posts the copy may draw on."
+    },
+    {
+      "q": "can it monitor every new comment automatically?",
+      "a": "this catalog lists no triggers and no comment-listing action. use the available post and reaction lookups for a narrower review; do not plan a complete comment-monitoring routine around them."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sends",
+      "url": "/docs/computer"
+    }
+  ],
+  "keyword": "claude linkedin",
+  "keywords": [
+    "linkedin mcp",
+    "linkedin ai agent"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "path": "/alternatives/sintra",
+  "type": "alternative",
+  "title": "Sintra alternatives: preset helpers or bots you define?",
+  "nav": "sintra",
+  "h1": "sintra alternatives when you want to define the jobs yourself",
+  "description": "Compare Sintra’s role-based helpers with Dusk Bot: job choices, AI billing, phone access and promotional prices, with reasons to choose either.",
+  "keyword": "sintra ai alternatives",
+  "keywords": [
+    "ai employees for business",
+    "ai employee apps"
+  ],
+  "answer": "sintra packages role-based ai helpers for small businesses, with ai included in its plan. dusk bot lets you make your own small team, define each job and choose each bot's ai. sintra is worth considering if its ready-made roles match your business; dusk fits if you want narrower jobs you can reshape in conversation. compare the actual billing period too: sintra's listed prices are promotional, not permanent rates.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "sintra",
+    "alternatives",
+    "ai-employees"
+  ],
+  "connectors": [],
+  "related": [
+    "/ai-employees",
+    "/alternatives/relevance-ai",
+    "/ai-teammates"
+  ],
+  "competitor": {
+    "key": "sintra",
+    "name": "Sintra",
+    "url": "https://sintra.ai/"
+  },
+  "art": {
+    "props": [
+      "p-briefcase",
+      "s-palette"
+    ],
+    "label": "Sintra",
+    "bubble": "choose the jobs"
+  },
+  "og_line": "preset helpers, or jobs you write.",
+  "verdict": {
+    "them_title": "sintra",
+    "them": [
+      "its role-based helper package matches the business work you want to hand off",
+      "you want ai included rather than a separate model-provider bill",
+      "you want the ios or android store apps linked from its site"
+    ],
+    "dusk": [
+      "you want to name each bot and give it a specific job in your own words",
+      "you want separate memories and a different ai choice for each bot",
+      "you want local personal use or a computer you host yourself, with dusk cloud as another option"
+    ]
+  },
+  "compare": {
+    "h": "the helper package beside a team you create",
+    "intro": "sintra figures below are the sale prices shown on 12 november 2026. they should not be read as guaranteed renewal prices. check the term and total payable before buying.",
+    "cols": [
+      "Sintra",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "the roles",
+        "cells": [
+          "12+ role-based ai employees, including social media, seo, support and email marketing",
+          "create a bot with your own name and job; change its job later"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "getting started",
+        "cells": [
+          "pricing page says to chat and ask, with zero technical setup",
+          "new bot in the desktop app, then describe the job"
+        ],
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "label": "ai and billing",
+        "cells": [
+          "ai included; sintra says based on claude 4.5 sonnet",
+          "the ai you already sign in to, an api key or a local model; provider bills you"
+        ],
+        "src": [
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "label": "shortest sale term",
+        "cells": [
+          "one-month offer $48.50/month, against a displayed $97 list price",
+          "personal desktop use free; work use requires a work license"
+        ],
+        "src": [
+          1,
+          5,
+          6
+        ]
+      },
+      {
+        "label": "longer sale terms",
+        "cells": [
+          "three-month offer $23.60/month; twelve-month offer $15.60/month",
+          "cloud plus $20/month or $200/year; pro $50/month or $500/year"
+        ],
+        "src": [
+          1,
+          7
+        ]
+      },
+      {
+        "label": "included usage",
+        "cells": [
+          "sale plans list all 12 helpers and 250 monthly credits",
+          "no included ai allowance from dusk; your provider plan and limits apply"
+        ],
+        "src": [
+          1,
+          5
+        ]
+      },
+      {
+        "label": "where you use it",
+        "cells": [
+          "hosted service with web, ios and android apps",
+          "desktop app, plus paired phone browser; store phone apps are coming"
+        ],
+        "src": [
+          1,
+          2,
+          8
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot. the sintra facts come from its homepage and pricing page recorded on 12 november 2026. we did not run identical tasks, compare the quality of individual helpers or measure how many jobs its credits cover. its sale prices are dated offers. we omit unconfirmed helper collaboration and general scheduling claims rather than treating marketing examples as verified product behaviour.",
+  "sections": [
+    {
+      "h": "compare roles you need, not the number of employees",
+      "md": "sintra describes role-based helpers for areas such as social media, seo, support, email marketing and assistance.[^1] that is a sensible place to start if the packaged roles match what you need. this comparison does not invent a named helper roster or claim that every role can take every action.\n\nin dusk you write the job yourself.[^3] instead of a broad marketing employee, you might define a bot as a reader of your brand notes: \"check this draft against the attached voice guide. list passages that sound unlike us and explain why. do not publish anything.\" this is a proposed instruction, not an example of a finished result. documents can be attached in chat.[^9]\n\nread [ai employees](/ai-employees) if you are deciding what work belongs in a role at all. a narrow responsibility is easier to review than a title that implies responsibility for a whole department."
+    },
+    {
+      "h": "a sale price needs its billing term beside it",
+      "md": "as of 12 november 2026, sintra's pricing page shows one month at $48.50/month, three months at $23.60/month and twelve months at $15.60/month. the corresponding displayed list prices are $97, $59 and $52 per month. individual helpers are listed at $39/month.[^1]\n\nthe package offers include 250 monthly credits. those figures do not tell us how many drafts, reviews or other jobs the credits will cover. check the current sale, renewal terms and total payment yourself.\n\ndusk's price covers a different arrangement: personal desktop use is free, work needs a license, and optional dusk cloud hosting costs $20 or $50 a month. ai usage stays on your provider bill.[^5][^6][^7] no identical-task cost comparison has been measured. with a signed-in ai in dusk, check your provider's current terms for the work you plan to do."
+    },
+    {
+      "h": "be precise about memory and collaboration",
+      "md": "dusk gives each bot its own memory. in a group thread, bots can mention one another or follow a leader; learning from group chats is optional per bot.[^3][^10][^11] that suits a team whose roles you want to keep distinct, but it also means you should decide what each bot needs to know. [ai teammates](/ai-teammates) explores that arrangement.\n\nsintra's pages we read don't show how its helpers work together clearly enough to compare that here. for a business workforce platform with documented multi-agent systems, look at [relevance ai](/alternatives/relevance-ai), while checking its pricing conflict.\n\nkeep your first connected-app task read-only. dusk asks before sends unless you set a daily allowance; it does not document the same promise for other app changes. write \"ask me before you change anything\" if you later give the bot write access.[^9]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "are sintra’s advertised prices permanent?",
+      "a": "the listed prices are promotional as of 12 november 2026. they differ by one-, three- and twelve-month term. verify the current offer and renewal terms before paying; this page does not promise the sale will continue.[^1]"
+    },
+    {
+      "q": "what are people actually using ai employees for?",
+      "a": "sintra packages roles in areas such as social media, seo, support and email marketing.[^1] for a first dusk job, try a bounded review of supplied material, such as checking a draft against a voice guide. that is a suggested starting task, not a claim of measured customer results."
+    },
+    {
+      "q": "does dusk have a phone app like sintra?",
+      "a": "sintra links ios and android store apps.[^2] dusk's store apps are still on the way. today you pair your phone and open dusk in its browser, then add it to the home screen. that browser version sends no notifications.[^8]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "sintra pricing and helper package",
+      "url": "https://sintra.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "sintra homepage and app links",
+      "url": "https://sintra.ai/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: bots",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: getting started",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: account and billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: faq and license",
+      "url": "/docs/faq"
+    },
+    {
+      "label": "dusk bot: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: phone",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: group chats",
+      "url": "/docs/group-chats"
+    },
+    {
+      "label": "dusk bot: memory",
+      "url": "/docs/memory"
+    }
+  ]
+}

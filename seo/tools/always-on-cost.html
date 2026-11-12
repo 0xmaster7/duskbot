@@ -1,0 +1,20 @@
+<form class="calc" data-calc="always-on" aria-labelledby="calc-title">
+<h2 id="calc-title">your numbers</h2>
+<p class="calc-note">the starting values are examples. change them to yours; nothing you type leaves this page.</p>
+<div class="calc-grid">
+<label>hours a day you want bots running<input type="number" name="hours" min="1" max="24" step="1" value="24" inputmode="numeric"></label>
+<label>your electricity price, per kwh<input type="number" name="kwh" min="0" step="0.01" value="0.20" inputmode="decimal"></label>
+<label>watts your spare computer draws when idle<input type="number" name="watts" min="1" step="1" value="20" inputmode="numeric"></label>
+<label>your server's monthly price<input type="number" name="server" min="0" step="1" value="10" inputmode="decimal"></label>
+<label>hours a month you'd spend looking after a computer or server<input type="number" name="care" min="0" step="0.5" value="1" inputmode="decimal"></label>
+<label>what an hour of your time is worth<input type="number" name="rate" min="0" step="1" value="0" inputmode="decimal"></label>
+</div>
+<div class="table calc-out" aria-live="polite"><table><thead><tr><th scope="col">where your bots live</th><th scope="col">a month</th><th scope="col">what that is</th></tr></thead><tbody>
+<tr><th scope="row">your laptop</th><td data-out="laptop">$0</td><td>free, but only while it's awake and open</td></tr>
+<tr><th scope="row">a spare computer at home</th><td data-out="spare">-</td><td data-why="spare">electricity, plus your time</td></tr>
+<tr><th scope="row">a server you rent</th><td data-out="server">-</td><td data-why="server">the hosting bill, plus your time</td></tr>
+<tr><th scope="row">dusk cloud plus</th><td data-out="plus">$20</td><td>$20 a month, or $200 a year; we look after it</td></tr>
+<tr><th scope="row">dusk cloud pro</th><td data-out="pro">$50</td><td>$50 a month, or $500 a year; includes a work license</td></tr>
+</tbody></table></div>
+<p class="calc-note">every option also uses your own ai plan, which is billed by your ai provider and isn't counted here.</p>
+</form>

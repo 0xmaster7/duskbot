@@ -1,0 +1,1252 @@
+{
+  "toolkit": "asana",
+  "name": "Asana",
+  "version": "20261104_00",
+  "description": "Tool to help teams organize, track, and manage their work.",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2"
+  ],
+  "tools_count": 247,
+  "triggers_count": 6,
+  "tools": [
+    {
+      "name": "Add a custom field to a goal",
+      "slug": "ASANA_ADD_CUSTOM_FIELD_SETTING_FOR_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Add a custom field to a portfolio",
+      "slug": "ASANA_ADD_CUSTOM_FIELD_SETTING_FOR_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Add a custom field to a project",
+      "slug": "ASANA_ADD_CUSTOM_FIELD_SETTING_FOR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Add a collaborator to a goal",
+      "slug": "ASANA_ADD_FOLLOWERS_TO_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Add Followers to Project",
+      "slug": "ASANA_ADD_FOLLOWERS_TO_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Add Followers to Task",
+      "slug": "ASANA_ADD_FOLLOWERS_TO_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Add item to portfolio",
+      "slug": "ASANA_ADD_ITEM_TO_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Add users to a portfolio",
+      "slug": "ASANA_ADD_MEMBERS_FOR_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Add Members to Project",
+      "slug": "ASANA_ADD_MEMBERS_TO_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Add Project to Task",
+      "slug": "ASANA_ADD_PROJECT_FOR_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Add Supporting Relationship to Goal",
+      "slug": "ASANA_ADD_SUPPORTING_RELATIONSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Add Tag to Task",
+      "slug": "ASANA_ADD_TAG_TO_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Add Task Dependencies",
+      "slug": "ASANA_ADD_TASK_DEPENDENCIES",
+      "kind": "write"
+    },
+    {
+      "name": "Add Task Dependents",
+      "slug": "ASANA_ADD_TASK_DEPENDENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Add task to section",
+      "slug": "ASANA_ADD_TASK_TO_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Add User for Team",
+      "slug": "ASANA_ADD_USER_TO_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Add User for Workspace",
+      "slug": "ASANA_ADD_USER_TO_WORKSPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Approve Access Request",
+      "slug": "ASANA_APPROVE_ACCESS_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create Access Request",
+      "slug": "ASANA_CREATE_ACCESS_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Create Allocation",
+      "slug": "ASANA_CREATE_ALLOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a project",
+      "slug": "ASANA_CREATE_A_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a tag in a workspace",
+      "slug": "ASANA_CREATE_A_TAG_IN_A_WORKSPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Create task in asana with specific details",
+      "slug": "ASANA_CREATE_A_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Attachment for Object",
+      "slug": "ASANA_CREATE_ATTACHMENT_FOR_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Attachment for Task",
+      "slug": "ASANA_CREATE_ATTACHMENT_FOR_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a budget",
+      "slug": "ASANA_CREATE_BUDGET",
+      "kind": "write"
+    },
+    {
+      "name": "Create Custom Field",
+      "slug": "ASANA_CREATE_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create Enum Option for Custom Field",
+      "slug": "ASANA_CREATE_ENUM_OPTION_FOR_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create a goal",
+      "slug": "ASANA_CREATE_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Create a goal metric",
+      "slug": "ASANA_CREATE_GOAL_METRIC",
+      "kind": "write"
+    },
+    {
+      "name": "Create Membership",
+      "slug": "ASANA_CREATE_MEMBERSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Create an OOO entry",
+      "slug": "ASANA_CREATE_OOO_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a portfolio",
+      "slug": "ASANA_CREATE_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project Brief",
+      "slug": "ASANA_CREATE_PROJECT_BRIEF",
+      "kind": "write"
+    },
+    {
+      "name": "Create project for team",
+      "slug": "ASANA_CREATE_PROJECT_FOR_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Create project for workspace",
+      "slug": "ASANA_CREATE_PROJECT_FOR_WORKSPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Create Project Status Update",
+      "slug": "ASANA_CREATE_PROJECT_STATUS_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a rate",
+      "slug": "ASANA_CREATE_RATE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a role",
+      "slug": "ASANA_CREATE_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a section in a project",
+      "slug": "ASANA_CREATE_SECTION_IN_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create Status Update for Object",
+      "slug": "ASANA_CREATE_STATUS_FOR_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create a story on a goal",
+      "slug": "ASANA_CREATE_STORY_FOR_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Create subtask",
+      "slug": "ASANA_CREATE_SUBTASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a tag",
+      "slug": "ASANA_CREATE_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Create task comment",
+      "slug": "ASANA_CREATE_TASK_COMMENT",
+      "kind": "send"
+    },
+    {
+      "name": "Create Team",
+      "slug": "ASANA_CREATE_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Create a timesheet approval status",
+      "slug": "ASANA_CREATE_TIMESHEET_APPROVAL_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Create a time tracking category",
+      "slug": "ASANA_CREATE_TIME_TRACKING_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Create a time tracking entry",
+      "slug": "ASANA_CREATE_TIME_TRACKING_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Allocation",
+      "slug": "ASANA_DELETE_ALLOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Attachment",
+      "slug": "ASANA_DELETE_ATTACHMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a budget",
+      "slug": "ASANA_DELETE_BUDGET",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Custom Field",
+      "slug": "ASANA_DELETE_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a goal",
+      "slug": "ASANA_DELETE_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Membership",
+      "slug": "ASANA_DELETE_MEMBERSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Delete an OOO entry",
+      "slug": "ASANA_DELETE_OOO_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a portfolio",
+      "slug": "ASANA_DELETE_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a project",
+      "slug": "ASANA_DELETE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Project Brief",
+      "slug": "ASANA_DELETE_PROJECT_BRIEF",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Project Status",
+      "slug": "ASANA_DELETE_PROJECT_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a project template",
+      "slug": "ASANA_DELETE_PROJECT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a rate",
+      "slug": "ASANA_DELETE_RATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a role",
+      "slug": "ASANA_DELETE_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a section",
+      "slug": "ASANA_DELETE_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Status Update",
+      "slug": "ASANA_DELETE_STATUS_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Story",
+      "slug": "ASANA_DELETE_STORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a Tag",
+      "slug": "ASANA_DELETE_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a task",
+      "slug": "ASANA_DELETE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a task template",
+      "slug": "ASANA_DELETE_TASK_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a time tracking category",
+      "slug": "ASANA_DELETE_TIME_TRACKING_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a time tracking entry",
+      "slug": "ASANA_DELETE_TIME_TRACKING_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a webhook",
+      "slug": "ASANA_DELETE_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Duplicate a portfolio",
+      "slug": "ASANA_DUPLICATE_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Duplicate Project",
+      "slug": "ASANA_DUPLICATE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Duplicate Task",
+      "slug": "ASANA_DUPLICATE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Get Access Requests",
+      "slug": "ASANA_GET_ACCESS_REQUESTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get AI Studio credit utilization",
+      "slug": "ASANA_GET_AI_STUDIO_RUNS",
+      "kind": "read"
+    },
+    {
+      "name": "Get AI Studio seats",
+      "slug": "ASANA_GET_AI_STUDIO_SEATS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Allocation",
+      "slug": "ASANA_GET_ALLOCATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Allocations",
+      "slug": "ASANA_GET_ALLOCATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a project",
+      "slug": "ASANA_GET_A_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a task",
+      "slug": "ASANA_GET_A_TASK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Attachment",
+      "slug": "ASANA_GET_ATTACHMENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Audit Log Events",
+      "slug": "ASANA_GET_AUDIT_LOG_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a user task list",
+      "slug": "ASANA_GET_A_USER_TASK_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a budget",
+      "slug": "ASANA_GET_BUDGET",
+      "kind": "read"
+    },
+    {
+      "name": "Get all budgets",
+      "slug": "ASANA_GET_BUDGETS",
+      "kind": "read"
+    },
+    {
+      "name": "Get current user",
+      "slug": "ASANA_GET_CURRENT_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Custom Field",
+      "slug": "ASANA_GET_CUSTOM_FIELD",
+      "kind": "read"
+    },
+    {
+      "name": "Get a goal's custom fields",
+      "slug": "ASANA_GET_CUSTOM_FIELD_SETTINGS_FOR_GOAL",
+      "kind": "read"
+    },
+    {
+      "name": "Get a portfolio's custom fields",
+      "slug": "ASANA_GET_CUSTOM_FIELD_SETTINGS_FOR_PORTFOLIO",
+      "kind": "read"
+    },
+    {
+      "name": "Get a team's custom fields",
+      "slug": "ASANA_GET_CUSTOM_FIELD_SETTINGS_FOR_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Custom Fields for Workspace",
+      "slug": "ASANA_GET_CUSTOM_FIELDS_FOR_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get a custom type",
+      "slug": "ASANA_GET_CUSTOM_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Custom Types",
+      "slug": "ASANA_GET_CUSTOM_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Events on a Resource",
+      "slug": "ASANA_GET_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Favorites for User",
+      "slug": "ASANA_GET_FAVORITES_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Goal",
+      "slug": "ASANA_GET_GOAL",
+      "kind": "read"
+    },
+    {
+      "name": "Get a goal relationship",
+      "slug": "ASANA_GET_GOAL_RELATIONSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Goal Relationships",
+      "slug": "ASANA_GET_GOAL_RELATIONSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Goals",
+      "slug": "ASANA_GET_GOALS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Job",
+      "slug": "ASANA_GET_JOB",
+      "kind": "read"
+    },
+    {
+      "name": "Get Membership",
+      "slug": "ASANA_GET_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Memberships",
+      "slug": "ASANA_GET_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple projects",
+      "slug": "ASANA_GET_MULTIPLE_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple tasks",
+      "slug": "ASANA_GET_MULTIPLE_TASKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple users",
+      "slug": "ASANA_GET_MULTIPLE_USERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple workspaces",
+      "slug": "ASANA_GET_MULTIPLE_WORKSPACES",
+      "kind": "read"
+    },
+    {
+      "name": "Get OOO Entries",
+      "slug": "ASANA_GET_OOO_ENTRIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get an OOO entry",
+      "slug": "ASANA_GET_OOO_ENTRY",
+      "kind": "read"
+    },
+    {
+      "name": "Get parent goals from a goal",
+      "slug": "ASANA_GET_PARENT_GOALS_FOR_GOAL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Portfolio",
+      "slug": "ASANA_GET_PORTFOLIO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Portfolio Items",
+      "slug": "ASANA_GET_PORTFOLIO_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a portfolio membership",
+      "slug": "ASANA_GET_PORTFOLIO_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Portfolio Memberships",
+      "slug": "ASANA_GET_PORTFOLIO_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get memberships from a portfolio",
+      "slug": "ASANA_GET_PORTFOLIO_MEMBERSHIPS_FOR_PORTFOLIO",
+      "kind": "read"
+    },
+    {
+      "name": "Get Portfolios",
+      "slug": "ASANA_GET_PORTFOLIOS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Brief",
+      "slug": "ASANA_GET_PROJECT_BRIEF",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Custom Field Settings",
+      "slug": "ASANA_GET_PROJECT_CUSTOM_FIELD_SETTINGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Membership",
+      "slug": "ASANA_GET_PROJECT_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Memberships For Project",
+      "slug": "ASANA_GET_PROJECT_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a project portfolio setting",
+      "slug": "ASANA_GET_PROJECT_PORTFOLIO_SETTING",
+      "kind": "read"
+    },
+    {
+      "name": "Get project portfolio settings for a portfolio",
+      "slug": "ASANA_GET_PROJECT_PORTFOLIO_SETTINGS_FOR_PORTFOLIO",
+      "kind": "read"
+    },
+    {
+      "name": "Get project portfolio settings for a project",
+      "slug": "ASANA_GET_PROJECT_PORTFOLIO_SETTINGS_FOR_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Projects for Task",
+      "slug": "ASANA_GET_PROJECTS_FOR_TASK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Projects for Team",
+      "slug": "ASANA_GET_PROJECTS_FOR_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Status",
+      "slug": "ASANA_GET_PROJECT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Status Updates",
+      "slug": "ASANA_GET_PROJECT_STATUS_UPDATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Template",
+      "slug": "ASANA_GET_PROJECT_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Multiple Project Templates",
+      "slug": "ASANA_GET_PROJECT_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Project Templates for Team",
+      "slug": "ASANA_GET_PROJECT_TEMPLATES_FOR_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get a rate",
+      "slug": "ASANA_GET_RATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple rates",
+      "slug": "ASANA_GET_RATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Reactions on Object",
+      "slug": "ASANA_GET_REACTIONS_ON_OBJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a role",
+      "slug": "ASANA_GET_ROLE",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple roles",
+      "slug": "ASANA_GET_ROLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Section",
+      "slug": "ASANA_GET_SECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get sections in a project",
+      "slug": "ASANA_GET_SECTIONS_IN_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Status Update",
+      "slug": "ASANA_GET_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Status Updates",
+      "slug": "ASANA_GET_STATUS_UPDATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get stories from a goal",
+      "slug": "ASANA_GET_STORIES_FOR_GOAL",
+      "kind": "read"
+    },
+    {
+      "name": "Get Stories for Task",
+      "slug": "ASANA_GET_STORIES_FOR_TASK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Story",
+      "slug": "ASANA_GET_STORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tag",
+      "slug": "ASANA_GET_TAG",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tags",
+      "slug": "ASANA_GET_TAGS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tags for Task",
+      "slug": "ASANA_GET_TAGS_FOR_TASK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tags For Workspace",
+      "slug": "ASANA_GET_TAGS_FOR_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Task Attachments",
+      "slug": "ASANA_GET_TASK_ATTACHMENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Task Counts For Project",
+      "slug": "ASANA_GET_TASK_COUNTS_FOR_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get a task for a given custom ID",
+      "slug": "ASANA_GET_TASK_FOR_CUSTOM_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get tasks for tag",
+      "slug": "ASANA_GET_TASKS_FOR_TAG",
+      "kind": "read"
+    },
+    {
+      "name": "Get tasks for user task list",
+      "slug": "ASANA_GET_TASKS_FOR_USER_TASK_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve tasks for project",
+      "slug": "ASANA_GET_TASKS_FROM_A_PROJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get tasks from a section",
+      "slug": "ASANA_GET_TASKS_FROM_SECTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Task Subtasks",
+      "slug": "ASANA_GET_TASK_SUBTASKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a task template",
+      "slug": "ASANA_GET_TASK_TEMPLATE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Task Templates",
+      "slug": "ASANA_GET_TASK_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team",
+      "slug": "ASANA_GET_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team Membership",
+      "slug": "ASANA_GET_TEAM_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team Memberships",
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team Memberships for Team",
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS_FOR_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Team Memberships For User",
+      "slug": "ASANA_GET_TEAM_MEMBERSHIPS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Teams for User",
+      "slug": "ASANA_GET_TEAMS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get teams in workspace",
+      "slug": "ASANA_GET_TEAMS_IN_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Time Period",
+      "slug": "ASANA_GET_TIME_PERIOD",
+      "kind": "read"
+    },
+    {
+      "name": "Get Time Periods",
+      "slug": "ASANA_GET_TIME_PERIODS",
+      "kind": "read"
+    },
+    {
+      "name": "Get a timesheet approval status",
+      "slug": "ASANA_GET_TIMESHEET_APPROVAL_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple timesheet approval statuses",
+      "slug": "ASANA_GET_TIMESHEET_APPROVAL_STATUSES",
+      "kind": "read"
+    },
+    {
+      "name": "Get time tracking categories for a workspace",
+      "slug": "ASANA_GET_TIME_TRACKING_CATEGORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get a time tracking category",
+      "slug": "ASANA_GET_TIME_TRACKING_CATEGORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Time Tracking Entries",
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Time Tracking Entries for Task",
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRIES_FOR_TASK",
+      "kind": "read"
+    },
+    {
+      "name": "Get time tracking entries for a time tracking category",
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRIES_FOR_TIME_TRACKING_CATEGORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get a time tracking entry",
+      "slug": "ASANA_GET_TIME_TRACKING_ENTRY",
+      "kind": "read"
+    },
+    {
+      "name": "Get Objects via Typeahead",
+      "slug": "ASANA_GET_TYPEAHEAD_OBJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get User",
+      "slug": "ASANA_GET_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get User in Workspace",
+      "slug": "ASANA_GET_USER_FOR_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Users for Team",
+      "slug": "ASANA_GET_USERS_FOR_TEAM",
+      "kind": "read"
+    },
+    {
+      "name": "Get Users in Workspace",
+      "slug": "ASANA_GET_USERS_FOR_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get User Task List",
+      "slug": "ASANA_GET_USER_TASK_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get a webhook",
+      "slug": "ASANA_GET_WEBHOOK",
+      "kind": "read"
+    },
+    {
+      "name": "Get Webhooks",
+      "slug": "ASANA_GET_WEBHOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workspace",
+      "slug": "ASANA_GET_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Get workspace events",
+      "slug": "ASANA_GET_WORKSPACE_EVENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workspace Membership",
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workspace Memberships",
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workspace Memberships For User",
+      "slug": "ASANA_GET_WORKSPACE_MEMBERSHIPS_FOR_USER",
+      "kind": "read"
+    },
+    {
+      "name": "Get Workspace Projects",
+      "slug": "ASANA_GET_WORKSPACE_PROJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Reorder Enum Option for Custom Field",
+      "slug": "ASANA_INSERT_ENUM_OPTION_FOR_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Move or Insert Section in Project",
+      "slug": "ASANA_INSERT_SECTION_FOR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Instantiate Project Template",
+      "slug": "ASANA_INSTANTIATE_PROJECT_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Instantiate a task from a task template",
+      "slug": "ASANA_INSTANTIATE_TASK_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Get goal relationships",
+      "slug": "ASANA_LIST_GOAL_RELATIONSHIPS",
+      "kind": "read"
+    },
+    {
+      "name": "List Task Dependencies",
+      "slug": "ASANA_LIST_TASK_DEPENDENCIES",
+      "kind": "read"
+    },
+    {
+      "name": "List Task Dependents",
+      "slug": "ASANA_LIST_TASK_DEPENDENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Reject access request",
+      "slug": "ASANA_REJECT_ACCESS_REQUEST",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a custom field from a goal",
+      "slug": "ASANA_REMOVE_CUSTOM_FIELD_SETTING_FOR_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a custom field from a portfolio",
+      "slug": "ASANA_REMOVE_CUSTOM_FIELD_SETTING_FOR_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a custom field from a project",
+      "slug": "ASANA_REMOVE_CUSTOM_FIELD_SETTING_FOR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Follower From Task",
+      "slug": "ASANA_REMOVE_FOLLOWER_FROM_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Followers For Project",
+      "slug": "ASANA_REMOVE_FOLLOWERS_FOR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a collaborator from a goal",
+      "slug": "ASANA_REMOVE_FOLLOWERS_FROM_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Item from Portfolio",
+      "slug": "ASANA_REMOVE_ITEM_FROM_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Remove users from a portfolio",
+      "slug": "ASANA_REMOVE_MEMBERS_FOR_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Members from Project",
+      "slug": "ASANA_REMOVE_MEMBERS_FOR_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Project from Task",
+      "slug": "ASANA_REMOVE_PROJECT_FROM_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Removes a supporting goal relationship",
+      "slug": "ASANA_REMOVE_SUPPORTING_RELATIONSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Tag from Task",
+      "slug": "ASANA_REMOVE_TAG_FROM_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Task Dependencies",
+      "slug": "ASANA_REMOVE_TASK_DEPENDENCIES",
+      "kind": "write"
+    },
+    {
+      "name": "Remove Task Dependents",
+      "slug": "ASANA_REMOVE_TASK_DEPENDENTS",
+      "kind": "write"
+    },
+    {
+      "name": "Remove User For Team",
+      "slug": "ASANA_REMOVE_USER_FOR_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Remove User from Workspace",
+      "slug": "ASANA_REMOVE_USER_FOR_WORKSPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Roll up subtask dates for a project",
+      "slug": "ASANA_ROLLUP_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Roll up subtask dates for a task",
+      "slug": "ASANA_ROLLUP_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create a project template from a project",
+      "slug": "ASANA_SAVE_PROJECT_AS_TEMPLATE",
+      "kind": "write"
+    },
+    {
+      "name": "Search projects in a workspace",
+      "slug": "ASANA_SEARCH_PROJECTS_FOR_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Search Tasks in Workspace",
+      "slug": "ASANA_SEARCH_TASKS_IN_WORKSPACE",
+      "kind": "read"
+    },
+    {
+      "name": "Set parent for task",
+      "slug": "ASANA_SET_PARENT_FOR_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Submit Parallel Requests (Batch API)",
+      "slug": "ASANA_SUBMIT_PARALLEL_REQUESTS",
+      "kind": "write"
+    },
+    {
+      "name": "Trigger a rule",
+      "slug": "ASANA_TRIGGER_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Allocation",
+      "slug": "ASANA_UPDATE_ALLOCATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a task",
+      "slug": "ASANA_UPDATE_A_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Update a budget",
+      "slug": "ASANA_UPDATE_BUDGET",
+      "kind": "write"
+    },
+    {
+      "name": "Update Custom Field",
+      "slug": "ASANA_UPDATE_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update Enum Option",
+      "slug": "ASANA_UPDATE_ENUM_OPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update a goal",
+      "slug": "ASANA_UPDATE_GOAL",
+      "kind": "write"
+    },
+    {
+      "name": "Update a goal metric",
+      "slug": "ASANA_UPDATE_GOAL_METRIC",
+      "kind": "write"
+    },
+    {
+      "name": "Update a goal relationship",
+      "slug": "ASANA_UPDATE_GOAL_RELATIONSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Update a membership",
+      "slug": "ASANA_UPDATE_MEMBERSHIP",
+      "kind": "write"
+    },
+    {
+      "name": "Update an OOO entry",
+      "slug": "ASANA_UPDATE_OOO_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Update a portfolio",
+      "slug": "ASANA_UPDATE_PORTFOLIO",
+      "kind": "write"
+    },
+    {
+      "name": "Update a project",
+      "slug": "ASANA_UPDATE_PROJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Update Project Brief",
+      "slug": "ASANA_UPDATE_PROJECT_BRIEF",
+      "kind": "write"
+    },
+    {
+      "name": "Update a project portfolio setting",
+      "slug": "ASANA_UPDATE_PROJECT_PORTFOLIO_SETTING",
+      "kind": "write"
+    },
+    {
+      "name": "Update a rate",
+      "slug": "ASANA_UPDATE_RATE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a role",
+      "slug": "ASANA_UPDATE_ROLE",
+      "kind": "write"
+    },
+    {
+      "name": "Update Section",
+      "slug": "ASANA_UPDATE_SECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update Story",
+      "slug": "ASANA_UPDATE_STORY",
+      "kind": "write"
+    },
+    {
+      "name": "Update Tag",
+      "slug": "ASANA_UPDATE_TAG",
+      "kind": "write"
+    },
+    {
+      "name": "Update a team",
+      "slug": "ASANA_UPDATE_TEAM",
+      "kind": "write"
+    },
+    {
+      "name": "Update a timesheet approval status",
+      "slug": "ASANA_UPDATE_TIMESHEET_APPROVAL_STATUS",
+      "kind": "write"
+    },
+    {
+      "name": "Update a time tracking category",
+      "slug": "ASANA_UPDATE_TIME_TRACKING_CATEGORY",
+      "kind": "write"
+    },
+    {
+      "name": "Update a time tracking entry",
+      "slug": "ASANA_UPDATE_TIME_TRACKING_ENTRY",
+      "kind": "write"
+    },
+    {
+      "name": "Update User",
+      "slug": "ASANA_UPDATE_USER",
+      "kind": "write"
+    },
+    {
+      "name": "Update User for Workspace",
+      "slug": "ASANA_UPDATE_USER_FOR_WORKSPACE",
+      "kind": "write"
+    },
+    {
+      "name": "Update a webhook",
+      "slug": "ASANA_UPDATE_WEBHOOK",
+      "kind": "write"
+    },
+    {
+      "name": "Update a workspace",
+      "slug": "ASANA_UPDATE_WORKSPACE",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/asana",
+  "fetched_at": "2026-11-12"
+}

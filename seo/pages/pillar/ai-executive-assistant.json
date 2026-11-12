@@ -1,0 +1,173 @@
+{
+  "path": "/ai-executive-assistant",
+  "type": "pillar",
+  "title": "AI executive assistant: five inbox and calendar routines",
+  "nav": "ai executive assistant",
+  "h1": "an ai executive assistant for inbox and calendar work",
+  "description": "Try five Dusk Bot routines for your agenda, free slots, meeting context, reply drafts and follow-ups. Keep scheduling decisions and sensitive replies human.",
+  "keyword": "ai executive assistant",
+  "keywords": [
+    "ai executive assistant free",
+    "ai executive assistant reddit",
+    "ai virtual assistant for small business"
+  ],
+  "answer": "an ai executive assistant can help you prepare for meetings, find available time and draft replies. in dusk bot, connect gmail and google calendar to a bot with a narrow job, then make routines by sending messages. begin with reading and preparation. keep choices about who gets your time, what you promise and what you send with you, and check the first runs against the actual inbox and calendar.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "calendar",
+    "inbox",
+    "preparation",
+    "assistant"
+  ],
+  "connectors": [
+    "gmail",
+    "googlecalendar"
+  ],
+  "related": [
+    "/integrations/gmail",
+    "/integrations/google-calendar",
+    "/routines/meeting-prep-brief",
+    "/routines/weekly-calendar-preview"
+  ],
+  "art": {
+    "props": [
+      "s-clock",
+      "s-mailbox"
+    ],
+    "bubble": "ready for tomorrow"
+  },
+  "og_line": "prepare the day without giving it away.",
+  "table": {
+    "h": "what to budget for the assistant",
+    "intro": "as of 12 november 2026. hosting, work licensing and ai usage are different costs. these options are not a claim about equal amounts of completed work.",
+    "cols": [
+      "setup",
+      "published charge",
+      "important limit"
+    ],
+    "rows": [
+      {
+        "label": "dusk on your own computer",
+        "cells": [
+          "free for personal use; ai billed separately",
+          "work use needs a work license; routines need the computer awake"
+        ],
+        "src": [
+          4,
+          5
+        ]
+      },
+      {
+        "label": "dusk cloud pro",
+        "cells": [
+          "$50/month or $500/year, plus your ai costs",
+          "includes a work license for one person"
+        ],
+        "src": [
+          4,
+          6
+        ]
+      },
+      {
+        "label": "lindy team",
+        "cells": [
+          "from $29.99/month per active user with 3,000 credits",
+          "credits do not roll over; top-ups cost $10 per 1,000 credits"
+        ],
+        "src": [
+          7
+        ]
+      }
+    ]
+  },
+  "sections": [
+    {
+      "h": "connect only the accounts the job needs",
+      "md": "make one assistant bot and give it this job: \"help me prepare for meetings and correspondence. use only the accounts i identify. show uncertainty and keep final commitments with me. ask me before you change anything.\"\n\nopen **Connected apps**, connect gmail and google calendar, and allow this bot to use them. label work and personal accounts clearly if you connect both. dusk supports up to five usable accounts per app, with separate labels.[^3]\n\nstart read only. **Find event** and **Find free slots** are documented calendar read actions; gmail can fetch emails and read threads. the first three routines below need those reads, not permission to move meetings.[^1][^2] the [gmail](/integrations/gmail) and [google calendar](/integrations/google-calendar) pages cover the connections in more detail."
+    },
+    {
+      "h": "routine one: a usable agenda",
+      "md": "send: \"at 8:15am every weekday, find today's events in my work calendar. return a time-ordered agenda here with the stated location and any missing meeting details. do not change events or infer travel time. flag overlapping times for me to inspect.\"\n\nthis turns the calendar into a preparation list without deciding that one meeting matters more than another. inspect a conflict in the calendar before acting on it. the bot's summary is a reason to look, not permission to cancel.\n\ncheck the schedule card when the bot creates the routine. if it has the wrong hour, ask which time zone it is using. add your preferred time zone under **About me** so every bot gets that context.[^5][^8]"
+    },
+    {
+      "h": "routine two: possible times, without invitations",
+      "md": "send: \"every monday at 9:30am, find free slots in my work calendar for a 30-minute catch-up this week, within 10am to 4pm. return options here. do not create an event, move anything or invite anyone. these are my available times, not confirmed times for another person.\"\n\nuse the **Find free slots** read action for this job. availability is only part of the decision: you may need preparation time or simply want to leave a gap unbooked. check the options before offering one.\n\nif a weekly view matters more than a particular catch-up, use the [calendar preview routine](/routines/weekly-calendar-preview) instead. do not run two routines that tell you the same thing in different words."
+    },
+    {
+      "h": "routine three: context before a meeting",
+      "md": "send: \"at 4pm on weekdays, find tomorrow's work calendar events. for meetings with the contacts i name, read the related gmail threads and prepare a short context note here. include open questions and explicit commitments. say when you could not match a thread confidently. change nothing.\"\n\nname the people or threads for the first few runs rather than asking the bot to identify every relationship in your inbox. a similar subject does not prove that two conversations concern the same meeting.\n\nread the note before the meeting and open the source thread when a promise matters. the [meeting preparation routine](/routines/meeting-prep-brief) gives this one job more room if it is the part you want to keep."
+    },
+    {
+      "h": "routine four: reply drafts with a stopping point",
+      "md": "gmail has a **Create email draft** action. saving a draft is a change, so a read-only bot cannot do it. if you want saved drafts, allow the required gmail reads and that draft action through an exact action list, rather than giving it every action.[^2][^3]\n\nsend: \"at noon each weekday, inspect new direct requests from the correspondents i name. propose replies here using only facts i have supplied. if a request needs a commitment or sensitive judgment, bring me the question instead. ask me before creating a gmail draft. never send.\"\n\nthe request to ask before creating a draft is an instruction you put into this routine. it is not a claim that all app changes ask automatically. if you want enforced read-only access throughout, keep replies as proposed text in the chat and create drafts yourself. sending has its own setting: keep **Ask every time**."
+    },
+    {
+      "h": "routine five: a quiet end-of-day check",
+      "md": "send: \"at 5:15pm on weekdays, inspect today's work email threads. bring me direct questions that appear unanswered and dates explicitly promised in the messages. quote only the short wording needed to identify each request. do not treat silence as a new promise. do not chase anyone, label messages or archive mail. return the list here.\"\n\nthis job should help you decide whether to close the day, not manufacture a new task list from every conversation. check that a question is still open before replying. narrow the senders or pause the routine if it mostly repeats messages you already handled.\n\nwatch the first runs of each routine separately. add the next only when the existing one gives you useful preparation."
+    },
+    {
+      "h": "keep the human parts and the operating limits visible",
+      "md": "you decide whose request gets attention, whether to share sensitive information and whether a draft sounds like a promise you can keep. keep personal disputes, hiring discussions and important negotiations with a person. an assistant can prepare context without owning the relationship.\n\nother app changes, including calendar edits and inbox labels, are not documented as automatically asking first. keep access read only where possible and retain \"ask me before you change anything\" when you permit writes.\n\nlocal routines stop when the computer sleeps or dusk bot closes. a run missed by less than 12 hours runs once when you return; older ones are skipped. use **Automations** to inspect the schedule and run history, and pause a routine when it no longer helps.[^5]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "can an ai assistant clean up my gmail inbox?",
+      "a": "start by asking it to identify messages, without changing them. the routines here read threads and prepare replies. deleting, archiving or applying labels is a different job and is not documented as automatically asking first. keep it read only while you establish the rules."
+    },
+    {
+      "q": "will it book meetings automatically?",
+      "a": "the routines here only find events and possible times. you choose what to offer and book. do not assume a calendar write asks automatically: use read-only access, or explicitly require the bot to ask before changes."
+    },
+    {
+      "q": "can i connect separate work and personal gmail accounts?",
+      "a": "yes. dusk supports several labeled accounts per app, up to five usable accounts. name the account in each routine so an inbox sweep has a clear scope."
+    },
+    {
+      "q": "is an ai executive assistant free?",
+      "a": "dusk is free for personal use on your own computer, with ai charges separate. work use needs a work license. cloud pro includes a work license for one person, but your ai provider still bills its usage."
+    }
+  ],
+  "sources": [
+    {
+      "label": "composio: google calendar read and write actions",
+      "url": "https://docs.composio.dev/toolkits/googlecalendar",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "composio: gmail reading and draft actions",
+      "url": "https://docs.composio.dev/toolkits/gmail",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: connected apps and send approvals",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: personal use, work licenses and ai billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot docs: routine schedules and run history",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot pricing",
+      "url": "/pricing"
+    },
+    {
+      "label": "lindy pricing",
+      "url": "https://www.lindy.ai/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: shared time zone preferences",
+      "url": "/docs/memory"
+    }
+  ]
+}

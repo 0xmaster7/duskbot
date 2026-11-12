@@ -1,0 +1,94 @@
+{
+  "path": "/use-cases/lead-research",
+  "type": "use-case",
+  "title": "AI lead research: build a list with evidence of fit",
+  "nav": "lead research",
+  "h1": "a lead research bot that explains why each company fits",
+  "description": "Give a bot company criteria and permitted sources. Get a short research list with evidence, unknowns and no automatic outreach.",
+  "keyword": "ai agent for lead generation",
+  "keywords": [
+    "ai lead generation",
+    "ai lead research agent",
+    "ai cold email agent"
+  ],
+  "answer": "ask a lead research bot for evidence of fit before asking for names to contact. give it a customer profile, exclusion rules and permitted company pages. it can use its own browser to build a short list in your chat, with a reason and source for each entry. keep unknown budgets, buying intent and private contact details unknown. research is a starting point for your review, not permission to send a pitch.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "leads",
+    "sales",
+    "company research",
+    "browser"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/web-scraping",
+    "/use-cases/email-triage"
+  ],
+  "art": {
+    "props": [
+      "p-briefcase",
+      "p-binoculars"
+    ],
+    "bubble": "why this company fits"
+  },
+  "og_line": "a shortlist with reasons, not guesses.",
+  "routine": {
+    "intro": "send the company pages you are allowed to research and describe a good customer in observable terms. this version starts with companies, without collecting personal addresses.",
+    "message": "each tuesday at 2pm, review the company urls i gave you in your own browser. i’m researching independent design studios that publicly offer client workshops. exclude recruitment agencies, directories and companies outside my stated region.\n\nmake a shortlist in this chat. for each company include its name, website, the passage showing it fits, the source url and date checked. add a reason to include it, a reason it might not fit and the next question i should investigate. mark team size, budget and buying intent unknown unless a source directly supports them.\n\nremove duplicate companies. do not guess email addresses, collect private contact details, add anyone to a crm or contact anyone. skip pages with access restrictions and list them at the end.",
+    "when": "tuesdays at 14:00, using your approved company list",
+    "needs": "a browser-equipped bot, company urls, a customer profile and exclusion rules; no crm connector",
+    "output": "research shortlist for sam, fictional companies\n\ncedar studio\nfit: supplied services page says “client workshops for small teams”.\nsource: cedar studio services page supplied in chat, checked 12 november 2026.\npossible mismatch: the page describes brand workshops; your offer concerns product testing.\nunknown: budget and whether anyone is looking for help.\nnext question: does the studio run product testing workshops too?\n\nexcluded: jo’s talent desk, a recruitment agency.\nnot reviewed: priya design’s services page could not be opened.\nno contacts collected; no outreach sent."
+  },
+  "sections": [
+    {
+      "h": "define fit using things a page can show",
+      "md": "“likely to buy” asks the bot to infer too much. “publishes a workshop service page and works in this region” gives it evidence to look for. give exclusions equal weight: a directory listing can use all your keywords while representing no potential customer at all.\n\na source should support the specific reason for inclusion. a company website proves a company has a website, not that it has a budget or a project planned. use [market research](/use-cases/market-research) first when you have not yet decided which kind of company to approach."
+    },
+    {
+      "h": "keep research separate from outreach",
+      "md": "the routine produces a table in chat. it neither adds records to a sales system nor writes to the people listed. that lets you discard a weak match before it becomes someone else’s unwanted message.\n\nif you later connect a supported email app, sends ask first unless you give the bot a daily sending allowance. choose **Ask every time** if each message needs your review.[^2] [email triage](/use-cases/email-triage) is a separate routine for handling replies once conversations actually exist."
+    },
+    {
+      "h": "check the rules before contacting anyone",
+      "md": "before cold outreach, check the rules that apply where you and the recipient are, including consent, identification and opt-out requirements. keep an exclusion list and respect requests not to be contacted. public contact information does not settle those questions. this is not legal advice.\n\nalso respect source sites’ terms and personal data rules when building the list. the [web scraping guide](/use-cases/web-scraping) keeps collection scoped to named fields. do not treat a bot’s fit score or a polished opening line as evidence that contact is welcome."
+    }
+  ],
+  "safeguards": [
+    "make a source passage a condition of inclusion in the shortlist",
+    "exclude existing customers and companies on your do-not-contact list before research",
+    "avoid inferred personal emails and unsupported claims about intent to buy",
+    "review applicable outreach rules before turning any research entry into a message"
+  ],
+  "faq": [
+    {
+      "q": "can a non-technical business owner research leads with a bot?",
+      "a": "yes, by giving it a plain-language profile and a permitted source list. begin with a few companies you know so you can judge whether its reasons actually match your criteria."
+    },
+    {
+      "q": "is this an ai cold email agent?",
+      "a": "this routine researches companies and stops there. it does not send cold email. a later outreach workflow needs its own rules, appropriate access and a send decision."
+    },
+    {
+      "q": "can it find personal emails and phone numbers?",
+      "a": "this page makes no promise of contact enrichment or verified personal details. the routine deliberately avoids them and leaves you to choose a permitted way to make contact."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    }
+  ]
+}

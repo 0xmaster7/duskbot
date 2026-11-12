@@ -1,0 +1,1653 @@
+{
+  "toolkit": "salesforce",
+  "name": "Salesforce",
+  "version": "20261104_00",
+  "description": "Salesforce is a leading CRM platform integrating sales, service, marketing, and analytics to build customer relationships and drive business growth",
+  "managed_sign_in": true,
+  "auth": [
+    "OAuth2",
+    "S2S_OAUTH2"
+  ],
+  "tools_count": 327,
+  "triggers_count": 7,
+  "tools": [
+    {
+      "name": "Abort query job",
+      "slug": "SALESFORCE_ABORT_QUERY_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create Salesforce Account",
+      "slug": "SALESFORCE_ACCOUNT_CREATION_WITH_CONTENT_TYPE_OPTION",
+      "kind": "write"
+    },
+    {
+      "name": "Add contact to campaign",
+      "slug": "SALESFORCE_ADD_CONTACT_TO_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Add lead to campaign",
+      "slug": "SALESFORCE_ADD_LEAD_TO_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Add product to opportunity",
+      "slug": "SALESFORCE_ADD_OPPORTUNITY_LINE_ITEM",
+      "kind": "write"
+    },
+    {
+      "name": "Apply lead assignment rules",
+      "slug": "SALESFORCE_APPLY_LEAD_ASSIGNMENT_RULES",
+      "kind": "write"
+    },
+    {
+      "name": "Associate contact to account",
+      "slug": "SALESFORCE_ASSOCIATE_CONTACT_TO_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Clone opportunity with products",
+      "slug": "SALESFORCE_CLONE_OPPORTUNITY_WITH_PRODUCTS",
+      "kind": "write"
+    },
+    {
+      "name": "Clone record",
+      "slug": "SALESFORCE_CLONE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Clone report",
+      "slug": "SALESFORCE_CLONE_REPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Close or abort a job",
+      "slug": "SALESFORCE_CLOSE_OR_ABORT_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Complete task",
+      "slug": "SALESFORCE_COMPLETE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Execute Composite Graph (Deprecated)",
+      "slug": "SALESFORCE_COMPOSITE_GRAPH_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Create account",
+      "slug": "SALESFORCE_CREATE_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Create analytics notification",
+      "slug": "SALESFORCE_CREATE_ANALYTICS_NOTIFICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Create a record",
+      "slug": "SALESFORCE_CREATE_A_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Create bulk ingest job",
+      "slug": "SALESFORCE_CREATE_BULK_INGEST_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create bulk query job",
+      "slug": "SALESFORCE_CREATE_BULK_QUERY_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Create campaign",
+      "slug": "SALESFORCE_CREATE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Create campaign record",
+      "slug": "SALESFORCE_CREATE_CAMPAIGN_RECORD_VIA_POST",
+      "kind": "send"
+    },
+    {
+      "name": "Create contact",
+      "slug": "SALESFORCE_CREATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Create custom field",
+      "slug": "SALESFORCE_CREATE_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Create custom object",
+      "slug": "SALESFORCE_CREATE_CUSTOM_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Create folder",
+      "slug": "SALESFORCE_CREATE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Create folder shares",
+      "slug": "SALESFORCE_CREATE_FOLDER_SHARES",
+      "kind": "write"
+    },
+    {
+      "name": "Create Knowledge article draft",
+      "slug": "SALESFORCE_CREATE_KNOWLEDGE_ARTICLE_DRAFT",
+      "kind": "write"
+    },
+    {
+      "name": "Create lead",
+      "slug": "SALESFORCE_CREATE_LEAD",
+      "kind": "write"
+    },
+    {
+      "name": "Create lead",
+      "slug": "SALESFORCE_CREATE_LEAD_WITH_SPECIFIED_CONTENT_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Create list view",
+      "slug": "SALESFORCE_CREATE_LIST_VIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Create a new contact",
+      "slug": "SALESFORCE_CREATE_NEW_CONTACT_WITH_JSON_HEADER",
+      "kind": "write"
+    },
+    {
+      "name": "Create note",
+      "slug": "SALESFORCE_CREATE_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Create a note record",
+      "slug": "SALESFORCE_CREATE_NOTE_RECORD_WITH_CONTENT_TYPE_HEADER",
+      "kind": "write"
+    },
+    {
+      "name": "Create opportunity",
+      "slug": "SALESFORCE_CREATE_OPPORTUNITY",
+      "kind": "write"
+    },
+    {
+      "name": "Create opportunity record",
+      "slug": "SALESFORCE_CREATE_OPPORTUNITY_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Create SObject record",
+      "slug": "SALESFORCE_CREATE_S_OBJECT_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Create sObject tree",
+      "slug": "SALESFORCE_CREATE_SOBJECT_TREE",
+      "kind": "write"
+    },
+    {
+      "name": "Create task",
+      "slug": "SALESFORCE_CREATE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tooling Flow",
+      "slug": "SALESFORCE_CREATE_TOOLING_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Create Tooling API record",
+      "slug": "SALESFORCE_CREATE_TOOLING_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Create validation rule",
+      "slug": "SALESFORCE_CREATE_VALIDATION_RULE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete account",
+      "slug": "SALESFORCE_DELETE_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete a lead object by its id",
+      "slug": "SALESFORCE_DELETE_A_LEAD_OBJECT_BY_ITS_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Delete analytics notification",
+      "slug": "SALESFORCE_DELETE_ANALYTICS_NOTIFICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Delete campaign",
+      "slug": "SALESFORCE_DELETE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Delete contact",
+      "slug": "SALESFORCE_DELETE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete dashboard",
+      "slug": "SALESFORCE_DELETE_DASHBOARD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete file",
+      "slug": "SALESFORCE_DELETE_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete folder",
+      "slug": "SALESFORCE_DELETE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Delete folder share",
+      "slug": "SALESFORCE_DELETE_FOLDER_SHARE",
+      "kind": "send"
+    },
+    {
+      "name": "Delete ingest job",
+      "slug": "SALESFORCE_DELETE_INGEST_JOB",
+      "kind": "write"
+    },
+    {
+      "name": "Delete job query",
+      "slug": "SALESFORCE_DELETE_JOB_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete lead",
+      "slug": "SALESFORCE_DELETE_LEAD",
+      "kind": "write"
+    },
+    {
+      "name": "Delete note",
+      "slug": "SALESFORCE_DELETE_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Delete opportunity",
+      "slug": "SALESFORCE_DELETE_OPPORTUNITY",
+      "kind": "write"
+    },
+    {
+      "name": "Delete report",
+      "slug": "SALESFORCE_DELETE_REPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete sObject record",
+      "slug": "SALESFORCE_DELETE_SOBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Delete multiple records (SObject Collections)",
+      "slug": "SALESFORCE_DELETE_SOBJECT_COLLECTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete survey translations",
+      "slug": "SALESFORCE_DELETE_SURVEY_TRANSLATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Delete Tooling API record",
+      "slug": "SALESFORCE_DELETE_TOOLING_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Describe dashboard",
+      "slug": "SALESFORCE_DESCRIBE_DASHBOARD",
+      "kind": "write"
+    },
+    {
+      "name": "Describe list view",
+      "slug": "SALESFORCE_DESCRIBE_LIST_VIEW",
+      "kind": "write"
+    },
+    {
+      "name": "Describe report type",
+      "slug": "SALESFORCE_DESCRIBE_REPORT_TYPE",
+      "kind": "write"
+    },
+    {
+      "name": "Describe Tooling object",
+      "slug": "SALESFORCE_DESCRIBE_TOOLING_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Discover unit tests",
+      "slug": "SALESFORCE_DISCOVER_UNIT_TESTS",
+      "kind": "write"
+    },
+    {
+      "name": "Download attachment body",
+      "slug": "SALESFORCE_DOWNLOAD_ATTACHMENT_BODY",
+      "kind": "read"
+    },
+    {
+      "name": "Execute composite",
+      "slug": "SALESFORCE_EXECUTE_COMPOSITE",
+      "kind": "write"
+    },
+    {
+      "name": "Execute composite batch",
+      "slug": "SALESFORCE_EXECUTE_COMPOSITE_BATCH",
+      "kind": "write"
+    },
+    {
+      "name": "Execute global quick action",
+      "slug": "SALESFORCE_EXECUTE_GLOBAL_QUICK_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Execute invocable action",
+      "slug": "SALESFORCE_EXECUTE_INVOCABLE_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Execute sObject Quick Action",
+      "slug": "SALESFORCE_EXECUTE_SOBJECT_QUICK_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Execute SOQL query (Deprecated)",
+      "slug": "SALESFORCE_EXECUTE_SOQL_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Execute SOSL search",
+      "slug": "SALESFORCE_EXECUTE_SOSL_SEARCH",
+      "kind": "write"
+    },
+    {
+      "name": "Execute Tooling composite",
+      "slug": "SALESFORCE_EXECUTE_TOOLING_COMPOSITE",
+      "kind": "write"
+    },
+    {
+      "name": "Fetch account by ID with query",
+      "slug": "SALESFORCE_FETCH_ACCOUNT_BY_ID_WITH_QUERY",
+      "kind": "read"
+    },
+    {
+      "name": "Get batch of UI API records",
+      "slug": "SALESFORCE_GET_A_BATCH_OF_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get account",
+      "slug": "SALESFORCE_GET_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get all objects",
+      "slug": "SALESFORCE_GET_ALL_CUSTOM_OBJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get all fields for an object",
+      "slug": "SALESFORCE_GET_ALL_FIELDS_FOR_OBJECT",
+      "kind": "read"
+    },
+    {
+      "name": "Get all navigation items",
+      "slug": "SALESFORCE_GET_ALL_NAVIGATION_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get analytics notification",
+      "slug": "SALESFORCE_GET_ANALYTICS_NOTIFICATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get Analytics notification limits",
+      "slug": "SALESFORCE_GET_ANALYTICS_NOTIFICATION_LIMITS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Apex log body",
+      "slug": "SALESFORCE_GET_APEX_LOG_BODY",
+      "kind": "read"
+    },
+    {
+      "name": "Get API resources by version",
+      "slug": "SALESFORCE_GET_API",
+      "kind": "read"
+    },
+    {
+      "name": "Get an app",
+      "slug": "SALESFORCE_GET_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Get App Menu",
+      "slug": "SALESFORCE_GET_APP_MENU",
+      "kind": "read"
+    },
+    {
+      "name": "Get appointment candidates",
+      "slug": "SALESFORCE_GET_APPOINTMENT_CANDIDATES",
+      "kind": "read"
+    },
+    {
+      "name": "Get appointment slots",
+      "slug": "SALESFORCE_GET_APPOINTMENT_SLOTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get apps",
+      "slug": "SALESFORCE_GET_APPS",
+      "kind": "read"
+    },
+    {
+      "name": "Get campaign",
+      "slug": "SALESFORCE_GET_CAMPAIGN",
+      "kind": "read"
+    },
+    {
+      "name": "Get Chatter resources",
+      "slug": "SALESFORCE_GET_CHATTER_RESOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get child records",
+      "slug": "SALESFORCE_GET_CHILD_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Compact Layouts",
+      "slug": "SALESFORCE_GET_COMPACT_LAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get composite resources",
+      "slug": "SALESFORCE_GET_COMPOSITE_RESOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple records by IDs",
+      "slug": "SALESFORCE_GET_COMPOSITE_SOBJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get consent preferences",
+      "slug": "SALESFORCE_GET_CONSENT_ACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get contact",
+      "slug": "SALESFORCE_GET_CONTACT",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve specific contact by id",
+      "slug": "SALESFORCE_GET_CONTACT_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get dashboard",
+      "slug": "SALESFORCE_GET_DASHBOARD",
+      "kind": "read"
+    },
+    {
+      "name": "Get dashboard components",
+      "slug": "SALESFORCE_GET_DASHBOARD_COMPONENTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get dashboard filter options",
+      "slug": "SALESFORCE_GET_DASHBOARD_FILTER_OPTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get dashboard status",
+      "slug": "SALESFORCE_GET_DASHBOARD_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get data categories",
+      "slug": "SALESFORCE_GET_DATA_CATEGORIES",
+      "kind": "read"
+    },
+    {
+      "name": "Get deleted records",
+      "slug": "SALESFORCE_GET_DELETED_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Embedded Service configuration",
+      "slug": "SALESFORCE_GET_EMBEDDED_SERVICE_CONFIGURATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get enhanced note content",
+      "slug": "SALESFORCE_GET_ENHANCED_NOTE_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get file content",
+      "slug": "SALESFORCE_GET_FILE_CONTENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get file information",
+      "slug": "SALESFORCE_GET_FILE_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get file shares",
+      "slug": "SALESFORCE_GET_FILE_SHARES",
+      "kind": "read"
+    },
+    {
+      "name": "Get folder",
+      "slug": "SALESFORCE_GET_FOLDER",
+      "kind": "read"
+    },
+    {
+      "name": "Get folder share",
+      "slug": "SALESFORCE_GET_FOLDER_SHARE",
+      "kind": "read"
+    },
+    {
+      "name": "Get folder shares",
+      "slug": "SALESFORCE_GET_FOLDER_SHARES",
+      "kind": "read"
+    },
+    {
+      "name": "Get global actions",
+      "slug": "SALESFORCE_GET_GLOBAL_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get ingest job info",
+      "slug": "SALESFORCE_GET_INGEST_JOB_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get invalid Apex compilation results",
+      "slug": "SALESFORCE_GET_INVALID_APEX_COMPILATION_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get job failed record results",
+      "slug": "SALESFORCE_GET_JOB_FAILED_RECORD_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get job successful record results",
+      "slug": "SALESFORCE_GET_JOB_SUCCESSFUL_RECORD_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get job unprocessed record results",
+      "slug": "SALESFORCE_GET_JOB_UNPROCESSED_RECORD_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get last selected app",
+      "slug": "SALESFORCE_GET_LAST_SELECTED_APP",
+      "kind": "read"
+    },
+    {
+      "name": "Get lead",
+      "slug": "SALESFORCE_GET_LEAD",
+      "kind": "read"
+    },
+    {
+      "name": "Get List View Header Actions",
+      "slug": "SALESFORCE_GET_LIST_VIEW_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get batch of list view metadata",
+      "slug": "SALESFORCE_GET_LIST_VIEW_METADATA_BATCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get list view metadata",
+      "slug": "SALESFORCE_GET_LIST_VIEW_METADATA_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Get list view records by ID",
+      "slug": "SALESFORCE_GET_LIST_VIEW_RECORDS_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get list view records by API name",
+      "slug": "SALESFORCE_GET_LIST_VIEW_RECORDS_BY_NAME",
+      "kind": "read"
+    },
+    {
+      "name": "Get list view results",
+      "slug": "SALESFORCE_GET_LIST_VIEW_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get lookup field suggestions",
+      "slug": "SALESFORCE_GET_LOOKUP_FIELD_SUGGESTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get lookup field suggestions with POST",
+      "slug": "SALESFORCE_GET_LOOKUP_SUGGESTIONS_CASE_CONTACT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Metadata Deployment Status",
+      "slug": "SALESFORCE_GET_METADATA_DEPLOYMENT_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get MRU list view metadata",
+      "slug": "SALESFORCE_GET_MRU_LIST_VIEW_METADATA",
+      "kind": "read"
+    },
+    {
+      "name": "Get most recently used list view records",
+      "slug": "SALESFORCE_GET_MRU_LIST_VIEW_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get named layout",
+      "slug": "SALESFORCE_GET_NAMED_LAYOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Get note",
+      "slug": "SALESFORCE_GET_NOTE",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve Note with conditions",
+      "slug": "SALESFORCE_GET_NOTE_BY_ID_WITH_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get list views for an object",
+      "slug": "SALESFORCE_GET_OBJECT_LIST_VIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "Get object UI layout",
+      "slug": "SALESFORCE_GET_OBJECT_UI_LAYOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Get opportunity",
+      "slug": "SALESFORCE_GET_OPPORTUNITY",
+      "kind": "read"
+    },
+    {
+      "name": "Get organization limits",
+      "slug": "SALESFORCE_GET_ORG_LIMITS",
+      "kind": "read"
+    },
+    {
+      "name": "Get photo actions",
+      "slug": "SALESFORCE_GET_PHOTO_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Values for All Picklist Fields",
+      "slug": "SALESFORCE_GET_PICKLIST_VALUES_BY_RECORD_TYPE",
+      "kind": "read"
+    },
+    {
+      "name": "Get platform event schema",
+      "slug": "SALESFORCE_GET_PLATFORM_EVENT_SCHEMA",
+      "kind": "read"
+    },
+    {
+      "name": "Get Process Approvals",
+      "slug": "SALESFORCE_GET_PROCESS_APPROVALS",
+      "kind": "read"
+    },
+    {
+      "name": "Get process rules",
+      "slug": "SALESFORCE_GET_PROCESS_RULES",
+      "kind": "read"
+    },
+    {
+      "name": "Get job info query",
+      "slug": "SALESFORCE_GET_QUERY_JOB_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get job query result",
+      "slug": "SALESFORCE_GET_QUERY_JOB_RESULTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get query result pages",
+      "slug": "SALESFORCE_GET_QUERY_RESULT_PAGES",
+      "kind": "read"
+    },
+    {
+      "name": "Get quick actions",
+      "slug": "SALESFORCE_GET_QUICK_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get record count for objects",
+      "slug": "SALESFORCE_GET_RECORD_COUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get record edit page actions",
+      "slug": "SALESFORCE_GET_RECORD_EDIT_PAGE_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get related list actions",
+      "slug": "SALESFORCE_GET_RELATED_LIST_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get batch of related list user preferences",
+      "slug": "SALESFORCE_GET_RELATED_LIST_PREFERENCES_BATCH",
+      "kind": "read"
+    },
+    {
+      "name": "Get related list records with request body",
+      "slug": "SALESFORCE_GET_RELATED_LIST_RECORDS_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get relevant items",
+      "slug": "SALESFORCE_GET_RELEVANT_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get report metadata",
+      "slug": "SALESFORCE_GET_REPORT",
+      "kind": "read"
+    },
+    {
+      "name": "Get report fields",
+      "slug": "SALESFORCE_GET_REPORT_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Get report instance results",
+      "slug": "SALESFORCE_GET_REPORT_INSTANCE",
+      "kind": "read"
+    },
+    {
+      "name": "Get rich text image",
+      "slug": "SALESFORCE_GET_RICH_TEXT_IMAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get scheduling resources",
+      "slug": "SALESFORCE_GET_SCHEDULING_RESOURCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get search result layouts",
+      "slug": "SALESFORCE_GET_SEARCH_LAYOUT",
+      "kind": "read"
+    },
+    {
+      "name": "Get search scope",
+      "slug": "SALESFORCE_GET_SEARCH_SCOPE",
+      "kind": "read"
+    },
+    {
+      "name": "Search suggested queries",
+      "slug": "SALESFORCE_GET_SEARCH_SUGGESTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get self-service user password status",
+      "slug": "SALESFORCE_GET_SELF_SERVICE_USER_PASSWORD_STATUS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject basic information",
+      "slug": "SALESFORCE_GET_SOBJECT_BASIC_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject by external ID",
+      "slug": "SALESFORCE_GET_SOBJECT_BY_EXTERNAL_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get multiple sObject records",
+      "slug": "SALESFORCE_GET_SOBJECT_COLLECTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject compact layouts",
+      "slug": "SALESFORCE_GET_SOBJECT_COMPACT_LAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject layout headers",
+      "slug": "SALESFORCE_GET_SOBJECT_LAYOUT_HEADERS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject layouts",
+      "slug": "SALESFORCE_GET_SOBJECT_LAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject list view information",
+      "slug": "SALESFORCE_GET_SOBJECT_LIST_VIEW",
+      "kind": "read"
+    },
+    {
+      "name": "Get list views for sObject",
+      "slug": "SALESFORCE_GET_SOBJECT_LIST_VIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "Get PlatformAction SObject metadata",
+      "slug": "SALESFORCE_GET_SOBJECT_PLATFORMACTION",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject Quick Action Default Values by ID",
+      "slug": "SALESFORCE_GET_S_OBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject Quick Action Default Values",
+      "slug": "SALESFORCE_GET_SOBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject quick actions",
+      "slug": "SALESFORCE_GET_SOBJECT_QUICK_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get sObject record by ID",
+      "slug": "SALESFORCE_GET_S_OBJECT_RECORD",
+      "kind": "read"
+    },
+    {
+      "name": "Get records using sObject relationships",
+      "slug": "SALESFORCE_GET_SOBJECT_RELATIONSHIP",
+      "kind": "read"
+    },
+    {
+      "name": "Get layouts for object with record type",
+      "slug": "SALESFORCE_GET_S_OBJECTS_DESCRIBE_LAYOUTS_RECORD_TYPE_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Get approval layouts for object",
+      "slug": "SALESFORCE_GET_SOBJECTS_SOBJECT_DESCRIBE_APPROVALLAYOUTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get updated sObject records",
+      "slug": "SALESFORCE_GET_S_OBJECTS_UPDATED",
+      "kind": "read"
+    },
+    {
+      "name": "Get support knowledge",
+      "slug": "SALESFORCE_GET_SUPPORT",
+      "kind": "read"
+    },
+    {
+      "name": "Get directory of supported objects",
+      "slug": "SALESFORCE_GET_SUPPORTED_OBJECTS_DIRECTORY",
+      "kind": "read"
+    },
+    {
+      "name": "Get support knowledge articles",
+      "slug": "SALESFORCE_GET_SUPPORT_KNOWLEDGE_ARTICLES",
+      "kind": "read"
+    },
+    {
+      "name": "Get Survey Translations",
+      "slug": "SALESFORCE_GET_SURVEY_TRANSLATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get tabs",
+      "slug": "SALESFORCE_GET_TABS",
+      "kind": "read"
+    },
+    {
+      "name": "Get theme",
+      "slug": "SALESFORCE_GET_THEME",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tooling completions",
+      "slug": "SALESFORCE_GET_TOOLING_COMPLETIONS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tooling FlexiPage",
+      "slug": "SALESFORCE_GET_TOOLING_FLEXI_PAGE",
+      "kind": "read"
+    },
+    {
+      "name": "Get Tooling API record",
+      "slug": "SALESFORCE_GET_TOOLING_RECORD",
+      "kind": "read"
+    },
+    {
+      "name": "Get lookup field actions",
+      "slug": "SALESFORCE_GET_UI_API_ACTIONS_LOOKUP_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get MRU List View Actions",
+      "slug": "SALESFORCE_GET_UIAPI_ACTIONS_MRU_LIST_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get related list actions",
+      "slug": "SALESFORCE_GET_UI_API_ACTIONS_RECORD_RELATED_LIST",
+      "kind": "read"
+    },
+    {
+      "name": "Get Personalized Navigation Items",
+      "slug": "SALESFORCE_GET_UI_API_APPS_USER_NAV_ITEMS",
+      "kind": "read"
+    },
+    {
+      "name": "Get Account AllAccounts list view metadata",
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_ALL_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get List View Metadata",
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_RECENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get Account SearchResult list view metadata",
+      "slug": "SALESFORCE_GET_UIAPI_LIST_INFO_ACCOUNT_SEARCH_RESULT",
+      "kind": "read"
+    },
+    {
+      "name": "Get List Views for Object",
+      "slug": "SALESFORCE_GET_UI_API_LIST_INFO_RECENT",
+      "kind": "read"
+    },
+    {
+      "name": "Get MRU List Info for Account",
+      "slug": "SALESFORCE_GET_UIAPIMRU_LIST_INFO_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get MRU List Records for Account",
+      "slug": "SALESFORCE_GET_UI_API_MRU_LIST_RECORDS_ACCOUNT",
+      "kind": "read"
+    },
+    {
+      "name": "Get record UI data and metadata",
+      "slug": "SALESFORCE_GET_UI_API_RECORD_UI",
+      "kind": "read"
+    },
+    {
+      "name": "Get related list user preferences",
+      "slug": "SALESFORCE_GET_UIAPI_RELATED_LIST_PREFERENCES",
+      "kind": "read"
+    },
+    {
+      "name": "Get user info",
+      "slug": "SALESFORCE_GET_USER_INFO",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom actions headers",
+      "slug": "SALESFORCE_HEAD_ACTIONS_CUSTOM",
+      "kind": "write"
+    },
+    {
+      "name": "Get standard actions headers",
+      "slug": "SALESFORCE_HEAD_ACTIONS_STANDARD",
+      "kind": "write"
+    },
+    {
+      "name": "Get AppMenu Salesforce1 headers",
+      "slug": "SALESFORCE_HEAD_APPMENU_SALESFORCE1",
+      "kind": "write"
+    },
+    {
+      "name": "Get process rules headers",
+      "slug": "SALESFORCE_HEAD_PROCESS_RULES_S_OBJECT",
+      "kind": "write"
+    },
+    {
+      "name": "Get Quick Actions headers",
+      "slug": "SALESFORCE_HEAD_QUICK_ACTIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Get quick action default values headers by ID",
+      "slug": "SALESFORCE_HEAD_SOBJECT_QUICK_ACTION_DEFAULT_VALUES",
+      "kind": "write"
+    },
+    {
+      "name": "Get global publisher layouts headers",
+      "slug": "SALESFORCE_HEAD_SOBJECTS_GLOBAL_DESCRIBE_LAYOUTS",
+      "kind": "write"
+    },
+    {
+      "name": "Get sObject quick action headers",
+      "slug": "SALESFORCE_HEAD_SOBJECTS_QUICK_ACTION",
+      "kind": "write"
+    },
+    {
+      "name": "Get User password headers",
+      "slug": "SALESFORCE_HEAD_SOBJECTS_USER_PASSWORD",
+      "kind": "write"
+    },
+    {
+      "name": "List accounts",
+      "slug": "SALESFORCE_LIST_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "List Analytics notifications",
+      "slug": "SALESFORCE_LIST_ANALYTICS_NOTIFICATIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Analytics templates",
+      "slug": "SALESFORCE_LIST_ANALYTICS_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List API versions",
+      "slug": "SALESFORCE_LIST_API_VERSIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List bulk jobs",
+      "slug": "SALESFORCE_LIST_BULK_JOBS",
+      "kind": "read"
+    },
+    {
+      "name": "List campaigns",
+      "slug": "SALESFORCE_LIST_CAMPAIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "List communities",
+      "slug": "SALESFORCE_LIST_COMMUNITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List contacts",
+      "slug": "SALESFORCE_LIST_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Get custom invocable actions",
+      "slug": "SALESFORCE_LIST_CUSTOM_INVOCABLE_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List dashboards",
+      "slug": "SALESFORCE_LIST_DASHBOARDS",
+      "kind": "read"
+    },
+    {
+      "name": "List email templates",
+      "slug": "SALESFORCE_LIST_EMAIL_TEMPLATES",
+      "kind": "read"
+    },
+    {
+      "name": "List folder children",
+      "slug": "SALESFORCE_LIST_FOLDER_CHILDREN",
+      "kind": "read"
+    },
+    {
+      "name": "List folders",
+      "slug": "SALESFORCE_LIST_FOLDERS",
+      "kind": "read"
+    },
+    {
+      "name": "List folder share recipients",
+      "slug": "SALESFORCE_LIST_FOLDER_SHARE_RECIPIENTS",
+      "kind": "read"
+    },
+    {
+      "name": "List leads",
+      "slug": "SALESFORCE_LIST_LEADS",
+      "kind": "read"
+    },
+    {
+      "name": "List notes",
+      "slug": "SALESFORCE_LIST_NOTES",
+      "kind": "read"
+    },
+    {
+      "name": "List opportunities",
+      "slug": "SALESFORCE_LIST_OPPORTUNITIES",
+      "kind": "read"
+    },
+    {
+      "name": "List pricebook entries",
+      "slug": "SALESFORCE_LIST_PRICEBOOK_ENTRIES",
+      "kind": "read"
+    },
+    {
+      "name": "List pricebooks",
+      "slug": "SALESFORCE_LIST_PRICEBOOKS",
+      "kind": "read"
+    },
+    {
+      "name": "List recent list views",
+      "slug": "SALESFORCE_LIST_RECENT_LIST_VIEWS",
+      "kind": "read"
+    },
+    {
+      "name": "List recent records",
+      "slug": "SALESFORCE_LIST_RECENT_RECORDS",
+      "kind": "read"
+    },
+    {
+      "name": "List report filter operators",
+      "slug": "SALESFORCE_LIST_REPORT_FILTER_OPERATORS",
+      "kind": "read"
+    },
+    {
+      "name": "List report runs",
+      "slug": "SALESFORCE_LIST_REPORT_RUNS",
+      "kind": "read"
+    },
+    {
+      "name": "List reports",
+      "slug": "SALESFORCE_LIST_REPORTS",
+      "kind": "read"
+    },
+    {
+      "name": "List report types",
+      "slug": "SALESFORCE_LIST_REPORT_TYPES",
+      "kind": "read"
+    },
+    {
+      "name": "Get standard invocable actions",
+      "slug": "SALESFORCE_LIST_STANDARD_INVOCABLE_ACTIONS",
+      "kind": "read"
+    },
+    {
+      "name": "List Tooling API objects",
+      "slug": "SALESFORCE_LIST_TOOLING_OBJECTS",
+      "kind": "read"
+    },
+    {
+      "name": "Log call",
+      "slug": "SALESFORCE_LOG_CALL",
+      "kind": "write"
+    },
+    {
+      "name": "Log email activity",
+      "slug": "SALESFORCE_LOG_EMAIL_ACTIVITY",
+      "kind": "write"
+    },
+    {
+      "name": "Mass transfer ownership",
+      "slug": "SALESFORCE_MASS_TRANSFER_OWNERSHIP",
+      "kind": "send"
+    },
+    {
+      "name": "Parameterized Search",
+      "slug": "SALESFORCE_PARAMETERIZED_SEARCH",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert records using external ID",
+      "slug": "SALESFORCE_PATCH_COMPOSITE_SOBJECTS",
+      "kind": "write"
+    },
+    {
+      "name": "Execute Composite Graph",
+      "slug": "SALESFORCE_POST_COMPOSITE_GRAPH",
+      "kind": "send"
+    },
+    {
+      "name": "Create records using sObject Collections",
+      "slug": "SALESFORCE_POST_COMPOSITE_SOBJECTS",
+      "kind": "send"
+    },
+    {
+      "name": "Parameterized Search",
+      "slug": "SALESFORCE_POST_PARAMETERIZED_SEARCH",
+      "kind": "send"
+    },
+    {
+      "name": "Process Approvals",
+      "slug": "SALESFORCE_PROCESS_APPROVALS",
+      "kind": "write"
+    },
+    {
+      "name": "Execute SOQL Query (Deprecated)",
+      "slug": "SALESFORCE_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Query All (including deleted)",
+      "slug": "SALESFORCE_QUERY_ALL",
+      "kind": "write"
+    },
+    {
+      "name": "Query contacts by name",
+      "slug": "SALESFORCE_QUERY_CONTACTS_BY_NAME",
+      "kind": "write"
+    },
+    {
+      "name": "Query more (next page of SOQL results)",
+      "slug": "SALESFORCE_QUERY_MORE",
+      "kind": "write"
+    },
+    {
+      "name": "Query report",
+      "slug": "SALESFORCE_QUERY_REPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Refresh dashboard",
+      "slug": "SALESFORCE_REFRESH_DASHBOARD",
+      "kind": "write"
+    },
+    {
+      "name": "Remove account by unique identifier",
+      "slug": "SALESFORCE_REMOVE_ACCOUNT_BY_UNIQUE_IDENTIFIER",
+      "kind": "write"
+    },
+    {
+      "name": "Remove a specific contact by id",
+      "slug": "SALESFORCE_REMOVE_A_SPECIFIC_CONTACT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Remove campaign object by id",
+      "slug": "SALESFORCE_REMOVE_CAMPAIGN_OBJECT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Remove from campaign",
+      "slug": "SALESFORCE_REMOVE_FROM_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Remove note object by id",
+      "slug": "SALESFORCE_REMOVE_NOTE_OBJECT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Remove opportunity by id",
+      "slug": "SALESFORCE_REMOVE_OPPORTUNITY_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Replace folder shares",
+      "slug": "SALESFORCE_REPLACE_FOLDER_SHARES",
+      "kind": "write"
+    },
+    {
+      "name": "Reset self-service user password",
+      "slug": "SALESFORCE_RESET_SELF_SERVICE_USER_PASSWORD",
+      "kind": "write"
+    },
+    {
+      "name": "Retrieve account data and error responses",
+      "slug": "SALESFORCE_RETRIEVE_ACCOUNT_DATA_AND_ERROR_RESPONSES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve campaign data with error handling",
+      "slug": "SALESFORCE_RETRIEVE_CAMPAIGN_DATA_WITH_ERROR_HANDLING",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve contact object metadata",
+      "slug": "SALESFORCE_RETRIEVE_CONTACT_INFO_WITH_STANDARD_RESPONSES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve lead by id",
+      "slug": "SALESFORCE_RETRIEVE_LEAD_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve lead data with various responses",
+      "slug": "SALESFORCE_RETRIEVE_LEAD_DATA_WITH_VARIOUS_RESPONSES",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve note object information",
+      "slug": "SALESFORCE_RETRIEVE_NOTE_OBJECT_INFORMATION",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve opportunities data",
+      "slug": "SALESFORCE_RETRIEVE_OPPORTUNITIES_DATA",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve opportunity by id with optional fields",
+      "slug": "SALESFORCE_RETRIEVE_OPPORTUNITY_BY_ID_WITH_OPTIONAL_FIELDS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve specific campaign object details",
+      "slug": "SALESFORCE_RETRIEVE_SPECIFIC_CAMPAIGN_OBJECT_DETAILS",
+      "kind": "read"
+    },
+    {
+      "name": "Retrieve specific contact by id",
+      "slug": "SALESFORCE_RETRIEVE_SPECIFIC_CONTACT_BY_ID",
+      "kind": "read"
+    },
+    {
+      "name": "Run report",
+      "slug": "SALESFORCE_RUN_REPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Run report async",
+      "slug": "SALESFORCE_RUN_REPORT_ASYNC",
+      "kind": "write"
+    },
+    {
+      "name": "Run report with overrides",
+      "slug": "SALESFORCE_RUN_REPORT_WITH_OVERRIDES",
+      "kind": "write"
+    },
+    {
+      "name": "Run SOQL query",
+      "slug": "SALESFORCE_RUN_SOQL_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Run tests asynchronously",
+      "slug": "SALESFORCE_RUN_TESTS_ASYNCHRONOUS",
+      "kind": "write"
+    },
+    {
+      "name": "Run tests synchronously",
+      "slug": "SALESFORCE_RUN_TESTS_SYNCHRONOUS",
+      "kind": "write"
+    },
+    {
+      "name": "Save report",
+      "slug": "SALESFORCE_SAVE_REPORT",
+      "kind": "write"
+    },
+    {
+      "name": "Execute SOSL search",
+      "slug": "SALESFORCE_SEARCH",
+      "kind": "read"
+    },
+    {
+      "name": "Search accounts",
+      "slug": "SALESFORCE_SEARCH_ACCOUNTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search campaigns",
+      "slug": "SALESFORCE_SEARCH_CAMPAIGNS",
+      "kind": "read"
+    },
+    {
+      "name": "Search contacts",
+      "slug": "SALESFORCE_SEARCH_CONTACTS",
+      "kind": "read"
+    },
+    {
+      "name": "Search suggested article title matches",
+      "slug": "SALESFORCE_SEARCH_KNOWLEDGE_ARTICLES",
+      "kind": "read"
+    },
+    {
+      "name": "Search leads",
+      "slug": "SALESFORCE_SEARCH_LEADS",
+      "kind": "read"
+    },
+    {
+      "name": "Search notes",
+      "slug": "SALESFORCE_SEARCH_NOTES",
+      "kind": "read"
+    },
+    {
+      "name": "Search opportunities",
+      "slug": "SALESFORCE_SEARCH_OPPORTUNITIES",
+      "kind": "read"
+    },
+    {
+      "name": "Search tasks",
+      "slug": "SALESFORCE_SEARCH_TASKS",
+      "kind": "read"
+    },
+    {
+      "name": "Search Tooling API records",
+      "slug": "SALESFORCE_SEARCH_TOOLING",
+      "kind": "read"
+    },
+    {
+      "name": "Send email",
+      "slug": "SALESFORCE_SEND_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Send email from template",
+      "slug": "SALESFORCE_SEND_EMAIL_FROM_TEMPLATE",
+      "kind": "send"
+    },
+    {
+      "name": "Send mass email",
+      "slug": "SALESFORCE_SEND_MASS_EMAIL",
+      "kind": "send"
+    },
+    {
+      "name": "Set self-service user password",
+      "slug": "SALESFORCE_SET_SELF_SERVICE_USER_PASSWORD",
+      "kind": "write"
+    },
+    {
+      "name": "Set user password",
+      "slug": "SALESFORCE_SET_USER_PASSWORD",
+      "kind": "write"
+    },
+    {
+      "name": "Update sObject record",
+      "slug": "SALESFORCE_SOBJECT_ROWS_UPDATE",
+      "kind": "write"
+    },
+    {
+      "name": "Get user password expiration status",
+      "slug": "SALESFORCE_SOBJECT_USER_PASSWORD",
+      "kind": "write"
+    },
+    {
+      "name": "Start metadata deployment",
+      "slug": "SALESFORCE_START_METADATA_DEPLOYMENT",
+      "kind": "write"
+    },
+    {
+      "name": "Execute Tooling API query",
+      "slug": "SALESFORCE_TOOLING_QUERY",
+      "kind": "write"
+    },
+    {
+      "name": "Trigger process rules",
+      "slug": "SALESFORCE_TRIGGER_PROCESS_RULES",
+      "kind": "write"
+    },
+    {
+      "name": "Update account",
+      "slug": "SALESFORCE_UPDATE_ACCOUNT",
+      "kind": "write"
+    },
+    {
+      "name": "Update account by id",
+      "slug": "SALESFORCE_UPDATE_ACCOUNT_OBJECT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update analytics notification",
+      "slug": "SALESFORCE_UPDATE_ANALYTICS_NOTIFICATION",
+      "kind": "write"
+    },
+    {
+      "name": "Update campaign",
+      "slug": "SALESFORCE_UPDATE_CAMPAIGN",
+      "kind": "write"
+    },
+    {
+      "name": "Update Campaign By ID",
+      "slug": "SALESFORCE_UPDATE_CAMPAIGN_BY_ID_WITH_JSON",
+      "kind": "write"
+    },
+    {
+      "name": "Update contact",
+      "slug": "SALESFORCE_UPDATE_CONTACT",
+      "kind": "write"
+    },
+    {
+      "name": "Update contact by id",
+      "slug": "SALESFORCE_UPDATE_CONTACT_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update custom field metadata",
+      "slug": "SALESFORCE_UPDATE_CUSTOM_FIELD",
+      "kind": "write"
+    },
+    {
+      "name": "Update dashboard",
+      "slug": "SALESFORCE_UPDATE_DASHBOARD",
+      "kind": "write"
+    },
+    {
+      "name": "Update a favorite",
+      "slug": "SALESFORCE_UPDATE_FAVORITE",
+      "kind": "write"
+    },
+    {
+      "name": "Update folder",
+      "slug": "SALESFORCE_UPDATE_FOLDER",
+      "kind": "write"
+    },
+    {
+      "name": "Update folder share",
+      "slug": "SALESFORCE_UPDATE_FOLDER_SHARE",
+      "kind": "send"
+    },
+    {
+      "name": "Update Knowledge article version",
+      "slug": "SALESFORCE_UPDATE_KNOWLEDGE_ARTICLE_VERSION",
+      "kind": "write"
+    },
+    {
+      "name": "Update lead",
+      "slug": "SALESFORCE_UPDATE_LEAD",
+      "kind": "write"
+    },
+    {
+      "name": "Update lead by ID with JSON payload",
+      "slug": "SALESFORCE_UPDATE_LEAD_BY_ID_WITH_JSON_PAYLOAD",
+      "kind": "write"
+    },
+    {
+      "name": "Update list view preferences",
+      "slug": "SALESFORCE_UPDATE_LIST_VIEW_PREFERENCES",
+      "kind": "write"
+    },
+    {
+      "name": "Update note",
+      "slug": "SALESFORCE_UPDATE_NOTE",
+      "kind": "write"
+    },
+    {
+      "name": "Update opportunity",
+      "slug": "SALESFORCE_UPDATE_OPPORTUNITY",
+      "kind": "write"
+    },
+    {
+      "name": "Update opportunity by id",
+      "slug": "SALESFORCE_UPDATE_OPPORTUNITY_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update a record",
+      "slug": "SALESFORCE_UPDATE_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Update Related List Preferences",
+      "slug": "SALESFORCE_UPDATE_RELATED_LIST_PREFERENCES",
+      "kind": "write"
+    },
+    {
+      "name": "Update sObject collection",
+      "slug": "SALESFORCE_UPDATE_S_OBJECT_COLLECTION",
+      "kind": "write"
+    },
+    {
+      "name": "Update specific note by id",
+      "slug": "SALESFORCE_UPDATE_SPECIFIC_NOTE_BY_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Update task",
+      "slug": "SALESFORCE_UPDATE_TASK",
+      "kind": "write"
+    },
+    {
+      "name": "Update Tooling Flow",
+      "slug": "SALESFORCE_UPDATE_TOOLING_FLOW",
+      "kind": "write"
+    },
+    {
+      "name": "Update Tooling API record",
+      "slug": "SALESFORCE_UPDATE_TOOLING_RECORD",
+      "kind": "write"
+    },
+    {
+      "name": "Upload file to Salesforce Files",
+      "slug": "SALESFORCE_UPLOAD_FILE",
+      "kind": "write"
+    },
+    {
+      "name": "Upload job data",
+      "slug": "SALESFORCE_UPLOAD_JOB_DATA",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert sObject by External ID",
+      "slug": "SALESFORCE_UPSERT_SOBJECT_BY_EXTERNAL_ID",
+      "kind": "write"
+    },
+    {
+      "name": "Upsert Survey Translations",
+      "slug": "SALESFORCE_UPSERT_SURVEY_TRANSLATIONS",
+      "kind": "write"
+    },
+    {
+      "name": "Who Am I",
+      "slug": "SALESFORCE_WHO_AM_I",
+      "kind": "write"
+    }
+  ],
+  "triggers": [],
+  "source": "https://docs.composio.dev/toolkits/salesforce",
+  "fetched_at": "2026-11-12"
+}

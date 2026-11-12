@@ -1,0 +1,223 @@
+{
+  "path": "/vs/poke",
+  "title": "Poke vs Dusk Bot: one contact or a small bot team?",
+  "nav": "poke",
+  "h1": "poke vs dusk bot: where you text your assistant",
+  "description": "Compare Poke’s messaging channels, included AI and plan prices with Dusk Bot’s named teammates, phone pairing and hosting choices.",
+  "answer": "poke is a personal assistant you text like a contact, through services including apple messages, telegram, whatsapp and rcs.[^1][^2] dusk bot has its own desktop and paired phone interface, where you text separate bots with different jobs. poke runs as an always-on cloud agent; dusk bots can live on your computer, your server or dusk cloud.[^3][^7] choose first by where you want the conversation and whether you want a single assistant or named roles.",
+  "tags": [
+    "poke",
+    "comparison",
+    "phone",
+    "messaging"
+  ],
+  "related": [
+    "/alternatives/ai-assistant-you-text",
+    "/personal-ai-agent",
+    "/alternatives/poke"
+  ],
+  "competitor": {
+    "key": "poke",
+    "name": "Poke",
+    "url": "https://poke.com/"
+  },
+  "art": {
+    "props": [
+      "s-phone",
+      "p-bubbles"
+    ],
+    "label": "Poke",
+    "bubble": "text it where?"
+  },
+  "og_line": "a familiar contact or named bot roles.",
+  "verdict": {
+    "them_title": "poke",
+    "them": [
+      "you want to text an assistant through apple messages, telegram, whatsapp or rcs",
+      "you want cloud operation and ai included in the same service plan"
+    ],
+    "dusk": [
+      "you want different bots for different responsibilities, with their own memory",
+      "you want control over where the bots live and which ai each one uses"
+    ]
+  },
+  "compare": {
+    "h": "start with the place you will actually use it",
+    "intro": "channel support and monthly usd prices below are from saved sources checked on 12 november 2026. the table does not assume the two products offer the same amount of ai work.",
+    "cols": [
+      "Poke",
+      "Dusk Bot"
+    ],
+    "rows": [
+      {
+        "label": "conversation surface",
+        "cells": [
+          "apple messages, telegram, whatsapp and rcs",
+          "own desktop app and paired phone browser; store phone apps are on their way"
+        ],
+        "src": [
+          2,
+          6
+        ]
+      },
+      {
+        "label": "assistant arrangement",
+        "cells": [
+          "proactive personal assistant you text like a contact",
+          "separate named bots, each with a job, chats and memory"
+        ],
+        "src": [
+          1,
+          8
+        ]
+      },
+      {
+        "label": "where the agent runs",
+        "cells": [
+          "always-on cloud agent",
+          "your computer, your server or dusk cloud"
+        ],
+        "src": [
+          3,
+          7
+        ]
+      },
+      {
+        "label": "ai billing",
+        "cells": [
+          "models included in the plan; pro and ultra describe frontier models",
+          "your chosen ai provider bills usage separately from dusk"
+        ],
+        "src": [
+          4,
+          9
+        ]
+      },
+      {
+        "label": "monthly prices",
+        "cells": [
+          "free $0; pro $19; ultra $199 with usage beyond credits billed pay-as-you-go",
+          "free personal desktop use; cloud plus $20 or pro $50, plus ai usage"
+        ],
+        "src": [
+          4,
+          7,
+          9
+        ]
+      },
+      {
+        "label": "background jobs",
+        "cells": [
+          "reminders and scheduled tasks; pro adds real-time background automations",
+          "routines from chat; desktop stops while asleep, cloud runs on time"
+        ],
+        "src": [
+          1,
+          10
+        ]
+      },
+      {
+        "label": "app connections",
+        "cells": [
+          "recipe directory includes notion, github and linear; custom mcp integrations",
+          "connect an app and choose access per bot; mcp servers can be added as plugins"
+        ],
+        "src": [
+          5,
+          11
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot and have not run identical tasks through poke and dusk bot. this page uses their documented interfaces and the saved poke sources checked on 12 november 2026. we do not know which specific models power each poke action, and the available facts do not establish its approval policy. those gaps are not evidence that poke lacks safeguards or model options.",
+  "sections": [
+    {
+      "h": "a phone assistant should fit the way you check in",
+      "md": "if you want the conversation in an existing messaging app, poke directly supports that pattern.[^2] there is no reason to add a separate bot workspace merely to ask a small question. the [assistants you text comparison](/alternatives/ai-assistant-you-text) looks at that preference across products.\n\ndusk bot's phone interface is different. you pair it once with a computer or dusk cloud, then text your bots there. today pairing opens a browser version you can add to the home screen. that version sends no notifications; the store apps are still on their way.[^6] if you rely on a notification to notice work, take that limitation seriously."
+    },
+    {
+      "h": "the closed laptop changes the dusk choice",
+      "md": "poke is described as an always-on cloud agent.[^3] a dusk bot on your laptop still depends on the app running and the machine being on. pairing a phone to that laptop does not move the bot to the phone.[^6]\n\nwith dusk cloud, the bots run on a computer we host and your phone works with the laptop off. the cloud computer is your own machine, not shared, and ai usage remains a separate provider cost.[^7][^9] the [personal agent guide](/personal-ai-agent) is a useful next step if you want to choose where the bot should live before assigning more work."
+    },
+    {
+      "h": "split responsibilities only when it helps",
+      "md": "in dusk bot, you might keep one bot for planning a writing project and another for reviewing attached drafts. each has its own memory and ai choice.[^8] give the planner a routine such as: \"every monday at 9, ask me which writing commitment matters most this week. keep the question in this chat.\" this is an instruction to try, not a reported result.\n\nthat arrangement adds roles to manage. if you simply want one contact to remind you about things, poke's documented reminder and scheduling features may be a closer fit.[^1] [poke alternatives](/alternatives/poke) covers other choices without assuming more bots are always useful.\n\nfor dusk bots connected to apps, keep early trials read-only. sends ask first unless you set a daily allowance, but other app changes do not have a documented automatic approval prompt. request \"ask me before you change anything\" if you later grant write access.[^11]"
+    }
+  ],
+  "faq": [
+    {
+      "q": "what is the lowest poke ai price?",
+      "a": "as of 12 november 2026, poke lists a $0 free tier, pro at $19 monthly and ultra at $199 monthly. ultra adds pay-as-you-go usage beyond credits.[^4] compare the allowance as well as the price; we cannot turn the plans into an equal task count."
+    },
+    {
+      "q": "how do i run an agent from my phone when my laptop is closed?",
+      "a": "poke already runs in the cloud.[^3] for dusk bot, pair the phone to dusk cloud rather than a sleeping laptop. a phone paired to your computer needs that computer on and running dusk bot.[^6][^7]"
+    },
+    {
+      "q": "is poke joining cognition?",
+      "a": "yes. cognition announced it was welcoming the interaction company on 23 july 2026 and said poke users could continue using the product as before. that is the status recorded as of 12 november 2026.[^3]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "poke: assistant and scheduled work",
+      "url": "https://poke.com/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke: supported messaging apps",
+      "url": "https://poke.com/docs",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "cognition: poke and the interaction company",
+      "url": "https://cognition.com/blog/interaction",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke: tiers and ai usage",
+      "url": "https://poke.com/pricing",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "poke: recipes and mcp",
+      "url": "https://poke.com/faq",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot: pairing and current browser limits",
+      "url": "/docs/phone"
+    },
+    {
+      "label": "dusk bot: hosted computer and pricing",
+      "url": "/docs/dusk-cloud"
+    },
+    {
+      "label": "dusk bot: separate roles and model choices",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: ai provider billing",
+      "url": "/docs/account-and-billing"
+    },
+    {
+      "label": "dusk bot: desktop and cloud timing",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: connected apps and sending",
+      "url": "/docs/files-and-apps"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "poke vs",
+  "keywords": [
+    "poke ai pricing",
+    "poke ai alternatives"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": []
+}

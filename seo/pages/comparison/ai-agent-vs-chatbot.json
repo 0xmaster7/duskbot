@@ -1,0 +1,182 @@
+{
+  "path": "/vs/ai-agent-vs-chatbot",
+  "title": "AI agent vs chatbot: what you are handing over",
+  "nav": "agent vs chatbot",
+  "h1": "ai agent vs chatbot: answers, actions and responsibility",
+  "description": "A plain comparison of asking for an answer and handing over a task, with permission boundaries and a way to decide how much help you need.",
+  "answer": "a chatbot helps you through conversation; an ai agent can also use tools to carry a task forward. the useful distinction is what you hand over: a question to answer, or a job to do within limits. the names overlap, so ask what access the product gets and what starts the work. an agent can still just chat. adding tools and a schedule also adds decisions about permissions, errors and who checks the result.",
+  "tags": [
+    "agents",
+    "chatbots",
+    "comparison",
+    "permissions"
+  ],
+  "related": [
+    "/guides/what-is-an-ai-agent",
+    "/scheduled-ai-tasks",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "props": [
+      "p-bubbles",
+      "s-button"
+    ],
+    "label": "Chatbot / agent",
+    "bubble": "answer or action?"
+  },
+  "og_line": "decide what you want to hand over.",
+  "verdict": {
+    "them_title": "a chatbot",
+    "them": [
+      "you want an explanation, a second opinion or a draft that you will use yourself",
+      "you prefer to choose and carry out each action after reading the answer"
+    ],
+    "dusk": [
+      "you need an agent to read permitted material and carry a bounded task through tools",
+      "you want a recurring job, and can set its access, stop conditions and review process"
+    ],
+    "dusk_title": "an ai agent"
+  },
+  "compare": {
+    "h": "a working distinction, not two fixed product categories",
+    "intro": "these columns describe two ways to use ai. the agent column uses documented dusk bot capabilities as concrete examples, not requirements that every agent product meets.",
+    "cols": [
+      "A chatbot",
+      "An AI agent"
+    ],
+    "rows": [
+      {
+        "label": "what you hand over",
+        "cells": [
+          "a question, passage or idea to discuss",
+          "a job, allowed inputs and a clear place for the result"
+        ],
+        "src": [
+          1
+        ]
+      },
+      {
+        "label": "who takes the next step",
+        "cells": [
+          "you read the answer and do the next action",
+          "the agent may call permitted tools and continue the task"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "access to other apps",
+        "cells": [
+          "for a conversation-only task, you supply the material",
+          "may read connected apps or change them, depending on permissions"
+        ],
+        "src": [
+          3
+        ]
+      },
+      {
+        "label": "when work starts",
+        "cells": [
+          "you start this exchange by asking",
+          "may start in chat, on a schedule or from an app event"
+        ],
+        "src": [
+          4
+        ]
+      },
+      {
+        "label": "checking progress",
+        "cells": [
+          "you inspect the reply before using it",
+          "in dusk bot, tool activity is shown while the bot works; you can stop it"
+        ],
+        "src": [
+          2
+        ]
+      },
+      {
+        "label": "memory and identity",
+        "cells": [
+          "a conversation interface alone says nothing about lasting memory",
+          "dusk bots have separate jobs and memory; memory can be turned off"
+        ],
+        "src": [
+          2,
+          5
+        ]
+      }
+    ]
+  },
+  "method": "we make dusk bot and use its docs to illustrate agent behaviour. we did not run identical tasks through chatbots and agents, and the labels here are working definitions rather than a product ranking. a chat interface can contain tools, memory or background work. check the actual controls before assuming a product fits either column in every situation.",
+  "sections": [
+    {
+      "h": "when a chatbot is enough",
+      "md": "you want help understanding a contract clause, rewriting a paragraph or thinking through a decision. you can paste the relevant material and keep the next action in your own hands. there is no need to connect a whole account just to discuss a small excerpt.\n\na useful instruction is: \"read this paragraph and tell me which terms are unclear. ask me what i mean before rewriting it.\" you are asking for help with judgement, not handing over authority to change the original document. the [ai agent explainer](/guides/what-is-an-ai-agent) goes further into the vocabulary."
+    },
+    {
+      "h": "when you need an agent",
+      "md": "the useful result needs more than a reply to the current message. perhaps you want a review of a folder every friday, with a short note about unresolved questions. an agent with the right file access and scheduling can take on that recurring work. dusk bot routines are created through chat and show their next runs on a card.[^4]\n\ntry: \"every friday at 3, review the notes in this project folder. list unanswered questions in this chat. do not change the notes, and stay quiet if there are none.\" [scheduled ai tasks](/scheduled-ai-tasks) covers the point where a repeated prompt becomes a job you need to supervise.\n\nthe task still needs a running machine. dusk desktop routines do not run while the computer sleeps or the app is closed.[^4] the word agent by itself does not promise an always-on service."
+    },
+    {
+      "h": "agent or plain automation?",
+      "md": "ask what parts need interpretation. if the same input should always lead to the same action, write that rule down first. if the work needs reading messy notes and deciding what belongs in a summary, describe the judgement you expect and the evidence it should use. neither task needs a vague instruction to \"handle everything\".\n\nwhen you give a dusk bot access to connected apps, read-only permissions block actions that change things. sending has its own approval setting. other app changes are not documented as asking first, so keep access read-only or say \"ask me before you change anything\".[^3] command and file approvals are separate.[^6]\n\nreview the first runs and stop if the task grows beyond what you intended. the [computer-control safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) helps you choose a narrow boundary before adding more tools."
+    }
+  ],
+  "faq": [
+    {
+      "q": "what are the best uses for an agent in personal life?",
+      "a": "start with work you can inspect: a recurring review of notes you provide, or a reminder to revisit open questions. define what should be read, where the result goes and when it should say nothing. keep changes out of the first routine rather than granting broad access because the task sounds small."
+    },
+    {
+      "q": "does a chatbot become an agent just because it remembers me?",
+      "a": "memory and action are different capabilities. dusk bot has a separate memory setting, while app permissions control which tools a bot can call.[^5][^3] ask what the software can do on your behalf, not just what it recalls."
+    },
+    {
+      "q": "do i need a group chat of agents for a simple job?",
+      "a": "you can start with one bot. dusk bot supports group chats, but the docs recommend keeping groups small and focused.[^7] add another role when you can explain what different work it contributes, such as reviewing assumptions, rather than expecting extra voices to guarantee accuracy."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot: what a bot is",
+      "url": "/docs/getting-started"
+    },
+    {
+      "label": "dusk bot: jobs, tools and stopping work",
+      "url": "/docs/bots"
+    },
+    {
+      "label": "dusk bot: connected-app limits",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot: schedules and app events",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot: memory controls",
+      "url": "/docs/memory"
+    },
+    {
+      "label": "dusk bot: command and file approvals",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot: focused group chats",
+      "url": "/docs/group-chats"
+    }
+  ],
+  "type": "comparison",
+  "keyword": "ai agent vs chatbot",
+  "keywords": [
+    "ai agents vs workflows",
+    "ai agent vs automation",
+    "ai agent vs zapier"
+  ],
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "connectors": []
+}

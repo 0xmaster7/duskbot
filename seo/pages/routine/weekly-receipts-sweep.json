@@ -1,0 +1,52 @@
+{
+  "path": "/routines/weekly-receipts-sweep",
+  "type": "routine",
+  "title": "Weekly receipts sweep: match mail to your expense sheet",
+  "nav": "weekly receipts sweep",
+  "h1": "match weekly receipts to the sheet you already keep",
+  "description": "Compare Gmail or Outlook receipts with a named Google Sheets range. Find possible duplicates, missing receipts and uncertain matches without changing records.",
+  "keyword": "ai weekly receipts sweep",
+  "keywords": ["match email receipts to spreadsheet", "gmail outlook receipt routine", "weekly expense receipt check"],
+  "answer": "once a week, have a bot compare emailed receipts with the expense rows you already keep in google sheets. it can search gmail or outlook, read receipt attachments and check the named sheet range. ask for unmatched rows, receipts absent from the sheet and uncertain duplicates. this routine produces a review list in chat without labelling mail or updating your expense records.",
+  "updated": "2026-11-12",
+  "review": { "status": "needs_review" },
+  "tags": ["receipts", "routine", "expenses", "matching", "spreadsheet"],
+  "connectors": ["gmail", "outlook", "googlesheets"],
+  "related": ["/integrations/google-sheets", "/integrations/outlook", "/integrations/gmail"],
+  "art": { "props": ["p-receipt", "p-magnifier"], "bubble": "one match uncertain" },
+  "og_line": "find the gaps before updating your records.",
+  "routine": {
+    "message": "every monday at 9, compare receipts from the previous monday through sunday with my expense sheet. use only the gmail and outlook accounts i name, and the google sheets file, tab and range i give you.\n\nread the receipt messages and accessible attachments. compare merchant, transaction date, total, currency and receipt reference with the sheet. don't match on amount alone. distinguish the receipt date from the date the email arrived.\n\nreturn four groups in this chat: receipts with a clear matching row, sheet rows with no receipt found, receipts with no matching row, and uncertain or possible duplicate records. include the sheet row and message reference for each proposed match. keep refunds separate from purchases. flag unreadable or missing amounts; don't guess them.\n\ndon't change the sheet, label or move mail, pay anything or contact suppliers. if both sources cannot be read, say the comparison is incomplete.",
+    "when": "mondays at 9:00, reviewing the previous monday through sunday in your chosen time zone",
+    "needs": "gmail or outlook, or both, plus google sheets; read-only access and a named expense range with merchant, date, amount and currency columns",
+    "output": "weekly receipt comparison for priya\nclear match: acme supplies receipt a17, usd 42.00, matches expenses row 18 on merchant, transaction date and reference.\nno receipt found: row 21, sam's print shop, usd 18.00. the inbox search is not proof it was never issued.\nno sheet row found: acme supplies receipt a22, usd 12.00.\nuncertain: two acme emails show receipt a17; likely copies of the same receipt, not two expenses.\ncoverage: work gmail and work outlook read; expenses rows 2 to 40 read. no records changed."
+  },
+  "knobs": [
+    "choose the account labels explicitly so a personal purchase does not enter a business expense review",
+    "name the date column and what it means; transaction date and statement posting date should not silently be treated as identical",
+    "provide merchant aliases you already know, while requiring the bot to explain any new proposed alias",
+    "use a longer lookback for late receipts, keeping the transaction window separate from the email search window",
+    "ask for exceptions only once clear matches are consistently easy to check"
+  ],
+  "fails": [
+    "equal amounts get matched to unrelated merchants. require several agreeing fields and put weak matches in the uncertain group rather than choosing the nearest row.",
+    "a scan or attachment cannot be read. keep its message reference in the review list and inspect it yourself; a blank amount must not become zero.",
+    "the same receipt arrived in both mailboxes. compare the receipt reference and transaction details before counting it twice. a forwarded copy is not necessarily a second purchase.",
+    "an expense has no email match because its receipt is elsewhere. record the search scope and check your other records. this is not a bank reconciliation or proof that every expense is accounted for."
+  ],
+  "sections": [
+    { "h": "match first, change the ledger later", "md": "the [gmail page](/integrations/gmail) has a smaller friday sweep that labels messages and lists amounts. this routine does a different job: comparing receipt evidence with existing expense rows, including mail from [outlook](/integrations/outlook). it leaves both sources unchanged.\n\nthe [google sheets connector](/integrations/google-sheets) includes reading ranges and looking up rows. identify the exact tab and range before scheduling the sweep. keep sheets and mail read-only so an uncertain match cannot overwrite your records. you decide what to enter after checking the evidence, including currency and refund treatment." }
+  ],
+  "faq": [
+    { "q": "can it check receipts across gmail and outlook?", "a": "yes. connect and name each account you want included. it can search and read messages in both, and the catalogs include attachment reads. ask it to report which accounts it actually checked." },
+    { "q": "will it fill the spreadsheet automatically?", "a": "this version only reads the sheet and proposes matches in chat. read-only permissions prevent updates. if you later add write actions, include an explicit instruction to ask before changing any row." },
+    { "q": "does a matched receipt prove the bill was paid?", "a": "the match only says the supplied records appear to describe the same transaction. check the underlying receipt and your payment records before drawing any conclusion about payment or bookkeeping treatment." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: connected app permissions", "url": "/docs/files-and-apps" },
+    { "label": "composio: gmail mail and attachment actions", "url": "https://docs.composio.dev/toolkits/gmail", "checked": "2026-11-12" },
+    { "label": "composio: outlook message and attachment actions", "url": "https://docs.composio.dev/toolkits/outlook", "checked": "2026-11-12" },
+    { "label": "composio: google sheets range and row reads", "url": "https://docs.composio.dev/toolkits/googlesheets", "checked": "2026-11-12" }
+  ]
+}

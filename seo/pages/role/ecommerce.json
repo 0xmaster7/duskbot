@@ -1,0 +1,48 @@
+{
+  "path": "/for/ecommerce",
+  "type": "role",
+  "title": "AI agent for ecommerce: Shopify and email routines",
+  "nav": "ecommerce",
+  "h1": "an ai agent for the shop work between orders",
+  "description": "Three routines for Shopify order checks, customer reply drafts and product copy. Includes the extra connection setup and where human review belongs.",
+  "keyword": "ai agent for ecommerce",
+  "keywords": ["ai assistant for shopify store owners", "claude shopify"],
+  "answer": "a store bot can read shopify orders and products, help you investigate customer emails and draft clearer product copy from the details you provide. start with a morning exception list and replies you review yourself. shopify needs your own composio project key and auth config; it has no composio-managed sign-in. once connected, keep store access read-only while you try these routines.",
+  "updated": "2026-11-12",
+  "review": { "status": "needs_review" },
+  "tags": ["ecommerce", "role", "orders", "customer-service", "product-copy"],
+  "connectors": ["shopify", "gmail"],
+  "related": ["/integrations/shopify", "/integrations/gmail", "/use-cases/email-triage"],
+  "art": { "props": ["s-parcel", "p-bag"], "bubble": "check this order" },
+  "og_line": "orders checked, customer replies drafted.",
+  "day_h": "a store day with less searching",
+  "day": [
+    { "when": "before opening", "what": "read yesterday's orders and list those whose fulfillment details need a closer look" },
+    { "when": "first inbox check", "what": "match a customer question to the order number they gave, without assuming a similar name is the same person" },
+    { "when": "before a product launch", "what": "draft copy from the existing product details and your notes, leaving missing dimensions or materials as questions" },
+    { "when": "late afternoon", "what": "review unanswered customer threads and choose which draft replies are ready to send" },
+    { "when": "end of week", "what": "look through recurring questions and decide which product descriptions need your attention" }
+  ],
+  "pack": [
+    { "name": "the order exception list", "message": "every morning at 9, read yesterday's shopify orders and their fulfillment details. list orders that appear to need attention, with the order number, recorded status and the reason you flagged them. separate missing data from an actual problem. report here only. don't cancel, refund, fulfill or edit orders.", "note": "uses shopify order and fulfillment reads; [shopify connection details](/integrations/shopify) cover the extra setup" },
+    { "name": "the customer reply bench", "message": "each weekday at 11, read new customer questions in my store gmail. where an email includes an order number, look up that exact shopify order. draft a reply in this chat using only the recorded details and my written store policy. ask me about uncertain matches. don't promise a delivery date, refund or replacement i haven't confirmed.", "note": "both apps can stay read-only because the draft comes back in dusk bot; see [gmail](/integrations/gmail) for mailbox drafts" },
+    { "name": "the product copy check", "message": "every thursday at 3, review the shopify products i named in this chat. compare their descriptions with the specification notes i attached. suggest clearer copy and list unanswered buyer questions. never invent performance claims, materials or customer reviews. give me proposed text here; don't publish or change any listing.", "note": "name a small set of products first so the review has a clear boundary" }
+  ],
+  "sections": [
+    { "h": "shopify takes an extra setup step", "md": "the connector catalog lists order, fulfillment, product and inventory reads, but shopify has no composio-managed sign-in. you need your own composio project key and auth config before the bot can use it. don't plan around a ready-made shopify sign-in.\n\nyou can start with email alone while that connection is being arranged. the [email triage routine](/use-cases/email-triage) is useful when the immediate problem is deciding which customer needs you next." },
+    { "h": "a draft should separate records from promises", "md": "an order record is evidence of what the store recorded. it is not a promise that a parcel will arrive tomorrow. ask the bot to quote the status it found and name what still needs checking.\n\nkeep your refund and replacement policy in material the bot can read. if a request falls outside it, the useful result is a question for you. a calm draft that admits an unknown is better than a confident promise you cannot keep." },
+    { "h": "keep money and publishing with you", "md": "allow only the reads needed for these jobs in **Connected apps**. that prevents the store bot from changing inventory or orders. if you later grant write actions, put \"ask me before you change anything\" in its routine; store changes are not documented as asking first automatically. sending email asks first unless you set a daily sending amount.\n\nrunning a shop is work use and needs a work license. see [pricing](/pricing), and remember that your ai provider bills ai usage separately." }
+  ],
+  "faq": [
+    { "q": "does this work for a non-technical store owner?", "a": "you give the bot jobs in ordinary messages. shopify connection setup is the exception: its own composio project and auth config are required. begin with attached product notes and email if that setup is not ready." },
+    { "q": "can it reply to customers without touching orders?", "a": "yes. give it shopify read access and ask for drafts in the dusk bot chat. you can copy the reply yourself, or grant the specific email drafting actions if you want drafts saved in gmail." },
+    { "q": "will it automatically issue refunds?", "a": "these routines do not. they report what needs your decision. keep shopify read-only so the bot cannot make store changes." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: files and apps", "url": "/docs/files-and-apps" },
+    { "label": "dusk bot docs: routines", "url": "/docs/routines" },
+    { "label": "dusk bot docs: account and billing", "url": "/docs/account-and-billing" },
+    { "label": "composio: shopify catalog and sign-in", "url": "https://docs.composio.dev/toolkits/shopify", "checked": "2026-11-12" },
+    { "label": "composio: gmail actions", "url": "https://docs.composio.dev/toolkits/gmail", "checked": "2026-11-12" }
+  ]
+}

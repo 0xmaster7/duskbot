@@ -1,0 +1,154 @@
+{
+  "path": "/integrations/canva",
+  "type": "integration",
+  "title": "Canva AI assistant for design files, assets and exports",
+  "nav": "canva",
+  "h1": "a canva bot for finding assets and preparing exports",
+  "description": "Connect Canva to Dusk Bot for design inventories, export checks and asset upkeep. See supported actions and the limits of a connector-based workflow.",
+  "keyword": "chatgpt canva",
+  "keywords": [
+    "claude canva",
+    "canva mcp"
+  ],
+  "answer": "a bot in dusk bot can find canva designs, inspect their details, organise assets and start exports through the canva connection. it can help prepare a design handoff using the ai you choose. this catalog is not a promise to edit every element on the canvas. begin with a named folder, design or asset and a small job.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "design",
+    "assets",
+    "exports",
+    "handoff"
+  ],
+  "connectors": [
+    "canva"
+  ],
+  "related": [
+    "/integrations/figma",
+    "/integrations/google-drive",
+    "/use-cases/social-media-posting"
+  ],
+  "art": {
+    "label": "Canva",
+    "props": [
+      "s-palette",
+      "s-parcel"
+    ],
+    "bubble": "ready for the handoff"
+  },
+  "og_line": "find the design. check the export.",
+  "app": {
+    "name": "Canva",
+    "toolkit": "canva",
+    "intro": "there is useful work around a design before anyone changes the artwork: locating the right version, checking the available formats and collecting assets. the canva actions below support those jobs as well as bounded uploads and asset updates.",
+    "highlight": [
+      {
+        "slug": "CANVA_LIST_USER_DESIGNS",
+        "use": "find designs to include in a campaign inventory"
+      },
+      {
+        "slug": "CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING",
+        "use": "inspect the contents of the handoff folder"
+      },
+      {
+        "slug": "CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION",
+        "use": "confirm the selected design before exporting it"
+      },
+      {
+        "slug": "CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS",
+        "use": "check which export formats are available for that design"
+      },
+      {
+        "slug": "CANVA_POST_EXPORTS",
+        "use": "start the requested export rather than assuming it already exists"
+      },
+      {
+        "slug": "CANVA_GET_DESIGN_EXPORT_JOB_RESULT",
+        "use": "check the export result before calling the handoff ready"
+      },
+      {
+        "slug": "CANVA_RETRIEVE_ASSET_METADATA_BY_ID",
+        "use": "identify the asset you plan to rename"
+      },
+      {
+        "slug": "CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID",
+        "use": "apply the asset naming and tag rules you agreed"
+      },
+      {
+        "slug": "CANVA_CREATE_ASSET_UPLOAD_JOB",
+        "use": "start an upload for an asset the campaign needs"
+      },
+      {
+        "slug": "CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS",
+        "use": "verify an upload finished before trying to use it"
+      }
+    ],
+    "setup": "connect canva in **Connected apps**, sign in on canva's page and enable the bot that handles design operations. give it a folder or design reference. begin with an inventory request so you can confirm it has found the intended material before allowing export or organisation actions."
+  },
+  "routines_intro": "these jobs are about a real design handoff. they do not ask the bot to invent a finished campaign or to publish anything.",
+  "routines": [
+    {
+      "name": "campaign design index",
+      "message": "every tuesday at 2, list the designs in my acme launch folder in canva. give me their names and references, and flag titles that make the intended version unclear. do not rename or move items.",
+      "when": "tuesdays at 14:00",
+      "output": "a campaign design inventory"
+    },
+    {
+      "name": "export readiness",
+      "message": "each thursday at 11, inspect the canva designs i marked for handoff in this chat. check their available export formats and propose the files to export. ask me before you change anything or start jobs. check each agreed export result before reporting completion.",
+      "when": "thursdays at 11:00",
+      "output": "a format check and confirmed exports after your agreement"
+    },
+    {
+      "name": "asset naming proposals",
+      "message": "on the first friday of each month at 1, inspect the assets in the canva folder i linked. compare their names and tags with the naming rules in this thread. propose specific renames here. do not update tags, move assets or delete anything.",
+      "when": "first friday of the month at 13:00",
+      "output": "a proposed asset naming list"
+    }
+  ],
+  "asks": "renaming assets, moving folder items and starting design jobs are app actions, so do not expect the sending approval rule to supervise them. a reader can stay restricted to the inspection actions. a writer should receive a clear instruction such as \"ask me before you change anything\".\n\ncanva comment posts are sends and use the bot's sending controls. keep that separate from export work: preparing a file is not a request to post a message or share a campaign on your behalf.",
+  "cannot": [
+    "offer arbitrary canvas editing from this action list. the catalog covers design creation and jobs, assets, folders and comments, but has no general action for selecting and rewriting any individual canvas element.",
+    "promise that every design has every export format. check the design's available formats with the listed action before choosing the handoff file.",
+    "start a routine when something changes in canva: composio lists no canva events, so routines here run on a schedule. it lists no triggers; use scheduled folder or export checks and keep the machine running."
+  ],
+  "sections": [
+    {
+      "h": "check a job instead of assuming it finished",
+      "md": "an export request and its finished result are separate actions. tell the bot to inspect the result before saying the file is ready. use the same pattern for uploads. if the next step is storing a deliverable in [google drive](/integrations/google-drive), connect that app separately and define the destination."
+    },
+    {
+      "h": "keep the creative decision with the brief",
+      "md": "the bot can collect files and propose names; those steps do not decide whether the artwork fits your brief. compare this with [figma handoff work](/integrations/figma), where the available actions are different. a [social posting routine](/use-cases/social-media-posting) should begin only after you have chosen what is ready."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can chatgpt or claude work with my canva designs?",
+      "a": "choose the ai for a bot in dusk bot and connect canva. the bot can use the cataloged actions you grant. that does not establish access to every feature in the canva editor."
+    },
+    {
+      "q": "can it automatically export a set of designs?",
+      "a": "the connector can start exports and retrieve their results. name the designs, check formats first and give the routine an explicit approval instruction if you want to review jobs before they start."
+    },
+    {
+      "q": "do canva checks keep running when my laptop closes?",
+      "a": "local routines stop during sleep or when dusk bot is closed. dusk cloud provides a running machine for scheduled checks while your own computer is off."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: apps and files",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routine schedules",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: permissions and sending",
+      "url": "/docs/computer"
+    }
+  ]
+}

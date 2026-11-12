@@ -1,0 +1,1227 @@
+{
+  "checked": "2026-11-12",
+  "products": {
+    "openclaw": {
+      "name": "OpenClaw",
+      "url": "https://openclaw.ai/",
+      "fields": {
+        "what_it_is": {
+          "value": "Open-source personal AI assistant that runs on your own machine and is used from chat apps such as WhatsApp and Telegram; it can manage inbox and calendar, browse, fill forms, read and write files and run shell commands.",
+          "source_url": "https://openclaw.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Your computer or your own server ('laptop, homelab, or VPS'). The homepage says 'No subscription. No hosted tier.' Third parties sell managed hosting (see openclaw-hosting).",
+          "source_url": "https://openclaw.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Server/VPS wording is from https://openclaw.ai/blog/introducing-openclaw (2026-01-29)."
+        },
+        "platforms": {
+          "value": "Desktop apps for macOS 15+ (v2026.11.3), Windows 10/11 x64/ARM64 (v2026.11.1, marked Beta), Linux AppImage/.deb (v2026.11.2). Chat channels: WhatsApp, Telegram, Discord, Slack, Signal, iMessage and more, '29 channels' in total, DMs and group chats. Native iOS and Android apps paired to your own Gateway per a TechCrunch article (2026-06-30) featured on the homepage.",
+          "source_url": "https://openclaw.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Mobile app claim is from the homepage's press section quoting TechCrunch; the TechCrunch article itself was not opened."
+        },
+        "setup": {
+          "value": "Docs say 'Install OpenClaw, run onboarding, and chat with your AI assistant in about 5 minutes.' Main paths use a terminal (curl install script, npm i -g openclaw, or npx openclaw@latest) and need Node.js 24/26; desktop apps 'install everything for you'. Windows: native Windows Hub app is 'the easiest desktop path'. No Docker required for the default path.",
+          "source_url": "https://docs.openclaw.ai/start/getting-started",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Bring your own: hosted, subscription-backed, gateway, or local models. Onboarding reuses an existing Claude Code or Codex CLI login or a provider API key. OAuth ('subscription auth') supported for OpenAI Codex (ChatGPT OAuth) and Anthropic Claude CLI reuse; docs say Anthropic staff told them CLI reuse 'is allowed again' but recommend API keys for Anthropic in production. Users pay their model provider; OpenClaw itself charges nothing.",
+          "source_url": "https://docs.openclaw.ai/concepts/oauth",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Anthropic subscription policy toward third-party harnesses changed during 2026 (see 03-keywords-competitors.md section 7); the OpenClaw doc is OpenClaw's own reading, not an Anthropic notice."
+        },
+        "pricing": {
+          "value": "Free and open source (MIT). 'No subscription. No hosted tier. No token.' Model usage is paid to whichever provider you connect.",
+          "source_url": "https://openclaw.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Yes. Built-in scheduler ('Automations', CLI `openclaw automations`, alias `openclaw cron`) with one-shot and recurring jobs, webhooks and Gmail PubSub triggers, output delivered to a chat channel or webhook.",
+          "source_url": "https://docs.openclaw.ai/automation/cron-jobs",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "29 chat channels per homepage; integrations listed include Claude, GPT, Gmail, GitHub, Obsidian, Twitter, Spotify, Hue, browser; skills and plugins via ClawHub.",
+          "source_url": "https://openclaw.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "No single claimed total integration count found."
+        },
+        "multi_agent": {
+          "value": "Yes. Multiple isolated agents in one Gateway, each with its own workspace, auth and sessions, routed by 'bindings'; sub-agents; 'OpenClaw Multiplayer' (blog 2026-11-05) lets a team share one gateway. Works in group chats.",
+          "source_url": "https://docs.openclaw.ai/concepts/multi-agent",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "open_source": {
+          "value": "MIT license (Copyright 2026 OpenClaw Foundation). Repo github.com/openclaw/openclaw, 394,365 stars on 2026-11-12 via GitHub API; repo created 2025-11-24.",
+          "source_url": "https://github.com/openclaw/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "security": {
+          "value": "GitHub lists 722 published security advisories for the repo (14 critical, 249 high, 390 medium, 69 low) as of 2026-11-12, first published 2026-01-31 (e.g. '1-Click RCE via Authentication Token Exfiltration From gatewayUrl', GHSA-g8p2-7wf7-98mq) and many critical gateway privilege-escalation and sandbox-escape advisories in Feb to Apr 2026. Separately, Koi Security's audit of 2,857 ClawHub skills found 341 malicious ones (reported by The Hacker News, 2026-02-02). OpenClaw has since partnered with VirusTotal and NVIDIA for skill scanning and completed a Trail of Bits audit via OpenAI's 'Patch the Planet' initiative (per its blog).",
+          "source_url": "https://github.com/openclaw/openclaw/security/advisories",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Advisory counts from `gh api repos/openclaw/openclaw/security-advisories?state=published`. ClawHub malware source (secondary): https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html . Koi's own post did not render. Release reliability: OpenClaw apologised for broken 2026.4.24 to 2026.4.29 releases (https://openclaw.ai/blog/openclaw-rough-week, 2026-05-05)."
+        },
+        "status": {
+          "value": "Naming: 'Clawd' (Nov 2025, renamed after Anthropic's legal team asked), then 'Moltbot', then 'OpenClaw' announced 2026-01-29 (the repo's Docker advisory still says 'Clawdbot'). Creator Peter Steinberger announced on 2026-02-14 he is joining OpenAI and that OpenClaw 'will move to a foundation and stay open and independent'. The OpenClaw Foundation, a US 501(c)(3), was announced 2026-07-08 with a full-time staff; it says OpenAI has committed to keep the project open and independent.",
+          "source_url": "https://openclaw.ai/blog/introducing-openclaw-foundation",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Naming history: https://openclaw.ai/blog/introducing-openclaw (2026-01-29). OpenAI move: https://steipete.me/posts/2026/openclaw (2026-02-14); Help Net Security reported it 2026-02-16 (https://www.helpnetsecurity.com/2026/02/16/openclaw-creator-peter-steinberger-joins-openai/). 'Clawdbot' spelling is from advisory GHSA-mc68-q9jw-2h3v."
+        }
+      }
+    },
+    "hermes-agent": {
+      "name": "Hermes Agent (Nous Research)",
+      "url": "https://hermes-agent.nousresearch.com/",
+      "fields": {
+        "what_it_is": {
+          "value": "Open-source AI agent from Nous Research with persistent memory and self-created skills, reachable from a desktop app, terminal or messaging apps.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Your computer or your server (README: 'Run it on a $5 VPS, a GPU cluster, or serverless infrastructure'); optional hosted cloud agent through Nous Portal on paid tiers.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "VPS quote from https://github.com/NousResearch/hermes-agent README."
+        },
+        "platforms": {
+          "value": "Desktop app for macOS 12+ and Windows 10/11 (Microsoft Store or .exe); Linux via terminal install; Android via Termux package. Chat: Telegram, Discord, Slack, WhatsApp, Signal, Email, CLI.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Termux detail from the GitHub README. No iOS app found."
+        },
+        "setup": {
+          "value": "Desktop app download, or a terminal one-liner (curl install script on macOS/Linux/WSL2, PowerShell on Windows). README quickstart says 'Install, setup, first conversation in 2 minutes'. You must connect a model provider.",
+          "source_url": "https://github.com/NousResearch/hermes-agent",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Any provider: Nous Portal (OAuth subscription), OpenRouter, OpenAI, own endpoints, Ollama/vLLM. Subscription sign-in: ChatGPT/Codex via ChatGPT OAuth; Anthropic OAuth only on a Claude Max plan and it bills only purchased extra usage, never the base Max allowance; Claude Pro cannot use it. API keys also supported.",
+          "source_url": "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Software free (MIT). Nous Portal plans: Free $0 pay-as-you-go (free models only); Plus $20/month; Super $100/month (5x Plus usage); Ultra $200/month (10x Plus). Paid tiers include 200+ models, hosted tools and one cloud agent (Plus 4 GB RAM/25 GB disk, Super 4 GB/100 GB, Ultra 8 GB/100 GB).",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Yes. Built-in cron scheduler with natural-language scheduling; delivers to any platform; runs unattended through the gateway.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "README cites '40+ tools'; messaging platforms listed above; MCP compatible per docs index.",
+          "source_url": "https://github.com/NousResearch/hermes-agent",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "multi_agent": {
+          "value": "Yes. Isolated subagents for parallel workstreams, each with own conversation and terminal; configurable provider and model per subagent in Desktop.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "open_source": {
+          "value": "MIT license. github.com/NousResearch/hermes-agent, 262,734 stars on 2026-11-12 via GitHub API; repo created 2025-07-22.",
+          "source_url": "https://github.com/NousResearch/hermes-agent",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "security": {
+          "value": "No published GitHub security advisories returned by the GitHub API for the repo on 2026-11-12. Docs list command approval, DM pairing and container isolation; five sandbox backends (local, Docker, SSH, Singularity, Modal).",
+          "source_url": "https://github.com/NousResearch/hermes-agent/security/advisories",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Absence of advisories is not evidence of absence of vulnerabilities."
+        },
+        "status": {
+          "value": "Active; maintained by Nous Research. Hostinger sells a 'Managed Hermes Agent' alongside managed OpenClaw.",
+          "source_url": "https://hermes-agent.nousresearch.com/",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Hostinger mention: https://www.hostinger.com/pricing/ai-automations"
+        }
+      }
+    },
+    "manus": {
+      "name": "Manus",
+      "url": "https://manus.im/",
+      "fields": {
+        "what_it_is": {
+          "value": "General-purpose AI agent that runs tasks in its own cloud computers to produce research, websites, slides, images and video.",
+          "source_url": "https://manus.im/blog/manus-joins-meta-for-next-era-of-innovation",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud (the Meta announcement post cites 'over 80 Million virtual computers'). A 'My Browser' product and desktop app also exist.",
+          "source_url": "https://manus.im/blog/manus-joins-meta-for-next-era-of-innovation",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "How much runs locally in the desktop app was not verified."
+        },
+        "platforms": {
+          "value": "Web; desktop apps for macOS and Windows; mobile apps for iOS and Android; Slack integration; messaging 'Manus Agents' in Telegram (launched 2026-02-16, all tiers) and WhatsApp Business (Business accounts only, per help center).",
+          "source_url": "https://manus.im/blog/manus-agents-telegram",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Download list from footer of manus.im pages; WhatsApp Business limit from help.manus.im search result (the article page did not load for me), so medium for WhatsApp."
+        },
+        "setup": {
+          "value": "No install needed for web. Telegram: 'scan a QR code, and link Telegram in about a minute. No command lines, configuration files, or API tokens required.'",
+          "source_url": "https://manus.im/blog/manus-agents-telegram",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Manus's own agent models (pricing lists Manus 2.0 Lite on Free, Manus 2.0 and 2.0 Max on Pro), paid with Manus credits. Pro adds 'Manus Flex: bring your own keys'.",
+          "source_url": "https://manus.im/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Free $0 (300 credits/day, Manus 2.0 Lite, 3 tasks at once, 2 automations); Pro $20/month (4,000 credits/month, 20 tasks at once, 20 automations); Max $200/month (40,000 credits/month, pay as you go after credits). Annual billing saves 17%. Team and Enterprise plans separate.",
+          "source_url": "https://manus.im/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Read from a rendered screenshot of the pricing page (monthly toggle). Credit dropdowns suggest higher credit options exist."
+        },
+        "scheduling": {
+          "value": "Yes. Plans include a number of 'automations' (2 on Free, 20 on Pro); the Telegram launch post describes setting up a recurring task that delivers scheduled summaries in chat.",
+          "source_url": "https://manus.im/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Manus has a /connectors section (78 pages in its sitemap) but I found no claimed total count."
+        },
+        "multi_agent": {
+          "value": "Partly: 'Wide Research' across hundreds of sources and the chat agent 'can orchestrate sub-tasks behind the scenes'. No user-facing team of separate agents found.",
+          "source_url": "https://manus.im/blog/manus-agents-telegram",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://manus.im/",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "No public repo found; inferred from product being a closed SaaS."
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Nothing notable checked. Separation from Meta involved user data backup and deletion notices (see status)."
+        },
+        "status": {
+          "value": "Meta acquisition announced 2025-12-29 (Manus blog). China's NDRC ordered the deal unwound in April 2026; Manus said on 2026-09-01 it 'has formally resumed independent operations' with its founding team leading. During separation (notice 2026-08-11) some users had to back up data, and some user data may be lost.",
+          "source_url": "https://www.globaltimes.cn/page/202609/1369553.shtml",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Primary for the acquisition: https://manus.im/blog/manus-joins-meta-for-next-era-of-innovation (still live, dated Monday, December 29). Independence and unwind are from press: Global Times (2026-09-01) and Silicon Republic (https://www.siliconrepublic.com/business/manus-splits-from-meta-after-china-orders-reversal-of-2bn-deal). I did not open Manus's own independence announcement. Silicon Republic reports Tencent is set to become the largest external shareholder (reported, not confirmed)."
+        }
+      }
+    },
+    "claude-cowork": {
+      "name": "Claude Cowork (Anthropic)",
+      "url": "https://claude.com/product/cowork",
+      "fields": {
+        "what_it_is": {
+          "value": "Anthropic's agent mode for Claude that works across your chosen folders, apps and connectors to finish multi-step tasks and hand back finished work for review.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Both: the desktop app works in folders and apps on your computer; tasks started from the phone 'keep working in the cloud even when your laptop is closed'.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "platforms": {
+          "value": "Desktop (macOS, Windows; Linux desktop in beta for Ubuntu/Debian with Cowork available), web, iOS and Android. Slack connector included on Team plans.",
+          "source_url": "https://claude.com/download",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Cowork page says it runs on desktop, web and mobile; Linux detail from the download page FAQ."
+        },
+        "setup": {
+          "value": "No terminal. 'Download the desktop app and hand off your first task in minutes.' Requires a paid Claude plan.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Anthropic Claude models only, included in your Claude subscription usage (Max mentions 'Fable included, up to half your weekly limit'). Enterprise can use Claude through their own cloud provider.",
+          "source_url": "https://claude.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Exact model list per plan not captured."
+        },
+        "pricing": {
+          "value": "Free $0 (no hand off/schedule tasks); Pro $20/month monthly or $17/month annual ($200 up front); Max $100/month (5x Pro usage); Ultra $200/month; Team $20/seat/month annual or $25 monthly (Cowork included on standard and premium seats). Cowork works with a paid plan.",
+          "source_url": "https://claude.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Yes. 'Schedule a task for any cadence, and it runs unattended'; daily, weekly or monthly recurring reports. Pricing table lists 'Hand off and schedule tasks' on Pro, Max, Ultra (not Free).",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "Connectors and plugins (plugins bundle skills, connectors and sub-agents); built-in browser; computer use as a last resort.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "No total connector count captured from opened pages."
+        },
+        "multi_agent": {
+          "value": "Partly: big projects 'are split into chunks that run together'; plugins can include sub-agents. No user-facing group chat of agents.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "You choose folders and tools; deleting anything needs approval; permission settings make Claude show its plan and wait; enterprise admins get spend limits and OpenTelemetry to SIEM.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "status": {
+          "value": "Banner on 2026-11-12: 'Claude Cowork is now just Claude. Rolling out to Pro, Max, and Ultra, with more plans to follow.' Cowork capabilities are folded into Claude automatically when a task needs files.",
+          "source_url": "https://claude.com/product/cowork",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      }
+    },
+    "poke": {
+      "name": "Poke (The Interaction Company)",
+      "url": "https://poke.com/",
+      "fields": {
+        "what_it_is": {
+          "value": "Proactive personal AI assistant that you text like a contact; it connects to email, calendar and other apps and messages you first.",
+          "source_url": "https://poke.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud. Cognition describes Poke as an 'always-on cloud agent'.",
+          "source_url": "https://cognition.com/blog/interaction",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "platforms": {
+          "value": "Apple Messages (iMessage), Telegram, WhatsApp and RCS. Cognition says it is 'the only AI agent approved to text natively on Apple Messages'.",
+          "source_url": "https://poke.com/docs",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "setup": {
+          "value": "No install: sign up and message Poke. One phone number per account.",
+          "source_url": "https://poke.com/docs",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Phone number limit from https://poke.com/faq."
+        },
+        "ai_models": {
+          "value": "Included in the plan; Pro adds 'Frontier models for complex tasks', Ultra 'Frontier models powering every action'. Specific model names not disclosed on the pages opened. No bring-your-own-key option seen.",
+          "source_url": "https://poke.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "pricing": {
+          "value": "Free $0/month (no credit card); Pro $19/month; Ultra $199/month (adds pay-as-you-go usage beyond credits). Monthly and yearly toggle.",
+          "source_url": "https://poke.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Yes: reminders, 'Handles tasks according to your schedule', and 'Real-time automations running in the background' on Pro.",
+          "source_url": "https://poke.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "Notion, GitHub, Linear 'and more' via a recipe directory; custom integrations via MCP. No total count claimed.",
+          "source_url": "https://poke.com/faq",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "multi_agent": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Not documented on pages opened."
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://poke.com/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Nothing notable checked. 'Poke Human' sends real-world tasks to human operators who 'only see the specific details needed for your task' (FAQ)."
+        },
+        "status": {
+          "value": "Cognition (maker of Devin) announced it is acquiring/welcoming The Interaction Company on 2026-07-23; 'Poke users can continue using the product just as before.' Poke homepage still shows 'Poke is joining Cognition' banner on 2026-11-12.",
+          "source_url": "https://cognition.com/blog/interaction",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Deal value not in Cognition's post; TechCrunch reported 'low nine figures' (not opened)."
+        }
+      }
+    },
+    "lindy": {
+      "name": "Lindy",
+      "url": "https://www.lindy.ai/",
+      "fields": {
+        "what_it_is": {
+          "value": "Hosted 'AI employee' that plugs into your tools, handles email, meetings, leads and reports, and works in Slack, email and text.",
+          "source_url": "https://www.lindy.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud (SaaS).",
+          "source_url": "https://www.lindy.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Inferred from SaaS signup model; no self-host option seen."
+        },
+        "platforms": {
+          "value": "Web app, Slack (threads and mentions), email, iMessage ('iMessage with your assistant 24/7'), phone calls, Chrome extension.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Native mobile app not confirmed."
+        },
+        "setup": {
+          "value": "'Set up in 2 minutes', no credit card for the free trial.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Included credits; 'Model selection, all models' and 'Choose your model for each task'. No BYO key mentioned.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "pricing": {
+          "value": "Free: $50 in credits that last 7 days. Team: from $29.99/month per active user for 3,000 credits, scaling to e.g. 20,000 credits $149.99 and up to 1,750,000 credits $9,999.50; top-ups $10 per 1,000 credits; credits pooled, no rollover. Enterprise custom.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Feature list also mentions 'Computer use on Pro and Max' though only Free/Team/Enterprise plans are shown; page is internally inconsistent."
+        },
+        "scheduling": {
+          "value": "Yes: 'Scheduled routines', daily briefs, heavy scheduled workflows.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "'3,000+ integrations' plus MCP support.",
+          "source_url": "https://www.lindy.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "multi_agent": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Not documented on pages opened; Lindy is positioned as one teammate for the whole team."
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://www.lindy.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "Claims SOC 2 Type II (Johanson Group), GDPR, PIPEDA; HIPAA with BAA on Enterprise; approvals required for anything with outside impact.",
+          "source_url": "https://www.lindy.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Vendor claims, not independently checked."
+        },
+        "status": {
+          "value": "Active.",
+          "source_url": "https://www.lindy.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "genspark": {
+      "name": "Genspark (AI Workspace and Genspark Claw)",
+      "url": "https://www.genspark.ai/",
+      "fields": {
+        "what_it_is": {
+          "value": "All-in-one AI workspace (agents, slides, sheets, docs, media, agentic browser) whose 'Genspark Claw' product is a personal AI employee you message from chat apps.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud (a dedicated always-on Cloud Computer for Claw) or locally via the Genspark desktop app (Claw 'Local Mode', no Cloud Computer subscription needed).",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "platforms": {
+          "value": "Web; desktop app for macOS and Windows. Claw chat channels: WhatsApp, Slack, Teams, Telegram, LINE, Discord, Signal, Google Chat, Feishu 'and more'; Claw also gets its own email address.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Mobile apps not verified."
+        },
+        "setup": {
+          "value": "No terminal: go to genspark.ai/claw, pick a plan (Lite, Standard, Powerful), check out, then connect messaging apps from the Channels tab.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "'70+ models: ChatGPT, Claude, Gemini and more', paid with Genspark credits; model can be switched in Claw. No BYO key mentioned.",
+          "source_url": "https://www.genspark.ai/business/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "pricing": {
+          "value": "Individual: Free $0 (100 credits/day); Plus from $24.99/month billed monthly (10,000 credits/month); Pro from $249.99/month billed monthly (125,000 credits/month); annual saves 20%. Team $35/seat/month annual or $40 monthly (10,000 credits/seat). Claw Cloud Computer is a separate flat monthly fee, 'Starting from $9.99/mo, 75% off' on the Claw page; Claw work consumes shared credits.",
+          "source_url": "https://www.genspark.ai/business/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Pricing page header 'UPDATED SEPTEMBER 17, 2026'. Claw price from https://genspark.ai/genspark-claw (promotional)."
+        },
+        "scheduling": {
+          "value": "Yes: Claw 'Scheduled tasks and background monitoring', plus a 'Heartbeat' check-in; each run consumes credits.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "Claw: '30+ built-in skills'; Google Workspace and Microsoft 365 plugins; connector management on Team.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "multi_agent": {
+          "value": "Workspace lists 'GenTeam' under 'AI Teammates'; details not verified.",
+          "source_url": "https://www.genspark.ai/",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://www.genspark.ai/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "Help center warns local mode has file-system access and suggests choosing a workspace folder.",
+          "source_url": "https://www.genspark.ai/helpcenter/genspark-claw",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "status": {
+          "value": "Active; site shows 'Genspark AI Workspace 6.0' on 2026-11-12.",
+          "source_url": "https://www.genspark.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Claw launch date 2026-03-12 comes only from a search-result title of a Business Wire release (https://www.businesswire.com/news/home/20260312641003/en) that I did not open; do not cite it as verified."
+        }
+      }
+    },
+    "gumloop": {
+      "name": "Gumloop",
+      "url": "https://www.gumloop.com/",
+      "fields": {
+        "what_it_is": {
+          "value": "Platform for building AI agents and workflows for work that use your tools, a real browser and saved logins.",
+          "source_url": "https://www.gumloop.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud; Virtual Private Cloud optional on Enterprise.",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "platforms": {
+          "value": "Web app; agents message you 'in chat, Slack, Teams, iMessage, and email' (changelog text on homepage); Gumloop MCP and CLI for developers.",
+          "source_url": "https://www.gumloop.com/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "setup": {
+          "value": "No-code builder; 14-day free trial. No setup-time claim found.",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "ai_models": {
+          "value": "35+ models on Pro; credits cover tokens at provider list price. BYO API keys allowed (token credits drop to zero, orchestration fee rises from 8% to 16%).",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "No ongoing free tier shown: Pro starts at $37/month after a 14-day free trial, includes 20,000 credits/month (7,400 + 12,600 bonus; credits indexed at $0.005), plus an 8% orchestration fee; credits do not roll over. Enterprise custom.",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Triggers ('App triggers'; agents, workflows and triggers pages) exist; explicit time-based schedule wording not captured.",
+          "source_url": "https://www.gumloop.com/",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "integrations": {
+          "value": "'400+ Connectors' (homepage); MCP server hosting.",
+          "source_url": "https://www.gumloop.com/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "multi_agent": {
+          "value": "'Build your team of agents'; unlimited agents and 25 concurrent agent chats on Pro.",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Nothing notable checked."
+        },
+        "status": {
+          "value": "Active.",
+          "source_url": "https://www.gumloop.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "relevance-ai": {
+      "name": "Relevance AI",
+      "url": "https://relevanceai.com/",
+      "fields": {
+        "what_it_is": {
+          "value": "Platform for building teams ('AI workforces') of business agents, mainly sales and operations, aimed at companies.",
+          "source_url": "https://relevanceai.com/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud.",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "platforms": {
+          "value": "Web app; agents connect through integrations and triggers.",
+          "source_url": "https://relevanceai.com/docs/get-started/pricing",
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Chat channel support not verified."
+        },
+        "setup": {
+          "value": "Marketing pricing page: 'Talk to our sales team to find the right plan'; vendor offers an embedded deployment team. Docs still describe self-serve plans.",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "ai_models": {
+          "value": "Vendor Credits pay for model and tool costs; BYO API keys optional on every plan (OpenAI, Anthropic, Google, etc.).",
+          "source_url": "https://relevanceai.com/docs/admin/subscriptions/plans",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Conflicting: the marketing pricing page shows only Enterprise (custom, talk to sales). The docs pricing page lists Pro $19/month annual or $29 monthly (2,500 Actions, 10,000 Vendor Credits) and Team $234/month annual or $349 monthly; Free plan 'retired for new signups and existing accounts'. Extra: $80 per 1,000 Actions, $20 per 10,000 Vendor Credits.",
+          "source_url": "https://relevanceai.com/docs/get-started/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Marketing page: https://relevanceai.com/pricing . Which is current for new buyers is unclear."
+        },
+        "scheduling": {
+          "value": "Yes: 'Scheduling Tasks' on all plans in docs (scheduled triggers).",
+          "source_url": "https://relevanceai.com/docs/get-started/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "'2,000+ Integrations' (via native plus Pipedream connections).",
+          "source_url": "https://relevanceai.com/docs/integrations/introduction",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "multi_agent": {
+          "value": "Yes: 'Unlimited Workforces' and curated multi-agent systems such as the BDR agent.",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "Claims SOC 2 Type II.",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "status": {
+          "value": "Active; operated by OnSearch Pty Ltd T/A Relevance AI.",
+          "source_url": "https://relevanceai.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      }
+    },
+    "chatgpt-agent": {
+      "name": "ChatGPT agent (agent mode), now ChatGPT Work",
+      "url": "https://chatgpt.com/",
+      "fields": {
+        "what_it_is": {
+          "value": "OpenAI's in-ChatGPT agent for multi-step tasks. The help center now says 'ChatGPT agent is no longer available. Use ChatGPT Work for longer, multi-step tasks and finished deliverables.'",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud for Work on web and mobile; the ChatGPT desktop app can also run Work locally with local files, apps and browser.",
+          "source_url": "https://help.openai.com/articles/20001275",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "platforms": {
+          "value": "Web, iOS, Android, desktop app for macOS and Windows.",
+          "source_url": "https://help.openai.com/articles/20001275",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "setup": {
+          "value": "No setup beyond a ChatGPT account; choose Work in ChatGPT.",
+          "source_url": "https://learn.chatgpt.com/docs/get-started-with-work",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "ai_models": {
+          "value": "OpenAI models only, included in the ChatGPT plan (Work and Codex share usage): GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Sol, GPT-6 Luna, GPT-6 Astra; extra usage via credits. Using your own API key applies to Codex, not Work.",
+          "source_url": "https://help.openai.com/articles/20001275",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Free $0 (limited Work on desktop), Go $8, Plus $20, Pro from $100 (tiers $100, $200, $500), Business $20/user (annual). Old agent-mode limits were 40 messages/month on Plus and 400 on Pro.",
+          "source_url": "https://developers.openai.com/codex/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "USD prices from OpenAI's Codex pricing page, which covers the same ChatGPT plans; chatgpt.com/pricing showed INR from my location. Old agent limits from the agent help article."
+        },
+        "scheduling": {
+          "value": "Yes: scheduled tasks (daily, weekly, monthly), managed at chatgpt.com/schedules; Work supports recurring updates.",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "integrations": {
+          "value": "Plugins (Slack, Google Drive, etc.) installed from a plugins library; apps and connectors.",
+          "source_url": "https://learn.chatgpt.com/docs/get-started-with-work",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "No total count verified from an opened page."
+        },
+        "multi_agent": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Not documented on pages opened. Pro plan lists 'Dot, your always-on agent' (not researched)."
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://chatgpt.com/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "OpenAI's own help article warns of prompt-injection risk when the agent is signed into sites or apps; safeguards include confirmations and 'watch mode'.",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "status": {
+          "value": "Agent mode retired and replaced by ChatGPT Work (launched July 2026 per press). Atlas browser reportedly deprecated alongside it.",
+          "source_url": "https://help.openai.com/en/articles/11752874-chatgpt-agent",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Launch date and Atlas deprecation from secondary press found in search (e.g. pulse2.com, ppc.land); OpenAI announcement page returned 403 to my fetch."
+        }
+      }
+    },
+    "perplexity-comet": {
+      "name": "Perplexity Comet",
+      "url": "https://www.perplexity.ai/comet",
+      "fields": {
+        "what_it_is": {
+          "value": "Chromium-based web browser from Perplexity with a built-in AI assistant that can research, browse and act on pages for you.",
+          "source_url": "https://www.perplexity.ai/help-center/en/articles/11172798-getting-started-with-comet",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Browser on your computer or phone; AI runs in Perplexity's cloud.",
+          "source_url": "https://www.perplexity.ai/comet",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Cloud-side inference is inferred from the Perplexity subscription model."
+        },
+        "platforms": {
+          "value": "Mac, Windows, iOS, Android.",
+          "source_url": "https://www.perplexity.ai/comet",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "setup": {
+          "value": "Download and install like a normal browser; supports most Chrome extensions and import from other browsers.",
+          "source_url": "https://www.perplexity.ai/help-center/en/articles/11172798-getting-started-with-comet",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Perplexity's routing across OpenAI, Anthropic, Google, xAI, Moonshot and Z.ai models (pricing page lists GPT-6.1 Sol, Gemini 3.8 Flash, Claude Sonnet 5.5, Kimi K3, GLM 5.3, Grok 4.7); included in Perplexity plans, no BYO key.",
+          "source_url": "https://www.perplexity.ai/pro",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "pricing": {
+          "value": "Browser free to download for everyone (since Oct 2025). Free plan has no Browser Agent (Comet Assistant) queries; Pro and Max have monthly limits. Max costs $200/month or $2,000/year. Pro price not confirmed on an opened page today.",
+          "source_url": "https://www.perplexity.ai/help-center/en/articles/11187416-which-perplexity-subscription-plan-is-right-for-you",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Max price from https://www.perplexity.ai/help-center/en/articles/11680686-perplexity-max . Free release: https://www.perplexity.ai/hub/blog/comet-is-now-available-to-everyone-worldwide"
+        },
+        "scheduling": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Not confirmed for Comet on pages opened."
+        },
+        "integrations": {
+          "value": "Gmail connector for email and calendar queries; Chrome extensions.",
+          "source_url": "https://www.perplexity.ai/help-center/en/articles/11172798-getting-started-with-comet",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "multi_agent": {
+          "value": "Background Assistants: Max subscribers can launch many agentic tasks in parallel.",
+          "source_url": "https://www.perplexity.ai/changelog/what-we-shipped-october-3rd",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "open_source": {
+          "value": "No (proprietary; built on Chromium).",
+          "source_url": "https://www.perplexity.ai/help-center/en/articles/11172798-getting-started-with-comet",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "Brave disclosed an indirect prompt-injection vulnerability in Comet's page summarisation (2025-08-20), reported to Perplexity.",
+          "source_url": "https://brave.com/blog/comet-prompt-injection/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "status": {
+          "value": "Active; free to everyone since the release announced on the Perplexity blog (Oct 2025).",
+          "source_url": "https://www.perplexity.ai/hub/blog/comet-is-now-available-to-everyone-worldwide",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "zapier-agents": {
+      "name": "Zapier Agents",
+      "url": "https://zapier.com/agents",
+      "fields": {
+        "what_it_is": {
+          "value": "Zapier's AI agents ('AI teammates') that use company knowledge and act across Zapier's app catalogue, on command or on triggers.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "platforms": {
+          "value": "Web; Chrome extension for interacting with agents.",
+          "source_url": "https://zapier.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "setup": {
+          "value": "No code: 'Create your own superhuman teammates in minutes', with Zapier Copilot help.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "ai_models": {
+          "value": "Included in plan; specific models not stated on agents or pricing pages (a customer quote mentions a 'fine-tuned model'). No BYO key info found for Agents.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "pricing": {
+          "value": "Agents Free: 400 activities/month. Agents Pro: $33.33/month billed annually ($400/year), 1,500 activities/month. Agents Enterprise: custom. Separate from Zapier automation plans (Free $0 with 100 tasks; Professional from $19.99; Team from $69).",
+          "source_url": "https://zapier.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "scheduling": {
+          "value": "Agents run automated 'behaviors' and work 'on command and while you sleep'; Zapier triggers.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "integrations": {
+          "value": "'9,000+ apps'.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "multi_agent": {
+          "value": "Yes: agent-to-agent calling.",
+          "source_url": "https://zapier.com/blog/orchestrate-zapier-agents/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://zapier.com/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Nothing notable checked."
+        },
+        "status": {
+          "value": "Active.",
+          "source_url": "https://zapier.com/agents",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "n8n": {
+      "name": "n8n",
+      "url": "https://n8n.io/",
+      "fields": {
+        "what_it_is": {
+          "value": "Fair-code workflow automation platform with a visual canvas for building AI agents and multi-step workflows, self-hosted or cloud.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud (Starter, Pro, Enterprise) or your own server (Community Edition; Business is self-hosted only).",
+          "source_url": "https://n8n.io/pricing/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "platforms": {
+          "value": "Web editor; self-host via Docker or npm on any server.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "setup": {
+          "value": "Cloud: sign up, free trial, no card. Self-host: README install script 'requires Docker' or `docker run`.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Bring your own: OpenAI, Anthropic, Google or open-source models; cloud plans include 'AI models without API keys' and Assistant credits (1,600/month Starter, up to 9,600 Pro).",
+          "source_url": "https://n8n.io/pricing/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Cloud billed annually: Starter 20 EUR/month (2.5K executions), Pro 50 EUR/month (10K executions), Business 667 EUR/month (40K executions, self-hosted only), Enterprise custom. Community Edition self-hosted free. Priced per workflow execution, not per step or user.",
+          "source_url": "https://n8n.io/pricing/",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Shown in EUR from my location; USD not captured."
+        },
+        "scheduling": {
+          "value": "Yes: workflows run on triggers including schedules.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Schedule trigger not explicitly read today; standard n8n feature."
+        },
+        "integrations": {
+          "value": "'1500+ integrations' and 9,000+ templates (README); GitHub repo description says 400+.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Two different numbers on the same repo."
+        },
+        "multi_agent": {
+          "value": "Multi-step agents and workflows; agents can call tools and other workflows.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "open_source": {
+          "value": "Fair-code, Sustainable Use License (enterprise '.ee' files under separate license), not OSI open source. 210,216 stars on 2026-11-12 via GitHub API.",
+          "source_url": "https://github.com/n8n-io/n8n",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Not checked for this file."
+        },
+        "status": {
+          "value": "Active.",
+          "source_url": "https://n8n.io/pricing/",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "sintra": {
+      "name": "Sintra",
+      "url": "https://sintra.ai/",
+      "fields": {
+        "what_it_is": {
+          "value": "Subscription to a set of 12+ role-based AI 'employees' (social media, SEO, support, email marketing, assistant, etc.) for small businesses.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "Their cloud.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "platforms": {
+          "value": "Web; iOS app and Android app (store links on site).",
+          "source_url": "https://sintra.ai/",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "setup": {
+          "value": "'Zero technical setup. Simply chat and ask.'",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Included; pricing page says 'Based on Claude 4.5 Sonnet' (vendor claim). No BYO key.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "pricing": {
+          "value": "Sale prices on 2026-11-12: 1-month $48.50/month (list $97), 3-month $23.60/month (list $59), 12-month $15.60/month (list $52); each with all 12 helpers, 250 monthly credits, 15+ integrations, 14-day money-back guarantee. Individual helpers listed at $39/month.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Promotional prices; likely to change."
+        },
+        "scheduling": {
+          "value": "Social post scheduling and daily summaries shown in examples; general recurring task scheduler not confirmed.",
+          "source_url": "https://sintra.ai/",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "integrations": {
+          "value": "Pricing plans say '15+ integrations'; site navigation says 'Connect 1000+ tools'.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Internally inconsistent claims."
+        },
+        "multi_agent": {
+          "value": "Multiple specialist helpers share one 'Brain AI' memory; helpers 'can collaborate' per marketing copy.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "open_source": {
+          "value": "No (proprietary).",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "security": {
+          "value": "unknown",
+          "source_url": null,
+          "checked": "2026-11-12",
+          "confidence": "low",
+          "note": "Nothing notable checked."
+        },
+        "status": {
+          "value": "Active.",
+          "source_url": "https://sintra.ai/pricing",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        }
+      }
+    },
+    "openclaw-hosting": {
+      "name": "Managed OpenClaw hosting offers",
+      "url": "https://www.hostinger.com/openclaw",
+      "fields": {
+        "what_it_is": {
+          "value": "Third-party services that install and run OpenClaw for you on a hosted server.",
+          "source_url": "https://www.hostinger.com/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "runs_where": {
+          "value": "The host's servers (Hostinger: 'private vault'; Elestio: managed instance on a cloud of your choice).",
+          "source_url": "https://elest.io/open-source/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "platforms": {
+          "value": "Hostinger: messaging via WhatsApp, Telegram and Hostinger Email from a visual dashboard. Elestio: standard OpenClaw channels.",
+          "source_url": "https://www.hostinger.com/pricing/ai-automations",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "setup": {
+          "value": "Hostinger: 'Install OpenClaw in 1-click', 'Setting up OpenClaw manually can take hours'. Elestio: 'Deploy OpenClaw fully managed in minutes'.",
+          "source_url": "https://www.hostinger.com/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "ai_models": {
+          "value": "Hostinger includes AI credits ('We've already added them for you') and lets you power OpenClaw or Hermes Agent 'with your ChatGPT Plus or Pro subscription instead of an OpenAI API key'.",
+          "source_url": "https://www.hostinger.com/pricing/ai-automations",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "pricing": {
+          "value": "Hostinger Managed OpenClaw: $4.99/month on a 24-month term ($119.76 paid up front), renews at $11.99/month (Black Friday promo shown 2026-11-12). Elestio fully managed OpenClaw: from $16/month (compute, storage, bandwidth, updates, backups included).",
+          "source_url": "https://www.hostinger.com/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high",
+          "note": "Elestio: https://elest.io/open-source/openclaw . Hostinger promo prices vary by region and date. Also note Genspark Claw Cloud Computer from $9.99/month (promo) as an OpenClaw-style hosted alternative."
+        },
+        "scheduling": {
+          "value": "Inherits OpenClaw's scheduler.",
+          "source_url": "https://docs.openclaw.ai/automation/cron-jobs",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "integrations": {
+          "value": "Inherits OpenClaw channels and skills; Hostinger exposes Telegram and WhatsApp in its dashboard.",
+          "source_url": "https://www.hostinger.com/pricing/ai-automations",
+          "checked": "2026-11-12",
+          "confidence": "medium"
+        },
+        "multi_agent": {
+          "value": "Inherits OpenClaw multi-agent routing.",
+          "source_url": "https://docs.openclaw.ai/concepts/multi-agent",
+          "checked": "2026-11-12",
+          "confidence": "low"
+        },
+        "open_source": {
+          "value": "Hosts run MIT-licensed OpenClaw.",
+          "source_url": "https://github.com/openclaw/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        },
+        "security": {
+          "value": "Hostinger: 'Managed OpenClaw handles all security, updates, and backups.' Elestio: handles encryption, security, backups, monitoring, OS updates.",
+          "source_url": "https://www.hostinger.com/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "medium",
+          "note": "Vendor claims."
+        },
+        "status": {
+          "value": "Both offers live on 2026-11-12.",
+          "source_url": "https://www.hostinger.com/openclaw",
+          "checked": "2026-11-12",
+          "confidence": "high"
+        }
+      }
+    }
+  }
+}

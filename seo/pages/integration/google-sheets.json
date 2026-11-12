@@ -1,0 +1,149 @@
+{
+  "path": "/integrations/google-sheets",
+  "type": "integration",
+  "title": "Google Sheets AI assistant for rows, ranges and reports",
+  "nav": "google sheets",
+  "h1": "a google sheets bot with a clear range to work in",
+  "description": "Connect Google Sheets to Dusk Bot for row checks, table updates and charts. Copy focused routines that name their input range and write boundary.",
+  "keyword": "claude google sheets",
+  "keywords": [
+    "google sheets mcp",
+    "chatgpt google sheets"
+  ],
+  "answer": "connect google sheets and tell a bot in dusk bot which spreadsheet, tab and range to use. it can look up rows, update values and create charts through the connected app. choose your ai, then start with a small check in chat. cell edits are app changes, so use explicit instructions when you want to review them first.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "approved",
+    "by": "lead agent: read against seo/facts, automated gate, independent fact-check pass",
+    "at": "2026-11-12"
+  },
+  "tags": [
+    "spreadsheets",
+    "ranges",
+    "reports",
+    "google"
+  ],
+  "connectors": [
+    "googlesheets"
+  ],
+  "related": [
+    "/integrations/excel",
+    "/integrations/stripe",
+    "/integrations/google-drive"
+  ],
+  "art": {
+    "logo": "sheets",
+    "label": "Google Sheets",
+    "props": [
+      "p-chart",
+      "p-magnifier"
+    ],
+    "bubble": "which rows need attention"
+  },
+  "og_line": "name the tab. bound the change.",
+  "app": {
+    "name": "Google Sheets",
+    "toolkit": "googlesheets",
+    "intro": "a spreadsheet request works better when the bot knows where the headers end and which cells hold formulas. these actions cover finding the right table, reading its structure and making a deliberately bounded update.",
+    "highlight": [
+      {
+        "slug": "GOOGLESHEETS_SEARCH_SPREADSHEETS",
+        "use": "find the tracker by title before touching a similarly named file"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_SPREADSHEET_INFO",
+        "use": "check the workbook structure before choosing a tab"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_SHEET_NAMES",
+        "use": "confirm the current tab names rather than guessing"
+      },
+      {
+        "slug": "GOOGLESHEETS_LOOKUP_SPREADSHEET_ROW",
+        "use": "find the row for a particular order reference"
+      },
+      {
+        "slug": "GOOGLESHEETS_GET_TABLE_SCHEMA",
+        "use": "inspect the table columns before preparing new entries"
+      },
+      {
+        "slug": "GOOGLESHEETS_VALUES_UPDATE",
+        "use": "write agreed values to a named destination range"
+      },
+      {
+        "slug": "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        "use": "add new records after existing entries instead of overwriting them"
+      },
+      {
+        "slug": "GOOGLESHEETS_CREATE_CHART",
+        "use": "make a chart from the range you selected"
+      }
+    ],
+    "setup": "in **Connected apps**, sign in to google sheets and allow your spreadsheet bot to use it. google receives the sign-in. paste the spreadsheet reference into chat and name the tab. for controlled updates, restrict the bot to the actions it actually needs rather than granting the entire catalog."
+  },
+  "routines_intro": "give a routine the column meanings as well as the schedule. the messages below use different sheets jobs: finding exceptions, adding entries and preparing a chart.",
+  "routines": [
+    {
+      "name": "stock exceptions",
+      "message": "each monday at 9, inspect the inventory tab in my acme stock sheet. compare available units with the reorder level on each row. report items below the level, with their row numbers. do not edit cells or sort the sheet.",
+      "when": "mondays at 09:00",
+      "output": "a row-by-row reorder check in chat"
+    },
+    {
+      "name": "intake rows",
+      "message": "every weekday at 5, take the new requests i gave you in this thread today and prepare rows for the acme intake sheet. match its column names. show me the proposed rows and ask me before you change anything. do not overwrite existing requests.",
+      "when": "weekdays at 17:00",
+      "output": "proposed intake rows, followed by an append only if you agree"
+    },
+    {
+      "name": "weekly chart check",
+      "message": "every friday at 2, inspect the weekly totals table in the acme sales sheet. tell me its covered dates and any empty weeks. propose a chart using only that table, and ask me before you change anything. leave source values alone.",
+      "when": "fridays at 14:00",
+      "output": "a coverage check and a chart proposal"
+    }
+  ],
+  "asks": "updating a range, sorting rows and adding a chart are changes inside sheets. the sending rule does not promise an approval card for them. if you need a checkpoint, make \"ask me before you change anything\" part of the job.\n\nper-bot app permissions can limit available actions before a call reaches google. the catalog includes actions with broad names and mixed read/write classifications; pick the exact actions you need rather than assuming every lookup-like name is available under reading access.",
+  "cannot": [
+    "update, append or format cells when the bot has only read permission. dusk bot checks the action before letting it reach the spreadsheet.",
+    "choose a safe write range from an ambiguous instruction like \"clean this up\". identify the tab, headers and protected working area in your request; review the proposed edits first.",
+    "run a monday sheet check while the local app is closed. scheduled desktop work waits for the machine; a run missed by less than 12 hours runs once on return, and older runs are skipped."
+  ],
+  "sections": [
+    {
+      "h": "make the handoff precise",
+      "md": "say whether blank cells mean missing data or zero. tell the bot which columns contain formulas and must stay untouched. ask it to quote the source range alongside a result so you can inspect it. for a file dropped into chat rather than a connected google spreadsheet, see [excel files](/integrations/excel)."
+    },
+    {
+      "h": "a report is only as current as its source",
+      "md": "a totals chart cannot tell you whether every transaction reached the table. if your question starts with billing records, read those through [stripe](/integrations/stripe) before planning a sheet update. finding other source files may call for a separate [google drive connection](/integrations/google-drive)."
+    }
+  ],
+  "faq": [
+    {
+      "q": "can claude or chatgpt update my google sheet?",
+      "a": "a bot in dusk bot can use the listed sheets actions with the ai you choose. it needs the connected account, permission for the write action and a clear destination range."
+    },
+    {
+      "q": "does it ask before changing a cell?",
+      "a": "cell edits are not covered by the documented send approval rule. put an explicit ask-first instruction in the routine, and use restricted app access while checking it."
+    },
+    {
+      "q": "can it just tell me which rows look wrong?",
+      "a": "yes. make the output a list in dusk chat, with row references and reasons. say that source values must remain unchanged."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: routines and missed runs",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: a bot's computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

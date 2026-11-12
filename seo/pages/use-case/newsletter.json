@@ -1,0 +1,93 @@
+{
+  "path": "/use-cases/newsletter",
+  "type": "use-case",
+  "title": "AI newsletter agent: draft a weekly issue from sources",
+  "nav": "newsletter",
+  "h1": "a weekly newsletter draft from the sources you choose",
+  "description": "Copy a routine that turns a source list into a weekly newsletter draft, keeps links attached and leaves sending behind Allow.",
+  "keyword": "ai agent newsletter",
+  "keywords": [
+    "ai newsletter generator",
+    "ai agent content repurposing"
+  ],
+  "answer": "a newsletter bot needs an editorial brief before it needs a schedule: who reads the issue, which sources it may use and what deserves a place. ask it to turn that list into a weekly draft in your chat, with links kept beside each item. you check the selection and wording. keep sending on ask every time so an issue never leaves without allow.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "newsletter",
+    "writing",
+    "editorial",
+    "weekly"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/social-media-posting",
+    "/use-cases/competitor-monitoring"
+  ],
+  "art": {
+    "props": [
+      "p-newspaper",
+      "s-notebook"
+    ],
+    "bubble": "issue ready to review"
+  },
+  "og_line": "your sources, a draft, your final say.",
+  "routine": {
+    "intro": "first send your bot the actual source urls and describe the reader. the routine below uses that list, so there is no need to invent a publication or connect a mailing platform.",
+    "message": "every thursday at 3pm, draft next week’s issue in this chat. write for independent workshop owners using the sources list i gave you. include only material published since the last issue, or mark an older item as background.\n\nchoose one main item and two shorter notes. for each, explain what happened, why a workshop owner might care and where the reader can check it. keep source links with the item. write an original summary; do not copy articles.\n\ninclude a subject line, an opening and a closing question. finish with editorial notes: missing dates, unavailable sources and claims i should check. if nothing merits an issue, say so. do not invent a customer quote, a result or a personal experience. never send or publish.",
+    "when": "thursday at 15:00, leaving time for an editorial review before next week",
+    "needs": "your source urls, audience notes and a bot with its own browser; no newsletter connector required",
+    "output": "draft issue for sam’s fictional workshop letter\n\nsubject: a clearer handover note\n\nopening: this week, a small idea for the moment a repair changes hands.\nmain item: priya’s supplied workshop notes describe a handover card with room for the next person’s question. it may be worth discussing at your next team meeting. source: supplied priya notes, “handover card”.\nshort notes: held back; no other dated source met the brief.\nclosing question: what information is usually missing when a job reaches you?\neditorial note: ask priya’s permission before quoting her. nothing sent."
+  },
+  "sections": [
+    {
+      "h": "make the source list an editorial boundary",
+      "md": "give each url a reason to be there: original reporting, a product update or a reference you trust. say which topics to leave out. the bot should not fill an empty issue with loosely related news just to meet a word count.\n\nkeep a separate list of links already covered and ask the bot to compare against it. an updated page can look fresh while repeating an old announcement. if you need new sources, run a focused [market research brief](/use-cases/market-research) before changing the editorial list."
+    },
+    {
+      "h": "draft here, send after review",
+      "md": "this routine returns text in chat. it does not promise a connection to your mailing service. copy the edited issue into your usual editor and check the subject, links and recipient list there.\n\nif you later give a bot a supported way to send, choose **Ask every time** for sending. the **Allow** card is the send decision. do not set a daily amount it may send on its own if you want every issue reviewed.[^2] a [social posting routine](/use-cases/social-media-posting) can turn the same approved notes into a different format."
+    },
+    {
+      "h": "leave room for an issue to be skipped",
+      "md": "a source may be inaccessible, undated or thin. tell the bot to return an editorial question instead of padding the issue. summaries can still miss a qualification, so read the original before making its claim your own.\n\nfor a letter based on product changes, [competitor monitoring](/use-cases/competitor-monitoring) offers a way to keep a dated change list. on your own computer, the newsletter routine needs dusk bot running and the machine awake. use [dusk cloud](/docs/dusk-cloud) if the draft must run while that computer is off."
+    }
+  ],
+  "safeguards": [
+    "set sending to **Ask every time**; publishing an issue requires your **Allow**",
+    "keep quotations brief and check permission before including someone’s private notes",
+    "check every destination link in the editor before sending to readers",
+    "remove unsupported claims even when they would make a stronger subject line"
+  ],
+  "faq": [
+    {
+      "q": "what can i actually use an ai newsletter agent for?",
+      "a": "selection and a first draft from a source list you maintain. it is useful when you have material but need help deciding what belongs together. you still own the editorial judgment."
+    },
+    {
+      "q": "can it write my personal opening?",
+      "a": "give it the experience you want to describe in your own notes. without that, ask for a neutral opening. it should not invent a story about your week."
+    },
+    {
+      "q": "will the weekly issue send while i sleep?",
+      "a": "this routine only drafts. keeping sending on **Ask every time**, with no daily sending allowance, means a supported send waits for your **Allow**. scheduled drafting on your computer also pauses while it sleeps."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    }
+  ]
+}

@@ -43,12 +43,21 @@ function resolveFile(urlPath) {
   let rel;
   try { rel = decodeURIComponent(urlPath); } catch { return null; }
   // a name that starts with _ is the build's note to this server (the redirects), not something to serve
-  if (rel.includes('\0') || rel === '/_redirects.json') return null;
+  if (rel.includes('\0') || rel === '/_redirects.json' || rel === '/_gone.json') return null;
   let file = path.join(root, path.normalize(rel));
   if (file !== root && !file.startsWith(root + path.sep)) return null;
   const st = fs.statSync(file, { throwIfNoEntry: false });
   if (st?.isDirectory()) file = path.join(file, 'index.html');
   return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ? file : null;
+}
+
+// seo pages taken down for good (seo/release.json status pruned, with nowhere to send people), listed by the build in
+// _gone.json and answered 410 so search engines drop them; read again when it changes
+let gone = { at: 0, set: new Set() };
+function isGone(urlPath) {
+  const file = path.join(root, '_gone.json'), at = fs.statSync(file, { throwIfNoEntry: false })?.mtimeMs || 0;
+  if (at !== gone.at) { try { gone = { at, set: new Set(at ? JSON.parse(fs.readFileSync(file, 'utf8')) : []) }; } catch { gone = { at, set: new Set() }; } }
+  return gone.set.has(urlPath.length > 1 ? urlPath.replace(/\/+$/, '').toLowerCase() : urlPath);
 }
 
 // short and old addresses the build listed in _redirects.json, each with the page that answers it; read again when it changes
@@ -208,7 +217,7 @@ const server = http.createServer((req, res) => {
     if (to) { res.writeHead(308, { Location: q && !to.includes('?') ? to.replace(/(#.*)?$/, `${q}$1`) : to, 'Cache-Control': 'public, max-age=300' }); return res.end(); }
     // a page that is not there gets the site's own not-found page; a missing file gets a plain answer
     file = /\.[a-z0-9]{1,5}$/i.test(urlPath) ? null : resolveFile('/404.html');
-    status = 404;
+    status = isGone(urlPath) ? 410 : 404;
     if (!file) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('not found\n');
@@ -220,7 +229,7 @@ const server = http.createServer((req, res) => {
     'Content-Type': type,
     // the installer, its checksum and the update manifest must never be served stale after a refresh; a url
     // stamped with its content hash never changes, so it can be kept for good
-    'Cache-Control': status === 404 ? 'no-store' : /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
+    'Cache-Control': status >= 400 ? 'no-store' : /\.(sh|sha256|json)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : /\.woff2$/.test(file) ? 'public, max-age=86400' : 'public, max-age=300',
   };
   if (/^text\/|svg|json/.test(type) && body.length > 1024) {
     headers.Vary = 'Accept-Encoding';

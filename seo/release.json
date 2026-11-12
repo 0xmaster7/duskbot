@@ -1,0 +1,489 @@
+{
+  "cohorts": [
+    {
+      "id": "01",
+      "week": "2026w46",
+      "label": "seed: pillars, top alternatives, top integrations",
+      "planned": "2026-11-12",
+      "released": "2026-11-12"
+    },
+    {
+      "id": "02",
+      "week": "2026w50",
+      "label": "wave 1 rest: claude features, more integrations and use cases, first routines",
+      "planned": "2026-12-08"
+    },
+    {
+      "id": "03",
+      "week": "2026w51",
+      "label": "integrations and role pages",
+      "planned": "2026-12-15"
+    },
+    {
+      "id": "04",
+      "week": "2026w52",
+      "label": "the rest of the first 100: guides, comparisons, routines, glossary",
+      "planned": "2026-12-22"
+    }
+  ],
+  "pages": {
+    "/agents-when-laptop-closed": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-agent-that-controls-your-computer": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-chief-of-staff": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-employees": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-executive-assistant": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-group-chat": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/ai-teammates": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/alternatives/ai-assistant-you-text": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/chatgpt-agent": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/alternatives/claude-cowork": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/genspark": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/alternatives/gumloop": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/hermes-agent": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/lindy": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/alternatives/manus": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/n8n": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/openclaw": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/openclaw-hosting": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/openclaw-no-setup": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/perplexity-comet": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/poke": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/alternatives/relevance-ai": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/sintra": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/alternatives/zapier-agents": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/claude-code-from-your-phone": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/for/ecommerce": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/for/founders": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/for/product-managers": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/for/real-estate-agents": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/for/recruiters": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/for/small-business-owners": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/for/students": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/glossary/always-on-ai-agent": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/apps-that-use-your-ai-subscription": {
+      "status": "draft",
+      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+    },
+    "/guides/chatgpt-scheduled-tasks": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-code-for-email": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-code-for-marketing": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-code-for-non-developers": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-code-routines": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-code-telegram-discord-slack": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-connectors": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/guides/claude-cowork-pricing": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-cowork-windows": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-scheduled-tasks": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/guides/claude-skills": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/claude-subscription-vs-api": {
+      "status": "draft",
+      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+    },
+    "/guides/gemini-scheduled-actions": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/grok-tasks": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/how-much-does-an-ai-agent-cost": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/is-it-safe-to-let-ai-control-your-computer": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/guides/is-openclaw-safe": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/guides/openclaw-clawdbot-moltbot-explained": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/guides/what-is-an-ai-agent": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/guides/what-is-mcp": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/airtable": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/asana": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/canva": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/discord": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/excel": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/figma": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/github": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/gmail": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/google-calendar": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/google-drive": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/google-sheets": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/hubspot": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/jira": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/linear": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/linkedin": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/integrations/notion": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/obsidian": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/outlook": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/salesforce": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/shopify": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/integrations/slack": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/integrations/stripe": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/integrations/twitter": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/whatsapp": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/integrations/youtube": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/personal-ai-agent": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/routines/github-issue-triage": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/routines/meeting-prep-brief": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/routines/slack-channel-digest": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/routines/weekly-calendar-preview": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/routines/weekly-receipts-sweep": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/run-claude-code-24-7": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/scheduled-ai-tasks": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/tools/always-on-cost": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/use-cases/competitor-monitoring": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/use-cases/daily-briefing": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/use-cases/email-triage": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/use-cases/file-organizer": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/use-cases/invoice-follow-up": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/use-cases/lead-research": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/use-cases/market-research": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/use-cases/newsletter": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/use-cases/social-media-posting": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/use-cases/web-scraping": {
+      "cohort": "03",
+      "status": "queued"
+    },
+    "/use-your-ai-subscription": {
+      "status": "draft",
+      "note": "held for the owner: subscription and vendor-terms wording (see omb-ref/SEO-SYSTEM.md, open questions)"
+    },
+    "/vs/ai-agent-vs-chatbot": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/vs/chatgpt-agent": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/vs/claude-cowork": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/vs/lindy": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/vs/manus": {
+      "cohort": "04",
+      "status": "queued"
+    },
+    "/vs/openclaw": {
+      "cohort": "02",
+      "status": "queued"
+    },
+    "/vs/openclaw-vs-hermes-agent": {
+      "cohort": "01",
+      "status": "live",
+      "live_at": "2026-11-12"
+    },
+    "/vs/poke": {
+      "cohort": "04",
+      "status": "queued"
+    }
+  }
+}

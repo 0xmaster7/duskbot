@@ -1,0 +1,100 @@
+{
+  "path": "/guides/what-is-mcp",
+  "type": "guide",
+  "title": "What is MCP? Connections for AI apps in plain English",
+  "nav": "what is mcp",
+  "h1": "what is mcp, and why would a bot need it?",
+  "description": "A plain-English explanation of Model Context Protocol, what an MCP server connects, and the trust checks to make before adding one in Dusk Bot.",
+  "keyword": "what is mcp",
+  "keywords": [
+    "mcp for non developers",
+    "mcp connectors for beginners",
+    "claude connectors"
+  ],
+  "answer": "mcp stands for model context protocol. it is an open-source standard for connecting ai applications to external systems. in everyday terms, it gives an ai app a common way to reach tools and data outside the chat. it is a connection standard, not an ai model or a safety certificate. which server you add, and what it can reach, still matter.[^1]",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "mcp",
+    "plugins",
+    "connections",
+    "permissions"
+  ],
+  "connectors": [],
+  "related": [
+    "/guides/claude-connectors",
+    "/guides/claude-skills",
+    "/guides/is-it-safe-to-let-ai-control-your-computer"
+  ],
+  "art": {
+    "props": [
+      "s-plug",
+      "s-server"
+    ],
+    "bubble": "what does this reach?"
+  },
+  "og_line": "a connection standard, not a trust badge.",
+  "sections": [
+    {
+      "h": "the three pieces to keep straight",
+      "md": "think about the connection in three parts: the ai application you talk to, an mcp server that exposes a particular system, and the underlying files or service you want to use. the server is the connecting piece. adding one does not mean you have changed the model doing the thinking.\n\nthe official mcp introduction defines the protocol as an open-source standard for connecting ai applications to external systems. anthropic introduced and open-sourced it on 25 november 2024. on 9 december 2025, anthropic donated mcp to the agentic ai foundation under the linux foundation.[^1][^2][^3]"
+    },
+    {
+      "h": "what that means for an ordinary task",
+      "md": "suppose you want help with material that lives outside the chat. first ask where that material lives and whether the app already has a way to reach it. mcp may be the connection method, but the actual server determines which tools or data are available.\n\nbefore adding a server, write down the one task you want it for. then inspect what the server says it exposes. if your task needs reading and the proposed connection offers broad changes, stop and work out how to restrict it. a common protocol does not make every server equivalent, and a familiar service name does not identify who operates a particular server."
+    },
+    {
+      "h": "how dusk bot uses mcp",
+      "md": "dusk bot lets you add an mcp server under **Plugins**, **MCP servers**. its docs say to add only servers you trust. use that route when you have chosen a trusted server for the system you need.[^4]\n\ndusk bot also has **Connected apps**, which connect through composio. those connections let you select which bots may use an app and whether each bot may read or also write. do not assume those composio controls describe every mcp server's permissions. check the server and its own access before connecting it. the [claude connectors guide](/guides/claude-connectors) separates anthropic's connectors from dusk's connected apps.[^4]"
+    },
+    {
+      "h": "questions to answer before adding a server",
+      "md": "1. **who operates it?** know whose code or service you are choosing to trust.\n2. **what does it reach?** a single folder, one account or a wider workspace are different decisions.\n3. **what actions does it expose?** distinguish reading from changing and sending.\n4. **what credentials does it need?** do not paste a key into a chat because an unfamiliar instruction asks for one.\n5. **how will you remove access?** find that path before the connection becomes part of a routine.\n\nif an answer is unclear, leave the server out while you investigate. you can still begin with files you intentionally attach. these questions are a practical review, not a claim that mcp automatically enforces any particular approval behavior."
+    },
+    {
+      "h": "a skill solves a different problem",
+      "md": "a connection supplies access. a skill supplies instructions and resources for doing a specialized task. if an ai can already see the right document but keeps using the wrong format, a new connection is unlikely to fix the brief. if it has clear instructions but cannot reach the document, another paragraph of instructions will not provide access.\n\nread [claude skills](/guides/claude-skills) for the reusable-method side. keep the distinction when following tutorials: a zip of instructions and a server connection are different things to review, even when someone bundles them into the same setup guide."
+    },
+    {
+      "h": "what mcp does not promise",
+      "md": "it does not tell you that a result is accurate, that a server is trustworthy or that your account grants are narrow enough. it also does not make an ai provider's terms irrelevant. check the terms of the ai app and service you use.\n\nstart with a reading task, inspect which material was used, and keep private or irreversible work out of the first trial. the [computer-use safety guide](/guides/is-it-safe-to-let-ai-control-your-computer) helps you think about supervision across tools. mcp names how systems connect; you still decide what work belongs on that connection."
+    }
+  ],
+  "faq": [
+    {
+      "q": "do i need to know mcp to use connected apps?",
+      "a": "not for dusk bot's documented connected-app flow. open **Connected apps**, sign in on the app's own page and choose the bots that may use it. adding an mcp server is a separate option under **Plugins**.[^4]"
+    },
+    {
+      "q": "is mcp a claude-only feature?",
+      "a": "no. the official definition describes a standard for connecting ai applications to external systems, rather than a feature limited by definition to one model.[^1]"
+    },
+    {
+      "q": "does an mcp server make my bot safe?",
+      "a": "no. review who operates it, what it exposes and what you authorize. dusk bot's guidance is to add only servers you trust.[^4]"
+    }
+  ],
+  "sources": [
+    {
+      "label": "model context protocol: introduction",
+      "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: introducing mcp",
+      "url": "https://www.anthropic.com/news/model-context-protocol",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: donating mcp to the agentic ai foundation",
+      "url": "https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    }
+  ]
+}

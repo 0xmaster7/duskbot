@@ -1,0 +1,52 @@
+{
+  "path": "/agents-when-laptop-closed",
+  "type": "pillar",
+  "title": "Where do AI agents run when your laptop is closed?",
+  "nav": "when your laptop is closed",
+  "h1": "where do ai agents run when your laptop is closed?",
+  "description": "An AI agent on your laptop stops when the lid closes. The four places it can live instead, what each costs, who looks after it, and which one fits you.",
+  "keyword": "ai agent running while laptop is closed",
+  "keywords": ["always on ai agent", "cloud computer for ai agents", "ai agent vps", "run ai agent while laptop sleeps"],
+  "answer": "an agent runs on a computer, so when your laptop sleeps, an agent on that laptop sleeps too: scheduled jobs wait and your phone can't reach it. to keep one working you move it to a computer that stays on. that can be a spare computer at home, a server you rent and look after, or a hosted computer like dusk cloud that someone else keeps running.",
+  "updated": "2026-11-12",
+  "review": { "status": "approved", "by": "lead agent, against dusk bot docs", "at": "2026-11-12" },
+  "tags": ["always-on", "cloud", "server", "laptop", "routine", "phone"],
+  "connectors": [],
+  "related": ["/run-claude-code-24-7", "/scheduled-ai-tasks", "/claude-code-from-your-phone", "/tools/always-on-cost"],
+  "art": { "props": ["p-laptop", "s-server"], "sky": "pond", "bubble": "still on it" },
+  "og_line": "four places a bot can live, and what each costs.",
+  "table": {
+    "h": "the four options side by side",
+    "intro": "costs here are only what dusk bot charges. a spare computer and a rented server have their own costs, set by you or your hosting company, and every option still uses your own ai plan.",
+    "cols": ["", "your laptop", "a spare computer at home", "a server you rent", "dusk cloud"],
+    "rows": [
+      { "label": "works with the lid shut", "cells": ["no", "yes, while it stays on and online", "yes", "yes"], "src": [1, 2] },
+      { "label": "dusk bot's charge", "cells": ["free for personal use", "free for personal use", "free; you pay the server", "$20 a month (plus) or $50 (pro)"], "src": [2, 3] },
+      { "label": "who keeps it running", "cells": ["you", "you: power, updates, wi-fi", "you: updates, backups, the bill", "we do, with daily backups"], "src": [2, 4] },
+      { "label": "setting it up", "cells": ["install the app", "install the app, set it never to sleep", "ubuntu, one pasted line, about ten minutes", "check out, sign in, about a minute"], "src": [2, 4] },
+      { "label": "your phone reaches it", "cells": ["only while the laptop is awake", "while that computer is on", "yes", "yes, with your computer off"], "src": [5] },
+      { "label": "a browser for each bot", "cells": ["your own screen, on purpose (mac)", "your own screen, on purpose (mac)", "a private desktop on the server", "a desktop per bot: 2 awake at once on plus, 5 on pro"], "src": [6] }
+    ]
+  },
+  "sections": [
+    { "h": "why a laptop is the wrong home for an always-on agent", "md": "an ai agent is a program that keeps a job going: it checks your inbox at 8, watches for a new github issue, finishes a long research task. all of that needs the computer it runs on to be awake. close the lid and the program pauses.\n\nin dusk bot that shows up in two ways. routines don't run while the computer is asleep or the app is closed; a run missed by less than 12 hours runs once when you're back, and older ones are skipped. and a phone paired to that laptop can't reach your bots until the laptop wakes up. **Settings**, **Remote access**, **Keep this computer awake** helps when the laptop is plugged in at your desk, but it can't help in a backpack." },
+    { "h": "a spare computer at home", "md": "an old laptop or a small desktop that stays plugged in works. install dusk bot on it, set it never to sleep, and make that the place your bots live. it costs nothing extra in software, but it's yours to look after: power cuts, wi-fi drops, system updates that restart it at 3am. if it goes down while you're travelling, nothing runs until someone at home turns it back on." },
+    { "h": "a server you rent", "md": "if you're comfortable with a server, [your own server](/docs/your-own-server) is free in dusk bot: you pay only the hosting company. it needs ubuntu 22.04 or 24.04 and 2 gb of memory or more (12 gb keeps about six bot computers awake at once). you paste one line the app gives you and it takes about ten minutes. no ports to open, no domain. your app and server talk through a relay, sealed with a key only they hold.\n\nthe trade is that the updates, backups and bill are yours, and you should use a fresh server rather than one that holds things you wouldn't hand to a bot." },
+    { "h": "dusk cloud", "md": "dusk cloud is a computer we host for your bots. it's your own machine, not a shared one, and we keep it running and back it up daily. routines run at 3am, long jobs finish while you're out, and your phone always has someone to talk to.\n\nyou move to it from the app: pick a plan, sign in under **Settings**, **Dusk Cloud**, and a short welcome brings your bots over with their chats, memory and routines. your ai sign-in stays yours, and ai usage is never on the dusk bill.\n\none thing to know: a bot that works around the clock uses your ai plan around the clock. for heavy use, a bigger ai plan or an api key works best." },
+    { "h": "which one fits you", "md": "- **you only use bots while you're at your desk:** stay on your laptop. it's free.\n- **you want a morning brief ready before you wake, or to text a bot from your phone at night:** that's the sign to move. most people pick dusk cloud, because there is nothing to look after.\n- **you already run servers and like it:** your own server costs you only the server.\n- **you have a spare computer that never leaves the house:** it works, as long as it stays on.\n\nyou can keep more than one and switch between them from the menu at the top of the sidebar. start on your laptop and move when a missed routine annoys you." }
+  ],
+  "faq": [
+    { "q": "can an ai agent run while my mac is asleep?", "a": "not on that mac. a sleeping computer runs nothing. keep it awake while plugged in, or move the agent to a computer that stays on." },
+    { "q": "do i need to know linux to keep an agent running 24/7?", "a": "no. dusk cloud needs no server skills. running [your own server](/docs/your-own-server) is the option that needs some." },
+    { "q": "what happens to my bots if i stop paying for dusk cloud?", "a": "bots on your own computer carry on. the cloud computer is kept for 30 days after the plan ends, then deleted, and we email you a week before. move your bots back or export a backup first." },
+    { "q": "is it cheaper to run it on my own server?", "a": "dusk bot charges nothing for it, so you pay only your hosting company. it's cheaper if your time looking after a server costs you nothing. the [always-on cost calculator](/tools/always-on-cost) puts the numbers side by side." }
+  ],
+  "sources": [
+    { "label": "dusk bot docs: routines, your computer has to be on", "url": "/docs/routines" },
+    { "label": "dusk bot docs: dusk cloud, where bots can live", "url": "/docs/dusk-cloud" },
+    { "label": "dusk bot pricing", "url": "/pricing" },
+    { "label": "dusk bot docs: your own server", "url": "/docs/your-own-server" },
+    { "label": "dusk bot docs: the phone app", "url": "/docs/phone" },
+    { "label": "dusk bot docs: a bot's computer", "url": "/docs/computer" }
+  ]
+}

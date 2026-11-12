@@ -1,0 +1,96 @@
+{
+  "path": "/use-cases/competitor-monitoring",
+  "type": "use-case",
+  "title": "Monitor competitors with AI: hear only about changes",
+  "nav": "competitor monitoring",
+  "h1": "a weekly competitor check that stays quiet when nothing changes",
+  "description": "Copy a routine that compares competitors’ pricing pages and changelogs against a dated baseline, with evidence of what changed.",
+  "keyword": "monitor competitors with ai",
+  "keywords": [
+    "ai competitor monitoring"
+  ],
+  "answer": "give a bot the exact pricing pages and changelogs you care about, then ask it to compare them with a dated baseline each week. have it report the old wording, the new wording and a source only when something changed. a failed page load is not a price change. the useful result is a small, checkable change list, with no guesses about private offers or a competitor’s intentions.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "needs_review"
+  },
+  "tags": [
+    "competitors",
+    "monitoring",
+    "pricing",
+    "changes"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-cases/market-research",
+    "/use-cases/web-scraping",
+    "/use-cases/newsletter"
+  ],
+  "art": {
+    "props": [
+      "p-binoculars",
+      "s-clock"
+    ],
+    "bubble": "only if something changed"
+  },
+  "og_line": "old wording, new wording, a source.",
+  "routine": {
+    "intro": "send the specific pricing and changelog urls before the first run. have the bot make a baseline in a project folder you give it, then read that baseline yourself before relying on comparisons.",
+    "message": "every monday at 4pm, check the competitor pricing pages and changelog urls i supplied, using your own browser. use the dated baseline in the project folder i gave you. on the first run, save the visible wording with its source url, date, currency, billing interval and region when shown. tell me that the baseline is ready to check.\n\non later runs, only tell me if something changed: plan price, included limits, availability or a new changelog entry. show the previous wording beside the current wording, the url and date read. separate visible changes from your interpretation. ignore navigation, footer and date-display changes. save a dated record of successfully checked pages.\n\nif a page is blocked or unreadable, say “check incomplete” and name it. do not treat missing content as a removal or replace its last good baseline. never sign up, buy a plan or contact a competitor.",
+    "when": "mondays at 16:00, with a first-run baseline review before comparisons",
+    "needs": "a bot with its own browser, named urls and a project folder for dated notes; no connector",
+    "output": "change found for sam, fictional competitor cedar desk\n\npage: supplied cedar desk pricing page\nprevious: “team plan includes 3 workspaces”, baseline read 5 november 2026.\ncurrent: “team plan includes 5 workspaces”, read 12 november 2026.\ninterpretation: the displayed workspace allowance changed. no claim about existing customer contracts.\n\ncheck incomplete: jo’s studio changelog would not load. its last good baseline was kept.\nno other reportable differences on pages checked."
+  },
+  "sections": [
+    {
+      "h": "make the first snapshot worth comparing",
+      "md": "a useful baseline records what a page actually says, including qualifications. monthly and annual billing can display different amounts. a region or currency change can also look like a new price. ask the bot to preserve those details rather than saving a bare number.\n\nkeep the original baseline and subsequent dated notes so you can retrace a comparison. the bot can work in a project folder you give it; that is where this routine asks it to keep its evidence.[^2] verify the first record against the source before making the quiet rule your default."
+    },
+    {
+      "h": "decide what deserves an interruption",
+      "md": "name the changes that matter to you. a new plan limit may affect a sales comparison; a rearranged footer probably does not. require both old and new wording so a page redesign does not become a business conclusion.\n\nthis is narrower than a [market research brief](/use-cases/market-research). for collecting a recurring set of fields instead, see [web scraping](/use-cases/web-scraping). a [newsletter draft](/use-cases/newsletter) can use reviewed change notes later, but the bot should not turn an unverified difference into an announcement."
+    },
+    {
+      "h": "silence has limits",
+      "md": "quiet means no reportable difference on the pages successfully checked. it does not mean the whole competitor stayed the same. private discounts, sales calls and changes between weekly visits sit outside the record. a failed check needs its own note so silence does not imply success.\n\nif a local monday run is missing, check **Automations**. your own computer must be awake with dusk bot open. [dusk cloud](/docs/dusk-cloud) runs schedules on time, but hosting the bot elsewhere does not make an inaccessible competitor page readable."
+    }
+  ],
+  "safeguards": [
+    "approve the first baseline and keep the dated notes instead of overwriting all evidence",
+    "match currency, region and billing interval before calling a price different",
+    "report unreadable pages as incomplete checks; preserve their last usable wording",
+    "exclude sign-ups, purchases and contact with the monitored companies from the task"
+  ],
+  "faq": [
+    {
+      "q": "can i have an agent only tell me if something changed?",
+      "a": "yes. put that instruction in the routine and define which changes count. this version also reports incomplete checks, since a blocked page should not quietly count as unchanged."
+    },
+    {
+      "q": "will it catch every competitor price change?",
+      "a": "no. it compares the public pages you named when a run happens. a short-lived change between checks, a private quote or an inaccessible page can be missed."
+    },
+    {
+      "q": "where does the bot run when my laptop is closed?",
+      "a": "a bot on that laptop stops while it sleeps or dusk bot is closed. put the routine on dusk cloud if you need the weekly check to run then, or use your own server."
+    }
+  ],
+  "sources": [
+    {
+      "label": "dusk bot docs: routines",
+      "url": "/docs/routines"
+    },
+    {
+      "label": "dusk bot docs: files and apps",
+      "url": "/docs/files-and-apps"
+    },
+    {
+      "label": "dusk bot docs: a bot’s computer",
+      "url": "/docs/computer"
+    },
+    {
+      "label": "dusk bot docs: dusk cloud",
+      "url": "/docs/dusk-cloud"
+    }
+  ]
+}

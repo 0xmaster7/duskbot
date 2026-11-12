@@ -1,0 +1,169 @@
+{
+  "path": "/guides/apps-that-use-your-ai-subscription",
+  "type": "guide",
+  "title": "Which apps can sign in to your ChatGPT or Claude plan?",
+  "nav": "which apps can sign in",
+  "h1": "which apps can sign in to your chatgpt or claude plan?",
+  "description": "A dated log of provider sign-in rules, including Anthropic changes, OpenAI supported apps, Google restrictions and Grok Build documentation.",
+  "keyword": "can i use my chatgpt subscription with openclaw",
+  "keywords": [
+    "claude subscription third party apps",
+    "claude oauth third party",
+    "anthropic openclaw subscription"
+  ],
+  "answer": "as of 12 november 2026, openai documents chatgpt sign-in for codex and supported third-party apps. anthropic separately describes sign-in to the unmodified claude code binary and restrictions on developers handling credentials. google's antigravity faq says consumer plans do not support wrapping agy in third-party applications. this log reports what the providers say, with dates, rather than deciding whether any particular app is allowed.",
+  "updated": "2026-11-12",
+  "review": {
+    "status": "blocked",
+    "why": "owner to confirm subscription and vendor-terms wording before this page ships"
+  },
+  "tags": [
+    "terms",
+    "sign-in",
+    "policy",
+    "claude",
+    "codex"
+  ],
+  "connectors": [],
+  "related": [
+    "/use-your-ai-subscription",
+    "/guides/claude-subscription-vs-api",
+    "/guides/gemini-scheduled-actions"
+  ],
+  "art": {
+    "props": [
+      "s-notebook",
+      "s-key"
+    ],
+    "bubble": "check the date"
+  },
+  "og_line": "a dated record of provider sign-in rules.",
+  "sections": [
+    {
+      "h": "read a date and an access method together",
+      "md": "a post about copied oauth tokens, a program running a vendor's published binary and an api-key connection can describe different arrangements. do not carry a conclusion from one to the others. start with the provider's current terms, then read the documentation for the precise login path.\n\nwe checked each provider's own pages for this log on 12 november 2026. archived pages describe wording at that earlier time. a date range means the change appeared between two archive snapshots, not that we know its exact publication day. the [automation sign-in overview](/use-your-ai-subscription) explains what dusk runs; this page keeps the policy history separate from product instructions."
+    },
+    {
+      "h": "anthropic: the history behind conflicting answers",
+      "md": "- **8 october 2025, terms effective date:** anthropic's consumer terms prohibit automated or non-human access except via an anthropic api key or where anthropic explicitly permits it.[^1]\n- **2 to 18 february 2026:** the code legal page gained authentication wording. the 18 february archive says oauth tokens from free, pro or max accounts were intended for claude code and claude.ai and prohibited in other products, including the agent sdk. this is historical wording.[^2]\n- **3 april 2026:** claude code lead boris cherny announced that from the following day at noon pacific, claude plans would no longer cover third-party tools such as openclaw. this is the dated announcement, not today's complete rule.[^3]\n- **15 june 2026:** anthropic's support article said it had paused previously announced agent sdk changes. it said agent sdk, `claude -p` and third-party app usage still drew from plan limits 'for now'.[^4]\n- **16 june to 17 july 2026:** archived legal wording described oauth as intended for purchasers of listed plans to support ordinary use of claude code and other native anthropic apps.[^5]\n- **16 to 30 august 2026:** the legal page added a hosted-product section and text describing end-user sign-in to the unmodified claude code binary, including where a platform hosts it.[^6]\n- **7 october 2026:** the support article again said signed-in agent sdk and `claude -p` continued drawing from plan limits, and said max, ultra and team now included monthly api credits.[^4]\n\n**as of 12 november 2026:** the current legal page requires the binary to run as published and forbids restricting its built-in authentication methods. hosting claude code in a product requires agreement to commercial terms. platforms may not pay for, resell or intermediate end users' claude usage; users must authenticate with their own credentials.[^7]\n\nthe same page says third-party developers may not offer claude.ai login in their applications, route requests through users' plan credentials, or collect, store or intermediate claude.ai credentials or session tokens. the login help article also reserves anthropic's discretion to allow certain third-party tools and bill them from usage credits.[^7][^8]\n\nread those current pages together. neither the paused-change note nor an old restriction establishes a blanket answer about an app today. the [claude pricing comparison](/guides/claude-subscription-vs-api) separates billing arithmetic from access conditions."
+    },
+    {
+      "h": "openai: documented codex and supported-app access",
+      "md": "as of 12 november 2026, codex documentation lists chatgpt sign-in for plan access and api-key sign-in for usage-based access. it recommends api keys for programmatic cli workflows such as ci/cd jobs.[^9]\n\nthe separate sign-in-with-chatgpt page says eligible go, plus, pro and business accounts can choose plan access in supported apps. it lists openclaw, opencode, pi and t3 among open-source integrations. app requests count toward existing limits, connecting an app adds no new allowance, and the app may charge its own fees. users can cap an app's weekly share.[^10]\n\nthose statements describe openai's documented program and named integrations. do not infer that an unlisted app is endorsed or that a working login removes usage limits. check the current provider page for the app you are considering."
+    },
+    {
+      "h": "google: the cli transition does not remove the faq restriction",
+      "md": "- **27 february 2026:** gemini cli terms documentation added explicit wording that accessing its underlying services with third-party software, naming openclaw with gemini cli oauth, violates applicable terms and policies.[^11]\n- **19 may 2026:** google announced that gemini cli would stop serving consumer google ai pro, ultra and free individual accounts on 18 june 2026, with a transition to antigravity cli.[^12]\n\n**as of 12 november 2026:** antigravity's additional terms say using third-party software to access the service is a breach and may be grounds for suspension or termination. its faq says `agy -p` is intended for direct scripting and ci, while wrapping agy in third-party coding agents or applications is not supported under consumer plans.[^13][^14]\n\nantigravity also documents an acp route where an editor starts `agy acp` as a subprocess. that specific editor documentation should not be broadened into permission for every wrapper.[^15] [gemini scheduled actions](/guides/gemini-scheduled-actions) concern gemini apps, a separate feature from cli sign-in."
+    },
+    {
+      "h": "xai: what grok build documents",
+      "md": "as of 12 november 2026, grok build's own docs describe interactive use, headless scripts or bots, and acp use in other apps. first launch opens a browser for authentication; non-browser environments use an api key.[^16]\n\non 12 october 2026, xai introduced the x subscription, folding in standalone supergrok for new customers; existing supergrok subscribers can keep their plan. consumer terms updated 27 october prohibit sharing credentials or making the account available to anyone else.[^17][^18]\n\nthis does not supply a terms verdict for a third-party desktop app. check your provider's current terms and the exact product documentation before relying on unattended access."
+    }
+  ],
+  "faq": [
+    {
+      "q": "has claude oauth for third-party apps come back?",
+      "a": "as of 12 november 2026, anthropic's support article says signed-in agent sdk and claude -p draw from plan limits. its legal page still restricts developer credential handling, and its login article reserves usage-credit billing discretion. read the access method and both sets of conditions; 'oauth is back' is too broad.[^4][^7][^8]"
+    },
+    {
+      "q": "can i sign in to codex with a chatgpt plan?",
+      "a": "as of 12 november 2026, yes: codex's authentication page documents that method alongside api keys. for programmatic workflows such as ci, the same page recommends api-key authentication.[^9]"
+    },
+    {
+      "q": "is this a list of apps approved by the vendors?",
+      "a": "no. it records provider statements and their dates. it does not certify any app's implementation, decide whether it meets terms, or replace checking your provider's current terms."
+    }
+  ],
+  "sources": [
+    {
+      "label": "anthropic: consumer terms",
+      "url": "https://www.anthropic.com/legal/consumer-terms",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: february legal archive",
+      "url": "https://web.archive.org/web/20260218171531/https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic announcement: boris cherny, 3 april",
+      "url": "https://x.com/bcherny/status/2040206440556826908",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: agent sdk plan usage",
+      "url": "https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: july legal archive",
+      "url": "https://web.archive.org/web/20260717070253/https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: august legal archive",
+      "url": "https://web.archive.org/web/20260830094710/https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: current legal and compliance",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "anthropic: account login",
+      "url": "https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: codex authentication",
+      "url": "https://learn.chatgpt.com/docs/auth",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "openai: supported app sign-in",
+      "url": "https://learn.chatgpt.com/docs/sign-in-with-chatgpt",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: february terms change",
+      "url": "https://github.com/google-gemini/gemini-cli/commit/83a3851dfd6a002ef4552d34cb6c4e76e0640b98",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: cli transition",
+      "url": "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity terms",
+      "url": "https://antigravity.google/terms",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity faq",
+      "url": "https://antigravity.google/docs/faq",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "google: antigravity acp",
+      "url": "https://antigravity.google/docs/cli/acp/",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: grok build",
+      "url": "https://docs.x.ai/build/overview",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: x subscription",
+      "url": "https://x.ai/news/x-subscription",
+      "checked": "2026-11-12"
+    },
+    {
+      "label": "xai: consumer terms",
+      "url": "https://x.ai/legal/terms-of-service",
+      "checked": "2026-11-12"
+    }
+  ]
+}
