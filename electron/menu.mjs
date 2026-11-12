@@ -22,6 +22,17 @@ const whereItLives = (environment) => (environment.kind === "local" ? environmen
  * @param {(fromKeys: boolean) => void} [input.onQuit] Quit, told whether its accelerator (rather than a click) chose it,
  *   so ⌘Q can be held while a bot works; without it the item is Electron's own.
  */
+/** What the native About panel shows beside the app icon (Electron app.setAboutPanelOptions). */
+export function aboutPanelOptions(version) {
+  return {
+    applicationName: "dusk bot",
+    applicationVersion: version,
+    credits: "your own team of AI bots, in a chat app",
+    copyright: `© ${new Date().getFullYear()} dusk bot`,
+    website: "https://dusk.bot",
+  };
+}
+
 export function buildApplicationMenu({ environments, activeId, onSwitch, onAddFromClipboard, onConnect, onForget, onOpenSettings, onOrganizationSignIn, onAddCloud, sublabels = {}, home = null, openAtLogin = null, onQuit = null, onStop = null }) {
   const isMac = process.platform === "darwin";
   const quit = onQuit

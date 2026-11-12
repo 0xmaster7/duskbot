@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildErrorPage, desktopViewerErrorPage } from "./error-pages.mjs";
+import { buildErrorPage, desktopViewerErrorPage, RENDERER_CRASHES, windowCrashedPage } from "./error-pages.mjs";
 import { startCua, stopCua, registerCuaIpc, setCuaStateListener, grantLocalComputer } from "./cua.mjs";
 import { finishSpeech, speechBusy, startSpeech, stopSpeech } from "./speech.mjs";
 import { installTalk, isTalkPanel } from "./talk-main.mjs";
@@ -88,7 +88,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs";
+import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -2128,6 +2128,13 @@ function createWindow({ deferNavigation = false } = {}) {
     slog(`blocked navigation to ${origin ?? "an invalid address"}`);
   };
   win.webContents.on("will-navigate", guardNavigation);
+  win.webContents.on("render-process-gone", (_event, details) => {
+    if (!RENDERER_CRASHES.has(details?.reason) || win.isDestroyed()) return;
+    const shown = win.webContents.getURL();
+    if (shown.startsWith("data:")) return;
+    slog(`main window page ${details.reason}; showing the reopen page`);
+    void win.loadURL(windowCrashedPage(shown || rendererOrigin())).catch(() => {});
+  });
   win.webContents.on("will-redirect", guardNavigation);
   // No page may embed the local server, or any saved server, in this preload-bearing window.
   win.webContents.on("will-frame-navigate", (details) => {
@@ -2922,6 +2929,7 @@ setCuaStateListener((connection) => {
 });
 
 app.whenReady().then(async () => {
+  app.setAboutPanelOptions(aboutPanelOptions(app.getVersion()));
   startupTrace.mark("ready");
   if (process.platform === "win32") {
     try {

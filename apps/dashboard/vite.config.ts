@@ -4,18 +4,20 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { licenseFiles } from "../../scripts/license-files.ts";
+import { webManifest } from "./web-manifest.ts";
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 // the dashboard service (apps/dashboard/server/main.ts); `pnpm dashboard:fixture` starts one with a fake account server
+const base = process.env.DUSK_DASHBOARD_BASE || "/";
 const service = process.env.DUSK_DASHBOARD_SERVICE || "http://127.0.0.1:7480";
 
 // the hosted account dashboard page; the @ alias reaches the app's connector catalogue
 export default defineConfig({
   root: here("."),
   // DUSK_DASHBOARD_BASE=/dashboard/ serves the page under /dashboard on an origin it shares with the site
-  base: process.env.DUSK_DASHBOARD_BASE || "/",
+  base,
   publicDir: false,
-  plugins: [react(), tailwindcss(), licenseFiles(here("../.."))],
+  plugins: [react(), tailwindcss(), licenseFiles(here("../..")), webManifest(here("./icons"), base)],
   resolve: { alias: { "@": here("../../src") } },
   define: { __APP_VERSION__: JSON.stringify("dashboard"), __DUSK_SITE_URL__: JSON.stringify(process.env.DUSK_SITE_URL || "https://dusk.bot") },
   build: { outDir: here("./dist"), emptyOutDir: true,

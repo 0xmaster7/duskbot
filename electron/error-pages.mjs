@@ -37,3 +37,16 @@ export function desktopViewerErrorPage(message, retryUrl) {
     content: `<h1>couldn't open the live desktop</h1><p>${escape(message)}</p><p class="go"><a href="${escape(retryUrl)}" target="_blank" rel="noreferrer">Open in browser</a></p>`,
   }));
 }
+
+/** Electron's render-process-gone reasons that mean the page died, not that it was closed or killed on purpose. */
+export const RENDERER_CRASHES = new Set(["crashed", "oom", "launch-failed", "integrity-failure", "abnormal-exit"]);
+
+/** The page the main window shows after its renderer crashes; the bots run in the server, so they are unaffected. */
+export function windowCrashedPage(reopenUrl) {
+  const escape = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return dataUrl(handoffPage({
+    title: "dusk bot",
+    mood: "oops",
+    content: `<h1>this window tripped</h1><p>the window stopped drawing, but your bots kept running. reopen it to pick up right where you were.</p><p class="go"><a href="${escape(reopenUrl)}">reopen window</a></p>`,
+  }));
+}
