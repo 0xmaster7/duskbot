@@ -326,21 +326,21 @@ describe("the bot panel in Simple mode", () => {
     expect(shown(panel(bot))).toEqual({ tab: "advanced", page: undefined });
   });
 
-  it("draws the Advanced tab: Library, Voice chat, This bot, then every other section in the list, and no Model", () => {
+  it("draws the Advanced tab: Library, Voice chat, This bot, then every other section in the list, no Model and no app-wide link", () => {
     const bot = makeBot();
     const rendered = capture(() => AdvancedTab({ bot, derived: derived(), onOpen }));
-    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"', 'data-panel-card="advanced-features"'].map((marker) => rendered.html.indexOf(marker));
+    const order = ['data-panel-card="library"', 'data-panel-card="call"', 'data-panel-card="uses"', 'data-panel-card="access"', 'data-panel-card="actions"'].map((marker) => rendered.html.indexOf(marker));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]!))).toBe(true);
     expect(rendered.html).not.toContain('data-panel-card="model"');
     // nothing is folded away
     expect(rendered.html).not.toContain("<details");
     expect(rendered.html).not.toContain(">more settings<");
-    for (const label of ["voice chat", "this bot", "actions", "advanced features"]) expect(rendered.html).toContain(`>${label}<`);
+    for (const label of ["voice chat", "this bot", "actions"]) expect(rendered.html).toContain(`>${label}<`);
     // an empty library is grok's centred line, with no heading or card over it
     expect(rendered.html).not.toContain(">library<");
     expect(rendered.html).not.toContain(">settings for the whole app<");
-    click(find(rendered, "data-panel-row", "advanced-features"));
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleAppSettings", open: true, section: "advanced" });
+    expect(rendered.html).not.toContain("advanced-features");
+    expect(rendered.html).not.toContain(">advanced features<");
   });
 
   it("drills into a page and back, naming where Back goes", () => {
@@ -631,7 +631,7 @@ describe("the Bot settings page", () => {
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     const pages = [...rendered.html.matchAll(/data-panel-page="(\w+)"/g)].map((match) => match[1]);
-    expect(pages).toEqual(["instructions", "memory", "skills", "identity", "tools", "permissions", "folder", "backups"]);
+    expect(pages).toEqual(["identity", "instructions", "memory", "skills", "tools", "permissions", "folder", "backups"]);
     expect(rendered.html).not.toContain('data-panel-advanced="settings"');
     for (const page of pages) {
       click(find(rendered, "data-panel-page", page));

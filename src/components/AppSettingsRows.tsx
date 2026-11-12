@@ -3,7 +3,6 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { quickUpdatesEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
 import { localeChoices } from "@/locales";
 import { activeLocale, t, tOptional, tPreferred } from "@/lib/i18n";
-import { NewBrowserSettings } from "./BrowserSettingsRows";
 import { SIMPLE_CARD, SettingRow, Switch } from "./SettingsPrimitives";
 import { cn } from "@/lib/cn";
 import { LearnedSkillsSettings } from "./ShareLearnedSkillsSettings";
@@ -229,7 +228,6 @@ export function ExperimentalFeaturesRow({ lead }: { lead?: ReactNode }) {
         />
       </SettingRow>
       <LearnedSkillsSettings />
-      <NewBrowserSettings />
     </div>
   );
 }

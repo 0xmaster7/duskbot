@@ -73,7 +73,10 @@ function NotificationSoundsRow() {
       <Switch
         checked={enabled}
         aria-label={t("settings.notificationSounds.play")}
-        onClick={() => setNotificationSounds(!enabled)}
+        onClick={() => {
+          setNotificationSounds(!enabled);
+          if (!enabled) play(chosenSound(), { force: true });
+        }}
       />
     </SettingRow>
   );

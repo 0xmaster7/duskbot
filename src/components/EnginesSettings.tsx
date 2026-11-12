@@ -16,6 +16,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { Select } from "./Select";
 import { Card, FormDialog, FormField, ItemRow, NavRow, NoteRow, useSubPage } from "./ListRows";
 import { textFieldCls } from "./ui/GrokDialog";
+import { InstanceProviderMark } from "./ProviderIcons";
+import { OtherOpenAiCompatServers } from "./OpenAiCompatServers";
 
 const RowsCard = Card;
 
@@ -323,9 +325,12 @@ function EngineRow({ instance, bare = false }: { instance: InstanceInfo; bare?: 
 }
 
 function simpleStatus(instance: InstanceInfo, ready: boolean): string {
-  if (ready) return instance.snapshot.authenticated === true && instance.snapshot.account?.email ? instance.snapshot.account.email : t("onboarding.engines.ready");
-  return instance.snapshot.state === "available" && instance.snapshot.authenticated === false ? t("model.signInRequired") : t("onboarding.engines.needsSetup");
+  const email = instance.snapshot.authenticated === true ? instance.snapshot.account?.email : undefined;
+  if (ready) return email ? t("settings.simple.ai.connectedAs", { email }) : t("settings.simple.ai.connected");
+  return t("settings.simple.ai.connect");
 }
+
+const CUSTOM_PROVIDER_PAGE = "custom-provider";
 
 function SimpleEngines({ rows, isReady, renderEngine, more }: {
   rows: InstanceInfo[];
@@ -338,12 +343,13 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
   const others = rows.filter((instance) => !featured.includes(instance));
   const shown = at?.startsWith("engine:") ? rows.find((instance) => `engine:${instance.instanceId}` === at) : undefined;
   if (shown) return <div data-simple-engine={shown.instanceId} className="flex flex-col gap-5">{renderEngine(shown, true)}</div>;
-  // the panel's row: the name, its status on the right, a chevron to its page
+  if (at === CUSTOM_PROVIDER_PAGE) return <Card footnote={t("settings.simple.ai.customHint")}><div className="px-2 py-1.5"><OtherOpenAiCompatServers /></div></Card>;
+  // the panel's row: the provider's mark and name, its status on the right, a chevron to its page
   const row = (instance: InstanceInfo) => (
     <NavRow
       key={instance.instanceId}
       data-panel-page={`engine:${instance.instanceId}`}
-      title={instance.displayName}
+      title={<span className="flex min-w-0 items-center gap-2.5"><span aria-hidden="true" className="flex shrink-0"><InstanceProviderMark instance={instance} size={16} /></span><span className="truncate">{instance.displayName}</span></span>}
       value={simpleStatus(instance, isReady(instance))}
       onClick={() => open(`engine:${instance.instanceId}`, instance.displayName)}
     />
@@ -358,6 +364,8 @@ function SimpleEngines({ rows, isReady, renderEngine, more }: {
           <NavRow data-panel-page="more-engines" title={t("settings.simple.ai.more", { count: String(others.length) })}
             onClick={() => open("more-engines", t("settings.simple.ai.more", { count: String(others.length) }))} />
         )}
+        <NavRow data-panel-page={CUSTOM_PROVIDER_PAGE} title={t("settings.simple.ai.custom")}
+          onClick={() => open(CUSTOM_PROVIDER_PAGE, t("settings.simple.ai.custom"))} />
       </Card>
     </>
   );
