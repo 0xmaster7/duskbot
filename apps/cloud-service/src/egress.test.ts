@@ -128,9 +128,9 @@ it("counts every machine of the home this month: a new machine does not reset th
 });
 
 it("pauses at once a limited machine whose meter shows more than the limit lets through (the owner took the limit off)", async () => {
-  // 5 Mbit/s is 2.25 GB an hour: an hour of slack for the meter's hourly buckets, and half again the rate
-  expect(egressTampered(4.4 * GB, 3_600_000)).toBe(false);
-  expect(egressTampered(6 * GB, 3_600_000)).toBe(true);
+  // 5 Mbit/s is 2.25 GB an hour: half again the rate plus two minutes of slack
+  expect(egressTampered(3.3 * GB, 3_600_000)).toBe(false);
+  expect(egressTampered(3.6 * GB, 3_600_000)).toBe(true);
   for (const tampered of [false, true]) {
     const at = { t: Date.UTC(2026, 10, 9) };
     const c = { id: "c1", kind: "shared_s", serverId: "m_1", powerSince: at.t, managed: {} } as unknown as StoredCloud;
@@ -145,7 +145,7 @@ it("pauses at once a limited machine whose meter shows more than the limit lets 
     for (let i = 0; i < 4; i++) { at.t += EGRESS_READ_MS; await guard.step(c, true); }
     expect(guard.view(c)!.state).toBe("slowed");
     // then two hours: at the limit (2.25 GB an hour), or at 50 Mbit/s (22.5 GB an hour, a tenth of what the host allows)
-    for (let i = 0; i < 8; i++) { at.t += EGRESS_READ_MS; bytes += (tampered ? 22.5 : 2.25) / 4 * GB; await guard.step(c, true); }
+    for (let i = 0; i < 24; i++) { at.t += EGRESS_READ_MS; bytes += (tampered ? 22.5 : 2.25) * EGRESS_READ_MS / 3_600_000 * GB; await guard.step(c, true); }
     expect(guard.view(c)!.state).toBe(tampered ? "paused" : "slowed");
     expect(guard.paused(c)).toBe(tampered);
     // paused for the removed limit, not for reaching the pause level

@@ -15,13 +15,13 @@ import type { MachineProvider } from "./provider.ts";
 export const GB = 1e9;
 export const EGRESS_SLOW_MBIT = 5;
 /** how often a running home's meter is read (the meter itself showed a 100 MB upload within seconds, 2026-11-12) */
-export const EGRESS_READ_MS = 15 * 60_000;
+export const EGRESS_READ_MS = 5 * 60_000;
 /** a limit that would not go in is tried again this often */
 const RETRY_MS = 5 * 60_000;
 const HOUR = 3_600_000, LIMIT_BYTES_PER_SECOND = EGRESS_SLOW_MBIT * 1e6 / 8;
-/** upload a limited machine may show past what the limit lets through: an hour's grace at the limit, and half again the
- *  rate for the bucket's shape */
-export function egressTampered(sent: number, ms: number): boolean { return sent > LIMIT_BYTES_PER_SECOND * (1.5 * ms / 1000 + 3600); }
+/** upload a limited machine may show past what the limit lets through: half again the rate, plus two minutes for the
+ *  meter, which InstaBox updates within about 30 seconds */
+export function egressTampered(sent: number, ms: number): boolean { return sent > LIMIT_BYTES_PER_SECOND * (1.5 * ms / 1000 + 120); }
 
 export interface EgressLimits { alert: number; slow: number; pause: number }
 export type EgressLevel = "ok" | "alert" | "slow" | "pause";
