@@ -1,7 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bot, CreditCard, File, Repeat, Star, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, RotateCcw, Search, Sparkles, Tag, Target, UserPlus, Users } from "@/icons";
-import { Button, cx, Segmented } from "../ui/kit";
-import { Switch } from "../ui/controls";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Bot, File, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, Search, Tag, Target, Users } from "@/icons";
+import { Button, cx } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 import { AnimatePresence, m, Pill, usePill } from "../ui/motion";
 import { Figure } from "../ui/Figure";
@@ -11,10 +10,12 @@ import { useNow } from "../lib/now";
 import { adminCall, useAdmin, type Overview } from "./api";
 import { avatarOf } from "./names";
 import { centroid, countryName } from "./geo";
-import { Avatar, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, SalesChart, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
+import { Avatar, CHANNEL, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
 import { CheerBubble, PaymentsCard, useCheer, type RevenueAnswer } from "./Revenue";
 import { PulseGrid } from "./Pulse";
 import { UsageSection } from "./Usage";
+import { ChartCard, ConversionList, LiveMap, LtvList, MainChart, PeakHours, SERIES, StackedBars, channelStacks, type ChartShow, type Insights } from "./charts";
+import { FunnelChart } from "./FunnelChart";
 import { Failed, Loading, n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
@@ -26,19 +27,15 @@ export interface WebAnswer {
   series: SeriesData; cards: Record<string, RankRow[]>; notes: Note[]; tracked: boolean; marks?: Mark[];
   surfaces?: { site: number; account: number; desktop: number; phone: number };
   crawlers: { total: number; bot: RankRow[]; page: RankRow[]; kind: RankRow[] };
-  revenue?: RevenueAnswer;
+  revenue?: RevenueAnswer & { byChannel?: Record<string, number[]>; ltv?: Array<{ source: string; customers: number; cents: number; perCustomer: number }> };
+  insights?: Insights;
 }
 interface Person {
   id: string; seed: string; account: { id: string; email: string; name: string | null } | null; customer: boolean; signedUpAt: number | null; paidAt: number | null;
   firstSeen: number | null; lastSeen: number | null; timeToSignupMs: number | null; visits: number; pageviews: number; source: string; channel: string; campaign: string | null;
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
-interface FunnelAnswer {
-  mode: "visitors" | "signups"; steps: Array<{ id: string; label: string; count: number }>; bySource: Array<{ channel: string; counts: number[] }>;
-  upsells?: Array<{ source: string; shown: number; clicked: number; dismissed: number; paid: number }>;
-}
-
-export const CHANNEL: Record<string, string> = { direct: "direct", search: "search", social: "social", ai: "ai assistants", referral: "referrals", email: "email", paid: "paid ads", unknown: "unknown" };
+export { CHANNEL };
 export const SURFACES: Array<{ value: Surface; label: string }> = [{ value: "all", label: "all" }, { value: "site", label: "dusk.bot" }, { value: "account", label: "account page" }, { value: "desktop", label: "desktop app" }, { value: "phone", label: "phone app" }];
 export const dimLabel = (tab: string, key: string) => tab === "channel" ? CHANNEL[key] ?? key : tab === "country" ? countryName(key) : tab === "surface" ? SURFACES.find((s) => s.value === key)?.label ?? key : key === "unknown" ? "unknown" : key;
 const AI_KIND: Record<string, string> = { answers: "ai answers", indexing: "indexing", training: "training" };
@@ -89,11 +86,18 @@ function SitePicker({ value, onChange, counts }: { value: Surface; onChange(v: S
 
 const I = { size: 14, strokeWidth: 1.75 } as const;
 /** one number in the strip: money and traffic in the same plain tile, easing to each new value */
-function Kpi({ label, value, format, now, before, invert, icon }: { label: string; value: number | null; format(v: number): string; now?: number | null; before?: number | null; invert?: boolean; icon?: ReactNode }) {
+/** one number in the strip, money and traffic alike; a charted one has a checkbox in its series colour that shows or hides
+ * it on the chart, and the revenue tile sits on a soft green wash */
+function Kpi({ label, value, format, now, before, invert, toggle, money }: { label: string; value: number | null; format(v: number): string; now?: number | null; before?: number | null; invert?: boolean;
+  toggle?: { on: boolean; flip(): void; colour: string }; money?: boolean }) {
   return (
-    <div className="min-w-0 bg-pop px-4 py-3.5">
-      <div className="flex items-center gap-2 text-13 text-ink-3">{label}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span></div>
-      <div className="mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] text-ink num">{value === null ? "-" : <Figure value={format(value)} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em]" />}</div>
+    <div className={cx("min-w-0 rounded-[16px] px-4 py-3.5 transition-colors duration-200", money && toggle?.on !== false ? "bg-wash-lime" : "bg-pop")}>
+      {toggle ? (
+        <label className="flex cursor-pointer items-center gap-2 text-13 font-medium text-ink-2">
+          <input type="checkbox" checked={toggle.on} onChange={toggle.flip} className="size-3.5 cursor-pointer rounded-[4px]" style={{ accentColor: toggle.colour }} />{label}
+        </label>
+      ) : <div className="text-13 font-medium text-ink-3">{label}</div>}
+      <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>{value === null ? "-" : <Figure value={format(value)} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em]" />}</div>
       <div className="mt-0.5 h-5 truncate leading-5">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
     </div>
   );
@@ -197,96 +201,6 @@ function RankCardRows({ rows, label }: { rows: RankRow[]; label(key: string): st
   );
 }
 
-const UPSELL: Record<string, string> = { dash_sidebar: "sidebar card", dash_invested: "home note", dash_routines: "routines prompt", dash_home: "home pitch", dash_billing: "plans page" };
-const FUNNEL_CHANNEL: Record<string, string> = { ai: "ai assistants", referral: "referrals", unknown: "not tracked" };
-
-/** the funnel, small: every step in one row with how many were kept from the step before, the biggest drop in words,
- * and which upsell turns into money */
-function FunnelSection({ range }: { range: Range }) {
-  const [mode, setMode] = useState<"visitors" | "signups">("visitors");
-  const [channel, setChannel] = useState("all");
-  const pill = usePill();
-  const { data, error, loading, reload } = useAdmin<FunnelAnswer>(`/funnel?from=${range.from}&to=${range.to}&mode=${mode}`);
-  useEffect(() => { if (data && location.hash === "#funnel") document.getElementById("funnel")?.scrollIntoView({ block: "start" }); }, [Boolean(data)]);
-  const row = data?.bySource.find((r) => r.channel === channel);
-  const counts = data ? (row ? row.counts : data.steps.map((step) => step.count)) : [];
-  const first = Math.max(1, counts[0] ?? 1);
-  const drops = data ? data.steps.slice(1).map((step, i) => ({ to: step, from: data.steps[i]!, kept: counts[i] ? counts[i + 1]! / counts[i]! : null, lost: (counts[i] ?? 0) - (counts[i + 1] ?? 0), base: counts[i] ?? 0 })) : [];
-  const worst = [...drops].filter((d) => d.kept !== null && d.base >= 3).sort((a, b) => (a.kept ?? 1) - (b.kept ?? 1))[0];
-  const upsells = data?.upsells ?? [];
-  return (
-    <section id="funnel" aria-labelledby="funnel-title" className="scroll-mt-6 rounded-[24px] bg-card p-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
-        <h2 id="funnel-title" className="inline-flex h-8 items-center gap-1.5 text-14 font-medium text-ink"><Sparkles {...I} aria-hidden /> funnel</h2>
-        <Segmented<"visitors" | "signups"> label="start from" value={mode} onChange={setMode} options={[{ value: "visitors", label: "from visitors" }, { value: "signups", label: "from signups" }]} />
-      </div>
-      <div className="rounded-[18px] bg-pop p-3">
-        {error ? <Failed error={error} retry={reload} /> : !data ? <Loading rows={2} /> : (
-          <div className={cx("transition-opacity duration-150", loading && "opacity-70")}>
-            {data.bySource.length > 0 && (
-              <div role="radiogroup" aria-label="channel" className="scroll-x mb-3 flex gap-0.5">
-                {[{ channel: "all" }, ...data.bySource].map((r) => (
-                  <button key={r.channel} type="button" role="radio" aria-checked={channel === r.channel} onClick={() => setChannel(r.channel)}
-                    className={cx("relative h-7 shrink-0 rounded-full px-3 text-12", channel === r.channel ? "font-medium text-ink" : "text-ink-3 hover-link")}>
-                    {channel === r.channel && <Pill id={pill} className="bg-card" />}
-                    <span className="relative">{r.channel === "all" ? "every channel" : CHANNEL[r.channel] ?? FUNNEL_CHANNEL[r.channel] ?? r.channel}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <ol className="scroll-x flex items-stretch" aria-label="funnel steps">
-              {data.steps.map((step, i) => {
-                const drop = drops[i - 1], share = (counts[i] ?? 0) / first;
-                return (
-                  <li key={step.id} className="flex shrink-0 items-stretch">
-                    {drop && (
-                      <span className="flex w-12 flex-col items-center justify-center text-center" title={`${n(drop.lost)} stopped between these steps`}>
-                        <span className={cx("font-mono text-12 num", drop === worst ? "font-medium text-bad" : "text-ink-3")}>{drop.kept === null ? "-" : percent(drop.kept)}</span>
-                        <span className="text-[10.5px] leading-tight text-ink-4">kept</span>
-                      </span>
-                    )}
-                    <div className="flex w-[104px] flex-col py-1">
-                      <Figure value={n(counts[i] ?? 0)} className="!font-mono !text-[20px] !leading-7 !tracking-[-0.04em]" />
-                      <span className="line-clamp-2 min-h-8 text-12 leading-4 text-ink-3">{step.label}</span>
-                      <span className="mt-2 h-1 overflow-hidden rounded-full bg-track" aria-hidden>
-                        <m.span className="block h-full w-full rounded-full bg-viz-visitors/60" style={{ originX: 0 }} initial={{ scaleX: 0 }} animate={{ scaleX: Math.max(0.02, share) }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} />
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-            <p className="mt-3 pt-3 text-13 text-ink-2">
-              {worst ? <>biggest drop: <span className="font-medium text-ink">{percent(1 - (worst.kept ?? 0))}</span> stop between "{worst.from.label}" and "{worst.to.label}" (<span className="font-mono num">{n(worst.lost)}</span> people).</> : "not enough people in this window to call a biggest drop."}
-            </p>
-          </div>
-        )}
-      </div>
-      {data && (
-        <div className="mt-1.5 rounded-[18px] bg-pop p-3">
-          <h3 className="text-13 font-medium text-ink">which upsell converts</h3>
-          {upsells.length ? (
-            <table className="mt-2 w-full text-13">
-              <thead><tr className="t-meta"><th scope="col" className="py-1 text-start font-medium">where</th><th scope="col" className="py-1 text-end font-medium">shown</th><th scope="col" className="py-1 text-end font-normal">clicked</th><th scope="col" className="py-1 text-end font-normal">paid</th><th scope="col" className="py-1 text-end font-normal">click rate</th></tr></thead>
-              <tbody className="">
-                {upsells.map((u) => (
-                  <tr key={u.source}>
-                    <th scope="row" className="py-1.5 text-start font-normal text-ink">{UPSELL[u.source] ?? u.source.replace(/_/g, " ")}</th>
-                    <td className="py-1.5 text-end font-mono num">{n(u.shown)}</td>
-                    <td className="py-1.5 text-end font-mono num">{n(u.clicked)}</td>
-                    <td className={cx("py-1.5 text-end font-mono num", u.paid ? "font-medium text-ink" : "text-ink-4")}>{n(u.paid)}</td>
-                    <td className="py-1.5 text-end font-mono text-ink-3 num">{u.shown ? percent(u.clicked / u.shown) : "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : <p className="mt-1 text-13 text-ink-3">no upsell was shown in this window.</p>}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function AiCard({ crawlers }: { crawlers: WebAnswer["crawlers"] }) {
   const [kind, setKind] = useState<string>("all");
   const pill = usePill();
@@ -331,9 +245,10 @@ function Cheer({ data }: { data: WebAnswer | null }) {
 export function OverviewPage() {
   const [sel, setSel] = useSelection();
   const { range, surface, filters } = sel;
-  const [visitors, setVisitors] = useState(true);
+  const [show, setShow] = useState<ChartShow>({ visitors: true, revenue: true, signups: true });
+  const flip = (key: keyof ChartShow) => () => setShow((s) => ({ ...s, [key]: !s[key] }));
   const [note, setNote] = useState<Note | { at: number } | null>(null);
-  const { data, error, loading, reload } = useAdmin<WebAnswer>(`/web?${webQuery(range, surface, filters)}`, 60_000);
+  const { data, error, loading, reload } = useAdmin<WebAnswer>(`/web?${webQuery(range, surface, filters)}&tz=${new Date().getTimezoneOffset()}`, 60_000);
   const overview = useAdmin<Overview>("/overview?days=30", 120_000);
   const pick = (dim: string, key: string) => setSel((s) => ({ ...s, filters: { ...s.filters, [dim]: s.filters[dim] === key ? undefined : key } }));
   const c = data?.current, p = data?.previous, r = data?.revenue;
@@ -358,36 +273,48 @@ export function OverviewPage() {
       {data && c && p && series && (
         <div className={cx("transition-opacity duration-150", loading && "opacity-80")}>
           <section className="rounded-[28px] bg-card p-2" aria-label="key numbers and chart">
-            <div className="grid grid-cols-8 gap-1.5 overflow-hidden rounded-[22px] max-xl:grid-cols-4 max-sm:grid-cols-2">
-              <Kpi label="sales" icon={<CreditCard {...I} />} value={r ? r.current.net : null} format={dollars} now={r?.current.net} before={r?.previous.net} />
-              <Kpi label="mrr" icon={<Repeat {...I} />} value={r && !filtered ? r.current.mrr : null} format={dollars} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
-              <Kpi label="customers" icon={<Star {...I} />} value={r ? (overview.data?.totals.paying ?? r.current.customers) : null} format={whole} now={r?.current.customers} before={r?.previous.customers} />
-              <Kpi label="new customers" icon={<UserPlus {...I} />} value={c.paid} format={whole} now={c.paid} before={p.paid} />
-              <Kpi label="visitors" icon={<Users {...I} />} value={c.visitors} format={whole} now={c.visitors} before={p.visitors} />
-              <Kpi label="signups" icon={<UserPlus {...I} />} value={c.signups} format={whole} now={c.signups} before={p.signups} />
-              <Kpi label="conversion" icon={<Sparkles {...I} />} value={c.conversion} format={share} now={c.conversion} before={p.conversion} />
-              <Kpi label="bounce rate" icon={<RotateCcw {...I} />} value={c.bounce} format={share} now={c.bounce} before={p.bounce} invert />
+            <div className="grid grid-cols-8 gap-1.5 max-xl:grid-cols-4 max-sm:grid-cols-2">
+              <Kpi label="visitors" value={c.visitors} format={whole} now={c.visitors} before={p.visitors} toggle={{ on: show.visitors, flip: flip("visitors"), colour: SERIES.visitors }} />
+              <Kpi label="revenue" value={r ? r.current.net : null} format={dollars} now={r?.current.net} before={r?.previous.net} money toggle={{ on: show.revenue, flip: flip("revenue"), colour: SERIES.revenue }} />
+              <Kpi label="signups" value={c.signups} format={whole} now={c.signups} before={p.signups} toggle={{ on: show.signups, flip: flip("signups"), colour: SERIES.signups }} />
+              <Kpi label="mrr" value={r && !filtered ? r.current.mrr : null} format={dollars} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
+              <Kpi label="customers" value={r ? (overview.data?.totals.paying ?? r.current.customers) : null} format={whole} now={r?.current.customers} before={r?.previous.customers} />
+              <Kpi label="per visitor" value={r && c.visitors ? r.current.net / c.visitors : null} format={(v) => usd(Math.round(v))} now={r && c.visitors ? r.current.net / c.visitors : undefined} before={r && p.visitors ? r.previous.net / p.visitors : undefined} />
+              <Kpi label="conversion" value={c.conversion} format={share} now={c.conversion} before={p.conversion} />
+              <Kpi label="bounce rate" value={c.bounce} format={share} now={c.bounce} before={p.bounce} invert />
             </div>
             <div className="px-3 pb-2 pt-6 max-sm:px-1">
               {!data.tracked && <p className="mb-3 rounded-[14px] bg-wash-lemon px-4 py-2.5 text-13 text-ink">no visits recorded for this view yet.</p>}
-              <SalesChart data={series} notes={data.notes} visitors={visitors} onNote={setNote} empty={r?.live ? "no sales in this window yet." : "no sales yet. payments aren't live, so plans are comps for now."} />
+              <MainChart data={series} previous={data.insights?.previousVisitors ?? []} notes={data.notes} show={show} onNote={setNote} emptyMoney={r?.live ? "no sales in this window" : "payments aren't live yet"} />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
                 <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-12 text-ink-3" aria-label="legend">
-                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-new" aria-hidden /> new sales</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-viz-visitors" aria-hidden /> visitors</li>
+                  <li className="inline-flex items-center gap-1.5"><svg width="16" height="2" aria-hidden><line x1="0" x2="16" y1="1" y2="1" stroke="var(--ink-4)" strokeWidth="1.5" strokeDasharray="3 3" /></svg> window before</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-new" aria-hidden /> new revenue</li>
                   <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-renewal" aria-hidden /> renewals</li>
-                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-refund" aria-hidden /> refunds</li>
-                  <li className="inline-flex items-center gap-1.5"><span className="h-3 min-w-3 rounded-full bg-coral-soft px-1 font-mono text-[9.5px] leading-3 text-coral-deep" aria-hidden>1</span> new customers</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-coral" aria-hidden /> signups</li>
                   <li className="inline-flex items-center gap-1.5"><span className="size-2 rotate-45 rounded-[2px] bg-warn" aria-hidden /> notes</li>
                 </ul>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2 text-13 text-ink-2"><span className="h-0.5 w-4 rounded-full bg-viz-visitors" aria-hidden />visitors<Switch checked={visitors} onChange={setVisitors} label="show visitors under the chart" /></label>
-                  <Button size="sm" onClick={() => setNote({ at: Date.now() })}>add a note</Button>
-                </div>
+                <Button size="sm" onClick={() => setNote({ at: Date.now() })}>add a note</Button>
               </div>
             </div>
           </section>
 
-          <div className="mt-4"><FunnelSection range={range} /></div>
+          <div className="mt-4"><FunnelChart range={range} /></div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+            <ChartCard title="revenue by channel"><StackedBars starts={series.starts} size={series.size} stacks={channelStacks(r?.byChannel)} format={(v) => usd(v, true)} /></ChartCard>
+            <ChartCard title="new and returning visitors">
+              <StackedBars starts={series.starts} size={series.size} format={(v) => n(v)} stacks={[
+                { key: "new", label: "first visit", color: SERIES.visitors, values: data.insights?.visitors.new ?? [] },
+                { key: "returning", label: "came back", color: "var(--viz-renewal)", values: data.insights?.visitors.returning ?? [] },
+              ]} />
+            </ChartCard>
+            <ChartCard title="busiest hours">{data.insights ? <PeakHours grid={data.insights.hours} /> : <Loading rows={3} />}</ChartCard>
+            <ChartCard title="live now"><LiveMap /></ChartCard>
+            <ChartCard title="lifetime value by first source"><LtvList rows={r?.ltv ?? []} /></ChartCard>
+            <ChartCard title="who signs up"><ConversionList cards={data.cards} /></ChartCard>
+          </div>
 
           <div className="mt-4"><UsageSection range={range} /></div>
 

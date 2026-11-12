@@ -8,6 +8,7 @@ import { DAY, DIMENSIONS, SURFACES, activeDays, breakdown, funnel, identityOf, k
 import { choseCloud, wasPaid, workspaceTurns } from "./metrics.ts";
 import { productReport } from "./product.ts";
 import { paymentsOf, revenueReport } from "../analytics/revenue.ts";
+import { aligned, newVsReturning, peakHours } from "../analytics/insights.ts";
 import type { StoredSubscription } from "../billing/store.ts";
 import { UPSELL_EVENTS } from "../../../../shared/cloud-upsell.ts";
 
@@ -120,7 +121,12 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const crawls = await sink.crawls(from, to);
     const count = (values: string[]) => [...values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map<string, number>())]
       .map(([key, requests]) => ({ key, visitors: requests, signups: 0, paid: 0 })).sort((a, b) => b.visitors - a.visitors).slice(0, 50);
-    return { from, to, now: now(), filters, current, previous, surfaces, marks, online: live, series: series(visits, p, from, to, scoped, identity), cards, revenue, notes: await sink.notes(from - span, to),
+    const chart = series(visits, p, from, to, scoped, identity);
+    const tz = url.searchParams.has("tz") ? Number(url.searchParams.get("tz")) : 0;
+    if (!Number.isInteger(tz) || tz < -900 || tz > 900) throw bad();
+    const insights = { previousVisitors: aligned(series(visits, p, from - span, from, scoped, identity).visitors, chart.starts.length),
+      visitors: newVsReturning(visits, from, to, scoped), hours: peakHours(visits, from, to, tz, scoped) };
+    return { from, to, now: now(), filters, current, previous, surfaces, marks, online: live, series: chart, insights, cards, revenue, notes: await sink.notes(from - span, to),
       tracked: visits.length > 0, crawlers: { total: crawls.length, bot: count(crawls.map(c => c.bot)), page: count(crawls.map(c => c.path)), kind: count(crawls.map(c => c.kind)) } };
   }
 

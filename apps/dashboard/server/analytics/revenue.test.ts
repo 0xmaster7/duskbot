@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DAY, identityOf, visitsOf } from "./web.ts";
 import type { StoredEvent } from "./sink.ts";
-import { paymentsOf, revenueReport, type InvoiceLike } from "./revenue.ts";
+import { NO_VISIT, paymentsOf, revenueReport, type InvoiceLike } from "./revenue.ts";
 
 const T = Date.parse("2026-11-01T00:00:00Z");
 const view = (visitor: string, session: string, at: number, source: string, channel: string, country = "DE"): StoredEvent =>
@@ -36,5 +36,18 @@ describe("revenue", () => {
     expect(report.recent.find(row => row.accountId === "acct_a")).toMatchObject({ source: "X", channel: "social", email: "a@example.test", firstSeen: T });
     expect(revenueReport({ ...base, filters: { channel: "social" } }).current.net).toBe(2900);
     expect(revenueReport({ ...base, from: T + 7 * DAY, to: T + 14 * DAY, now: T + 14 * DAY, filters: {} }).previous.net).toBe(3900);
+  });
+
+  it("splits money by channel over time, values each first source by its customers, and names payments with no visit plainly", () => {
+    const events = [view("v1", "s1", T, "X", "social"), view("v2", "s2", T, "Google", "search"), identify("acct_a", "v1"), identify("acct_b", "v2")];
+    const payments = paymentsOf({ invoices: [invoice("a", "acct_a", "sub_a", 2000, T + DAY), invoice("a2", "acct_a", "sub_a", 2000, T + 3 * DAY), invoice("b", "acct_b", null, 1000, T + DAY), invoice("c", "acct_c", null, 500, T + 2 * DAY)], subscriptions: [] });
+    const report = revenueReport({ payments, subscriptions: [], visits: visitsOf(events), identity: identityOf(events), accounts: new Map(), from: T, to: T + 7 * DAY, now: T + 7 * DAY, filters: {} });
+    expect(report.byChannel.social).toEqual([0, 2000, 0, 2000, 0, 0, 0]);
+    expect(report.byChannel.search![1]).toBe(1000);
+    expect(report.byChannel[NO_VISIT]![2]).toBe(500);
+    expect(report.cards.channel[NO_VISIT]).toBe(500);
+    expect(report.ltv).toEqual([
+      { source: "X", customers: 1, cents: 4000, perCustomer: 4000 }, { source: "Google", customers: 1, cents: 1000, perCustomer: 1000 }, { source: NO_VISIT, customers: 1, cents: 500, perCustomer: 500 },
+    ]);
   });
 });
