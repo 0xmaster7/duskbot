@@ -68,4 +68,4 @@ read what a new bot or routine does the first few times, and correct it right in
 
 ## 11. move to dusk cloud when bots become part of your day
 
-if a routine missed because your laptop was asleep, or you want to text a bot from your phone at night, that's the sign. [dusk cloud](/docs/dusk-cloud) keeps your bots on around the clock, with nothing to look after.
+if a routine missed because your laptop was asleep, or you want to text a bot from your phone at night, that's the sign. [dusk cloud](/docs/dusk-cloud) keeps your bots always available, with nothing to look after.

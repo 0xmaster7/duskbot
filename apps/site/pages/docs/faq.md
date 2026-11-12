@@ -42,7 +42,7 @@ no. it goes straight from the machine your bots run on to your ai provider. see 
 
 ### can a bot work while i sleep?
 
-yes, with a [routine](/docs/routines). on your own computer the computer has to be awake. on [dusk cloud](/docs/dusk-cloud) routines run around the clock.
+yes, with a [routine](/docs/routines). on your own computer the computer has to be awake. on [dusk cloud](/docs/dusk-cloud) routines run on time, even with your computer off.
 
 ### is it safe to let bots click around?
 

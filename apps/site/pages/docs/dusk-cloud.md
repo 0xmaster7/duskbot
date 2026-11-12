@@ -10,7 +10,7 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 
 ## why it's the one we recommend
 
-- **always on.** routines run on time, every time. no "missed while asleep".
+- **always available.** it sleeps when idle and wakes in seconds, so routines run on time. no "missed while asleep".
 - **nothing to look after.** no server, no updates, no keeping a laptop open. daily backups included.
 - **a real browser for every bot.** bots get their own desktop to sign in to sites and click through, and you can watch.
 - **your phone just works.** pair it with the cloud and it answers even when your computer is off.
@@ -18,12 +18,12 @@ on your own computer, your bots stop when it sleeps. dusk cloud gives them a com
 
 ## what it costs
 
-| | plus | pro |
-| --- | --- | --- |
-| **price** | $20 a month, or $200 a year | $50 a month, or $500 a year |
-| **cloud computer** | 2 vcpu, 4 gb memory, 40 gb disk | 4 vcpu, 8 gb memory, 80 gb disk |
-| **bot computers awake at once** | a good amount | more, for heavy workloads, and first in line to wake |
-| **work license** | no | yes, for one person |
+| | plus | pro | team |
+| --- | --- | --- | --- |
+| **price** | $20 a month, or $200 a year | $50 a month, or $500 a year | $119 a month, or $1,190 a year |
+| **cloud computer** | 2 vcpu, 4 gb ram, 20 gb disk | 4 vcpu, 8 gb ram, 60 gb disk | dedicated: 8 vcpu, 16 gb ram, 160 gb disk |
+| **wake** | always available, wakes in seconds | always available, priority wake | always available, priority wake |
+| **license** | no work license | work license for one person | team license, 2 seats ($20 a month per extra member) |
 
 ai usage is not part of the bill. your bots use the ai you sign in with, on your plan with them. current prices are always on [the pricing page](/pricing).
 
@@ -35,7 +35,7 @@ ai usage is not part of the bill. your bots use the ai you sign in with, on your
 
 after that the app is a window onto your cloud. you use it exactly the same way.
 
-> tip: a bot that works around the clock uses your ai plan around the clock. for heavy use, a bigger ai plan or an api key works best.
+> tip: a bot that works a lot uses your ai plan a lot. for heavy use, a bigger ai plan or an api key works best.
 
 ## files
 
