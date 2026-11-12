@@ -43,7 +43,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `identities` | Google, Apple, X sign-ins | `provider:subject` | `accountId` |
 | `sessions` | web and app sessions (token hashes only) | `id` | `tokenHash` unique, `accountId`, `expiresAt` |
 | `workspaces`, `workspace_accounts` | linked workspaces and their latest report | `id` | `ownerAccountId`, `publicKey` |
-| `billing_*` | customers, checkouts, subscriptions, licenses, invoices, credits, webhook events, feedback, closures, refunds, provider cancels | `id` (customers: `accountId`) | `accountId`; `providerPaymentId` unique; `(reason, ref)` unique; `providerSubscriptionId` unique when set |
+| `billing_*` | customers, checkouts, subscriptions, licenses, invoices, credits, webhook events, feedback, closures, refunds, provider cancels, ledger (immutable money and subscription moments) | `id` (customers: `accountId`) | `accountId`; `providerPaymentId` unique; `(reason, ref)` unique; `providerSubscriptionId` unique when set; ledger `key` unique, `(accountId, at)`, `at` |
 | `clouds` | dusk cloud records with the managed lifecycle | `id` | `accountId`, `status` |
 | `pages`, `slack_edge_regs`, `slack_edge_events` | published pages, Slack wake edge | `id` / `cloudId` | |
 | `stores` | each module's small fields (queues, counters, provider start ledger, sweep) | module name | |

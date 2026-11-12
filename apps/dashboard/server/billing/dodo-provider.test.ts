@@ -55,4 +55,11 @@ describe("dodo HTTP provider fixture", () => {
     contentType = "application/pdf"; reply = Buffer.alloc(5 * 1024 * 1024 + 1);
     await expect(provider().invoicePdf("large")).rejects.toMatchObject({ code: "refused" });
   });
+  it("reads one page of past records for the backfill and refuses a reply without items", async () => {
+    reply = { items: [{ payment_id: "pay_1" }, "junk", null, { payment_id: "pay_2" }] };
+    expect(await provider().list!("payments", 3)).toEqual([{ payment_id: "pay_1" }, { payment_id: "pay_2" }]);
+    expect(requests[0]).toMatchObject({ method: "GET", url: "/payments?page_size=50&page_number=3", auth: `Bearer ${apiKey}` });
+    reply = { data: [] };
+    await expect(provider().list!("disputes", 0)).rejects.toMatchObject({ code: "refused" });
+  });
 });

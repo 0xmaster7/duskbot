@@ -27,4 +27,15 @@ describe("standard webhook signatures", () => {
     const delivery = signWebhook(secret, "event", body.replace("payment.succeeded", "customer.updated"), time);
     expect(verifyWebhook(secret, delivery.headers, delivery.body, time).event).toEqual({ kind: "ignored", type: "customer.updated" });
   });
+  it("reads disputes and the ledger's extra details without refusing a delivery over a malformed optional field", () => {
+    const signed = (type: string, data: object) => { const raw = JSON.stringify({ business_id: "b", timestamp: new Date(time).toISOString(), type, data }); const d = signWebhook(secret, "e", raw, time); return verifyWebhook(secret, d.headers, d.body, time).event; };
+    expect(signed("dispute.opened", { dispute_id: "dsp", payment_id: "pay", amount: "1500", currency: "USD", dispute_stage: "dispute", created_at: "2026-11-01T00:00:00Z" }))
+      .toMatchObject({ kind: "dispute", type: "opened", disputeId: "dsp", paymentId: "pay", amountCents: 1500, stage: "dispute", createdAt: Date.UTC(2026, 10, 1) });
+    expect(signed("payment.succeeded", { payment_id: "p", total_amount: 2300, currency: "USD", settlement_amount: 2300, settlement_tax: 300, tax: "x", billing: { country: "de" }, error_code: 5 }))
+      .toMatchObject({ kind: "payment", settlementCents: 2300, settlementTaxCents: 300, taxCents: null, country: "DE", errorCode: null });
+    expect(signed("subscription.active", { subscription_id: "s", recurring_pre_tax_amount: 2000, payment_frequency_interval: "Year", payment_frequency_count: 1, cancelled_at: "nope" }))
+      .toMatchObject({ kind: "subscription", recurringCents: 2000, interval: "year", cancelledAt: null });
+    expect(signed("abandoned_checkout.detected", { checkout_session_id: "cks" })).toEqual({ kind: "ignored", type: "abandoned_checkout.detected", data: { checkout_session_id: "cks" } });
+    expect(() => signed("dispute.won", { dispute_id: "dsp", payment_id: "pay", currency: "USD" })).toThrow(expect.objectContaining({ code: "refused" }));
+  });
 });
