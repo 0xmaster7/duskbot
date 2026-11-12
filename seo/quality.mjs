@@ -23,7 +23,7 @@ export const FILLER = /\b(?:it'?s worth noting|it is worth noting|it'?s importan
 const PASSIVE = /\b(?:is|are|was|were|be|been|being|gets?|got)\s+(?:\w+ly\s+)?\w+(?:ed|en|wn|ung|ept|ent|ade|old|ound)\b/i;
 export function voice(html) {
   const article = (/<article class="doc prose seo-page">([\s\S]*?)<\/article>/.exec(html) || [, html])[1]
-    .replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<table[\s\S]*?<\/table>/g, ' ').replace(/<(\w+)[^>]*class="[^"]*\bseo-boiler\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g, ' ').replace(/<section class="seo-sources"[\s\S]*?<\/section>/, ' ').replace(/<p class="lede seo-answer">[\s\S]*?<\/p>/, ' ');
+    .replace(/<pre[\s\S]*?<\/pre>/g, ' ').replace(/<table[\s\S]*?<\/table>/g, ' ').replace(/<(\w+)[^>]*class="[^"]*\bseo-boiler\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g, ' ').replace(/<section class="seo-sources"[\s\S]*?<\/section>/, ' ').replace(/<p class="[^"]*\bseo-answer\b[^"]*">[\s\S]*?<\/p>/g, ' ');
   const paras = [...article.matchAll(/<(?:p|li)[^>]*>([\s\S]*?)<\/(?:p|li)>/g)].map((m) => plain(m[1])).filter((t) => t.split(/\s+/).length > 3);
   const sentences = paras.flatMap((t) => t.split(/(?<=[.!?:])\s+(?=[a-z0-9"“(])/)).map((x) => x.trim()).filter((x) => x.split(/\s+/).length > 2);
   const n = (x) => x.split(/\s+/).length;

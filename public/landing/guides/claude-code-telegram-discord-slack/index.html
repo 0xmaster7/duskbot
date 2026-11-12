@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://dusk.bot/guides"},{"@type":"ListItem","position":3,"name":"claude code in chat apps","item":"https://dusk.bot/guides/claude-code-telegram-discord-slack"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"claude code from telegram, discord or slack","description":"Compare a custom chat bridge with Claude Remote Control and Dusk Bot chat, and separate talking to a bot from posting into a team channel.","image":"https://dusk.bot/art/seo/guides--claude-code-telegram-discord-slack.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/guides/claude-code-telegram-discord-slack"}</script>
 </head>
@@ -41,8 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/guides">guides</a></p>
 <header class="seo-top"><h1>claude code from telegram, discord or slack</h1>
-<p class="lede seo-answer"><strong>text your bot from the couch without turning slack into a remote terminal.</strong> a custom bridge needs someone to handle who can direct it, how approvals return and which computer stays on. anthropic’s remote control and dusk’s own chats offer other routes.<sup><a href="#src-1" aria-label="source 1">1</a></sup><sup><a href="#src-2" aria-label="source 2">2</a></sup> most people asking for this just want to text their bot from the couch. that part needs no bridge.</p>
+<p class="lede seo-answer"><strong>text your bot from the couch without turning slack into a remote terminal.</strong> a custom bridge needs someone to handle who can direct it, how approvals return and which computer stays on.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">anthropic’s remote control and dusk’s own chats offer other routes.<sup><a href="#src-1" aria-label="source 1">1</a></sup><sup><a href="#src-2" aria-label="source 2">2</a></sup> most people asking for this just want to text their bot from the couch. that part needs no bridge.</p>
 <figure class="seo-hero"><img src="/art/seo/guides--claude-code-telegram-discord-slack.webp?v=c6d34125" srcset="/art/seo/guides--claude-code-telegram-discord-slack-660.webp 660w, /art/seo/guides--claude-code-telegram-discord-slack.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a cyan pixel bot and a yellow pixel bot beside a tile saying Claude Code, a phone and two chat bubbles, on a grassy meadow in front of snowy hills and green fields, one saying &quot;chat, control or post?&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-do-you-want-the-chat-app-to-do"><h2 id="what-do-you-want-the-chat-app-to-do">what do you want the chat app to do?</h2>
 <p><strong>decide whether you want to talk to the bot or hear from it.</strong> “claude code in slack” can mean very different jobs:</p>
@@ -81,7 +82,7 @@
 
 
 <section class="seo-sec" aria-labelledby="which-one-fits"><h2 id="which-one-fits">which one fits</h2>
-<div class="table"><table><thead><tr><th scope="col">you want</th><th scope="col">route to inspect</th></tr></thead><tbody><tr><th scope="row">a window into local claude code</th><td>anthropic remote control</td></tr><tr><th scope="row">separate bot conversations</th><td>dusk’s own chat</td></tr><tr><th scope="row">control through a specific team chat</th><td>a custom bridge you can maintain</td></tr><tr><th scope="row">a report in slack</th><td>slack sending, separate from session control</td></tr></tbody></table></div>
+<div class="table" role="region" aria-label="which one fits" tabindex="0"><table><thead><tr><th scope="col">you want</th><th scope="col">route to inspect</th></tr></thead><tbody><tr><th scope="row">a window into local claude code</th><td>anthropic remote control</td></tr><tr><th scope="row">separate bot conversations</th><td>dusk’s own chat</td></tr><tr><th scope="row">control through a specific team chat</th><td>a custom bridge you can maintain</td></tr><tr><th scope="row">a report in slack</th><td>slack sending, separate from session control</td></tr></tbody></table></div>
 </section>
 
 <section class="seo-sec seo-warned" aria-labelledby="mistakes-people-make"><h2 id="mistakes-people-make">mistakes people make</h2><span class="seo-mascot" aria-hidden="true"><svg class="bot c-tangerine seo-mini" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="boxo"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M7 0h2v4h-2zM3 4h10v1h-10zM2 5h12v3h-12zM2 8h2v3h-2zM6 8h4v3h-4zM12 8h2v3h-2zM2 11h12v5h-12z"/><path class="px-e" fill="#fff" d="M4 8h2v3h-2zM10 8h2v3h-2z"/></g></svg></span>
@@ -117,6 +118,6 @@
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

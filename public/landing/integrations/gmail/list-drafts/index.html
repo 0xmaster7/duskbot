@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"gmail","item":"https://dusk.bot/integrations/gmail"},{"@type":"ListItem","position":4,"name":"list drafts","item":"https://dusk.bot/integrations/gmail/list-drafts"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"find the gmail drafts you have left unfinished","description":"Find the Gmail reply you meant to finish. A bot reads recipients, subjects and draft text, then lists what each email still needs.","image":"https://dusk.bot/art/seo/integrations--gmail--list-drafts.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/gmail/list-drafts"}</script>
 </head>
@@ -41,8 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/gmail">gmail</a></p>
 <header class="seo-top"><h1>find the gmail drafts you have left unfinished</h1>
-<p class="lede seo-answer"><strong>find the reply you meant to finish last week.</strong> a bot lists saved gmail drafts with recipients, subjects and full text, using read access alone. ask what each draft still needs and get a useful to-do list back. gmail returns drafts without a fixed order, in batches. new drafts can take time to appear, so let the bot finish the list.</p>
+<p class="lede seo-answer"><strong>find the reply you meant to finish last week.</strong> a bot lists saved gmail drafts with recipients, subjects and full text, using read access alone.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">ask what each draft still needs and get a useful to-do list back. gmail returns drafts without a fixed order, in batches. new drafts can take time to appear, so let the bot finish the list.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--gmail--list-drafts.webp?v=cf9fefeb" srcset="/art/seo/integrations--gmail--list-drafts-660.webp 660w, /art/seo/integrations--gmail--list-drafts.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a purple cat bot and a yellow pixel bot beside the Gmail mark on a white tile, a mailbox with a letter and a pair of binoculars, on a lemon field in front of chalk cliffs by the sea, one saying &quot;still in drafts&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-it-does"><h2 id="what-it-does">what it does</h2>
 <p><strong>find the half-written email before it becomes a missed reply.</strong> full draft details let the bot see who it's for and what remains unfinished. a subject alone rarely tells the whole story.</p>
@@ -64,7 +65,7 @@ end of draft list reached.</code></pre></div>
 <ol class="seo-steps"><li><strong>start with a reader.</strong> give the bot gmail read only in connected apps.</li><li><strong>ask for the whole draft.</strong> recipients and bodies help distinguish two emails with similar subjects.</li><li><strong>try one checklist.</strong> inspect it before scheduling. use <strong>edit</strong> for timing and <strong>pause</strong> to stop future runs.</li></ol>
 </section>
 <section class="seo-sec" aria-labelledby="what-it-needs-from-you"><h2 id="what-it-needs-from-you">what it needs from you</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>verbose</code></th><td>no</td><td>If true, fetches full draft details including subject, sender, recipient, body, and timestamp.</td></tr><tr><th scope="row"><code>page_token</code></th><td>no</td><td>Token from a previous response to retrieve a specific page of drafts.</td></tr><tr><th scope="row"><code>max_results</code></th><td>no</td><td>Maximum number of drafts to return per page.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_LIST_DRAFTS</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>verbose</code></th><td>no</td><td>If true, fetches full draft details including subject, sender, recipient, body, and timestamp.</td></tr><tr><th scope="row"><code>page_token</code></th><td>no</td><td>Token from a previous response to retrieve a specific page of drafts.</td></tr><tr><th scope="row"><code>max_results</code></th><td>no</td><td>Maximum number of drafts to return per page.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_LIST_DRAFTS</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <section class="seo-sec" aria-labelledby="how-dusk-bot-handles-it"><h2 id="how-dusk-bot-handles-it">how dusk bot handles it</h2>
 <p>dusk bot counts <b>List Drafts</b> as a read: it looks and changes nothing. a bot you allow only to read can use it.</p><p class="seo-fact">the permissions Gmail asks for to run it: <code>https://mail.google.com/</code>, <code>gmail.compose</code>, <code>gmail.modify</code>, <code>gmail.readonly</code>.</p>
@@ -111,6 +112,6 @@ end of draft list reached.</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

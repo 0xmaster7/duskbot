@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"gmail","item":"https://dusk.bot/integrations/gmail"},{"@type":"ListItem","position":4,"name":"change message labels in bulk","item":"https://dusk.bot/integrations/gmail/batch-modify-gmail-messages"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"apply one gmail filing decision to a batch of messages","description":"Clear delivery notices, label registrations or mark newsletters read in Gmail. Preview the messages, then file up to 1,000 at a time.","image":"https://dusk.bot/art/seo/integrations--gmail--batch-modify-gmail-messages.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/gmail/batch-modify-gmail-messages"}</script>
 </head>
@@ -41,8 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/gmail">gmail</a></p>
 <header class="seo-top"><h1>apply one gmail filing decision to a batch of messages</h1>
-<p class="lede seo-answer"><strong>clear the delivery notices without losing the customer replies beside them.</strong> the bot finds individual gmail messages and adds or removes labels. that can archive mail or mark it read. one request covers up to 1,000 messages. filing skips sending approval, so tell it to show the matches and ask before changing them.</p>
+<p class="lede seo-answer"><strong>clear the delivery notices without losing the customer replies beside them.</strong> the bot finds individual gmail messages and adds or removes labels.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">that can archive mail or mark it read. one request covers up to 1,000 messages. filing skips sending approval, so tell it to show the matches and ask before changing them.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--gmail--batch-modify-gmail-messages.webp?v=9d7ae6f7" srcset="/art/seo/integrations--gmail--batch-modify-gmail-messages-660.webp 660w, /art/seo/integrations--gmail--batch-modify-gmail-messages.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a purple pixel bot, a coral pixel bot and a orange pixel bot beside the Gmail mark on a white tile, a folder of papers and a mailbox with a letter, on a lemon field in front of snowy hills and green fields, one saying &quot;ready to archive notices&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-it-does"><h2 id="what-it-does">what it does</h2>
 <p><strong>turn a pile of delivery notices into a clear inbox.</strong> removing inbox archives a message. removing unread marks it read. work on individual messages, so a customer reply in the same conversation stays put.</p>
@@ -61,7 +62,7 @@ remove inbox from these messages?</code></pre></div>
 <ol class="seo-steps"><li>connect work gmail. allow the search and label actions with read and write.</li><li>try a small group first. ask for the matching messages without any changes.</li><li>name the exact label to add or remove. keep the preview-and-agree step in the routine.</li><li>inspect the labels after it finishes. <strong>Pause</strong> stops future runs if the search catches too much.</li></ol>
 </section>
 <section class="seo-sec" aria-labelledby="what-it-needs-from-you"><h2 id="what-it-needs-from-you">what it needs from you</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>messageIds</code></th><td>yes</td><td>List of message IDs to modify.</td></tr><tr><th scope="row"><code>userId</code></th><td>no</td><td>User's email address or 'me' for the authenticated user.</td></tr><tr><th scope="row"><code>addLabelIds</code></th><td>no</td><td>List of label IDs to add to the messages.</td></tr><tr><th scope="row"><code>removeLabelIds</code></th><td>no</td><td>List of label IDs to remove from the messages.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_BATCH_MODIFY_MESSAGES</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>messageIds</code></th><td>yes</td><td>List of message IDs to modify.</td></tr><tr><th scope="row"><code>userId</code></th><td>no</td><td>User's email address or 'me' for the authenticated user.</td></tr><tr><th scope="row"><code>addLabelIds</code></th><td>no</td><td>List of label IDs to add to the messages.</td></tr><tr><th scope="row"><code>removeLabelIds</code></th><td>no</td><td>List of label IDs to remove from the messages.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_BATCH_MODIFY_MESSAGES</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <section class="seo-sec" aria-labelledby="how-dusk-bot-handles-it"><h2 id="how-dusk-bot-handles-it">how dusk bot handles it</h2>
 <p>dusk bot counts <b>Batch modify Gmail messages</b> as a change: it alters something in Gmail, and the sending setting does not cover it. a bot you allow only to read can never call it.</p><p class="seo-fact">the permissions Gmail asks for to run it: <code>https://mail.google.com/</code>, <code>gmail.modify</code>.</p>
@@ -112,6 +113,6 @@ remove inbox from these messages?</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

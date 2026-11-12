@@ -142,7 +142,7 @@ if (dl) {
   if (mine !== 'mac') {
     const item = $(`[data-os="${mine}"]`, menu);
     $('.dl-os', dl).replaceChildren($('.os', item).cloneNode(true));
-    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : 'download free';
+    $('.dl-label', dl).textContent = mine === 'ios' || mine === 'android' ? `get it for ${$('b', item).textContent}` : 'download for free';
   }
   const open = (on) => { menu.hidden = !on; more.setAttribute('aria-expanded', on); };
   more.addEventListener('click', () => open(menu.hidden));
@@ -205,8 +205,31 @@ if (cta && fine && !still) {
   document.addEventListener('pointerleave', () => { mx = -1; go(); });
 }
 
+// only when someone switches to another tab or app while the page stays open: never on a link, a download, a redirect
+// or leaving, so a click-out in the last 1.5 s or a pagehide keeps the real title
 const title = document.title;
-document.addEventListener('visibilitychange', () => { document.title = document.hidden ? 'the bots miss you' : title; });
+const MISS = [
+  'the bots miss you', 'kit is crying rn', 'ur bots are gossiping', 'come back bestie', 'the bots started a group chat without u',
+  'pls 🥺 come back', 'kit is not ok', 'the bots noticed u left', 'they are talking about u', 'u left them on read',
+  'who said u could leave', 'kit is staring at the door', 'the bots are being dramatic', 'one of them is crying. guess who',
+  'ur crew is in shambles', 'come back, they made u a playlist', 'the bots are sulking', 'kit put on a sad song',
+  'we saved u a seat', 'the bots are spiralling', 'abandonment issues: activated', 'kit is writing a breakup text',
+  'they rearranged the furniture', 'the bots ate ur snacks', 'it is giving abandonment', 'not u ghosting the bots',
+  'the bots are refreshing the page', 'u had one job. stay.', 'kit is pretending to be fine', 'come back, the tea is hot',
+];
+let away = 0, gone = false, last = -1;
+const leaving = () => { away = Date.now(); };
+document.addEventListener('click', (e) => { if (e.target.closest?.('a[href], [download]')) leaving(); }, true);
+addEventListener('beforeunload', leaving);
+addEventListener('pagehide', () => { gone = true; document.title = title; });
+addEventListener('pageshow', () => { gone = false; document.title = title; });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { document.title = title; return; }
+  if (gone || Date.now() - away < 1500) return;
+  let n = Math.floor(Math.random() * MISS.length);
+  if (n === last) n = (n + 1) % MISS.length;
+  document.title = MISS[last = n];
+});
 
 // the footer knows what time it is
 const dusk = $('[data-dusk]'), hour = new Date().getHours();

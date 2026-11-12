@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"gmail","item":"https://dusk.bot/integrations/gmail"},{"@type":"ListItem","position":4,"name":"get an attachment","item":"https://dusk.bot/integrations/gmail/get-gmail-attachment"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"get the gmail attachment you actually need","description":"Bring the signed Gmail attachment to your next call. Find it by sender, subject and filename, get a copy in chat and leave the original in Gmail.","image":"https://dusk.bot/art/seo/integrations--gmail--get-gmail-attachment.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/gmail/get-gmail-attachment"}</script>
 </head>
@@ -41,9 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/gmail">gmail</a></p>
 <header class="seo-top"><h1>get the gmail attachment you actually need</h1>
-<p class="lede seo-answer"><strong>walk into the call with the signed agreement open.</strong> give the bot the sender, subject and filename. it finds the gmail message, selects the attachment and returns a download in your chat.</p>
-<p>you get a copy. the original email and attachment stay in gmail, ready to find again.</p>
+<p class="lede seo-answer"><strong>walk into the call with the signed agreement open.</strong> give the bot the sender, subject and filename.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">it finds the gmail message, selects the attachment and returns a download in your chat. you get a copy. the original email and attachment stay in gmail, ready to find again.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--gmail--get-gmail-attachment.webp?v=62a8e535" srcset="/art/seo/integrations--gmail--get-gmail-attachment-660.webp 660w, /art/seo/integrations--gmail--get-gmail-attachment.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a purple cat bot, a mint pixel bot and a green pixel bot beside the Gmail mark on a white tile, a wrapped parcel and a magnifying glass, on a lemon field in front of a lily pond, one saying &quot;the attached contract&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-it-does"><h2 id="what-it-does">what it does</h2>
 <p><strong>last month's unsigned contract is no help on today's call.</strong> the bot finds the email, reads its attachment list and downloads the file you mean. it can name the downloaded copy so you recognise it.</p>
@@ -67,7 +67,7 @@ copy ready here. the original stays in gmail.</code></pre></div>
 <ol class="seo-steps"><li><strong>connect the inbox holding the file.</strong> give this bot gmail read-only access.</li><li><strong>describe the email and attachment.</strong> include sender and subject. ask it to inspect the message first.</li><li><strong>open one returned copy.</strong> look for the signature and version date, then set the collection routine. pause it when agreements stop arriving.</li></ol>
 </section>
 <section class="seo-sec" aria-labelledby="what-it-needs-from-you"><h2 id="what-it-needs-from-you">what it needs from you</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>file_name</code></th><td>yes</td><td>Desired filename for the downloaded attachment.</td></tr><tr><th scope="row"><code>message_id</code></th><td>yes</td><td>Immutable ID of the message containing the attachment.</td></tr><tr><th scope="row"><code>attachment_id</code></th><td>yes</td><td>The internal Gmail attachment ID (NOT the filename).</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_GET_ATTACHMENT</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>file_name</code></th><td>yes</td><td>Desired filename for the downloaded attachment.</td></tr><tr><th scope="row"><code>message_id</code></th><td>yes</td><td>Immutable ID of the message containing the attachment.</td></tr><tr><th scope="row"><code>attachment_id</code></th><td>yes</td><td>The internal Gmail attachment ID (NOT the filename).</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_GET_ATTACHMENT</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <section class="seo-sec" aria-labelledby="how-dusk-bot-handles-it"><h2 id="how-dusk-bot-handles-it">how dusk bot handles it</h2>
 <p>dusk bot counts <b>Get Gmail attachment</b> as a read: it looks and changes nothing. a bot you allow only to read can use it.</p><p class="seo-fact">the permissions Gmail asks for to run it: <code>https://mail.google.com/</code>, <code>gmail.modify</code>, <code>gmail.readonly</code>.</p>
@@ -114,6 +114,6 @@ copy ready here. the original stays in gmail.</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

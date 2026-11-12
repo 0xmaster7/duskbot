@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"gmail","item":"https://dusk.bot/integrations/gmail"},{"@type":"ListItem","position":4,"name":"send draft","item":"https://dusk.bot/integrations/gmail/send-draft"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"ask ai to send the gmail draft you already checked","description":"Send a saved Gmail draft after checking its recipients, text and cc or bcc. Keep each send under review with the right sending setting.","image":"https://dusk.bot/art/seo/integrations--gmail--send-draft.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/gmail/send-draft"}</script>
 </head>
@@ -41,8 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/gmail">gmail</a></p>
 <header class="seo-top"><h1>ask ai to send the gmail draft you already checked</h1>
-<p class="lede seo-answer"><strong>finish the proposal in gmail, then release it when the client says yes.</strong> the bot sends the saved draft to its saved recipients, including cc and bcc. it uses the text exactly as it stands. open that copy before allowing the send; edits in chat need a separate draft update.</p>
+<p class="lede seo-answer"><strong>finish the proposal in gmail, then release it when the client says yes.</strong> the bot sends the saved draft to its saved recipients, including cc and bcc.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">it uses the text exactly as it stands. open that copy before allowing the send; edits in chat need a separate draft update.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--gmail--send-draft.webp?v=d959398d" srcset="/art/seo/integrations--gmail--send-draft-660.webp 660w, /art/seo/integrations--gmail--send-draft.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a lime pixel bot, a coral pixel bot and a green pixel bot beside the Gmail mark on a white tile, a notebook and a mailbox with a letter, on a grassy meadow in front of snowy hills and green fields, one saying &quot;send this saved draft&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="where-it-helps"><h2 id="where-it-helps">where it helps</h2>
 <ul><li>send a proposal you finished in gmail once the customer confirms the deadline</li><li>send the venue confirmation after checking its booking reference</li><li>release an introduction after both people agree</li></ul>
@@ -72,7 +73,7 @@ send this saved copy?</code></pre></div>
 <p>dusk bot counts <b>Send Draft</b> as a send: it reaches people or moves money, so it waits for your <b>Allow</b> (unless you set a daily amount, or the bot is on <b>Full access</b> with no sending rule, which lets it send up to 25 a day). a bot you allow only to read can never call it.</p><p class="seo-fact">the permissions Gmail asks for to run it: <code>https://mail.google.com/</code>, <code>gmail.compose</code>, <code>gmail.modify</code>.</p>
 </section>
 <section class="seo-sec" aria-labelledby="inputs"><h2 id="inputs">inputs</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>draft_id</code></th><td>yes</td><td>The ID of the draft to send.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_SEND_DRAFT</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>draft_id</code></th><td>yes</td><td>The ID of the draft to send.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Gmail (action <code>GMAIL_SEND_DRAFT</code>, read 12 november 2026<sup><a href="#src-4" aria-label="source 4">4</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <aside class="seo-tip"><svg class="bot c-sun seo-mini big" viewBox="0 0 100 100" shape-rendering="crispEdges" aria-hidden="true" data-px="cheep"><g class="px" transform="translate(10 10) scale(5)"><path class="px-b" fill="currentColor" d="M5 1h2v1h-2zM10 1h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM7 3h3v1h-3zM6 4h4v1h-4zM4 5h8v1h-8zM3 6h10v2h-10zM2 8h3v3h-3zM7 8h2v3h-2zM11 8h3v3h-3zM2 11h12v1h-12zM3 12h10v2h-10zM4 14h8v1h-8zM6 15h4v1h-4z"/><path class="px-e" fill="#fff" d="M5 8h2v3h-2zM9 8h2v3h-2z"/></g></svg><p>read the draft in gmail if anything changed since your last preview.</p></aside>
 <section class="seo-sec seo-quick-sec" aria-labelledby="try-it-in-2-minutes"><h2 id="try-it-in-2-minutes">try it in 2 minutes</h2>
@@ -115,6 +116,6 @@ send this saved copy?</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

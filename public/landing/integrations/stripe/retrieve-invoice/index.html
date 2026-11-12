@@ -27,7 +27,7 @@
 <link rel="preload" href="/fonts/general-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/site.css?v=c63b601b">
 <link rel="stylesheet" href="/pages.css?v=9c838e0e">
-<link rel="stylesheet" href="/seo.css?v=fdae82a9">
+<link rel="stylesheet" href="/seo.css?v=c6ab1f56">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dusk Bot","item":"https://dusk.bot/"},{"@type":"ListItem","position":2,"name":"Integrations","item":"https://dusk.bot/integrations"},{"@type":"ListItem","position":3,"name":"stripe","item":"https://dusk.bot/integrations/stripe"},{"@type":"ListItem","position":4,"name":"read an invoice","item":"https://dusk.bot/integrations/stripe/retrieve-invoice"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"open the stripe invoice behind a billing question","description":"Ask an AI bot to open a specific Stripe invoice and explain its details in chat. Find the right invoice first and leave billing records and payments untouched.","image":"https://dusk.bot/art/seo/integrations--stripe--retrieve-invoice.webp","datePublished":"2026-11-12","dateModified":"2026-11-12","author":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"publisher":{"@type":"Organization","name":"Dusk Bot","url":"https://dusk.bot/","logo":"https://dusk.bot/art/icon-512.png"},"mainEntityOfPage":"https://dusk.bot/integrations/stripe/retrieve-invoice"}</script>
 </head>
@@ -41,9 +41,9 @@
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="/integrations">integrations</a><span aria-hidden="true">/</span><a href="/integrations/stripe">stripe</a></p>
 <header class="seo-top"><h1>open the stripe invoice behind a billing question</h1>
-<p class="lede seo-answer"><strong>answer the billing question with the actual bill in front of you.</strong> give the bot the customer and invoice context. it lists or searches stripe invoices, finds the match and opens the bill. if several fit, it asks you to choose.</p>
-<p>you get invoice details in chat while billing records and payments stay untouched.</p>
+<p class="lede seo-answer"><strong>answer the billing question with the actual bill in front of you.</strong> give the bot the customer and invoice context.</p>
 <p class="seo-meta seo-boiler">by <a href="/about">the dusk bot team</a> · checked <time datetime="2026-11-12">12 november 2026</time> · <a href="#how-made">how we made this</a></p></header>
+<p class="seo-answer seo-answer-more">it lists or searches stripe invoices, finds the match and opens the bill. if several fit, it asks you to choose. you get invoice details in chat while billing records and payments stay untouched.</p>
 <figure class="seo-hero"><img src="/art/seo/integrations--stripe--retrieve-invoice.webp?v=12379709" srcset="/art/seo/integrations--stripe--retrieve-invoice-660.webp 660w, /art/seo/integrations--stripe--retrieve-invoice.webp 1320w" sizes="(max-width: 760px) 100vw, 660px" alt="pixel art: a green pixel bot and a mint pixel bot beside the Stripe mark on a white tile, a long receipt and a magnifying glass, on a lemon field in front of snowy hills and green fields, one saying &quot;open the right invoice&quot;" width="1320" height="528" fetchpriority="high" decoding="async"><i class="seo-drift d1" aria-hidden="true"></i><i class="seo-drift d2" aria-hidden="true"></i><i class="seo-twinkle t1" aria-hidden="true"></i><i class="seo-twinkle t2" aria-hidden="true"></i></figure>
 <section class="seo-sec" aria-labelledby="what-it-does"><h2 id="what-it-does">what it does</h2>
 <p><strong>find the november bill before explaining the october one.</strong> one customer can have several invoices. a separate list or search finds the candidates; this action opens the one you choose. ask for the choices when the description fits more than one.</p>
@@ -67,7 +67,7 @@ ready to use when you write the customer reply.</code></pre></div>
 <ol class="seo-steps"><li><strong>connect both sources for reading.</strong> gmail finds the question; stripe provides the bill.</li><li><strong>confirm a first match.</strong> describe the customer and billing context before opening the invoice.</li><li><strong>ask for the needed details.</strong> request related customer information too if it matters to the answer.</li><li><strong>compare the first answer with stripe.</strong> then schedule the daily review. use <strong>edit</strong> to narrow it if needed.</li></ol>
 </section>
 <section class="seo-sec" aria-labelledby="what-it-needs-from-you"><h2 id="what-it-needs-from-you">what it needs from you</h2>
-<div class="table"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>invoice</code></th><td>yes</td><td>The unique identifier of the invoice to retrieve.</td></tr><tr><th scope="row"><code>expand</code></th><td>no</td><td>Specifies which fields in the response should be expanded.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Stripe (action <code>STRIPE_GET_INVOICES_INVOICE</code>, read 12 november 2026<sup><a href="#src-3" aria-label="source 3">3</a></sup>). your bot fills these in from what you tell it.</p>
+<div class="table" role="region" aria-label="inputs" tabindex="0"><table><thead><tr><th scope="col">input</th><th scope="col">required</th><th scope="col">what it is</th></tr></thead><tbody><tr><th scope="row"><code>invoice</code></th><td>yes</td><td>The unique identifier of the invoice to retrieve.</td></tr><tr><th scope="row"><code>expand</code></th><td>no</td><td>Specifies which fields in the response should be expanded.</td></tr></tbody></table></div><p class="seo-fact">from composio's catalog for Stripe (action <code>STRIPE_GET_INVOICES_INVOICE</code>, read 12 november 2026<sup><a href="#src-3" aria-label="source 3">3</a></sup>). your bot fills these in from what you tell it.</p>
 </section>
 <section class="seo-sec" aria-labelledby="how-dusk-bot-handles-it"><h2 id="how-dusk-bot-handles-it">how dusk bot handles it</h2>
 <p>dusk bot counts <b>Retrieve Invoice</b> as a read: it looks and changes nothing. a bot you allow only to read can use it.</p><p class="seo-fact">the permissions Stripe asks for to run it: <code>read_only</code>.</p>
@@ -116,6 +116,6 @@ ready to use when you write the customer reply.</code></pre></div>
 <script src="/a.js?v=47bbe4c2" data-api="/v1/t" defer></script>
 <script src="/mascot.js?v=d75a43e6" defer></script>
 <script src="/site.js?v=c57a6293" defer></script>
-<script src="/pages.js?v=db94d960" defer></script>
+<script src="/pages.js?v=48a52479" defer></script>
 </body>
 </html>

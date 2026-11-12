@@ -36,7 +36,8 @@ export function templates(ctx) {
   const section = (h, body, cls = '') => `<section class="seo-sec${cls ? ' ' + cls : ''}" aria-labelledby="${slug(h)}"><h2 id="${slug(h)}">${esc(h)}</h2>\n${body}\n</section>`;
   const list = (items) => `<ul>${items.map((i) => `<li>${inline(i)}</li>`).join('')}</ul>`;
   const sections = (r) => (r.sections || []).map((s) => section(s.h, md(s.md))).join('\n');
-  const table = (head, rows) => `<div class="table"><table><thead><tr>${head.map((c) => `<th scope="col">${c}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((c, i) => (i ? `<td>${c}</td>` : `<th scope="row">${c}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
+  // the table scrolls sideways inside its box on a narrow screen, so the box is a named, focusable region
+  const table = (head, rows, label = 'table') => `<div class="table" role="region" aria-label="${esc(label)}" tabindex="0"><table><thead><tr>${head.map((c) => `<th scope="col">${c}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((c, i) => (i ? `<td>${c}</td>` : `<th scope="row">${c}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
   const srcRefs = (src) => (src || []).map((n) => `<sup><a href="#src-${n}" aria-label="source ${n}">${n}</a></sup>`).join('');
 
   // the related pages: those named in the record first, then the closest by shared apps, tags and kind, other kinds first
@@ -60,7 +61,7 @@ export function templates(ctx) {
     quick: (r) => r.quick ? section(r.quick.h || 'try it in 2 minutes', `<ol class="seo-quick">${r.quick.steps.map((x, i) => `<li>${mini(r, 'q' + i)}<span>${inline(x)}</span></li>`).join('')}</ol>`, 'seo-quick-sec') : '',
     worked: (r) => r.worked ? section(r.worked.h || 'what it looks like', `${r.worked.intro ? md(r.worked.intro) : ''}<div class="seo-ba"><div><p class="code-label">${esc(r.worked.before_label || 'before')}</p><div class="code plain"><pre><code>${esc(r.worked.before)}</code></pre></div></div><div><p class="code-label">${esc(r.worked.after_label || 'after the bot')}</p><div class="code plain"><pre><code>${esc(r.worked.after)}</code></pre></div></div></div><p class="seo-fact">an illustration with made-up names and numbers.</p>`) : '',
     checklist: (r) => r.checklist ? section(r.checklist.h || 'quick checklist', `<ul class="seo-check">${r.checklist.items.map((x) => `<li>${icon('check')}<span>${inline(x)}</span></li>`).join('')}</ul>`) : '',
-    decide: (r) => r.decide ? section(r.decide.h || 'which one fits', `${r.decide.intro ? md(r.decide.intro) : ''}${table(r.decide.cols.map(esc), r.decide.rows.map((row) => row.map((c) => inline(c))))}`) : '',
+    decide: (r) => r.decide ? section(r.decide.h || 'which one fits', `${r.decide.intro ? md(r.decide.intro) : ''}${table(r.decide.cols.map(esc), r.decide.rows.map((row) => row.map((c) => inline(c))), r.decide.h || 'which one fits')}`) : '',
     saves: (r) => r.saves ? section(r.saves.h || 'what it could save you', `<div class="seo-saves">${mini(r, 'saves', 'seo-mini big')}<div><p class="seo-saves-n">${inline(r.saves.estimate)}</p>${r.saves.formula ? `<div class="code plain seo-formula"><pre><code>${esc(r.saves.formula)}</code></pre></div>` : ''}<p class="code-label">a rough estimate. it assumes:</p>${list(r.saves.assumptions)}</div></div>`) : '',
     mistakes: (r) => r.mistakes?.length ? section(r.mistakes_h || 'mistakes people make', `<div class="seo-mistakes">${r.mistakes.map((m, i) => `<div>${mini(r, 'm' + i)}<p><b>${inline(m.mistake)}</b></p><p>${inline(m.fix)}</p></div>`).join('')}</div>`) : '',
     tip: (r) => r.tip ? `<aside class="seo-tip${r.tip.careful ? ' careful' : ''}">${mini(r, 'tip', 'seo-mini big')}<p>${inline(r.tip.text)}</p></aside>` : '',
@@ -69,14 +70,14 @@ export function templates(ctx) {
 
   // the body each kind of page is built around
   const BODY = {
-    guide: (r) => `${r.table ? section(r.table.h, `${r.table.intro ? md(r.table.intro) : ''}${table(r.table.cols.map(esc), r.table.rows.map((row) => [inline(row.label), ...row.cells.map((c) => inline(c) || '')].map((c, i, all) => (i === all.length - 1 ? c + srcRefs(row.src) : c))))}`) : ''}${sections(r)}${r.steps ? section(r.steps.h, `<ol class="seo-steps">${r.steps.items.map((s) => `<li>${inline(s)}</li>`).join('')}</ol>`) : ''}`,
+    guide: (r) => `${r.table ? section(r.table.h, `${r.table.intro ? md(r.table.intro) : ''}${table(r.table.cols.map(esc), r.table.rows.map((row) => [inline(row.label), ...row.cells.map((c) => inline(c) || '')].map((c, i, all) => (i === all.length - 1 ? c + srcRefs(row.src) : c))), r.table.h)}`) : ''}${sections(r)}${r.steps ? section(r.steps.h, `<ol class="seo-steps">${r.steps.items.map((s) => `<li>${inline(s)}</li>`).join('')}</ol>`) : ''}`,
 
     compare: (r) => {
       const name = r.competitor?.name || r.compare.cols[0];
       const verdict = `<div class="seo-verdict"><div><h3>pick ${esc(r.verdict.them_title || name)} if</h3>${list(r.verdict.them)}</div><div><h3>pick ${esc(r.verdict.dusk_title || 'dusk bot')} if</h3>${list(r.verdict.dusk)}</div></div>`;
       const rows = r.compare.rows.map((row) => [inline(row.label), ...row.cells.map((c, i) => inline(c) + (i === row.cells.length - 1 ? srcRefs(row.src) : ''))]);
       const heads = r.compare.cols.map((c) => (c === 'Dusk Bot' ? `<span class="seo-th">${bot('kit', 'violet', 'seo-mini')}${esc(c)}</span>` : esc(c)));
-      return `${section('the short version', verdict)}\n${section(r.compare.h || 'side by side', `${r.compare.intro ? md(r.compare.intro) : ''}<div class="seo-compare">${table(['', ...heads], rows)}</div>`)}\n${sections(r)}\n${section('how we checked', md(r.method))}`;
+      return `${section('the short version', verdict)}\n${section(r.compare.h || 'side by side', `${r.compare.intro ? md(r.compare.intro) : ''}<div class="seo-compare">${table(['', ...heads], rows, `${name} and the others, side by side`)}</div>`)}\n${sections(r)}\n${section('how we checked', md(r.method))}`;
     },
 
     integration: (r) => {
@@ -85,7 +86,7 @@ export function templates(ctx) {
       if (f) {
         const reads = f.tools.filter((t) => t.kind === 'read').length, sends = f.tools.filter((t) => t.kind === 'send').length;
         const rows = app.highlight.map((h) => { const t = f.tools.find((x) => x.slug === h.slug); if (!t) throw new Error(`${r.file}: ${h.slug} is not a ${app.toolkit} action in seo/facts/connectors/${app.toolkit}.json`); return [esc(t.name), { read: 'read', write: 'change', send: 'send: asks first' }[t.kind], inline(h.use)]; });
-        can = section(`what a bot can do in ${app.name}`, `${md(app.intro)}${table(['action', 'dusk bot treats it as', 'what you would use it for'], rows)}<p class="seo-fact">composio, the connection service behind dusk bot's apps, lists <b>${f.tools_count} ${esc(f.name)} actions</b> (version ${esc(f.version)}, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((s) => s.url === f.source) + 1])}). dusk bot treats ${reads} as reads, ${sends} as sends and ${f.tools_count - reads - sends} as changes.</p><p class="seo-fact">only actions starting with a read word (get, list, search) count as reads, so a read-only bot can't call the rest. a send reaches people or moves money${sends ? ', like ' + esc(f.tools.find((t) => t.kind === 'send').name.toLowerCase()) : ''}, and waits for your <b>Allow</b> unless you set a daily amount.</p>${f.managed_sign_in ? '' : `<p class="callout careful">composio has no ready-made sign-in for ${esc(app.name)}. connecting it needs your own composio project key and an auth config of your own, added under <b>Settings</b>, <b>API keys</b>. on dusk cloud, ask us first.</p>`}`);
+        can = section(`what a bot can do in ${app.name}`, `${md(app.intro)}${table(['action', 'dusk bot treats it as', 'what you would use it for'], rows, `${app.name} actions`)}<p class="seo-fact">composio, the connection service behind dusk bot's apps, lists <b>${f.tools_count} ${esc(f.name)} actions</b> (version ${esc(f.version)}, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((s) => s.url === f.source) + 1])}). dusk bot treats ${reads} as reads, ${sends} as sends and ${f.tools_count - reads - sends} as changes.</p><p class="seo-fact">only actions starting with a read word (get, list, search) count as reads, so a read-only bot can't call the rest. a send reaches people or moves money${sends ? ', like ' + esc(f.tools.find((t) => t.kind === 'send').name.toLowerCase()) : ''}, and waits for your <b>Allow</b> unless you set a daily amount.</p>${f.managed_sign_in ? '' : `<p class="callout careful">composio has no ready-made sign-in for ${esc(app.name)}. connecting it needs your own composio project key and an auth config of your own, added under <b>Settings</b>, <b>API keys</b>. on dusk cloud, ask us first.</p>`}`);
       } else can = section(`what a bot can do with ${app.name}`, md(app.intro));
       const steps = app.toolkit ? `<ol class="seo-steps seo-boiler"><li>open <b>Connected apps</b> in the sidebar.</li><li>pick ${esc(app.name)} and sign in on ${esc(app.name)}'s own page, so your password goes to them and never to a bot.</li><li>choose which bots may use it, and whether each may only read or may also change things. your bookkeeper doesn't need your ${esc(app.name)}.</li><li>ask in plain words. reading and drafting happen freely; sending asks you first.</li></ol>` : '';
       const routines = r.routines.map((x) => `<div class="seo-routine"><h3>${esc(x.name)}</h3>${copyBox(x.message)}<p class="seo-runs"><span>${esc(x.when)}</span>${x.output ? ` · ${inline(x.output)}` : ''}</p></div>`).join('');
@@ -96,7 +97,7 @@ export function templates(ctx) {
 
     usecase: (r) => `${section('the routine', `${r.routine.intro ? md(r.routine.intro) : ''}${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>${r.routine.output ? `<p class="code-label">what comes back looks like this (an example, not a real inbox)</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>` : ''}`)}\n${sections(r)}\n${section('the guard rails', list(r.safeguards))}`,
 
-    role: (r) => `${section(r.day_h || 'a day with bots', table(['when', 'what a bot does'], r.day.map((d) => [esc(d.when), inline(d.what)])))}\n${section('the routines', r.pack.map((p) => `<div class="seo-routine"><h3>${esc(p.name)}</h3>${copyBox(p.message)}${p.note ? `<p class="seo-runs">${inline(p.note)}</p>` : ''}</div>`).join(''))}\n${sections(r)}`,
+    role: (r) => `${section(r.day_h || 'a day with bots', table(['when', 'what a bot does'], r.day.map((d) => [esc(d.when), inline(d.what)]), r.day_h || 'a day with bots'))}\n${section('the routines', r.pack.map((p) => `<div class="seo-routine"><h3>${esc(p.name)}</h3>${copyBox(p.message)}${p.note ? `<p class="seo-runs">${inline(p.note)}</p>` : ''}</div>`).join(''))}\n${sections(r)}`,
 
     routine: (r) => `${section('the message', `${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>`)}\n${r.routine.output ? section('what comes back', `<p class="code-label">an example, not a real run</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>`) : ''}\n${section('make it yours', list(r.knobs))}\n${section('when it goes wrong', list(r.fails))}\n${sections(r)}`,
 
@@ -124,7 +125,7 @@ export function templates(ctx) {
         uses: section(H.uses, list(r.uses)),
         try: section(H.try, `${copyBox(r.routine.message, 'paste this into a chat with your bot')}<dl class="seo-specs"><div><dt>when</dt><dd>${inline(r.routine.when)}</dd></div><div><dt>needs</dt><dd>${inline(r.routine.needs)}</dd></div></dl>${r.routine.output ? `<p class="code-label">what comes back looks like this (an example)</p><div class="code plain seo-sample"><pre><code>${esc(r.routine.output)}</code></pre></div>` : ''}`),
         steps: section(H.steps, `<ol class="seo-steps">${r.steps.map((x) => `<li>${inline(x)}</li>`).join('')}</ol>`),
-        needs: inputs.length ? section(H.needs, `${table(['input', 'required', 'what it is'], inputs.map((i) => [`<code>${esc(i.name)}</code>`, i.required ? 'yes' : 'no', esc(i.about.split(/(?<=\.)\s/)[0] || i.type)]))}<p class="seo-fact">from composio's catalog for ${esc(appName)} (action <code>${esc(t.slug)}</code>, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((x) => x.url === f.source) + 1])}). your bot fills these in from what you tell it.</p>`) : '',
+        needs: inputs.length ? section(H.needs, `${table(['input', 'required', 'what it is'], inputs.map((i) => [`<code>${esc(i.name)}</code>`, i.required ? 'yes' : 'no', esc(i.about.split(/(?<=\.)\s/)[0] || i.type)]), 'inputs')}<p class="seo-fact">from composio's catalog for ${esc(appName)} (action <code>${esc(t.slug)}</code>, read ${day(f.fetched_at)}${srcRefs([r.sources.findIndex((x) => x.url === f.source) + 1])}). your bot fills these in from what you tell it.</p>`) : '',
         rules: section(H.rules, `<p>dusk bot counts <b>${esc(t.name)}</b> as ${kindWords}.${t.kind === 'read' ? ' a bot you allow only to read can use it.' : ' a bot you allow only to read can never call it.'}</p>${Array.isArray(t.scopes) && t.scopes.length ? `<p class="seo-fact">the permissions ${esc(appName)} asks for to run it: ${t.scopes.slice(0, 4).map((x) => `<code>${esc(x.replace(/^https:\/\/www\.googleapis\.com\/auth\//, ''))}</code>`).join(', ')}.</p>` : ''}${r.rules ? md(r.rules) : ''}`),
         watch: section(H.watch, list(r.watch)),
       };
@@ -165,6 +166,15 @@ export function templates(ctx) {
     });
   }
 
+  // the answer opens the article, but only its first sentence or two sit under the h1 as the lede; the rest follows as
+  // the first paragraph, so the top of the page stays two or three lines
+  function answerParts(text) {
+    const said = String(text || '').trim().split(/(?<=[.?!])\s+(?=[a-z0-9"(])/);
+    let lede = said.shift() || '';
+    while (said.length && lede.length + said[0].length + 1 <= 170) lede += ' ' + said.shift();
+    return [lede, said.join(' ')];
+  }
+
   function page(r) {
     const hub = HUBS[r.hub];
     const main = decorate(r, `${BODY[r.kind](r)}\n${extraBlocks(r)}`);
@@ -172,15 +182,16 @@ export function templates(ctx) {
     const rel = related(r);
     const toc = `<aside class="doc-toc"><nav aria-label="on this page"><h2>on this page</h2><ol>${heads.map((m) => `<li><a href="#${m[1]}">${m[2]}</a></li>`).join('')}${r.faq?.length ? '<li><a href="#questions">questions</a></li>' : ''}${r.sources?.length ? '<li><a href="#sources">sources</a></li>' : ''}</ol></nav></aside>`;
     const updated = r.updated || r.verified;
+    const [lede, rest] = answerParts(r.answer);
     const body = `<div class="docs wrap seo">
 <aside class="docs-side"><nav class="docs-nav" aria-label="${esc(hub.nav)}">${sidebar(r, hub)}</nav></aside>
 <details class="docs-jump"><summary><span>${esc(hub.nav)}</span><b>${esc(r.nav || r.h1)}</b>${icon('chevron-down')}</summary><nav class="docs-nav" aria-label="${esc(hub.nav)}, every page">${sidebar(r, hub)}</nav></details>
 <article class="doc prose seo-page">
 <p class="crumb"><a href="/">dusk bot</a><span aria-hidden="true">/</span><a href="${hub.at}">${esc(hub.nav)}</a>${r.parent ? `<span aria-hidden="true">/</span><a href="${r.parent.path}">${esc(r.parent.nav)}</a>` : ''}</p>
 <header class="seo-top"><h1>${esc(r.h1)}</h1>
-<p class="lede seo-answer">${inline(r.answer)}</p>
+<p class="lede seo-answer">${inline(lede)}</p>
 <p class="seo-meta seo-boiler">by <a href="${config.author_url}">${esc(config.byline)}</a> · checked <time datetime="${updated}">${day(updated)}</time> · <a href="#how-made">how we made this</a></p></header>
-${hero(r)}
+${rest ? `<p class="seo-answer seo-answer-more">${inline(rest)}</p>\n` : ''}${hero(r)}
 ${main}
 ${faq(r)}
 ${ctaBlock(r)}
