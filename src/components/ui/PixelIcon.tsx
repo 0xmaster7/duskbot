@@ -1,9 +1,21 @@
 import { cn } from "@/lib/cn";
 
-/* dusk's small pixel objects in the brand's soft palette (lilac, pink, lemon, lime, sky): 11 by 11 cells drawn at 2px, each
-   outlined in a deeper shade of its own colour, so they read on the light and the dark page alike. A row is a string;
-   a cell is "." (empty), "o" (its outline) or a fill letter from FILLS. */
-const FILLS: Record<string, string> = { w: "#fdfbf7", b: "#7cc6f2", B: "#c4e9fb", g: "#a6dd6c", y: "#f6dc62", p: "#f4a0c4", v: "#b99af2", V: "#e2d6fb", G: "#dfe3ea", K: "#a9b3c2", r: "#f6b183", R: "#ef8282", n: "#f3cf98", N: "#e3ad6c" };
+/* dusk's small pixel objects in the brand's pastels (sky, lilac, pink, lemon, lime), each outlined in ink like the app
+   tiles, so the colour carries them on the light page and the dark one alike. 11 by 11 cells; a row is a string, a cell
+   is "." (empty), "o" (ink) or a fill letter from FILLS. Ink with no fill beside it (a speaker's waves, a mic's stand)
+   would vanish on a dark page, so those cells follow the text colour instead. */
+const INK = "#1b1b1f";
+const FILLS: Record<string, string> = {
+  w: "#fdfbf7",
+  b: "#c2ecfc", B: "#e3f6fe",
+  v: "#d0cefb", V: "#e7e6fd",
+  p: "#ffc4dd",
+  y: "#fff3a0",
+  g: "#c9f63f",
+  n: "#fff3a0", N: "#f6e477",
+  r: "#ffc4dd", R: "#ff9a9a",
+  G: "#e4e4ea", K: "#b9bcc6",
+};
 
 const ICONS = {
   battery: [
@@ -36,11 +48,11 @@ const ICONS = {
     "...........",
     "...ooooo...",
     "..oggyyro..",
-    ".ogwwwwwro.",
-    "ogwwwwowwro",
-    "owwwwowwwwo",
-    "owwwoowwwwo",
-    "owwwoowwwwo",
+    ".ogbbbbbro.",
+    "ogbbbbobbro",
+    "obbbbobbbbo",
+    "obbboobbbbo",
+    "obbboobbbbo",
     "ooooooooooo",
     "...........",
     "...........",
@@ -101,9 +113,9 @@ const ICONS = {
     "...........",
     ".ooooooooo.",
     "oVVVVVVVVVo",
-    "oVVVrVrVVVo",
-    "oVVVVrVVVVo",
-    "oVVVrVrVVVo",
+    "oVVVoVoVVVo",
+    "oVVVVoVVVVo",
+    "oVVVoVoVVVo",
     "oVVVVVVVVVo",
     ".ooooooooo.",
     "....ooo....",
@@ -205,12 +217,12 @@ const ICONS = {
     "...........",
     "...........",
     "ooooooooooo",
-    "owvwvwvwvwo",
-    "owwwwwwwwwo",
-    "ovwvwvwvwvo",
-    "owwwwwwwwwo",
-    "owwvvvvvwwo",
-    "owwwwwwwwwo",
+    "ovovovovovo",
+    "ovvvvvvvvvo",
+    "oovovovovoo",
+    "ovvvvvvvvvo",
+    "ovvooooovvo",
+    "ovvvvvvvvvo",
     "ooooooooooo",
     "...........",
   ],
@@ -255,15 +267,15 @@ const ICONS = {
   ],
   clock: [
     "...ooooo...",
-    "..owwwwwo..",
-    ".owwwowwwo.",
-    "owwwwowwwwo",
-    "owwwwowwwwo",
-    "owwwwoooowo",
-    "owwwwwwwwwo",
-    "owwwwwwwwwo",
-    ".owwwwwwwo.",
-    "..owwwwwo..",
+    "..opppppo..",
+    ".opppopppo.",
+    "oppppoppppo",
+    "oppppoppppo",
+    "oppppoooopo",
+    "opppppppppo",
+    "opppppppppo",
+    ".opppppppo.",
+    "..opppppo..",
     "...ooooo...",
   ],
   mic: [
@@ -322,11 +334,11 @@ const ICONS = {
     "...........",
     "...........",
     "....ooo....",
-    "...owwwo...",
-    ".oowwwwwoo.",
-    "owwwwwwwwwo",
-    "owwwwwwwwwo",
-    "oBBwwwwwBBo",
+    "...oBBBo...",
+    ".ooBBBBBoo.",
+    "oBBBBBBBBBo",
+    "oBBBBBBBBBo",
+    "oBBBBBBBBBo",
     ".ooooooooo.",
     "...........",
     "...........",
@@ -346,13 +358,13 @@ const ICONS = {
   ],
   note: [
     "..ooooooo..",
-    "..owwwwwo..",
-    "..owpppwo..",
-    "..owwwwwo..",
-    "..owpppwo..",
-    "..owwwwwo..",
-    "..owppwwo..",
-    "..owwwwwo..",
+    "..oyyyyyo..",
+    "..oywwwyo..",
+    "..oyyyyyo..",
+    "..oywwwyo..",
+    "..oyyyyyo..",
+    "..oywwyyo..",
+    "..oyyyyyo..",
     "..ooooooo..",
     "...........",
     "...........",
@@ -400,12 +412,12 @@ const ICONS = {
     "...........",
     "...........",
     "ooooooooooo",
-    "owwwwwwwwwo",
-    "oppowwvvvwo",
-    "oppowwwwwwo",
-    "oppowwvvwwo",
-    "oooowwwwwwo",
-    "owwwwwwwwwo",
+    "obbbbbbbbbo",
+    "oppobbwwwbo",
+    "oppobbbbbbo",
+    "oppobbwwbbo",
+    "oooobbbbbbo",
+    "obbbbbbbbbo",
     "ooooooooooo",
     "...........",
   ],
@@ -413,45 +425,20 @@ const ICONS = {
 
 export type PixelIconName = keyof typeof ICONS;
 
-/** each object's outline, a deeper shade of its main colour */
-const LINE: Record<PixelIconName, string> = {
-  palette: "#b07a3f",
-  droplet: "#3f8fc9",
-  bubble: "#4f97c9",
-  globe: "#3f8fc9",
-  keyboard: "#8a6fd0",
-  bolt: "#d19a1c",
-  bell: "#d19a1c",
-  speaker: "#8a6fd0",
-  clock: "#d0679a",
-  mic: "#d0679a",
-  parcel: "#b07a3f",
-  laptop: "#3f8fc9",
-  server: "#8a6fd0",
-  cloud: "#4f97c9",
-  team: "#8a6fd0",
-  note: "#d0679a",
-  bookmark: "#8a6fd0",
-  sparkle: "#d19a1c",
-  plus: "#5f9e34",
-  battery: "#3f8fc9",
-  batteryFull: "#c94f4f",
-  stop: "#c94f4f",
-  info: "#3f8fc9",
-  alert: "#d19a1c",
-  key: "#d19a1c",
-  offline: "#8a6fd0",
-  gift: "#8a6fd0",
-  shield: "#3f8fc9",
-  check: "#5f9e34",
-  gauge: "#3f8fc9",
-  idcard: "#d0679a",
-};
+/** ink cells with no fill around them become "s", drawn in the text colour */
+function strokes(rows: readonly string[]) {
+  const filled = (x: number, y: number) => { const c = rows[y]?.[x]; return c !== undefined && c !== "." && c !== "o"; };
+  return rows.map((row, y) => [...row].map((c, x) => {
+    if (c !== "o") return c;
+    for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) if (filled(x + dx, y + dy)) return c;
+    return "s";
+  }).join(""));
+}
 
 /** one rect per run of a colour along a row, so an icon is a handful of rects */
 function runs(rows: readonly string[]) {
   const out: { x: number; y: number; w: number; c: string }[] = [];
-  rows.forEach((row, y) => {
+  strokes(rows).forEach((row, y) => {
     let x = 0;
     while (x < row.length) {
       const c = row[x]!;
@@ -469,7 +456,7 @@ const DRAWN = Object.fromEntries(Object.entries(ICONS).map(([name, rows]) => [na
 export function PixelIcon({ name, size = 22, className }: { name: PixelIconName; size?: number; className?: string }) {
   return (
     <svg aria-hidden="true" data-pixel-icon={name} width={size} height={size} viewBox="0 0 11 11" shapeRendering="crispEdges" className={cn("shrink-0", className)}>
-      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? LINE[name] : FILLS[run.c]} />)}
+      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? INK : run.c === "s" ? "currentColor" : FILLS[run.c]} />)}
     </svg>
   );
 }
