@@ -36,14 +36,14 @@ describe.skipIf(process.platform === "win32")("taking control never waits for th
     await apiOk("PATCH", `/api/bots/${bot.id}`, { browser: false, modelSelection: { instanceId: "claude", model: "claude-sonnet-5" }, ...patch });
     return bot as { id: string; name: string; threadId: string };
   };
-  const viewer = (joinUrl: string) => {
+  const viewer = (joinUrl: string, path = "/vnc.html") => {
     const url = new URL(joinUrl, fixture.info.url);
     expect(url.hostname).toBe("127.0.0.1");
-    expect(url.pathname).toBe("/vnc.html");
+    expect(url.pathname).toBe(path);
   };
 
   beforeAll(async () => {
-    vps = await createTeamVpsFixture({ holdScreenshots: true });
+    vps = await createTeamVpsFixture({ holdScreenshots: true, screens: true });
     fixture = await launchVerificationServer({}, undefined, vps.localVm);
     await apiOk("PUT", "/api/config", { vps: { sshAlias: "control-fixture", mode: "per-bot" } });
   }, 60_000);
@@ -86,6 +86,8 @@ describe.skipIf(process.platform === "win32")("taking control never waits for th
     await apiOk("PATCH", `/api/team-computers/${shared.id}`, { section: "Ops", acknowledgeSharedAccess: true });
     const status = await apiOk("GET", `/api/bots/${ada.id}/computer?threadId=${ada.threadId}`);
     expect(status.container_name).toBe(vpsContainerName(teamComputerOwner(shared.id)));
+    // each bot has its own screen on a shared computer: Ada's is woken before anyone watches it
+    await apiOk("POST", `/api/bots/${ada.id}/computer/provision`, {});
     hold();
     const first = api("POST", `/api/bots/${ada.id}/computer/screenshot?threadId=${ada.threadId}`, {});
     try {
@@ -95,7 +97,8 @@ describe.skipIf(process.platform === "win32")("taking control never waits for th
       expect(took.status, `take control waited on the preview: ${JSON.stringify(took.body)}`).toBe(200);
       const joined = await api("POST", `/api/bots/${ada.id}/computer/join?threadId=${ada.threadId}`, {});
       expect(joined.status, `the desktop link waited on the preview: ${JSON.stringify(joined.body)}`).toBe(200);
-      viewer(joined.body.joinUrl);
+      // Ada's own screen on the shared computer opens in the app's screen viewer
+      viewer(joined.body.joinUrl, "/desktop-viewer");
       expect((await apiOk("POST", `/api/bots/${ada.id}/computer/control`, { action: "release" })).held).toBe(false);
       const lease = randomUUID();
       const map = await api("POST", `/api/team-computers/${shared.id}/control`, { action: "take", controlLeaseId: lease });
