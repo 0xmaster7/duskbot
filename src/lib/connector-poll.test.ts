@@ -62,6 +62,22 @@ describe("polling one app after Connect", () => {
     expect(reads).toHaveLength(2);
   });
 
+  it("checks at once when the person comes back from the sign-in page", async () => {
+    const win = new EventTarget();
+    vi.stubGlobal("window", win);
+    vi.stubGlobal("document", Object.assign(new EventTarget(), { visibilityState: "visible" }));
+    try {
+      const onEnd = vi.fn();
+      const stop = pollConnector(undefined, async () => ({ connected: true, pending: false, status: "ACTIVE" }), onEnd);
+      win.dispatchEvent(new Event("focus"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(onEnd.mock.calls).toEqual([["connected"]]);
+      stop();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("gives up after two minutes of pending reads, and says so once", async () => {
     const read = vi.fn(async (): Promise<ConnectorStatus> => ({ connected: false, pending: true, status: "INITIATED" }));
     const onEnd = vi.fn();

@@ -19,7 +19,8 @@ export function connectorPollEnd(before: ConnectorStatus | undefined, state: Con
   return tries >= CONNECTOR_POLL_TRIES ? "timed_out" : null;
 }
 
-/** Polls one app after Connect until it ends; `onEnd` runs at most once, and never after `stop()`. */
+/** Polls one app after Connect until it ends, and checks at once when the person comes back to this window from the
+ * sign-in page; `onEnd` runs at most once, and never after `stop()`. */
 export function pollConnector(
   before: ConnectorStatus | undefined,
   read: () => Promise<ConnectorStatus | undefined>,
@@ -27,18 +28,33 @@ export function pollConnector(
 ): () => void {
   let tries = 0;
   let ended = false;
-  const stop = () => {
-    ended = true;
-    clearInterval(timer);
-  };
-  const timer = setInterval(() => {
+  let reading = 0;
+  const check = () => {
+    if (ended) return;
+    reading += 1;
     void read().then((state) => {
+      reading -= 1;
       if (ended) return;
       const result = connectorPollEnd(before, state, ++tries);
       if (!result) return;
       stop();
       onEnd(result);
-    });
-  }, CONNECTOR_POLL_MS);
+    }, () => { reading -= 1; });
+  };
+  const back = () => { if (!reading && document.visibilityState !== "hidden") check(); };
+  const hasWindow = typeof window !== "undefined";
+  if (hasWindow) {
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", back);
+  }
+  const timer = setInterval(check, CONNECTOR_POLL_MS);
+  const stop = () => {
+    ended = true;
+    clearInterval(timer);
+    if (hasWindow) {
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", back);
+    }
+  };
   return stop;
 }

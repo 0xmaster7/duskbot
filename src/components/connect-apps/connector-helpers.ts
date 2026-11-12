@@ -25,3 +25,14 @@ export function botsUsingService(bots: Bot[], instances: InstanceInfo[], slug: s
       ?.capabilities?.composioMcp === true &&
     connectorServiceAccess(bot.connectorTools, slug).level !== "none");
 }
+
+/** What a failed connect says to the person: a short sentence of ours for anything technical (status codes, service
+ * names, ids), the server's own words only when they are already plain. */
+export function plainConnectError(message: string): string | { key: LocaleKey } {
+  if (/maximum of \d+ accounts/i.test(message)) return { key: "connectors.tooManyAccounts" };
+  if (/too many|daily_tool_budget|429/i.test(message)) return { key: "connectors.tooManyTries" };
+  if (/HTTP \d{3}|unavailable|unreachable|fetch failed|network|timed? ?out|ECONN|abort|service|[{}_]|Composio|\bID\b/i.test(message) || message.length > 140) {
+    return { key: "connectors.connectFailed" };
+  }
+  return message;
+}

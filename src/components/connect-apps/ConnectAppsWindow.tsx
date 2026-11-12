@@ -500,6 +500,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         connectors,
         categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null,
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
+        appBots: card ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => ({ id: bot.id, name: bot.name })) : [],
         ...(detailEntry.kind === "composio" ? { toolkit: snapshotToolkit(detailEntry.id) } : {}),
         remoteClient: window.duskDesktop?.remoteClient?.active === true,
         onOpenLogins: () => leaveFor(SETTINGS("logins")),

@@ -15,6 +15,7 @@ import { mergeCompleteConnectorStatus, mergeCurrentConnectorStatus, onlyLatestCo
 import { COMPOSIO_AUTH_CONFIGS_URL, managedConnectorUnavailableReason, needsComposioAuthConfig } from "../../../shared/connector-availability";
 import type { ToolkitCard } from "../ServiceIcon";
 import { cachedComposioSnapshot, loadComposioSnapshot, mergeCatalog } from "./composio-snapshot";
+import { plainConnectError } from "./connector-helpers";
 import { classifyViaError, keepPendingVia, readPendingVia, VIA_DEADLINE_MS, VIA_READ_MS, viaDelay, watchReturn, type ViaFailure, type ViaFlow } from "./via-flow";
 
 export type ConnectorError = string | { key: LocaleKey } | null;
@@ -196,7 +197,7 @@ export function useConnectors(): Connectors {
       .catch((cause) => {
         if (!alive) return;
         if (!hadInventory) setPhase("error");
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(plainConnectError(cause instanceof Error ? cause.message : String(cause)));
       });
     api("/api/connectors/composio-connect")
       .then((answer: ComposioConnect) => { if (alive) setVia(answer); })
@@ -215,7 +216,7 @@ export function useConnectors(): Connectors {
         if (!alive) return;
         setLiveSettled(true);
         setLive((current) => current ?? []);
-        setError(lacksAdminScope(cause) ? { key: "connectors.adminOnly" } : cause.message);
+        setError(lacksAdminScope(cause) ? { key: "connectors.adminOnly" } : plainConnectError(cause.message));
       });
     return () => { alive = false; };
   }, [reloads]);
@@ -564,7 +565,7 @@ export function useConnectors(): Connectors {
         setError({ key: "connectors.aliasNeeded" });
         void refreshStatus([slug]);
       } else {
-        setError(accountAliasTaken(message) ? { key: "connectors.aliasTaken" } : message);
+        setError(accountAliasTaken(message) ? { key: "connectors.aliasTaken" } : plainConnectError(message));
       }
     } finally {
       launch.cancel();

@@ -15,6 +15,7 @@ import { ComposioKeyStep } from "./ComposioKeyStep";
 import { GmailCard, gmailCard } from "./GmailCard";
 import { PrimaryButton, type Primary } from "./PrimaryButton";
 import type { ConnectorAccount } from "@/lib/connector-status";
+import { activeAccounts, defaultAccount, nextAccountName, useAccountChoices } from "./account-choices";
 
 /** One way an app connects, when it has more than one: our own card, the vendor's server, Composio. */
 export interface Way {
@@ -35,6 +36,8 @@ export interface AppPageModel {
   connectors: Connectors;
   categoryLabel: string | null;
   usedBy: string[];
+  /** The bots that can use this app, for picking which of its accounts each one uses. */
+  appBots: Array<{ id: string; name: string }>;
   /** What Composio's catalog says about the app: how you sign in, and what it can do. */
   toolkit?: SnapshotToolkit;
   remoteClient: boolean;
@@ -54,6 +57,17 @@ export function AppPage({ model }: { model: AppPageModel }) {
   const ways = model.ways && model.ways.length > 1 ? model.ways : null;
   const status = composio ? connectors.status[slug] : undefined;
   const accounts = status?.accounts ?? [];
+  const { choices, choose } = useAccountChoices();
+  const active = activeAccounts(status);
+  const usual = defaultAccount(status, choices.defaults[slug]);
+  const [choiceFailed, setChoiceFailed] = useState(false);
+  const pick = (accountId: string | null, botId?: string) => { setChoiceFailed(false); void choose(slug, accountId, botId).then((ok) => { if (!ok) setChoiceFailed(true); }); };
+  // one click: the new account gets the next free name, and the one already there becomes the default it keeps
+  const addAccount = () => {
+    if (!choices.defaults[slug] && usual) pick(usual.id);
+    void connectors.connect(slug, nextAccountName(accounts, t("connectApps.account.word")));
+  };
+  const accountName = (account: ConnectorAccount) => account.alias || t("connectApps.account.fallback");
   // a key is all that is missing: the key step shows right here, no trip to Settings
   const viaSignedIn = connectors.via?.signedIn === true;
   const askingKey = composio && !model.remoteClient && !viaSignedIn
@@ -96,7 +110,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
       case "failed": return { label: t("connectors.action.retry"), onClick: () => void connectors.connect(slug) };
       case "reconnect": return { label: t("connectors.action.reconnect"), onClick: () => void connectors.connect(slug, phase.account.alias, phase.account) };
       // grok keeps Add Account with the accounts it adds to
-      case "connected": return accounts.length || connectors.viaApps[slug] ? null : { label: t("connectors.action.addAccount"), quiet: true, onClick: () => { setAlias(""); connectors.askAlias(slug); } };
+      case "connected": return accounts.length || connectors.viaApps[slug] ? null : { label: t("connectors.action.addAccount"), quiet: true, onClick: addAccount };
       case "included": return { label: t("connectors.action.included"), quiet: true, disabled: true };
       case "setup": return { ...connect, label: t("common.checkAgain") };
       case "unavailable": return { ...connect, disabled: true };
@@ -163,6 +177,8 @@ export function AppPage({ model }: { model: AppPageModel }) {
             <div className="ca-card">
               {accounts.map((account) => (
                 <AccountRow key={account.id} account={account} service={entry.label} busy={phase?.kind === "connecting"}
+                  isDefault={active.length > 1 && usual?.id === account.id}
+                  {...(active.length > 1 && usual?.id !== account.id && /^active$/i.test(account.status) ? { onMakeDefault: () => pick(account.id) } : {})}
                   onReconnect={() => void connectors.connect(slug, account.alias, account)}
                   onDisconnect={() => connectors.disconnect(slug, account.id)} />
               ))}
@@ -182,8 +198,7 @@ export function AppPage({ model }: { model: AppPageModel }) {
               {aliasError && <p role="alert" className="ca-card-row">{aliasError}</p>}
               {!askingAlias && accounts.length > 0 && (
                 <div className="ca-card-row">
-                  <button type="button" className="ca-pill" disabled={phase?.kind === "connecting"}
-                    onClick={() => { setAlias(""); connectors.askAlias(slug); }}>
+                  <button type="button" className="ca-pill" disabled={phase?.kind === "connecting"} onClick={addAccount}>
                     <span>{t("connectors.action.addAccount")}</span>
                   </button>
                 </div>
@@ -191,6 +206,28 @@ export function AppPage({ model }: { model: AppPageModel }) {
             </div>
           </div>
         )}
+        {composio && active.length > 1 && (model.appBots?.length ?? 0) > 0 && usual && (
+          <div data-account-bots="">
+            <h3 className="ca-group-label">{t("connectApps.botsUse")}</h3>
+            <div className="ca-card">
+              {(model.appBots ?? []).map((bot) => {
+                const own = choices.bots[bot.id]?.[slug];
+                return (
+                  <label key={bot.id} className="ca-card-row" data-account-bot={bot.id}>
+                    <span>{bot.name}</span>
+                    <select className="ca-account-select" value={own && active.some((account) => account.id === own) ? own : ""}
+                      aria-label={t("connectApps.botsUse.aria", { bot: bot.name, service: entry.label })}
+                      onChange={(event) => pick(event.target.value || null, bot.id)}>
+                      <option value="">{t("connectApps.botsUse.default", { name: accountName(usual) })}</option>
+                      {active.map((account) => <option key={account.id} value={account.id}>{accountName(account)}</option>)}
+                    </select>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {choiceFailed && <p role="alert" className="ca-notice" data-tone="danger">{t("connectApps.account.choiceFailed")}</p>}
         {model.toolkit && !gmail && <ToolkitAbilities toolkit={model.toolkit} />}
         {!ownCard && <AppFacts facts={facts} />}
       </div>
@@ -200,10 +237,12 @@ export function AppPage({ model }: { model: AppPageModel }) {
 
 /** One account, Grok's way: its name, a mark when it needs signing in again, and Disconnect that turns into Confirm
  * Disconnect in place instead of asking in a dialog. */
-function AccountRow({ account, service, busy, onReconnect, onDisconnect }: {
+function AccountRow({ account, service, busy, isDefault, onMakeDefault, onReconnect, onDisconnect }: {
   account: ConnectorAccount;
   service: string;
   busy: boolean;
+  isDefault: boolean;
+  onMakeDefault?: () => void;
   onReconnect: () => void;
   onDisconnect: () => Promise<boolean>;
 }) {
@@ -219,7 +258,14 @@ function AccountRow({ account, service, busy, onReconnect, onDisconnect }: {
         <span title={account.alias ? undefined : account.id}>
           {title}
           {stale && <span className="ca-account-tag">{t("connectApps.account.needsReconnect")}</span>}
+          {isDefault && <span className="ca-account-tag" data-tone="quiet">{t("connectApps.account.default")}</span>}
         </span>
+        {onMakeDefault && !confirming && (
+          <button type="button" className="ca-pill" disabled={busy || removing} onClick={onMakeDefault}
+            aria-label={t("connectApps.account.makeDefaultAria", { title })}>
+            <span>{t("connectApps.account.makeDefault")}</span>
+          </button>
+        )}
         {stale && (
           <button type="button" className="ca-pill" disabled={busy || removing}
             aria-label={t("connectors.reconnectAria", { account: title, service })} onClick={onReconnect}>
