@@ -10,6 +10,7 @@ import { memorySink } from "../analytics/sink.ts";
 import { BILLING_CONFIG } from "../billing/plans.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 import { memoryWaitlist } from "./waitlist.ts";
+import { costOf, memoryInfraStore } from "./infra.ts";
 
 const ADMIN = "owner@example.test", OTHER = "someone@example.test";
 const DAY = 86_400_000;
@@ -19,6 +20,7 @@ describe("admin panel api", () => {
   let app: ReturnType<typeof createDashboardApp>;
   let sink: ReturnType<typeof memorySink>;
   let waitlist: ReturnType<typeof memoryWaitlist>;
+  let infra: ReturnType<typeof memoryInfraStore>;
   let server: Server;
   let dataDir: string;
   let url: string;
@@ -36,7 +38,8 @@ describe("admin panel api", () => {
       { email: "=cmd@example.test", position: 2, createdAt: time - DAY, source: "x", ref: "launch" },
     ]);
     csrf.clear();
-    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, analytics: { sink, waitlist }, admin: { emails: [ADMIN], env: {} } });
+    infra = memoryInfraStore();
+    app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, analytics: { sink, waitlist, infra }, admin: { emails: [ADMIN], env: {} } });
     server = createServer(app.handle);
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
@@ -78,7 +81,7 @@ describe("admin panel api", () => {
 
   describe("authorization on every route", () => {
     const reads = ["/v1/admin/me", "/v1/admin/overview", "/v1/admin/overview?days=7", "/v1/admin/users", "/v1/admin/users?q=owner&filter=all", "/v1/admin/clouds", "/v1/admin/clouds?status=all",
-      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit"];
+      "/v1/admin/waitlist", "/v1/admin/waitlist.csv", "/v1/admin/events", "/v1/admin/events?name=sign_in&days=30", "/v1/admin/health", "/v1/admin/audit", "/v1/admin/revenue/infra"];
 
     it("answers 401 signed out, 403 for an account not on the list, and 200 for the admin", async () => {
       const admin = await login(ADMIN), other = await login(OTHER);
@@ -186,6 +189,27 @@ describe("admin panel api", () => {
     expect(page.series.reduce((a, b) => a + b, 0)).toBe(2);
     const audit = await (await call("/v1/admin/audit", { cookie: admin })).json() as { entries: Array<{ action: string; detail: { rows: number } }> };
     expect(audit.entries[0]).toMatchObject({ action: "waitlist.export", detail: { rows: 2 } });
+  });
+
+  it("sets this month's instabox cost against each customer's mrr", async () => {
+    const admin = await login(ADMIN);
+    await login(OTHER);
+    const cloudId = await grantCloud(OTHER);
+    const accountId = app.auth.accountByEmail(OTHER)!.id;
+    const measured = { runningSeconds: 4 * 3600, vcpuSeconds: 8 * 3600, memGiBSeconds: 16 * 3600, diskGiBSeconds: 20 * 4 * 3600, egressBytes: 0 };
+    const row = (day: string) => ({ day, cloudId, accountId, serverId: "m1", ...measured, ...costOf(measured), collectedAt: time });
+    await infra.put([row("2026-11-11"), row("2026-11-12"), row("2026-10-31")]);
+    const revenue = await (await call("/v1/admin/revenue", { cookie: admin })).json() as { customers: Array<{ accountId: string; mrr: number }> };
+    const mrr = revenue.customers.find(c => c.accountId === accountId)!.mrr;
+    expect(mrr).toBeGreaterThan(0);
+    const answer = await (await call("/v1/admin/revenue/infra", { cookie: admin })).json() as { collected: boolean; month: string; days: number; customers: Array<Record<string, number | string | null>>; worst: Array<{ accountId: string }>; totals: Record<string, number>; awake: Array<{ label: string; clouds: number }> };
+    const cost = Math.round(2 * costOf(measured).costCents), elapsed = (time - Date.parse("2026-11-01T00:00:00Z")) / (30 * 86_400_000);
+    const fee = Math.round(mrr * 0.06 + 40), projected = Math.round(2 * costOf(measured).costCents / elapsed);
+    expect(answer).toMatchObject({ collected: true, month: "2026-11", days: 2 });
+    expect(answer.customers).toEqual([expect.objectContaining({ accountId, mrr, costCents: cost, feeCents: fee, projectedCents: projected, marginCents: mrr - fee - projected, awakeHours: 8 })]);
+    expect(answer.worst.map(c => c.accountId)).toEqual([accountId]);
+    expect(answer.totals).toMatchObject({ mrr, costCents: cost, clouds: 1, unbilledCents: 0 });
+    expect(answer.awake.find(bucket => bucket.clouds === 1)!.label).toBe("4-8h");
   });
 
   it("reports health without failing when backups and probes are not configured", async () => {

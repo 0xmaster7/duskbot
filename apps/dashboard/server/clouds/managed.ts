@@ -64,8 +64,8 @@ export interface ManagedCloud {
   resizing(cloud: StoredCloud): boolean;
   /** an operator hold: nothing is deleted while it is set */
   setHold(cloud: StoredCloud, hold: boolean): void;
-  /** what the provider measured for the cloud's machine this month */
-  usage?(cloud: StoredCloud): Promise<{ runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number } | null>;
+  /** what the provider measured for the cloud's current machine, this month or from `from` until now */
+  usage?(cloud: StoredCloud, from?: number): Promise<{ runningSeconds: number; vcpuSeconds: number; memGiBSeconds: number; diskGiBSeconds: number; egressBytes: number } | null>;
   /** the backend's own routes (machine claims, the edge's route lookup); true when answered */
   handle?(req: IncomingMessage, res: ServerResponse, url: URL, context: ManagedCloudRoutesContext): Promise<boolean>;
   close(): void;

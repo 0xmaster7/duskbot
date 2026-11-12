@@ -31,6 +31,7 @@ import { createAnalytics } from "./analytics/index.ts";
 import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { createUsage, memoryUsageStore, type UsageStore } from "./analytics/usage.ts";
+import { createInfraCollector, memoryInfraStore, type InfraStore } from "./admin/infra.ts";
 import { AdminError, createAdmin, parseAdminEmails } from "./admin/index.ts";
 import { createErrorCounter } from "./admin/health.ts";
 import { churnThreshold, createAlerts, parseAlerts } from "./admin/alerts.ts";
@@ -66,7 +67,7 @@ export interface DashboardAppOptions {
   /** the slack wake edge: DUSK_SLACK_EDGE and DUSK_CLOUD_SEAL_KEY from env; tests pass a fake socket */
   slackEdge?: { env?: NodeJS.ProcessEnv; socket?: EdgeSocketFactory };
   /** product analytics: MongoDB in production (main.ts), memory otherwise; the waitlist is dusk.waitlist when connected */
-  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[]; usage?: UsageStore };
+  analytics?: { sink?: AnalyticsSink; waitlist?: WaitlistSource | null; trackOrigins?: string[]; usage?: UsageStore; infra?: InfraStore };
   /** the owner's panel at /admin: DUSK_ADMIN_EMAILS by default */
   admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv };
   /** the owner's alert emails (main.ts); without it incidents are kept in memory and nothing is mailed */
@@ -258,7 +259,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
       return { id: owner.id, signedInAt: found.session.createdAt };
     } });
   const adminEmails = options.admin?.emails ?? parseAdminEmails(process.env.DUSK_ADMIN_EMAILS);
-  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
+  const managedUsage = billing.clouds.managed?.usage ? billing.clouds.managed.usage.bind(billing.clouds.managed) : null;
+  const infraStore = options.analytics?.infra ?? memoryInfraStore();
+  const infra = createInfraCollector({ store: infraStore, clouds: () => billing.clouds.all?.() ?? [], usage: managedUsage ? (c, from) => managedUsage(c, from) : null, now });
+  infra.start();
+  const admin = createAdmin({ emails: adminEmails, auth, billing, workspaces: () => state.workspaces, analytics, usage, infra: { store: infraStore }, wakeStats: () => slackEdge?.edge.wakeStats() ?? {},
     waitlist: options.analytics?.waitlist ?? null, now, fetch: options.fetch, env: options.admin?.env, errors: errorsSeen, readBody, bodyObject, json,
     service: { version: options.version ?? null, startedAt, environment: options.admin?.environment ?? (dev ? "development" : "production"), dataDir: options.dataDir,
       backupDir: options.admin?.backupDir ?? null, database: () => stateBackend()?.health() ?? null } });
@@ -715,6 +720,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
     slackEdge: edgeHost,
     analytics,
     usage,
+    infra,
     handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
       const requestId = random(9);
       res.setHeader("x-request-id", requestId);
@@ -735,6 +741,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       });
     },
     close() {
+      infra.close();
       edgeHost.close();
       billing.close();
       closed = true;

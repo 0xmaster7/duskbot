@@ -19,6 +19,7 @@ import { healthTargets, newestBackup, probe, spoolCount, type ErrorCounter } fro
 import { AnalyticsRouteError, createAnalyticsRoutes } from "./analytics-routes.ts";
 import { BillingError } from "../billing/service.ts";
 import { PlanError, createPlanEditor } from "./plans.ts";
+import { marginReport, type InfraStore } from "./infra.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -42,6 +43,8 @@ export interface AdminOptions {
   fetch?: typeof fetch;
   env?: NodeJS.ProcessEnv;
   errors: ErrorCounter;
+  /** daily InstaBox usage per managed cloud, for the revenue page's cost and margin */
+  infra?: { store: InfraStore };
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
   readBody(req: IncomingMessage): Promise<Buffer>;
   bodyObject(body: Buffer): Record<string, unknown>;
@@ -304,6 +307,13 @@ export function createAdmin(options: AdminOptions) {
       next: list.length > limit ? list[limit - 1]!.at : null };
   }
 
+  /** this month's InstaBox cost and gross margin, per customer and in total */
+  async function infraAnswer() {
+    const time = now(), start = Date.UTC(new Date(time).getUTCFullYear(), new Date(time).getUTCMonth(), 1);
+    const rows = options.infra ? await options.infra.store.range(dayKey(start), dayKey(time)) : [];
+    return { now: time, collected: !!options.infra, ...marginReport({ now: time, customers: deep.customers(), rows }) };
+  }
+
   async function health() {
     const time = now(), backup = newestBackup(options.service.backupDir);
     const [sink, checks] = await Promise.all([analytics.sink.health(), Promise.all(targets.map(target => probe(target, options.fetch)))]);
@@ -365,6 +375,7 @@ export function createAdmin(options: AdminOptions) {
       }
       if (route === "/events") return send(await events(url));
       if (route === "/usage") return send(await usageAnswer(url));
+      if (route === "/revenue/infra") return send(await infraAnswer());
       try {
         if (route === "/revenue") return send(await deep.revenue(url));
         if (route === "/web") return send(await deep.web(url));

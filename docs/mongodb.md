@@ -52,6 +52,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `analytics_daily`, `analytics_marks` | daily counts (kept); once-only marks | `day\|name` / key | `(day, name)`; marks: `expiresAt` TTL |
 | `admin_audit` | the admin panel's actions and record views, kept | `id` | `at` |
 | `analytics_notes` | chart notes the admin adds (a day and a line of text), kept | `id` | `at` |
+| `infra_usage_daily` | each managed cloud's InstaBox usage and cost per UTC day, collected hourly (yesterday and today rewritten in place); written outside the writer lease | `day\|cloudId` | `day`, `(cloudId, day)` |
 | `locks` | the writer lease | | |
 
 Every row carries `_n`, its insertion number, so arrays load back in order. Sessions expire in the service itself
