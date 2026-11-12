@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => {
     dispatch: (() => {}) as (...args: unknown[]) => void,
     api: (() => Promise.resolve({})) as (...args: unknown[]) => Promise<unknown>,
     storeState: {} as Record<string, unknown>,
+    otherServer: null as string | null,
     skills: {
       skills: [] as ManagedSkill[],
       loading: false,
@@ -57,6 +58,11 @@ vi.mock("react", async (original) => ({
     }];
   },
   useEffect: () => {},
+}));
+vi.mock("@/lib/other-server", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/other-server")>(),
+  useOtherServerName: () => fixture.otherServer,
+  desktopShowsOtherServer: () => fixture.otherServer !== null,
 }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.ownerOrAdmin }));
 vi.mock("@/lib/app-links", async (importOriginal) => ({
@@ -255,6 +261,7 @@ beforeEach(() => {
   fixture.saveMemory = vi.fn((_bot: unknown, path: unknown, text: unknown) => Promise.resolve({ ok: true, doc: { path, text, hash: "h2", exists: true } }));
   fixture.openExternal = vi.fn(() => Promise.resolve());
   fixture.storeState = { settingsOpen: true, botSettingsSection: "overview", botSettingsExpandAccordion: false };
+  fixture.otherServer = null;
   fixture.skills = {
     skills: [], loading: false, working: "", error: "", reviewing: null, toggle: vi.fn(() => Promise.resolve()),
     setWorking: vi.fn(), setError: vi.fn(), refresh: vi.fn(() => Promise.resolve()), putAssignments: vi.fn(() => Promise.resolve()),
@@ -678,6 +685,8 @@ describe("the Library", () => {
 });
 
 describe("the Computer tab", () => {
+  // a screen belongs to a bot whose computer is a VPS or the cloud; one on this computer has none to show
+  beforeEach(() => { fixture.otherServer = "Studio VPS"; });
   const cloudBot = (extra: Partial<Bot> = {}) => makeBot({ computer: "cloud", ...extra });
   const placeSelect = (rendered: Rendered) => find(rendered, "data-panel-select", "place");
   const runsOn = (bot: Bot) => {
@@ -730,9 +739,12 @@ describe("the Computer tab", () => {
     expect(screen).toBeGreaterThan(card);
     expect(rendered.html).toContain(">Runs on<");
     const card2 = runsOn(cloudBot());
-    expect(card2.html).toContain('data-runs-on="pc"');
-    expect(card2.html).toContain(">This PC<");
+    expect(card2.html).toContain('data-runs-on="vps"');
+    expect(card2.html).toContain(">Studio VPS<");
     expect(card2.html).toMatch(/data-runs-on-status="(asleep|offline)"/);
+    fixture.otherServer = null;
+    expect(runsOn(cloudBot()).html).toContain(">This PC<");
+    fixture.otherServer = "Studio VPS";
     const before = fixture.storeState;
     fixture.storeState = { ...before, config: { cloudHome: true } };
     try {
@@ -757,6 +769,36 @@ describe("the Computer tab", () => {
     expect((select.props.options as Array<{ icon?: string }>).map((option) => option.icon)).toEqual(["laptop", "cloud"]);
     expect((placeSelect(runsOn(makeBot())).props.options as Array<{ value: string }>).map((option) => option.value)).toEqual(["auto", "local", "cloud"]);
     expect(placeSelect(runsOn(cloudBot({ yourAccess: "view" }))).props.disabled).toBe(true);
+  });
+
+  it("on this computer drops the screen choice and preview, and offers dusk cloud through checkout", () => {
+    fixture.otherServer = null;
+    const rendered = computer(cloudBot());
+    expect(rendered.html).not.toContain('data-asleep-mascot=""');
+    expect(rendered.html).not.toContain('data-panel-screen-of=""');
+    expect(rendered.nodes.some((node) => node.props.inline === true)).toBe(false);
+    const card = runsOn(cloudBot());
+    expect(has(card, "data-panel-select", "place")).toBe(false);
+    expect(card.html).toContain(">Get dusk cloud<");
+    expect(card.html).toContain("Keeps working 24/7");
+    click(find(card, "data-panel-action", "move-cloud"));
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_bot_panel" });
+  });
+
+  it("on this computer with a dusk cloud offers the move, then the switch once the bots live there, never the checkout", () => {
+    fixture.otherServer = null;
+    const props = ofType(computer(cloudBot()), RunsOnCard)!.props as Parameters<typeof RunsOnCard>[0];
+    const openHome = vi.fn(() => Promise.resolve());
+    const card = (stage: Parameters<typeof RunsOnCard>[0]["stage"]) =>
+      capture(() => RunsOnCard({ ...props, stage, picker: { ...props.picker, cloudDesktop: { openHome } as unknown as typeof props.picker.cloudDesktop } }));
+    const ready = card("ready");
+    expect(ready.html).toContain(">Move to dusk cloud<");
+    expect(ready.html).not.toContain("Keeps working 24/7");
+    const moved = card("moved");
+    expect(moved.html).toContain(">Switch to dusk cloud<");
+    click(find(moved, "data-panel-action", "move-cloud"));
+    expect(openHome).toHaveBeenCalledTimes(1);
+    expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "openCloudAdd" }));
   });
 });
 

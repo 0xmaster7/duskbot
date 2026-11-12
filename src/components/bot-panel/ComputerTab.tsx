@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Cloud, Laptop, Monitor, Server, type GlyphIcon } from "../../icons";
 
 import { cloudMoveStage, openCloudMove, runsOnHost, runsOnStatus, type CloudMoveStage, type RunsOnHost, type RunsOnKind, type RunsOnStatus } from "@/lib/cloud-move";
+import { cloudPlanView } from "@/lib/cloud-plan";
 import { cn } from "@/lib/cn";
 import { writeComputerPanelView, type ComputerPanelView } from "@/lib/computer-panel-view";
 import { t } from "@/lib/i18n";
@@ -121,7 +122,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
   return (
     <>
       <Card>
-        <div role="radiogroup" aria-label={t("computer.simple.whereWorks", { name: bot.name })} className="flex flex-col divide-y divide-transparent">
+        <div role="radiogroup" aria-label={t("computer.simple.whereWorks", { name: bot.name })} className="flex flex-col divide-y divide-ink/[0.05]">
           {options.map((option) => (
             <RadioRow
               key={option.value}
@@ -187,6 +188,9 @@ const CHOICE_ICON: Record<PlaceChoice, IconName> = {
 /** a quiet secondary move: plain 12px words that darken on hover, under the one primary action */
 const quietCls = "inline-flex h-7 cursor-pointer items-center rounded-full px-2.5 text-[12px] leading-4 text-ink/[0.56] hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
+/** This computer, where a bot stops while it sleeps and has no screen of its own to choose or show. */
+const isLocalHost = (host: RunsOnHost) => host.kind === "mac" || host.kind === "pc";
+
 const HOST_ICON: Record<RunsOnKind, GlyphIcon> = { mac: Laptop, pc: Monitor, vps: Server, cloud: Cloud };
 const STATUS_DOT: Record<RunsOnStatus, string> = { awake: "bg-success", asleep: "bg-ink/30", offline: "bg-warning" };
 
@@ -198,9 +202,10 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
   stage: CloudMoveStage | null;
   picker: ReturnType<typeof usePlacePicker>;
 }) {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const device = deviceWord();
   const editable = bot.yourAccess !== "view";
+  const local = isLocalHost(host);
   const { options, current, usingNow, choosePlace } = picker;
   const title = host.kind === "mac" ? t("computer.simple.dest.thisMac") : host.kind === "pc" ? t("computer.simple.dest.thisPc")
     : host.kind === "vps" ? host.name ?? t("runsOn.hint.vps") : t("place.cloudDesktop.title");
@@ -210,10 +215,22 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
   const screenLabel = (option: (typeof options)[number]) =>
     option.value === "cloud" && !state.config?.cloudHome ? t("runsOn.screen.vps") : option.label;
   const screens = options.filter((option) => option.value === "local" || option.value === "cloud" || option.value === current);
-  const toCloud = host.kind !== "cloud" && stage !== null;
-  const cloudLabel = stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
-    : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
-    : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveCloud");
+  // a bot on this computer is always offered dusk cloud: checkout with no cloud, the move once there is one, and the
+  // switch to its workspace once the bots live there
+  const hasCloud = stage !== null && stage !== "buy" && stage !== "elsewhere";
+  const livesThere = stage === "moved" || stage === "open";
+  const toCloud = host.kind !== "cloud" && (stage !== null || local);
+  const cloudLabel = local && !hasCloud ? t("runsOn.getCloud")
+    : stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
+    : livesThere ? t(local ? "runsOn.switchCloud" : "runsOn.openCloud")
+    : stage === "coming-back" ? t("runsOn.movingBack") : t(local ? "runsOn.moveDuskCloud" : "runsOn.moveCloud");
+  const signedOut = picker.cloudDesktop?.account ? cloudPlanView(picker.cloudDesktop.account).kind === "signed-out" : false;
+  const switchToCloud = picker.cloudDesktop?.openHome;
+  const moveToCloud = () => {
+    if (local && !hasCloud) dispatch({ type: "openCloudAdd", source: "app_bot_panel", ...(signedOut ? { signIn: true as const } : {}) });
+    else if (local && livesThere && switchToCloud) void switchToCloud();
+    else openCloudMove("cloud");
+  };
   const toVps = host.kind !== "vps" && host.kind !== "cloud" && vpsLinkAvailable() && stage !== "moved";
   const toHome = (host.kind === "vps" && stage === "elsewhere") || (host.kind === "cloud" && stage === "moved");
   return (
@@ -226,7 +243,7 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
           {t(`runsOn.status.${status}`)}
         </span>
       </div>
-      {screens.length > 1 && (
+      {!local && screens.length > 1 && (
         <div data-panel-row="screen" className={rowCls}>
           <RowText title={t("runsOn.screen")} hint={usingNow ? t("computer.simple.usingNow", { place: usingNow }) : undefined} />
           <SelectPill<PlaceChoice>
@@ -241,7 +258,8 @@ export function RunsOnCard({ bot, host, status, stage, picker }: {
       )}
       {editable && (toCloud || toVps || toHome) && (
         <div className="flex flex-col gap-1 px-2 pb-1.5 pt-1">
-          {toCloud && <button type="button" data-panel-action="move-cloud" className={cn(pillPrimaryCls, "w-full")} onClick={() => openCloudMove("cloud")}>{cloudLabel}</button>}
+          {toCloud && <button type="button" data-panel-action="move-cloud" className={cn(pillPrimaryCls, "w-full")} onClick={moveToCloud}>{cloudLabel}</button>}
+          {toCloud && local && !hasCloud && <p data-panel-cloud-hint="" className="px-1 text-center text-[12px] leading-4 text-ink-secondary">{t("runsOn.getCloudHint", { device })}</p>}
           {(toVps || toHome) && (
             <div className="flex flex-wrap items-center justify-center gap-1">
               {toVps && <button type="button" data-panel-action="move-vps" className={quietCls} onClick={openAddVps}>{t("runsOn.moveVps")}</button>}
@@ -285,14 +303,16 @@ export function ComputerTab({ bot, derived }: { bot: Bot; derived: Derived; onOp
   return (
     <div data-panel-tabpanel="computer">
       <RunsOnCard bot={bot} host={host} status={status} stage={stage} picker={picker} />
-      <div ref={setScreenBox} className="mt-3">
-        <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
-          <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
-        </Suspense>
-      </div>
-      <div className="mt-[5px] flex min-h-6 items-center pl-1">
-        <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
-      </div>
+      {!isLocalHost(host) && <>
+        <div ref={setScreenBox} className="mt-3">
+          <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>
+            <ComputerPanel bot={bot} inline visible={onScreen} onReport={setReport} />
+          </Suspense>
+        </div>
+        <div className="mt-[5px] flex min-h-6 items-center pl-1">
+          <span data-panel-screen-of="" className="min-w-0 truncate text-[12px] leading-4 tracking-normal text-ink/[0.56]">{screenOf}</span>
+        </div>
+      </>}
       <ComputerAdvanced detail={report?.detail ?? null} cloudDesktop={cloudDesktop} stage={stage} />
       {warning}
     </div>

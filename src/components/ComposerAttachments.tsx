@@ -121,9 +121,9 @@ export function ComposerAttachments({
       {dragging && createPortal(
         <div
           style={pane ? { top: pane.top + 8, left: pane.left + 8, width: pane.width - 16, height: pane.height - 16 } : undefined}
-          className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-transparent bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
+          className={cn("composer-drop pointer-events-none fixed z-[60] flex flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-ink/25 bg-[color-mix(in_srgb,var(--color-app)_88%,transparent)] backdrop-blur-md", !pane && "inset-2")}
         >
-          <span className="relative flex rounded-xl bg-composer p-2.5 text-ink shadow-none" aria-hidden="true">
+          <span className="relative flex rounded-xl bg-composer p-2.5 text-ink shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.08)]" aria-hidden="true">
             <span className="flex size-[22px] items-center justify-center"><Icon name="camera" size={18} /></span>
           </span>
           <span className="relative text-[14px] leading-5 font-semibold text-ink">{t("composer.dropToAttach")}</span>
@@ -135,7 +135,7 @@ export function ComposerAttachments({
 }
 
 const TILE_REMOVE = "opacity-0 transition-[opacity,background-color] duration-[120ms] ease-[ease] group-hover/tile:opacity-100 focus-visible:opacity-100 touch:opacity-100";
-const CARD = "group/tile relative flex h-14 w-[calc(50%-4px)] min-w-[220px] max-w-[354px] shrink-0 items-center gap-2 rounded-[10px] bg-composer p-2 shadow-[0_1px_4px_rgb(28_28_28/0.07),0_6px_12px_rgb(28_28_28/0.035)]";
+const CARD = "group/tile relative flex h-14 w-[calc(50%-4px)] min-w-[220px] max-w-[354px] shrink-0 items-center gap-2 rounded-[10px] bg-composer p-2 shadow-[0_0_0_0.5px_rgb(28_28_28/0.08),0_1px_4px_rgb(28_28_28/0.07),0_6px_12px_rgb(28_28_28/0.035)]";
 
 /**
  * grok's attachments inside the composer: 56px tiles 8px apart in one scrolling row above the field, files as
@@ -180,7 +180,7 @@ export function ComposerAttachmentStrip({ items, onRemove, onRetry, onDisplayInC
         <div data-composer-attachments role="list" aria-label={t("attach.gallery")} className="pointer-events-none -mx-[9px] -mt-1.5 -mb-[18px] flex min-w-0 flex-nowrap gap-2 overflow-x-auto px-[9px] pt-1.5 pb-[18px] [scrollbar-width:none] *:pointer-events-auto">
           {items.map((a) => a.kind === "image" ? (
             <div key={a.id} role="listitem" aria-label={a.failed ? `${a.name}, ${t("attach.uploadFailed")}` : a.name} data-composer-attachment aria-busy={a.uploading || undefined}
-              className="group/tile relative size-14 shrink-0 overflow-hidden rounded-[10px] border-[0.5px] border-transparent bg-composer">
+              className="group/tile relative size-14 shrink-0 overflow-hidden rounded-[10px] border-[0.5px] border-ink/12 bg-composer">
               <button
                 type="button"
                 onClick={() => {
