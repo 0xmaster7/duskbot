@@ -179,7 +179,7 @@ export function FollowUpRow({ simple = false }: { simple?: boolean }) {
   const followUp = useFollowUpDefault();
   const key = alternateSendLabel(useSendKey());
   return (
-    <SettingRow title={t("settings.followUp.title")} subtitle={simple ? tOptional("settings.docs.followUp.hint") : t("settings.followUp.subtitle", { key })}>
+    <SettingRow icon="note" title={t("settings.followUp.title")} subtitle={simple ? tOptional("settings.docs.followUp.hint") : t("settings.followUp.subtitle", { key })}>
       <SettingsSelect
         value={followUp}
         aria-label={t("settings.followUp.title")}

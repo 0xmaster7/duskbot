@@ -1,8 +1,9 @@
 import { cn } from "@/lib/cn";
 
-/* dusk's small pixel icons: 11 by 11 cells drawn at 2px, one outline that follows the text colour and a few fixed fills.
-   Each row is a string; a cell is "." (empty), "o" (outline) or a fill letter from FILLS. */
-const FILLS: Record<string, string> = { w: "#fafbfc", b: "#4a8fd0", B: "#9fd3f5", g: "#6cc58a", y: "#f2c94c", p: "#f29bb5", v: "#a78bfa", V: "#cdbefc", G: "#c7cfd9", r: "#f2994a", n: "#deaa6e", N: "#c48c50", K: "#8e9aab", R: "#e5484d" };
+/* dusk's small pixel objects in the brand's soft palette (lilac, pink, lemon, lime, sky): 11 by 11 cells drawn at 2px, each
+   outlined in a deeper shade of its own colour, so they read on the light and the dark page alike. A row is a string;
+   a cell is "." (empty), "o" (its outline) or a fill letter from FILLS. */
+const FILLS: Record<string, string> = { w: "#fdfbf7", b: "#7cc6f2", B: "#c4e9fb", g: "#a6dd6c", y: "#f6dc62", p: "#f4a0c4", v: "#b99af2", V: "#e2d6fb", G: "#dfe3ea", K: "#a9b3c2", r: "#f6b183", R: "#ef8282", n: "#f3cf98", N: "#e3ad6c" };
 
 const ICONS = {
   battery: [
@@ -99,11 +100,11 @@ const ICONS = {
   offline: [
     "...........",
     ".ooooooooo.",
-    "oGGGGGGGGGo",
-    "oGGGrGrGGGo",
-    "oGGGGrGGGGo",
-    "oGGGrGrGGGo",
-    "oGGGGGGGGGo",
+    "oVVVVVVVVVo",
+    "oVVVrVrVVVo",
+    "oVVVVrVVVVo",
+    "oVVVrVrVVVo",
+    "oVVVVVVVVVo",
     ".ooooooooo.",
     "....ooo....",
     "..ooooooo..",
@@ -204,11 +205,11 @@ const ICONS = {
     "...........",
     "...........",
     "ooooooooooo",
-    "owKwKwKwKwo",
+    "owvwvwvwvwo",
     "owwwwwwwwwo",
-    "oKwKwKwKwKo",
+    "ovwvwvwvwvo",
     "owwwwwwwwwo",
-    "owwKKKKKwwo",
+    "owwvvvvvwwo",
     "owwwwwwwwwo",
     "ooooooooooo",
     "...........",
@@ -243,11 +244,11 @@ const ICONS = {
     "...........",
     "....o...o..",
     "...oo....o.",
-    "oooGo..o..o",
-    "oGGGo...o.o",
-    "oGGGo...o.o",
-    "oGGGo...o.o",
-    "oooGo..o..o",
+    "oooVo..o..o",
+    "oVVVo...o.o",
+    "oVVVo...o.o",
+    "oVVVo...o.o",
+    "oooVo..o..o",
     "...oo....o.",
     "....o...o..",
     "...........",
@@ -306,14 +307,14 @@ const ICONS = {
   ],
   server: [
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
-    ".oGGGGGGgo.",
-    ".oGGGGGGGo.",
+    ".oVVVVVVgo.",
+    ".oVVVVVVVo.",
     ".ooooooooo.",
     "...........",
   ],
@@ -346,11 +347,11 @@ const ICONS = {
   note: [
     "..ooooooo..",
     "..owwwwwo..",
-    "..owGGGwo..",
+    "..owpppwo..",
     "..owwwwwo..",
-    "..owGGGwo..",
+    "..owpppwo..",
     "..owwwwwo..",
-    "..owGGwwo..",
+    "..owppwwo..",
     "..owwwwwo..",
     "..ooooooo..",
     "...........",
@@ -395,9 +396,57 @@ const ICONS = {
     "....ooo....",
     "...........",
   ],
+  idcard: [
+    "...........",
+    "...........",
+    "ooooooooooo",
+    "owwwwwwwwwo",
+    "oppowwvvvwo",
+    "oppowwwwwwo",
+    "oppowwvvwwo",
+    "oooowwwwwwo",
+    "owwwwwwwwwo",
+    "ooooooooooo",
+    "...........",
+  ],
 } as const;
 
 export type PixelIconName = keyof typeof ICONS;
+
+/** each object's outline, a deeper shade of its main colour */
+const LINE: Record<PixelIconName, string> = {
+  palette: "#b07a3f",
+  droplet: "#3f8fc9",
+  bubble: "#4f97c9",
+  globe: "#3f8fc9",
+  keyboard: "#8a6fd0",
+  bolt: "#d19a1c",
+  bell: "#d19a1c",
+  speaker: "#8a6fd0",
+  clock: "#d0679a",
+  mic: "#d0679a",
+  parcel: "#b07a3f",
+  laptop: "#3f8fc9",
+  server: "#8a6fd0",
+  cloud: "#4f97c9",
+  team: "#8a6fd0",
+  note: "#d0679a",
+  bookmark: "#8a6fd0",
+  sparkle: "#d19a1c",
+  plus: "#5f9e34",
+  battery: "#3f8fc9",
+  batteryFull: "#c94f4f",
+  stop: "#c94f4f",
+  info: "#3f8fc9",
+  alert: "#d19a1c",
+  key: "#d19a1c",
+  offline: "#8a6fd0",
+  gift: "#8a6fd0",
+  shield: "#3f8fc9",
+  check: "#5f9e34",
+  gauge: "#3f8fc9",
+  idcard: "#d0679a",
+};
 
 /** one rect per run of a colour along a row, so an icon is a handful of rects */
 function runs(rows: readonly string[]) {
@@ -419,9 +468,8 @@ const DRAWN = Object.fromEntries(Object.entries(ICONS).map(([name, rows]) => [na
 
 export function PixelIcon({ name, size = 22, className }: { name: PixelIconName; size?: number; className?: string }) {
   return (
-    <svg aria-hidden="true" data-pixel-icon={name} width={size} height={size} viewBox="0 0 11 11" shapeRendering="crispEdges"
-      className={cn("shrink-0 text-ink/75", className)}>
-      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? "currentColor" : FILLS[run.c]} />)}
+    <svg aria-hidden="true" data-pixel-icon={name} width={size} height={size} viewBox="0 0 11 11" shapeRendering="crispEdges" className={cn("shrink-0", className)}>
+      {DRAWN[name].map((run) => <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.w} height={1} fill={run.c === "o" ? LINE[name] : FILLS[run.c]} />)}
     </svg>
   );
 }
