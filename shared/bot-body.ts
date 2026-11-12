@@ -1,9 +1,10 @@
-/** Every body a bot can wear: our ten bodies and the Halloween costumes. Ids saved by older versions still read. */
+/** Every body a bot can wear: the twenty pixel bodies and the Halloween costumes, which draw as pixel bodies. Ids saved by older versions still read. */
 
 import { z } from "zod";
 
-import { DEFAULT_BOT_BODY, DUSK_BODY_IDS, LEGACY_BODY_IDS, duskBody, migrateBodyId, type DuskBodyId, type LegacyBodyId } from "./body-migration.ts";
-import { HALLOWEEN_BODY_IDS, type HalloweenBodyId } from "./halloween-bodies.ts";
+import {
+  DEFAULT_BOT_BODY, DUSK_BODY_IDS, HALLOWEEN_BODY_IDS, LEGACY_BODY_IDS, duskBody, migrateBodyId, type DuskBodyId, type HalloweenBodyId, type LegacyBodyId,
+} from "./body-migration.ts";
 import type { MausColor } from "./wire.ts";
 
 export { DEFAULT_BOT_BODY };
@@ -38,7 +39,7 @@ export const bodyShapeFor = duskBody;
 
 /** Whether a bot wearing `current` draws as `id`, so a picker marks an older id as the body it now looks like. */
 export function wearsBody(current: unknown, id: BotBodyId): boolean {
-  if (isHalloweenBody(id) || isHalloweenBody(current)) return current === id;
+  if (isHalloweenBody(id)) return current === id;
   return duskBody(current) === duskBody(id);
 }
 

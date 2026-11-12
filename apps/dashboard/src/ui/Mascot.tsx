@@ -20,12 +20,7 @@ export const colorOf = (c: string | null | undefined): BotColour => (c && Object
 export type BotState = MarkState | BotMood;
 export type BotReaction = MarkReaction | "bounce" | "perk" | "shake" | "squish" | "dizzy" | "celebrate" | "blink";
 
-// a saved body id draws through the app's one migration map; halloween costumes have no pixel body, so each takes its nearest
-const COSTUME_BODY: Record<string, PixelBodyId> = {
-  pumpkin: "pip", ghost: "boo", witch: "drip", bat: "wisp", cat: "kit", skull: "egg", monster: "ribbit", mummy: "tofu", vampire: "hoot", spider: "bruin",
-};
-export const bodyOf = (b: string | null | undefined): PixelBodyId =>
-  (b && Object.hasOwn(COSTUME_BODY, b) ? COSTUME_BODY[b]! : duskBody(b));
+export const bodyOf = (b: string | null | undefined): PixelBodyId => duskBody(b);
 
 export interface MascotHandle { react(kind: BotReaction): void; lookAt(x: number | null, y?: number): void }
 

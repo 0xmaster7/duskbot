@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BOT_BODY_IDS, COSTUME_FOR_COLOR, DEFAULT_BOT_BODY, bodyShapeFor, botBodyId, botBodySchema, isHalloweenBody, wearsBody } from "./bot-body.ts";
-import { DUSK_BODY_IDS, LEGACY_BODY_IDS } from "./body-migration.ts";
-import { HALLOWEEN_BODY_IDS } from "./halloween-bodies.ts";
-import { MASCOT_BODY_IDS } from "./mascot-bodies.ts";
+import { COSTUME_BODY, DUSK_BODY_IDS, HALLOWEEN_BODY_IDS, LEGACY_BODY_IDS, duskBody } from "./body-migration.ts";
 import { MAUS_COLOR_NAMES } from "./wire.ts";
 
 describe("bot bodies", () => {
@@ -14,7 +12,7 @@ describe("bot bodies", () => {
   });
 
   it("accepts every id an older version saved and saves the body it draws as now", () => {
-    for (const id of [...LEGACY_BODY_IDS, ...MASCOT_BODY_IDS]) expect(DUSK_BODY_IDS).toContain(botBodySchema.parse(id));
+    for (const id of LEGACY_BODY_IDS) expect(DUSK_BODY_IDS).toContain(botBodySchema.parse(id));
     expect(botBodySchema.parse("cursor")).toBe("kit");
     expect(botBodySchema.parse("clover")).toBe("puff");
     expect(botBodySchema.safeParse("hexagram").success).toBe(false);
@@ -37,7 +35,16 @@ describe("bot bodies", () => {
     expect(wearsBody(undefined, DEFAULT_BOT_BODY)).toBe(true);
     expect(wearsBody("pumpkin", "pumpkin")).toBe(true);
     expect(wearsBody("pumpkin", "kit")).toBe(false);
+    expect(wearsBody("pumpkin", "pip")).toBe(true);
     expect(wearsBody("cursor", "pumpkin")).toBe(false);
+  });
+
+  it("draws every costume as a pixel body", () => {
+    for (const id of HALLOWEEN_BODY_IDS) {
+      expect(DUSK_BODY_IDS).toContain(duskBody(id));
+      expect(bodyShapeFor(id)).toBe(COSTUME_BODY[id]);
+    }
+    expect(bodyShapeFor("witch")).toBe("drip");
   });
 
   it("tells the Halloween bodies apart", () => {

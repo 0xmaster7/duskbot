@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { StoreProvider, type Bot } from "@/state/store";
 import { DUSK_BODY_IDS, DUSK_BODY_NAMES } from "../../shared/body-migration";
-import { HALLOWEEN_BODIES, HALLOWEEN_BODY_IDS } from "../../shared/halloween-bodies";
 import { BotProfileAvatarCard } from "./BotProfileAvatarCard";
 
 function makeBot(overrides: Partial<Bot> = {}): Bot {
@@ -48,14 +47,12 @@ describe("BotProfileAvatarCard body picker", () => {
     }
   });
 
-  it("offers the Halloween bodies in their own row", () => {
+  it("offers only the pixel bodies, and marks a costume as the body it draws as", () => {
     const markup = renderCard(makeBot({ mascotBody: "witch" }));
 
-    expect(markup).toContain(">Halloween<");
-    for (const id of HALLOWEEN_BODY_IDS) {
-      expect(markup).toContain(`aria-label="Use the ${HALLOWEEN_BODIES[id].name} body"`);
-    }
-    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${HALLOWEEN_BODIES.witch.name} body"`);
+    expect(markup).not.toContain(">Halloween<");
+    expect(markup.match(/aria-label="Use the [^"]+ body"/g)).toHaveLength(DUSK_BODY_IDS.length);
+    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${DUSK_BODY_NAMES.drip} body"`);
   });
 
   it("marks the current body pressed and the rest unpressed, defaulting to kit", () => {

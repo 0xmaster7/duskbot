@@ -60,7 +60,13 @@ describe("mascot facial feature colors", () => {
 
   it("draws the eyes white when no face ink is chosen", () => {
     for (const bot of [{ color: "chrome" as const, mascotFaceColor: null }, {}]) expect(attr(renderBot(bot), "eyes")).toBe("#fff");
-    expect(renderBot({ mascotBody: "pumpkin" })).toContain('fill="#0d0a10"');
+  });
+
+  it("draws a bot saved in a costume as its pixel body, white eyes and all", () => {
+    const markup = renderBot({ mascotBody: "pumpkin" });
+    expect(attr(markup, "body")).toBe("pip");
+    expect(attr(markup, "eyes")).toBe("#fff");
+    expect(markup).not.toContain("<svg");
   });
 
   it("does not paint features over an uploaded image", () => {

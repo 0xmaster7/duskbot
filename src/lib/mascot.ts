@@ -1,4 +1,3 @@
-import { CURSOR_STATES, type CursorState } from "@/components/CursorAvatar";
 import type { MarkState } from "@/components/mascot-engine";
 import { botShowsUnread } from "./bot-unread";
 import { lastNonReceipt } from "./receipts";
@@ -8,8 +7,15 @@ import type { LocaleKey } from "@/locales";
 
 export { MAUS_COLOR_NAMES, type MausColor } from "../../shared/wire";
 
-export type MausState = CursorState | MarkState;
-export const MAUS_STATES = CURSOR_STATES;
+/** The states a bot's face can be pinned to or streamed as. */
+export const MAUS_STATES = [
+  "sleeping", "waking", "idle", "listening", "thinking", "searching", "working", "excited", "surprised", "suspicious",
+  "angry", "drowsy", "happy", "curious", "confused", "bored", "proud", "shy", "sad", "laughing", "scared", "playful",
+  "celebrate", "orbit", "radar", "progress", "spawning", "humming", "loading", "dictating", "sending", "receiving",
+  "uploading", "writing", "notifying", "alerting", "bouncing", "dragging", "powering-down",
+] as const satisfies readonly MarkState[];
+
+export type MausState = MarkState;
 
 /** Each bot colour as names, mentions and chat tones paint it; the skins' --identity-* tokens are tuned from these. */
 export const MAUS_COLORS: Record<MausColor, string> = {

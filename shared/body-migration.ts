@@ -65,6 +65,15 @@ export function isDuskBody(value: unknown): value is DuskBodyId {
   return (DUSK_BODY_IDS as readonly unknown[]).includes(value);
 }
 
+/** The Halloween costumes a bot can still be saved in. Each draws as its nearest pixel body. */
+export const HALLOWEEN_BODY_IDS = ["pumpkin", "ghost", "witch", "bat", "cat", "skull", "monster", "mummy", "vampire", "spider"] as const;
+
+export type HalloweenBodyId = (typeof HALLOWEEN_BODY_IDS)[number];
+
+export const COSTUME_BODY: Record<HalloweenBodyId, DuskBodyId> = {
+  pumpkin: "pip", ghost: "boo", witch: "drip", bat: "wisp", cat: "kit", skull: "egg", monster: "ribbit", mummy: "tofu", vampire: "hoot", spider: "bruin",
+};
+
 /** One of our bodies for an id we draw or used to draw, else null. */
 export function migrateBodyId(value: unknown): DuskBodyId | null {
   if (isDuskBody(value)) return value;
@@ -73,5 +82,6 @@ export function migrateBodyId(value: unknown): DuskBodyId | null {
 
 /** The body a stored id draws as; unknown and missing ids wear the default. */
 export function duskBody(value: unknown): DuskBodyId {
+  if (typeof value === "string" && Object.hasOwn(COSTUME_BODY, value)) return COSTUME_BODY[value as HalloweenBodyId];
   return migrateBodyId(value) ?? DEFAULT_BOT_BODY;
 }

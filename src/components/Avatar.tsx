@@ -9,14 +9,12 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
-import { MASCOT_INK, MAUS_STATES, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
-import type { CursorAvatarHandle, CursorState } from "./CursorAvatar";
+import { MASCOT_INK, type MausColor, type MausMotion, type MausState } from "@/lib/mascot";
 import { DuskMark, type DuskMarkHandle } from "./mascot-view";
-import { hoverGaze, type MarkReaction, type MarkState } from "./mascot-engine";
+import { hoverGaze, type MarkReaction } from "./mascot-engine";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, mascotFaceInk, type BotAvatarCrop, type MascotFaceColor } from "../../shared/bot-avatar";
-import { bodyShapeFor, isHalloweenBody, type StoredBodyId } from "../../shared/bot-body";
+import { bodyShapeFor, type StoredBodyId } from "../../shared/bot-body";
 import { useHalloweenDressed, wornBody } from "@/lib/halloween-dress";
-import { CarvedAvatar } from "./CarvedAvatar";
 
 export const EYE_SCALE = 1.12;
 export const MOUTH_WEIGHT = 11;
@@ -55,7 +53,7 @@ export function roomAvatarGradient(color: MausColor): [string, string, string] {
   ];
 }
 
-export type MausAvatarHandle = CursorAvatarHandle & Partial<Pick<DuskMarkHandle, "poke" | "react">>;
+export type MausAvatarHandle = Pick<DuskMarkHandle, "blink" | "spin" | "setExpression"> & Partial<Pick<DuskMarkHandle, "poke" | "react">>;
 
 export type MausAvatarProps = {
   color: MausColor;
@@ -89,38 +87,7 @@ export type MausAvatarProps = {
   personality?: boolean;
 };
 
-// the carved halloween bodies keep the older engine, which names fewer states
-const CARVED_STATE: Partial<Record<MarkState, CursorState>> = {
-  streaming: "writing", reading: "searching", coding: "working", running: "working", computing: "working",
-  controlling: "working", waiting: "orbit", blocked: "curious", finished: "happy", failed: "sad", approving: "happy",
-};
-const carvedState = (state: MausState | undefined): CursorState | undefined =>
-  state === undefined ? undefined : (CARVED_STATE[state as MarkState] ?? (MAUS_STATES.includes(state as CursorState) ? (state as CursorState) : "idle"));
-
-function MausAvatarComponent(props: MausAvatarProps, ref: React.Ref<MausAvatarHandle>) {
-  const { bodyId, color, size, state, motion, motionKey, gaze, trackPointer, animated, label } = props;
-  if (isHalloweenBody(bodyId)) {
-    return (
-      <CarvedAvatar
-        ref={ref}
-        body={bodyId}
-        color={color}
-        faceColor={props.faceColor}
-        size={size}
-        state={carvedState(state)}
-        motion={motion}
-        motionKey={motionKey}
-        gaze={gaze}
-        trackPointer={trackPointer}
-        animated={animated}
-        label={label}
-      />
-    );
-  }
-  return <GradientAvatar ref={ref} {...props} />;
-}
-
-function GradientAvatarComponent(
+function MausAvatarComponent(
   {
     color,
     state = "idle",
@@ -200,8 +167,6 @@ function GradientAvatarComponent(
     </span>
   );
 }
-
-const GradientAvatar = forwardRef(GradientAvatarComponent);
 
 export const MausAvatar = memo(forwardRef(MausAvatarComponent));
 

@@ -12,7 +12,6 @@ import {
 } from "@/lib/mascot";
 import { BOT_AVATAR_CROPS } from "../../shared/bot-avatar";
 import { DUSK_BODY_IDS, DUSK_BODY_NAMES } from "../../shared/body-migration";
-import { HALLOWEEN_BODIES, HALLOWEEN_BODY_IDS } from "../../shared/halloween-bodies";
 import { DEFAULT_BOT_BODY, wearsBody, type BotBodyId } from "../../shared/bot-body";
 import { BotAvatar, MausAvatar } from "./Avatar";
 import { AvatarImageGenerator } from "./AvatarImageGenerator";
@@ -177,14 +176,6 @@ export function BotProfileAvatarCard({
             <div className="grid grid-cols-5 gap-1">
               {DUSK_BODY_IDS.map((id) => (
                 <BodyButton key={id} id={id} name={DUSK_BODY_NAMES[id]} bot={bot} busy={busy} onPatch={onPatch} />
-              ))}
-            </div>
-            <div className={LABEL}>
-              {t("botPanel.avatar.halloween")}
-            </div>
-            <div className="grid grid-cols-5 gap-1" data-halloween-bodies>
-              {HALLOWEEN_BODY_IDS.map((id) => (
-                <BodyButton key={id} id={id} name={HALLOWEEN_BODIES[id].name} bot={bot} busy={busy} onPatch={onPatch} />
               ))}
             </div>
           </>
