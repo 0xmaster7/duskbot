@@ -193,6 +193,21 @@ test("over its shape a panel takes the keyboard so macOS shows its cursor, and g
   ambient.close();
 });
 
+test("a panel macOS took the keyboard from (another app clicked or switched to) takes it again on the next visit", async () => {
+  const { windows, ambient, screen } = fakes();
+  ambient.start(screen);
+  await tick();
+  const dock = surface(windows, "dock");
+  const say = (channel, payload) => dock.webContents.emit("ipc-message", {}, channel, payload);
+  say("ambient:pointer", true);
+  assert.deepEqual(dock.keys, ["focus"]);
+  dock.focused = false;
+  say("ambient:pointer", false);
+  say("ambient:pointer", true);
+  assert.deepEqual([dock.focused, dock.keys], [true, ["focus", "focus"]]);
+  ambient.close();
+});
+
 test("a page that never says it settled still gets the keyboard taken back, a moment later", async () => {
   const { windows, ambient, screen } = fakes();
   ambient.start(screen);

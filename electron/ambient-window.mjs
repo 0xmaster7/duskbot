@@ -29,8 +29,10 @@ export function createAmbientWindow({ BrowserWindow, surface, url, level, platfo
   // not activate the app, so the app in front stays in front. Off the shape it gives key back, unless the person is
   // typing in one of its fields.
   const keyOnHover = platform === "darwin";
+  // asked of the window itself each time: macOS can take the key away without telling us (another app clicked or
+  // switched to while the pointer was here), and a remembered "we have it" would then leave its fields deaf
   function takeKey() {
-    if (!keyOnHover || keyed || win.isFocused?.()) return;
+    if (!keyOnHover || win.isFocused?.()) return;
     keyed = true;
     call("focus", "", () => win.focus());
   }
