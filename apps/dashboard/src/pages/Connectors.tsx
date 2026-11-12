@@ -10,6 +10,7 @@ import { toast } from "../lib/toast";
 import { AppLogo } from "../ui/AppLogo";
 import { Toggle } from "../ui/controls";
 import { Button, cx, PageHeader, Skeleton } from "../ui/kit";
+import { Pill, usePill } from "../ui/motion";
 import { NameDot, Nil, RowMenu, SectionHead, Table, Td, Th, type MenuItem } from "../ui/table";
 
 type Tab = "connectors" | "skills";
@@ -73,6 +74,7 @@ function Row({ row, onAuth, menu }: { row: ConnectorRow; onAuth(): void; menu: M
 /** every app dusk bot can connect, searchable and by category */
 function Catalog({ apps, connected, query, flowFor, onConnect }: { apps: DashApp[] | null; connected: string[]; query: string; onConnect(app: DashApp): void; flowFor(app: DashApp): AppFlow | undefined }) {
   const [category, setCategory] = useState<Category | null>(null);
+  const pill = usePill();
   const [limit, setLimit] = useState(CATALOG_PAGE);
   const q = useDeferredValue(query.trim());
   const categories = useMemo(() => (apps ? presentCategories(apps) : []), [apps]);
@@ -92,8 +94,9 @@ function Catalog({ apps, connected, query, flowFor, onConnect }: { apps: DashApp
         {[null, ...categories].map((c) => {
           const on = category === c;
           return (
-            <button key={c ?? "all"} type="button" role="radio" aria-checked={on} onClick={() => pick(c)} className={cx("h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", on ? "bg-primary text-primary-ink" : "hover-chip bg-card text-ink-2")}>
-              {c ? CATEGORY_NAMES[c].toLowerCase() : "all"}
+            <button key={c ?? "all"} type="button" role="radio" aria-checked={on} onClick={() => pick(c)} className={cx("relative h-9 shrink-0 whitespace-nowrap rounded-full bg-card px-3.5 text-13 font-medium", on ? "text-primary-ink" : "hover-chip text-ink-2")}>
+              {on && <Pill id={pill} className="bg-primary" />}
+              <span className="relative">{c ? CATEGORY_NAMES[c].toLowerCase() : "all"}</span>
             </button>
           );
         })}

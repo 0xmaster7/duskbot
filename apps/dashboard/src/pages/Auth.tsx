@@ -60,8 +60,8 @@ function CodeBoxes({ input, boxes, length, value, onChange, invalid, disabled, o
     <div className="relative">
       <div ref={boxes} className="flex gap-1.5" aria-hidden>
         {Array.from({ length }, (_, i) => (
-          <span key={i} className={cx("num grid h-14 min-w-0 flex-1 place-items-center rounded-[14px] text-[22px] font-medium text-ink transition-[box-shadow,background-color] duration-150", i === half && "ms-2.5",
-            invalid ? "bg-btn shadow-[inset_0_0_0_2px_var(--bad)]" : focused && i === at ? "bg-pop shadow-[inset_0_0_0_2px_var(--accent)]" : "bg-btn", disabled && "opacity-60")}>
+          <span key={i} className={cx("num grid h-14 min-w-0 flex-1 place-items-center rounded-[14px] text-[22px] font-medium text-ink bg-btn", i === half && "ms-2.5",
+            invalid && "shadow-[inset_0_0_0_2px_var(--bad)]", disabled && "opacity-60")}>
             {value[i] ?? (focused && i === at ? <i className="h-6 w-0.5 rounded-full bg-ink [animation:caret_1.1s_steps(1)_infinite]" /> : null)}
           </span>
         ))}
@@ -237,7 +237,7 @@ export function AuthScreen({ mode, note }: { mode: Mode; note?: ReactNode }) {
   const emailField = (id: string) => (
     <>
       <label htmlFor={id} className="mb-2 block text-14 text-ink-2">email</label>
-      <input ref={id === "email" ? emailRef : undefined} id={id} type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required placeholder="you@example.com" value={email} onChange={(e) => typed(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field field-quiet !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
+      <input ref={id === "email" ? emailRef : undefined} id={id} type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required placeholder="you@example.com" value={email} onChange={(e) => typed(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} />
       {error && <p id="auth-error" role="alert" className="mt-2.5 text-14 text-bad">{error}</p>}
     </>
   );

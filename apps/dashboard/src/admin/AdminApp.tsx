@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, ListFilter, Moon, Repeat, Sun, Users } from "@/icons";
+import { ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Moon, Repeat, Sun, Users } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -11,7 +11,6 @@ import { useAdmin } from "./api";
 import { OverviewPage } from "./Overview";
 import { DetailsPage } from "./Details";
 import { RetentionPage } from "./Retention";
-import { FunnelPage } from "./Funnel";
 import { PeoplePage } from "./People";
 import { LivePage } from "./Live";
 import { ProductPage } from "./Product";
@@ -21,6 +20,7 @@ import { WaitlistPage } from "./Waitlist";
 import { EventsPage } from "./Events";
 import { AuditPage, HealthPage } from "./Health";
 import { Loading, Tabs } from "./ui";
+import { AnimatePresence, m, PageIn, Pill, ToastStack, usePill } from "../ui/motion";
 
 const ICON = { size: 17, strokeWidth: 1.75 } as const;
 interface NavItem { to: string; key: string; label: string; icon?: ReactNode; also?: string[] }
@@ -29,7 +29,6 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { to: "/admin", key: "o", label: "overview", icon: <LayoutDashboard {...ICON} />, also: ["/admin/analytics"] },
     { to: "/admin/live", key: "l", label: "live", icon: <GlobeIcon {...ICON} /> },
     { to: "/admin/people", key: "p", label: "people", icon: <Users {...ICON} />, also: ["/admin/users"] },
-    { to: "/admin/funnel", key: "f", label: "funnel", icon: <ListFilter {...ICON} /> },
   ] },
   { label: "product", items: [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
@@ -48,7 +47,7 @@ const MORE: NavItem[] = [
 ];
 const ALL = [...NAV, ...MORE];
 const PEOPLE_TABS = [{ to: "/admin/people", label: "accounts" }, { to: "/admin/people/visitors", label: "visitors and journeys" }];
-const MOVED: Record<string, string> = { "/admin/users": "/admin/people", "/admin/people/waitlist": "/admin/waitlist", "/admin/app": "/admin/product/apps", "/admin/product/retention": "/admin/retention" };
+const MOVED: Record<string, string> = { "/admin/funnel": "/admin#funnel", "/admin/users": "/admin/people", "/admin/people/waitlist": "/admin/waitlist", "/admin/app": "/admin/product/apps", "/admin/product/retention": "/admin/retention" };
 const on = (path: string, item: { to: string; also?: string[] }) => [item.to, ...(item.also ?? [])].some((to) => to === "/admin" ? path === "/admin" : path === to || path.startsWith(`${to}/`));
 
 function page(path: string): ReactNode {
@@ -63,7 +62,6 @@ function page(path: string): ReactNode {
   if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;
-  if (path === "/admin/funnel") return <FunnelPage />;
   if (path === "/admin/live") return <LivePage />;
   if (path === "/admin/events") return <EventsPage />;
   if (path === "/admin/health") return <HealthPage />;
@@ -94,11 +92,7 @@ function useShortcuts(openHelp: () => void) {
 
 function Toasts() {
   const toasts = useToasts();
-  return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
-      {toasts.map((t) => <div key={t.id} className="toast-in max-w-[440px] rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink" style={{ boxShadow: "var(--pop-shadow)" }}>{t.text}</div>)}
-    </div>
-  );
+  return <ToastStack items={toasts.map((t) => ({ id: t.id, className: "max-w-[440px] rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink", content: t.text }))} />;
 }
 
 export function AdminApp() {
@@ -110,6 +104,7 @@ export function AdminApp() {
   const theme = useTheme();
   const dark = theme === "dark" || (theme === "system" && typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches);
   const [moreOpen, setMoreOpen] = useState(inMore);
+  const sidePill = usePill(), topPill = usePill();
   useEffect(() => { document.title = `${ALL.find((item) => on(path, item))?.label ?? "admin"} · dusk bot admin`; }, [path]);
   useEffect(() => { const to = MOVED[path]; if (to) navigate(to, { replace: true }); }, [path]);
   if (me.error) {
@@ -137,10 +132,11 @@ export function AdminApp() {
               {group.items.map((item) => {
                 const active = on(path, item);
                 return (
-                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-9 items-center gap-3 rounded-full px-3 text-14", active ? "bg-card font-medium text-ink" : "hover-side text-ink-2")}>
-                    <span className={active ? "text-ink" : "text-ink-3"} aria-hidden>{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
-                    <kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-9 items-center gap-3 rounded-full px-3 text-14", active ? "font-medium text-ink" : "hover-side text-ink-2")}>
+                    {active && <Pill id={sidePill} className="bg-card" />}
+                    <span className={cx("relative", active ? "text-ink" : "text-ink-3")} aria-hidden>{item.icon}</span>
+                    <span className="relative flex-1">{item.label}</span>
+                    <kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
                   </Link>
                 );
               })}
@@ -149,22 +145,25 @@ export function AdminApp() {
           <div className="flex flex-col gap-0.5">
             <button type="button" aria-expanded={moreOpen || inMore} aria-controls="admin-more" onClick={() => setMoreOpen((v) => !v)}
               className="hover-side flex h-8 items-center gap-2 rounded-full px-3 text-13 text-ink-3">
-              more <ChevronDown size={14} strokeWidth={1.75} aria-hidden className={cx("transition-transform duration-150", (moreOpen || inMore) && "rotate-180")} />
+              more <m.span aria-hidden className="inline-flex" initial={false} animate={{ rotate: moreOpen || inMore ? 180 : 0 }}><ChevronDown size={14} strokeWidth={1.75} /></m.span>
             </button>
+            <AnimatePresence initial={false}>
             {(moreOpen || inMore) && (
-              <ul id="admin-more" className="flex flex-col gap-0.5">
+              <m.ul key="more" id="admin-more" className="flex flex-col gap-0.5 overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", visualDuration: 0.24, bounce: 0 }}>
                 {MORE.map((item) => {
                   const active = on(path, item);
                   return (
                     <li key={item.to}>
-                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("flex h-8 items-center gap-3 rounded-full px-3 text-13", active ? "bg-card font-medium text-ink" : "hover-side text-ink-3")}>
-                        <span aria-hidden className="text-ink-4">{item.icon}</span><span className="flex-1">{item.label}</span><kbd className="t-meta !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
+                      <Link to={item.to} aria-current={active ? "page" : undefined} className={cx("relative flex h-8 items-center gap-3 rounded-full px-3 text-13", active ? "font-medium text-ink" : "hover-side text-ink-3")}>
+                        {active && <Pill id={sidePill} className="bg-card" />}
+                        <span aria-hidden className="relative text-ink-4">{item.icon}</span><span className="relative flex-1">{item.label}</span><kbd className="t-meta relative !text-[11px] !text-ink-4" aria-hidden>g {item.key}</kbd>
                       </Link>
                     </li>
                   );
                 })}
-              </ul>
+              </m.ul>
             )}
+            </AnimatePresence>
           </div>
         </nav>
         <div className="mt-auto flex flex-col gap-1 px-1">
@@ -183,14 +182,14 @@ export function AdminApp() {
         <nav aria-label="admin" className="scroll-x flex gap-1 px-3 pb-2">
           {ALL.map((item, i) => (
             <Link key={item.to} to={item.to} aria-current={on(path, item) ? "page" : undefined}
-              className={cx("inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-13", i === NAV.length && "ms-2", on(path, item) ? "bg-card font-medium text-ink" : i < NAV.length ? "text-ink-2" : "text-ink-4")}>{item.label}</Link>
+              className={cx("relative inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-13", i === NAV.length && "ms-2", on(path, item) ? "font-medium text-ink" : i < NAV.length ? "text-ink-2" : "text-ink-4")}>{on(path, item) && <Pill id={topPill} className="bg-card" />}<span className="relative">{item.label}</span></Link>
           ))}
         </nav>
       </header>
       <main id="admin-main" className="lg:ps-[232px]">
-        <div key={path} className="page-in mx-auto w-full max-w-[1320px] px-10 pb-24 pt-10 max-lg:px-5 max-lg:pt-6 max-sm:px-4">
+        <PageIn key={path} id={path} className="mx-auto w-full max-w-[1320px] px-10 pb-24 pt-10 max-lg:px-5 max-lg:pt-6 max-sm:px-4">
           {me.data ? page(path) : <Loading rows={8} />}
-        </div>
+        </PageIn>
       </main>
       <Modal open={help} onClose={() => setHelp(false)} title="keyboard shortcuts">
         <ul className="mt-2 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-14">

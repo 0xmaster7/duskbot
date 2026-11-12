@@ -4,6 +4,7 @@ import { Button, cx, Skeleton } from "../ui/kit";
 import { Modal } from "../ui/controls";
 import { Link, useLocation } from "../lib/router";
 import type { FunnelStep } from "./api";
+import { m, SPRING, usePill } from "../ui/motion";
 
 export const n = (value: number | null | undefined) => value === null || value === undefined ? "-" : value.toLocaleString("en-US");
 export const pct = (part: number, whole: number) => whole > 0 ? `${Math.round((part / whole) * 1000) / 10}%` : "-";
@@ -32,13 +33,17 @@ export function AdminHeader({ title, sub, action, tabs }: { title: string; sub?:
 /** the views inside one admin page, as links so each has its own address */
 export function Tabs({ label, items }: { label: string; items: Array<{ to: string; label: string }> }) {
   const { path } = useLocation();
+  const line = usePill();
   return (
     <nav aria-label={label} className="scroll-x mb-8 flex gap-1 border-b border-line max-sm:mb-6">
       {items.map((item) => {
         const active = path === item.to;
         return (
           <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined}
-            className={cx("-mb-px inline-flex h-10 shrink-0 items-center border-b-2 px-3 text-14", active ? "border-ink font-medium text-ink" : "border-transparent text-ink-3 hover-link")}>{item.label}</Link>
+            className={cx("relative -mb-px inline-flex h-10 shrink-0 items-center px-3 text-14", active ? "font-medium text-ink" : "text-ink-3 hover-link")}>
+            {item.label}
+            {active && <m.span layoutId={line} transition={SPRING} className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-ink" aria-hidden />}
+          </Link>
         );
       })}
     </nav>

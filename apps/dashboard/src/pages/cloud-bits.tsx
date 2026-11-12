@@ -10,6 +10,7 @@ import { duration } from "../lib/format";
 import { Link, navigate } from "../lib/router";
 import { Choice, Modal, StatusDot } from "../ui/controls";
 import { Button, cx } from "../ui/kit";
+import { AnimatePresence } from "../ui/motion";
 import { Mascot } from "../ui/Mascot";
 
 export const STATUS: Record<CloudDesktop["status"], { label: string; tone: "good" | "warn" | "bad" | "quiet" | "accent" }> = {
@@ -123,7 +124,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
 
 /** the plan pick, opened from the cloud pitch's one button: plus first */
 export function PlanDialog({ open, source, onClose }: { source: CheckoutSource; open: boolean; onClose(): void }) {
-  return open ? <PlanSheet source={source} start="starter" onClose={onClose} /> : null;
+  return <AnimatePresence>{open && <PlanSheet key="plan" source={source} start="starter" onClose={onClose} />}</AnimatePresence>;
 }
 
 /** the one cloud pitch: a line, a sentence, one button and the three mascots; home, the empty cloud page and billing share it */

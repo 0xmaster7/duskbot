@@ -9,6 +9,7 @@ import { reportPageErrors } from "./lib/page-errors";
 import { trackPage } from "./lib/analytics";
 import { Button, ButtonLink } from "./ui/kit";
 import { Shell } from "./ui/Shell";
+import { MotionRoot } from "./ui/motion";
 import { SkyEmpty } from "./ui/Sky";
 import { LoadingPage } from "./pages/common";
 import { ClaimPage, stashClaim } from "./pages/Connect";
@@ -135,8 +136,10 @@ function Root() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <SessionProvider>
-      <Root />
-    </SessionProvider>
+    <MotionRoot>
+      <SessionProvider>
+        <Root />
+      </SessionProvider>
+    </MotionRoot>
   </StrictMode>,
 );

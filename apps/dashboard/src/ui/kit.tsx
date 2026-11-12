@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import type { Freshness } from "../../../../shared/dashboard-protocol";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
+import { GLIDE, m, Pill, usePill } from "./motion";
 
 export const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
@@ -50,7 +51,7 @@ export function Bar({ value, tone = "ink", className, label }: { value: number; 
   const color = { ink: "bg-ink", accent: "bg-accent", warn: "bg-warn", bad: "bg-bad" }[tone];
   return (
     <div className={cx("h-1.5 overflow-hidden rounded-full bg-track", className)} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(v)} aria-label={label}>
-      <div className={cx("bar-fill h-full w-full rounded-full", color)} style={{ transform: `scaleX(${v / 100})` }} />
+      <m.div className={cx("h-full w-full rounded-full", color)} style={{ originX: 0 }} initial={{ scaleX: 0 }} animate={{ scaleX: v / 100 }} transition={GLIDE} />
     </div>
   );
 }
@@ -118,17 +119,20 @@ export function Stat({ label, value, className }: { label: string; value: ReactN
 }
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ value: T; label: string }>; onChange(v: T): void; label: string }) {
+  const pill = usePill();
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex shrink-0 rounded-full bg-card-2 p-1">
       {options.map((o) => (
         <button
           key={o.value}
+          type="button"
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("h-8 rounded-full px-3.5 text-13 font-medium", value === o.value ? "bg-pop text-ink" : "text-ink-3 hover-link")}
+          className={cx("relative h-8 rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
-          {o.label}
+          {value === o.value && <Pill id={pill} />}
+          <span className="relative">{o.label}</span>
         </button>
       ))}
     </div>

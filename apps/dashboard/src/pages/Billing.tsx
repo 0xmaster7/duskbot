@@ -18,6 +18,7 @@ import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
 import { BuyCredits } from "./credits-dialog";
 import { FreeSheet } from "./funnel";
+import { AnimatePresence } from "../ui/motion";
 import { cartText, IntervalToggle, LicenseSheet, PlanSheet, priceText, useInterval, type PaidPlan } from "./plan-sheet";
 
 export { IntervalToggle, useInterval };
@@ -271,8 +272,8 @@ export function BillingPage() {
       <Faq />
       <YourBilling catalog={catalog} onLicense={() => openLicense()} onCancelPlan={() => setCancelling(true)} />
 
-      {planSheet && <PlanSheet source="dash_billing" start={planSheet} work={ownsLicense} onClose={() => setPlanSheet(null)} />}
-      {licenseSheet && <LicenseSheet source="dash_license" start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={() => setCancelling(true)} />}
+      <AnimatePresence>{planSheet && <PlanSheet key="plan" source="dash_billing" start={planSheet} work={ownsLicense} onClose={() => setPlanSheet(null)} />}</AnimatePresence>
+      <AnimatePresence>{licenseSheet && <LicenseSheet key="license" source="dash_license" start={licenseSheet} onClose={() => setLicenseSheet(null)} onNothingLeft={() => setCancelling(true)} />}</AnimatePresence>
       <FreeSheet
         open={toFree}
         catalog={catalog}

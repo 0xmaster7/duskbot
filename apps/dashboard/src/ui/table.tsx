@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
 import { Check, MoreHorizontal } from "@/icons";
+import { Pop } from "./motion";
 import { cx } from "./kit";
 
 /** a calm table: no card, quiet grey headers, 14px rows at least 48px tall, hairlines between */
@@ -59,16 +60,14 @@ export function RowMenu({ label, items, align = "end", icon, active }: { label: 
       <button ref={button} type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={cx("hover-ghost grid size-9 shrink-0 place-items-center rounded-full max-sm:size-11", open || active ? "bg-card-2 text-ink" : "text-ink-3")}>
         {icon ?? <MoreHorizontal size={18} strokeWidth={1.5} aria-hidden />}
       </button>
-      {open && (
-        <div role="menu" className={cx("pop menu-in absolute top-full z-30 mt-1 min-w-[200px] rounded-[16px] bg-pop p-1.5", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left")} style={{ boxShadow: "var(--pop-shadow)" }}>
+      <Pop open={open} className={cx("pop absolute top-full z-30 mt-1 min-w-[200px] rounded-[16px] bg-pop p-1.5", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left")} style={{ boxShadow: "var(--pop-shadow)" }}>
           {items.map((item) => (
             <button key={item.label} type="button" role={item.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={item.checked} disabled={item.disabled} onClick={() => { setOpen(false); item.onSelect(); }} className={cx("hover-ghost flex h-9 w-full items-center justify-between gap-3 rounded-[10px] px-2.5 text-start text-13 outline-none focus-visible:bg-card-2 disabled:opacity-45", item.danger ? "text-bad" : "text-ink-2")}>
               <span className="truncate">{item.label}</span>
               {item.checked && <Check size={15} strokeWidth={1.75} className="shrink-0 text-ink-2" aria-hidden />}
             </button>
           ))}
-        </div>
-      )}
+      </Pop>
     </div>
   );
 }

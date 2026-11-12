@@ -26,7 +26,7 @@ function loadDots() {
   return dotsPromise ??= import("./land-dots.json").then(module => decodeDots(module.default as number[]));
 }
 
-const focusRing = "focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-[3px]";
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-[3px]";
 
 export default function Globe(props: GlobeProps) {
   const { points, mode, selected, onSelect, className, summary } = props;

@@ -16,6 +16,8 @@ import mark from "../../favicon.svg";
 import { useNow } from "../lib/now";
 import { useToasts } from "../lib/toast";
 import { CheerBot } from "./CheerBot";
+import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pill, Pop, ToastStack, usePill } from "./motion";
+import { useInvestedNoteShown } from "../lib/upsell-stage";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
@@ -73,8 +75,7 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
-      {open && (
-        <div role="menu" className="pop menu-in absolute inset-x-0 top-full z-30 mt-1.5 origin-top rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+      <Pop open={open} className="pop absolute inset-x-0 top-full z-30 mt-1.5 origin-top rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           {workspaces?.map((w) => (
             <button key={w.id} role="menuitemradio" aria-checked={w.id === workspace?.id} onClick={() => choose(w)} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start">
               <span className={cx("live-dot", w.freshness === "live" ? "text-good" : w.freshness === "recent" ? "text-warn" : "text-ink-4")} aria-hidden />
@@ -87,8 +88,7 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
           <button role="menuitem" onClick={() => { setOpen(false); navigate("/workspaces#add"); onNavigate?.(); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start text-14 text-ink-2">
             <Plus size={16} strokeWidth={1.75} aria-hidden /> add a workspace
           </button>
-        </div>
-      )}
+      </Pop>
     </div>
   );
 }
@@ -107,14 +107,12 @@ function UserRow() {
   const label = (plan ? (license && plan !== "pro" ? `${plan} + work license` : plan) : license ? `${license} license` : "free").toLowerCase();
   return (
     <div ref={ref} className="relative">
-      {open && (
-        <div role="menu" className="pop menu-in absolute inset-x-0 bottom-full z-30 mb-1.5 origin-bottom rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
+      <Pop open={open} className="pop absolute inset-x-0 bottom-full z-30 mb-1.5 origin-bottom rounded-[18px] bg-pop p-1.5" style={{ boxShadow: "var(--pop-shadow)" }}>
           <div className="truncate px-2.5 py-2 text-13 text-ink-3">{account.email}</div>
           <button role="menuitem" onClick={() => { setOpen(false); navigate("/account"); }} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><CircleUser size={16} strokeWidth={1.75} aria-hidden /> account</button>
           <a role="menuitem" href={SITE_URL} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><ArrowUpRight size={16} strokeWidth={1.75} aria-hidden /> {SITE_NAME}</a>
           <button role="menuitem" onClick={() => void api.signOut().finally(() => setAccount(null))} className="hover-ghost flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-14 text-ink-2"><LogOut size={16} strokeWidth={1.75} aria-hidden /> sign out</button>
-        </div>
-      )}
+      </Pop>
       <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="hover-side flex w-full items-center gap-3 rounded-[18px] px-2.5 py-2 text-start">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink text-14 font-medium lowercase text-bg" aria-hidden>{name.slice(0, 1)}</span>
         <span className="min-w-0 flex-1">
@@ -139,32 +137,38 @@ function CloudBadge() {
 const HIDE_KEY = "omb-dash-upsell-hidden-until";
 const WEEK = 7 * 86_400_000;
 
-/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed */
+/** the one nudge toward 24/7, for anyone without dusk cloud; hides for a week when closed, and for the visit when the home page's invested note already made the pitch */
 function SideUpsell() {
   const { clouds } = useCloud();
+  const invested = useInvestedNoteShown();
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState(false);
-  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now());
+  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now() && !invested);
   const shown = useRef(false);
   useEffect(() => { if (visible && !shown.current) { shown.current = true; trackUpsell("shown", "dash_sidebar"); } }, [visible]);
-  const sheet = open && <PlanSheet source="dash_sidebar" start="starter" onClose={() => setOpen(false)} />;
-  if (!visible) return sheet || null;
   const hide = () => { trackUpsell("dismiss", "dash_sidebar"); const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
-    <div className="pop relative rounded-[20px] bg-pop p-4">
-      <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
-      <div className="flex items-center gap-3 pe-6">
-        <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
-        <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
-      </div>
-      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", "dash_sidebar"); setOpen(true); }}>keep them on 24/7</Button>
-      {sheet}
-    </div>
+    <>
+      <AnimatePresence initial={false}>
+        {visible && (
+          <m.div key="upsell" className="pop relative rounded-[20px] bg-pop p-4" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
+            <button type="button" onClick={hide} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
+            <div className="flex items-center gap-3 pe-6">
+              <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
+              <p className="min-w-0 text-13 leading-[1.4] text-ink-2">your bots nap when your mac does.</p>
+            </div>
+            <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", "dash_sidebar"); setOpen(true); }}>keep them on 24/7</Button>
+          </m.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>{open && <PlanSheet key="plan" source="dash_sidebar" start="starter" onClose={() => setOpen(false)} />}</AnimatePresence>
+    </>
   );
 }
 
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
   const { path } = useLocation();
+  const pill = usePill();
   return (
     <nav aria-label="dashboard" className="flex flex-col gap-5">
       {NAV.map((group, i) => (
@@ -178,10 +182,11 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 to={item.to}
                 onClick={onNavigate}
                 aria-current={on ? "page" : undefined}
-                className={cx("flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "bg-pop font-medium text-ink" : "hover-side text-ink-2")}
+                className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14", on ? "font-medium text-ink" : "hover-side text-ink-2")}
               >
-                <span className={on ? "text-ink" : "text-ink-3"}>{item.icon}</span>
-                {item.label}
+                {on && <Pill id={pill} />}
+                <span className={cx("relative", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
+                <span className="relative">{item.label}</span>
                 {item.to === "/cloud" && <CloudBadge />}
               </Link>
             );
@@ -203,13 +208,7 @@ function Brand() {
 
 function Toasts() {
   const toasts = useToasts();
-  return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex flex-col items-center gap-2 px-4">
-      {toasts.map((t) => (
-        <div key={t.id} className="toast-in flex max-w-[440px] items-center gap-2.5 rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink" style={{ boxShadow: "var(--pop-shadow)" }}>{t.tone === "bad" && <span className="size-2 shrink-0 rounded-[2px] bg-[#ff6f66]" aria-hidden />}{t.text}</div>
-      ))}
-    </div>
-  );
+  return <ToastStack items={toasts.map((t) => ({ id: t.id, className: "flex max-w-[440px] items-center gap-2.5 rounded-[22px] bg-primary px-4.5 py-3 text-14 text-primary-ink", content: <>{t.tone === "bad" && <span className="size-2 shrink-0 rounded-[2px] bg-[#ff6f66]" aria-hidden />}{t.text}</> }))} />;
 }
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -242,14 +241,16 @@ export function Shell({ children }: { children: ReactNode }) {
         <Brand />
         <span className="size-11" aria-hidden />
       </header>
-      {drawer && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="menu">
-          <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden />
-          <div className="surface drawer-in absolute inset-y-0 left-0 w-[min(304px,86vw)] rounded-e-[28px] bg-side">{side(() => setDrawer(false))}</div>
-        </div>
-      )}
+      <AnimatePresence>
+        {drawer && (
+          <div key="drawer" className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="menu">
+            <m.div className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={() => setDrawer(false)} aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE_OUT }} />
+            <m.div className="surface absolute inset-y-0 left-0 w-[min(304px,86vw)] rounded-e-[28px] bg-side" initial={{ x: "-100%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "-100%", opacity: 0, transition: { type: "spring", visualDuration: 0.22, bounce: 0 } }} transition={GLIDE}>{side(() => setDrawer(false))}</m.div>
+          </div>
+        )}
+      </AnimatePresence>
       <main id="main" className="lg:ps-[276px]">
-        <div key={path} className="page-in mx-auto w-full max-w-[1120px] px-10 pb-24 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</div>
+        <PageIn key={path} id={path} className="mx-auto w-full max-w-[1120px] px-10 pb-24 pt-12 max-lg:px-6 max-lg:pt-6 max-sm:px-4">{children}</PageIn>
       </main>
       <RoutineUpsell />
       <CheerBot />

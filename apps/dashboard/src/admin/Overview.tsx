@@ -1,23 +1,22 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bot, CreditCard, File, Repeat, Star, Globe as GlobeIcon, Link2, MapPin, Monitor, MousePointerClick, RotateCcw, Search, Sparkles, Tag, Target, UserPlus, Users } from "@/icons";
-import skyBand from "../art/scene-sky-band.webp";
-import meadowBand from "../art/scene-meadow-band.webp";
-import { Button, cx } from "../ui/kit";
-import { Mascot, type MascotHandle } from "../ui/Mascot";
+import { Button, cx, Segmented } from "../ui/kit";
+import { Switch } from "../ui/controls";
 import { SkyEmpty } from "../ui/Sky";
+import { AnimatePresence, m, Pill, usePill } from "../ui/motion";
+import { Figure } from "../ui/Figure";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { adminCall, useAdmin, type Overview } from "./api";
 import { avatarOf } from "./names";
 import { centroid, countryName } from "./geo";
-import { Avatar, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, TrafficChart, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
-import { Badges, CheerBubble, PaymentsCard, milestones, useCheer, type RevenueAnswer } from "./Revenue";
+import { Avatar, Chip, Delta, FilterChips, NoteDialog, RangePicker, RankCard, SalesChart, duration, percent, personName, rangeOf, usd, type Mark, type Note, type Range, type RankRow, type SeriesData } from "./kit";
+import { CheerBubble, PaymentsCard, useCheer, type RevenueAnswer } from "./Revenue";
 import { PulseGrid } from "./Pulse";
 import { Failed, Loading, n } from "./ui";
 
 const Globe = lazy(() => import("./globe/Globe"));
-const DAY = 86_400_000;
 
 interface Kpis { visitors: number; visits: number; pageviews: number; signups: number; paid: number; waitlist: number; conversion: number | null; bounce: number | null; visitMs: number | null }
 export type Surface = "all" | "site" | "account" | "desktop" | "phone";
@@ -33,7 +32,10 @@ interface Person {
   firstSeen: number | null; lastSeen: number | null; timeToSignupMs: number | null; visits: number; pageviews: number; source: string; channel: string; campaign: string | null;
   device: string | null; os: string | null; browser: string | null; country: string | null; city: string | null; lastPage: string | null;
 }
-interface FunnelAnswer { steps: Array<{ id: string; label: string; count: number }> }
+interface FunnelAnswer {
+  mode: "visitors" | "signups"; steps: Array<{ id: string; label: string; count: number }>; bySource: Array<{ channel: string; counts: number[] }>;
+  upsells?: Array<{ source: string; shown: number; clicked: number; dismissed: number; paid: number }>;
+}
 
 export const CHANNEL: Record<string, string> = { direct: "direct", search: "search", social: "social", ai: "ai assistants", referral: "referrals", email: "email", paid: "paid ads", unknown: "unknown" };
 export const SURFACES: Array<{ value: Surface; label: string }> = [{ value: "all", label: "all" }, { value: "site", label: "dusk.bot" }, { value: "account", label: "account page" }, { value: "desktop", label: "desktop app" }, { value: "phone", label: "phone app" }];
@@ -67,14 +69,16 @@ function useSelection() {
 }
 
 function SitePicker({ value, onChange, counts }: { value: Surface; onChange(v: Surface): void; counts?: WebAnswer["surfaces"] }) {
+  const pill = usePill();
   return (
     <div role="radiogroup" aria-label="which surface" className="scroll-x inline-flex max-w-full rounded-full bg-card-2 p-1">
       {SURFACES.map((s) => {
         const count = s.value === "all" || !counts ? null : counts[s.value];
         return (
           <button key={s.value} type="button" role="radio" aria-checked={value === s.value} onClick={() => onChange(s.value)}
-            className={cx("h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13", value === s.value ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>
-            {s.label}{count !== null && <span className="ms-1.5 font-mono text-[11px] text-ink-4">{n(count)}</span>}
+            className={cx("relative h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-13", value === s.value ? "font-medium text-ink" : "text-ink-3 hover-link")}>
+            {value === s.value && <Pill id={pill} />}
+            <span className="relative">{s.label}{count !== null && <span className="ms-1.5 font-mono text-[11px] text-ink-4">{n(count)}</span>}</span>
           </button>
         );
       })}
@@ -82,71 +86,13 @@ function SitePicker({ value, onChange, counts }: { value: Surface; onChange(v: S
   );
 }
 
-/** kit's mood from the numbers: napping when nobody is around, cheering on a record day or more signups */
-export function moodOf(data: WebAnswer | null): { state: "sleeping" | "excited" | "happy" | "idle"; line: string } {
-  if (!data) return { state: "idle", line: "" };
-  const online = data.online.site + data.online.app, days = data.series.visitors, last = days.at(-1) ?? 0;
-  if (last > 0 && days.length > 2 && last >= Math.max(...days)) return { state: "excited", line: "busiest stretch of this window. nice." };
-  if (data.current.signups > data.previous.signups) return { state: "happy", line: `${n(data.current.signups - data.previous.signups)} more signups than the window before.` };
-  if (online === 0) return { state: "sleeping", line: "quiet right now. kit is napping." };
-  return { state: "idle", line: `${n(online)} here right now.` };
-}
-
-/** the one line worth reading first: money today, a record, or where people came from */
-export function highlightOf(data: WebAnswer | null, now = Date.now()): string | null {
-  if (!data) return null;
-  const today = new Date(now); today.setHours(0, 0, 0, 0);
-  const paid = data.revenue?.recent.find((p) => p.amountCents > 0 && p.at >= today.getTime());
-  if (paid) return `${personName(paid.seed, paid.email)} paid ${usd(paid.amountCents)} today${paid.source !== "unknown" ? ` via ${paid.source}` : ""}${paid.firstSeen && paid.kind === "new" ? `, ${duration(paid.at - paid.firstSeen)} after their first visit` : ""}.`;
-  const money = Object.entries(data.revenue?.cards.channel ?? {}).sort((a, b) => b[1] - a[1])[0];
-  if (money && money[1] > 0) return `${CHANNEL[money[0]] ?? money[0]} brought in ${usd(money[1])} this window, more than any other channel.`;
-  const top = (data.cards.source ?? []).find((row) => row.key !== "direct" && row.key !== "unknown");
-  if (top) return `most visitors who found you came from ${top.key} (${n(top.visitors)}).`;
-  return null;
-}
-
-/** a slim pixel sky with kit on the meadow: the window in one sentence, the line to read, milestones, and a cheer when someone signs up or pays */
-function Band({ data, range, accounts, paying }: { data: WebAnswer | null; range: Range; accounts: number | null; paying: number | null }) {
-  const span = range.key === "today" ? "today" : range.key === "7d" ? "in the last 7 days" : range.key === "90d" ? "in the last 90 days" : range.key === "custom" ? "in this window" : "in the last 30 days";
-  const mood = moodOf(data);
-  const kit = useRef<MascotHandle>(null);
-  const [cheer, dismiss] = useCheer(data?.marks, data?.revenue?.recent);
-  const close = useCallback(() => dismiss(), [dismiss]);
-  useEffect(() => { if (cheer) kit.current?.react("celebrate"); }, [cheer]);
-  const highlight = highlightOf(data);
-  const r = data?.revenue;
-  const badges = data ? milestones({ visitorsBest: data.series.size < DAY ? 0 : Math.max(0, ...data.series.visitors), signups: data.current.signups, accounts, firstPaid: r?.first ?? null, customers: paying ?? r?.current.customers ?? 0, mrr: r?.current.mrr ?? 0 }) : [];
-  return (
-    <div className="relative mb-5 overflow-hidden rounded-[24px] bg-wash-sky" style={{ backgroundImage: `url(${skyBand})`, backgroundSize: "cover", imageRendering: "pixelated" }}>
-      <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-white/5" aria-hidden />
-      <div className="absolute inset-x-0 bottom-0 h-5" style={{ backgroundImage: `url(${meadowBand})`, backgroundSize: "auto 100%", backgroundRepeat: "repeat-x", imageRendering: "pixelated" }} aria-hidden />
-      <div className="relative flex min-h-[132px] items-start justify-between gap-4 px-6 pb-8 pt-5 max-sm:px-4">
-        <div className="min-w-0 text-[#14243a] max-sm:pe-14">
-          <p className="text-[22px] leading-[1.3] tracking-[-0.03em] max-sm:text-[17px]">
-            {data ? <>you got <b className="font-mono font-medium">{n(data.current.visitors)}</b> visitors, <b className="font-mono font-medium">{n(data.current.signups)}</b> signups{r?.live ? <> and <b className="font-mono font-medium text-[#2f5a05]">{usd(r.current.net)}</b></> : null} {span}.</> : "counting visitors."}
-          </p>
-          {(highlight ?? mood.line) && <p className="mt-1 flex items-center gap-1.5 text-14 text-[#14243a]/80"><Sparkles size={14} strokeWidth={1.75} aria-hidden className="shrink-0 text-[#14243a]/60" /><span className="sr-only">today's highlight: </span>{highlight ?? mood.line}</p>}
-          {badges.length > 0 && <div className="mt-3"><Badges badges={badges} /></div>}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-2 max-sm:absolute max-sm:right-4 max-sm:top-4">
-          <span className="me-4 max-sm:me-0" aria-hidden><Mascot ref={kit} body="kit" color="blue" size={56} state={cheer ? "excited" : mood.state} /></span>
-        </div>
-      </div>
-      {cheer && <div className="absolute bottom-7 right-5 z-10 max-w-[calc(100%-2.5rem)] max-sm:bottom-6 max-sm:left-4 max-sm:right-4"><CheerBubble cheer={cheer} onClose={close} /></div>}
-    </div>
-  );
-}
-
 const I = { size: 14, strokeWidth: 1.75 } as const;
-function Kpi({ label, value, now, before, invert, toggle, live, icon, money, wash }: { label: string; value: string; now?: number | null; before?: number | null; invert?: boolean; toggle?: { on: boolean; flip(): void; colour: string }; live?: boolean; icon?: ReactNode; money?: boolean; wash?: string }) {
+/** one number in the strip: money and traffic in the same plain tile, easing to each new value */
+function Kpi({ label, value, format, now, before, invert, icon }: { label: string; value: number | null; format(v: number): string; now?: number | null; before?: number | null; invert?: boolean; icon?: ReactNode }) {
   return (
-    <div className={cx("min-w-0 px-4 py-3.5", wash ?? "bg-pop")}>
-      {toggle ? (
-        <label className="flex cursor-pointer items-center gap-2 text-13 text-ink-3">
-          <input type="checkbox" checked={toggle.on} onChange={toggle.flip} className="size-3.5" style={{ accentColor: toggle.colour }} />{label}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span>
-        </label>
-      ) : <div className="flex items-center gap-2 text-13 text-ink-3">{label}{live !== undefined && <span className="live-dot text-good" data-live={live} aria-hidden />}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span></div>}
-      <div className={cx("mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>{value}</div>
+    <div className="min-w-0 bg-pop px-4 py-3.5">
+      <div className="flex items-center gap-2 text-13 text-ink-3">{label}<span className="ms-auto text-ink-4" aria-hidden>{icon}</span></div>
+      <div className="mt-1 truncate font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] text-ink num">{value === null ? "-" : <Figure value={format(value)} className="!font-mono !text-[26px] !leading-9 !tracking-[-0.045em]" />}</div>
       <div className="mt-0.5 h-5 truncate leading-5">{now !== undefined && <Delta now={now ?? null} before={before ?? null} invert={invert} />}</div>
     </div>
   );
@@ -172,23 +118,23 @@ function VisitDots({ count }: { count: number }) {
 
 /** goals, the funnel, who signed up and every journey, in one card like the rest */
 function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; filters: Record<string, string | undefined> }) {
-  const [tab, setTab] = useState<"journey" | "users" | "goals" | "funnel">("journey");
+  const [tab, setTab] = useState<"journey" | "users" | "goals">("journey");
+  const pill = usePill();
   const [q, setQ] = useState("");
   const [all, setAll] = useState(false);
   const people = useAdmin<{ total: number; people: Person[] }>(tab === "journey" || tab === "users" ? `/journeys?from=${range.from}&to=${range.to}&only=${tab === "users" ? "signups" : "all"}` : null);
-  const funnel = useAdmin<FunnelAnswer>(tab === "funnel" ? `/funnel?from=${range.from}&to=${range.to}&mode=visitors` : null);
   const now = useNow(60_000);
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const rows = (people.data?.people ?? []).filter((p) => !needle || personName(p.seed, p.account?.email).toLowerCase().includes(needle) || p.source.toLowerCase().includes(needle) || (p.country ?? "").toLowerCase().includes(needle));
     return all ? rows : rows.slice(0, 10);
   }, [people.data, q, all]);
-  const TABS = [["journey", "journeys", <MousePointerClick key="j" {...I} />], ["users", "users", <Users key="u" {...I} />], ["goals", "goals", <Target key="g" {...I} />], ["funnel", "funnel", <Sparkles key="f" {...I} />]] as const;
+  const TABS = [["journey", "journeys", <MousePointerClick key="j" {...I} />], ["users", "users", <Users key="u" {...I} />], ["goals", "goals", <Target key="g" {...I} />]] as const;
   return (
     <section aria-label="people and goals" className="rounded-[24px] bg-card p-2">
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
         <div role="tablist" aria-label="people and goals" className="scroll-x flex gap-0.5">
-          {TABS.map(([id, label, icon]) => <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cx("inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13", tab === id ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}><span aria-hidden className="opacity-70">{icon}</span>{label}</button>)}
+          {TABS.map(([id, label, icon]) => <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cx("relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13", tab === id ? "font-medium text-ink" : "text-ink-3 hover-link")}>{tab === id && <Pill id={pill} />}<span aria-hidden className="relative opacity-70">{icon}</span><span className="relative">{label}</span></button>)}
         </div>
         {(tab === "journey" || tab === "users") && (
           <div className="relative w-[220px] max-sm:w-full">
@@ -200,14 +146,14 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
       </div>
       <div role="tabpanel" className="rounded-[18px] bg-pop p-1.5">
         {tab === "goals" && <RankCardRows rows={data.cards.goal ?? []} label={(key) => key.replace(/_/g, " ")} />}
-        {tab === "funnel" && (funnel.data ? <MiniFunnel steps={funnel.data.steps.slice(0, 8)} /> : <Loading rows={3} />)}
         {(tab === "journey" || tab === "users") && (people.error ? <Failed error={people.error} retry={people.reload} /> : !people.data ? <Loading rows={5} /> : list.length ? (
           <>
             <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] gap-4 px-3 py-2 t-meta max-md:hidden"><span>visitor</span><span>source</span><span>visits</span><span>time to sign up</span><span className="text-end">last seen</span></div>
             <ul className="divide-y divide-line">
+              <AnimatePresence initial={false} mode="popLayout">
               {list.map((p) => (
-                <li key={p.id}>
-                  <Link to={`/admin/people/visitors?person=${encodeURIComponent(p.id)}`} className="hover-row grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] items-center gap-4 rounded-[12px] px-3 py-2.5 max-md:grid-cols-[minmax(0,1fr)_auto]">
+                <m.li key={p.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
+                  <Link to={p.account ? `/admin/users/${encodeURIComponent(p.account.id)}` : `/admin/people/visitors?person=${encodeURIComponent(p.id)}`} className="hover-row grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_96px] items-center gap-4 rounded-[12px] px-3 py-2.5 max-md:grid-cols-[minmax(0,1fr)_auto]">
                     <span className="flex min-w-0 items-center gap-3">
                       <Avatar seed={p.seed} size={26} customer={p.customer} />
                       <span className="min-w-0">
@@ -220,8 +166,9 @@ function PeopleCard({ range, data, filters }: { range: Range; data: WebAnswer; f
                     <span className="text-13 text-ink-2 max-md:hidden">{p.timeToSignupMs !== null ? duration(p.timeToSignupMs) : <span className="text-ink-4">not yet</span>}</span>
                     <span className="text-end text-12 text-ink-3">{ago(p.lastSeen, now)}</span>
                   </Link>
-                </li>
+                </m.li>
               ))}
+              </AnimatePresence>
             </ul>
             {(people.data.people.length > 10) && <button type="button" onClick={() => setAll((v) => !v)} className="hover-link mx-auto mt-1 block h-8 px-3 font-mono text-[11.5px] uppercase tracking-[0.06em] text-ink-3">{all ? "show fewer" : `show all ${n(people.data.people.length)}`}</button>}
           </>
@@ -249,38 +196,108 @@ function RankCardRows({ rows, label }: { rows: RankRow[]; label(key: string): st
   );
 }
 
-function MiniFunnel({ steps }: { steps: FunnelAnswer["steps"] }) {
-  const top = Math.max(1, steps[0]?.count ?? 1);
+const UPSELL: Record<string, string> = { dash_sidebar: "sidebar card", dash_invested: "home note", dash_routines: "routines prompt", dash_home: "home pitch", dash_billing: "plans page" };
+const FUNNEL_CHANNEL: Record<string, string> = { ai: "ai assistants", referral: "referrals", unknown: "not tracked" };
+
+/** the funnel, small: every step in one row with how many were kept from the step before, the biggest drop in words,
+ * and which upsell turns into money */
+function FunnelSection({ range }: { range: Range }) {
+  const [mode, setMode] = useState<"visitors" | "signups">("visitors");
+  const [channel, setChannel] = useState("all");
+  const pill = usePill();
+  const { data, error, loading, reload } = useAdmin<FunnelAnswer>(`/funnel?from=${range.from}&to=${range.to}&mode=${mode}`);
+  useEffect(() => { if (data && location.hash === "#funnel") document.getElementById("funnel")?.scrollIntoView({ block: "start" }); }, [Boolean(data)]);
+  const row = data?.bySource.find((r) => r.channel === channel);
+  const counts = data ? (row ? row.counts : data.steps.map((step) => step.count)) : [];
+  const first = Math.max(1, counts[0] ?? 1);
+  const drops = data ? data.steps.slice(1).map((step, i) => ({ to: step, from: data.steps[i]!, kept: counts[i] ? counts[i + 1]! / counts[i]! : null, lost: (counts[i] ?? 0) - (counts[i + 1] ?? 0), base: counts[i] ?? 0 })) : [];
+  const worst = [...drops].filter((d) => d.kept !== null && d.base >= 3).sort((a, b) => (a.kept ?? 1) - (b.kept ?? 1))[0];
+  const upsells = data?.upsells ?? [];
   return (
-    <div>
-      <ol className="grid grid-flow-col auto-cols-fr items-end gap-1.5 px-2 pt-3 max-md:grid-flow-row max-md:auto-cols-auto">
-        {steps.map((step, i) => {
-          const prev = steps[i - 1], kept = prev && prev.count ? step.count / prev.count : null;
-          return (
-            <li key={step.id} className="flex min-w-0 flex-col">
-              <span className="font-mono text-[22px] font-medium leading-7 tracking-[-0.04em] num">{n(step.count)}</span>
-              <span className="truncate text-12 text-ink-3" title={step.label}>{step.label}</span>
-              <span className="mt-2 flex h-20 items-end overflow-hidden rounded-[8px] bg-track max-md:h-2 max-md:items-stretch" aria-hidden><span className="block w-full rounded-[8px] bg-accent/70 max-md:h-2" style={{ height: `${Math.max(3, (step.count / top) * 100)}%` }} /></span>
-              <span className={cx("mt-1.5 h-4 font-mono text-12 num", kept === null ? "text-ink-4" : kept >= 0.5 ? "text-good" : "text-bad")}>{kept === null ? " " : `${percent(kept)} kept`}</span>
-            </li>
-          );
-        })}
-      </ol>
-      <Link to="/admin/funnel" className="hover-link mx-auto mt-1 flex h-8 w-fit items-center px-3 font-mono text-[11.5px] uppercase tracking-[0.06em] text-ink-3">full funnel</Link>
-    </div>
+    <section id="funnel" aria-labelledby="funnel-title" className="scroll-mt-6 rounded-[24px] bg-card p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-1.5 pt-1">
+        <h2 id="funnel-title" className="inline-flex h-8 items-center gap-1.5 text-14 font-medium text-ink"><Sparkles {...I} aria-hidden /> funnel</h2>
+        <Segmented<"visitors" | "signups"> label="start from" value={mode} onChange={setMode} options={[{ value: "visitors", label: "from visitors" }, { value: "signups", label: "from signups" }]} />
+      </div>
+      <div className="rounded-[18px] bg-pop p-3">
+        {error ? <Failed error={error} retry={reload} /> : !data ? <Loading rows={2} /> : (
+          <div className={cx("transition-opacity duration-150", loading && "opacity-70")}>
+            {data.bySource.length > 0 && (
+              <div role="radiogroup" aria-label="channel" className="scroll-x mb-3 flex gap-0.5">
+                {[{ channel: "all" }, ...data.bySource].map((r) => (
+                  <button key={r.channel} type="button" role="radio" aria-checked={channel === r.channel} onClick={() => setChannel(r.channel)}
+                    className={cx("relative h-7 shrink-0 rounded-full px-3 text-12", channel === r.channel ? "font-medium text-ink" : "text-ink-3 hover-link")}>
+                    {channel === r.channel && <Pill id={pill} className="bg-card" />}
+                    <span className="relative">{r.channel === "all" ? "every channel" : CHANNEL[r.channel] ?? FUNNEL_CHANNEL[r.channel] ?? r.channel}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <ol className="scroll-x flex items-stretch" aria-label="funnel steps">
+              {data.steps.map((step, i) => {
+                const drop = drops[i - 1], share = (counts[i] ?? 0) / first;
+                return (
+                  <li key={step.id} className="flex shrink-0 items-stretch">
+                    {drop && (
+                      <span className="flex w-12 flex-col items-center justify-center text-center" title={`${n(drop.lost)} stopped between these steps`}>
+                        <span className={cx("font-mono text-12 num", drop === worst ? "font-medium text-bad" : "text-ink-3")}>{drop.kept === null ? "-" : percent(drop.kept)}</span>
+                        <span className="text-[10.5px] leading-tight text-ink-4">kept</span>
+                      </span>
+                    )}
+                    <div className="flex w-[104px] flex-col py-1">
+                      <Figure value={n(counts[i] ?? 0)} className="!font-mono !text-[20px] !leading-7 !tracking-[-0.04em]" />
+                      <span className="line-clamp-2 min-h-8 text-12 leading-4 text-ink-3">{step.label}</span>
+                      <span className="mt-2 h-1 overflow-hidden rounded-full bg-track" aria-hidden>
+                        <m.span className="block h-full w-full rounded-full bg-viz-visitors/60" style={{ originX: 0 }} initial={{ scaleX: 0 }} animate={{ scaleX: Math.max(0.02, share) }} transition={{ type: "spring", visualDuration: 0.4, bounce: 0 }} />
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-3 border-t border-line pt-3 text-13 text-ink-2">
+              {worst ? <>biggest drop: <span className="font-medium text-ink">{percent(1 - (worst.kept ?? 0))}</span> stop between "{worst.from.label}" and "{worst.to.label}" (<span className="font-mono num">{n(worst.lost)}</span> people).</> : "not enough people in this window to call a biggest drop."}
+            </p>
+          </div>
+        )}
+      </div>
+      {data && (
+        <div className="mt-1.5 rounded-[18px] bg-pop p-3">
+          <h3 className="text-13 font-medium text-ink">which upsell converts</h3>
+          {upsells.length ? (
+            <table className="mt-2 w-full text-13">
+              <thead><tr className="t-meta"><th scope="col" className="py-1 text-start font-normal">where</th><th scope="col" className="py-1 text-end font-normal">shown</th><th scope="col" className="py-1 text-end font-normal">clicked</th><th scope="col" className="py-1 text-end font-normal">paid</th><th scope="col" className="py-1 text-end font-normal">click rate</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {upsells.map((u) => (
+                  <tr key={u.source}>
+                    <th scope="row" className="py-1.5 text-start font-normal text-ink">{UPSELL[u.source] ?? u.source.replace(/_/g, " ")}</th>
+                    <td className="py-1.5 text-end font-mono num">{n(u.shown)}</td>
+                    <td className="py-1.5 text-end font-mono num">{n(u.clicked)}</td>
+                    <td className={cx("py-1.5 text-end font-mono num", u.paid ? "font-medium text-ink" : "text-ink-4")}>{n(u.paid)}</td>
+                    <td className="py-1.5 text-end font-mono text-ink-3 num">{u.shown ? percent(u.clicked / u.shown) : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="mt-1 text-13 text-ink-3">no upsell was shown in this window.</p>}
+        </div>
+      )}
+    </section>
   );
 }
 
 function AiCard({ crawlers }: { crawlers: WebAnswer["crawlers"] }) {
   const [kind, setKind] = useState<string>("all");
+  const pill = usePill();
   const kinds = [{ key: "all", visitors: crawlers.total }, ...["answers", "indexing", "training"].map((k) => ({ key: k, visitors: crawlers.kind.find((r) => r.key === k)?.visitors ?? 0 }))];
   return (
     <section aria-label="ai crawlers" className="rounded-[24px] bg-card p-2">
       <div className="flex flex-wrap items-center gap-1 px-2 pb-1.5 pt-1">
         <span className="me-2 inline-flex items-center gap-1.5 text-14 font-medium text-ink"><Bot {...I} aria-hidden /> ai bots</span>
         {kinds.map((k) => (
-          <button key={k.key} type="button" aria-pressed={kind === k.key} onClick={() => setKind(k.key)} className={cx("h-8 rounded-full px-3 text-13", kind === k.key ? "bg-pop font-medium text-ink" : "text-ink-3 hover-link")}>
-            {k.key === "all" ? "all" : AI_KIND[k.key]} <span className="ms-1 font-mono text-[11.5px] text-ink-4">{n(k.visitors)}</span>
+          <button key={k.key} type="button" aria-pressed={kind === k.key} onClick={() => setKind(k.key)} className={cx("relative h-8 rounded-full px-3 text-13", kind === k.key ? "font-medium text-ink" : "text-ink-3 hover-link")}>
+            {kind === k.key && <Pill id={pill} />}
+            <span className="relative">{k.key === "all" ? "all" : AI_KIND[k.key]} <span className="ms-1 font-mono text-[11.5px] text-ink-4">{n(k.visitors)}</span></span>
           </button>
         ))}
       </div>
@@ -293,10 +310,27 @@ function AiCard({ crawlers }: { crawlers: WebAnswer["crawlers"] }) {
   );
 }
 
+/** a signup or payment since the last visit, said once in the corner */
+function Cheer({ data }: { data: WebAnswer | null }) {
+  const [cheer, dismiss] = useCheer(data?.marks, data?.revenue?.recent);
+  const close = useCallback(() => dismiss(), [dismiss]);
+  return (
+    <div className="fixed bottom-5 right-5 z-40 max-w-[calc(100%-2.5rem)] max-sm:left-4 max-sm:right-4">
+      <AnimatePresence>
+        {cheer && (
+          <m.div key={cheer.key} initial={{ opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16 } }} style={{ originX: 1, originY: 1 }}>
+            <CheerBubble cheer={cheer} onClose={close} />
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function OverviewPage() {
   const [sel, setSel] = useSelection();
   const { range, surface, filters } = sel;
-  const [show, setShow] = useState({ visitors: true, signups: true, revenue: true });
+  const [visitors, setVisitors] = useState(true);
   const [note, setNote] = useState<Note | { at: number } | null>(null);
   const { data, error, loading, reload } = useAdmin<WebAnswer>(`/web?${webQuery(range, surface, filters)}`, 60_000);
   const overview = useAdmin<Overview>("/overview?days=30", 120_000);
@@ -305,8 +339,8 @@ export function OverviewPage() {
   const online = data ? data.online.site + data.online.app : 0;
   const detail = (tab: string) => `/admin/analytics/${tab}?${webQuery(range, surface, filters).replace(/from=\d+&to=\d+&?/, `range=${range.key}&`).replace(/surface=/, "site=")}`;
   const series = useMemo(() => data ? { ...data.series, revenue: data.revenue?.series } : null, [data]);
-  const perVisitor = (net: number, visitors: number) => visitors ? net / visitors : null;
   const filtered = Object.values(filters).some((v) => v !== undefined);
+  const whole = (v: number) => n(v), dollars = (v: number) => usd(v, true), share = (v: number) => percent(v);
   return (
     <>
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -317,41 +351,42 @@ export function OverviewPage() {
         </div>
         <Link to="/admin/live" className="hover-ghost inline-flex h-9 items-center gap-2 rounded-full px-3 text-13 text-ink-2"><span className="live-dot text-good" data-live={online > 0} aria-hidden /><span className="font-mono num">{n(online)}</span> online</Link>
       </header>
-      <Band data={data} range={range} accounts={overview.data?.totals.accounts ?? null} paying={overview.data?.totals.paying ?? null} />
       <FilterChips filters={filters} onRemove={(dim) => setSel((s) => ({ ...s, filters: { ...s.filters, [dim]: undefined } }))} label={dimLabel} />
       {error && <Failed error={error} retry={reload} />}
       {!data && loading && <Loading rows={8} />}
       {data && c && p && series && (
-        <div className={cx(loading && "opacity-80")}>
+        <div className={cx("transition-opacity duration-150", loading && "opacity-80")}>
           <section className="rounded-[28px] bg-card p-2" aria-label="key numbers and chart">
             <div className="grid grid-cols-8 gap-px overflow-hidden rounded-[22px] bg-line max-xl:grid-cols-4 max-sm:grid-cols-2">
-              <Kpi label="visitors" icon={<Users {...I} />} value={n(c.visitors)} now={c.visitors} before={p.visitors} toggle={{ on: show.visitors, flip: () => setShow((s) => ({ ...s, visitors: !s.visitors })), colour: "var(--viz-visitors)" }} />
-              <Kpi label="signups" icon={<UserPlus {...I} />} value={n(c.signups)} now={c.signups} before={p.signups} toggle={{ on: show.signups, flip: () => setShow((s) => ({ ...s, signups: !s.signups })), colour: "var(--coral)" }} />
-              <Kpi label="revenue" icon={<CreditCard {...I} />} value={r ? usd(r.current.net, true) : "-"} now={r?.current.net} before={r?.previous.net} money wash="bg-wash-lime" toggle={{ on: show.revenue, flip: () => setShow((s) => ({ ...s, revenue: !s.revenue })), colour: "var(--viz-new)" }} />
-              <Kpi label="mrr" icon={<Repeat {...I} />} value={r && !filtered ? usd(r.current.mrr, true) : "-"} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
-              <Kpi label="customers" icon={<Star {...I} />} value={r ? n(r.current.customers) : "-"} now={r?.current.customers} before={r?.previous.customers} />
-              <Kpi label="per visitor" icon={<Target {...I} />} value={r ? (() => { const v = perVisitor(r.current.net, c.visitors); return v === null ? "-" : usd(Math.round(v)); })() : "-"} now={r ? perVisitor(r.current.net, c.visitors) : undefined} before={r ? perVisitor(r.previous.net, p.visitors) : undefined} />
-              <Kpi label="conversion" icon={<Sparkles {...I} />} value={percent(c.conversion)} now={c.conversion} before={p.conversion} />
-              <Kpi label="bounce rate" icon={<RotateCcw {...I} />} value={percent(c.bounce)} now={c.bounce} before={p.bounce} invert />
+              <Kpi label="sales" icon={<CreditCard {...I} />} value={r ? r.current.net : null} format={dollars} now={r?.current.net} before={r?.previous.net} />
+              <Kpi label="mrr" icon={<Repeat {...I} />} value={r && !filtered ? r.current.mrr : null} format={dollars} now={r && !filtered ? r.current.mrr : undefined} before={r?.previous.mrr} />
+              <Kpi label="customers" icon={<Star {...I} />} value={r ? (overview.data?.totals.paying ?? r.current.customers) : null} format={whole} now={r?.current.customers} before={r?.previous.customers} />
+              <Kpi label="new customers" icon={<UserPlus {...I} />} value={c.paid} format={whole} now={c.paid} before={p.paid} />
+              <Kpi label="visitors" icon={<Users {...I} />} value={c.visitors} format={whole} now={c.visitors} before={p.visitors} />
+              <Kpi label="signups" icon={<UserPlus {...I} />} value={c.signups} format={whole} now={c.signups} before={p.signups} />
+              <Kpi label="conversion" icon={<Sparkles {...I} />} value={c.conversion} format={share} now={c.conversion} before={p.conversion} />
+              <Kpi label="bounce rate" icon={<RotateCcw {...I} />} value={c.bounce} format={share} now={c.bounce} before={p.bounce} invert />
             </div>
             <div className="px-3 pb-2 pt-6 max-sm:px-1">
               {!data.tracked && <p className="mb-3 rounded-[14px] bg-wash-lemon px-4 py-2.5 text-13 text-ink">no visits recorded for this view yet.</p>}
-              <TrafficChart data={series} notes={data.notes} show={show} onNote={setNote} marks={data.marks} />
+              <SalesChart data={series} notes={data.notes} visitors={visitors} onNote={setNote} empty={r?.live ? "no sales in this window yet." : "no sales yet. payments aren't live, so plans are comps for now."} />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
-                <ul className="flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-3" aria-label="legend">
-                  <li className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-viz-visitors" aria-hidden /> visitors</li>
-                  <li className="inline-flex items-center gap-1.5"><span className="size-3 rounded-full bg-coral-soft ring-1 ring-coral" aria-hidden /> who signed up or paid</li>
-                  {show.revenue && <>
-                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-new" aria-hidden /> new revenue</li>
-                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-renewal" aria-hidden /> renewals</li>
-                    <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-refund" aria-hidden /> refunds</li>
-                  </>}
+                <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-12 text-ink-3" aria-label="legend">
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-new" aria-hidden /> new sales</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-renewal" aria-hidden /> renewals</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[2px] bg-viz-refund" aria-hidden /> refunds</li>
+                  <li className="inline-flex items-center gap-1.5"><span className="h-3 min-w-3 rounded-full bg-coral-soft px-1 font-mono text-[9.5px] leading-3 text-coral-deep" aria-hidden>1</span> new customers</li>
                   <li className="inline-flex items-center gap-1.5"><span className="size-2 rotate-45 rounded-[2px] bg-warn" aria-hidden /> notes</li>
                 </ul>
-                <Button size="sm" onClick={() => setNote({ at: Date.now() })}>add a note</Button>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-13 text-ink-2"><span className="h-0.5 w-4 rounded-full bg-viz-visitors" aria-hidden />visitors<Switch checked={visitors} onChange={setVisitors} label="show visitors under the chart" /></label>
+                  <Button size="sm" onClick={() => setNote({ at: Date.now() })}>add a note</Button>
+                </div>
               </div>
             </div>
           </section>
+
+          <div className="mt-4"><FunnelSection range={range} /></div>
 
           <div className="mt-4 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 max-lg:grid-cols-1">
             {r ? <PaymentsCard revenue={r} /> : <div />}
@@ -368,12 +403,13 @@ export function OverviewPage() {
           </div>
           <div className="mt-4"><PeopleCard range={range} data={data} filters={filters} /></div>
           <div className="mt-4"><AiCard crawlers={data.crawlers} /></div>
-          <p className="mt-4 text-center text-12 text-ink-4">tap a row to filter every number. revenue goes to the last place a payer came from before paying, or their first visit.</p>
+          <p className="mt-4 text-center text-12 text-ink-4">tap a row to filter every number. sales go to the last place a payer came from before paying, or their first visit.</p>
         </div>
       )}
-      <NoteDialog key={note ? ("id" in note ? note.id : "new") : "closed"} note={note} onClose={() => setNote(null)}
+      <Cheer data={data} />
+      <AnimatePresence>{note && <NoteDialog key={"id" in note ? note.id : "new"} note={note} onClose={() => setNote(null)}
         onSave={async (input) => { await adminCall(note && "id" in note ? `/notes/${note.id}` : "/notes", { method: note && "id" in note ? "PATCH" : "POST", body: input }); reload(); }}
-        onDelete={async (id) => { await adminCall(`/notes/${id}`, { method: "DELETE", body: {} }); reload(); }} />
+        onDelete={async (id) => { await adminCall(`/notes/${id}`, { method: "DELETE", body: {} }); reload(); }} />}</AnimatePresence>
     </>
   );
 }

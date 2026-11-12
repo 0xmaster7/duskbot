@@ -6,6 +6,7 @@ import { Link, navigate, useLocation } from "../lib/router";
 import { useNow } from "../lib/now";
 import { useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, n, SearchBox, stamp } from "./ui";
+import { AnimatePresence } from "../ui/motion";
 import { Avatar, Chip, RangePicker, duration, personName, rangeOf, where, type Range } from "./kit";
 
 interface Person {
@@ -69,7 +70,7 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
           ))}
         </ul>
       ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-14 text-ink-3">{search ? `no one matches "${search}".` : "no one in this window yet."}</p>)}
-      {open && <ProfileDialog id={open} onClose={() => navigate("/admin/people/visitors", { replace: true })} />}
+      <AnimatePresence>{open && <ProfileDialog key="profile" id={open} onClose={() => navigate("/admin/people/visitors", { replace: true })} />}</AnimatePresence>
     </>
   );
 }

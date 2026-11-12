@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode, type SelectHTMLAttributes } f
 import { createPortal } from "react-dom";
 import { ChevronDown, X } from "@/icons";
 import { cx } from "./kit";
+import { AnimatePresence, EASE_OUT, GLIDE, m, Pill, SPRING, usePill } from "./motion";
 
 export function Switch({ checked, onChange, label, disabled, id }: { checked: boolean; onChange(v: boolean): void; label: string; disabled?: boolean; id?: string }) {
   return (
@@ -15,7 +16,7 @@ export function Switch({ checked, onChange, label, disabled, id }: { checked: bo
       onClick={() => onChange(!checked)}
       className={cx("switch-track relative inline-flex h-[26px] w-[44px] shrink-0 items-center rounded-full p-[3px] disabled:opacity-45", checked ? "bg-accent" : "bg-track")}
     >
-      <span className={cx("switch-thumb size-5 rounded-full bg-white", checked ? "translate-x-[18px]" : "translate-x-0")} aria-hidden />
+      <m.span className="size-5 rounded-full bg-white" initial={false} animate={{ x: checked ? 18 : 0 }} transition={SPRING} aria-hidden />
     </button>
   );
 }
@@ -49,10 +50,9 @@ export function Slider({ label, value, min, max, step, onChange, format, hint }:
 
 /** a two to four way choice with a thumb that slides between options; transitions retarget on rapid clicks */
 export function Toggle<T extends string>({ value, options, onChange, label, className }: { value: T; options: Array<{ value: T; label: ReactNode }>; onChange(v: T): void; label: string; className?: string }) {
-  const at = Math.max(0, options.findIndex((o) => o.value === value));
+  const pill = usePill();
   return (
     <div role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-      <span aria-hidden className="seg-thumb absolute inset-y-1 left-1 rounded-full bg-pop" style={{ width: `calc((100% - 8px) / ${options.length})`, transform: `translateX(${at * 100}%)` }} />
       {options.map((o) => (
         <button
           key={o.value}
@@ -60,9 +60,10 @@ export function Toggle<T extends string>({ value, options, onChange, label, clas
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cx("relative z-10 inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
+          className={cx("relative inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
-          {o.label}
+          {value === o.value && <Pill id={pill} />}
+          <span className="relative inline-flex items-center gap-1.5">{o.label}</span>
         </button>
       ))}
     </div>
@@ -102,26 +103,31 @@ function useDialog(open: boolean, onClose: () => void, ref: React.RefObject<HTML
   }, [open, onClose, ref]);
 }
 
-/** a centered dialog: scrim, escape and outside click close it, focus moves in and comes back */
+const scrim = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2, ease: EASE_OUT } } as const;
+
+/** a centered dialog: scrim, escape and outside click close it, focus moves in and comes back; it scales in from the
+ * middle and fades out, and also plays its exit when an AnimatePresence above it drops it */
 export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
+  return createPortal(<AnimatePresence propagate>{open && <ModalFrame key="modal" onClose={onClose} title={title} footer={footer} wide={wide}>{children}</ModalFrame>}</AnimatePresence>, document.body);
+}
+function ModalFrame({ onClose, title, children, footer, wide }: { onClose(): void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  useDialog(open, onClose, ref);
-  if (!open) return null;
-  // a portal, so a dialog opened from a table row or an animated card is never trapped under the shell
-  return createPortal(
+  useDialog(true, onClose, ref);
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
-      <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("pop modal-in relative my-auto w-full min-w-0 rounded-[28px] bg-pop p-7 outline-none max-sm:p-5", wide ? "max-w-[540px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}>
+      <m.div {...scrim} className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
+      <m.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx("pop relative my-auto w-full min-w-0 rounded-[28px] bg-pop p-7 outline-none max-sm:p-5", wide ? "max-w-[540px]" : "max-w-[440px]")} style={{ boxShadow: "var(--pop-shadow)" }}
+        initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 6, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
         <div className="flex items-start justify-between gap-4">
           <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>
           <button data-close type="button" onClick={onClose} aria-label="close" className="press hover-ghost -me-2 -mt-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="mt-2 text-14 leading-[1.55] text-ink-3">{children}</div>
         {footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
-      </div>
-    </div>,
-    document.body,
+      </m.div>
+    </div>
   );
 }
 
@@ -145,25 +151,27 @@ export function Select({ className, children, ...rest }: SelectHTMLAttributes<HT
   );
 }
 
-/** a side sheet from the right edge: the same dialog rules as Modal, with a footer that stays put */
+/** a side sheet from the right edge: the same dialog rules as Modal, with a footer that stays put; it glides in and back out */
 export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose(): void; title: string; children: ReactNode; footer?: ReactNode }) {
+  return createPortal(<AnimatePresence propagate>{open && <SheetFrame key="sheet" onClose={onClose} title={title} footer={footer}>{children}</SheetFrame>}</AnimatePresence>, document.body);
+}
+function SheetFrame({ onClose, title, children, footer }: { onClose(): void; title: string; children: ReactNode; footer?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  useDialog(open, onClose, ref);
-  if (!open) return null;
-  return createPortal(
+  useDialog(true, onClose, ref);
+  return (
     <div className="fixed inset-0 z-50">
-      <div className="fade-in absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="pop sheet-in absolute inset-y-0 right-0 flex w-[min(460px,100vw)] flex-col bg-pop outline-none sm:inset-y-3 sm:right-3 sm:rounded-[28px]" style={{ boxShadow: "var(--pop-shadow)" }}>
+      <m.div {...scrim} className="absolute inset-0" style={{ background: "var(--scrim)" }} onClick={onClose} aria-hidden />
+      <m.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="pop absolute inset-y-0 right-0 flex w-[min(460px,100vw)] flex-col bg-pop outline-none sm:inset-y-3 sm:right-3 sm:rounded-[28px]" style={{ boxShadow: "var(--pop-shadow)" }}
+        initial={{ x: "104%", opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "104%", opacity: 0, transition: { type: "spring", visualDuration: 0.24, bounce: 0 } }} transition={GLIDE}>
         <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 max-sm:px-5">
           <h2 id={titleId} className="text-20 font-medium tracking-[-0.03em] text-ink">{title}</h2>
           <button data-close type="button" onClick={onClose} aria-label="close" className="hover-ghost -me-2 grid size-10 shrink-0 place-items-center rounded-full text-ink-3 max-sm:size-11"><X size={18} strokeWidth={1.5} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 max-sm:px-5">{children}</div>
         {footer && <div className="border-t border-line px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 max-sm:px-5">{footer}</div>}
-      </div>
-    </div>,
-    document.body,
+      </m.div>
+    </div>
   );
 }
 

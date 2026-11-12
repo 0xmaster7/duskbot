@@ -18,6 +18,7 @@ import { Card, cx, Skeleton } from "../ui/kit";
 import { BotMascot, Mascot, type BotState, type MascotHandle } from "../ui/Mascot";
 import { cheerOnce } from "../lib/cheer";
 import { trackUpsell } from "../lib/analytics";
+import { investedNoteShown } from "../lib/upsell-stage";
 import { dailyLine, investedLine, investedNoteDue, markInvestedNote } from "../lib/fun";
 import type { InvestedFacts } from "../../../../shared/cloud-upsell";
 import { Button } from "../ui/kit";
@@ -26,6 +27,7 @@ import { CloudStatus, PowerButton, Provisioning, regionName, tierName } from "./
 import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
 import { LoadError } from "./common";
+import { AnimatePresence } from "../ui/motion";
 import { Figure } from "../ui/Figure";
 
 const ORDER: Record<BotMood, number> = { working: 0, waking: 1, idle: 2, drowsy: 3, sleeping: 4 };
@@ -93,7 +95,7 @@ function InvestedNote({ facts, onDone }: { facts: InvestedFacts; onDone: () => v
       </div>
       <Button size="sm" variant="primary" className="shrink-0" onClick={() => { trackUpsell("click", "dash_invested"); setPlan(true); }}>get dusk cloud</Button>
       <button type="button" onClick={() => { trackUpsell("dismiss", "dash_invested"); onDone(); }} aria-label="not now" className="hover-ghost absolute right-2 top-2 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
-      {plan && <PlanSheet source="dash_invested" start="starter" onClose={() => setPlan(false)} />}
+      <AnimatePresence>{plan && <PlanSheet key="plan" source="dash_invested" start="starter" onClose={() => setPlan(false)} />}</AnimatePresence>
     </section>
   );
 }
@@ -108,6 +110,7 @@ function useInvestedNote(accountId: string | undefined, rows: BotRow[], loading:
     if (!due || !accountId) return;
     markInvestedNote(accountId);
     trackUpsell("shown", "dash_invested");
+    investedNoteShown();
     setShown(facts);
   }, [due]);
   return { facts: done ? null : shown, close: () => setDone(true) };

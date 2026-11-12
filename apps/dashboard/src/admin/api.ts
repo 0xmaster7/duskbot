@@ -85,13 +85,26 @@ export interface TimelineItem { name: string; at: number; props: Record<string, 
 export interface UserDetail {
   account: { id: string; email: string; name: string | null; createdAt: number; lastSeenAt: number | null; optOut: boolean };
   methods: string[]; plan: UserRow["plan"];
-  subscriptions: Array<{ id: string; plan: string | null; status: string; totalCents: number; periodEnd: number | null; cancelAtPeriodEnd: boolean; createdAt: number }>;
+  subscriptions: PlanSubscription[];
   payments: Array<{ id: string; amountCents: number; currency: string; status: string; createdAt: number }>;
   devices: Array<{ id: string; kind: string; name: string; platform: string | null; appVersion: string | null; createdAt: number; lastSeenAt: number }>;
   clouds: CloudRow[];
   workspaces: Array<{ id: string; name: string; kind: string; version: string; connectedAt: number; lastReportAt: number | null; bots: number; turns30d: number; computers: number }>;
   timeline: TimelineItem[];
+  billing: { grants: boolean; provider: "preview" | "fake" | "dodo" | "off"; plans: Array<{ id: string; label: string; monthlyCents: number }> };
+  audit: AuditEntry[];
 }
+export interface PlanSubscription {
+  id: string; plan: string | null; bundle: string | null; interval: "month" | "year"; status: "pending" | "active" | "payment_problem" | "cancelled" | "ended"; totalCents: number;
+  periodStart: number | null; periodEnd: number | null; openEnded: boolean; cancelAtPeriodEnd: boolean; cloudId: string | null; source: string | null; comp: boolean; createdAt: number;
+}
+export type PlanChange =
+  | { action: "grant"; plan: string; until: number | null }
+  | { action: "change"; plan: string; subscription: string }
+  | { action: "set_end"; until: number | null; subscription: string }
+  | { action: "cancel"; when: "now" | "period_end"; subscription: string }
+  | { action: "keep"; subscription: string }
+  | { action: "note"; text: string };
 export interface EventRow { id: string; name: string; at: number; accountId: string | null; email: string | null; props: Record<string, string | number | boolean>; ctx?: Record<string, unknown> }
 export interface WaitlistPage {
   configured: boolean; count?: number; total: number; offset?: number; limit?: number;

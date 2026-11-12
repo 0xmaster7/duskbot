@@ -7,6 +7,8 @@ import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { useAdmin, type UserDetail, type UserRow } from "./api";
 import { CloudTable } from "./Clouds";
+import { endLabel, PlanEditor } from "./PlanEditor";
+import { m } from "../ui/motion";
 import { AdminHeader, Failed, Loading, money, n, Pager, SearchBox, Section, stamp, Status, Tile } from "./ui";
 
 const FILTERS = [{ value: "all", label: "everyone" }, { value: "paying", label: "paying" }, { value: "cloud", label: "with a cloud" }, { value: "app", label: "with the app" }] as const;
@@ -41,7 +43,7 @@ export function UsersPage({ tabs }: { tabs?: ReactNode }) {
             <thead><tr><Th>account</Th><Th>plan</Th><Th className="!text-end">clouds</Th><Th>app</Th><Th>signed up</Th><Th>last seen</Th></tr></thead>
             <tbody>
               {data.users.map((user) => (
-                <tr key={user.id} className="hover-row">
+                <m.tr key={user.id} className="hover-row" layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ layout: { type: "spring", visualDuration: 0.26, bounce: 0 }, opacity: { duration: 0.18 } }}>
                   <Td className="max-w-[320px]">
                     <Link to={`/admin/users/${encodeURIComponent(user.id)}`} className="block min-w-0 rounded-[6px] underline-offset-4 hover:underline">
                       <span className="block truncate text-14 text-ink">{user.email}</span>
@@ -53,7 +55,7 @@ export function UsersPage({ tabs }: { tabs?: ReactNode }) {
                   <Td className="text-13 text-ink-2">{user.devices ? `${user.devices} · ${user.platforms.join(", ")}` : <Nil />}</Td>
                   <Td className="t-id whitespace-nowrap text-ink-2">{stamp(user.createdAt).slice(0, 10)}</Td>
                   <Td className="whitespace-nowrap text-13 text-ink-3">{ago(user.lastSeenAt, now)}</Td>
-                </tr>
+                </m.tr>
               ))}
             </tbody>
           </Table>
@@ -78,7 +80,7 @@ function describe(item: UserDetail["timeline"][number]) {
 }
 
 export function UserPage({ id }: { id: string }) {
-  const { data, error, loading, reload } = useAdmin<UserDetail>(`/users/${encodeURIComponent(id)}`);
+  const { data, error, loading, reload, setData } = useAdmin<UserDetail>(`/users/${encodeURIComponent(id)}`);
   const now = useNow(60_000);
   return (
     <>
@@ -88,14 +90,29 @@ export function UserPage({ id }: { id: string }) {
       {data && (
         <>
           <AdminHeader title={data.account.name ?? data.account.email} sub={<span className="flex flex-wrap gap-x-3"><span>{data.account.email}</span><span className="t-id">{data.account.id}</span></span>} />
-          <div className="grid grid-cols-4 gap-2.5 max-lg:grid-cols-2">
-            <Tile label="plan" value={data.plan?.plan ?? "free"} note={data.plan?.status.replace(/_/g, " ") ?? "no subscription"} />
+          <div className="grid grid-cols-3 gap-2.5 max-lg:grid-cols-2">
             <Tile label="signed up" value={stamp(data.account.createdAt).slice(0, 10)} note={`with ${data.methods.join(", ")}`} />
             <Tile label="last seen" value={ago(data.account.lastSeenAt, now)} note={data.account.optOut ? "opted out of analytics" : "analytics on"} />
             <Tile label="bot replies, 30 days" value={n(data.workspaces.reduce((sum, ws) => sum + ws.turns30d, 0))} note={`${n(data.workspaces.reduce((sum, ws) => sum + ws.bots, 0))} bots`} />
           </div>
 
-          <Section title="clouds" className="mt-10">{data.clouds.length ? <CloudTable clouds={data.clouds} onChanged={reload} owner={false} /> : <p className="text-14 text-ink-3">no clouds.</p>}</Section>
+          <div className="mt-6 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-start gap-6 max-xl:grid-cols-1">
+            <PlanEditor detail={data} onChange={setData} />
+            <div className="min-w-0">
+              <Section className="!mt-0" title="clouds">{data.clouds.length ? <CloudTable clouds={data.clouds} onChanged={reload} owner={false} /> : <p className="text-14 text-ink-3">no clouds.</p>}</Section>
+              <Section title="billing history">
+                {data.subscriptions.length || data.payments.length ? (
+                  <Table label="billing history">
+                    <thead><tr><Th>what</Th><Th>status</Th><Th className="!text-end">amount</Th><Th>when</Th></tr></thead>
+                    <tbody>
+                      {data.subscriptions.map((sub) => <tr key={sub.id}><Td><span className="block text-14 text-ink">{sub.plan ?? "custom"} plan{sub.comp ? ", comp" : ""}</span><span className="block text-12 text-ink-3">{endLabel(sub)}</span></Td><Td><Status value={sub.status} /></Td><Td className="text-end font-mono num">{sub.comp ? "free" : money(sub.totalCents)}</Td><Td className="t-id text-ink-2">{stamp(sub.createdAt)}</Td></tr>)}
+                      {data.payments.map((pay) => <tr key={pay.id}><Td>payment</Td><Td><Status value={pay.status} /></Td><Td className="text-end font-mono num">{money(pay.amountCents)}</Td><Td className="t-id text-ink-2">{stamp(pay.createdAt)}</Td></tr>)}
+                    </tbody>
+                  </Table>
+                ) : <p className="text-14 text-ink-3">nothing billed yet.</p>}
+              </Section>
+            </div>
+          </div>
 
           <div className="mt-10 grid grid-cols-2 gap-10 max-lg:grid-cols-1">
             <Section className="!mt-0" title="devices and sessions">
@@ -123,18 +140,6 @@ export function UserPage({ id }: { id: string }) {
               ) : <p className="text-14 text-ink-3">no workspace connected.</p>}
             </Section>
           </div>
-
-          {(data.subscriptions.length > 0 || data.payments.length > 0) && (
-            <Section title="plans and payments">
-              <Table label="plans and payments">
-                <thead><tr><Th>what</Th><Th>status</Th><Th className="!text-end">amount</Th><Th>when</Th></tr></thead>
-                <tbody>
-                  {data.subscriptions.map((sub) => <tr key={sub.id}><Td>{sub.plan ?? "custom"} plan{sub.cancelAtPeriodEnd ? ", cancels at period end" : ""}</Td><Td><Status value={sub.status} /></Td><Td className="text-end font-mono num">{money(sub.totalCents)}</Td><Td className="t-id text-ink-2">{stamp(sub.createdAt)}</Td></tr>)}
-                  {data.payments.map((pay) => <tr key={pay.id}><Td>payment</Td><Td><Status value={pay.status} /></Td><Td className="text-end font-mono num">{money(pay.amountCents)}</Td><Td className="t-id text-ink-2">{stamp(pay.createdAt)}</Td></tr>)}
-                </tbody>
-              </Table>
-            </Section>
-          )}
 
           <Section title="timeline" action={<Link to={`/admin/events?account=${encodeURIComponent(data.account.id)}`} className="hover-link text-13 text-ink-3 underline-offset-4 hover:underline">in the events explorer</Link>}>
             {data.timeline.length ? (

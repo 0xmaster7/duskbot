@@ -6,6 +6,7 @@ import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
 import { adminCall, useAdmin, type CloudRow } from "./api";
+import { AnimatePresence } from "../ui/motion";
 import { AdminHeader, ConfirmAction, Failed, Loading, n, Status } from "./ui";
 
 type Action = "pause" | "resume" | "delete";
@@ -44,15 +45,15 @@ export function CloudTable({ clouds, onChanged, owner = true }: { clouds: CloudR
           ))}
         </tbody>
       </Table>
-      {pending && (
-        <ConfirmAction open onClose={() => setPending(null)} title={COPY[pending.action].title(pending.cloud.name)} body={COPY[pending.action].body} word={pending.cloud.name}
+      <AnimatePresence>{pending && (
+        <ConfirmAction key="confirm" open onClose={() => setPending(null)} title={COPY[pending.action].title(pending.cloud.name)} body={COPY[pending.action].body} word={pending.cloud.name}
           action={COPY[pending.action].button} danger={pending.action !== "resume"}
           onConfirm={async () => {
             await adminCall(`/clouds/${pending.cloud.id}/${pending.action}`, { body: { confirm: pending.cloud.name } });
             toast(`${pending.cloud.name}: ${COPY[pending.action].done}`);
             onChanged();
           }} />
-      )}
+      )}</AnimatePresence>
     </>
   );
 }
