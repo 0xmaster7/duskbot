@@ -336,8 +336,11 @@ export function createBillingService(options: BillingServiceOptions) {
     clouds.activate(fresh.id, sub.id, action.plan);
   }
   function applyChange(sub: StoredSubscription, change: PendingChange, email: string) {
-    const previous = sub.cart, cart = change.cart;
+    const previous = sub.cart, cart = change.cart, before = monthlyOf(sub);
     sub.cart = copy(cart); sub.totalCents = change.totalCents; sub.lines = copy(change.lines); sub.updatedAt = now(); sub.version++;
+    const after = monthlyOf(sub);
+    const type = after > before ? "subscription.upgraded" : after < before ? "subscription.downgraded" : "subscription.plan_changed";
+    record(draft({ key: `${type}:${sub.id}:${sub.version}`, at: now(), type, via: provider.name === "fake" ? "app" : "webhook", ...subFields(sub), previousMrrCents: before, status: sub.status }));
     refreshLicense(sub, email);
     if (cart.desktop.kind !== "none") {
       const plan = desktopPlan(cart);
@@ -547,11 +550,6 @@ export function createBillingService(options: BillingServiceOptions) {
     if (!sub || sub.status === "pending") return;
     const fields = { ...base, ...subFields(sub), at: sentAt, providerCustomerId: event.customerId, country: event.country ?? null, previousMrrCents: prior && prior.status !== "pending" ? monthlyOf(prior) : null };
     const was = prior?.status ?? "pending";
-    const changed = prior && prior.status !== "pending" && monthlyOf(prior) !== monthlyOf(sub);
-    if (changed) {
-      const type = monthlyOf(sub) > monthlyOf(prior) ? "subscription.upgraded" : "subscription.downgraded";
-      record(draft({ ...fields, key: `${type}:${sub.providerSubscriptionId}:${webhookId}`, type, status: sub.status }));
-    }
     if (event.type === "active" && sub.status === "active" && was === "pending") record(draft({ ...fields, key: `subscription.active:${sub.providerSubscriptionId}`, type: "subscription.active", at: event.createdAt ?? sentAt, status: "active" }));
     if ((event.type === "active" || event.type === "renewed") && sub.status === "active" && was === "payment_problem") {
       record(draft({ ...fields, key: `subscription.recovered:${sub.providerSubscriptionId}:${sub.currentPeriodEnd ?? webhookId}`, type: "subscription.recovered", status: "active" }));
@@ -735,7 +733,8 @@ export function createBillingService(options: BillingServiceOptions) {
       if (sub.pendingChange) {
         const before = copy(state);
         try { applyChange(sub, pending, account.email); store.commit(); }
-        catch (error) { Object.assign(state, before); throw error; }
+        catch (error) { Object.assign(state, before); recorded = []; throw error; }
+        sendNotices();
       }
       flushCloudActions(); return view(sub);
     });
@@ -835,7 +834,7 @@ export function createBillingService(options: BillingServiceOptions) {
   let syncing: Promise<{ scanned: number; added: number }> | null = null;
   /** reads the provider's past payments, refunds, disputes and subscriptions onto the ledger; what is already there stays as it is */
   function syncFromProvider(): Promise<{ scanned: number; added: number }> {
-    if (!provider.list) fail(409, "unavailable");
+    if (!provider.list) return Promise.reject(new BillingError(409, "unavailable"));
     syncing ??= (async () => {
       let scanned = 0, added = 0;
       const text = (value: unknown) => typeof value === "string" && value ? value.slice(0, 120) : null;

@@ -531,3 +531,66 @@ describe("one subscription per plan", () => {
     await vi.waitFor(() => expect(store.state.duplicates![0].payments[0].refundedAt).toBe(time));
   });
 });
+
+describe("billing ledger", () => {
+  const types = () => store.state.ledger!.map(row => row.type);
+  it("records each moment once, however often or under whatever delivery id it arrives", async () => {
+    const { sub, deliveries } = await buy(desktopOnly());
+    expect(types()).toEqual(["checkout.started", "payment.succeeded", "subscription.active"]);
+    expect(store.state.ledger![2]).toMatchObject({ accountId: owner.id, subscriptionId: sub.id, plan: expect.any(String), interval: "month", mrrCents: sub.totalCents, via: "webhook" });
+    deliver(deliveries);
+    deliver(deliveries.map((delivery, i) => provider.sign(`redelivered_${i}`, delivery.body)));
+    expect(types()).toEqual(["checkout.started", "payment.succeeded", "subscription.active"]);
+    time += 31 * day; deliver(provider.renew(sub.providerSubscriptionId!));
+    deliver(provider.fail(sub.providerSubscriptionId!)); deliver([signed("subscription.on_hold", { ...JSON.parse(provider.fail(sub.providerSubscriptionId!)[0].body.toString()).data }, "hold_again")]);
+    time += day; deliver(provider.renew(sub.providerSubscriptionId!));
+    expect(types().slice(3)).toEqual(["payment.succeeded", "subscription.renewed", "subscription.on_hold", "payment.succeeded", "subscription.recovered", "subscription.renewed"]);
+    const paid = store.state.invoices.at(-1)!;
+    const refund = provider.refund(paid.providerPaymentId); deliver(refund); deliver(refund.map(d => provider.sign("refund_same_id", d.body)));
+    expect(types().filter(type => type === "refund.succeeded")).toHaveLength(1);
+    deliver([signed("dispute.opened", { dispute_id: "dsp_1", payment_id: paid.providerPaymentId, amount: "2000", currency: "USD", dispute_stage: "dispute", dispute_status: "dispute_opened" })]);
+    deliver([signed("dispute.opened", { dispute_id: "dsp_1", payment_id: paid.providerPaymentId, amount: "2000", currency: "USD" }, "dispute_again")]);
+    expect(store.state.ledger!.filter(row => row.type === "dispute.opened")).toMatchObject([{ accountId: owner.id, amountCents: 2000, providerRef: "dsp_1" }]);
+    deliver(provider.expire(sub.providerSubscriptionId!));
+    expect(types().at(-1)).toBe("subscription.expired");
+    const ids = store.state.ledger!.map(row => row.id); expect(new Set(ids).size).toBe(ids.length);
+  });
+  it("tells listeners about new rows only, after they are stored", async () => {
+    const seen: string[] = [];
+    service.close(); service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time, onLedger: row => seen.push(row.type) });
+    const { deliveries } = await buy(desktopOnly());
+    deliver(deliveries.map((delivery, i) => provider.sign(`again_${i}`, delivery.body)));
+    expect(seen).toEqual(["checkout.started", "payment.succeeded", "subscription.active"]);
+  });
+  it("classifies plan changes as upgrades and downgrades with the MRR before and after", async () => {
+    const { sub } = await buy(desktopOnly());
+    const bigger: Cart = { ...desktopOnly(), desktop: { ...desktopOnly().desktop, kind: "shared_m" } };
+    const preview = service.previewChange(owner, sub.id, bigger);
+    await service.change(owner, sub.id, preview.confirmation);
+    const row = store.state.ledger!.find(item => item.type === "subscription.upgraded");
+    expect(row).toMatchObject({ previousMrrCents: quote(desktopOnly(), config).totalCents, mrrCents: quote(bigger, config).totalCents });
+  });
+  it("backfills from the provider once, matching what webhooks already recorded", async () => {
+    const { sub } = await buy(desktopOnly());
+    const paid = store.state.invoices[0]!;
+    const pages: Record<string, Array<Record<string, unknown>>> = {
+      payments: [{ payment_id: paid.providerPaymentId, status: "succeeded", created_at: new Date(time).toISOString(), total_amount: 2000, currency: "USD", settlement_amount: 2000, settlement_tax: 300 },
+        { payment_id: "pay_old", status: "succeeded", created_at: new Date(time - 40 * day).toISOString(), total_amount: 1500, currency: "USD", customer: { customer_id: "cus_unknown" }, billing: { country: "de" } }],
+      refunds: [{ refund_id: "ref_old", payment_id: "pay_old", status: "succeeded", created_at: new Date(time - 39 * day).toISOString(), amount: 1500, currency: "USD" }],
+      disputes: [{ dispute_id: "dsp_old", payment_id: "pay_old", amount: "1500", currency: "USD", dispute_status: "dispute_lost", created_at: new Date(time - 38 * day).toISOString() }],
+      subscriptions: [{ subscription_id: sub.providerSubscriptionId, status: "active", created_at: new Date(time).toISOString() }],
+    };
+    const calls: string[] = [];
+    (provider as unknown as { list: (resource: string, page: number) => Promise<unknown[]> }).list = async (resource, page) => { calls.push(`${resource}:${page}`); return page === 0 ? pages[resource] ?? [] : []; };
+    const first = await service.syncFromProvider();
+    expect(first).toEqual({ scanned: 5, added: 4 });
+    expect(store.state.ledger!.find(row => row.providerPaymentId === "pay_old" && row.type === "payment.succeeded")).toMatchObject({ via: "sync", country: "DE", amountCents: 1500, accountId: null });
+    expect(store.state.ledger!.filter(row => row.type.startsWith("dispute.")).map(row => row.type)).toEqual(["dispute.opened", "dispute.lost"]);
+    expect(await service.syncFromProvider()).toEqual({ scanned: 5, added: 0 });
+    expect(store.state.lastSync).toMatchObject({ added: 0, scanned: 5 });
+    expect(calls).toEqual(["payments:0", "refunds:0", "disputes:0", "subscriptions:0", "payments:0", "refunds:0", "disputes:0", "subscriptions:0"]);
+  });
+  it("refuses a backfill where the provider keeps no history", async () => {
+    await expect(service.syncFromProvider()).rejects.toMatchObject({ status: 409 });
+  });
+});
