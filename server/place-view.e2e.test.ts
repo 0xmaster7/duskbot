@@ -1,6 +1,6 @@
-// real server, fake claude cli and a loopback retired desktop provider whose answers each journey sets; a restartable home lets a test seed an automatic pin.
+// real server and fake claude cli with no VPS connected: cloud computers are VPS-only, so asking for one names the missing VPS.
+// a restartable home lets a test seed an automatic pin.
 import { spawn, type ChildProcess } from "node:child_process";
-import { createServer, type Server } from "node:http";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -11,13 +11,6 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-/** the admin relay's refusal envelope. */
-const refusal = (status: number, code: string, message: string) =>
-  ({ status, body: { ok: false, type: "sandbox.error", status, code, message, error: { code, message, status } } });
-const HOURS = refusal(429, "limit_reached", "Your Pro plan's 50 cloud computer hours for October are used up. They reset on 1 November.");
-const AT_ONCE = refusal(429, "limit_reached", "Your Personal plan includes 1 cloud computer at once. Delete one to start another.");
-const DOWN = refusal(503, "service_unavailable", "Cloud computers are temporarily unavailable. Try again later.");
-
 describe("a cloud computer that can't start, against the real server", () => {
   let home = "";
   let data = "";
@@ -25,11 +18,6 @@ describe("a cloud computer that can't start, against the real server", () => {
   let output = "";
   let child: ChildProcess | null = null;
   let base = "";
-  let retiredServer: Server;
-  let createAnswer: { status: number; body: unknown } | null = null;
-  let included = false;
-  let creates = 0;
-  const boxes: Array<{ id: string; name: string; state: string }> = [];
 
   const api = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(base + path, {
@@ -107,33 +95,9 @@ describe("a cloud computer that can't start, against the real server", () => {
     mkdirSync(join(ui, "assets"), { recursive: true });
     writeFileSync(join(ui, "index.html"), "<title>Place view</title>");
     writeFileSync(join(ui, "assets", "test.css"), "body{}");
-    retiredServer = createServer(async (req, res) => {
-      res.setHeader("content-type", "application/json");
-      const path = new URL(req.url ?? "/", "http://box.fixture").pathname;
-      let raw = ""; for await (const part of req) raw += part;
-      const body = raw ? JSON.parse(raw) : {};
-      if (path === "/sandboxes" && req.method === "POST") {
-        creates++;
-        if (createAnswer) { res.statusCode = createAnswer.status; return res.end(JSON.stringify(createAnswer.body)); }
-        const row = { id: `bx_${String(23456789 + boxes.length)}`, name: String(body.name ?? ""), state: "idle" };
-        boxes.push(row);
-        return res.end(JSON.stringify({ sandbox: row }));
-      }
-      if (path === "/sandboxes") return res.end(JSON.stringify({ sandboxes: boxes }));
-      if (path.endsWith("/desktop")) return res.end(JSON.stringify({ desktopUrl: "https://desktop.fixture.invalid" }));
-      if (path.endsWith("/commands")) return res.end(JSON.stringify({ exitCode: 0, stdout: "", stderr: "" }));
-      const row = boxes.find(entry => path === `/sandboxes/${entry.id}`);
-      if (row) {
-        if (req.method === "PATCH" && typeof body.name === "string") row.name = body.name;
-        return res.end(JSON.stringify({ sandbox: row }));
-      }
-      res.end("{}");
-    });
-    await new Promise<void>(resolve => retiredServer.listen(0, "127.0.0.1", resolve));
-    writeConfig(true);
+    writeConfig();
   });
-  const writeConfig = (ownKey: boolean) => writeFileSync(join(data, "config.json"), JSON.stringify({
-    ...(ownKey ? { box: { token: "box_place_view_fixture" } } : {}),
+  const writeConfig = () => writeFileSync(join(data, "config.json"), JSON.stringify({
     // Every turn first takes one screenshot through the cloud computer's tools: that call, not the message, starts the cloud computer.
     instances: { claude: {
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
@@ -142,70 +106,22 @@ describe("a cloud computer that can't start, against the real server", () => {
   }));
   afterAll(async () => {
     await stop();
-    if (retiredServer) await new Promise<void>(resolve => retiredServer.close(() => resolve()));
     if (home) await removeTempDir(home);
   });
-  afterEach(async () => {
-    await stop();
-    createAnswer = null; creates = 0; boxes.length = 0;
-    if (included) { included = false; writeConfig(true); }
-  });
+  afterEach(stop);
 
-  it("J5: no hours left says when they come back, offers the plan, and starts nothing", async () => {
+  const NO_VPS = "The VPS computer is unavailable; connect a VPS in Settings and retry.";
+
+  it("Works on Cloud with no VPS says to connect one, and points at the Screen panel", async () => {
     await start();
-    const { bot } = await apiOk("POST", "/api/bots", { name: "Hours Bot" });
+    const { bot } = await apiOk("POST", "/api/bots", { name: "Cloud Bot" });
     await apiOk("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
-    createAnswer = HOURS;
     await send(bot.id, bot.threadId, "Open the desktop.");
     const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: This month's 50 cloud desktop hours are used up. They come back on 1 November. See your plan on the Plan page.");
-    expect(row.tool.place).toEqual({ state: "cc-no-hours", params: { bot: "Hours Bot", plan: "Pro", hours: 50, month: "November" }, source: "works-on" });
+    expect(row.tool.name).toBe(`error: ${NO_VPS} Check it in the Screen panel.`);
+    expect(row.tool.name).not.toMatch(/\x62oat|box|plan/i);
+    expect(row.tool.place).toEqual({ state: "place-failed", params: { bot: "Cloud Bot", cause: NO_VPS }, source: "works-on" });
     await idle(bot.id);
-    expect(creates).toBe(1);
-    expect(boxes).toEqual([]);
-  }, 90_000);
-
-  it("J6: at once names the bot that holds the plan's cloud computer", async () => {
-    await start();
-    const { bot: holder } = await apiOk("POST", "/api/bots", { name: "Ada" });
-    await apiOk("PATCH", `/api/bots/${holder.id}`, { computer: "cloud" });
-    await send(holder.id, holder.threadId, "Use your desktop.");
-    await until(() => boxes.length, count => count === 1, "Ada's computer");
-    await idle(holder.id);
-    expect((await messages(holder.threadId)).some(message => String(message.tool?.name ?? "").startsWith("error:"))).toBe(false);
-
-    const { bot } = await apiOk("POST", "/api/bots", { name: "Bo" });
-    await apiOk("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
-    createAnswer = AT_ONCE;
-    await send(bot.id, bot.threadId, "Use your desktop too.");
-    const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: Your Personal plan includes 1 cloud desktop, and Ada has it. Manage your cloud desktops in Settings → Bot desktops.");
-    expect(row.tool.place).toEqual({ state: "cc-at-once", params: { bot: "Bo", plan: "Personal", max: 1, holders: ["Ada"] }, source: "works-on" });
-  }, 90_000);
-
-  it("J7: a relay that can't start one says so plainly, with Try again and no retired desktop provider words", async () => {
-    await start();
-    const { bot } = await apiOk("POST", "/api/bots", { name: "Down Bot" });
-    await apiOk("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
-    createAnswer = DOWN;
-    await send(bot.id, bot.threadId, "Open the desktop.");
-    const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: Cloud desktops can't start right now. It isn't anything you did. Try again.");
-    expect(row.tool.name).not.toMatch(/\x62oat|box|Works on to Auto/i);
-    expect(row.tool.place).toEqual({ state: "cc-unavailable", params: { bot: "Down Bot" }, source: "works-on" });
-  }, 90_000);
-
-  it("the Admin's subscription_inactive reads as Plan ended, by its code, with See your plan", async () => {
-    included = true;
-    writeConfig(false);
-    await start();
-    const { bot } = await apiOk("POST", "/api/bots", { name: "Ended Bot" });
-    await apiOk("PATCH", `/api/bots/${bot.id}`, { computer: "cloud" });
-    createAnswer = refusal(402, "subscription_inactive", "Cloud computers are included with an active Cloud subscription.");
-    await send(bot.id, bot.threadId, "Open the desktop.");
-    const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: Your dusk cloud plan has ended, so cloud desktops are off. See your plan on the Plan page.");
-    expect(row.tool.place).toEqual({ state: "cc-ended", params: { bot: "Ended Bot" }, source: "works-on" });
   }, 90_000);
 
   it("an automatic pin that fails is cleared, and the row says the conversation is back on Auto", async () => {
@@ -216,24 +132,21 @@ describe("a cloud computer that can't start, against the real server", () => {
       Object.assign(saved.tasks.find((task: any) => task.threadId === bot.threadId), { surface: "cloud", surfaceSource: "auto" });
     });
     await start();
-    createAnswer = DOWN;
     await send(bot.id, bot.threadId, "Carry on on the desktop.");
     const row = await failedRow(bot.threadId);
-    expect(row.tool.name).toBe("error: Cloud desktops can't start right now. It isn't anything you did. This conversation is back on Auto. Send your message again.");
-    expect(row.tool.place).toEqual({ state: "cc-unavailable", params: { bot: "Pinned Bot" }, source: "auto-pin" });
+    expect(row.tool.name).toBe(`error: ${NO_VPS} This conversation is back on Auto. Send your message again.`);
+    expect(row.tool.place).toEqual({ state: "place-failed", params: { bot: "Pinned Bot", cause: NO_VPS }, source: "auto-pin" });
     await idle(bot.id);
     expect(savedTask(bot.id, bot.threadId)?.surface).toBeUndefined();
-    const createsBefore = creates;
     const after = (await messages(bot.threadId)).length;
     await send(bot.id, bot.threadId, "What is 2+2?");
     await until(async () => (await messages(bot.threadId)).slice(after).some(message => message.role === "bot" && message.kind === "text"), Boolean, "Auto reply");
-    expect(creates).toBe(createsBefore);
+    expect((await messages(bot.threadId)).slice(after).some(message => String(message.tool?.name ?? "").startsWith("error:"))).toBe(false);
   }, 90_000);
 
-  it("a cloud routine that can't start its computer points at where the routine runs", async () => {
+  it("a cloud routine with no VPS says to connect one", async () => {
     await start();
     const { bot } = await apiOk("POST", "/api/bots", { name: "Routine Bot" });
-    createAnswer = DOWN;
     const { routine } = await apiOk("POST", "/api/routines", { name: "Desktop check", botId: bot.id,
       prompt: "Check the cloud desktop.", runOn: "cloud", enabled: false,
       schedule: { type: "interval", everyMinutes: 60, anchorAt: Date.now() + 3_600_000 } });
@@ -241,8 +154,8 @@ describe("a cloud computer that can't start, against the real server", () => {
     const threadId: string = await until(async (): Promise<string> =>
       (await apiOk("GET", "/api/routines")).runs.find((entry: any) => entry.id === run.id)?.threadId ?? "", Boolean, "routine thread");
     const row = await failedRow(threadId);
-    expect(row.tool.name).toBe("error: Cloud desktops can't start right now. It isn't anything you did. Change where this routine runs.");
-    expect(row.tool.place).toEqual({ state: "cc-unavailable", params: { bot: "Routine Bot" }, source: "routine" });
+    // the routine is refused before it starts, in one line that says what to do
+    expect(row.tool.name).toBe("error: Connect a VPS in Settings before scheduling work on its computer.");
     expect(row.tool.name).not.toMatch(/Works on/);
   }, 90_000);
 });
