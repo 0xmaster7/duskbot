@@ -8,6 +8,7 @@ import { expect, it } from "vitest";
 
 import { launchVerificationServer, runControlDusk, verificationServerArgs, verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { createControlClient } from "./control-client.ts";
+import { conversationOfRun, memberRunThreadId } from "./room-member-runs.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
@@ -107,7 +108,7 @@ async function scenario(test: (f: any) => Promise<void>, options: { fake?: Recor
     const bots = async () => (await api("GET", "/api/bots?messages=0")).body.bots as any[];
     const db = () => readRuntimeDb(dataDir);
     const roots = () => db().assignments.filter((row) => !row.parentId);
-    const roomRoots = (threadId: string) => roots().filter((row) => row.assignee?.destination?.threadId === threadId);
+    const roomRoots = (threadId: string) => roots().filter((row) => conversationOfRun(row.assignee?.destination?.threadId ?? "") === threadId);
     const eventsOf = (id: string) => db().events.filter((event) => event.assignmentId === id).map((event) => event.kind);
     const turns = (botId?: string): any[] => jsonl(`${planPath}.evidence.jsonl`).filter((turn) => !botId || turn.botId === botId);
     const turn = (key: string) => turns().find((candidate) => candidate.planKey === key);
@@ -160,11 +161,13 @@ it("R1 runs each responder of a person's room message as a root in the room thre
   await expect.poll(() => f.roomRoots(room.threadId).map((row: any) => row.status), { timeout: 15_000 }).toEqual(["completed", "completed"]);
   const rows = f.roomRoots(room.threadId);
   expect(rows.map((row: any) => row.assignee.botId).sort()).toEqual([f.clive.id, mira.id].sort());
+  // both mentioned members answer at once, each on its own member run of the room thread
   for (const row of rows) {
+    const run = memberRunThreadId(room.threadId, row.assignee.botId);
     expect(row).toMatchObject({ depth: 0, executions: 1, restarts: 0, outcome: "done",
-      requester: { kind: "person", threadId: room.threadId, botId: row.assignee.botId },
+      requester: { kind: "person", threadId: run, botId: row.assignee.botId },
       origin: { kind: "person", quote: expect.stringContaining("R1-JOB") },
-      assignee: { destination: { kind: "room_thread", groupId: room.id, threadId: room.threadId } } });
+      assignee: { destination: { kind: "room_thread", groupId: room.id, threadId: run } } });
     expect(row.brief).toContain("R1-JOB");
     expect(f.eventsOf(row.id)).toEqual(expect.arrayContaining(["enqueued", "started", "settled"]));
   }
