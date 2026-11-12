@@ -7,7 +7,11 @@ import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resume
 import { randomUuid } from "@/lib/random-uuid";
 import { firstJobOutbound, type StarterJobId } from "@/lib/starter-jobs";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
+import { movable } from "@/lib/bot-move";
+import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
+import { BringBotsView, useBotMove } from "../BringBots";
+import { GrokMoveDialog } from "../lazy-screens";
 import { useIslandAvailable } from "./IslandIntro";
 import { openIslandIntro } from "./IslandIntroHost";
 import { StartScreen } from "./StartScreen";
@@ -133,6 +137,11 @@ export function WelcomeFlow({
 
   // Escape skips as Skip does, but never past a job being written
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" && showMove) {
+      event.preventDefault();
+      if (move.step.kind !== "moving" && !grokOpen) setMoveSettled(true);
+      return;
+    }
     if (event.key === "Escape") {
       const typing = event.target instanceof HTMLTextAreaElement && event.target.value.trim().length > 0;
       if (typing || event.defaultPrevented) return;
@@ -142,6 +151,21 @@ export function WelcomeFlow({
     }
     trapTab(event, root.current);
   };
+
+  // bots another agent app keeps on this computer are offered first, on the desktop app's own first run only
+  const offersMove = !replay && !embedded && localDesktopPage() && localSetupImport(state.config?.cloudHome === true);
+  const move = useBotMove({ look: offersMove });
+  const [moveSettled, setMoveSettled] = useState(!offersMove);
+  const [grokOpen, setGrokOpen] = useState(false);
+  const moveFound = Boolean(move.plan && (movable(move.plan) || move.plan.grokWaiting.length));
+  useEffect(() => {
+    if (move.plan && !moveFound) setMoveSettled(true);
+  }, [move.plan, moveFound]);
+  useEffect(() => {
+    if (!moveFound || moveSettled) return;
+    track("onboarding_step", { step: "bring_bots", replay });
+  }, [moveFound, moveSettled, replay]);
+  const showMove = offersMove && !moveSettled;
 
   const island = useIslandAvailable() === true;
   const cloud = !embedded && !replay && localDesktopPage() && !window.duskDesktop?.remoteClient?.active && Boolean(window.duskDesktop?.cloudAccount)
@@ -156,13 +180,22 @@ export function WelcomeFlow({
       ref={root}
       role="dialog"
       aria-modal
-      aria-labelledby="welcome-title"
+      aria-labelledby={showMove && moveFound ? "bot-move-title" : "welcome-title"}
       tabIndex={-1}
       onKeyDown={onKeyDown}
       data-welcome="start"
       className={cn("welcome-screen flex overflow-y-auto bg-app outline-none", embedded ? "relative h-full w-full" : "fixed inset-0 z-50")}
     >
-      <StartScreen bot={maus} onStart={start} onSkip={skip} extras={extras} />
+      {!showMove ? <StartScreen bot={maus} onStart={start} onSkip={skip} extras={extras} />
+        : moveFound && move.plan ? (
+          <div key={move.step.kind} className="onboarding-step-in relative flex min-h-full w-full flex-col items-center px-4">
+            <div className="my-auto flex w-full flex-col items-center pb-10 pt-16">
+              <BringBotsView plan={move.plan} step={move.step} bot={maus} variant="screen" onBring={() => void move.bring()}
+                onSkip={() => setMoveSettled(true)} onContinue={() => setMoveSettled(true)} onGrok={() => setGrokOpen(true)} />
+            </div>
+          </div>
+        ) : <div data-welcome-looking="" aria-busy="true" className="min-h-full w-full" />}
+      {grokOpen && <GrokMoveDialog onClose={() => { setGrokOpen(false); void move.look(); }} />}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { addTemplate } from "@/lib/template-add";
 import { api, type Action, type Bot } from "@/state/store";
 import type { LocaleKey } from "@/locales";
 import { takeImportName } from "../../shared/import-name";
-import { GrokImportError, grokMovePlan, mergeGrokBots, parseGrokExport, type GrokBot, type GrokMovePlan } from "../../shared/grok-import";
+import { GrokImportError, grokMovePlan, mergeGrokBots, parseGrokExport, type GrokBot, type GrokMovePlan, type MoveFrom } from "../../shared/grok-import";
 
 /** What the desktop app found on this computer. */
 export interface GrokLook {
@@ -57,21 +57,24 @@ export interface GrokPreviewFacts {
   bots: readonly Pick<Bot, "name" | "installedPackage">[];
   servers: ReadonlySet<string>;
   timeZone: string;
+  /** Another app than Grok Bot. */
+  from?: MoveFrom;
 }
 
 /** The whole plan, nothing written. A Bot already moved or that can't be read is named, and costs the others nothing. */
-export function previewGrokMove(bots: readonly GrokBot[], facts: GrokPreviewFacts): GrokPreview {
+export function previewGrokMove(bots: readonly GrokBot[], facts: GrokPreviewFacts, names = new Set(facts.bots.map((bot) => bot.name.trim().toLowerCase())),
+  servers = new Set(facts.servers), planned = new Set<string>()): GrokPreview {
   const installed = new Set(facts.bots.flatMap((bot) => bot.installedPackage?.id ?? []));
-  const names = new Set(facts.bots.map((bot) => bot.name.trim().toLowerCase()));
-  const servers = new Set(facts.servers);
   const preview: GrokPreview = { plans: [], moved: [], unreadable: [] };
   for (const bot of bots) {
     try {
-      const plan = grokMovePlan(bot, { timeZone: facts.timeZone, takenServers: servers });
+      const plan = grokMovePlan(bot, { timeZone: facts.timeZone, takenServers: servers, ...(facts.from ? { from: facts.from } : {}) });
       if (installed.has(plan.packageId)) {
         preview.moved.push(plan.name);
         continue;
       }
+      if (planned.has(plan.packageId)) continue;
+      planned.add(plan.packageId);
       for (const connection of plan.document.package.connections ?? []) servers.add(connection.key);
       preview.plans.push({ ...plan, addedAs: takeImportName(plan.name, names) });
     } catch {
@@ -82,7 +85,10 @@ export function previewGrokMove(bots: readonly GrokBot[], facts: GrokPreviewFact
 }
 
 export interface GrokMovedBot {
+  id: string;
   name: string;
+  /** The sidebar section the import made for it. */
+  section?: string;
   skills: number;
   /** Skills left off: the skill scan flagged them, or they could not be switched on. */
   skillsOff: string[];
@@ -100,9 +106,10 @@ export interface GrokReport {
 }
 
 /** Imports each plan through the package path, then switches on its skills. One Bot failing is named and the rest carry on. */
-export async function runGrokMove(preview: GrokPreview, dispatch: (action: Action) => void): Promise<GrokReport> {
+export async function runGrokMove(preview: GrokPreview, dispatch: (action: Action) => void, onBot?: (plan: GrokPreview["plans"][number]) => void): Promise<GrokReport> {
   const report: GrokReport = { bots: [], moved: preview.moved, unreadable: preview.unreadable, failed: [] };
   for (const plan of preview.plans) {
+    onBot?.(plan);
     try {
       const bot = (await addTemplate(plan.document, dispatch)).first;
       if (!bot) throw new Error("no bot");
@@ -111,7 +118,7 @@ export async function runGrokMove(preview: GrokPreview, dispatch: (action: Actio
         const on = skill.on && await api(`/api/bots/${bot.id}/skills/${encodeURIComponent(skill.folder)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) }).then(() => true, () => false);
         if (!on) skillsOff.push(skill.name);
       }
-      report.bots.push({ name: bot.name, skills: plan.skills.length, skillsOff, routines: plan.routines, notes: plan.notes, memories: plan.memories, apps: plan.apps });
+      report.bots.push({ id: bot.id, name: bot.name, ...(bot.section ? { section: bot.section } : {}), skills: plan.skills.length, skillsOff, routines: plan.routines, notes: plan.notes, memories: plan.memories, apps: plan.apps });
     } catch {
       report.failed.push(plan.name);
     }

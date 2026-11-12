@@ -97,6 +97,51 @@ test("the dev source passes Vite's answer through and leaves a missing file to t
   assert.deepEqual(asked.map(([url]) => url), ["http://127.0.0.1:5199/@vite/client?t=1", "http://127.0.0.1:5199/missing.js", "http://127.0.0.1:5199/chat/1"]);
 });
 
+test("routing: every dev module, optimized dependency and lazy chunk of a place's page is this app's", () => {
+  const origins = [VPS, CLOUD];
+  for (const url of [
+    `${VPS}/src/App.tsx`, `${VPS}/src/main.tsx`, `${VPS}/src/locales/en.json?import`, `${VPS}/src/styles.css`, `${VPS}/@vite/client`,
+    `${VPS}/@react-refresh`, `${VPS}/@fs/Users/me/app/node_modules/vite/dist/client/env.mjs`, `${VPS}/node_modules/.vite/deps/react.js?v=25ce7337`,
+    `${VPS}/node_modules/.vite/deps/chunk-UTDYDSFM.js?v=163a8dbf`, `${VPS}/src/App.tsx?t=1731000000000`, `${VPS}/shared/wire.ts`,
+    `${CLOUD}/assets/App-Bx1.js`, `${CLOUD}/assets/DesktopViewer-C9.js`, `${CLOUD}/assets/index-D2.css`,
+  ]) assert.equal(uiRoute({ url, resourceType: "Script" }, origins), "file", url);
+  assert.equal(uiRoute({ url: `${VPS}/src/assets/sounds/tick.wav`, resourceType: "Media" }, origins), "file");
+  const media = uiPatterns([VPS]).filter((pattern) => pattern.resourceType === "Media").map((pattern) => pattern.urlPattern);
+  for (const at of ["/assets/*", "/src/*", "/@fs/*", "/node_modules/*"]) assert.ok(media.includes(`${VPS}${at}`), at);
+  assert.equal(media.some((pattern) => pattern.includes("/api")), false);
+});
+
+test("the dev source: a busy Vite gets a few connections, a reset is asked again, and Vite's errors stay Vite's", async () => {
+  let open = 0, most = 0, resets = 0;
+  const fetch = async (url) => {
+    open += 1; most = Math.max(most, open);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      // the first asks for App.tsx find Vite's backlog full
+      if (url.endsWith("/src/App.tsx") && resets < 2) { resets += 1; throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } }); }
+      if (url.includes("/deps/old.js")) return new Response("Outdated Optimize Dep", { status: 504 });
+      if (url.endsWith("/src/broken.tsx")) return new Response("Transform failed", { status: 500 });
+      if (url.endsWith("/assets/index-OLD.js")) return new Response("<!doctype html>", { headers: { "content-type": "text/html" } });
+      return new Response("export {}", { headers: { "content-type": "text/javascript" } });
+    } finally { open -= 1; }
+  };
+  const source = devSource("http://127.0.0.1:5199", { fetch, connections: 3, pause: async () => {} });
+  const urls = Array.from({ length: 40 }, (_, i) => `${VPS}/src/m${i}.ts`);
+  const answers = await Promise.all([source.file(`${VPS}/src/App.tsx`), ...urls.map((url) => source.file(url))]);
+  assert.ok(answers.every((answer) => answer?.status === 200 && String(answer.body) === "export {}"));
+  assert.equal(resets, 2);
+  assert.ok(most <= 3, `at most 3 at once, saw ${most}`);
+  // never the place's server: it has no dev modules, so Vite's own error is the honest answer (its client handles a 504)
+  assert.equal((await source.file(`${VPS}/node_modules/.vite/deps/old.js?v=1`)).status, 504);
+  assert.equal((await source.file(`${VPS}/src/broken.tsx`)).status, 500);
+  // Vite's index for a name it lacks: a file only the server's own page names
+  assert.equal(await source.file(`${VPS}/assets/index-OLD.js`), null);
+  // Vite gone for good: the window logs it instead of hiding it
+  const gone = devSource("http://127.0.0.1:5199", { fetch: async () => { throw new TypeError("fetch failed"); }, pause: async () => {} });
+  await assert.rejects(gone.file(`${VPS}/src/App.tsx`));
+  assert.equal(await gone.page(`${VPS}/`), null);
+});
+
 function fakeWindow() {
   const sent = [];
   const debuggerApi = Object.assign(new EventEmitter(), {
@@ -134,6 +179,24 @@ test("the window: patterns follow the places, a paused request gets one answer",
   assert.deepEqual((await answer({ requestId: "2", resourceType: "Script", request: { url: `${CLOUD}/assets/old.js` } })).map(([m]) => m), ["Fetch.continueRequest"]);
   assert.deepEqual((await answer({ requestId: "3", resourceType: "Script", request: { url: `${CLOUD}/new.js` } })).map(([m]) => m), ["Fetch.fulfillRequest"]);
   assert.deepEqual((await answer({ requestId: "4", resourceType: "Image", request: { url: `${CLOUD}/api/x` } })).map(([m]) => m), ["Fetch.continueRequest"]);
+});
+
+test("the window: a dev module whose first asks are reset is still this app's answer, never the server's", async () => {
+  const { contents, sent } = fakeWindow();
+  let tries = 0;
+  const fetch = async () => {
+    tries += 1;
+    if (tries < 3) throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } });
+    return new Response("export default 1", { headers: { "content-type": "text/javascript" } });
+  };
+  const ui = createLocalUi({ source: devSource("http://127.0.0.1:5199", { fetch, pause: async () => {} }), origins: () => [VPS] });
+  await ui.attach(contents);
+  sent.length = 0;
+  contents.debugger.emit("message", {}, "Fetch.requestPaused", { requestId: "7", resourceType: "Script", request: { url: `${VPS}/src/App.tsx` } });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(sent.map(([method]) => method), ["Fetch.fulfillRequest"]);
+  assert.equal(Buffer.from(sent[0][1].body, "base64").toString(), "export default 1");
+  assert.equal(sent[0][1].responseCode, 200);
 });
 
 test("the window: a source that fails leaves the server's own answer", async () => {

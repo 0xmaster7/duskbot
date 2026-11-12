@@ -88,6 +88,22 @@ describe("the setup import routes", () => {
     expect(await found.json()).toMatchObject({ files: [{ name: "grok-bot-export-drew.json", text: "reply" }], bots: [] });
   });
 
+  it("hands out other agent apps' bots only to the owner's own loopback there", async () => {
+    const home = fixtureHome();
+    mkdirSync(join(home, ".hermes", "memories"), { recursive: true });
+    writeFileSync(join(home, ".hermes", "SOUL.md"), "You are Hermes, calm and brief.");
+    writeFileSync(join(home, ".hermes", ".env"), "TELEGRAM_BOT_TOKEN=123:never-read");
+    const local = await serve({ home, dataDir: join(home, ".duskbot") });
+    for (const auth of ["paired", "service"]) expect((await local.call("GET", "/api/setup-import/bots", { auth })).status, auth).toBe(403);
+    expect((await (await serve({ local: false, home })).call("GET", "/api/setup-import/bots")).status).toBe(403);
+    expect((await local.call("POST", "/api/setup-import/bots", { body: {} })).status).toBe(405);
+    const found = await local.call("GET", "/api/setup-import/bots");
+    expect(found.headers.get("cache-control")).toBe("no-store");
+    const text = await found.text();
+    expect(text).not.toContain("never-read");
+    expect(JSON.parse(text)).toMatchObject({ apps: [{ source: "hermes", where: "~/.hermes", bots: [{ name: "Hermes", instructions: "You are Hermes, calm and brief." }] }] });
+  });
+
   it("deletes an old Cursor sign-in as the routes start, on any server", async () => {
     const home = fixtureHome();
     writeFileSync(join(home, "cursor-session.json"), "{\"accessToken\":\"x\"}");
