@@ -28,10 +28,10 @@ async function pill(services: Record<string, { connected: boolean }>, circle = f
 }
 
 it("always asks to connect apps, as grok's pill does, showing the featured apps not yet connected", async () => {
-  expect(await pill({})).toEqual({ label: "connect apps", faces: ["googledrive", "googlecalendar", "granola"] });
-  expect(await pill({ github: { connected: false } }), "an app that is only listed is not connected").toEqual({ label: "connect apps", faces: ["googledrive", "googlecalendar", "granola"] });
-  expect(await pill({ github: { connected: true } })).toEqual({ label: "connect apps", faces: ["googledrive", "googlecalendar", "granola"] });
-  expect((await pill({ googledrive: { connected: true } })).faces, "a connected app gives its place to the next").toEqual(["googlecalendar", "granola", "notion"]);
+  expect(await pill({})).toEqual({ label: "connect apps", faces: ["gmail", "notion", "slack"] });
+  expect(await pill({ github: { connected: false } }), "an app that is only listed is not connected").toEqual({ label: "connect apps", faces: ["gmail", "notion", "slack"] });
+  expect(await pill({ github: { connected: true } })).toEqual({ label: "connect apps", faces: ["gmail", "notion", "slack"] });
+  expect((await pill({ gmail: { connected: true } })).faces, "a connected app gives its place to the next").toEqual(["notion", "slack", "figma"]);
   expect((await pill({ github: { connected: true } }, true)).label, "the footer's grid button keeps grok's name").toBe("connect apps");
 });
 

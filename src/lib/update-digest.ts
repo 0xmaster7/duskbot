@@ -1,5 +1,5 @@
 // The one quiet line a server install shows after it updated itself or rolled an update back (server/update-state.ts):
-// "Updated to 1.4.2" or "Update rolled back, nothing lost". Asked once per page, in the background; shown once.
+// only "Update rolled back, nothing lost" is shown; a plain update is marked seen quietly. Asked once per page, in the background.
 import { useEffect, useState } from "react";
 import { api } from "@/state/store";
 import { whenServerHas } from "./server-compat";
@@ -17,7 +17,12 @@ export function useUpdateDigest(): { line: string; seen: () => void } | null {
   useEffect(() => {
     let active = true;
     void whenServerHas("updateDigest", () => api<{ digest: UpdateDigest | null }>("/api/updates/digest", { background: true }))
-      .then(answer => { if (active && answer?.digest && (answer.digest.kind === "updated" || answer.digest.kind === "rolled_back")) setDigest(answer.digest); }, () => {});
+      .then(answer => {
+        if (!active || !answer?.digest) return;
+        // a plain update goes by quietly; only a rollback is worth a line
+        if (answer.digest.kind === "updated") void api("/api/updates/digest/seen", { method: "POST", body: "{}" }).catch(() => {});
+        else if (answer.digest.kind === "rolled_back") setDigest(answer.digest);
+      }, () => {});
     return () => { active = false; };
   }, []);
   if (!digest) return null;

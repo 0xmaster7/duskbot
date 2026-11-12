@@ -14,21 +14,20 @@ import { ConnectAppsHost, openConnectApps, preloadConnectApps, useConnectApps } 
 
 export type AppFace = Pick<ToolkitCard, "slug" | "label" | "logo" | "domain"> & Pick<TileArt, "image" | "padded" | "background" | "scale">;
 
-/** The three apps grok's footer shows before anything is connected. */
+/** The three apps the footer shows before anything is connected, each in its own colours. */
 export const POPULAR_APPS: readonly AppFace[] = [
-  { slug: "googledrive", label: "Google Drive", logo: "https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png", domain: "drive.google.com" },
-  { slug: "googlecalendar", label: "Google Calendar", logo: "https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png", domain: "calendar.google.com" },
-  { slug: "granola", label: "Granola", logo: null, domain: "granola.ai" },
+  { slug: "gmail", label: "Gmail", logo: null, domain: "mail.google.com" },
+  { slug: "notion", label: "Notion", logo: null, domain: "notion.so" },
+  { slug: "slack", label: "Slack", logo: null, domain: "slack.com" },
 ];
 
 /** After those, the popular apps that take a connected one's place, in order. */
 const MORE_APPS: readonly AppFace[] = [
-  { slug: "notion", label: "Notion", logo: null, domain: "notion.so" },
-  { slug: "slack", label: "Slack", logo: null, domain: "slack.com" },
-  { slug: "github", label: "GitHub", logo: null, domain: "github.com" },
-  { slug: "linear", label: "Linear", logo: null, domain: "linear.app" },
   { slug: "figma", label: "Figma", logo: null, domain: "figma.com" },
-  { slug: "gmail", label: "Gmail", logo: null, domain: "mail.google.com" },
+  { slug: "linear", label: "Linear", logo: null, domain: "linear.app" },
+  { slug: "github", label: "GitHub", logo: null, domain: "github.com" },
+  { slug: "googledrive", label: "Google Drive", logo: "https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png", domain: "drive.google.com" },
+  { slug: "googlecalendar", label: "Google Calendar", logo: "https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png", domain: "calendar.google.com" },
 ];
 
 export const APP_FACES = 3;

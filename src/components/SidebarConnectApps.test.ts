@@ -17,8 +17,8 @@ describe("the Connect apps faces", () => {
 
   it("shows grok's featured apps not yet connected, in order, and never more than three", () => {
     const cards = new Map([["github", card("github")], ["gmail", card("gmail")]]);
-    expect(appFaces(["github", "gmail"], cards).map((face) => face.slug)).toEqual(["googledrive", "googlecalendar", "granola"]);
-    expect(appFaces(["googledrive", "granola"], cards).map((face) => face.slug)).toEqual(["googlecalendar", "notion", "slack"]);
+    expect(appFaces(["github", "linear"], cards).map((face) => face.slug)).toEqual(["gmail", "notion", "slack"]);
+    expect(appFaces(["gmail", "figma"], cards).map((face) => face.slug)).toEqual(["notion", "slack", "linear"]);
     const many = new Map(["a", "b", "c", "d"].map((slug) => [slug, card(slug)]));
     expect(appFaces(["a", "b", "c", "d"], many)).toHaveLength(APP_FACES);
   });
@@ -45,6 +45,6 @@ describe("the Connect apps faces", () => {
   });
 
   it("keeps a connected app it cannot draw yet out, and the popular ones in", () => {
-    expect(appFaces(["linear"], new Map()).map((face) => face.slug)).toEqual(["googledrive", "googlecalendar", "granola"]);
+    expect(appFaces(["linear"], new Map()).map((face) => face.slug)).toEqual(["gmail", "notion", "slack"]);
   });
 });
