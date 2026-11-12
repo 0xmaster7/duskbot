@@ -53,7 +53,7 @@ extraResources:
   - from: third_party/openmausbot/NOTICE
     to: licenses/upstream-NOTICE.txt
   # cloudflared is distributed under Apache-2.0 as a separate executable.
-  # Dusk Bot itself uses the same full license text; ship another named
+  # the upstream OpenMausBot code uses the same full license text; ship another named
   # copy so the third-party executable's terms remain unambiguous.
   - from: third_party/openmausbot/OpenMausBot-Apache-2.0.txt
     to: licenses/cloudflared-LICENSE.txt

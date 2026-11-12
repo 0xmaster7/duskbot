@@ -41,11 +41,6 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 <br>
 
-<a href="https://github.com/sponsors/milind-soni">
-  <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F%20%20Support%20Dusk%20Bot-GitHub%20Sponsors-38d591?style=for-the-badge&labelColor=070707" alt="Support dusk bot via GitHub Sponsors" height="40">
-</a>
-
-<br>
 <br>
 
 <img src="docs/screenshots/hero.png" alt="dusk bot — a Telegram-style chat app where every chat is a real AI agent" width="900">
@@ -54,7 +49,7 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 ---
 
-> ⚠️ **No affiliation with any cryptocurrency.** dusk bot has no token. Any coin using the dusk bot or Dusk name is not created, endorsed, or affiliated with this project or its maintainer. I have received no tokens, payment, or allocation from anyone, and I will not be endorsing any token.
+> ⚠️ **No affiliation with any cryptocurrency.** dusk bot has no token. Any coin using the dusk bot or Dusk name is not created, endorsed, or affiliated with this project or its maintainers. We have received no tokens, payment, or allocation from anyone, and we will not endorse any token.
 
 ## Why
 
@@ -84,7 +79,7 @@ apps, running on your machine under the PolyForm Strict license. If you searched
 | Looking for | What it is | How dusk bot differs | Read more |
 | --- | --- | --- | --- |
 | **Source-available Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs dusk bot](https://dusk.bot/blog/grok-bot-vs-duskbot) |
-| **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.duskbot` | [Meta Muse alternative](https://dusk.bot/blog/open-source-alternative-to-meta-muse) |
+| **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.duskbot` | [Alternatives](https://dusk.bot/alternatives) |
 | **Open dots** | OpenAI's always-on agent inside ChatGPT, GPT only, Pro and Business Premium plans | Several agents; your Claude, ChatGPT or Grok login; no plan required | [OpenAI dots alternative](https://dusk.bot/blog/openai-dots-alternative) |
 | **Open Cue** | Invite-only agents with their own phone, email and wallet | No invite; OAuth instead of passwords; source-available | [Agent comparisons](https://dusk.bot/blog/muse-vs-grok-bot-vs-dots-vs-cue) |
 | **Open Instinct** | Spear Street's invite-only agent that holds your passwords on a cloud computer | Ask for approval when you want it; signs in over OAuth; your machine | [Instinct AI alternative](https://dusk.bot/blog/instinct-ai-alternative) |
@@ -185,8 +180,9 @@ in **Teams → Import**.
 The format stays portable: dusk bot reads the structured YAML frontmatter for a reliable one-click
 install, while Grok, Claude, ChatGPT, and people can follow the ordinary Markdown playbook. Connections
 remain off until you approve them, routines arrive paused, and packages never carry credentials,
-conversations, permissions, memory, or computer access. The open-source playbook repository and its
-portable format are linked from the Team library in the app.
+conversations, permissions, memory, or computer access. The playbooks come from the upstream OpenMausBot
+project's teams repository (MIT licensed, a separate project); it and its portable format are linked from the
+Team library in the app.
 
 ### 🤝 Share a whole department
 
@@ -236,7 +232,6 @@ expressions · screenshots of the bot's work folded into the transcript.
 ![Cua](https://img.shields.io/badge/Cua%20Driver-1f2937)
 ![ElevenLabs](https://img.shields.io/badge/ElevenLabs-000000?logo=elevenlabs&logoColor=white)
 ![Fish Audio](https://img.shields.io/badge/Fish%20Audio-2563eb)
-![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-ea4aaa)
 
 </div>
 
@@ -248,7 +243,6 @@ expressions · screenshots of the bot's work folded into the transcript.
 | **Composio** | Connected apps — Gmail, Slack, GitHub, and more |
 | **Cua Driver** | Native computer use on your own machine |
 | **ElevenLabs · Fish Audio** | Hosted voices for bots that talk back |
-| **GitHub Sponsors** | One-time and monthly project support |
 
 ## How it works
 
@@ -448,13 +442,6 @@ see [Other model providers](docs/custom-engines.md).
 Usage analytics are optional and anonymous: product events and a once-a-day count of what is set up, never keys,
 names, addresses or conversations. Turn them off in Settings → General → Usage analytics;
 [`docs/analytics.md`](docs/analytics.md) lists every event and property.
-
-## Support the project
-
-dusk bot is free for noncommercial use. If it does real work for you, you can
-[support its development through GitHub Sponsors](https://github.com/sponsors/milind-soni)
-with a one-time contribution or a monthly sponsorship. Your support helps fund ongoing development
-and maintenance; dusk bot remains free for noncommercial use.
 
 ## Run from a terminal or on a server
 
