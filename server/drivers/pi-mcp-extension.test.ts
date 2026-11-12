@@ -8,6 +8,7 @@ import { startFakeHttpMcp } from "../testing/fake-http-mcp-server.ts";
 import { whopLikeCatalog } from "../testing/whop-like-catalog.ts";
 import { buildMcpServers } from "./pi-mcp-servers.ts";
 import { mcpStdioServer } from "../mcp-gate-config.ts";
+import { REMOTE_MCP_CACHE_ENV } from "../mcp-remote-proxy-cache.ts";
 
 import extension, {
   allocateToolName,
@@ -246,8 +247,9 @@ describe("Pi MCP startup budgets", () => {
     const remote = await startFakeHttpMcp({ tools: whopLikeCatalog(300), toolsDelayMs: 20_000 });
     try {
       const descriptor = mcpStdioServer({ type: "http", url: remote.url, headers: {} }, { directory: { name: "whop" } })!;
-      const server = { command: descriptor.command, args: descriptor.args, env: descriptor.env };
-      const searched = new StdioMcp({ ...server, directory: true });
+      // remote tool lists are cached (mcp-remote-proxy-cache.ts); each client gets its own empty cache so both wait on the server
+      const server = (cache: string) => ({ command: descriptor.command, args: descriptor.args, env: { ...descriptor.env, [REMOTE_MCP_CACHE_ENV]: cache } });
+      const searched = new StdioMcp({ ...server(tempDir()), directory: true });
       clients.push(searched);
       const listing = watch(searched.init().then(() => searched.listTools()));
       await untilReal(() => remote.delayedToolsLists === 1);
@@ -256,7 +258,7 @@ describe("Pi MCP startup budgets", () => {
       expect(listing.error).toBeUndefined();
       expect(listing.value!.map((tool) => tool.name)).toEqual(["search_tools", "describe_tool", "call_tool"]);
 
-      const plain = new StdioMcp(server);
+      const plain = new StdioMcp(server(tempDir()));
       clients.push(plain);
       const failing = watch(plain.init().then(() => plain.listTools()));
       await untilReal(() => remote.delayedToolsLists === 2);
