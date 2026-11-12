@@ -188,13 +188,13 @@ test("the loading screen says what the app waits on, before its page has loaded 
   splash.status("Waking My Cloud…");
   splash.window.webContents.emit("did-finish-load");
   assert.equal(ran.length, 2);
-  for (const code of ran) { assert.match(code, /document\.querySelector\('\.status'\)/); assert.ok(code.includes(JSON.stringify("Waking My Cloud…"))); }
+  for (const code of ran) { assert.match(code, /^window\.card\?\.say\(/); assert.ok(code.includes(JSON.stringify("Waking My Cloud…"))); }
   splash.dispose();
   splash.status("Opening My Cloud…");
   assert.equal(ran.length, 2, "nothing after it is gone");
 });
 
-test("the ring closes before the workspace fades in over the splash", async () => {
+test("the workspace fades in over the splash", async () => {
   const ran = [];
   class Fading extends Window {
     constructor(options) { super(options); this.webContents.executeJavaScript = async code => { ran.push(code); }; }
@@ -207,9 +207,26 @@ test("the ring closes before the workspace fades in over the splash", async () =
   splash.attach(win);
   win.webContents.emit("did-finish-load");
   while (!splash.window.destroyed) await new Promise(resolve => setTimeout(resolve, 20));
-  assert.ok(ran.indexOf("window.ring?.done()") > ran.indexOf("window.ring?.to(0.8)"));
+  assert.ok(ran.includes("window.card?.ready()"));
   assert.equal(win.visible, true); assert.equal(win.opacity, 1); assert.equal(splash.window.opacity, 0);
   assert.deepEqual(calls, ["finished"]);
+});
+
+test("a failed startup shows on the card with try again and quit, never a hang", async () => {
+  const ran = [];
+  class Said extends UnreadyWindow {
+    constructor(options) { super(options); this.webContents.executeJavaScript = async (code) => { ran.push(code); }; }
+  }
+  const { splash, calls } = fixture({ BrowserWindow: Said, onRetry: () => calls.push("retry") });
+  splash.fail(new Error("the server exited"));
+  assert.equal(splash.window.visible, true);
+  assert.ok(ran.some(code => code === `window.card?.fail(${JSON.stringify("the server exited")})`));
+  splash.window.webContents.emit("did-finish-load");
+  assert.equal(ran.filter(code => code.startsWith("window.card?.fail(")).length, 2, "a reload still shows it");
+  splash.window.webContents.emit("ipc-message", {}, "startup-screen:retry");
+  splash.window.webContents.emit("ipc-message", {}, "startup-screen:quit");
+  assert.deepEqual(calls, ["retry", "quit"]);
+  assert.equal(splash.window.destroyed, false);
 });
 
 test("the macOS tray icon is a template image, elsewhere the logo", () => {

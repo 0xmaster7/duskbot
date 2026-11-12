@@ -3,13 +3,17 @@ import test from "node:test";
 import { bootShellHtml } from "./startup-mascot.mjs";
 import { startupScreenHtml } from "./startup-screen.mjs";
 
-test("the splash waits with the mascot, not a spinner", () => {
+test("the splash is a pixel postcard: the scene, kit and pip, one status line and a still version for reduced motion", () => {
   const html = startupScreenHtml();
-  assert.match(html, /<svg class="boot-mascot"[^>]*aria-hidden="true"/);
-  assert.match(html, /<svg class="boot-mascot"[^>]*data-body="kit"/);
-  assert.doesNotMatch(html, /spinner/);
-  assert.match(html, /prefers-reduced-motion:reduce\)\{\.boot-mascot \.boot-eyes\{animation:none/);
-  assert.match(html, /role="status">Opening your workspace/);
+  assert.match(html, /<svg class="kit"[^>]*aria-hidden="true"/);
+  assert.match(html, /role="status">opening…/);
+  assert.match(html, /url\("data:image\/png;base64,[^"]+"\)/);
+  assert.match(html, /<svg class="pip"[^>]*aria-hidden="true"/);
+  assert.match(html, /@media\(prefers-reduced-motion:reduce\)\{\.cloud,\.pip,\.shadow,\.eyes,\.talk\{animation:none\}\}/);
+  assert.match(html, /@media\(prefers-color-scheme:dark\)/);
+  assert.match(html, /data-act="retry">try again</);
+  assert.match(html, /data-act="quit">quit</);
+  assert.doesNotMatch(html, /OpenMaus|>dusk bot<|border:\s*1px/);
 });
 
 test("the boot shell hides itself once the app renders into #root", () => {
