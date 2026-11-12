@@ -9,7 +9,7 @@ import { openSse } from "./testing/sse.ts";
 it("saving and replacing a workspace key reaches an existing bot's next request without leaking keys", async () => {
   const received: string[] = [];
   let reply = 0;
-  const provider = createServer((req, res) => {
+  const provider = createServer(async (req, res) => {
     if (req.url === "/v1/models") {
       // Deliberately public: this must never be presented as authenticated.
       res.setHeader("content-type", "application/json");
@@ -18,11 +18,19 @@ it("saving and replacing a workspace key reaches an existing bot's next request 
     }
     if (req.url !== "/v1/chat/completions") { res.writeHead(404).end(); return; }
     const key = req.headers.authorization ?? "";
-    received.push(key);
-    req.resume();
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    // the turn streams; the short acknowledgement written beside it does not, and gets SKIP
+    const turn = (JSON.parse(raw) as { stream?: boolean }).stream !== false;
+    if (turn) received.push(key);
     if (!["Bearer fixture-first-key", "Bearer fixture-replacement-key"].includes(key)) {
       res.writeHead(401, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: { message: "Invalid fixture credential" } }));
+      return;
+    }
+    if (!turn) {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ choices: [{ message: { role: "assistant", content: "SKIP" } }] }));
       return;
     }
     res.writeHead(200, { "content-type": "text/event-stream" });

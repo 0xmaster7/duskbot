@@ -14,6 +14,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { startFakeOpenAiLive, type FakeOpenAiLive } from "./testing/fake-openai-live.ts";
 import { freePortBlock } from "./testing/ports.ts";
 import { openSse } from "./testing/sse.ts";
+import { sealedConfigBody } from "./testing/sealed-config.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
@@ -725,7 +726,9 @@ posixOnly("Live call on the person's Cloud", () => {
     expect(refused, JSON.stringify(refused.body)).toMatchObject({ status: 409, body: { needsKey: true } });
     expect(live.sessions).toHaveLength(0);
 
-    const saved = await request("PUT", "/api/config", { live: { key: OWNER_KEY } });
+    // the app seals the key for this server first: the edge never carries it in the clear
+    const owner = { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", authorization: `Bearer ${ownerToken}` };
+    const saved = await request("PUT", "/api/config", await sealedConfigBody(base, { live: { key: OWNER_KEY } }, owner));
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
     expect(saved.body).toMatchObject({ cloudHome: true, live: { configured: true } });
     expect(JSON.stringify(saved.body)).not.toContain(OWNER_KEY);
