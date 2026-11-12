@@ -405,7 +405,7 @@ fs.writeFileSync(path.join(site, `${indexNowKey}.txt`), indexNowKey);
 // pages taken down for good, which server.js answers with 410
 fs.writeFileSync(path.join(site, '_gone.json'), JSON.stringify(seo.gone));
 fs.writeFileSync(path.join(site, 'site.webmanifest'), JSON.stringify({
-  name: 'Dusk Bot', short_name: 'Dusk Bot', description: 'Your own team of AI bots, in a chat app.', start_url: '/', display: 'browser', background_color: '#ffffff', theme_color: '#ffffff',
+  name: 'dusk bot', short_name: 'dusk bot', description: 'Your own team of AI bots, in a chat app.', start_url: '/', display: 'browser', background_color: '#ffffff', theme_color: '#ffffff',
   icons: [{ src: '/art/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/art/icon-512.png', sizes: '512x512', type: 'image/png' }, { src: '/art/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
 }, null, 2) + '\n');
 // server.js reads this: short and old addresses, each sent on to the page that answers it
