@@ -149,7 +149,7 @@ What sends an email, to `DUSK_ALERT_EMAILS` (empty: `DUSK_ADMIN_EMAILS`), all lo
 | Trigger | Where it comes from |
 | --- | --- |
 | a site, dashboard, API, waitlist-count, installer or link check fails twice in a row, from outside | `deploy/monitor/uptime-check.mjs` on the Oracle box, every minute |
-| a TLS certificate of dusk.bot, preview.dusk.bot or link.dusk.bot has under 14 days left | same, hourly |
+| a TLS certificate of dusk.bot, preview.dusk.bot or link.dusk.bot has under 14 days left | same, checked hourly |
 | any 5xx answer (thrown errors with their stack, and the billing routes' own 500s, webhooks included) | `apps/dashboard/server/app.ts` |
 | the site behind dusk.bot stops answering the proxy (502) | same, as `SiteUpstreamDown` |
 | an uncaught exception or unhandled rejection that kills the service | spooled to `<data>/incident-spool`, mailed by the next start |
@@ -161,17 +161,19 @@ Throttle rules (`RULES` in `apps/dashboard/server/incidents/index.ts`):
 
 - One problem is one fingerprint: source + error name + newest frame in our code (no line number, no bundle hash) +
   route with ids folded; a line without a stack uses its text with numbers removed.
-- A new fingerprint is mailed within about 20 seconds; new ones in the same window share one email.
-- Repeats of a mailed fingerprint go into a "still happening" digest, at most one every 15 minutes, with counts.
-- A fingerprint quiet for 24 hours that comes back is new again. A restart loads the last day, so it re-mails nothing.
-- At most 12 alert emails an hour. Client fingerprints: at most 3 mailed fast an hour, at most 100 new ones an hour
-  (the rest fold into one `TooManyClientErrors` incident); `/v1/errors` takes 60 reports an hour per address and
-  16 KB each.
-- A daily summary at 08:00 UTC when anything happened the day before.
+- A new fingerprint opens an incident and is mailed once, within about 20 seconds (new ones in the same window share
+  one email). While it is open it is never mailed again: repeats only raise its `count` in MongoDB, visible at
+  `GET /v1/admin/incidents`. It closes after 7 quiet days; if it comes back after that it is new again.
+- No digests of repeats. At most 10 alert emails a utc day per service (3 of them for client errors). New problems
+  past that wait for one daily email at 08:00 UTC, which lists only problems never mailed and says "more issues
+  than the daily email limit, see the health page"; it is skipped when there are none.
+- A restart loads the open incidents, so a crash loop re-mails nothing. `/v1/errors` takes 60 reports an hour per
+  address and 16 KB each; more than 100 new client fingerprints in an hour fold into one `TooManyClientErrors`.
 - A failed alert email is retried every minute for an hour (`DUSK_RESEND_API_KEY` adds a second sender). The
   Oracle checker keeps a failed email in its state file and retries it each run for a day.
-- Uptime: down after 2 misses, a reminder every 3 hours while down, one "back up" email with the downtime. When the
-  Oracle box cannot reach the internet either, it sends nothing.
+- Uptime: per outage one "down" email after 2 misses in a row and one "back up" email with the downtime, nothing in
+  between; one TLS warning per certificate until it is renewed; at most 10 emails a day. When the Oracle box cannot
+  reach the internet either, it sends nothing.
 
 Privacy: messages are masked before they are stored or mailed (secrets, bearer tokens, sign-in codes, query strings,
 connection strings; emails become `si***@gmail.com`). Client text gets the stronger scrub of `error-report.mjs`, and

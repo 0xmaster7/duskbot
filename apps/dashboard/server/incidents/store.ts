@@ -44,6 +44,13 @@ const view = (doc: IncidentDoc): Incident => ({ id: doc._id, env: doc.env, sourc
   stack: doc.stack ?? [], version: doc.version, os: doc.os, path: doc.path, requestId: doc.requestId, count: doc.count, firstSeen: doc.firstSeen.getTime(),
   lastSeen: doc.lastSeen.getTime(), notifiedAt: doc.notifiedAt?.getTime() ?? null, mutedUntil: doc.mutedUntil?.getTime() ?? null });
 
+/** only the sample's own fields are set: count and firstSeen have their own operators, and MongoDB refuses one path in two */
+export function recordUpdate(sample: IncidentSample, add: number, firstSeen: number) {
+  const { env, source, name, message, route, status, stack, version, os, path, requestId, lastSeen } = sample;
+  return { $inc: { count: add }, $set: { env, source, name, message, route, status, stack, version, os, path, requestId, lastSeen: new Date(lastSeen) },
+    $setOnInsert: { firstSeen: new Date(firstSeen), notifiedAt: null, mutedUntil: null } };
+}
+
 /** one document per fingerprint, gone 30 days after it was last seen */
 export async function mongoIncidentStore(db: Db): Promise<IncidentStore> {
   const incidents = db.collection<IncidentDoc>("incidents");
@@ -55,11 +62,7 @@ export async function mongoIncidentStore(db: Db): Promise<IncidentStore> {
   return {
     async record(batch) {
       if (!batch.length) return;
-      await incidents.bulkWrite(batch.map(({ sample, add, firstSeen }) => {
-        const { id, lastSeen, ...fields } = sample;
-        return { updateOne: { filter: { _id: id }, upsert: true,
-          update: { $inc: { count: add }, $set: { ...fields, lastSeen: new Date(lastSeen) }, $setOnInsert: { firstSeen: new Date(firstSeen) } } } };
-      }), { ordered: false });
+      await incidents.bulkWrite(batch.map(({ sample, add, firstSeen }) => ({ updateOne: { filter: { _id: sample.id }, upsert: true, update: recordUpdate(sample, add, firstSeen) } })), { ordered: false });
     },
     async notified(ids, at) {
       if (ids.length) await incidents.updateMany({ _id: { $in: ids } }, { $set: { notifiedAt: new Date(at) } });

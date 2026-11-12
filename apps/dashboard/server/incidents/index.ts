@@ -12,19 +12,17 @@ const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 export const RULES = {
   /** a new problem is mailed this long after it is first seen, so a burst of new problems shares one email */
   fastMs: 20_000,
-  /** repeats of a problem already mailed wait for the digest, at most one digest this often */
-  digestMs: 15 * MINUTE,
-  /** a problem quiet for this long that comes back is new again */
-  quietMs: DAY,
-  /** every alert email in an hour, the daily summary aside */
-  mailsPerHour: 12,
-  /** new client fingerprints (from the public /v1/errors) that may be mailed fast per hour; more wait for the digest */
-  fastClientPerHour: 3,
+  /** a problem is open until it has been quiet this long; while open it is mailed once and repeats only count */
+  reopenAfterMs: 7 * DAY,
+  /** alert emails per utc day, the daily email aside; past it new problems wait for the daily email */
+  mailsPerDay: 10,
+  /** of those, emails started by a client error (the public /v1/errors) */
+  clientMailsPerDay: 3,
   /** new client fingerprints tracked per hour; past it they fold into one "too many client errors" incident */
   newClientPerHour: 100,
   /** fingerprints kept in memory */
   tracked: 1000,
-  /** the daily summary's hour, utc */
+  /** the daily email's hour, utc; it is sent only when a problem was never mailed (held back by the caps) */
   dailyHourUtc: 8,
   /** a failed alert email is retried each minute for this long */
   retryMs: HOUR,
@@ -63,21 +61,24 @@ export interface IncidentsOptions {
   log?: (line: string) => void;
 }
 
-interface Entry { incident: Incident; pending: number; unsaved: number; fast: boolean }
-interface Outgoing { message: Omit<MailMessage, "to">; to: string[]; ids: string[]; until: number }
+interface Entry { incident: Incident; unsaved: number; fast: boolean; client: boolean }
+interface Outgoing { message: Omit<MailMessage, "to">; to: string[]; until: number }
 
 export function createIncidents(options: IncidentsOptions) {
   const now = options.now ?? Date.now, store = options.store;
   const log = options.log ?? ((line: string) => console.warn(`incidents: ${line}`));
   const entries = new Map<string, Entry>();
-  const sent: number[] = [], fastClient: number[] = [], newClient: number[] = [];
+  const newClient: number[] = [];
   const outbox: Outgoing[] = [];
+  const today = { day: -1, mails: 0, clientMails: 0, heldBack: 0 };
   let fastTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastDigest = 0, saving: Promise<void> | null = null, closed = false;
-  const stats = { reported: 0, mailed: 0, mailFailed: 0, dropped: 0 };
+  let saving: Promise<void> | null = null, closed = false;
+  const stats = { reported: 0, mailed: 0, mailFailed: 0, dropped: 0, heldBack: 0 };
 
-  const within = (list: number[], ms: number) => { const time = now(); while (list.length && list[0]! <= time - ms) list.shift(); return list.length; };
+  const dayOf = (at: number) => Math.floor(at / DAY);
   const muted = (incident: Incident) => incident.mutedUntil !== null && incident.mutedUntil > now();
+  function count() { const day = dayOf(now()); if (today.day !== day) Object.assign(today, { day, mails: 0, clientMails: 0 }); return today; }
+  function within(list: number[], ms: number) { const time = now(); while (list.length && list[0]! <= time - ms) list.shift(); return list.length; }
 
   function sample(input: IncidentInput, at: number): IncidentSample {
     const client = isClientSource(input.source);
@@ -94,14 +95,15 @@ export function createIncidents(options: IncidentsOptions) {
       requestId: input.requestId && /^[\w-]{4,64}$/.test(input.requestId) ? input.requestId : null, lastSeen: at };
   }
 
-  /** counts one sighting and decides when the owner hears of it; never throws and never waits */
+  /** counts one sighting; only a problem that is not open yet can lead to an email. never throws and never waits */
   function report(input: IncidentInput): string | null {
     try {
       if (closed) return null;
       const at = input.at ?? now();
+      const client = isClientSource(input.source);
       let fields = sample(input, at);
       let entry = entries.get(fields.id);
-      if (!entry && isClientSource(input.source)) {
+      if (!entry && client) {
         if (within(newClient, HOUR) >= RULES.newClientPerHour) {
           stats.dropped++;
           fields = sample({ source: input.source, name: "TooManyClientErrors", key: "overflow", message: `more than ${RULES.newClientPerHour} different client errors in an hour; the rest are counted here` }, at);
@@ -111,21 +113,18 @@ export function createIncidents(options: IncidentsOptions) {
       stats.reported++;
       if (!entry) {
         if (entries.size >= RULES.tracked) evict();
-        entry = { incident: { ...fields, count: 0, firstSeen: at, notifiedAt: null, mutedUntil: null }, pending: 0, unsaved: 0, fast: false };
+        entry = { incident: { ...fields, count: 0, firstSeen: at, notifiedAt: null, mutedUntil: null }, unsaved: 0, fast: false, client };
         entries.set(fields.id, entry);
       }
-      const back = entry.incident.notifiedAt !== null && at - entry.incident.lastSeen > RULES.quietMs;
-      Object.assign(entry.incident, fields, { count: entry.incident.count + 1, firstSeen: Math.min(entry.incident.firstSeen, at) });
-      entry.pending++; entry.unsaved++;
-      if (back) { entry.incident.notifiedAt = null; entry.incident.firstSeen = at; }
-      if (!muted(entry.incident) && entry.incident.notifiedAt === null && !entry.fast) {
-        const client = isClientSource(input.source);
-        if (!client || within(fastClient, HOUR) < RULES.fastClientPerHour) {
-          if (client) fastClient.push(now());
-          entry.fast = true;
-          fastTimer ??= options.timers === false ? null : setTimeout(() => { fastTimer = null; void flushNew(); }, RULES.fastMs);
-          fastTimer?.unref?.();
-        }
+      const reopened = entry.incident.count > 0 && at - entry.incident.lastSeen > RULES.reopenAfterMs;
+      Object.assign(entry.incident, fields, { count: entry.incident.count + 1 });
+      entry.unsaved++;
+      if (reopened) { entry.incident.notifiedAt = null; entry.incident.firstSeen = at; }
+      if (entry.incident.notifiedAt === null && !entry.fast && !muted(entry.incident)) {
+        entry.fast = true;
+        entry.client = client;
+        fastTimer ??= options.timers === false ? null : setTimeout(() => { fastTimer = null; void flushNew(); }, RULES.fastMs);
+        fastTimer?.unref?.();
       }
       return fields.id;
     } catch (error) {
@@ -135,21 +134,17 @@ export function createIncidents(options: IncidentsOptions) {
   }
 
   function evict() {
-    const idle = [...entries].filter(([, entry]) => !entry.pending && !entry.unsaved && !entry.fast).sort((a, b) => a[1].incident.lastSeen - b[1].incident.lastSeen);
+    const idle = [...entries].filter(([, entry]) => !entry.unsaved && !entry.fast).sort((a, b) => a[1].incident.lastSeen - b[1].incident.lastSeen);
     for (const [id] of idle.slice(0, Math.max(1, Math.floor(RULES.tracked / 10)))) entries.delete(id);
     if (entries.size >= RULES.tracked) entries.delete(entries.keys().next().value!);
   }
 
-  async function send(kind: IncidentMailKind, items: Array<{ incident: Incident; sinceMail: number | null }>, test = false): Promise<boolean> {
+  async function send(kind: IncidentMailKind, items: Incident[], extra: { test?: boolean; capped?: boolean } = {}): Promise<boolean> {
     const to = options.to();
     if (!options.mail || !to.length || !items.length) return false;
-    if (kind !== "daily" && within(sent, HOUR) >= RULES.mailsPerHour) { log("the hourly email limit was reached; this waits for the next digest"); return false; }
-    if (kind !== "daily") sent.push(now());
-    const message = incidentEmail(options.email, { kind, env: options.env, incidents: items, panelUrl: options.panelUrl, test });
-    const job: Outgoing = { message, to, ids: items.map(item => item.incident.id), until: now() + RULES.retryMs };
-    if (await deliver(job)) return true;
-    outbox.push(job);
-    if (outbox.length > 20) outbox.shift();
+    const message = incidentEmail(options.email, { kind, env: options.env, incidents: items, panelUrl: options.panelUrl, ...extra });
+    const job: Outgoing = { message, to, until: now() + RULES.retryMs };
+    if (!await deliver(job)) { outbox.push(job); if (outbox.length > 20) outbox.shift(); }
     return true;
   }
   async function deliver(job: Outgoing): Promise<boolean> {
@@ -164,36 +159,38 @@ export function createIncidents(options: IncidentsOptions) {
     return false;
   }
 
-  function markMailed(items: Entry[]) {
+  function markMailed(ids: string[]) {
     const at = now();
-    for (const entry of items) { entry.incident.notifiedAt = at; entry.pending = 0; entry.fast = false; }
-    void save().then(() => store.notified(items.map(entry => entry.incident.id), at)).catch(() => log("could not mark incidents as mailed"));
+    for (const id of ids) { const entry = entries.get(id); if (entry) { entry.incident.notifiedAt = at; entry.fast = false; } }
+    void save().then(() => store.notified(ids, at)).catch(() => log("could not mark incidents as mailed"));
   }
 
+  /** one email for the problems that opened in the last few seconds, within the daily caps; the rest wait for the daily email */
   async function flushNew(): Promise<void> {
     const fresh = [...entries.values()].filter(entry => entry.fast);
     if (!fresh.length) return;
     for (const entry of fresh) entry.fast = false;
-    if (await send("new", fresh.map(entry => ({ incident: { ...entry.incident }, sinceMail: entry.pending })))) markMailed(fresh);
+    const day = count();
+    const client = fresh.every(entry => entry.client);
+    if (day.mails >= RULES.mailsPerDay || (client && day.clientMails >= RULES.clientMailsPerDay)) {
+      day.heldBack += fresh.length; stats.heldBack += fresh.length;
+      return;
+    }
+    if (!options.mail || !options.to().length) return;
+    day.mails++;
+    if (client) day.clientMails++;
+    if (await send("new", fresh.map(entry => ({ ...entry.incident })))) markMailed(fresh.map(entry => entry.incident.id));
   }
 
-  async function digest(): Promise<void> {
-    const time = now();
-    if (time - lastDigest < RULES.digestMs) return;
-    const due = [...entries.values()].filter(entry => entry.pending > 0 && !entry.fast && !muted(entry.incident)
-      && (entry.incident.notifiedAt === null || time - entry.incident.notifiedAt >= RULES.digestMs));
-    if (!due.length) return;
-    due.sort((a, b) => b.pending - a.pending);
-    if (await send("digest", due.map(entry => ({ incident: { ...entry.incident }, sinceMail: entry.pending })))) { lastDigest = time; markMailed(due); }
-  }
-
+  /** at 08:00 utc, once: the problems of the last day that were never mailed; nothing when there are none */
   async function daily(): Promise<void> {
-    const time = now(), today = Math.floor(time / DAY) * DAY;
-    if (time < today + RULES.dailyHourUtc * HOUR || !options.mail || !options.to().length) return;
-    const happened = await store.list({ limit: 50, since: today - DAY });
-    const yesterday = happened.filter(incident => incident.lastSeen < today || incident.firstSeen < today);
-    if (!yesterday.length || !await store.once(`daily|${options.env}|${today}`, time + 7 * DAY)) return;
-    await send("daily", yesterday.map(incident => ({ incident, sinceMail: null })));
+    const time = now(), midnight = dayOf(time) * DAY;
+    if (time < midnight + RULES.dailyHourUtc * HOUR || !options.mail || !options.to().length) return;
+    const unmailed = (await store.list({ limit: 200, since: midnight - DAY })).filter(incident => incident.notifiedAt === null && !(incident.mutedUntil !== null && incident.mutedUntil > time));
+    if (!unmailed.length || !await store.once(`daily|${options.env}|${midnight}`, time + 7 * DAY)) return;
+    const capped = today.heldBack > 0;
+    today.heldBack = 0;
+    if (await send("daily", unmailed, { capped })) markMailed(unmailed.map(incident => incident.id));
   }
 
   async function save(): Promise<void> {
@@ -217,18 +214,17 @@ export function createIncidents(options: IncidentsOptions) {
     }
   }
 
-  /** once a minute: save, retry, digest, daily summary */
+  /** once a minute: save, retry, daily email */
   async function tick(): Promise<void> {
     await save();
     await retry();
-    await digest();
-    await daily().catch(() => log("the daily summary failed"));
+    await daily().catch(() => log("the daily email failed"));
   }
 
-  /** loads the last day's incidents, so a restart (or a crash loop) does not mail old problems as new */
+  /** loads the open problems, so a restart (or a crash loop) does not mail them again */
   async function load(): Promise<void> {
-    const recent = await store.list({ limit: RULES.tracked, since: now() - RULES.quietMs });
-    for (const incident of recent) if (!entries.has(incident.id)) entries.set(incident.id, { incident, pending: 0, unsaved: 0, fast: false });
+    const recent = await store.list({ limit: RULES.tracked, since: now() - RULES.reopenAfterMs });
+    for (const incident of recent) if (!entries.has(incident.id)) entries.set(incident.id, { incident, unsaved: 0, fast: false, client: isClientSource(incident.source) });
   }
 
   const timer = options.timers === false ? null : setInterval(() => { void tick().catch(() => log("a tick failed")); }, MINUTE);
@@ -240,7 +236,7 @@ export function createIncidents(options: IncidentsOptions) {
     flushNew,
     load,
     stats,
-    /** an owner's test: a fresh fingerprint each time, mailed at once */
+    /** an owner's test: a fresh fingerprint each time, mailed at once, outside the daily caps */
     async test(source: "test" | "server" = "test"): Promise<string | null> {
       const nonce = randomBytes(4).toString("hex");
       const id = report({ source, name: "TestAlert", message: `a test alert (${nonce}) fired by the owner`, key: `test-${nonce}`, route: "/v1/admin/incidents/test",
@@ -248,14 +244,15 @@ export function createIncidents(options: IncidentsOptions) {
       const entry = id ? entries.get(id) : undefined;
       if (!entry) return null;
       entry.fast = false;
-      if (await send("new", [{ incident: { ...entry.incident }, sinceMail: 1 }], true)) markMailed([entry]);
+      if (await send("new", [{ ...entry.incident }], { test: true })) markMailed([entry.incident.id]);
       return id;
     },
     async list(query: { limit: number; before?: number; source?: string }) { await save(); return store.list(query); },
     async mute(id: string, until: number | null) {
+      await save();
       const found = await store.mute(id, until);
       const entry = entries.get(id);
-      if (entry) { entry.incident.mutedUntil = until; if (until !== null) { entry.pending = 0; entry.fast = false; } }
+      if (entry) { entry.incident.mutedUntil = until; if (until !== null) entry.fast = false; }
       return found || !!entry;
     },
     async close() {

@@ -11,7 +11,7 @@ import { emailConfig } from "../email/templates.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 import { fingerprint, maskText, clientText, routeOf, stackFrames, topFrame } from "./fingerprint.ts";
 import { createIncidents, RULES } from "./index.ts";
-import { memoryIncidentStore } from "./store.ts";
+import { memoryIncidentStore, recordUpdate } from "./store.ts";
 import { tapConsole } from "./process.ts";
 import { ERRORS_PER_HOUR, MAX_ERROR_BYTES } from "./routes.ts";
 
@@ -58,8 +58,19 @@ describe("masking", () => {
   });
 });
 
+describe("incident store", () => {
+  it("never names one field in two update operators, whatever the caller passes", () => {
+    const incident = { id: "a".repeat(20), env: "production", source: "server", name: "Boom", message: "x", route: null, status: null, stack: [], version: null, os: null, path: null,
+      requestId: null, lastSeen: 2, count: 5, firstSeen: 1, notifiedAt: 1, mutedUntil: null };
+    const update = recordUpdate(incident, 3, 1);
+    const paths = [update.$inc, update.$set, update.$setOnInsert].flatMap(part => Object.keys(part));
+    expect(new Set(paths).size).toBe(paths.length);
+    expect(update.$inc).toEqual({ count: 3 });
+  });
+});
+
 describe("alert throttling", () => {
-  it("mails a new problem once, batches its repeats into a digest at most every 15 minutes", async () => {
+  it("mails a new problem once and never again while it is open; repeats only count", async () => {
     const { time, mailer, incidents, store } = setup();
     for (let n = 0; n < 5; n++) incidents.report({ source: "server", name: "TypeError", message: `x is undefined for siddz.dev@gmail.com`, stack: stackAt(10 + n), route: "/v1/billing/checkout", requestId: "req_1234" });
     await incidents.flushNew();
@@ -73,55 +84,68 @@ describe("alert throttling", () => {
     expect(first.text).toContain("https://dusk.bot/admin/health");
     expect(first.html + first.text).not.toContain("—");
 
-    for (let n = 0; n < 7; n++) incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(10), route: "/v1/billing/checkout" });
-    time.now += 5 * MINUTE; await incidents.tick();
+    for (let hour = 0; hour < 6 * 24; hour++) {
+      incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(10), route: "/v1/billing/checkout" });
+      time.now += HOUR; await incidents.flushNew(); await incidents.tick();
+    }
     expect(mailer.outbox).toHaveLength(1);
-    time.now += 11 * MINUTE; await incidents.tick();
-    expect(mailer.outbox).toHaveLength(2);
-    expect(mailer.outbox[1]!.subject).toBe("still happening: 1 problem, 7 times");
-    expect(mailer.outbox[1]!.text).toContain("7 since the last email, 12 in all");
-    time.now += 20 * MINUTE; await incidents.tick();
-    expect(mailer.outbox).toHaveLength(2);
     const [saved] = await store.list({ limit: 5 });
-    expect(saved!.count).toBe(12);
+    expect(saved!.count).toBe(5 + 6 * 24);
     expect(saved!.notifiedAt).not.toBeNull();
+
+    time.now += 8 * 24 * HOUR;
+    incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(10), route: "/v1/billing/checkout" });
+    await incidents.flushNew();
+    expect(mailer.outbox).toHaveLength(2);
   });
 
-  it("caps alert emails per hour and fast client mails, folding a client flood into one incident", async () => {
-    const { mailer, incidents } = setup();
-    for (let n = 0; n < RULES.mailsPerHour + 5; n++) { incidents.report({ source: "server", name: `Err${n}`, message: "boom", key: `k${n}` }); await incidents.flushNew(); }
-    expect(mailer.outbox).toHaveLength(RULES.mailsPerHour);
+  it("sends at most 10 alert emails a day and 3 for client errors; the rest go in one daily email, skipped when there is nothing", async () => {
+    const { time, mailer, incidents } = setup();
+    for (let n = 0; n < RULES.mailsPerDay + 5; n++) { incidents.report({ source: "server", name: `Err${n}`, message: "boom", key: `k${n}` }); await incidents.flushNew(); }
+    expect(mailer.outbox).toHaveLength(RULES.mailsPerDay);
+    time.now = Date.parse("2026-11-13T08:01:00Z"); await incidents.tick(); await incidents.tick();
+    const daily = mailer.outbox.slice(RULES.mailsPerDay);
+    expect(daily).toHaveLength(1);
+    expect(daily[0]!.subject).toBe("5 problems not emailed yet on dusk bot");
+    expect(daily[0]!.text).toContain("more issues than the daily email limit");
+    time.now = Date.parse("2026-11-14T08:01:00Z"); await incidents.tick();
+    expect(mailer.outbox).toHaveLength(RULES.mailsPerDay + 1);
 
     const client = setup();
-    for (let n = 0; n < RULES.newClientPerHour + 50; n++) client.incidents.report({ source: "web", name: "TypeError", message: "boom", stack: `TypeError: boom\n    at f${n} (https://dusk.bot/assets/a.js:1:1)` });
-    await client.incidents.flushNew();
-    expect(client.mailer.outbox).toHaveLength(1);
-    expect(client.mailer.outbox[0]!.subject).toContain("and 2 more");
-    const listed = await client.incidents.list({ limit: 200 });
+    for (let n = 0; n < 6; n++) {
+      client.incidents.report({ source: "web", name: "TypeError", message: "boom", stack: `TypeError: boom\n    at f${n} (https://dusk.bot/assets/a.js:1:1)` });
+      await client.incidents.flushNew();
+    }
+    expect(client.mailer.outbox).toHaveLength(RULES.clientMailsPerDay);
+  });
+
+  it("folds a client flood into one incident", async () => {
+    const { mailer, incidents } = setup();
+    for (let n = 0; n < RULES.newClientPerHour + 50; n++) incidents.report({ source: "web", name: "TypeError", message: "boom", stack: `TypeError: boom\n    at f${n} (https://dusk.bot/assets/a.js:1:1)` });
+    await incidents.flushNew();
+    expect(mailer.outbox).toHaveLength(1);
+    const listed = await incidents.list({ limit: 200 });
     expect(listed).toHaveLength(RULES.newClientPerHour + 1);
     expect(listed.find(item => item.name === "TooManyClientErrors")!.count).toBe(50);
   });
 
-  it("mutes a problem, treats one quiet for a day as new again, and does not re-mail after a restart", async () => {
+  it("does not mail a muted problem, and does not re-mail open problems after a restart", async () => {
     const { time, mailer, incidents, store } = setup();
-    const id = incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(1) })!;
-    await incidents.flushNew();
+    const id = incidents.report({ source: "server", name: "Muted", message: "x", key: "m" })!;
     await incidents.mute(id, time.now + HOUR);
-    incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(1) });
-    time.now += 20 * MINUTE; await incidents.tick();
-    expect(mailer.outbox).toHaveLength(1);
-
-    time.now += 2 * 24 * HOUR;
+    await incidents.flushNew();
+    expect(mailer.outbox).toHaveLength(0);
     incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(1) });
     await incidents.flushNew();
-    expect(mailer.outbox).toHaveLength(2);
-    expect(mailer.outbox[1]!.subject).toContain("something's wrong");
+    expect(mailer.outbox).toHaveLength(1);
+    await incidents.tick();
 
     const again = createIncidents({ env: "production", store, to: () => [OWNER], mailers: [mailer], email: emailConfig({}, { publicUrl: "https://dusk.bot" }), panelUrl: "x", mail: true, now: () => time.now, timers: false });
     await again.load();
+    time.now += 2 * 24 * HOUR;
     again.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(1) });
     await again.flushNew();
-    expect(mailer.outbox).toHaveLength(2);
+    expect(mailer.outbox).toHaveLength(1);
   });
 
   it("falls back to the second mailer, and retries when both refuse", async () => {
@@ -141,16 +165,6 @@ describe("alert throttling", () => {
     up = true;
     two.time.now += MINUTE; await two.incidents.tick();
     expect(fallback.outbox).toHaveLength(2);
-  });
-
-  it("sends one daily summary after 08:00 utc when something happened", async () => {
-    const { time, mailer, incidents } = setup();
-    incidents.report({ source: "server", name: "Boom", message: "x", key: "a" });
-    await incidents.flushNew();
-    time.now = Date.parse("2026-11-13T07:00:00Z"); await incidents.tick();
-    expect(mailer.outbox.filter(item => item.subject.startsWith("yesterday"))).toHaveLength(0);
-    time.now = Date.parse("2026-11-13T08:05:00Z"); await incidents.tick(); await incidents.tick();
-    expect(mailer.outbox.filter(item => item.subject.startsWith("yesterday"))).toHaveLength(1);
   });
 
   it("turns console errors and ALERT or failure warnings into incidents, and nothing else", () => {

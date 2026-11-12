@@ -2,7 +2,7 @@ import { render } from "../email/layout.ts";
 import type { Block, EmailConfig, Rendered } from "../email/layout.ts";
 import type { Incident } from "./store.ts";
 
-export type IncidentMailKind = "new" | "digest" | "daily";
+export type IncidentMailKind = "new" | "daily";
 const SHOWN = 8;
 
 export const when = (at: number) => `${new Date(at).toISOString().slice(0, 16).replace("T", " ")} utc`;
@@ -12,10 +12,10 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-function incidentBlocks(incident: Incident, sinceMail: number | null): Block[] {
+function incidentBlocks(incident: Incident): Block[] {
   const rows: Array<[string, string]> = [
     ["where", `${SOURCE_LABEL[incident.source] ?? incident.source}${incident.route ? ` · ${incident.route}` : ""}${incident.status ? ` · ${incident.status}` : ""}`],
-    ["count", sinceMail !== null && sinceMail !== incident.count ? `${sinceMail} since the last email, ${incident.count} in all` : String(incident.count)],
+    ["count", String(incident.count)],
     ["first seen", when(incident.firstSeen)],
     ["last seen", when(incident.lastSeen)],
   ];
@@ -30,29 +30,27 @@ function incidentBlocks(incident: Incident, sinceMail: number | null): Block[] {
   ];
 }
 
-/** the owner's "something's wrong" email: new problems, a digest of repeats, or yesterday's summary */
-export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind; env: string; incidents: Array<{ incident: Incident; sinceMail: number | null }>; panelUrl: string; test?: boolean }): Rendered {
+/** the owner's "something's wrong" email: problems that just opened, or the daily email of ones the caps held back */
+export function incidentEmail(cfg: EmailConfig, input: { kind: IncidentMailKind; env: string; incidents: Incident[]; panelUrl: string; test?: boolean; capped?: boolean }): Rendered {
   const { kind, incidents } = input;
   const prefix = input.env === "production" ? "" : `[${input.env}] `;
-  const first = incidents[0]!.incident;
-  const total = incidents.reduce((sum, item) => sum + (item.sinceMail ?? item.incident.count), 0);
+  const first = incidents[0]!;
   const subject = input.test ? `${prefix}test alert: this is what a problem looks like`
     : kind === "new" ? `${prefix}something's wrong: ${first.name}${first.route ? ` on ${first.route}` : ` (${SOURCE_LABEL[first.source] ?? first.source})`}${incidents.length > 1 ? ` and ${incidents.length - 1} more` : ""}`
-    : kind === "digest" ? `${prefix}still happening: ${plural(incidents.length, "problem")}, ${plural(total, "time")}`
-    : `${prefix}yesterday: ${plural(incidents.length, "problem")} on dusk bot`;
-  const heading = input.test ? "test alert" : kind === "new" ? "something's wrong" : kind === "digest" ? "still happening" : "yesterday's problems";
+    : `${prefix}${plural(incidents.length, "problem")} not emailed yet on dusk bot`;
+  const heading = input.test ? "test alert" : kind === "new" ? "something's wrong" : "problems you haven't heard about";
   const intro = input.test ? `this is a test from the ${input.env} account service. a real one looks just like this.`
-    : kind === "new" ? `${incidents.length === 1 ? "a new problem showed up" : `${incidents.length} new problems showed up`} on ${input.env}. repeats are batched into one email every 15 minutes at most.`
-    : kind === "digest" ? `these kept happening on ${input.env} since the last email.`
-    : `${plural(incidents.length, "problem")} happened on ${input.env} yesterday.`;
+    : kind === "new" ? `${incidents.length === 1 ? "a new problem showed up" : `${incidents.length} new problems showed up`} on ${input.env}. you won't get another email about ${incidents.length === 1 ? "it" : "them"}: repeats only add to the count on the health page, until ${incidents.length === 1 ? "it stays" : "they stay"} quiet for 7 days.`
+    : `these showed up on ${input.env} but were held back by the daily email limit.`;
   const shown = incidents.slice(0, SHOWN);
   return render(cfg, {
     subject, preheader: `${first.name}: ${first.message}`.slice(0, 120), tag: input.env === "production" ? "alert" : `alert · ${input.env}`, hero: null,
     blocks: [
       { t: "h1", text: heading },
       { t: "p", text: intro },
-      ...shown.flatMap(item => incidentBlocks(item.incident, kind === "digest" ? item.sinceMail : null)),
+      ...shown.flatMap(incidentBlocks),
       ...(incidents.length > SHOWN ? [{ t: "p" as const, small: true, text: `and ${incidents.length - SHOWN} more on the health page.` }] : []),
+      ...(input.capped ? [{ t: "p" as const, text: "more issues than the daily email limit came up. see the health page for all of them." }] : []),
       { t: "button", label: "open admin health", href: input.panelUrl },
       { t: "p", small: true, text: "to mute one problem, post {\"hours\": 24} to /v1/admin/incidents/<id>/mute while signed in as an admin. DUSK_ALERTS=off stops these emails." },
     ],

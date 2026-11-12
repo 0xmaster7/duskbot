@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // uptime checks for dusk.bot from a box other than the one it watches (the Oracle VPS watches the Contabo one), run every
-// minute by dusk-uptime.timer. one email when checks start failing (after DUSK_UPTIME_FAILS misses in a row), a reminder
-// every DUSK_UPTIME_REMIND_HOURS while still down, one "back up" email with how long it was down, and a TLS warning when
-// a certificate has under DUSK_UPTIME_TLS_DAYS left. a failed email waits in the state file and is retried each run.
+// minute by dusk-uptime.timer. per outage one "down" email (after DUSK_UPTIME_FAILS misses in a row) and one "back up"
+// email with how long it was down, nothing in between; one TLS warning per certificate with under DUSK_UPTIME_TLS_DAYS
+// left, until it is renewed; at most DUSK_UPTIME_MAILS_PER_DAY emails a day. a failed email is retried each run.
 //   DUSK_ALERT_TO          comma-separated addresses; DUSK_ALERT_FROM the sender ("Name <address>")
 //   DUSK_BREVO_API_KEY     Brevo transactional key; DUSK_RESEND_API_KEY a fallback sender when set
 //   DUSK_UPTIME_TARGETS    space-separated name=url or name=url=text-the-body-must-contain (default below)
@@ -30,7 +30,7 @@ export function settings(env = process.env) {
     tls: (env.DUSK_UPTIME_TLS ?? "dusk.bot preview.dusk.bot link.dusk.bot").split(/\s+/).filter(Boolean),
     control: env.DUSK_UPTIME_CONTROL || "https://www.cloudflare.com/cdn-cgi/trace",
     fails: number(env.DUSK_UPTIME_FAILS, 2),
-    remindMs: number(env.DUSK_UPTIME_REMIND_HOURS, 3) * HOUR,
+    mailsPerDay: number(env.DUSK_UPTIME_MAILS_PER_DAY, 10),
     tlsDays: number(env.DUSK_UPTIME_TLS_DAYS, 14),
     state: env.DUSK_UPTIME_STATE || "/var/lib/dusk-uptime",
     to: (env.DUSK_ALERT_TO || "").split(",").map(item => item.trim()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)),
@@ -73,20 +73,19 @@ export function certificateExpiry(host) {
 
 /** the decisions of one run, from the state before it and what the probes saw; pure, so the rules are tested */
 export function decide(state, results, cfg, time) {
-  const down = [], reminders = [], recovered = [];
+  const down = [], recovered = [];
   for (const { name, url, ok, detail } of results) {
-    const was = state.targets[name] ?? { fails: 0, downSince: null, alertedAt: null, remindedAt: null };
+    const was = state.targets[name] ?? { fails: 0, downSince: null, alertedAt: null };
     if (ok) {
       if (was.alertedAt) recovered.push({ name, url, detail, downFor: time - (was.downSince ?? was.alertedAt) });
-      state.targets[name] = { fails: 0, downSince: null, alertedAt: null, remindedAt: null };
+      state.targets[name] = { fails: 0, downSince: null, alertedAt: null };
       continue;
     }
     const now = { ...was, fails: was.fails + 1, downSince: was.downSince ?? time, last: detail };
-    if (!now.alertedAt && now.fails >= cfg.fails) { now.alertedAt = time; now.remindedAt = time; down.push({ name, url, detail, since: now.downSince }); }
-    else if (now.alertedAt && time - now.remindedAt >= cfg.remindMs) { now.remindedAt = time; reminders.push({ name, url, detail, since: now.downSince }); }
+    if (!now.alertedAt && now.fails >= cfg.fails) { now.alertedAt = time; down.push({ name, url, detail, since: now.downSince }); }
     state.targets[name] = now;
   }
-  return { down, reminders, recovered };
+  return { down, recovered };
 }
 
 const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", x: "https://x.com/duskbot_hq", address: null };
@@ -104,11 +103,8 @@ export async function emailFor(kind, items) {
   const names = items.map(item => item.name).join(", ");
   const email = kind === "down" ? {
     subject: `something's wrong: ${names} ${items.length === 1 ? "is" : "are"} down`, heading: "something's wrong",
-    intro: `checks from the oracle box failed in a row. you get one reminder every few hours while it stays down, and one email when it's back.`,
+    intro: `checks from the oracle box failed in a row. this is the only email until it's back up; then you get one more.`,
     rows: items.map(item => [item.name, `${item.detail} · down since ${when(item.since)}`, "off"]),
-  } : kind === "reminder" ? {
-    subject: `still down: ${names}`, heading: "still down", intro: "these are still failing.",
-    rows: items.map(item => [item.name, `${item.detail} · down for ${duration(Date.now() - item.since)}`, "off"]),
   } : kind === "recovered" ? {
     subject: `back up: ${names}`, heading: "back up", intro: "these answer again.",
     rows: items.map(item => [item.name, `${item.detail} · was down for ${duration(item.downFor)}`, "ok"]),
@@ -156,7 +152,7 @@ export async function run(cfg = settings(), { fetcher = fetch, now = Date.now, e
 
   const results = await Promise.all(cfg.targets.map(async target => ({ ...target, ...await probe(target, fetcher) })));
   const failing = results.filter(result => !result.ok);
-  let decisions = { down: [], reminders: [], recovered: [] };
+  let decisions = { down: [], recovered: [] };
   if (failing.length && !(await probe({ url: cfg.control, expect: null }, fetcher)).ok) console.log(`skipped: this box is offline too (${failing.map(item => item.name).join(", ")} failed)`);
   else decisions = decide(state, results, cfg, time);
   for (const item of failing) console.log(`fail ${item.name} ${item.detail}`);
@@ -169,17 +165,21 @@ export async function run(cfg = settings(), { fetcher = fetch, now = Date.now, e
     state.tls[host] = { ...seen, checkedAt: time, expiresAt: expiresAt ?? seen.expiresAt };
     if (expiresAt === null) continue;
     if (expiresAt - time < cfg.tlsDays * DAY) {
-      if (!seen.alertedAt || time - seen.alertedAt >= DAY) { state.tls[host].alertedAt = time; expiring.push({ name: host, url: `https://${host}/`, expiresAt }); }
+      if (!seen.alertedAt) { state.tls[host].alertedAt = time; expiring.push({ name: host, url: `https://${host}/`, expiresAt }); }
     } else state.tls[host].alertedAt = null;
   }
 
   const mails = [];
   if (decisions.down.length) mails.push(await emailFor("down", decisions.down));
-  if (decisions.reminders.length) mails.push(await emailFor("reminder", decisions.reminders));
   if (decisions.recovered.length) mails.push(await emailFor("recovered", decisions.recovered));
   if (expiring.length) mails.push(await emailFor("tls", expiring));
 
-  const pending = [...state.outbox.filter(job => job.until > time), ...mails.map(message => ({ message, until: time + DAY }))];
+  const day = Math.floor(time / DAY);
+  state.sent = state.sent?.day === day ? state.sent : { day, count: 0 };
+  const allowed = mails.slice(0, Math.max(0, cfg.mailsPerDay - state.sent.count));
+  for (const message of mails.slice(allowed.length)) console.log(`over the daily email limit, not mailed: ${message.subject}`);
+  state.sent.count += allowed.length;
+  const pending = [...state.outbox.filter(job => job.until > time), ...allowed.map(message => ({ message, until: time + DAY }))];
   state.outbox = [];
   for (const job of pending) {
     if (!cfg.to.length || (!cfg.brevo && !cfg.resend)) { console.log(`alert (not mailed, no sender): ${job.message.subject}`); continue; }
