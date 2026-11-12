@@ -93,11 +93,11 @@ describe("engines set up with a key in Settings", () => {
       ...instance({ state: "unavailable", reason: "No API key — open Settings → API keys." }),
       instanceId: "openaiCompat",
       driverKind: "openai-compat",
-      displayName: "Other (OpenAI-compatible)",
+      displayName: "other (OpenAI-compatible)",
       install: { docsUrl: "https://openrouter.ai/keys", settings: "connections" },
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
-    expect(markup).toContain("Other (OpenAI-compatible) needs an API key");
+    expect(markup).toContain("other (OpenAI-compatible) needs an API key");
     expect(markup).toContain("open API keys");
     expect(markup).not.toContain("open install in Terminal");
     expect(markup).not.toContain("config.json");

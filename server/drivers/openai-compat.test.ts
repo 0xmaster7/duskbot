@@ -26,7 +26,7 @@ describe("OpenAICompatDriver", () => {
 
   it("registers with the openai-compat kind and a display name", () => {
     expect(OpenAICompatDriver.driverKind).toBe("openai-compat");
-    expect(OpenAICompatDriver.metadata.displayName).toBe("Other (OpenAI-compatible)");
+    expect(OpenAICompatDriver.metadata.displayName).toBe("other (OpenAI-compatible)");
     expect(OpenAICompatDriver.metadata.access).toBe("api");
   });
 

@@ -69,7 +69,7 @@ describe("PlaceChip composer trigger", () => {
     } satisfies ComponentProps<typeof PlaceChip>));
     expect(html).toContain('data-testid="place-chip"');
     expect(html).toContain('aria-label="where this conversation works: this computer"');
-    expect(html).toContain("this computer — from this bot&#x27;s works on setting");
+    expect(html).toContain("this computer · from this bot&#x27;s works on setting");
     expect(html).not.toMatch(/<span class="truncate">This computer<\/span>/);
   });
 });
@@ -110,7 +110,7 @@ describe("the menu's first row", () => {
     expect(menu[0]).toEqual({ checked: true, text: "auto picks the right place for each task" });
     expect(menu.filter((row) => row.checked)).toHaveLength(1);
     expect(html).toContain('aria-label="where this conversation works: browser"');
-    expect(html).toContain("browser — from this bot&#x27;s works on setting");
+    expect(html).toContain("browser · from this bot&#x27;s works on setting");
     expect(html).not.toContain("text-accent hover:text-accent");
   });
 

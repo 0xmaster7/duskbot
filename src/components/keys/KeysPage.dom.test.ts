@@ -225,8 +225,8 @@ describe("the keys page", () => {
 
 describe("the OpenAI-compatible server row", () => {
   it("offers the reply wait for the built-in server once its base URL is set, such as a local Ollama", () => {
-    const waitFor = () => document.querySelector('select[aria-label="how long to wait for Other (OpenAI-compatible) to reply"]');
-    fx.instances = [{ instanceId: "openaiCompat", driverKind: "openai-compat", displayName: "Other (OpenAI-compatible)", snapshot: { state: "available" } }];
+    const waitFor = () => document.querySelector('select[aria-label="how long to wait for other (OpenAI-compatible) to reply"]');
+    fx.instances = [{ instanceId: "openaiCompat", driverKind: "openai-compat", displayName: "other (OpenAI-compatible)", snapshot: { state: "available" } }];
     page();
     openDialog("openaiCompat");
     expect(waitFor()).toBeNull();

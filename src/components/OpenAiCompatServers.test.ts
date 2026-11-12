@@ -42,7 +42,7 @@ function render(instances: store.InstanceInfo[]) {
 describe("other OpenAI-compatible servers", () => {
   it("lists only servers added here, by name and base URL", () => {
     const html = render([
-      instance("openaiCompat", "Other (OpenAI-compatible)"),
+      instance("openaiCompat", "other (OpenAI-compatible)"),
       instance("openai", "OpenAI", { url: "https://api.openai.com/v1" }),
       instance("openai-compat-1", "Zhipu", { url: "https://open.bigmodel.cn/api/paas/v4" }),
     ]);
@@ -54,7 +54,7 @@ describe("other OpenAI-compatible servers", () => {
   });
 
   it("says so when none are added", () => {
-    const html = render([instance("openaiCompat", "Other (OpenAI-compatible)")]);
+    const html = render([instance("openaiCompat", "other (OpenAI-compatible)")]);
     expect(html).toContain("No other servers yet.");
   });
 
@@ -149,7 +149,7 @@ describe("how long a server may take to reply", () => {
   function builtInSelect(url: string) {
     vi.stubGlobal("window", {});
     vi.spyOn(store, "useStore").mockReturnValue({
-      state: { ...store.initialState, config: { openaiCompat: { url } } as unknown as store.ConfigStatus, instances: [instance("openaiCompat", "Other (OpenAI-compatible)")] },
+      state: { ...store.initialState, config: { openaiCompat: { url } } as unknown as store.ConfigStatus, instances: [instance("openaiCompat", "other (OpenAI-compatible)")] },
       dispatch: vi.fn(), flushBotPatches: vi.fn(), refreshInstances: vi.fn(), refreshModels: vi.fn(),
     });
     fixture.counting = true;
@@ -182,7 +182,7 @@ describe("how long a server may take to reply", () => {
     fixture.api.mockReset();
     fixture.api.mockResolvedValue({ instances: [] });
     const select = builtInSelect("http://localhost:11434/v1")!;
-    expect(select.props["aria-label"]).toBe("how long to wait for Other (OpenAI-compatible) to reply");
+    expect(select.props["aria-label"]).toBe("how long to wait for other (OpenAI-compatible) to reply");
     expect(JSON.stringify(select.props.children)).toContain("wait 30 min");
     select.props.onChange!({ target: { value: "30" } });
     await Promise.resolve();
