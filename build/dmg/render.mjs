@@ -96,7 +96,7 @@ export const DMG_SCENES = {
 /** a plain canvas: the two icons, a slim ink arrow, and a few bots peeking up from the bottom edge */
 function mascots(line) {
   const s = scene(W, H, { cell: 8, seed: 3 });
-  s.rect(0, 0, W, H, "#f7fbfe");
+  s.rect(0, 0, W, H, "#ffffff");
   const u = 3;
   const from = APP.x + ICON / 2 + 34;
   const tip = APPLICATIONS.x - ICON / 2 - 34;
