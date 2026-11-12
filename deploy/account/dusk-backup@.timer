@@ -1,9 +1,9 @@
 [Unit]
-Description=Daily dusk bot account service backup
+Description=Daily dusk bot backup of %i
 
 [Timer]
 OnCalendar=*-*-* 04:17:00 UTC
-RandomizedDelaySec=15m
+RandomizedDelaySec=20m
 Persistent=true
 
 [Install]

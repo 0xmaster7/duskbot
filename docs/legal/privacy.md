@@ -1,6 +1,6 @@
 ## Privacy policy and controller
 
-Effective date: 12 November 2026. Last updated: 12 November 2026.
+Effective date: 12 November 2026. Last updated: 13 November 2026.
 
 dusk bot, the operator of the services (“dusk bot”, “we” or “us”), is the controller for personal data processed through the dusk bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is dusk.bot/dashboard. Our link service is link.dusk.bot.
 
@@ -80,7 +80,7 @@ Tool traffic can include information needed to carry out your requested action i
 
 The website, account service, link service and our database run on a server rented from Contabo GmbH in the European Union. Cloudflare sits in front of dusk.bot as a proxy and content delivery network, runs the connected-apps broker and the cloud desktops' public edge, provides DNS and forwards mail sent to our dusk.bot addresses. Spaceship is the domain registrar. Let's Encrypt provides TLS certificates.
 
-Server access logs include IP addresses. We keep them for 14 days for security and abuse prevention, then they are deleted. Encrypted backups of account service data are made daily and deleted after 30 days. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
+Server access logs include IP addresses. We keep them for 14 days for security and abuse prevention, then they are deleted. Encrypted backups of account service data are made daily and deleted within 30 days: daily copies after 7 days, one weekly copy after 4 weeks. They are encrypted on our server before they leave it, with a key kept off that server, and stored with Oracle Cloud and Cloudflare R2, which cannot read them. We do not use advertising or third-party analytics. Visiting the website does not give us access to content held on your computer or VPS.
 
 ## Purposes and legal bases
 
@@ -92,7 +92,7 @@ Legal obligations apply to payment records: Dodo Payments keeps invoices and tra
 
 ## Sub-processors and service providers
 
-We use a small number of service providers to run dusk bot: Contabo (hosting), Cloudflare (proxy, DNS, connected-apps broker, cloud edge and email forwarding), InstaBox on Amazon Web Services (dusk cloud desktops), Dodo Payments (payments), Brevo (email and the waitlist), Composio (connected apps), Apple and Google (push notifications), Spaceship (domain registrar) and Let's Encrypt (TLS certificates). The [subprocessors page](subprocessors.md) lists each one with its purpose, the data involved and where it processes data.
+We use a small number of service providers to run dusk bot: Contabo (hosting), Cloudflare (proxy, DNS, connected-apps broker, cloud edge, email forwarding and encrypted backup storage), Oracle Cloud (encrypted backup storage), InstaBox on Amazon Web Services (dusk cloud desktops), Dodo Payments (payments), Brevo (email and the waitlist), Composio (connected apps), Apple and Google (push notifications), Spaceship (domain registrar) and Let's Encrypt (TLS certificates). The [subprocessors page](subprocessors.md) lists each one with its purpose, the data involved and where it processes data.
 
 Dodo Payments acts as merchant of record and is an independent controller for the payment data it collects. Google, Apple and X are independent controllers for the sign-in data they hold about you. The other providers process data on our behalf as sub-processors. A provider's company location does not establish where all processing occurs.
 

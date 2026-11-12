@@ -12,7 +12,14 @@ state files for operator data; add a collection instead.
   `ssh -N -L 29018:127.0.0.1:29018 root@169.58.211.160` (add `-J oracle`
   when the direct route is blocked) and use the same URI.
 - Backups: daily `mongodump` at 03:17 server time, 7 days kept, in
-  `/root/backups/mongo-dusk/` on the VPS.
+  `/root/backups/mongo-dusk/` on the VPS. Off the box: `dusk-backup@dusk.timer`
+  (`deploy/account/backup.sh`, set up per `backup.env.example`, installed with
+  `backup-install.sh`) dumps it fresh with both account data folders and the link
+  service's state, encrypts the archive with age and uploads it daily to the Oracle box
+  (`/srv/dusk-backups/data`, SFTP-only user `duskbackup`) and to Cloudflare R2 (bucket
+  `dusk-backups`); 7 dailies and 4 weeklies kept. `dusk-backup@make.timer` does the same
+  for make.design's database (read-only `mongodump`). The age private key lives only on
+  the operator's Mac (`~/.config/duskbot/backup-age.key`).
 - Values: the operator's `.env` (repo root, git-ignored) and
   `~/.config/duskbot/`. Never commit them.
 

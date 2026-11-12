@@ -1,6 +1,6 @@
 ## Subprocessors
 
-Effective date: 12 November 2026. Last updated: 12 November 2026.
+Effective date: 12 November 2026. Last updated: 13 November 2026.
 
 These are the service providers dusk bot uses to run its services, what each one does and what data it handles. Our [privacy policy](privacy.md) explains the data in more detail. A provider's company location does not establish where all of its processing occurs.
 
@@ -11,7 +11,8 @@ dusk bot is local-first. Your bots, chats, files, memory and settings stay on yo
 | Name | Purpose | Data involved | Location |
 | --- | --- | --- | --- |
 | Contabo GmbH | Hosting of the website, account service, link service and our database | Account records, service records, analytics records, error reports and access logs; sealed relay traffic it cannot read | European Union |
-| Cloudflare, Inc. | Proxy and content delivery for dusk.bot, DNS, the connected-apps broker, the cloud desktops' public edge and forwarding of mail sent to dusk.bot addresses | Website and API traffic, including IP addresses; tool traffic and broker token hashes; cloud edge traffic; mail sent to dusk.bot addresses | Global network |
+| Cloudflare, Inc. | Proxy and content delivery for dusk.bot, DNS, the connected-apps broker, the cloud desktops' public edge, forwarding of mail sent to dusk.bot addresses and storage of encrypted backups | Website and API traffic, including IP addresses; tool traffic and broker token hashes; cloud edge traffic; mail sent to dusk.bot addresses | Global network |
+| Oracle Corporation (Oracle Cloud) | Storage of encrypted backups | Encrypted backups of account service data it cannot read | India |
 | InstaBox, on Amazon Web Services | dusk cloud desktops | Your hosted bots, chats, files and desktop data | United States (AWS us-west-2) |
 | Brevo | Transactional email and the waitlist | Email address, sign-in codes, account and billing notice content, waitlist sign-ups | European Union |
 | Composio | Connected-app tools and OAuth connections | OAuth connections and the request and response data of actions you ask connected apps to take | United States |

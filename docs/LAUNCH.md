@@ -78,10 +78,10 @@ written to be done in order. **Done** means committed and checked; **Owner** mea
   `frame-ancestors 'none'`), Permissions-Policy and COOP.
 - `deploy/account/production.env.example`: every setting the service reads, what it does, no values (a test keeps it
   complete).
-- `deploy/account/backup.sh` + `dusk-account-backup.{service,timer}`: daily copy of the data folder, encrypted to an
-  age public key, sent to any rclone destination, pruned after 30 days. Set `DUSK_BACKUP_MONGO_DIR=/root/backups/mongo-dusk`
-  in `/etc/dusk-account/backup.env` so the newest finished `mongodump` rides in the same archive (the on-box dumps alone
-  do not survive losing the VPS).
+- `deploy/account/backup.sh` + `dusk-backup@.{service,timer}`: one daily set per instance (`dusk`, `make`): a fresh
+  read-only `mongodump`, the listed data folders, encrypted to an age public key, uploaded to every rclone destination
+  (Oracle box over SFTP and Cloudflare R2), 7 dailies + 4 weeklies kept. `backup-alert.mjs` sends one email when a set
+  starts failing and one when it works again. Env names in `backup.env.example`; `backup-install.sh` installs.
 - `deploy/account/logrotate.conf` for the dusk apps' logs.
 
 ### Owner: deploy the account service
@@ -105,18 +105,17 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
 6. **Sign in with Google / Apple / X** (optional): register the callbacks
    `https://dusk.bot/v1/auth/oauth/{google,apple,x}/callback` (and the preview.dusk.bot ones) and set the client names in the env file.
 7. **Mailboxes**: done 2026-11-10: Cloudflare Email Routing forwards every @dusk.bot address (MX on Cloudflare).
-8. **Backups**: `apt install age rclone`; create an age key pair on your Mac (`age-keygen -o ~/secure/dusk-backup.key`;
-   keep it off the server and in your password manager), configure an rclone remote off the box (free option: Oracle
-   Object Storage on the existing Oracle account, 20 GB Always Free; or Backblaze B2), then:
+8. **Backups**: done 2026-11-13. `dusk-backup@dusk.timer` and `dusk-backup@make.timer` run daily (04:17 UTC + up to
+   20 min) on the VPS; config in `/etc/dusk-backup/` (root-only: `<set>.env`, `rclone.conf`, `alert.env`,
+   `make-mongo.yaml`). Destinations: the Oracle box (`/srv/dusk-backups/data/<set>/`, SFTP-only chrooted user
+   `duskbackup`) and R2 bucket `dusk-backups` (token scoped to that bucket, Object Read & Write). The age private key is
+   only on the Mac at `~/.config/duskbot/backup-age.key`; keep a copy in your password manager, without it no backup
+   can be opened. Re-install after changing the scripts: `deploy/account/backup-install.sh`. Restore:
    ```sh
-   install -D -m 0755 deploy/account/backup.sh /opt/dusk-account/backup.sh
-   install -D -m 0600 /dev/null /etc/dusk-account/backup.env   # DUSK_DASHBOARD_DATA, DUSK_BACKUP_RECIPIENT=age1..., DUSK_BACKUP_DEST=remote:bucket/account
-   cp deploy/account/dusk-account-backup.{service,timer} /etc/systemd/system/ && systemctl enable --now dusk-account-backup.timer
-   systemctl start dusk-account-backup.service && journalctl -u dusk-account-backup -n 5
+   ssh contabo 'RCLONE_CONFIG=/etc/dusk-backup/rclone.conf rclone cat r2-backup:dusk-backups/dusk/daily/<file>' > <file>
+   age -d -i ~/.config/duskbot/backup-age.key <file> | tar -xz -C <empty folder>   # files/ and mongo/<set>.archive.gz
+   mongorestore --gzip --archive=<folder>/mongo/<set>.archive.gz --uri <a throwaway or stopped service's mongod>
    ```
-   Test a restore once: `rclone copy remote:bucket/account/<file> . && age -d -i ~/secure/dusk-backup.key <file> | tar -tz`.
-   Not installed on the server as of 2026-11-12, though privacy.md already promises encrypted daily backups kept 30 days.
-   Add the backup destination's provider (Oracle or Backblaze) to docs/legal/subprocessors.md and privacy.md when it is.
 9. **Log rotation**: `cp deploy/account/logrotate.conf /etc/logrotate.d/dusk && logrotate -d /etc/logrotate.d/dusk`.
 10. **Rate limits at the edge** (optional, defence in depth): a `limit_req` zone on `/v1/auth/` in deployd's nginx
     template; the service already limits, an hour, sign-in starts (60 per IP, 15 per email, one per address every
