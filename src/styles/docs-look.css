@@ -1,0 +1,20 @@
+/* The docs look outside Settings: dusk.bot's pixel props, which tip over when their group is hovered, and the bot panel's
+   groups as bold lowercase headings over borderless rows. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .dusk-art { transition: rotate 400ms cubic-bezier(0.34, 1.56, 0.64, 1), translate 400ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+  :is([data-settings-art], [data-art-state], [data-art-hover]):hover .dusk-art { rotate: -6deg; translate: 0 -2px; }
+}
+:root[data-reduced-motion="true"] .dusk-art { transition: none; rotate: none; translate: none; }
+
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-settings-group-head] { padding-inline: 8px; }
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-settings-group-head] > .dusk-art { height: 30px; margin-bottom: 8px; }
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-settings-heading] {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 20px;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-panel-card-surface] { padding: 0; background-color: transparent; }
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-row-title] { font-weight: 600; }
+:is([data-panel-tabpanel="details"], [data-panel-tabpanel="advanced"]) [data-row-hint] { font-weight: 500; }

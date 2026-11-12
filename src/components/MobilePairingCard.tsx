@@ -13,6 +13,23 @@ import { haptic } from "../mobile/haptics";
 import { dur, ease } from "../mobile/motion";
 import { Card as RowsCard, CopyRow, ItemRow, NoteRow } from "./ListRows";
 import { PhoneLinkIllustration } from "./PhoneLinkIllustration";
+import { Art, type ArtName } from "./ui/Art";
+import { cn } from "@/lib/cn";
+import { confirmUserPresence } from "@/lib/user-presence";
+
+function LinkChoice({ art, title, hint, onClick, disabled, expanded, ...rest }: {
+  art: ArtName; title: string; hint: string; onClick: () => void; disabled?: boolean; expanded?: boolean; "data-phone-way"?: string;
+}) {
+  return (
+    <button type="button" {...rest} onClick={onClick} disabled={disabled} aria-expanded={expanded}
+      className="group/art flex min-h-[132px] cursor-pointer flex-col items-start gap-1 rounded-2xl bg-ink/[0.045] p-4 text-start transition-[background-color,scale] duration-150 ease-out hover:bg-ink/[0.07] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default disabled:opacity-50 motion-reduce:active:scale-100"
+      data-art-hover="">
+      <Art name={art} size="sm" className="mb-2" />
+      <span className="text-[14px] font-semibold leading-5 tracking-[-0.01em] text-ink">{title}</span>
+      <span className="text-[12.5px] font-medium leading-[17px] text-ink-secondary">{hint}</span>
+    </button>
+  );
+}
 
 export function platformLabelKey(platform: string) {
   return platform === "ios" ? "settings.mobile.ios" : platform === "android" ? "settings.mobile.android" : "settings.mobile.phone";
@@ -26,7 +43,11 @@ export function newDeviceSince(before: readonly string[], after: readonly Mobile
 const pill = "rounded-full bg-ink/5 px-2 py-0.5 text-[12px] leading-4 text-ink-secondary";
 const primaryButton = "ui-button ui-button-primary mobile-press h-12 min-h-12 rounded-full bg-ink px-6 text-app enabled:hover:bg-ink/90 enabled:hover:text-app";
 
-export function MobilePairingCard({ remote }: { remote: boolean }) {
+type LinkWay = "qr" | "code";
+
+export function MobilePairingCard({ remote, accountEmail = null }: { remote: boolean; accountEmail?: string | null }) {
+  const [way, setWay] = useState<LinkWay>("qr");
+  const [signInShown, setSignInShown] = useState(false);
   const [devices, setDevices] = useState<MobileDevice[] | null>(null);
   const [offer, setOffer] = useState<MobilePairingResponse | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -98,10 +119,15 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
     return () => { cancelled = true; clearTimeout(timer); clearInterval(clock); };
   }, [loadDevices, offer]);
 
-  async function create() {
+  async function create(next: LinkWay = way) {
     if (busy || !devices) return;
     const epoch = generation.current;
+    setWay(next);
     setBusy(true);
+    if (!await confirmUserPresence(t("settings.docs.phone.presence"))) {
+      if (generation.current === epoch) setBusy(false);
+      return;
+    }
     setError(null);
     setCopied("idle");
     setShowLink(false);
@@ -202,9 +228,10 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
                   </div>
                 ) : (
                   <>
-                    <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[16px] bg-white p-3">
+                    {(way === "qr" || offer.code === null) && <div role="img" aria-label={t("settings.mobile.qr")} className="rounded-[16px] bg-white p-3">
                       <QRCodeSVG value={offer.link} size={232} level="M" includeMargin bgColor="#ffffff" fgColor="#000000" aria-hidden="true" />
-                    </div>
+                    </div>}
+                    {way === "code" && offer.code !== null && <p className="m-0 max-w-[280px] text-center text-[13px] font-medium leading-[18px] text-ink-secondary">{t("settings.docs.phone.codeSteps")}</p>}
                     <div role="status" className="flex flex-col items-center gap-1 text-center">
                       <p className="flex items-center gap-2 text-[14px] font-medium text-ink">
                         <span aria-hidden="true" className="phone-link-wait inline-block size-1.5 rounded-full bg-ink" />
@@ -214,12 +241,15 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
                     </div>
                     {offer.code !== null ? (
                       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-                        <code aria-label={t("settings.mobile.code")} className="whitespace-nowrap font-mono text-[20px] tracking-[0.1em] text-ink select-all">{groupedCode}</code>
+                        <code aria-label={t("settings.mobile.code")} className={cn("whitespace-nowrap font-mono tracking-[0.1em] text-ink select-all", way === "code" ? "text-[30px] leading-10" : "text-[20px]")}>{groupedCode}</code>
                         <button type="button" onClick={() => void copyCode()} className="ui-button mobile-press min-h-11 min-w-11 rounded-full" aria-live="polite">
                           {t(copied === "copied" ? "settings.mobile.copied" : copied === "failed" ? "settings.mobile.copyFailed" : "settings.mobile.copyCode")}
                         </button>
                       </div>
                     ) : <NoteRow>{t("settings.mobile.scanOnly")}</NoteRow>}
+                    {offer.code !== null && <button type="button" onClick={() => setWay(way === "qr" ? "code" : "qr")} className="mobile-press min-h-11 min-w-11 rounded-full px-3 text-[13px] font-medium text-ink-secondary hover:bg-ink/5">
+                      {t(way === "qr" ? "settings.docs.phone.codeInstead" : "settings.docs.phone.qrInstead")}
+                    </button>}
                     <button type="button" aria-expanded={showLink} aria-controls={linkId} onClick={() => { setShowLink(!showLink); haptic("selection"); }} className="mobile-press min-h-11 min-w-11 rounded-full px-3 text-[13px] text-ink-secondary hover:bg-ink/5">
                       {t("mobile.desktop.copyLinkInstead")}
                     </button>
@@ -230,12 +260,17 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
                 )}
               </div>
             ) : (
-              <div className="flex min-w-0 flex-1 basis-[240px] flex-col items-start gap-5">
+              <div className="flex min-w-0 flex-1 basis-[300px] flex-col items-start gap-4">
                 <div>
-                  <h3 className="text-[22px] font-semibold leading-7 text-ink">{t("mobile.desktop.title")}</h3>
-                  <p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t("mobile.desktop.hint")}</p>
+                  <h3 className="text-[22px] font-semibold leading-7 tracking-[-0.02em] text-ink">{t("mobile.desktop.title")}</h3>
+                  <p className="mt-1.5 text-[14px] font-medium leading-5 text-ink-secondary">{t("mobile.desktop.hint")}</p>
                 </div>
-                <button type="button" onClick={() => void create()} disabled={busy || devices === null} aria-busy={busy} className={primaryButton}>{t("settings.mobile.pair")}</button>
+                <div role="group" aria-label={t("settings.docs.phone.ways")} data-phone-ways="" className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+                  <LinkChoice art="mobile" title={t("settings.docs.phone.scan")} hint={t("settings.docs.phone.scanHint")} disabled={busy || devices === null} onClick={() => void create("qr")} data-phone-way="qr" />
+                  <LinkChoice art="key" title={t("settings.docs.phone.enterCode")} hint={t("settings.docs.phone.enterCodeHint")} disabled={busy || devices === null} onClick={() => void create("code")} data-phone-way="code" />
+                  {accountEmail && <LinkChoice art="house" title={t("settings.docs.phone.signIn")} hint={t("settings.docs.phone.signInHint")} expanded={signInShown} onClick={() => setSignInShown(!signInShown)} data-phone-way="account" />}
+                </div>
+                {accountEmail && signInShown && <p role="status" data-phone-sign-in="" className="m-0 text-[13px] font-medium leading-[18px] text-ink-secondary">{t("settings.docs.phone.signInSteps", { email: accountEmail })}</p>}
                 <p data-phone-web-app="" className="text-[13px] leading-5 text-ink-tertiary">{t("mobile.desktop.noStoreApp")}</p>
               </div>
             )}
@@ -243,7 +278,7 @@ export function MobilePairingCard({ remote }: { remote: boolean }) {
         </AnimatePresence>
         {error && <NoteRow tone="danger">{error}</NoteRow>}
       </RowsCard>
-      <RowsCard label={t("settings.mobile.devices")}>
+      <RowsCard label={t("settings.mobile.devices")} art="mobile">
         {devices?.length ? devices.map((device) => (
           <ItemRow key={device.id} icon={Smartphone} title={device.name} hint={t("settings.mobile.seen", { when: lastSeen(device.lastSeenAt, now) })}>
             <span className={pill}>{t(platformLabelKey(device.platform))}</span>

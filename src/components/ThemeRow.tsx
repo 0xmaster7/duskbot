@@ -17,16 +17,39 @@ export function useSkinChoice(): SkinChoice {
   return useSyncExternalStore(subscribeSkin, readSkinChoice, readSkinChoice);
 }
 
-/** Grok's three themes, then the other looks. */
+const SWATCHES: Record<string, readonly [ground: string, accent: string]> = {
+  system: ["#fcfcfc", "#121212"],
+  grok: ["#fcfcfc", "#126fd4"],
+  "grok-dark": ["#121212", "#116dd2"],
+  midnight: ["#121212", "#1084fe"],
+  atelier: ["#f5f1eb", "#a05f25"],
+  foundry: ["#100e0b", "#d99a3e"],
+  lagoon: ["#dfeceb", "#11736d"],
+  graphite: ["#111214", "#4f75a2"],
+  linen: ["#eceff3", "#355f8a"],
+  dusk: ["#121014", "#765683"],
+  daylight: ["#fcfcfc", "#126fd4"],
+  meadow: ["#ffffff", "#1a7a48"],
+  pop: ["#fdf5ea", "#7f52f0"],
+  halloween: ["#110d16", "#ff7f1f"],
+};
+
+/** A look's ground and accent, split on the diagonal. */
+export function ThemeSwatch({ id }: { id: string }) {
+  const [ground, accent] = SWATCHES[id] ?? SWATCHES.system!;
+  return <span aria-hidden="true" data-theme-swatch={id} className="size-3.5 shrink-0 rounded-full shadow-[inset_0_0_0_0.5px_rgb(28_28_28/0.18)]" style={{ background: `linear-gradient(135deg, ${ground} 50%, ${accent} 50%)` }} />;
+}
+
+/** Grok's three themes, then the other looks, each with its swatch. */
 export const themeOptions = () => [
-  ...THEMES.map((theme) => ({ value: theme.choice, label: t(theme.label) })),
-  ...LOOKS.map((skin) => ({ value: skin.id, label: skin.name })),
+  ...THEMES.map((theme) => ({ value: theme.choice, label: t(theme.label), preview: <ThemeSwatch id={theme.choice} /> })),
+  ...LOOKS.map((skin) => ({ value: skin.id, label: skin.name.toLowerCase(), preview: <ThemeSwatch id={skin.id} /> })),
 ];
 
 export function ThemeRow() {
   const choice = useSkinChoice();
   return (
-    <SettingRow title={t("settings.theme.title")}>
+    <SettingRow title={t("settings.theme.title")} subtitle={t("settings.docs.theme.hint")}>
       <SettingsSelect
         data-settings-select="theme"
         value={choice}

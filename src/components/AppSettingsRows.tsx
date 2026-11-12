@@ -79,8 +79,9 @@ export function TalkingStyleRow() {
     }
   };
   return (
-    <SettingRow title={t("settings.talkingStyle.title")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
+    <SettingRow title={t("settings.talkingStyle.title")} subtitle={t("settings.docs.talkingStyle.hint")} message={error ? <p role="alert" className="text-danger">{error}</p> : null}>
       <SettingsSelect
+        variant="segmented"
         value={talkingStyleOf(state.config?.talkingStyle)}
         disabled={saving}
         aria-label={t("settings.talkingStyle.title")}
@@ -116,7 +117,7 @@ export function QuickUpdatesRow() {
   return (
     <SettingRow
       title={t("settings.quickUpdates.title")}
-      subtitle={t("settings.quickUpdates.subtitle")}
+      subtitle={t("settings.docs.quickUpdates.hint")}
       message={error ? <p role="alert" className="text-danger">{error}</p> : null}
     >
       <Switch
@@ -136,7 +137,7 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
   return (
     <SettingRow
       title={t("settings.language.title")}
-      subtitle={simple ? activeLocale() === "en" ? undefined : t("settings.simple.language.partial") : t("settings.language.subtitle")}
+      subtitle={simple ? activeLocale() === "en" ? t("settings.docs.language.hint") : t("settings.simple.language.partial") : t("settings.language.subtitle")}
     >
       <SettingsSelect
         value={current}
@@ -157,8 +158,9 @@ export function LanguageRow({ simple = false }: { simple?: boolean }) {
 export function SendKeyRow({ simple = false }: { simple?: boolean }) {
   const sendKey = useSendKey();
   return (
-    <SettingRow title={t("settings.sendKey.title")} subtitle={simple ? undefined : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
+    <SettingRow title={t("settings.sendKey.title")} subtitle={simple ? t("settings.docs.sendKey.hint") : t("settings.sendKey.subtitle", { key: sendKeyLabel("mod-enter") })}>
       <SettingsSelect
+        variant="segmented"
         value={sendKey}
         aria-label={t("settings.sendKey.title")}
         onChange={(event) => setSendKey(parseSendKey(event.target.value))}
@@ -176,7 +178,7 @@ export function FollowUpRow({ simple = false }: { simple?: boolean }) {
   const followUp = useFollowUpDefault();
   const key = alternateSendLabel(useSendKey());
   return (
-    <SettingRow title={t("settings.followUp.title")} subtitle={simple ? undefined : t("settings.followUp.subtitle", { key })}>
+    <SettingRow title={t("settings.followUp.title")} subtitle={simple ? t("settings.docs.followUp.hint") : t("settings.followUp.subtitle", { key })}>
       <SettingsSelect
         value={followUp}
         aria-label={t("settings.followUp.title")}

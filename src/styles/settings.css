@@ -107,7 +107,7 @@
 }
 .settings-nav-item:hover { background: var(--settings-hover); }
 .settings-nav-item[aria-current="page"] { background: var(--settings-selected); }
-.settings-nav-item:focus-visible { outline: none; outline-offset: -2px; }
+.settings-nav-item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 /* a bot's sheet: Grok's ink/6 hover reads as a second selection beside its ink/8, so hover stays at half of it */
 [data-bot-sheet] .settings-nav-item:not([aria-current="page"]):hover { background: color-mix(in srgb, var(--color-ink) 4%, transparent); }
 .settings-nav-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -151,7 +151,7 @@
   background: color-mix(in srgb, var(--color-ink) 11%, transparent);
   color: var(--color-ink-secondary);
 }
-.settings-close:focus-visible { outline: none; outline-offset: 2px; }
+.settings-close:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 .settings-pane-header {
   display: flex;
@@ -160,16 +160,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px 2px;
-  padding: 22px 52px 4px 24px;
+  padding: 26px 52px 6px 24px;
 }
 .settings-pane-title {
   margin: 0;
-  padding-inline-start: 8px;
+  padding-inline-start: 10px;
   color: var(--color-ink);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 22px;
-  letter-spacing: -0.006em;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 30px;
+  letter-spacing: -0.035em;
 }
 
 /* the wipe viewport: the incoming layer slides over the outgoing one on push, the outgoing slides off it on pop */
@@ -231,9 +231,9 @@
 .settings-pane {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 36px;
   box-sizing: border-box;
-  padding: 14px 24px 24px;
+  padding: 18px 24px 40px;
 }
 /* Grok's scroll area: a 6px thumb, hidden at rest, shown while the pane scrolls or the thumb is held */
 .settings-scrollbar {
@@ -265,8 +265,8 @@
 [data-settings-look] .settings-pane select:not([data-settings-select]) {
   border-radius: 10px;
 }
-.settings-dialog :is([role="combobox"], [role="switch"], .ui-button, [data-settings-account] button, [data-settings-back]):focus-visible {
-  outline: none;
+.settings-dialog :is([role="combobox"], [role="switch"], [role="radio"], .ui-button, [data-settings-account] button, [data-settings-back]):focus-visible {
+  outline: 2px solid var(--color-focus);
   outline-offset: 1px;
 }
 
@@ -406,94 +406,108 @@
 }
 [data-settings-look] .settings-pane dd.text-\[20px\] { font-size: 17px; line-height: 24px; font-weight: var(--font-weight-normal, 425); }
 
-/* Settings at the bot panel's density (src/components/bot-panel): groups 20px apart, a 12/16 label at ink/56 12px in and
-   6px over a white 12px card on a half-pixel edge, 4px inside it; rows of 32px at 6px by 8px with 13/18 names and 12/16
-   lines, 12px between the words and the control, and the panel's soft pill (ink 3.5%) on hover, drawn at once with no
-   transition. Values and selects read as quiet secondary text with a small chevron; pills are the panel's 26px quiet
-   pill. Everything is scoped to the Settings sheet. */
+/* Settings in the voice of dusk.bot's docs index: each group is a small pixel prop over a big lowercase heading, then a
+   borderless list. Rows are a bold name and one plain line, the control on the right, and a soft rounded grey on hover,
+   drawn at once with no transition. Controls are tonal (a filled chip or a segmented pill), never outlined. */
 :root .settings-dialog .settings-pane,
-:root .settings-dialog .settings-pane [data-panel-sections] { gap: 20px; }
+:root .settings-dialog .settings-pane [data-panel-sections] { gap: 36px; }
 :root .settings-dialog .settings-pane section[data-settings-block],
 :root .settings-dialog .settings-pane [data-settings-block]:is(section) { gap: 6px; }
-:root .settings-dialog .settings-pane [data-settings-heading] {
-  padding-inline: 12px 4px;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0;
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+:root .settings-dialog .settings-pane [data-settings-group-head] {
+  min-height: 0;
+  margin-bottom: 6px;
+  padding-inline: 10px 4px;
 }
-:root .settings-dialog .settings-pane section > div:has(> [data-settings-heading]) { min-height: 16px; margin-bottom: 6px; padding-inline: 0; }
+:root .settings-dialog .settings-pane [data-settings-heading] {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 24px;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
+}
+:root .settings-dialog .settings-pane [data-settings-group-hint] {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: color-mix(in srgb, var(--color-ink) 62%, transparent);
+}
 :root .settings-dialog .settings-pane [data-settings-footnote] {
   margin: 6px 0 0;
-  padding-inline: 12px 4px;
-  font-size: 11px;
-  line-height: 15px;
-  letter-spacing: 0.005em;
-  color: color-mix(in srgb, var(--color-ink) 44%, transparent);
+  padding-inline: 10px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--color-ink) 52%, transparent);
 }
-:root .settings-dialog .settings-pane section:has(> div > [data-settings-heading]) { gap: 0; }
+:root .settings-dialog .settings-pane section:has(> [data-settings-group-head]) { gap: 0; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) {
-  padding: 4px;
+  gap: 2px;
+  padding: 0;
   border: 0;
   outline: none;
-  background-color: color-mix(in srgb, var(--color-ink) 3%, transparent);
-  border-radius: 12px;
+  background-color: transparent;
+  border-radius: 0;
+  overflow: visible;
   letter-spacing: -0.08px;
 }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) [class*="tracking-"] { letter-spacing: -0.08px; }
 :root .settings-dialog .settings-pane [data-settings-rows] [data-settings-rows] { padding: 0; border: 0; outline: 0; border-radius: 0; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows]) {
-  min-height: 32px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  column-gap: 12px;
+  min-height: 48px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  column-gap: 16px;
   transition: none;
 }
-:root .settings-dialog .settings-pane [data-settings-rows] > [data-setting-row] > div:first-child { min-height: 20px; align-items: center; column-gap: 12px; flex-wrap: nowrap; }
+:root .settings-dialog .settings-pane [data-settings-rows] > [data-setting-row] > div:first-child { min-height: 30px; align-items: center; column-gap: 16px; flex-wrap: nowrap; }
 :root .settings-dialog .settings-pane [data-settings-rows] > div:not([data-setting-row]):has(> [data-setting-row]:only-child) { display: block; }
 :root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child { padding: 0; }
-:root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { min-height: 20px; align-items: center; column-gap: 12px; flex-wrap: nowrap; }
+:root .settings-dialog .settings-pane [data-settings-rows] > div > [data-setting-row]:only-child > div:first-child { min-height: 30px; align-items: center; column-gap: 16px; flex-wrap: nowrap; }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, [data-select-row], [data-setting-row]) { background-color: transparent; }
-/* the panel's pill: instant, ink 3.5% on hover, 5% while pressed */
-:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button[data-panel-page], button[data-settings-open], button[data-settings-advanced], button[data-panel-row], li > button):enabled:hover { background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent); }
+/* the docs' hover: a soft grey rounded fill on every row, instant; a little deeper while a row is pressed */
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) > :is(button, a, div, label):not(.contents, [hidden], [data-settings-rows], :disabled):hover {
+  background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
+}
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button[data-panel-page], button[data-settings-open], button[data-settings-advanced], button[data-panel-row], li > button):enabled:active { background-color: color-mix(in srgb, var(--color-ink) 5%, transparent); }
 :root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a) { transition-property: scale; }
-:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button) { transition: none; }
-:root .settings-dialog .settings-pane [data-row-title] { font-size: 13px; line-height: 18px; }
-:root .settings-dialog .settings-pane [data-row-hint] {
-  font-size: 12px;
-  line-height: 16px;
+:root .settings-dialog .settings-pane :is([data-panel-card-surface], [data-settings-rows]) :is(button, a):not(.ui-button, [role="radio"], [role="combobox"]) { transition: none; }
+:root .settings-dialog .settings-pane :is([data-row-title], [data-setting-row] [data-setting-title]) {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 19px;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+:root .settings-dialog .settings-pane :is([data-row-hint], [data-setting-row] [data-setting-hint]) {
+  margin-top: 1px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 17px;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  color: color-mix(in srgb, var(--color-ink) 56%, transparent);
+  color: color-mix(in srgb, var(--color-ink) 62%, transparent);
 }
-:root .settings-dialog .settings-pane [data-panel-value] { color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
+:root .settings-dialog .settings-pane [data-panel-value] { font-weight: 500; color: color-mix(in srgb, var(--color-ink) 62%, transparent); }
 
-/* a select is grok's small outlined pill on the row's right: value in ink, a quiet chevron, a light instant tint on hover */
-:root .settings-dialog :is(.settings-pane :is([data-settings-select], [data-select-row] [role="combobox"], [data-panel-row="model"] [data-tour="model"]), [data-settings-header-actions] [data-settings-select]) {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+/* the props: a docs-sized object over the heading that tips over when the group is hovered, as the site's do */
+:root .settings-dialog .settings-pane [data-settings-group-head] > .dusk-art { height: 40px; margin-bottom: 10px; }
+
+/* a select is a filled chip on the row's right (SettingsSelect, SelectPill); older selects drawn by their own screens
+   take the same chip */
+:root .settings-dialog .settings-pane select:not([data-settings-select]) {
   height: 28px;
-  max-width: 220px;
-  margin: 0;
-  padding: 0 8px 0 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--color-ink);
-  font-size: 13px;
-  line-height: 18px;
-  letter-spacing: -0.08px;
-  transition: none;
+  padding-inline: 12px 8px;
+  border: 0;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  font-weight: 500;
 }
-:root .settings-dialog :is(.settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]), [data-settings-header-actions] [data-settings-select]):is(:enabled:hover, [aria-expanded="true"]) {
-  background-color: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
-}
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]) svg { color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
-:root .settings-dialog .settings-pane :is([data-settings-select], [data-select-row] [role="combobox"]):focus-visible { outline: none; outline-offset: 1px; }
+:root .settings-dialog .settings-pane select:not([data-settings-select]):enabled:hover { background-color: color-mix(in srgb, var(--color-ink) 9%, transparent); }
+:root .settings-dialog .settings-pane :is([data-settings-select], [role="combobox"]):focus-visible,
+:root .settings-dialog .settings-pane [role="radio"]:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
 :root .settings-dialog [role="switch"] { cursor: pointer; }
 :root .settings-dialog [role="switch"]:disabled { cursor: default; }
 
@@ -634,14 +648,9 @@
   :root .settings-dialog .settings-pane,
   :root .settings-dialog .settings-pane [data-panel-sections] { gap: 24px; }
 
-  /* group labels and footnotes: 14px grey, 16px in */
-  :root .settings-dialog .settings-pane [data-settings-heading] {
-    padding-inline: 16px;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 20px;
-    color: color-mix(in srgb, var(--color-ink) 60%, transparent);
-  }
+  /* group headings and footnotes, 16px in */
+  :root .settings-dialog .settings-pane [data-settings-group-head] { padding-inline: 16px; }
+  :root .settings-dialog .settings-pane [data-settings-heading] { font-size: 20px; line-height: 26px; }
   :root .settings-dialog .settings-pane [data-settings-footnote] { margin-top: 10px; padding-inline: 16px; font-size: 15px; line-height: 20px; color: color-mix(in srgb, var(--color-ink) 56%, transparent); }
 
   /* a group's card becomes a stack of segments */

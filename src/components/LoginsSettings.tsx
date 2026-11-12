@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { ArtState } from "./ui/Art";
 import { Loader2 } from "../icons";
 
 import type { LoginBots, LoginSummary, OnePasswordStatus, OnePasswordVault } from "../../shared/logins";
@@ -85,6 +86,23 @@ function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
   return onClick
     ? <button type="button" title={detail} aria-label={label} disabled={disabled} onClick={onClick} className={cn(cls, "cursor-pointer hover:bg-ink/[0.06] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus disabled:cursor-default")}>{body}</button>
     : <div title={detail} className={cls}>{body}</div>;
+}
+
+/** Three rows the size of a login's, so the list fills in place instead of jumping from a line of text. */
+function VaultSkeleton() {
+  return (
+    <div role="status" aria-label={t("settings.logins.loading")} data-vault-skeleton="" className="flex flex-col">
+      {[0.62, 0.48, 0.55].map((width) => (
+        <div key={width} aria-hidden="true" className="flex min-h-[50px] items-center gap-3 p-2">
+          <span className="flex w-[30px] shrink-0 justify-center"><span className="size-6 rounded-md bg-ink/[0.06]" /></span>
+          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <span className="h-3 rounded-full bg-ink/[0.07]" style={{ width: `${width * 60}%` }} />
+            <span className="h-2.5 rounded-full bg-ink/[0.045]" style={{ width: `${width * 90}%` }} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function KeyTile() {
@@ -194,7 +212,8 @@ export function LoginsSettings() {
   const shown = (tab === "saved" ? saved : tab === "onepassword" ? fromVaults : tab === "secrets" ? [] : logins ?? [])
     .filter((login) => !words || `${login.site} ${login.username} ${login.hosts.join(" ")}`.toLowerCase().includes(words));
   const shownSecrets = (tab === "all" || tab === "secrets" ? secrets : []).filter((secret) => !words || secret.label.toLowerCase().includes(words));
-  const nothing = logins !== null && logins.length === 0 && secrets.length === 0;
+  const ready = (logins !== null || error !== null) && saved_secrets.secrets !== null;
+  const nothing = ready && logins !== null && logins.length === 0 && secrets.length === 0;
   const secretHint = (secret: SavedSecretSummary) => [botNames(secret.bots),
     secret.lastUsedAt ? t("settings.logins.used", { when: relativeTime(secret.lastUsedAt) }) : t("settings.logins.neverUsed")].join(" · ");
 
@@ -206,7 +225,7 @@ export function LoginsSettings() {
             {tabs.map((entry) => (
               <button key={entry.id} type="button" role="tab" aria-selected={tab === entry.id} data-vault-tab={entry.id} onClick={() => setTab(entry.id)}
                 className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[13px] leading-[18px] text-ink-secondary hover:text-ink aria-selected:bg-ink/[0.06] aria-selected:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
-                {entry.label}<span className="text-ink/[0.56] tabular-nums">{entry.count}</span>
+                {entry.label}<span className={cn("min-w-[1ch] text-ink/[0.56] tabular-nums", !ready && "invisible")}>{entry.count}</span>
               </button>
             ))}
           </div>
@@ -217,11 +236,11 @@ export function LoginsSettings() {
           </label>
         </div>
         {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
-        {nothing ? <p data-vault-empty="" className="py-10 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.vault.nothing")}</p> : <>
-          <div aria-busy={logins === null || busy} className="flex flex-col rounded-xl border border-transparent bg-app p-1.5">
-            {logins === null && !error && <NoteRow>{t("settings.logins.loading")}</NoteRow>}
-            {logins !== null && shown.length + shownSecrets.length === 0 && <NoteRow>{words ? t("settings.vault.noMatch") : t("settings.vault.noneHere")}</NoteRow>}
-            {!!shown.length && (
+        {nothing ? <ArtState data-art-state="vault" art="key" title={t("settings.docs.vault.empty")}>{t("settings.docs.vault.emptyBody")}</ArtState> : <>
+          <div aria-busy={!ready || busy} className="flex flex-col rounded-xl border border-transparent bg-app p-1.5">
+            {!ready && <VaultSkeleton />}
+            {ready && logins !== null && shown.length + shownSecrets.length === 0 && <NoteRow>{words ? t("settings.vault.noMatch") : t("settings.vault.noneHere")}</NoteRow>}
+            {ready && !!shown.length && (
               <ul className="flex flex-col" data-logins-list>
                 {shown.map((login) => {
                   const details = [t(SOURCE_KEYS[login.source]), botNames(login.bots),
@@ -238,7 +257,7 @@ export function LoginsSettings() {
                 })}
               </ul>
             )}
-            {!!shownSecrets.length && (
+            {ready && !!shownSecrets.length && (
               <ul className="flex flex-col" data-saved-secrets="">
                 {shownSecrets.map((secret) => (
                   <li key={secret.id} data-saved-secret={secret.label}>

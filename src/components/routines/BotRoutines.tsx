@@ -71,11 +71,11 @@ export function BotRoutines({ bot, defaultRunOn, label = true }: { bot: Bot; def
 
   if (automations.length === 0 && editing !== "new") {
     return (
-      <PanelEmpty data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
+      <PanelEmpty art="clock" data-panel-empty="routines">{t("botPanel.routines.empty")}</PanelEmpty>
     );
   }
   return (
-    <Card label={label ? t("botSettings.simple.routines") : undefined} anchor="routines">
+    <Card label={label ? t("botSettings.simple.routines") : undefined} art={label ? "clock" : undefined} anchor="routines">
       {automations.map((automation) => (
         <AutomationRow
           key={automation.id}

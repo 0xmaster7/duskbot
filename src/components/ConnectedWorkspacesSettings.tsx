@@ -62,7 +62,7 @@ export function ConnectedWorkspacesSettings() {
   );
   const current = <span data-panel-value="" className="shrink-0 text-[13px] leading-[18px] text-ink-secondary">{t("connectedWorkspaces.current")}</span>;
   return <>
-    {saved?.packaged && <RowsCard label={t("connectedWorkspaces.localTitle")} data-settings-block="environments">
+    {saved?.packaged && <RowsCard label={t("connectedWorkspaces.localTitle")} art="folder" data-settings-block="environments">
       {locals.map((entry) => {
         const active = entry.id === saved.activeId;
         return <ItemRow key={entry.id} title={entry.name} hint={<>{entry.dataDir}{entry.missing && <> · <span>{t("connectedWorkspaces.missing")}</span></>}</>}>
@@ -79,7 +79,7 @@ export function ConnectedWorkspacesSettings() {
       <NavRow data-settings-open="new-environment" title={t("connectedWorkspaces.newEnvironment")} hint={t("settings.s2.env.newHint")} onClick={() => { setEnvError(""); setCreating(true); }} />
       {envError && !creating && !forgetEntry && <NoteRow tone="danger">{envError}</NoteRow>}
     </RowsCard>}
-    <RowsCard label={t("settings.s2.servers.title")} data-settings-block="servers">
+    <RowsCard label={t("settings.s2.servers.title")} art="server" data-settings-block="servers">
       {!saved ? <NoteRow>{error ? t("settings.s2.servers.loadFailed") : t("settings.s2.servers.loading")}</NoteRow> :
         [{ id: "local", name: t("settings.s2.servers.thisComputer"), origin: "", color: undefined }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
           const active = entry.id === saved.activeId;

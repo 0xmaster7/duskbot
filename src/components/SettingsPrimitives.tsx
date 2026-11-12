@@ -1,6 +1,7 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { useOptimisticSwitch } from "./ui/optimistic-switch";
+import { Art, type ArtName } from "./ui/Art";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
 export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-transparent bg-composer p-1";
@@ -95,8 +96,8 @@ export function SettingRow({
     <div role="group" aria-labelledby={titleId} data-setting-row="" className={cn("px-4 in-data-[settings-look=simple]:rounded-lg in-data-[settings-look=simple]:px-2 in-data-[settings-look=simple]:py-1.5", className)}>
       <div className="grid min-w-0 grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:min-h-[18px] in-data-[settings-look=simple]:flex-wrap in-data-[settings-look=simple]:justify-between in-data-[settings-look=simple]:gap-x-2 in-data-[settings-look=simple]:gap-y-1.5">
         <div className="min-w-0 in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:shrink in-data-[settings-look=simple]:grow in-data-[settings-look=simple]:basis-[min-content] in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:[overflow-wrap:break-word]">
-          <div id={titleId} className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>
-          {subtitle && <div className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{subtitle}</div>}
+          <div id={titleId} data-setting-title="" className="text-[14px] font-medium text-ink in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{title}</div>
+          {subtitle && <div data-setting-hint="" className="mt-1 text-[12px] leading-relaxed text-pretty text-ink-secondary in-data-[settings-look=simple]:mt-0 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[0.015em]">{subtitle}</div>}
         </div>
         <div className="min-w-0 sm:max-w-[240px] in-data-[settings-look=simple]:ml-auto in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:max-w-[60%] in-data-[settings-look=simple]:shrink-0 in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:items-end in-data-[settings-look=simple]:sm:max-w-[60%]">{children}</div>
       </div>
@@ -105,8 +106,10 @@ export function SettingRow({
   );
 }
 
-export function SettingsGroup({ label, block, actions, footnote, children }: {
+export function SettingsGroup({ label, art, hint, block, actions, footnote, children }: {
   label?: string;
+  art?: ArtName;
+  hint?: ReactNode;
   block?: string;
   actions?: ReactNode;
   footnote?: ReactNode;
@@ -116,13 +119,18 @@ export function SettingsGroup({ label, block, actions, footnote, children }: {
   return (
     <section
       data-settings-block={block}
+      data-settings-art={art}
       aria-labelledby={label ? labelId : undefined}
       className="flex scroll-mt-4 flex-col gap-2.5 has-[>[data-settings-rows]:empty]:hidden has-[>[data-settings-rows]>:only-child:empty]:hidden"
     >
       {(label || actions) && (
-        <div className="flex min-h-[18px] items-center justify-between gap-3 px-3">
-          {label && <h3 id={labelId} data-settings-heading="" className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
-          {actions}
+        <div data-settings-group-head="" className="flex min-h-[18px] flex-col items-start gap-0 px-3">
+          {art && <Art name={art} className="mb-2.5" />}
+          <div className="flex w-full items-center justify-between gap-3">
+            {label && <h3 id={labelId} data-settings-heading="" className="text-[13px] leading-[18px] font-normal tracking-[0.015em] text-ink-secondary">{label}</h3>}
+            {actions}
+          </div>
+          {hint && <p data-settings-group-hint="" className="text-[13px] leading-[18px] text-ink-secondary">{hint}</p>}
         </div>
       )}
       {children}

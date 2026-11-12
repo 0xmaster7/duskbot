@@ -6,6 +6,8 @@ import {
 } from "@/lib/keyboard-shortcuts";
 import { useSendKey } from "@/lib/send-key";
 import { GrokDialog } from "./ui/GrokDialog";
+import { Art } from "./ui/Art";
+import { t } from "@/lib/i18n";
 
 export interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -39,11 +41,15 @@ export function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModal
   if (!open) return null;
   const groups = shortcutGroupsFor(sendKey);
   return (
-    <GrokDialog data-panel-modal="shortcuts" title="Keyboard shortcuts" width={900} onClose={onClose}>
+    <GrokDialog data-panel-modal="shortcuts" title={t("settings.advanced.about.shortcuts")} width={900} onClose={onClose}>
+      <div data-art-hover="" className="mb-5 flex items-center gap-4">
+        <Art name="button" size="lg" />
+        <p className="m-0 max-w-[420px] text-[13px] font-medium leading-[18px] text-ink-secondary">{t("settings.docs.shortcuts.hint")}</p>
+      </div>
       <div className="grid grid-cols-1 gap-x-16 gap-y-5 pb-2 md:grid-cols-2">
         {groups.map((group) => (
           <section key={group.category} aria-label={group.category} className="min-w-0">
-            <h3 className="m-0 pb-1 text-[13px] font-medium leading-[18px] text-ink">{group.category}</h3>
+            <h3 className="m-0 pb-1.5 text-[15px] font-semibold leading-5 tracking-[-0.015em] text-ink">{group.category}</h3>
             {group.items.map((item) => <ShortcutRow key={item.id} item={item} isMac={isMac} />)}
           </section>
         ))}

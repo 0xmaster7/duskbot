@@ -221,7 +221,7 @@ export function LibraryPage({ bot }: { bot: Bot }) {
   if (entries.length === 0) {
     return (
       <div data-panel-library="">
-        <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
+        <PanelEmpty art="folder" data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
       </div>
     );
   }
@@ -246,7 +246,7 @@ export function LibrarySection({ bot, onOpen }: { bot: Bot; onOpen: (page: Simpl
   if (entries.length === 0) {
     return (
       <section data-panel-card="library">
-        <PanelEmpty data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
+        <PanelEmpty art="folder" data-panel-empty="library">{t("botPanel.library.empty")}</PanelEmpty>
       </section>
     );
   }

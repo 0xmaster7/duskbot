@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { ChevronRight } from "../icons";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
@@ -10,6 +10,7 @@ import { resolveSkin } from "@/lib/skins";
 import { setDressUp, useDressUp } from "@/lib/halloween-dress";
 import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
+import { Art } from "./ui/Art";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
 import { AdminOnly } from "./AdminOnly";
@@ -31,7 +32,8 @@ import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
 import { CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
 import { CloudDesktopKeys } from "./keys/KeysPage";
-import { CloudMoveSettings } from "./CloudMoveSettings";
+import { InstallOnVpsGroup, WorkspacesGroup } from "./WorkspacesSettings";
+import { openAddVps } from "@/lib/vps-link";
 import { LoginsSettings } from "./LoginsSettings";
 import { McpServersPanel } from "./McpServersPanel";
 import { NotificationRows } from "./NotificationSettingsRows";
@@ -151,8 +153,9 @@ export function AccountRows() {
 export function AccentRow() {
   const bot = useColorUserBubbles();
   return (
-    <SettingRow title={t("settings.accent.title")}>
+    <SettingRow title={t("settings.accent.title")} subtitle={t("settings.docs.accent.hint")}>
       <SettingsSelect
+        variant="segmented"
         value={bot ? "bot" : "neutral"}
         aria-label={t("settings.accent.title")}
         options={[{ value: "bot", label: t("settings.accent.bot") }, { value: "neutral", label: t("settings.accent.neutral") }]}
@@ -171,53 +174,77 @@ function DressUpRow() {
 
 export function GeneralPane({ has, remoteActive }: { has: Has; remoteActive: boolean }) {
   const { at } = useSubPage();
+  const [more, setMore] = useState(false);
   if (at === "import") return <AdminOnly><ImportSettings /></AdminOnly>;
   return (
     <>
       {!remoteActive && has("general") && (
-        <SettingsGroup label={t("settings.group.account")} block="general">
+        <SettingsGroup label={t("settings.docs.you")} art="house" block="general">
           <SettingsRows>
             <AccountRows />
             <CloudPlanRow place="account" />
           </SettingsRows>
         </SettingsGroup>
       )}
-      <SettingsGroup label={t("settings.section.appearance")} block="appearance">
+      <SettingsGroup label={t("settings.docs.look")} art="palette" block="appearance">
         <SettingsRows>
           <ThemeRow />
           <DressUpRow />
           <AccentRow />
-          <LanguageRow simple />
           <TalkingStyleRow />
-          <QuickUpdatesRow />
-          <PlaceLookRows />
-          <AmbientRows />
+          <LanguageRow simple />
         </SettingsRows>
       </SettingsGroup>
       {!remoteActive && (
-        <SettingsGroup label={t("settings.simple.group.system")} block="system">
+        <SettingsGroup label={t("settings.docs.typing")} art="notebook" block="system">
           <SettingsRows>
             <TalkShortcutRow />
             <SendKeyRow simple />
-            <FollowUpRow simple />
+            <QuickUpdatesRow />
             <OpenAtLoginRow simple />
           </SettingsRows>
         </SettingsGroup>
       )}
-      <SettingsGroup label={t("notifications.title")} block="notifications">
+      <SettingsGroup label={t("settings.docs.notifications")} art="mailbox" block="notifications">
         <SettingsRows><NotificationRows /></SettingsRows>
       </SettingsGroup>
-      {!remoteActive && (
-        <SettingsGroup label={t("settings.dataSharing.title")} block="data-sharing">
-          <SettingsRows><DataSharingRows /></SettingsRows>
-        </SettingsGroup>
-      )}
       {has("import") && (
-        <SettingsGroup label={t("settings.section.import")} block="import">
+        <SettingsGroup label={t("settings.docs.bring")} art="parcel" block="import">
           <SettingsRows><ImportRow /></SettingsRows>
         </SettingsGroup>
       )}
+      <AdvancedFold open={more} onToggle={() => setMore(!more)}>
+        <SettingsRows>
+          {!remoteActive && <FollowUpRow simple />}
+          <PlaceLookRows />
+          <AmbientRows />
+        </SettingsRows>
+        {!remoteActive && (
+          <SettingsGroup label={t("settings.dataSharing.title")} block="data-sharing">
+            <SettingsRows><DataSharingRows /></SettingsRows>
+          </SettingsGroup>
+        )}
+      </AdvancedFold>
     </>
+  );
+}
+
+/** The rarely needed rows, folded away under a quiet "advanced" line at the end of a pane. */
+export function AdvancedFold({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section data-settings-block="advanced-fold" data-settings-art="map" className="flex flex-col gap-1.5">
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={onToggle} data-settings-fold=""
+        className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-start outline-none hover:bg-ink/[0.035] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
+        <Art name="map" size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13.5px] font-semibold leading-[19px] tracking-[-0.01em] text-ink">{t("settings.docs.advanced")}</span>
+          <span className="block text-[12.5px] font-medium leading-[17px] text-ink-secondary">{t("settings.docs.advancedHint")}</span>
+        </span>
+        <ChevronRight size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-90 motion-reduce:transition-none rtl:-scale-x-100" />
+      </button>
+      <div id={id} hidden={!open} className="flex flex-col gap-6">{children}</div>
+    </section>
   );
 }
 
@@ -239,7 +266,7 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   return (
     <>
       {has("companion") && (
-        <SettingsGroup label={t("settings.texting.phoneApp.title")} block="phone-app">
+        <SettingsGroup label={t("settings.texting.phoneApp.title")} art="phone" block="phone-app">
           <SettingsRows>
             <PageRow page="pairing" title={t("settings.w6.pairing.title")} hint={t("settings.phone.pair.hint")} />
           </SettingsRows>
@@ -250,9 +277,11 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   );
 }
 
-export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode }) {
-  const { at } = useSubPage();
+export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActive = false }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode; remoteActive?: boolean }) {
+  const sub = useSubPage();
+  const { at } = sub;
   const { state } = useStore();
+  const [more, setMore] = useState(false);
   if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
   if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
   if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
@@ -266,30 +295,30 @@ export function ComputerPane({ has, remoteAccess, servers, transfer }: { has: Ha
   }
   const profiles = state.config?.browserProfiles ?? [];
   const showProfiles = builtInBrowserEnabled(state.config) || profiles.length > 0;
+  const elsewhere = has("companion") || has("desktopWorkspaces");
   return (
     <>
-      <CloudMoveSettings cloudHome={state.config?.cloudHome === true} />
-      {has("computer") && (
-        <RowsCard data-settings-block="computer">
-          <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
-        </RowsCard>
-      )}
-      <RoutineWakeRow />
-      {has("computer") && (
-        <SettingsGroup label={t("settings.grok.group.browser")} block="browser">
+      <WorkspacesGroup onAdd={() => (elsewhere ? sub.open("elsewhere", t("settings.simple.computer.elsewhere")) : openAddVps())} />
+      {!remoteActive && <InstallOnVpsGroup />}
+      <AdvancedFold open={more} onToggle={() => setMore(!more)}>
+        {has("computer") && (
           <SettingsRows>
-            <BuiltInBrowserRow />
-            <ServerSitesRow />
-            {showProfiles && <PageRow page="profiles" title={t("settings.profiles.title")} hint={t("settings.hint.profiles")} value={profiles.length || undefined} />}
+            <PageRow page="computers" title={t("settings.rows.desktops")} hint={t("settings.hint.desktops")} />
+            {elsewhere && <PageRow page="elsewhere" title={t("settings.simple.computer.elsewhere")} hint={t("settings.hint.elsewhere")} />}
           </SettingsRows>
-        </SettingsGroup>
-      )}
-      {transfer}
-      {(has("companion") || has("desktopWorkspaces")) && (
-        <RowsCard data-settings-block="remote">
-          <PageRow page="elsewhere" title={t("settings.simple.computer.elsewhere")} hint={t("settings.hint.elsewhere")} />
-        </RowsCard>
-      )}
+        )}
+        <RoutineWakeRow />
+        {has("computer") && (
+          <SettingsGroup label={t("settings.grok.group.browser")} art="binoculars" block="browser">
+            <SettingsRows>
+              <BuiltInBrowserRow />
+              <ServerSitesRow />
+              {showProfiles && <PageRow page="profiles" title={t("settings.profiles.title")} hint={t("settings.hint.profiles")} value={profiles.length || undefined} />}
+            </SettingsRows>
+          </SettingsGroup>
+        )}
+        {transfer}
+      </AdvancedFold>
     </>
   );
 }
@@ -299,7 +328,7 @@ export function PermissionsPane({ has }: { has: Has }) {
   if (at === "botAccess") return <div data-settings-block="botAccess" className="contents"><AccessOverview /></div>;
   if (at === "activity") return <div data-settings-block="activity" className="contents"><ActivitySection /></div>;
   return (
-    <RowsCard data-settings-block="permissions">
+    <RowsCard label={t("settings.docs.permissions")} art="shield" data-settings-block="permissions">
       {has("botAccess") && <PageRow page="botAccess" title={t("settings.section.botAccess")} hint={t("settings.hint.botAccess")} />}
       {has("activity") && <PageRow page="activity" title={t("settings.section.activity")} hint={t("settings.hint.activity")} />}
     </RowsCard>
@@ -328,7 +357,7 @@ export function UpdatesPane() {
   if (at === "diagnostics") return <SettingsRows><DiagnosticsRow simple /></SettingsRows>;
   return (
     <>
-      <SettingsGroup label={t("settings.grok.group.version")} block="updates">
+      <SettingsGroup label={t("settings.grok.group.version")} art="signpost" block="updates">
         <SettingsRows>
           <ServerUpdatesRow />
         </SettingsRows>
@@ -342,7 +371,7 @@ function HelpGroup() {
   const [about, setAbout] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
   return (
-    <RowsCard label={t("settings.w6.group.help")} data-settings-block="about">
+    <RowsCard label={t("settings.w6.group.help")} art="books" data-settings-block="about">
       <NavRow data-settings-open="about" title={t("settings.advanced.about.about")} onClick={() => setAbout(true)} />
       <NavRow data-settings-open="shortcuts" title={t("settings.advanced.about.shortcuts")} onClick={() => setShortcuts(true)} />
       <NavRow data-settings-open="help" title={t("settings.advanced.about.help")} external onClick={() => void openExternalLink(HELP_CENTER_URL)} />
@@ -379,7 +408,7 @@ export function AdvancedIndex({ pages, remoteActive, onOpen }: { pages: readonly
   const archived = remoteActive ? [] : state.bots.filter((bot) => bot.hidden && !bot.movedTo);
   return (
     <>
-      <RowsCard data-settings-block="advanced-pages">
+      <RowsCard label={t("settings.docs.everythingElse")} art="briefcase" data-settings-block="advanced-pages">
         {ADVANCED_PAGES.filter((page) => pages.includes(page.id)).map((page) => (
           <NavRow key={page.id} data-settings-advanced={page.id} title={advancedTitle(page.id)} hint={t(ADVANCED_HINTS[page.id])} onClick={() => onOpen(page.id)} />
         ))}
@@ -397,7 +426,7 @@ function AppsPage({ has }: { has: Has }) {
   if (at === "mcp") return <div data-settings-block="mcp" className="contents"><AdminOnly><McpServersPanel embedded rows /></AdminOnly></div>;
   if (at === "skills") return <div data-settings-block="skills" className="contents"><SkillsSection /></div>;
   return (
-    <RowsCard data-settings-block="apps">
+    <RowsCard label={t("settings.docs.appsTools")} art="plug" data-settings-block="apps">
       <NavRow data-settings-open="apps" title={t("settings.advanced.apps.connected.title")} hint={t("settings.hint.apps")} onClick={() => dispatch({ type: "togglePlugins", open: true, surface: "apps" })} />
       <PageRow page="mcp" title={t("settings.advanced.apps.mcp")} hint={t("settings.hint.mcp")} />
       {skills && <PageRow page="skills" title={t("settings.section.skills")} hint={t("settings.hint.skills")} />}
@@ -433,13 +462,13 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
       {has("usage") && <AdminOnly note="settings.adminOnly.usage"><BatteryCard version={0} /></AdminOnly>}
       {/* no limits yet: one quiet line in the same card as the breakdown, never a greyed-out row */}
       {((!limits.length && !usage) || usage || has("usage")) && (
-        <RowsCard data-settings-block={!limits.length && !usage ? "usage" : undefined}>
+        <RowsCard label={t("settings.docs.usageMore")} art="chart" data-settings-block={!limits.length && !usage ? "usage" : undefined}>
           {!limits.length && !usage && <ItemRow title={t("settings.usage.empty.title")} hint={t("settings.s2.usage.emptyHint")} />}
           {(usage || has("usage")) && <PageRow page="breakdown" title={t("settings.usage.breakdown")} hint={t("settings.hint.breakdown")} />}
         </RowsCard>
       )}
       {has("cloudAccount") && (
-        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount" footnote={<CloudPlanFootnote />}>
+        <SettingsGroup label={t("settings.simple.billing.plan")} art="receipt" block="cloudAccount" footnote={<CloudPlanFootnote />}>
           <SettingsRows>
             <CloudPlanRow place="plan" usage={usage} upgrade={upgrade} />
             {!signedOut && cloudAccount && <PageRow page="plan" title={t("settings.section.cloudAccount")} />}
@@ -455,7 +484,7 @@ function TeamPage({ has }: { has: Has }) {
   if (at === "organization") return <div data-settings-block="organization" className="contents"><OrganizationSettings /></div>;
   if (at === "people") return <RowsCard data-settings-block="people"><PeopleSection /></RowsCard>;
   return (
-    <RowsCard data-settings-block="team">
+    <RowsCard label={t("settings.docs.team")} art="bubbles" data-settings-block="team">
       {has("organization") && <PageRow page="organization" title={t("settings.section.organization")} hint={t("settings.hint.organization")} />}
       {has("people") && <PageRow page="people" title={t("settings.section.people")} hint={t("settings.hint.people")} />}
     </RowsCard>
@@ -469,7 +498,7 @@ function DataPage({ has }: { has: Has }) {
   if (at === "backups") return <div data-settings-block="backups" className="flex flex-col gap-5"><AdminOnly><WorkspaceBackupSettings /><CompanyBackupSettings /></AdminOnly></div>;
   return (
     <>
-      <SettingsGroup block="data">
+      <SettingsGroup label={t("settings.docs.yourData")} art="folder" block="data">
         <SettingsRows>
           <PageRow page="attachments" title={t("settings.attachments.title")} hint={t("settings.hint.attachments")} />
           <PageRow page="thread-cleanup" title={t("settings.threadCleanup.title")} hint={t("settings.hint.threadCleanup")} />
@@ -484,7 +513,7 @@ function DataPage({ has }: { has: Has }) {
 function BuilderPage() {
   return (
     <>
-      <SettingsGroup block="builder">
+      <SettingsGroup label={t("settings.docs.experimental")} art="cap" block="builder">
         <div data-settings-block="experimental" className="contents">
           <ExperimentalFeaturesRow />
         </div>
@@ -503,7 +532,7 @@ export function ModelsPane({ has, disclose, connections }: { has: Has; disclose:
     <>
       {has("engines") && <div data-settings-block="engines" className="flex scroll-mt-4 flex-col gap-5"><AdminOnly><EnginesSettings simple more={disclose("ai-more")} /></AdminOnly></div>}
       {has("connections") && (
-        <RowsCard label={t("settings.rows.more")} data-settings-block="models-more">
+        <RowsCard label={t("settings.rows.more")} art="key" data-settings-block="models-more">
           {has("connections") && <PageRow page="keys" title={t("settings.section.connections")} hint={t("settings.hint.keys")} />}
           <PageRow page="recovery" title={t("settings.recovery.title")} hint={t("settings.hint.recovery")} />
         </RowsCard>

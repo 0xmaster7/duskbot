@@ -8,6 +8,7 @@ import { Icon } from "./Icon";
 import { DialogPane, GrokDialog, mdPrimaryCls, mdSecondaryCls, rowButtonCls } from "./ui/GrokDialog";
 import { SelectPill, type SelectPillOption } from "./ui/SelectPill";
 import { Toggle } from "./ui/Toggle";
+import { Art, type ArtName } from "./ui/Art";
 
 /* The one row list the side panel, Settings and the settings sheets all draw: a small grey label over a white 12px card,
    30px rows inside it with the name on the left in ink, the value on the right in secondary ink, a small chevron, and a
@@ -27,11 +28,14 @@ export const pillPrimaryCls = cn(rowButtonCls, "bg-ink text-app shadow-none enab
 
 export const sectionGapCls = (labelled: boolean) => (labelled ? "mt-[22px]" : "mt-3");
 
-export function CardLabel({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
+export function CardLabel({ children, action, id, art }: { children: ReactNode; action?: ReactNode; id?: string; art?: ArtName }) {
   return (
-    <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-1 px-3 text-[13px] leading-[18px] tracking-normal text-ink-secondary">
-      <h3 id={id} data-settings-heading="" className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
-      {action}
+    <div data-settings-group-head="" className="mb-2.5 flex min-h-[18px] flex-col items-start px-3 text-[13px] leading-[18px] tracking-normal text-ink-secondary">
+      {art && <Art name={art} className="mb-2.5" />}
+      <div className="flex w-full items-center justify-between gap-1">
+        <h3 id={id} data-settings-heading="" className="m-0 min-w-0 truncate text-[13px] font-normal leading-[18px]">{children}</h3>
+        {action}
+      </div>
     </div>
   );
 }
@@ -57,8 +61,9 @@ export function PanelSections({ children, className, ...rest }: { children: Reac
 }
 
 /** A labelled white card of rows. */
-export function Card({ label, action, anchor, footnote, className, children, ...rest }: {
+export function Card({ label, art, action, anchor, footnote, className, children, ...rest }: {
   label?: ReactNode;
+  art?: ArtName;
   action?: ReactNode;
   anchor?: string;
   footnote?: ReactNode;
@@ -73,10 +78,11 @@ export function Card({ label, action, anchor, footnote, className, children, ...
     <section
       {...rest}
       data-panel-card={anchor}
+      data-settings-art={art}
       aria-labelledby={typeof label === "string" ? labelId : undefined}
       className={cn("scroll-mt-4", !inSections && cn(sectionGapCls(Boolean(label)), "first:mt-0"), className)}
     >
-      {label && <CardLabel id={labelId} action={action}>{label}</CardLabel>}
+      {label && <CardLabel id={labelId} action={action} art={art}>{label}</CardLabel>}
       <div data-panel-card-surface="" className="flex flex-col overflow-hidden rounded-[12px] border-[0.5px] border-transparent bg-composer p-1">
         {children}
       </div>
@@ -85,11 +91,12 @@ export function Card({ label, action, anchor, footnote, className, children, ...
   );
 }
 
-/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side. */
-export function PanelEmpty({ children, ...rest }: { children: ReactNode; "data-panel-empty"?: string }) {
+/** Grok's empty tab: centred 13/18 copy at 56% ink, right under the tabs and 16px in from each side, under a prop when given. */
+export function PanelEmpty({ children, art, ...rest }: { children: ReactNode; art?: ArtName; "data-panel-empty"?: string }) {
   return (
-    <div {...rest} className="flex flex-col gap-2.5 px-4 py-4">
-      <p className="text-pretty text-center text-[13px] leading-[18px] tracking-[0.015em] text-ink/[0.56]">{children}</p>
+    <div {...rest} className="flex flex-col items-center gap-2.5 px-4 py-4">
+      {art && <Art name={art} size="lg" className="mb-1" />}
+      <p className="text-pretty text-center text-[13px] font-medium leading-[18px] tracking-[0.015em] text-ink-secondary">{children}</p>
     </div>
   );
 }
@@ -214,7 +221,7 @@ export function SwitchRow({ title, hint, checked, onChange, disabled, tone, labe
   );
 }
 
-/** A pick-one value: the whole row opens the panel's menu under its right edge, the value and a small chevron on the right. */
+/** A pick-one value: the name on the left, a filled chip on the right that opens the panel's menu under its edge. */
 export function SelectRow<V extends string>({ title, hint, value, options, onChange, disabled, label, tooltip, ...rest }: {
   title: ReactNode;
   hint?: ReactNode;
@@ -235,8 +242,7 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
       data-select-row=""
       className={cn(
         rowCls,
-        "relative has-[[role=combobox]:enabled:hover]:bg-ink/[0.035] has-[[aria-expanded=true]]:bg-ink/[0.035]",
-        "has-[[role=combobox]:focus-visible]:outline-2 has-[[role=combobox]:focus-visible]:-outline-offset-2 has-[[role=combobox]:focus-visible]:outline-focus has-[[role=combobox]:disabled]:opacity-45",
+        "relative has-[[role=combobox]:disabled]:opacity-45",
       )}
     >
       <RowText title={title} hint={hint} />
@@ -248,11 +254,7 @@ export function SelectRow<V extends string>({ title, hint, value, options, onCha
         options={options}
         disabled={disabled}
         onChange={onChange}
-        className={cn(
-          "static my-0 mr-0 h-auto max-w-[50%] gap-1.5 rounded-none border-0 bg-transparent p-0 text-ink-secondary",
-          "hover:bg-transparent aria-expanded:bg-transparent focus-visible:ring-0 disabled:opacity-100",
-          "after:absolute after:inset-0 after:rounded-lg after:content-['']",
-        )}
+        className="max-w-[50%]"
       />
     </div>
   );

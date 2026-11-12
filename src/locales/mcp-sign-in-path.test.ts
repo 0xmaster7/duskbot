@@ -16,6 +16,7 @@ it("sends the person to Apps → MCP servers, where the paste-back sign-in is", 
     if (sentence === undefined) continue;
     const apps = words["sidebar.nav.apps"] ?? en["sidebar.nav.apps"];
     const servers = words["connectors.tab.mcp"] ?? en["connectors.tab.mcp"];
-    expect(sentence, file).toContain(`${apps} → ${servers}`);
+    // a pack that falls back to the English label may still capitalise it at its own sentence's pace
+    expect(sentence.toLowerCase(), file).toContain(`${apps} → ${servers}`.toLowerCase());
   }
 });

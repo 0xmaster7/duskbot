@@ -55,7 +55,7 @@ export function SettingsPage({ bot, onOpen, more }: {
 
   return (
     <div data-panel-settings className="contents">
-      <Card label={t("botPanel.section.thisBot")} anchor="uses">
+      <Card label={t("botPanel.section.thisBot")} art="notebook" anchor="uses">
         {/* grok's one-line rows: what it is on the left, its value on the right, as the Voice row is */}
         <NavRow data-panel-page="instructions" title={t("botSettings.simple.instructions")} value={(bot.soul ?? "").trim() ? undefined : t("botPanel.none")} onClick={open("instructions")} />
         <NavRow data-panel-page="memory" title={t("botPanel.memoryRow")} value={memoryLine} onClick={open("memory")} />
@@ -65,7 +65,7 @@ export function SettingsPage({ bot, onOpen, more }: {
 
       {/* the rest, which few people change, stays behind one disclosure; where it works lives on the Computer tab */}
       <Disclosure data-panel-advanced="settings" label={t("botPanel.moreSettings")}>
-        <Card label={t("botSettings.sections.access")} anchor="access">
+        <Card label={t("botSettings.sections.access")} art="shield" anchor="access">
           <NavRow data-panel-page="identity" title={t("botSettings.sections.identity")} value={bot.title?.trim() || undefined} onClick={open("identity")} />
           <NavRow data-panel-page="tools" title={t("botPanel.page.tools")} value={bot.toolScope !== undefined ? t("botPanel.tools.custom") : undefined} onClick={open("tools")} />
           <NavRow data-panel-page="permissions" title={t("botSettings.sections.permissions")} value={bot.chiefOfStaff ? t("permissions.chief.title") : undefined} onClick={open("permissions")} />
@@ -74,7 +74,7 @@ export function SettingsPage({ bot, onOpen, more }: {
         </Card>
 
         {editable && (
-          <Card label={t("botPanel.section.actions")} anchor="actions">
+          <Card label={t("botPanel.section.actions")} art="briefcase" anchor="actions">
             {!team && (
               <NavRow
                 data-panel-row="chief"

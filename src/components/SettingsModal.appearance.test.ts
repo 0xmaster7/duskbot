@@ -131,8 +131,8 @@ describe("Settings → General → Appearance", () => {
   });
 
   it("folds the old Looks page into Appearance: the skins sit in the Theme select, with nothing about pins, fonts, widths or tool calls", () => {
-    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["Follow System", "Light", "Dark", "Midnight", "Halloween"]));
-    expect(themeOptions().map((option) => option.label)).not.toContain("Grok Dark");
+    expect(themeOptions().map((option) => option.label)).toEqual(expect.arrayContaining(["Follow System", "Light", "Dark", "midnight", "halloween"]));
+    expect(themeOptions().map((option) => option.label)).not.toContain("grok dark");
     for (const section of ["general", "looks"] as const) {
       fixture.section = section;
       const html = render();

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Art } from "../ui/Art";
 import { Check, ChevronDown, LoaderCircle, RefreshCw, X } from "../../icons";
 import { EngineSetup } from "@/components/EngineSetup";
 import { engineReady } from "@/components/EngineLibrary";
@@ -179,7 +180,8 @@ export function ConnectAiDialog({ tested, onClose }: { tested: WelcomeAiNow | nu
           </button>
         </div>
         <div className="ui-modal-divider shrink-0" />
-        <div className="min-h-0 overflow-y-auto p-4 [scrollbar-width:thin]">
+        <div data-art-hover="" className="min-h-0 overflow-y-auto p-4 [scrollbar-width:thin]">
+          <Art name="plug" size="lg" className="mx-auto mb-4 block" />
           <ConnectAi tested={tested} />
         </div>
       </div>

@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { Icon } from "./Icon";
 import { useMenuMotion } from "./MenuMotion";
+import { Segmented } from "./ui/Segmented";
 
-export type SettingsSelectOption = { value: string; label: ReactNode; disabled?: boolean };
+export type SettingsSelectOption = { value: string; label: ReactNode; disabled?: boolean; preview?: ReactNode };
 
 type Props = {
   value: string;
@@ -15,6 +16,8 @@ type Props = {
   className?: string;
   "aria-label"?: string;
   "data-settings-select"?: string;
+  /** two to four short choices read better side by side than behind a menu */
+  variant?: "menu" | "segmented";
 };
 
 function optionsFrom(children: ReactNode): SettingsSelectOption[] {
@@ -31,9 +34,27 @@ function optionsFrom(children: ReactNode): SettingsSelectOption[] {
 const GAP = 4;
 const MENU_MIN = 200;
 
-/** Grok's select pill and its listbox: a 28px hairline pill sized to its value, and a white 200px menu under its right
- * edge, 30px rows with an inset highlight and a check on the chosen one. */
-export function SettingsSelect({ value, onChange, options: given, children, disabled, className, "aria-label": label, ...rest }: Props) {
+/** A filled chip sized to its value (a small preview, the label and a chevron) and a 200px menu under its right edge, 30px
+ * rows with an inset highlight, their previews and a check on the chosen one; or, for a few short choices, a segmented pill. */
+export function SettingsSelect({ variant = "menu", ...props }: Props) {
+  if (variant === "segmented") {
+    const options = props.options ?? optionsFrom(props.children);
+    return (
+      <Segmented
+        value={props.value}
+        aria-label={props["aria-label"] ?? ""}
+        data-settings-select={props["data-settings-select"] ?? ""}
+        disabled={props.disabled}
+        className={props.className}
+        options={options}
+        onChange={(value) => props.onChange({ target: { value } })}
+      />
+    );
+  }
+  return <SelectMenu {...props} />;
+}
+
+function SelectMenu({ value, onChange, options: given, children, disabled, className, "aria-label": label, ...rest }: Omit<Props, "variant">) {
   const options = given ?? optionsFrom(children);
   const selected = options.find((option) => option.value === value);
   const [open, setOpen] = useState(false);
@@ -129,15 +150,16 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
           }
         }}
         className={cn(
-          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1 rounded-[10px] bg-ink/4 py-1 pl-[7px] pr-[5px] text-[13px] leading-[18px] tracking-[-0.08px] text-ink",
-          "[transition:color_100ms_ease,background-color_100ms_ease,transform_50ms_cubic-bezier(0.165,0.84,0.44,1)] hover:bg-ink/[0.07] active:bg-ink/[0.07] aria-expanded:bg-ink/[0.07]",
+          "group inline-flex h-7 min-w-0 max-w-[240px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-ink/[0.06] py-1 pl-3 pr-2 text-[12.5px] font-medium leading-[18px] tracking-[-0.08px] text-ink",
+          "[transition:color_100ms_ease,background-color_100ms_ease,scale_120ms_var(--dusk-ease-out)] hover:bg-ink/[0.09] active:scale-[0.97] aria-expanded:bg-ink/[0.09] motion-reduce:active:scale-100",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
           "disabled:cursor-default disabled:opacity-50 disabled:hover:bg-ink/4",
           className,
         )}
       >
+        {selected?.preview && <span data-select-preview="" className="flex shrink-0 items-center">{selected.preview}</span>}
         <span className="min-w-0 flex-1 truncate text-start">{selected?.label ?? value}</span>
-        <Icon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] group-active:text-ink group-aria-expanded:text-ink" />
+        <Icon name="chevron-down" size={10} className="shrink-0 text-ink/[0.66] transition-[rotate] duration-150 ease-out group-aria-expanded:rotate-180 group-aria-expanded:text-ink motion-reduce:transition-none" />
       </button>
       {motion.shown && place && createPortal(
         <div
@@ -177,6 +199,7 @@ export function SettingsSelect({ value, onChange, options: given, children, disa
                 "aria-disabled:cursor-default aria-disabled:opacity-50",
               )}
             >
+              {option.preview && <span data-select-preview="" className="relative flex shrink-0 items-center">{option.preview}</span>}
               <span className="relative min-w-0 flex-1 truncate">{option.label}</span>
               {option.value === value && <Icon name="check" size={12} className="relative shrink-0" />}
             </div>

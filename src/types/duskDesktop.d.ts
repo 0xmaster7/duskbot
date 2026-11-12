@@ -120,6 +120,9 @@ const __APP_VERSION__: string;
       /** This app's own version, and whether this page is this app's own: false on a server added in the Server menu,
        * whose page carries that server's version. Absent in desktop builds before it. */
       app?: { version: string; ownPage: boolean };
+      /** Asks the person to prove they are at this computer (Touch ID, Windows Hello) before a secret is shown; true once
+       * they did. Absent where the desktop has no such check, and in older builds. */
+      requireUserPresence?: (reason: string) => Promise<boolean>;
       organization?: import("../../electron/managed-desktop.mjs").ManagedDesktopBridge;
       accountGate?: import("../components/account-gate/bridge").AccountGateBridge;
       cloudAccount?: import("../../electron/cloud-account.mjs").CloudAccountBridge;

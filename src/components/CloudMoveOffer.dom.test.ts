@@ -13,7 +13,8 @@ vi.mock("@/lib/analytics", () => ({ track: (name: string, props: unknown) => { f
 vi.mock("./Avatar", () => ({ MausAvatar: () => null }));
 
 const { CloudMoveOffer } = await import("./CloudMoveOffer");
-const { CloudMoveSettings } = await import("./CloudMoveSettings");
+const { CloudMoveRow } = await import("./CloudMoveSettings");
+const { t } = await import("@/lib/i18n");
 const { botsAcross, moveProgress } = await import("@/lib/cloud-move-offer");
 const { setLocale } = await import("@/lib/i18n");
 
@@ -178,21 +179,27 @@ it("never says how the move works: no pauses, passes, checks or automations", as
   for (const text of seen) expect(text).not.toMatch(JARGON);
 });
 
-it("Settings → Computer is one row: the workspace with Switch, Move beside it, then how the move goes and Try again", async () => {
+it("Settings → Computer offers the move as one row under the workspaces, then how it goes and Try again", async () => {
   current = { ...BASE, offer: { stage: "settings", bots: 12 } };
-  await render(createElement(CloudMoveSettings));
-  const row = () => host.querySelector('[data-panel-row="workspace"]')!;
-  expect(host.querySelectorAll("[data-panel-row]")).toHaveLength(1);
-  expect(row().textContent).toBe("Workspace · This computerMove your bots to dusk cloudMoveSwitch");
-  await press("Switch");
-  expect(calls).toEqual(["menu"]);
-  await press("Move");
-  expect(calls).toEqual(["menu", "accept:settings"]);
-  expect(row().textContent).toBe("Workspace · This computerMoving your bots to dusk cloud…Switch");
+  await render(createElement(CloudMoveRow, { otherwise: createElement("p", { "data-otherwise": "" }) }));
+  const row = () => host.querySelector('[data-panel-row="workspace-move"]')!;
+  const accept = () => host.querySelector<HTMLButtonElement>("[data-cloud-move-accept]")!;
+  expect(host.querySelector("[data-otherwise]")).toBeNull();
+  expect(row().textContent).toBe(`${t("cloudMoveOffer.banner")}${t("settings.docs.ws.moveHint")}${t("cloudMoveOffer.move")}`);
+  await act(async () => accept().click()); await settle();
+  expect(calls).toEqual(["accept:settings"]);
+  expect(row().textContent).toBe(`${t("cloudMoveOffer.banner")}${t("cloudMoveOffer.moving")}`);
   await push({ ...BASE, move: { phase: "copy", failing: { error: "My Cloud did not answer." } } });
-  expect(row().textContent).toBe("Workspace · This computerSomething got in the way. Your bots are safe here.Try againSwitch");
-  await press("Try again");
+  expect(row().textContent).toBe(`${t("cloudMoveOffer.banner")}${t("cloudMoveOffer.failed")}${t("cloudMoveOffer.tryAgain")}`);
+  await press(t("cloudMoveOffer.tryAgain"));
   expect(calls.at(-1)).toBe("retry");
+});
+
+it("Settings → Computer shows what it was given instead while no move is offered", async () => {
+  current = BASE;
+  await render(createElement(CloudMoveRow, { otherwise: createElement("p", { "data-otherwise": "" }) }));
+  expect(host.querySelector("[data-otherwise]")).not.toBeNull();
+  expect(host.querySelector('[data-panel-row="workspace-move"]')).toBeNull();
 });
 
 it("progress only moves forward in the scene's terms: the last bot hops once everything arrived", () => {
