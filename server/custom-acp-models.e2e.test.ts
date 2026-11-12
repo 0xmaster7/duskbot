@@ -58,9 +58,13 @@ it("discovers custom ACP models and preserves independent bot and thread choices
       environment: { FAKE_CUSTOM_ACP_DIRECTORY: nativeDir } };
     writeFileSync(configPath, JSON.stringify(config));
     await restart();
-    const refreshed = await api("POST", `/api/instances/${engineId}/refresh-models`, {});
-    const engine = refreshed.instances.find((entry: any) => entry.instanceId === engineId);
-    expect(engine.snapshot.state).toBe("available");
+    await api("POST", `/api/instances/${engineId}/refresh-models`, {});
+    // a start answers before its first status read (Checking engine status), so wait for that read
+    let engine: any;
+    await expect.poll(async () => {
+      engine = (await api("GET", "/api/instances")).instances.find((entry: any) => entry.instanceId === engineId);
+      return engine.snapshot.state;
+    }, { timeout: 20_000 }).toBe("available");
     expect(engine.capabilities.modelVariants).toBe(true);
     expect(engine.models.options).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "agent-default" }),
