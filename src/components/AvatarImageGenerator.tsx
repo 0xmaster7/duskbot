@@ -250,7 +250,7 @@ export function AvatarImageGenerator({
         maxLength={400}
         placeholder={t("botIdentity.ai.directionPlaceholder", { name: botLabel })}
         aria-label={t("botIdentity.ai.directionLabel")}
-        className="block h-[174px] w-full resize-none rounded-[10px] border border-ink/12 bg-menu px-2.5 py-2 text-[14px] leading-[22px] tracking-[0.015em] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/56 disabled:opacity-50"
+        className="block h-[174px] w-full resize-none rounded-[10px] border border-transparent bg-menu px-2.5 py-2 text-[14px] leading-[22px] tracking-[0.015em] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/56 disabled:opacity-50"
       />
       <button
         type="button"

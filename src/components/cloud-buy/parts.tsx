@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { cloudColorFill } from "@/lib/cloud-look";
 import { t } from "@/lib/i18n";
 
-export const SHEET = "rounded-2xl border-[0.5px] border-ink/10 bg-app text-ink";
+export const SHEET = "rounded-2xl border-[0.5px] border-transparent bg-app text-ink";
 export const SCREEN = "flex flex-col gap-5 px-6 pb-6 pt-5";
 /** The close button over a night card: light ink on the sky. */
 export const ON_NIGHT = "group-has-[[data-night-card]]/sheet:[color-scheme:var(--code-color-scheme)] group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet) group-has-[[data-night-card]]/sheet:hover:bg-white/15 group-has-[[data-night-card]]/sheet:hover:text-(--cloud-night-ink)";
@@ -17,7 +17,7 @@ export const PRIMARY_WIDE = `${PRIMARY} ui-button-lg w-full`;
 export const QUIET_WIDE = `${QUIET} ui-button-lg w-full`;
 export const ACTIONS = "flex flex-wrap items-center justify-end gap-2";
 export const LINK = "rounded-sm text-[13px] font-medium text-ink underline decoration-ink/30 underline-offset-[3px] hover:decoration-ink disabled:opacity-50";
-export const FIELD = "h-9 w-full rounded-[10px] border border-ink/15 bg-transparent px-3 text-[14px] text-ink outline-none transition-[border-color] duration-150 placeholder:text-ink-tertiary disabled:opacity-60 motion-reduce:transition-none";
+export const FIELD = "h-9 w-full rounded-[10px] border border-transparent bg-transparent px-3 text-[14px] text-ink outline-none transition-[border-color] duration-150 placeholder:text-ink-tertiary disabled:opacity-60 motion-reduce:transition-none";
 const TAG = "inline-flex min-h-5 items-center gap-1 rounded-full bg-ink/[0.06] px-2 text-[12px] font-medium leading-4 text-ink-secondary";
 
 export function Heading({ title, sub }: { title: string; sub?: ReactNode }) {
@@ -43,7 +43,7 @@ export function StepMark({ state, size = 20 }: { state: "done" | "now" | "next";
   if (state === "done") return <span aria-hidden="true" style={{ width: size, height: size }}
     className="grid shrink-0 place-items-center rounded-full bg-ink text-app"><Check size={Math.round(size * 0.6)} strokeWidth={2.4} /></span>;
   return <span aria-hidden="true" style={{ width: size, height: size }}
-    className={cn("block shrink-0 rounded-full border-[1.5px]", state === "now" ? "animate-spin border-ink/15 border-t-ink motion-reduce:animate-none" : "border-ink/20")} />;
+    className={cn("block shrink-0 rounded-full border-[1.5px]", state === "now" ? "animate-spin border-transparent border-t-ink motion-reduce:animate-none" : "border-transparent")} />;
 }
 
 export function Checklist({ items, label }: { label?: string; items: Array<{ key: string; state: "done" | "now" | "next"; title: string; detail?: string | null }> }) {

@@ -202,7 +202,7 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
   return (
     <div data-simple-model-menu className="flex min-h-0 flex-1 flex-col">
       {menu.search && (
-        <div data-simple-model-search className="group/search flex h-9 shrink-0 items-center gap-2 border-b-[0.5px] border-ink/10 pl-3.5 pr-2">
+        <div data-simple-model-search className="group/search flex h-9 shrink-0 items-center gap-2 border-b-[0.5px] border-transparent pl-3.5 pr-2">
           <Search size={16} strokeWidth={MENU_STROKE} className="shrink-0 text-ink-tertiary group-focus-within/search:text-ink-secondary" aria-hidden="true" />
           <input
             data-menu-search
@@ -290,7 +290,7 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
       </div>
 
       {(props.thinking || props.onResetVariant || props.onManage) && (
-        <div data-simple-effort-band className="flex shrink-0 flex-col gap-0.5 border-t-[0.5px] border-ink/10 p-1.5">
+        <div data-simple-effort-band className="flex shrink-0 flex-col gap-0.5 border-t-[0.5px] border-transparent p-1.5">
           {props.thinking && (
             <>
               <Thinking thinking={props.thinking} labelId={`${idPrefix}-thinking`} />

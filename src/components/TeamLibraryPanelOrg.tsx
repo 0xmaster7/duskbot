@@ -71,7 +71,7 @@ function OrgPackageCard({
   const notes = orgCardNotes(entry);
   const adding = busy === entry.packageId;
   return (
-    <article className="flex min-h-[104px] items-center gap-3 border-b border-hairline/35 px-1 py-4">
+    <article className="flex min-h-[104px] items-center gap-3 border-b border-transparent px-1 py-4">
       <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", GLYPHS[index % GLYPHS.length])}>
         <Building2 size={20} />
       </div>

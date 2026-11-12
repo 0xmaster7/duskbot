@@ -7,9 +7,9 @@
   --ease-menu-in: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-bencho: cubic-bezier(0.22, 1, 0.36, 1);
   --overlay-fast: 100ms;
-  --shadow-popover: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1), 0 0 0 1px rgb(28 28 28 / 0.004);
-  --shadow-modal: 0 20px 32px -5px rgb(28 28 28 / 0.1), 0 8px 12px -6px rgb(28 28 28 / 0.1), 0 0 0 1px rgb(28 28 28 / 0.004);
-  --shadow-inline: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06), 0 0 0 1px rgb(28 28 28 / 0.004);
+  --shadow-popover: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1);
+  --shadow-modal: 0 20px 32px -5px rgb(28 28 28 / 0.1), 0 8px 12px -6px rgb(28 28 28 / 0.1);
+  --shadow-inline: 0 4px 12px -1px rgb(28 28 28 / 0.08), 0 2px 4px -2px rgb(28 28 28 / 0.06);
 }
 /* a dark skin deepens the lift; body asks, since a style query reads the element's container, here <html> */
 @container style(--code-color-scheme: dark) {
@@ -26,7 +26,7 @@
   --shadow-inline: 0 0 #0000;
 }
 :root[data-skin="grok-dark"] :is(.ui-dialog, .ui-toast) {
-  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-color: transparent;
   box-shadow: none;
 }
 
@@ -87,7 +87,7 @@
 
 /* A dialog, as Grok's kit dialog: the elevated tone on a 1px ink/12 edge at 14px corners, no lift over the scrim. */
 .ui-dialog {
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 1px solid transparent;
   border-radius: 14px;
   background: var(--color-menu);
   color: var(--color-ink);
@@ -110,6 +110,7 @@
   font-size: 13px;
   line-height: 18px;
   letter-spacing: 0.015em;
+  font-weight: 450;
   color: var(--color-ink-secondary);
 }
 /* the filled danger action in a confirm: Grok's red pill, unlayered so a skin's neutral primary does not win */
@@ -125,7 +126,7 @@
 
 /* A notice card in the corner, Grok's banner: 1px ink/12 at 18px corners on the inline lift, there at once. */
 .ui-corner-card {
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 1px solid transparent;
   border-radius: 18px;
   background: var(--color-menu);
   color: var(--color-ink);
@@ -171,7 +172,7 @@
   cursor: pointer;
 }
 .ui-toast-close:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
-.ui-toast-close:focus-visible { opacity: 1; outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.ui-toast-close:focus-visible { opacity: 1; outline: none; outline-offset: 1px; }
 
 /* A tooltip, as Grok Bot's: white on the inline lift, 12/16 text, 6px corners. Its edge is drawn inside it, a half-pixel
    ink ring over a white one (::after), so it reads as a soft card rather than an outlined box. */
@@ -198,21 +199,21 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), inset 0 0 0 0.5px var(--color-menu);
+  box-shadow: none;
   pointer-events: none;
 }
 .ui-tooltip[data-ending] { visibility: hidden; }
 
 /* Settings under the grok skin: Grok's settings dialog sits on the modal lift behind a half-pixel edge. */
 :root:is([data-skin="grok"]) [data-settings-look] .glass-surface {
-  border: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border: 0.5px solid transparent;
   box-shadow: var(--shadow-modal);
 }
 
 /* An inline error still drawn as a red tint reads as Grok's banner: a white card on a 1px ink/12 edge and the inline
    lift, ink words, and one small red glyph (exclamation-circle, filled) carrying the tone. */
 [role="alert"]:is([class*="bg-danger/"], [class*="border-danger"]):not(.ui-notice) {
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 1px solid transparent;
   border-radius: 14px;
   background-color: var(--color-menu);
   color: var(--color-ink);

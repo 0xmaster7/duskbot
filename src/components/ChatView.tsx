@@ -488,15 +488,15 @@ const Bubble = memo(function Bubble({
           )}
           {user && webhookView ? (
             <div className="min-w-[300px] max-w-[520px]">
-              <div className="flex items-center gap-2 border-b border-hairline/30 px-4 py-2.5 text-[12px] font-medium text-ink-secondary">
+              <div className="flex items-center gap-2 border-b border-transparent px-4 py-2.5 text-[12px] font-medium text-ink-secondary">
                 <Webhook size={13} />
                 <span>{t("chat.webhookTask")}</span>
               </div>
               <div className="chat-text px-4 py-3 whitespace-pre-wrap">{webhookView.task}</div>
               {webhookView.payload && (
-                <details className="border-t border-hairline/30 bg-inset/25 px-4 py-2.5 text-[12px] text-ink-secondary">
+                <details className="border-t border-transparent bg-inset/25 px-4 py-2.5 text-[12px] text-ink-secondary">
                   <summary className="cursor-pointer select-none hover:text-ink">{t("chat.viewPayload")}</summary>
-                  <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-hairline/25 bg-black/25 p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-ink-secondary">{webhookView.payload}</pre>
+                  <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-transparent bg-black/25 p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-ink-secondary">{webhookView.payload}</pre>
                 </details>
               )}
             </div>
@@ -1156,7 +1156,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             <button
               onClick={() => dispatch({ type: "interrupt", botId: bot.id, threadId: bot.threadId })}
               className={cn(
-                "flex items-center gap-1.5 rounded-full border border-hairline/40 bg-raised/60 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink",
+                "flex items-center gap-1.5 rounded-full border border-transparent bg-raised/60 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink",
                 COMPACT_BUBBLE,
               )}
               title={t("chat.stopTurn")}
@@ -1189,7 +1189,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       </div>
 
       {privateChat && team && <TeamPrivateFirstLine key={team.id} team={team} />}
-      {routineExecution && <div className="mx-5 mb-2 flex min-h-8 flex-wrap items-center gap-1 rounded-[14px] bg-composer py-1 pe-1 ps-3 text-[12px] leading-4 text-ink-secondary ring-[0.5px] ring-ink/[0.1]">
+      {routineExecution && <div className="mx-5 mb-2 flex min-h-8 flex-wrap items-center gap-1 rounded-[14px] bg-composer py-1 pe-1 ps-3 text-[12px] leading-4 text-ink-secondary ring-[0.5px] ring-transparent">
         <span className="min-w-0 flex-1 truncate">{t("routines.executionDetails", { name: routineExecution.routineName })}</span>
         {canOpenResults && resultsThreadId && <button type="button" onClick={() => openThread(dispatch, { botId: bot.id, threadId: resultsThreadId }, state)} className="h-6 rounded-full px-2 text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.results.back")}</button>}
         <button type="button" onClick={() => dispatch({ type: "openRoutine", routineId: routineExecution.routineId, botId: bot.id })} className="h-6 rounded-full px-2 transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">{t("routines.inline.open")}</button>

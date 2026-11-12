@@ -71,8 +71,8 @@ export function cloudEngineChoices(engines: CloudEngineChoices, { handing = fals
             className={cn(
               "animate-rise group relative flex flex-col rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out active:scale-[0.985]",
               picked
-                ? "border-accent/70 bg-accent/[0.07] shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-accent)_16%,transparent)]"
-                : connected ? "border-success/60 bg-card/50 hover:bg-card" : "border-hairline/50 bg-card/50 hover:border-hairline hover:bg-card",
+                ? "border-transparent bg-accent/[0.12]"
+                : connected ? "border-success/60 bg-card/50 hover:bg-card" : "border-transparent bg-card/50 hover:border-transparent hover:bg-card",
             )}
             style={staggerIndex(3 + i)}
           >
@@ -105,9 +105,9 @@ export function cloudEngineChoices(engines: CloudEngineChoices, { handing = fals
       const instance = cloudEngine(instances, choice.driverKind);
       return (
         <div id="cloud-sign-in-panel" className="step-open mt-3">
-          <div className="relative rounded-2xl border border-hairline/50 bg-card px-4 pb-4 pt-4">
+          <div className="relative rounded-2xl border border-transparent bg-card px-4 pb-4 pt-4">
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]" style={{ transform: `translateX(${(index / choices.length) * 100}%)` }}>
-              <span className="absolute top-0 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-l border-t border-hairline/50 bg-card" style={{ left: `${50 / choices.length}%` }} />
+              <span className="absolute top-0 size-3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-l border-t border-transparent bg-card" style={{ left: `${50 / choices.length}%` }} />
             </span>
             <div key={open} className="animate-rise">
               {instance
@@ -198,7 +198,7 @@ export function CloudEngineSignIn() {
           <MausAvatar color="green" state={face} motion={motion.kind} motionKey={motion.key} size={64} label={productName()} />
         </div>
         {pending && (
-          <figure data-cloud-intent-pending className="mt-6 rounded-2xl bg-composer px-4 pb-3 pt-2.5 ring-1 ring-composer-ring" style={{ viewTransitionName: "cloud-intent" }}>
+          <figure data-cloud-intent-pending className="mt-6 rounded-2xl bg-composer px-4 pb-3 pt-2.5 ring-1 ring-transparent" style={{ viewTransitionName: "cloud-intent" }}>
             <figcaption className="flex items-center justify-between gap-3 text-[12px] text-ink-secondary">
               {t("cloudIntent.pending")}
               {!handing && (

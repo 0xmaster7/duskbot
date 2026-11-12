@@ -130,7 +130,7 @@ function Layout({ node, where }: { node: WidgetNode; where: WidgetWhere }) {
     JUSTIFY[widgetString(node, "justify") ?? ""],
     axis === "row" && (node.wrap === true || flows(shown)) && "flex-wrap",
     BACKGROUND[widgetString(node, "background") ?? ""],
-    widgetNumber(node, "border") ? "border-solid border-ink/[0.12]" : null,
+    widgetNumber(node, "border") ? "border-solid border-transparent" : null,
     where.card && node.type === "Row" && (stacked ? "py-2.5" : "min-h-[44px]"),
   );
   const style: CSSProperties = { gap, ...boxStyle(node) };

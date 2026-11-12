@@ -44,7 +44,7 @@ export function bulkDeleteOutcome(outcome: BulkDeleteResult): string {
 
 const OLDER_DAYS = 30;
 
-const chip = "rounded-full border border-hairline/50 px-2.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40";
+const chip = "rounded-full border border-transparent px-2.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40";
 
 /** Each render hands `forRows` the rows the list shows, in display order, so ranges and filters touch only visible rows. */
 export function useBulkSelect() {
@@ -112,7 +112,7 @@ export function BulkSelectBar({ rows, selected, maxDeletable, freshConversation,
       setConfirming(false);
     });
   };
-  return <div className="sticky bottom-0 z-10 -mx-1 border-t border-hairline/40 bg-panel px-2 py-1.5">
+  return <div className="sticky bottom-0 z-10 -mx-1 border-t border-transparent bg-panel px-2 py-1.5">
     {/* a clean delete is only announced; the rows going is the visible answer */}
     <span role="status" className={result?.clean ? "sr-only" : "block text-[11px] text-ink-secondary"}>
       {result?.text ?? (overLimit ? t("task.bulk.channelLimit") : "")}

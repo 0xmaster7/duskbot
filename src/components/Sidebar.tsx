@@ -571,7 +571,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
         {!simpleRow && !teammateWait && !waiting && !working && queued && <span data-testid="queued-dot" role="status" aria-label={t("task.queued")} title={t("task.queued")}
           className={cn("absolute -right-0.5 -bottom-0.5 rounded-full border-2 border-panel bg-ink-secondary", iconOnly ? "size-3" : "size-2.5")} />}
         {main && simpleRow && !rowActivity && (
-          <span data-testid="main-bot-star" className="absolute bottom-0 right-0 flex size-[9.6px] items-center justify-center rounded-full bg-[#f59312] text-white shadow-[inset_0_0_0_0.5px_rgba(28,28,28,0.06)] ring-[1.6px] ring-[var(--row)]">
+          <span data-testid="main-bot-star" className="absolute bottom-0 right-0 flex size-[9.6px] items-center justify-center rounded-full bg-[#f59312] text-white shadow-none ring-[1.6px] ring-[var(--row)]">
             <Icon name="star" variant="filled" size={4.8} aria-label={t("sidebar.grok.mainBot")} />
           </span>
         )}
@@ -1045,7 +1045,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       }}
       style={{ ...drawer.props?.style, ["--sidebar-width" as string]: `${sizing.width}px` } as MotionStyle}
       className={cn(
-        "relative flex h-full shrink-0 flex-col border-r-[0.5px] border-edge bg-panel max-md:[--scroll-fade-surface:var(--color-app)]",
+        "relative flex h-full shrink-0 flex-col border-r-[0.5px] border-transparent bg-panel max-md:[--scroll-fade-surface:var(--color-app)]",
         sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-200 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none",
         rail ? "w-[92px]" : "w-[280px] md:w-[var(--sidebar-width)]",
         "md:max-w-[calc(100vw-320px)]",
@@ -1104,7 +1104,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
         <div
           data-sidebar-universal-pins=""
           // vh, not %: a percentage has no height to resolve against inside the glass head.
-          className="max-h-[min(40vh,280px)] shrink-0 overflow-y-auto border-b border-hairline/40 px-2 pb-2"
+          className="max-h-[min(40vh,280px)] shrink-0 overflow-y-auto border-b border-transparent px-2 pb-2"
         >
           {density !== "icons" && !pinnedCircles && (
             <div className="px-2 pb-1 pt-1 text-[12px] font-medium leading-4 text-ink-secondary">
@@ -1398,7 +1398,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
               "fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-[60] max-w-[300px] rounded-xl border px-3.5 py-2.5 text-[13px] shadow-xl",
               teamFeedback.error
                 ? "border-danger/30 bg-card text-danger"
-                : "border-hairline/50 bg-card text-ink",
+                : "border-transparent bg-card text-ink",
             )}
           >
             <div className="flex items-center gap-3">

@@ -64,7 +64,7 @@ export function FollowBotModelRow({ name, model, follows, onPick }: { name: stri
       data-menu-row
       aria-pressed={follows}
       onClick={onPick}
-      className="flex h-9 w-full shrink-0 items-center justify-between gap-2 border-b-[0.5px] border-ink/10 px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06]"
+      className="flex h-9 w-full shrink-0 items-center justify-between gap-2 border-b-[0.5px] border-transparent px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06]"
     >
       <span className="flex min-w-0 items-baseline gap-2">
         <span className="shrink-0 font-medium">{t("model.useBotModel", { name })}</span>
@@ -77,7 +77,7 @@ export function FollowBotModelRow({ name, model, follows, onPick }: { name: stri
 
 export function ModelSearch({ value, onChange, local }: { value: string; onChange: (value: string) => void; local: boolean }) {
   return (
-    <div className="group/search flex h-9 shrink-0 items-center gap-2 border-b-[0.5px] border-ink/10 px-3.5">
+    <div className="group/search flex h-9 shrink-0 items-center gap-2 border-b-[0.5px] border-transparent px-3.5">
       <Search size={16} strokeWidth={MENU_STROKE} className="shrink-0 text-ink-tertiary group-focus-within/search:text-ink-secondary" aria-hidden="true" />
       <input
         data-menu-search
@@ -162,7 +162,7 @@ export function ModelEngineRail({ instances, selectedInstance, claudeInstance, o
     );
   };
   return (
-    <div className="flex w-14 shrink-0 flex-col gap-1 overflow-y-auto border-r-[0.5px] border-ink/10 p-2">
+    <div className="flex w-14 shrink-0 flex-col gap-1 overflow-y-auto border-r-[0.5px] border-transparent p-2">
       {subscription.length > 0 && <div className={cn(RAIL_LABEL, "pt-0.5")}>{t("model.rail.cloud")}</div>}
       {subscription.map(railButton)}
       {(api.length > 0 || onAddApiKeys) && <div className={cn(RAIL_LABEL, subscription.length > 0 ? "pt-2" : "pt-0.5")}>{t("model.rail.apiKeys")}</div>}
@@ -174,7 +174,7 @@ export function ModelEngineRail({ instances, selectedInstance, claudeInstance, o
           onClick={onAddApiKeys}
           aria-label={apiKeysLabel(instances)}
           title={apiKeysLabel(instances)}
-          className="flex size-9 shrink-0 items-center justify-center rounded-[8px] border border-dashed border-ink/20 text-ink-tertiary hover:bg-ink/[0.06] hover:text-ink"
+          className="flex size-9 shrink-0 items-center justify-center rounded-[8px] border border-dashed border-transparent text-ink-tertiary hover:bg-ink/[0.06] hover:text-ink"
         >
           <Plus size={16} strokeWidth={MENU_STROKE} aria-hidden="true" />
         </button>

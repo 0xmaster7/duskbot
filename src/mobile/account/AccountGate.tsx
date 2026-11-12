@@ -116,8 +116,8 @@ export function AccountGate({ children }: { children: ReactNode }) {
   if (wanted && (demo === null || (restoring && required))) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   return <AccountContext value={context}>{required && !account ? <div data-skin={THEME_SKINS.dark} className="omb-mobile size-full bg-app text-ink"><SignIn mobile emailStart={email => client.emailStart(email)} emailVerify={code => client.emailVerify(code)} cancelEmail={async () => { client.cancelEmail(); }} browser={provider => { setProblem(undefined); return client.oauthStart(provider); }} onSignedIn={() => { setAccount(client.account()); setProblem(undefined); }} notice={problem}
     options={async () => ({ providers: providersFor(platform.kind, await client.providers()), recovery: false })} marks={PROVIDER_MARKS}>
-    <div className="flex flex-col items-center gap-1 border-t border-ink/10 pt-4">
-      <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-ink/15 px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+    <div className="flex flex-col items-center gap-1 border-t border-transparent pt-4">
+      <button type="button" onClick={() => void enterDemo(platform)} className="flex min-h-11 w-full flex-col items-center justify-center rounded-full border border-transparent px-5 py-2 text-[14px] font-medium outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
         {t("mobile.demo.try")}<span className="text-[12px] font-normal text-ink-secondary">{t("mobile.demo.tryDetail")}</span>
       </button>
       <p className="mt-2 text-center text-[12px] leading-5 text-ink-tertiary">{t("mobile.account.legal")}</p>

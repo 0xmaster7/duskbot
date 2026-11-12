@@ -251,7 +251,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
         over: (sectionId: string) => simple && shown?.kind === "end" && shown.list !== PIN_LIST && shown.list === listFor(sectionId),
         pinSlot: pinning || (simple && slotLeaving) ? (
           <div className={cn("pb-0.5 transition-opacity duration-150 ease-out motion-reduce:transition-none", !pinning && "pointer-events-none opacity-0")}>
-            <div data-bot-pin-slot="" className={cn("flex h-[104px] items-center justify-center rounded-xl border border-dashed text-[14px] leading-5 tracking-[0.01em] text-ink-secondary", pinOver ? "border-ink/40 bg-ink/[0.06]" : "border-ink/[0.24]")}
+            <div data-bot-pin-slot="" className={cn("flex h-[104px] items-center justify-center rounded-xl border border-dashed text-[14px] leading-5 tracking-[0.01em] text-ink-secondary", pinOver ? "border-transparent bg-ink/[0.06]" : "border-transparent")}
               onDragOver={(event) => {
                 if (!carries(event) || !moving.current.botId) return;
                 event.preventDefault();
@@ -307,7 +307,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
         }),
         slot: active !== null && mainIds.length === 0 && botListOf(lists, active) !== ""
           ? <div data-bot-drop-slot="" className={cn("mx-2 flex h-10 items-center justify-center rounded-[10px] border border-dashed text-[13px] leading-[18px]",
-            shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-ink/20 text-ink-secondary")}>{t("sidebar.grok.unassigned")}</div>
+            shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-transparent text-ink-secondary")}>{t("sidebar.grok.unassigned")}</div>
           : null,
         naming: (name: string | null): SectionNaming | undefined => {
           if (!naming || name === null) return undefined;

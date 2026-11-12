@@ -38,7 +38,7 @@ export function BotProfileAvatarCard({
   const { fileRef, crop, uploading, generating, setSavingConnection, busy, error, upload, removeImage, generate } = useAvatarImage(bot, onPatch);
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-ink/8 bg-menu">
+    <div className="overflow-hidden rounded-[14px] border border-transparent bg-menu">
       <div className="flex items-center justify-between gap-3 pl-3.5 pr-2.5 pt-2.5">
         <span className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">{t("botIdentity.avatar")}</span>
         <button
@@ -113,7 +113,7 @@ export function BotProfileAvatarCard({
               className={cn(
                 "h-6 cursor-pointer rounded-full text-[12px] leading-4 transition-colors duration-[120ms] ease-[ease] disabled:opacity-50",
                 FOCUS,
-                crop === candidate ? "bg-menu text-ink shadow-[0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_12%,transparent)]" : "text-ink/68 hover:text-ink",
+                crop === candidate ? "bg-menu text-ink shadow-none" : "text-ink/68 hover:text-ink",
               )}
             >
               {t(`botIdentity.crop.${candidate}` as never)}
@@ -159,7 +159,7 @@ export function BotProfileAvatarCard({
                   disabled={busy}
                   aria-pressed={bot.color === color}
                   onClick={() => onPatch({ color })}
-                  className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full border border-transparent hover:border-ink/12 disabled:opacity-50", FOCUS)}
+                  className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full border border-transparent hover:border-transparent disabled:opacity-50", FOCUS)}
                   title={t(MAUS_COLOR_LABEL[color])}
                   aria-label={`Use ${color} mascot color`}
                 >

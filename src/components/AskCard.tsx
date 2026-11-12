@@ -131,7 +131,7 @@ export function CardTitlebar({ icon, label, trailing }: { icon: ReactNode; label
 
 export function CardSourceIcon({ children }: { children: ReactNode }) {
   return (
-    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-(--card-fill) bg-(--card-fill) text-ink-secondary">
+    <span aria-hidden="true" className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-transparent bg-(--card-fill) text-ink-secondary">
       {children}
     </span>
   );
@@ -200,7 +200,7 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
       <div
         dir="auto"
         aria-label={label}
-        className={cn("rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 [overflow-wrap:anywhere]",
+        className={cn("rounded-[12px] border border-transparent bg-(--card-code-fill) px-3 py-2 [overflow-wrap:anywhere]",
           mono ? "font-mono text-[13px] leading-[18px] whitespace-pre-wrap text-ink" : "whitespace-pre-wrap text-[13px] leading-5 text-ink-secondary",
           long && !open && "line-clamp-3")}
       >
@@ -220,7 +220,7 @@ export type AskChoice = { label: string; description?: string };
 /** A question card rests a hair above the page in a light skin, as grok's does; a dark one draws no lift (--card-lift). */
 export const ASK_CARD_LIFT = "shadow-[0_2px_8px_var(--card-lift)]";
 /** Grok's card edge: a 0.5px ring, 12% ink in a light skin and 10% in a dark one (--card-ring). */
-export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-(--card-ring)";
+export const ASK_CARD_RING = "bg-composer ring-[0.5px] ring-transparent";
 
 /** The letter that names a choice, A to Z, then none: a long list reads by its labels. */
 export const choiceLetter = (index: number): string | null => index < 26 ? String.fromCharCode(65 + index) : null;
@@ -228,7 +228,7 @@ export const choiceLetter = (index: number): string | null => index < 26 ? Strin
 export function ChoiceLetter({ letter, quiet = false, fill }: { letter: string | null; quiet?: boolean; fill?: string }) {
   if (!letter) return null;
   return (
-    <kbd aria-hidden="true" data-letter={letter} style={fill ? { backgroundColor: fill } : undefined} className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px] border border-ink/[0.08] font-sans text-[12px] font-medium leading-4 before:content-[attr(data-letter)]",
+    <kbd aria-hidden="true" data-letter={letter} style={fill ? { backgroundColor: fill } : undefined} className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px] border border-transparent font-sans text-[12px] font-medium leading-4 before:content-[attr(data-letter)]",
       fill ? "text-white" : quiet ? "bg-ink/[0.04] text-ink-tertiary" : "bg-ink/[0.06] text-ink-secondary")} />
   );
 }
@@ -305,7 +305,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
   return (
     <form onSubmit={send} className={row
       ? "-mx-2 flex min-h-10 items-center gap-2.5 rounded-[16px] border border-transparent p-[7px] transition-[background-color,border-color] duration-[140ms] ease-[cubic-bezier(.16,1,.3,1)] hover:bg-ink/[0.06] focus-within:bg-ink/[0.06]"
-      : "flex items-end gap-2 rounded-[16px] border border-ink/10 bg-transparent py-1 pe-1 ps-3 "}>
+      : "flex items-end gap-2 rounded-[16px] border border-transparent bg-transparent py-1 pe-1 ps-3 "}>
       {row && <ChoiceLetter letter={letter ?? null} />}
       <textarea
         dir="auto"
@@ -439,7 +439,7 @@ export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover
  * Moving by keyboard draws the app's grey focus ring around it, never a blue one.
  */
 export const CARD_FIELD =
-  "h-8 rounded-[10px] border border-ink/[0.12] bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
+  "h-8 rounded-[10px] border border-transparent bg-transparent px-3 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus-visible:ring-2 disabled:opacity-60 pointer-coarse:h-11";
 
 export function returnFocusToComposer(): void {
   if (typeof requestAnimationFrame !== "function") return;

@@ -77,7 +77,7 @@ function FilesSection({ bridge }: { bridge: CloudFilesBridge }) {
           {t(state.phase === "asleep" ? "files.asleep" : state.phase === "offline" ? "files.offline" : "files.signedOut")}</p>}
         {failed && <p role="alert" className="text-[13px] text-danger">{failed}</p>}
         {state.shared.length > 0
-          ? <ul className="flex w-full flex-col divide-y divide-hairline/40">
+          ? <ul className="flex w-full flex-col divide-y divide-transparent">
             {state.shared.map((folder) => <FolderRow key={folder.id} folder={folder} bridge={bridge} busy={busy} run={run} onStop={() => setAsk({ kind: "stop", folder })} />)}
           </ul>
           : <p className="text-[13px] text-ink-secondary">{t("files.empty")}</p>}
@@ -180,7 +180,7 @@ function FilesDialog({ label, children, actions, onClose }: { label: string; chi
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   return createPortal(<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <div role="dialog" aria-modal="true" aria-labelledby="files-dialog-label" className="w-full max-w-[440px] rounded-2xl border border-hairline/50 bg-panel p-5 shadow-2xl">
+    <div role="dialog" aria-modal="true" aria-labelledby="files-dialog-label" className="w-full max-w-[440px] rounded-2xl border border-transparent bg-panel p-5 shadow-2xl">
       <h2 id="files-dialog-label" className="text-[15px] font-semibold text-ink">{label}</h2>
       {children}
       <div className="mt-5 flex justify-end gap-2">{actions}</div>

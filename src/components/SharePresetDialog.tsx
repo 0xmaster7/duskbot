@@ -11,7 +11,7 @@ import type { NewBotDefaults } from "../../shared/new-bot-defaults";
 import type { PackageDocument, PackageSummary } from "../../shared/package-format";
 
 const shareLabelCls = "pl-3.5 text-[12px] leading-4 tracking-[0.01em] text-ink/68";
-const shareCardCls = "rounded-[14px] bg-menu px-3.5 py-2.5 text-[13px] leading-[18px] outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
+const shareCardCls = "rounded-[14px] bg-menu px-3.5 py-2.5 text-[13px] leading-[18px] outline-1 -outline-offset-1 outline-transparent [outline-style:solid]";
 const shareCheckCls = "flex cursor-pointer items-center gap-2 text-[13px] leading-[18px] text-ink";
 
 export interface PresetShareResponse {

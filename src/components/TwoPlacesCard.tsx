@@ -23,7 +23,7 @@ export function TwoPlacesCard({ suggest, onBring, onDismiss }: { suggest: TwoPla
   return <NoticeCard titleId="two-places-title" notice="two-places" icon={Merge} title={t("twoPlaces.title")} onDismiss={onDismiss}>
     <p className="mb-3 mt-1 text-[13px] text-ink-secondary">{t("twoPlaces.body", { place: suggest.name })}</p>
     {failed && <p role="alert" className="mb-3 text-[12px] text-danger">{failed}</p>}
-    {confirming ? <div role="group" aria-label={t("twoPlaces.confirmTitle", { place: suggest.name })} className="rounded-lg border border-hairline/40 p-3"
+    {confirming ? <div role="group" aria-label={t("twoPlaces.confirmTitle", { place: suggest.name })} className="rounded-lg border border-transparent p-3"
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); cancel(); } }}>
       <p className="text-[13px] font-medium text-ink">{t("twoPlaces.confirmTitle", { place: suggest.name })}</p>
       <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">{t("twoPlaces.confirm", { place: suggest.name })}</p>

@@ -104,12 +104,12 @@ describe("the Simple composer in a bot chat", () => {
     render({ bot });
     expect(plus()?.getAttribute("aria-label")).toBe("Add");
     const pill = container.querySelector('[data-tour="composer"]')!.className.split(" ");
-    expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "px-[9px]", "pt-[7px]", "pb-[9px]", "inset-ring-[0.5px]", "inset-ring-ink/[0.12]",
-      "hover:inset-ring-ink/[0.24]", "focus-within:inset-ring-ink/[0.24]", "data-[drag-over]:inset-ring-accent"]));
-    expect(pill.filter((name) => name.startsWith("shadow"))).toEqual(["shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03),0_0_0_1px_rgb(228_228_228/0.04)]"]);
+    expect(pill).toEqual(expect.arrayContaining(["composer-pill", "rounded-[22px]", "bg-composer", "px-[9px]", "pt-[7px]", "pb-[9px]", "inset-ring-[0.5px]", "inset-ring-transparent",
+      "hover:inset-ring-transparent", "focus-within:inset-ring-transparent", "data-[drag-over]:inset-ring-accent"]));
+    expect(pill.filter((name) => name.startsWith("shadow"))).toEqual(["shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]"]);
     expect(container.querySelector("[data-composer-row]")!.className).not.toContain("flex-wrap");
     expect(container.querySelector("[data-composer-actions]")!.className.split(" ")).toContain("gap-2");
-    expect(container.querySelector("[data-composer-plus]")!.className.split(" ")).toEqual(expect.arrayContaining(["composer-press", "size-7", "bg-ink/[0.06]", "inset-ring-[0.5px]", "inset-ring-ink/[0.08]", "text-ink/[0.56]"]));
+    expect(container.querySelector("[data-composer-plus]")!.className.split(" ")).toEqual(expect.arrayContaining(["composer-press", "size-7", "bg-ink/[0.06]", "inset-ring-[0.5px]", "inset-ring-transparent", "text-ink/[0.56]"]));
     expect(container.querySelector('button[aria-label="Attach a file"]')).toBeNull();
     expect(container.querySelector("[data-goal-chip]")).toBeNull();
     expect(container.querySelector("[data-approval-chip]")).toBeNull();

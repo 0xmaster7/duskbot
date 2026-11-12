@@ -120,7 +120,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
         aria-modal="true"
         aria-labelledby={titleId}
         data-create-bot-dialog
-        className="absolute left-1/2 top-1/2 flex max-h-[calc(100vh-32px)] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu text-[13px] text-ink"
+        className="absolute left-1/2 top-1/2 flex max-h-[calc(100vh-32px)] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu text-[13px] text-ink"
       >
         <button
           type="button"
@@ -130,7 +130,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
         >
           <Icon name="close" size={14} />
         </button>
-        <div className="flex shrink-0 flex-col items-start gap-1 border-b border-ink/12 p-4">
+        <div className="flex shrink-0 flex-col items-start gap-1 border-b border-transparent p-4">
           <h2 id={titleId} className="m-0 text-[14px] font-semibold leading-[22px] tracking-[-0.15px]">Create New Bot</h2>
         </div>
         <div className="min-h-0 w-full overflow-auto p-4 leading-[18px] tracking-[-0.08px]">
@@ -147,7 +147,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
               maxLength={80}
               onChange={(event) => rename(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); create(); } }}
-              className="my-1 h-9 w-full rounded-[10px] border border-ink/10 bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-ink/12!"
+              className="my-1 h-9 w-full rounded-[10px] border border-transparent bg-transparent px-2.5 py-2 text-center text-[13px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/56 focus:border-transparent!"
             />
             <div className="flex flex-col gap-3">
               <div role="group" aria-label={t("botPanel.avatar.shapes")} className="flex flex-col gap-2 py-1.5" onPointerLeave={rest} onBlur={rest}>
@@ -168,7 +168,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
                     aria-pressed={swatch === color}
                     onClick={() => pickColor(swatch)}
                     {...watch}
-                    className="flex size-8 cursor-pointer items-center justify-center rounded-[50%] border border-transparent p-0 text-black outline-none hover:border-ink/12 focus-visible:shadow-[0_0_0_2px_var(--color-focus)] focus-visible:outline-none!"
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-[50%] border border-transparent p-0 text-black outline-none hover:border-transparent focus-visible:shadow-[0_0_0_2px_var(--color-focus)] focus-visible:outline-none!"
                   >
                     <span
                       className="block size-6 rounded-[50%]"
@@ -181,7 +181,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
           </div>
         </div>
         {error && <p role="alert" data-create-bot-error="" className="m-0 shrink-0 px-4 pb-3 text-[13px] leading-[18px] text-danger">{error}</p>}
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-ink/12 py-3 pl-4 pr-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-transparent py-3 pl-4 pr-3">
           <button
             type="button"
             data-group-instead=""
@@ -207,7 +207,7 @@ function CreateBotForm({ section, onClose }: { section?: string; onClose: () => 
 }
 
 /** A 32px pill, 14px words at regular weight, a hairline drawn in its own ink. */
-const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] px-3 py-1.5 text-[14px] font-normal leading-5 tracking-[0.01em] shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,currentColor_15%,transparent)] outline-none transition-[background-color,color] duration-[120ms] ease-[ease-out] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
+const KIT_BUTTON = "inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] px-3 py-1.5 text-[14px] font-normal leading-5 tracking-[0.01em] shadow-none outline-none transition-[background-color,color] duration-[120ms] ease-[ease-out] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 
 const MARK = 36;
 

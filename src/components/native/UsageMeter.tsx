@@ -58,7 +58,7 @@ export function UsageMeterCard({ limit, now = Date.now() }: { limit: EngineLimit
   return (
     <div data-usage-card={limit.engine} role="group" aria-label={title} className="flex flex-col max-sm:gap-2">
       <div aria-hidden="true" className="px-4 text-[14px] font-[600] leading-5 text-ink/60 sm:hidden">{title}</div>
-      <div className="flex flex-col rounded-[12px] bg-menu px-3 pb-2.5 pt-2.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid] max-sm:gap-0.5 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:outline-0">
+      <div className="flex flex-col rounded-[12px] bg-menu px-3 pb-2.5 pt-2.5 outline-[0.5px] outline-offset-[-0.5px] outline-transparent [outline-style:solid] max-sm:gap-0.5 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:outline-0">
         <div data-usage-segment="" className={cn("flex flex-col", segment, "max-sm:pb-4 max-sm:pt-3.5")}>
           <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink max-sm:hidden">{title}</div>
           <div className="mt-1 flex items-baseline gap-1 max-sm:mt-0 max-sm:flex-wrap">
@@ -130,7 +130,7 @@ export function UsageBanner({ engine, onSeeUsage }: { engine: string | undefined
   const reset = limit.resetsAt !== null && limit.resetsAt > now ? resetsIn(limit.resetsAt, now) : null;
   return (
     <div role="status" data-usage-banner={out ? "danger" : "warning"}
-      className="flex items-start gap-2.5 rounded-[14px] bg-menu py-2.5 pe-2 ps-3.5 outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]">
+      className="flex items-start gap-2.5 rounded-[14px] bg-menu py-2.5 pe-2 ps-3.5 outline-[0.5px] outline-offset-[-0.5px] outline-transparent [outline-style:solid]">
       <Icon name="chart-bars" size={14} className={cn("mt-0.5 shrink-0", out ? "text-danger" : "text-warning")} />
       <div className="min-w-0 flex-1">
         <div className="text-[13px] leading-[18px] tracking-[-0.08px] text-ink">

@@ -40,7 +40,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
   return (
     <form
       className={cn(
-        "flex flex-col gap-2.5 rounded-xl border border-hairline bg-panel p-4 text-left",
+        "flex flex-col gap-2.5 rounded-xl border border-transparent bg-panel p-4 text-left",
         compact ? "w-full" : "w-[420px] max-w-[90vw]",
       )}
       onSubmit={(event) => {
@@ -59,7 +59,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
         onChange={(event) => setKey(event.target.value)}
         placeholder={azure ? "…" : "sk-…"}
         aria-label={t(azure ? "call.live.azureKeyField" : "call.live.keyField")}
-        className="rounded-lg border border-hairline bg-inset px-3 py-2 text-[13px] text-ink outline-none focus:border-accent/60"
+        className="rounded-lg border border-transparent bg-inset px-3 py-2 text-[13px] text-ink outline-none focus:border-accent/60"
       />
       {error && <div className="text-[12px] text-danger">{error}</div>}
       <button

@@ -22,12 +22,12 @@ export function InboxActive({ view }: { view: InboxView | null }) {
   return (
     <>
       {fixes.length > 0 && (
-        <section data-inbox-fixes className="border-t border-hairline/40 px-1.5 py-1.5">
+        <section data-inbox-fixes className="border-t border-transparent px-1.5 py-1.5">
           {fixes.map((item) => <NeedsYouLine key={`${item.kind}:${item.id}`} item={item} onOpened={closeInbox} />)}
         </section>
       )}
       {entries.length > 0 && (
-        <section data-inbox-active aria-label={t("attention.active")} className="border-t border-hairline/40 px-1.5 py-1.5">
+        <section data-inbox-active aria-label={t("attention.active")} className="border-t border-transparent px-1.5 py-1.5">
           <div className="px-2 py-0.5 text-[12px] font-medium text-ink-secondary">{t("attention.active")}</div>
           <AttentionThreadRows inset entries={entries} onJump={(entry) => dispatch(attentionJumpAction(entry))} />
         </section>

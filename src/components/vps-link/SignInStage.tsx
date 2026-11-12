@@ -9,7 +9,7 @@ import { smallButtonCls, textFieldCls } from "../ui/GrokDialog";
 import { centered, deviceWord, ErrorNote, Footer, Heading, Lead, message, PILL, SOFT_PILL } from "./parts";
 
 const POLL_MS = 2000;
-const CARD = "flex w-[236px] max-w-full flex-col items-center justify-center gap-1.5 self-stretch rounded-[16px] border border-ink/10 px-4 py-3.5 text-center";
+const CARD = "flex w-[236px] max-w-full flex-col items-center justify-center gap-1.5 self-stretch rounded-[16px] border border-transparent px-4 py-3.5 text-center";
 
 function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge: VpsLinkBridge; onSignedIn: () => void }) {
   const [flow, setFlow] = useState<VpsSignIn | null>(null);
@@ -112,7 +112,7 @@ function EngineCard({ engine, bridge, onSignedIn }: { engine: VpsEngine; bridge:
             </span>
             {flow?.userCode && <span className="text-[12px] leading-4 text-ink/56">{t("vpsLink.signIn.enterCode")}</span>}
             <span className="flex items-center gap-1.5">
-              {flow?.userCode && <code className="select-all whitespace-nowrap rounded-[8px] border border-ink/10 px-2 py-0.5 font-mono text-[14px] leading-5 tracking-[0.08em] text-ink">{flow.userCode}</code>}
+              {flow?.userCode && <code className="select-all whitespace-nowrap rounded-[8px] border border-transparent px-2 py-0.5 font-mono text-[14px] leading-5 tracking-[0.08em] text-ink">{flow.userCode}</code>}
               {flow?.authorizationUrl && <button type="button" className={smallButtonCls} onClick={() => void bridge.openUrl(flow.authorizationUrl!)}>{t("vpsLink.signIn.again")}</button>}
             </span>
             {flow?.needsCode && <form className="flex w-full flex-col gap-1 text-start" onSubmit={(event) => { event.preventDefault(); void sendCode(); }}>

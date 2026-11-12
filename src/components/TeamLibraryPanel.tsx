@@ -434,7 +434,7 @@ export function TeamLibraryPanel({
         aria-modal="true"
         aria-labelledby="team-library-title"
         tabIndex={-1}
-        className="flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu outline-none"
+        className="flex h-[min(780px,calc(100dvh-2rem))] w-full max-w-[1040px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu outline-none"
       >
         <header className="flex items-start justify-between gap-4 px-6 pb-3 pt-6 sm:px-8 sm:pt-7">
           <div className="min-w-0">
@@ -499,7 +499,7 @@ export function TeamLibraryPanel({
               {error && <div role="alert" className="mt-4 text-[13px] text-danger">{error}</div>}
             </div>
 
-            <footer className="flex flex-col gap-3 border-t border-hairline/35 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <footer className="flex flex-col gap-3 border-t border-transparent px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
               <div className="text-[13px] text-ink-secondary">
                 {t(currentBotCount === 0 ? "templates.existingNone" : currentBotCount === 1 ? "templates.existingOne" : "templates.existingMany", { count: currentBotCount })}
                 {" "}{pending.kind === "backup"
@@ -606,7 +606,7 @@ export function TeamLibraryPanel({
                 </button>
               </div>
               {tab === "explore" && (
-                <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-ink/10 bg-transparent px-[11px]  sm:w-[280px]">
+                <label className="flex h-8 w-full items-center gap-1.5 rounded-full border border-transparent bg-transparent px-[11px]  sm:w-[280px]">
                   <Search size={14} aria-hidden="true" className="shrink-0 text-ink/56" />
                   <input
                     value={search}
@@ -652,7 +652,7 @@ export function TeamLibraryPanel({
                       {visibleTeams.map((entry, index) => {
                         const copy = catalogCopy(entry);
                         return (
-                        <article key={entry.slug} className="flex min-h-[104px] items-center gap-3 border-b border-hairline/35 px-1 py-4">
+                        <article key={entry.slug} className="flex min-h-[104px] items-center gap-3 border-b border-transparent px-1 py-4">
                           <TeamGlyph index={index} />
                           <div className="min-w-0 flex-1">
                             <h3 className="truncate text-[14px] font-medium text-ink">{copy.name}</h3>
@@ -717,7 +717,7 @@ export function TeamLibraryPanel({
                       }}
                       className={cn(
                         "flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed px-6 text-center transition-colors",
-                        dragging ? "border-accent bg-accent/5" : "border-hairline/60 bg-raised/20 hover:bg-raised/35",
+                        dragging ? "border-accent bg-accent/5" : "border-transparent bg-raised/20 hover:bg-raised/35",
                       )}
                     >
                       <UploadCloud size={27} className="text-accent" />
@@ -809,7 +809,7 @@ export function TeamLibraryPanel({
                       <div className="mt-5 text-[12px] font-medium text-ink-secondary">{t("templates.suggestedTeam")}</div>
                       <div className="mt-1 grid grid-cols-1 gap-x-10 md:grid-cols-2">
                         {scouted.suggestion.manifest.team.members.map((member, index) => (
-                          <div key={member.key} className="flex min-h-[64px] items-center gap-3 border-b border-hairline/35 px-1 py-3">
+                          <div key={member.key} className="flex min-h-[64px] items-center gap-3 border-b border-transparent px-1 py-3">
                             <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold", TEAM_GLYPHS[index % TEAM_GLYPHS.length])}>
                               {member.name.slice(0, 1).toUpperCase()}
                             </div>
@@ -830,7 +830,7 @@ export function TeamLibraryPanel({
                           <div className="mt-5 text-[12px] font-medium text-ink-secondary">{t("templates.communityDirectory")}</div>
                           <div className="mt-1 flex flex-col">
                             {directory.map((candidate) => (
-                              <div key={candidate.slug} className="flex items-center gap-3 border-b border-hairline/35 px-1 py-3">
+                              <div key={candidate.slug} className="flex items-center gap-3 border-b border-transparent px-1 py-3">
                                 <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
                                   <input
                                     type="checkbox"

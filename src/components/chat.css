@@ -21,7 +21,7 @@
   text-decoration-color: currentColor;
 }
 .chat-link:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: none;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -54,7 +54,6 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 .chat-link-favicon[data-brand] {
@@ -123,12 +122,11 @@
 [data-chat-bubble="simple"].chat-bubble-bot {
   background-color: color-mix(in srgb, var(--color-ink) var(--chat-wash), transparent);
   background-image: linear-gradient(rgb(255 255 255 / var(--chat-gloss)), transparent);
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 -0.5px 0 rgb(255 255 255 / var(--chat-edge)),
-    inset 0 0 0 0.5px var(--chat-ring);
+  box-shadow: none;
 }
 [data-chat-bubble="simple"].chat-bubble-user.chat-bubble-user {
   background-image: linear-gradient(rgb(255 255 255 / var(--chat-gloss-own)), transparent);
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 -0.5px 0 rgb(255 255 255 / var(--chat-edge)), inset 0 0 0 0.5px var(--chat-ring-own);
+  box-shadow: none;
 }
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
   --grok-bubble: var(--grok-bubble-fill);
@@ -143,8 +141,7 @@
   background-image: linear-gradient(rgb(255 255 255 / 0.03), transparent);
 }
 :root[data-skin="grok-dark"] [data-chat-bubble="simple"]:is(.chat-bubble-bot, .chat-bubble-user) {
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.03), inset 0 -0.5px 0 rgb(255 255 255 / 0.03),
-    inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 4%, transparent);
+  box-shadow: none;
 }
 :root[data-skin="grok-dark"] [data-chat-bubble="simple"].chat-bubble-user {
   background-image: linear-gradient(rgb(255 255 255 / 0.01), transparent);
@@ -239,7 +236,7 @@
 [data-chat-bubble="simple"] .chat-code-block[data-lang] {
   border-radius: 14px;
   background-color: var(--color-composer);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 1px solid transparent;
 }
 [data-chat-bubble="simple"] .chat-code-block[data-lang] pre {
   padding: 6px 10px;
@@ -367,7 +364,7 @@
   position: relative;
 }
 .chat-reaction-pill {
-  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), 0 0 0 2.8px var(--color-app);
+  box-shadow: 0 0 0 2.8px var(--color-app);
 }
 .chat-reaction-pop {
   animation: chat-reaction-pop 500ms linear(0, 0.2 6%, 0.6 16%, 0.9 26%, 1.05 36%, 1.078 44%, 1.05 54%, 1.01 68%, 0.998 80%, 1) backwards;
@@ -389,7 +386,7 @@
   --page-danger: var(--color-danger);
 }
 .chat-file-card {
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 8%, transparent), 0 1px 4px color-mix(in srgb, var(--color-ink) 7%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 /* a file sent with words sits in the person's coloured bubble: the white card keeps the page's dark ink */
 [data-chat-bubble] .chat-file-card {
@@ -400,7 +397,7 @@
   --color-danger: var(--page-danger);
 }
 .chat-file-glyph {
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 12%, transparent), 0 2px 6px color-mix(in srgb, var(--color-ink) 6%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 .chat-file-card .table-action {
   display: inline-flex;

@@ -16,7 +16,7 @@ const ICONS: Record<Exclude<TraceToolIcon, "app">, GlyphIcon> = {
   data: Database, mcp: Plug, tool: Wrench,
 };
 
-const BOX = "flex size-6 shrink-0 items-center justify-center rounded-md border border-hairline/50 bg-raised";
+const BOX = "flex size-6 shrink-0 items-center justify-center rounded-md border border-transparent bg-raised";
 
 let cards: ReadonlyMap<string, ToolkitCard> | null = null;
 

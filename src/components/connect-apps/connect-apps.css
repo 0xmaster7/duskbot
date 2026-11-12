@@ -27,7 +27,7 @@
   --ca-ink-5: color-mix(in srgb, var(--color-ink) 5%, transparent);
   /* one hover for the whole window: a light ink wash that comes and goes at once */
   --ca-hover: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
-  --ca-shadow: 0 10px 20px -3px color-mix(in srgb, var(--color-ink) 10%, transparent), 0 4px 6px -4px color-mix(in srgb, var(--color-ink) 10%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-ink) 0.4%, transparent);
+  --ca-shadow: 0 10px 20px -3px color-mix(in srgb, var(--color-ink) 10%, transparent), 0 4px 6px -4px color-mix(in srgb, var(--color-ink) 10%, transparent);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -35,7 +35,7 @@
   width: min(900px, 100vw - 32px);
   max-height: calc(100vh - 32px);
   overflow: hidden;
-  border: 1px solid var(--ca-ink-12);
+  border: 1px solid transparent;
   border-radius: 14px;
   background: var(--color-menu);
   color: var(--color-ink);
@@ -62,7 +62,7 @@
   }
 }
 .ca-dialog :is(button, a):focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: none;
   outline-offset: 1px;
 }
 
@@ -220,7 +220,7 @@
   box-sizing: border-box;
   width: 20px;
   height: 20px;
-  border: 1px solid var(--color-menu);
+  border: 1px solid transparent;
   border-radius: 6px;
   background: var(--color-menu);
 }
@@ -249,7 +249,7 @@
   box-sizing: border-box;
   height: 32px;
   padding: 0 8px 0 12px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 9999px;
   background: var(--color-menu);
 }
@@ -293,7 +293,7 @@
   box-sizing: border-box;
   max-height: 436px;
   overflow-y: auto;
-  border: 1px solid var(--ca-ink-12);
+  border: 1px solid transparent;
   border-radius: 14px;
   background: var(--color-menu);
   box-shadow: var(--ca-shadow);
@@ -341,7 +341,7 @@
   box-sizing: border-box;
   width: 24px;
   height: 24px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 7px;
   color: var(--ca-ink-56);
 }
@@ -361,7 +361,7 @@
   height: 32px;
   box-sizing: border-box;
   padding: 0 10px 0 6px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 9999px;
   background: var(--color-menu);
   line-height: 18px;
@@ -460,7 +460,7 @@
   border-radius: 16px;
 }
 .ca-dialog .ca-row-open:focus-visible { outline: none; }
-.ca-row-open:focus-visible::after { box-shadow: inset 0 0 0 2px var(--color-focus); }
+.ca-row-open:focus-visible::after { box-shadow: none; }
 .ca-row-main {
   display: flex;
   flex-direction: column;
@@ -528,7 +528,7 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   background: var(--color-menu);
   color: var(--ca-ink-68);
 }
@@ -607,7 +607,7 @@
 .ca-card {
   margin: 0;
   padding: 8px 0;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 14px;
   background: var(--color-menu);
 }
@@ -652,7 +652,7 @@
   height: 32px;
   box-sizing: border-box;
   padding: 0 12px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 9999px;
   background: var(--color-menu);
   color: var(--color-ink);
@@ -670,7 +670,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 9999px;
   color: var(--ca-ink-68);
   font-size: 11px;
@@ -704,7 +704,7 @@ a.ca-pill { color: inherit; text-decoration: none; }
 .ca-notice {
   margin: 0 0 16px;
   padding: 10px 14px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 14px;
   color: var(--ca-ink-68);
   line-height: 18px;
@@ -772,7 +772,7 @@ a.ca-pill { color: inherit; text-decoration: none; }
   width: 100%;
   height: 32px;
   padding: 0 9px;
-  border: 1px solid var(--ca-ink-8);
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--color-menu);
   color: var(--color-ink);

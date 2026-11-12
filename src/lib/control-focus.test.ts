@@ -40,8 +40,9 @@ const outlineRemovers = [...withoutComments.matchAll(/([^{}]+)\{([^}]*)\}/g)]
 const CONTROLS = ["checkbox", "radio", "range", "color", "file"];
 
 describe("keyboard focus on form controls", () => {
-  it("keeps the global focus ring", () => {
-    expect(withoutComments).toMatch(/(?:^|\})\s*:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-focus\)/);
+  it("shows keyboard focus as a tint, never a ring", () => {
+    expect(withoutComments).toMatch(/:focus-visible,[^{]*\{[^}]*outline-color:\s*transparent !important;[^}]*--tw-ring-color:\s*transparent !important/);
+    expect(withoutComments).toMatch(/\[data-focus-nav\] :focus-visible[^{]*\{[^}]*background-image:/);
   });
 
   it("still takes the outline off text fields, so the composer pill stays clean", () => {

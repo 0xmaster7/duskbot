@@ -72,7 +72,7 @@ export function CommandPill({ command, onCopied }: { command: string; onCopied?:
   useEffect(() => { if (state === "copied") cheer.current?.(); }, [state]);
   const copied = state === "copied";
   return (
-    <div className="flex h-11 w-full items-center gap-2 rounded-full border border-ink/10 py-1.5 pe-1.5 ps-4">
+    <div className="flex h-11 w-full items-center gap-2 rounded-full border border-transparent py-1.5 pe-1.5 ps-4">
       <span aria-hidden="true" className="shrink-0 select-none font-mono text-[13px] leading-[18px] text-ink/40">$</span>
       <code data-vps-command="" tabIndex={0} className="min-w-0 flex-1 select-all overflow-x-auto whitespace-nowrap font-mono text-[13px] leading-[18px] text-ink outline-none [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)] [scrollbar-width:none] focus-visible:rounded-[4px] focus-visible:outline-2 focus-visible:outline-focus">{command}</code>
       <button type="button" data-autofocus="" onClick={copy} aria-label={copied ? t("vpsLink.copied") : t("vpsLink.copyAria")}

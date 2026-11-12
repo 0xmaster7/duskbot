@@ -48,7 +48,7 @@ export function NewRoomPanel({ onClose }: { onClose: () => void }) {
         </label>
         <div className="flex flex-col gap-1">
           <span className={fieldLabelCls}>{t("sidebar.newChannel.botsLabel")}</span>
-          <div className="rounded-[10px] border border-ink/10 p-1">
+          <div className="rounded-[10px] border border-transparent p-1">
             <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint={t("sidebar.newChannel.emptyHint")} />
           </div>
         </div>

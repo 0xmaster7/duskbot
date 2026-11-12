@@ -33,18 +33,17 @@
 .omb-mobile .mobile-press:active { opacity: 1; }
 
 .omb-mobile .mobile-float {
-  box-shadow: 0 4px 14px -2px rgb(28 28 28 / .10), 0 1px 3px rgb(28 28 28 / .06), 0 0 0 .5px rgb(28 28 28 / .05);
+  box-shadow: 0 4px 14px -2px rgb(28 28 28 / .10), 0 1px 3px rgb(28 28 28 / .06);
 }
 [data-skin="grok-dark"] .omb-mobile .mobile-float,
 .omb-mobile[data-scheme="dark"] .mobile-float {
-  box-shadow: 0 4px 14px -2px rgb(0 0 0 / .5), 0 0 0 .5px rgb(255 255 255 / .08);
+  box-shadow: 0 4px 14px -2px rgb(0 0 0 / .5);
 }
 
 .omb-mobile .mobile-page { box-shadow: -12px 0 32px rgb(10 10 12 / .10); }
 
 .omb-mobile :focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
+  outline: none;
 }
 .omb-mobile .mobile-row:focus-visible { outline-offset: -2px; border-radius: 16px; }
 

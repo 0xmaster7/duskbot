@@ -222,7 +222,7 @@ export function ComposerPlusMenu({ onAttach, attachChoices, goal, teach, approva
     <span
       data-composer-plus
       className={cn(
-        "flex size-11 items-center justify-center rounded-full bg-composer text-ink ring-1 ring-composer-ring transition-colors",
+        "flex size-11 items-center justify-center rounded-full bg-composer text-ink ring-1 ring-transparent transition-colors",
         // An ink tint, not a fill token: in some skins the control fill is the composer's own colour.
         open ? "bg-ink/[0.12]" : "bg-ink/[0.05] hover:bg-ink/[0.1]",
       )}

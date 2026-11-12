@@ -87,7 +87,7 @@ export function TeamPhoneCard({ team, blocked }: { team: string; blocked?: strin
       </div>
       {blocked ? <p role="status" data-team-phone-blocked className="mt-3 text-[13px] text-ink-secondary">{blocked}</p> : null}
       {offer ? (
-        <div data-team-phone-code className="mt-4 rounded-lg border border-hairline/40 bg-inset p-4">
+        <div data-team-phone-code className="mt-4 rounded-lg border border-transparent bg-inset p-4">
           {expired ? <p className="text-[13px] text-ink-secondary">{t("remote.serverPairing.expired")}</p> : (
             <div className="flex flex-wrap items-start gap-5">
               {offer.url ? (
@@ -111,7 +111,7 @@ export function TeamPhoneCard({ team, blocked }: { team: string; blocked?: strin
           {phones.length === 0 ? (
             <p className="mt-1 text-[13px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
           ) : (
-            <ul className="mt-1 divide-y divide-hairline/40">
+            <ul className="mt-1 divide-y divide-transparent">
               {phones.map((phone) => (
                 <li key={phone.id} data-team-phone={phone.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[13px]">
                   <span className="text-ink">

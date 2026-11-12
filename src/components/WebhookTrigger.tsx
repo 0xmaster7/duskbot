@@ -71,7 +71,7 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
         <div className={cn(formBodyCls, "space-y-4")}>
           <div>
             <div className={cn(fieldLabelCls, "mb-1")}>{t("automations.editor.app.who")}</div>
-            <div className="grid grid-cols-2 gap-0.5 rounded-[10px] border border-ink/12 p-1 sm:grid-cols-3">{bots.map((bot) => (
+            <div className="grid grid-cols-2 gap-0.5 rounded-[10px] border border-transparent p-1 sm:grid-cols-3">{bots.map((bot) => (
               <button key={bot.id} type="button" onClick={() => setBotId(bot.id)} aria-pressed={botId === bot.id} className={cn("flex h-8 min-w-0 items-center gap-2 rounded-[8px] px-2 text-left transition-[background-color] duration-[120ms] ease-[ease] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", botId === bot.id ? "bg-ink/6" : "hover:bg-ink/5")}>
                 <BotAvatar bot={bot} state={botId === bot.id ? "happy" : "idle"} size={20} animated={false} /><span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
               </button>
@@ -88,8 +88,8 @@ export function WebhookEditor({ webhook, bots, initialBotId, onClose, onCredenti
               <div>
                 <div className={cn(fieldLabelCls, "mb-1")}>{t("automations.editor.app.runOn")}</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setRunOn("maus")} className={cn("flex h-8 items-center gap-2 rounded-[10px] border px-2.5 text-left text-[13px] text-ink", runOn === "maus" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}><Laptop size={14} />{t("automations.editor.app.thisComputer")}</button>
-                  <button type="button" disabled={!cloudReady && runOn !== "cloud"} onClick={() => setRunOn("cloud")} className={cn("flex h-8 items-center gap-2 rounded-[10px] border px-2.5 text-left text-[13px] text-ink disabled:cursor-not-allowed disabled:opacity-45", runOn === "cloud" ? "border-ink/24 bg-ink/4" : "border-ink/12 hover:bg-ink/4")}><Cloud size={14} />{t("automations.editor.app.cloud")}</button>
+                  <button type="button" onClick={() => setRunOn("maus")} className={cn("flex h-8 items-center gap-2 rounded-[10px] border px-2.5 text-left text-[13px] text-ink", runOn === "maus" ? "border-transparent bg-ink/4" : "border-transparent hover:bg-ink/4")}><Laptop size={14} />{t("automations.editor.app.thisComputer")}</button>
+                  <button type="button" disabled={!cloudReady && runOn !== "cloud"} onClick={() => setRunOn("cloud")} className={cn("flex h-8 items-center gap-2 rounded-[10px] border px-2.5 text-left text-[13px] text-ink disabled:cursor-not-allowed disabled:opacity-45", runOn === "cloud" ? "border-transparent bg-ink/4" : "border-transparent hover:bg-ink/4")}><Cloud size={14} />{t("automations.editor.app.cloud")}</button>
                 </div>
               </div>
               <label className="block"><span className={cn(fieldLabelCls, "mb-1 block")}>{t("automations.editor.app.events")}</span><input value={eventTypes} onChange={(event) => setEventTypes(event.target.value)} placeholder="push, workflow_run" className={FIELD} /><span className="mt-1 block text-[12px] leading-4 text-ink/56">{t("automations.editor.app.eventsHelp")}</span></label>

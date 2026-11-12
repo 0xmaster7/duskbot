@@ -66,7 +66,7 @@ export function SidebarCloudCard() {
   const dismiss = () => { trackUpsell("dismiss", "app_sidebar"); snoozeSidebarCard(); setSnoozed(true); };
   return (
     <section aria-labelledby="sidebar-cloud-title" data-sidebar-cloud-card=""
-      className="relative mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-ink/10 [@media(max-height:600px)]:hidden">
+      className="relative mb-2 rounded-xl bg-composer p-3 text-ink ring-[0.5px] ring-transparent [@media(max-height:600px)]:hidden">
       <button type="button" onClick={dismiss} aria-label={t("cloudUpsell.snooze")}
         className="absolute end-1.5 top-1.5 flex size-6 cursor-pointer items-center justify-center rounded-full text-ink/56 transition-[background-color,color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
         <X size={13} aria-hidden="true" />

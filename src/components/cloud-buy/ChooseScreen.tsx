@@ -31,7 +31,7 @@ function PlanCard({ card, shown, details, compare, busy, onStart }: {
   const nameId = `cloud-plan-${card.tier}`;
   return <li data-plan={card.tier} aria-labelledby={nameId} data-plan-current={card.current ? "" : undefined}
     className={cn("grid min-w-0 grid-rows-subgrid gap-y-3 rounded-[14px] border-[0.5px] bg-menu p-4", compare ? "row-span-5" : "row-span-4",
-      card.popular ? "border-ink/25" : "border-ink/10")}>
+      card.popular ? "border-transparent" : "border-transparent")}>
     <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-2 gap-y-1">
       <h4 id={nameId} className="text-[15px] font-medium leading-[22px] text-ink">{card.name}</h4>
       {card.popular && <Tag data-plan-popular="">{t("cloudAdd.popular")}</Tag>}
@@ -52,7 +52,7 @@ function PlanCard({ card, shown, details, compare, busy, onStart }: {
         </li>;
       })}
     </ul>
-    <ul id={detailsId(card.tier)} hidden={!compare} className="flex flex-col gap-2 border-t-[0.5px] border-ink/10 pt-4 text-[12px] leading-4 text-ink-secondary">
+    <ul id={detailsId(card.tier)} hidden={!compare} className="flex flex-col gap-2 border-t-[0.5px] border-transparent pt-4 text-[12px] leading-4 text-ink-secondary">
       {details.map(row => <li key={row.key} data-plan-row={row.key}>
         {row.text}{row.note && <small className="block text-[12px] leading-4 text-ink-tertiary">{row.note}</small>}
       </li>)}
@@ -103,7 +103,7 @@ export function ChooseScreen({ offer, current = null, own = null, now, busy, sig
     <div aria-live="polite" className="flex flex-col gap-1.5 text-[13px] leading-[18px] text-ink-secondary">
       {timeline.length > 1 && <ol aria-label={t("cloudBuy.timeline")} className="flex flex-wrap items-center gap-x-4 gap-y-1">
         {timeline.map((step, index) => <li key={step.when} className="inline-flex items-center gap-1.5">
-          <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", index === 0 ? "bg-ink" : "border border-ink/40")} />
+          <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", index === 0 ? "bg-ink" : "border border-transparent")} />
           <b className="font-medium text-ink">{step.when}</b>{step.text}
         </li>)}
       </ol>}
@@ -122,12 +122,12 @@ export function ChooseScreen({ offer, current = null, own = null, now, busy, sig
         </li>)}
       </ul>
     </section>
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t-[0.5px] border-ink/10 pt-4 text-[12px] leading-4 text-ink-tertiary">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t-[0.5px] border-transparent pt-4 text-[12px] leading-4 text-ink-tertiary">
       <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="inline-flex items-center gap-1.5"><Lock size={13} strokeWidth={1.5} aria-hidden="true" />{t("cloudBuy.secure")}</span>
         <span role="img" aria-label={t("cloudBuy.wallets")} className="inline-flex gap-1">
           {[t("cloudBuy.applePay"), t("cloudBuy.googlePay"), t("cloudBuy.card")].map(mark => <span key={mark} aria-hidden="true"
-            className="rounded-[5px] border-[0.5px] border-ink/20 px-1.5 py-px text-[11px] font-medium text-ink-secondary">{mark}</span>)}
+            className="rounded-[5px] border-[0.5px] border-transparent px-1.5 py-px text-[11px] font-medium text-ink-secondary">{mark}</span>)}
         </span>
         <span aria-hidden="true">·</span><span>{t("cloudBuy.cancelEasy")}</span>
       </p>

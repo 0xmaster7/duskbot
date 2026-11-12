@@ -115,7 +115,7 @@ function RoundChatMoreMenu({ bot, phoneHeader }: { bot: Bot; phoneHeader: boolea
           className={cn(
             "flex size-8 items-center justify-center rounded-full",
             ELEVATED_CONTROL, ELEVATED_HOVER, open && ELEVATED_OPEN,
-            "max-md:size-10 max-md:border max-md:border-hairline max-md:bg-card",
+            "max-md:size-10 max-md:border max-md:border-transparent max-md:bg-card",
             open || on ? "text-accent" : "text-ink",
           )}
         >

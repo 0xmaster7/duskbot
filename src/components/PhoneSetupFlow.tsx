@@ -874,7 +874,7 @@ const ROW = "flex min-h-12 flex-wrap items-center justify-between gap-x-5 gap-y-
 const LABEL = "min-w-0 flex-1 basis-48";
 const TITLE = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
 const SECONDARY = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink-secondary";
-const FIELD = "h-8 w-56 max-w-full rounded-[10px] border border-ink/12 bg-menu px-3 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-ink/40 disabled:opacity-50";
+const FIELD = "h-8 w-56 max-w-full rounded-[10px] border border-transparent bg-menu px-3 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-transparent disabled:opacity-50";
 
 /** One Grok row: a label, an optional short line under it, and what sits on the right. */
 function FlowRow({ title, detail, alert, children }: { title: ReactNode; detail?: ReactNode; alert?: boolean; children?: ReactNode }) {
@@ -1016,7 +1016,7 @@ export function PhoneSetupFlowView({ controller }: { controller: PhoneSetupContr
       </FlowRow>
       {!c.pairingExpired && c.pairingLink && (
         <div className="flex justify-center px-3.5 pb-3">
-          <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge" aria-label={t("phone.code.qrAria")}>
+          <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-transparent" aria-label={t("phone.code.qrAria")}>
             <QRCodeSVG value={c.pairingLink} size={160} level="M" bgColor="#ffffff" fgColor="#111111" />
           </div>
         </div>

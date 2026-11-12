@@ -46,7 +46,7 @@ export function ServiceIcon({ card, className = "size-11" }: { card: Pick<Toolki
   );
 }
 
-const TILE = "relative inline-flex shrink-0 items-center justify-center overflow-hidden border border-ink/[0.08] box-border leading-none";
+const TILE = "relative inline-flex shrink-0 items-center justify-center overflow-hidden border border-transparent box-border leading-none";
 
 export interface TileArt { label: string; logo?: string | null; domain?: string | null; image?: string; padded?: boolean; background?: string; scale?: number }
 

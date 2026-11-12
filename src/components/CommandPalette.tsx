@@ -260,9 +260,9 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
         aria-modal="true"
         aria-label={t("sidebar.search")}
         data-command-palette
-        className="pointer-events-auto relative flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-ink/12 bg-menu text-[13px] text-ink"
+        className="pointer-events-auto relative flex h-[455px] max-h-[calc(100vh-32px)] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-transparent bg-menu text-[13px] text-ink"
       >
-        <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-ink/8 py-3.5 pl-4 pr-2.5">
+        <div className="flex shrink-0 items-center gap-2.5 border-b-[0.5px] border-transparent py-3.5 pl-4 pr-2.5">
           <span className="flex h-5 w-6 shrink-0 items-center justify-center text-ink/52"><Icon name="search" size={16} /></span>
           <input
             ref={inputRef}

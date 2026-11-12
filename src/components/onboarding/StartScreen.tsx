@@ -85,7 +85,7 @@ export function StartScreen({ bot, onStart, onSkip, extras }: {
         <p className="mt-2 max-w-[440px] text-balance text-[15px] leading-[22px] text-ink-secondary">{t("onboarding.start.sub", { name })}</p>
 
         <form data-start-composer="" onSubmit={submit}
-          className="mt-8 flex w-full flex-col gap-2 rounded-[22px] border-[0.5px] border-ink/10 bg-composer px-2 pb-2 pt-3 text-left focus-within:border-ink/30 [:root:is([data-skin=daylight],[data-skin=grok])_&]:shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]">
+          className="mt-8 flex w-full flex-col gap-2 rounded-[22px] border-[0.5px] border-transparent bg-composer px-2 pb-2 pt-3 text-left focus-within:border-transparent [:root:is([data-skin=daylight],[data-skin=grok])_&]:shadow-[0_2px_8px_-1px_rgb(0_0_0/0.05),0_1px_2px_rgb(0_0_0/0.03)]">
           <textarea
             ref={box}
             value={text}
@@ -110,7 +110,7 @@ export function StartScreen({ bot, onStart, onSkip, extras }: {
             return (
               <button key={starter.id} type="button" data-job={starter.id} aria-pressed={job === starter.id} onClick={() => pick(starter.id)}
                 className={cn("inline-flex h-9 items-center gap-2 rounded-full border-[0.5px] px-3.5 text-[14px] text-ink hover:bg-ink/[0.04] active:scale-[0.98]",
-                  job === starter.id ? "border-ink/30 bg-ink/[0.04]" : "border-ink/10")}>
+                  job === starter.id ? "border-transparent bg-ink/[0.04]" : "border-transparent")}>
                 <Icon size={15} strokeWidth={1.75} className="shrink-0 text-ink-secondary" aria-hidden="true" />
                 {t(starter.label)}
               </button>

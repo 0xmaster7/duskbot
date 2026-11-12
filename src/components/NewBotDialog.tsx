@@ -113,14 +113,14 @@ export function BotDefaultsDialog({ onClose }: { onClose: () => void }) {
   return <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4">
     <div aria-hidden="true" className="ui-dialog-scrim pointer-events-none absolute inset-0" />
     <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} aria-busy={saving} tabIndex={-1}
-      className="relative flex h-[min(700px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-app text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!">
+      className="relative flex h-[min(700px,94dvh)] w-full max-w-[900px] flex-col overflow-hidden rounded-[14px] border border-transparent bg-app text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!">
       <div className={formHeaderCls}>
         <h2 className={formTitleCls}>{title}</h2>
         <button type="button" onClick={() => closeRef.current()} aria-label={t("common.close")}
           className={cn(formCloseCls, "disabled:opacity-40")}><X size={16} className="pointer-events-none" /></button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-        <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-ink/8 px-3 py-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
+        <nav aria-label={t("newBot.sections")} className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-transparent px-3 py-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
           {SECTIONS.map(label => <button key={label} type="button" onClick={() => setActive(label)} aria-current={active === label ? "page" : undefined}
             className={cn("flex h-8 shrink-0 cursor-pointer items-center rounded-[8px] px-[9px] text-left text-[13px] leading-[18px] tracking-[0.195px] text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", active === label ? "bg-ink/6" : "hover:bg-ink/[0.035]")}>{t(SECTION_KEYS[label])}</button>)}
         </nav>

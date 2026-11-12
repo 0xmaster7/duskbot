@@ -50,7 +50,7 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
   };
 
   return (
-    <div className="mt-2 border-t border-hairline/40 pt-2">
+    <div className="mt-2 border-t border-transparent pt-2">
       <div className="px-3 pb-1 text-[12px] font-medium leading-4 text-ink-secondary">
         {t("search.messages")}{hits ? ` · ${hits.length}${hits.length === 40 ? "+" : ""}` : ""}
       </div>

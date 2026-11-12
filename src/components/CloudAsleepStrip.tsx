@@ -14,7 +14,7 @@ export function CloudAsleepStrip() {
   if (!asleep && !waking) return null;
   return <div role="status" data-cloud-asleep={waking ? "waking" : "asleep"} className="flex items-center justify-center gap-2 px-3 py-1.5 text-[13px] text-ink-secondary">
     {waking
-      ? <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-accent motion-reduce:animate-none" />
+      ? <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent motion-reduce:animate-none" />
       : <Moon size={14} aria-hidden="true" />}
     <span>{t(sending ? "cloudAsleep.wakingSend" : waking ? "cloudAsleep.waking" : "cloudAsleep.line")}</span>
     {!waking && <button type="button" className="font-medium text-accent-text underline underline-offset-2 hover:text-ink" onClick={() => markCloudAwake("click")}>{t("cloudPower.wake")}</button>}

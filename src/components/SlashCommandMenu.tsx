@@ -20,7 +20,7 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
       ref={listRef}
       role="listbox"
       aria-label={t("composer.commands.aria")}
-      className={cn("popover-surface absolute bottom-full start-2 z-20 mb-2 max-h-80 w-80 max-w-[calc(100%-1rem)] origin-bottom-left overflow-x-hidden overflow-y-auto overscroll-contain rounded-[16px] border-[0.5px] border-ink/10 p-1.5", motion.className)} {...motion.exitProps}
+      className={cn("popover-surface absolute bottom-full start-2 z-20 mb-2 max-h-80 w-80 max-w-[calc(100%-1rem)] origin-bottom-left overflow-x-hidden overflow-y-auto overscroll-contain rounded-[16px] border-[0.5px] border-transparent p-1.5", motion.className)} {...motion.exitProps}
     >
       <div className="px-2 pb-1 pt-0.5 text-[12px] font-medium tracking-[0.01em] text-ink-tertiary">
         {t("composer.commands.title")}

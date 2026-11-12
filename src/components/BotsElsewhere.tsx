@@ -95,7 +95,7 @@ export function ElsewhereCard({ screen, simulated = false, onOpen, onConnect, on
           </button>
         </div>
         {screen.kind === "bots-on" && screen.others.length > 0 && (
-          <div className="mt-8 border-t border-hairline pt-4">
+          <div className="mt-8 border-t border-transparent pt-4">
             <p className="text-[13px] text-ink-secondary">{t("elsewhere.others")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {screen.others.map((place) => (
@@ -124,7 +124,7 @@ export function DevFreshInstallButton() {
     <button
       type="button"
       onClick={() => setSimulatedFreshInstall(!simulated)}
-      className="fixed right-3 top-1.5 z-[70] rounded-full border border-hairline bg-card px-3 py-1 text-[12px] text-ink-secondary hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
+      className="fixed right-3 top-1.5 z-[70] rounded-full border border-transparent bg-card px-3 py-1 text-[12px] text-ink-secondary hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink"
       style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
     >
       {simulated ? t("elsewhere.dev.stop") : t("elsewhere.dev.simulate")}

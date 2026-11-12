@@ -13,7 +13,7 @@ import { CopyRow, FormDialog } from "../ListRows";
 import { fieldLabelCls, smallButtonCls } from "../ui/GrokDialog";
 
 /** A key field: the panel's quiet hairline box, no fill, unchanged on hover and focus (the caret marks it). */
-export const KEY_FIELD = "h-7 w-full min-w-0 rounded-lg border border-ink/10 bg-transparent px-2.5 font-mono text-[12px] leading-7 text-ink placeholder:font-sans placeholder:text-ink-tertiary outline-none disabled:opacity-60";
+export const KEY_FIELD = "h-7 w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2.5 font-mono text-[12px] leading-7 text-ink placeholder:font-sans placeholder:text-ink-tertiary outline-none disabled:opacity-60";
 export const KEY_ROW = "group flex scroll-mt-24 flex-col gap-1.5 rounded-lg px-2 py-1.5 transition-[background-color] duration-500 data-[key-highlight]:bg-ink/[0.06] motion-reduce:transition-none";
 const MASK = "••••••••";
 

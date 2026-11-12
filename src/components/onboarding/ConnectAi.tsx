@@ -113,7 +113,7 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
             </p>
           )}
           {recommended ? (
-            <div data-ai-recommended={recommended.instanceId} className="w-full rounded-xl border border-hairline/40 p-4 text-left">
+            <div data-ai-recommended={recommended.instanceId} className="w-full rounded-xl border border-transparent p-4 text-left">
               <EngineSetup instance={recommended} {...setupFor(recommended)} className="border-0 bg-transparent p-0" />
             </div>
           ) : !tested && !backup && !failed ? (
@@ -124,7 +124,7 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
       {failed && <p role="alert" className="mt-2 text-[13px] text-danger">{t("onboarding.engines.error")}</p>}
 
       {(organisation || others.length > 0) && (
-        <div className="mt-3 w-full divide-y divide-hairline/40 overflow-hidden rounded-xl border border-hairline/40 text-left">
+        <div className="mt-3 w-full divide-y divide-transparent overflow-hidden rounded-xl border border-transparent text-left">
           {organisation && (
             <OrganisationRow
               bridge={organisation}

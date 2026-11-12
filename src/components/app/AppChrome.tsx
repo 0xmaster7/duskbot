@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import type { AppNetwork } from "../../../shared/app";
 import { ASK_CHIP, ASK_CHIP_IDLE, ASK_QUIET_BUTTON } from "../AskCard";
 
-export const APP_SURFACE = "w-full overflow-hidden rounded-2xl bg-composer ring-1 ring-composer-ring";
+export const APP_SURFACE = "w-full overflow-hidden rounded-2xl bg-composer ring-1 ring-transparent";
 const ICON_BUTTON =
   "flex size-7 shrink-0 items-center justify-center rounded-full text-ink-tertiary transition-colors hover:bg-ink/[0.07] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40";
 
@@ -80,7 +80,7 @@ export function AppInfo({ id, network, bytes, bordered }: { id: string; network:
   if (bytes > 0) rows.push([t("app.info.size"), formatAppBytes(bytes)]);
   rows.push([t("app.info.off"), t("app.info.offList")]);
   return (
-    <div id={id} data-app-info className={cn("border-t border-ink/[0.12] py-2.5 text-[13px] leading-[18px]", bordered ? "mx-4" : "mb-2")}>
+    <div id={id} data-app-info className={cn("border-t border-transparent py-2.5 text-[13px] leading-[18px]", bordered ? "mx-4" : "mb-2")}>
       <p className="mb-2 text-ink-secondary">{t("app.info.sandbox")}</p>
       <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1">
         {rows.map(([label, value]) => (
@@ -101,7 +101,7 @@ export function AppStrip({ text, action, bordered, tone = "warning" }: {
   tone?: "warning" | "quiet";
 }) {
   return (
-    <div role="status" data-app-strip className={cn("flex items-center gap-2 border-t border-ink/[0.12] py-2.5 text-[13px] leading-[18px] text-ink-secondary", bordered ? "mx-4" : "mt-2")}>
+    <div role="status" data-app-strip className={cn("flex items-center gap-2 border-t border-transparent py-2.5 text-[13px] leading-[18px] text-ink-secondary", bordered ? "mx-4" : "mt-2")}>
       <CircleAlert aria-hidden="true" size={14} className={cn("shrink-0", tone === "warning" ? "text-warning" : "text-ink-tertiary")} />
       <span dir="auto" className="min-w-0 flex-1 break-words">{text}</span>
       {action && <button type="button" onClick={action.onClick} className={ASK_QUIET_BUTTON}>{action.label}</button>}

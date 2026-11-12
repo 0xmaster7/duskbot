@@ -87,7 +87,7 @@ export function QueuedComposerMessages({
 
   return (
     <div
-      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border-[0.5px] border-b-0 border-ink/10 bg-composer pb-3"
+      className="relative z-[1] mx-3 -mb-3 max-h-36 overflow-y-auto rounded-t-2xl border-[0.5px] border-b-0 border-transparent bg-composer pb-3"
       aria-label={
         items.length === 1
           ? t("composer.queued.regionOne")
@@ -104,7 +104,7 @@ export function QueuedComposerMessages({
           {oneThreadPerBot && onSeePlans && <>{" "}<button type="button" className="underline" onClick={onSeePlans}>{t("composer.queued.seePlans")}</button></>}
         </p>
       )}
-      <ul className="divide-y divide-hairline/25" aria-label={t("composer.queued.list")}>
+      <ul className="divide-y divide-transparent" aria-label={t("composer.queued.list")}>
         {items.map((item, index) => {
           const label = queuedMessageLabel(item.text);
           return <li key={item.queueId} className="flex min-h-10 min-w-0 items-center gap-2 px-2.5 py-1.5">

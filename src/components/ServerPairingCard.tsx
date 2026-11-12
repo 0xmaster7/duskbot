@@ -155,7 +155,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
   }
 
   const offerPanel = offer ? (
-        <div className="mt-4 rounded-lg border border-hairline/40 bg-inset p-4">
+        <div className="mt-4 rounded-lg border border-transparent bg-inset p-4">
           {expired ? (
             <p className="text-[13px] text-ink-secondary">{t("remote.serverPairing.expired")}</p>
           ) : (
@@ -216,7 +216,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
               {offer.url ? (
                 <>
                   <div data-pairing-qr="" className="flex justify-center py-2">
-                    <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-edge">
+                    <div className="rounded-[10px] bg-white p-3 outline outline-[0.5px] -outline-offset-[0.5px] outline-transparent">
                       <QRCodeSVG value={offer.url} size={148} level="M" bgColor="#ffffff" fgColor="#111111" />
                     </div>
                   </div>
@@ -269,7 +269,7 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
       {listed.length === 0 ? (
         <p className="mt-1 text-[13px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
       ) : (
-        <ul className="mt-1 divide-y divide-hairline/40">
+        <ul className="mt-1 divide-y divide-transparent">
           {listed.map((device) => (
             <li key={device.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[13px]">
               <span className="text-ink">

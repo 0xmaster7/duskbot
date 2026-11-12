@@ -7,7 +7,7 @@ import { Select } from "./Select";
 
 type ProviderPatch = Partial<Pick<LiveSettings, "provider" | "azureEndpoint" | "azureDeployment">>;
 
-const FIELD = "w-full rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent/60";
+const FIELD = "w-full rounded-lg border border-transparent bg-inset px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent/60";
 
 export function LiveProviderSettings() {
   const { state, dispatch } = useStore();

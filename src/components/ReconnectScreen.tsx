@@ -44,7 +44,7 @@ export function ReconnectScreen({ bridge }: { bridge: ReconnectBridge }) {
     <main data-reconnect-screen className="flex min-h-screen justify-center overflow-y-auto bg-app px-6 py-16 text-ink" style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
       <div className="flex w-full max-w-[460px] flex-col items-start gap-3" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
         <p role="status" className="flex items-center gap-2 text-[20px] font-semibold">
-          {view?.checking !== false && <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-accent" />}
+          {view?.checking !== false && <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent" />}
           {text.title}
         </p>
         {view && <p className="text-[14px] leading-relaxed text-ink-secondary">{t("reconnect.kept")}</p>}

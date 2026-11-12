@@ -169,9 +169,9 @@ describe("Simple-mode sidebar layout", () => {
     expect(advanced.root.props.className).toContain("max-md:[--scroll-fade-surface:var(--color-app)]");
   });
 
-  it("draws the faint edge and the Simple footer", () => {
+  it("draws no edge line and the Simple footer", () => {
     const simple = render();
-    expect(simple.root.props.className).toContain("border-r-[0.5px] border-edge");
+    expect(simple.root.props.className).toContain("border-r-[0.5px] border-transparent");
     expect(simple.root.props.className).not.toContain("border-hairline");
     expect(simple.tree.some((node) => node.type === SidebarFooter)).toBe(true);
   });

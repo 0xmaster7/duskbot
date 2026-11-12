@@ -54,7 +54,7 @@ export function IntroChips({ chips }: { chips: readonly IntroChip[] }) {
             const { label, icon: Icon } = CHIPS[chip];
             return (
               <button key={chip} type="button" data-helper-step={chip} onClick={() => tap(chip)}
-                className="inline-flex h-8 items-center gap-2 rounded-full border-[0.5px] border-ink/[0.08] bg-card px-3 text-[14px] leading-5 text-ink transition-colors hover:bg-raised-hover">
+                className="inline-flex h-8 items-center gap-2 rounded-full border-[0.5px] border-transparent bg-card px-3 text-[14px] leading-5 text-ink transition-colors hover:bg-raised-hover">
                 <Icon size={16} aria-hidden="true" className="text-ink-secondary" />{t(label)}
               </button>
             );

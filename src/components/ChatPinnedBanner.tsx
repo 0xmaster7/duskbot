@@ -27,7 +27,7 @@ export function PinnedBanner({
   if (!text) return null;
   return (
     <div className="w-full px-5">
-      <div data-pinned-banner="" className="mb-2 flex min-h-8 items-center gap-2 rounded-[14px] bg-composer py-1 pe-1 ps-3 ring-[0.5px] ring-ink/[0.1]">
+      <div data-pinned-banner="" className="mb-2 flex min-h-8 items-center gap-2 rounded-[14px] bg-composer py-1 pe-1 ps-3 ring-[0.5px] ring-transparent">
         <Pin size={12} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
         <button
           onClick={() => onJump(pinned.id)}

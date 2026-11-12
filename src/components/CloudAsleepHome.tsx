@@ -55,7 +55,7 @@ export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wa
   return (
     <main data-home-screen="asleep" className="flex min-h-[100dvh] flex-col bg-app text-ink sm:flex-row">
       {bots.length > 1 && (
-        <nav aria-label={t("cloudAsleep.bots")} className="flex shrink-0 gap-1 overflow-x-auto border-b border-hairline/70 px-2 py-2 sm:w-[220px] sm:flex-col sm:overflow-y-auto sm:border-r sm:border-b-0 sm:py-3">
+        <nav aria-label={t("cloudAsleep.bots")} className="flex shrink-0 gap-1 overflow-x-auto border-b border-transparent px-2 py-2 sm:w-[220px] sm:flex-col sm:overflow-y-auto sm:border-r sm:border-b-0 sm:py-3">
           {bots.map((entry) => (
             <button key={entry.id} type="button" aria-current={entry.id === bot?.id ? "page" : undefined} onClick={() => setSelected(entry.id)}
               className={cn("min-h-9 shrink-0 truncate rounded-lg px-3 py-1.5 text-left text-[14px] text-ink-secondary hover:bg-ink/[0.05] hover:text-ink focus-visible:outline-2 focus-visible:outline-accent",
@@ -68,7 +68,7 @@ export function CloudAsleepHome({ bridge, view }: { bridge: Pick<HomeBridge, "wa
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         <p role="status" data-cloud-asleep-line className="flex items-center gap-2 px-5 pt-4 pb-2 text-[13px] text-ink-secondary">
           {waking
-            ? <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-accent motion-reduce:animate-none" />
+            ? <span aria-hidden="true" className="size-3 shrink-0 animate-spin rounded-full border-2 border-transparent border-t-accent motion-reduce:animate-none" />
             : <Moon size={14} aria-hidden="true" className="shrink-0" />}
           <span>{waking ? t("cloudAsleep.waking") : t("cloudAsleep.line")}</span>
         </p>

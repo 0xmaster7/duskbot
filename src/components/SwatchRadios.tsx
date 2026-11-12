@@ -27,8 +27,8 @@ export function SwatchRadios({ value, onChange, label, disabled = false, offset 
       }}
       tabIndex={option === focusable ? 0 : -1}
       className={cn("grid size-8 place-items-center rounded-full border transition-[box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-default",
-        plain(option) ? "border-ink/55 text-ink/55" : "border-ink/10",
-        option === value && cn("ring-2 ring-ink/70 ring-offset-2", RING_OFFSET[offset]), disabled && option !== value && "opacity-50")}
+        plain(option) ? "border-transparent text-ink/55" : "border-transparent",
+        option === value && cn("ring-2 ring-transparent ring-offset-2", RING_OFFSET[offset]), disabled && option !== value && "opacity-50")}
       style={plain(option) ? undefined : { background: swatchFill(option) }}>
       {plain(option) && <span aria-hidden="true" className="h-[1.5px] w-[60%] -rotate-45 rounded-full bg-current" />}
     </button>)}

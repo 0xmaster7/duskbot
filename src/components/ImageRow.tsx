@@ -179,7 +179,7 @@ export function ImageRow({ images, align = "start", eager = false, onOpen, class
             const last = plan.folded > 0 && at === tiles - 1;
             return (
               <div key={`${at}:${image.src}`} title={image.name} data-image-tile style={{ width, height: row.height }}
-                className={cn("relative shrink-0 overflow-hidden rounded-[12px]", align === "end" && "shadow-[0_0_0_0.5px_rgb(28_28_28/0.08)]")}>
+                className={cn("relative shrink-0 overflow-hidden rounded-[12px]", align === "end" && "shadow-none")}>
                 <AttachmentThumbnail image={image} eager={eager} onPreview={() => onOpen(at)}
                   onSize={(size) => rememberImageSize(image.src, size)} fit={known[at] ? "cover" : "contain"}
                   label={last ? t("attach.openRemaining", { count: plan.folded }) : t("attach.openFullScreen")}

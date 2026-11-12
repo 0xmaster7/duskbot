@@ -3,7 +3,7 @@ import { t } from "@/lib/i18n";
 import { Icon } from "./Icon";
 
 /** A small pill on a quiet line in the chat. */
-export const NOTE_ACTION = "inline-flex items-center gap-1 rounded-full border border-hairline/40 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
+export const NOTE_ACTION = "inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 const SUMMARY = "w-fit cursor-pointer list-none rounded-sm underline-offset-2 [&::-webkit-details-marker]:hidden hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
 /** grok's quiet line in the chat: a sentence in the tertiary ink with its pills beside it, never a box. A warning

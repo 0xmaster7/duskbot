@@ -90,7 +90,7 @@
   cursor: pointer;
 }
 .table-action:hover, .table-action[aria-pressed="true"] { background: var(--color-raised); color: var(--color-ink); }
-.table-action:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.table-action:focus-visible { outline: none; outline-offset: 1px; }
 @media (pointer: coarse) { .table-action { min-width: 40px; min-height: 40px; } }
 /* inside a 28px file pill under a reply, the table preview is a 24px circle */
 .file-chip .table-action { width: 24px; height: 24px; min-width: 24px; min-height: 24px; border-radius: 9999px; }
@@ -153,14 +153,14 @@
      stays in the skin's family: --frame-shade of black. */
   --color-frame: color-mix(in oklab, var(--color-app), black var(--frame-shade));
   --color-ink: #f5f5f5;
-  --color-ink-secondary: #f5f5f5a8;
+  --color-ink-secondary: #f5f5f5ba;
   /* quiet text: timestamps, hints, placeholders, calendar hours. It used to
      be `text-ink-secondary/70`, which fades an ink already tuned close to
      AA and landed at 2.2–4:1. Each skin sets this to the quietest ink that
      still clears 4.5:1 on every text surface, raised-hover included; on the
      light skins that leaves little room below the secondary ink, so there
      size carries the hierarchy. Measured by pnpm check:contrast. */
-  --color-ink-tertiary: #f5f5f591;
+  --color-ink-tertiary: #f5f5f5a3;
   --color-accent: #1084fe;
   --color-accent-border: #459ffe;
   /* the ring a keyboard user follows: a neutral grey at 3:1 on every surface,
@@ -261,8 +261,8 @@
   --color-control: #282828;
   --color-hairline: #383838;
   --color-ink: #f5f5f5;
-  --color-ink-secondary: #f5f5f5a8;
-  --color-ink-tertiary: #f5f5f591;
+  --color-ink-secondary: #f5f5f5ba;
+  --color-ink-tertiary: #f5f5f5a3;
   --color-accent: #1084fe;
   --color-accent-border: #459ffe;
   --color-accent-text: #7fc0ff;
@@ -337,8 +337,8 @@
   --color-hairline: #c8bda8;      /* #ece7dd was 1.11:1 on the rail → 1.65:1 */
 
   --color-ink: #1a1a18;           /* 17.4:1 on white */
-  --color-ink-secondary: #6b6559; /* #8b8578 was 3.67:1 → 5.78:1 */
-  --color-ink-tertiary: #6d685c;
+  --color-ink-secondary: #5a554b; /* #8b8578 was 3.67:1 → 5.78:1 */
+  --color-ink-tertiary: #5c574d;
 
   /* Two accent tones: the fill carries white, the text stands on white. */
   --color-accent: #a05f25;        /* #b06a2c darkened → 5.05:1 */
@@ -414,8 +414,8 @@
   --color-hairline: #3d3529;      /* visible on purpose — this UI has edges */
 
   --color-ink: #f4efe4;           /* warm off-white, never pure #fff */
-  --color-ink-secondary: #b0a696; /* 6.7:1 on raised, 5.9:1 on hover */
-  --color-ink-tertiary: #9c9384;
+  --color-ink-secondary: #bdb4a7; /* 6.7:1 on raised, 5.9:1 on hover */
+  --color-ink-tertiary: #aca498;
 
   /* Brass. Bright fill, dark lettering — the inversion described above. */
   --color-accent: #d99a3e;
@@ -499,8 +499,8 @@
 
   --color-ink: #14201f;           /* dark petrol; a neutral black would read
                                      as a foreign object on a tinted ground */
-  --color-ink-secondary: #4d5c5b; /* 7.0:1 on white, 5.8:1 on the ground */
-  --color-ink-tertiary: #566564;
+  --color-ink-secondary: #414d4c; /* 7.0:1 on white, 5.8:1 on the ground */
+  --color-ink-tertiary: #485554;
 
   --color-accent: #11736d;        /* deep teal, carries white at 5.68:1 */
   --color-accent-border: #14807a;
@@ -562,8 +562,8 @@
   --color-hairline: #3b4048;
 
   --color-ink: #f2f4f7;
-  --color-ink-secondary: #b3b8c2;
-  --color-ink-tertiary: #9fa4ad;
+  --color-ink-secondary: #bfc3cc;
+  --color-ink-tertiary: #aeb3ba;
 
   --color-accent: #4f75a2;
   --color-accent-border: #698fbb;
@@ -626,8 +626,8 @@
   --color-hairline: #b4bbc5;
 
   --color-ink: #1d2229;
-  --color-ink-secondary: #59616c;
-  --color-ink-tertiary: #5f6671;
+  --color-ink-secondary: #4b515b;
+  --color-ink-tertiary: #50565f;
 
   --color-accent: #355f8a;
   --color-accent-border: #4978a6;
@@ -688,8 +688,8 @@
   --color-hairline: #403847;
 
   --color-ink: #f4eff6;
-  --color-ink-secondary: #b9afbd;
-  --color-ink-tertiary: #a199a5;
+  --color-ink-secondary: #c4bcc8;
+  --color-ink-tertiary: #b0a9b3;
 
   --color-accent: #765683;
   --color-accent-border: #9670a3;
@@ -762,15 +762,15 @@
   --color-edge: #1c1c1c14;
 
   --color-ink: #1c1c1c;
-  --color-ink-secondary: #1c1c1cad;
-  --color-ink-tertiary: #1c1c1ca6;
+  --color-ink-secondary: #1c1c1cbf;
+  --color-ink-tertiary: #1c1c1cb8;
 
   --color-accent: #126fd4;
   --color-accent-border: #1680f3;
   --color-accent-text: #0b69cc;
   --color-focus: #858585;
   --color-accent-ink: #ffffff;
-  --color-composer: #ffffff;
+  --color-composer: #f2f2f2;   /* no ring, so the pill takes a tone off the page */
   --color-composer-ring: #1c1c1c1f;
   --color-menu: #ffffff;
   --color-menu-hover: #1c1c1c0f;
@@ -835,8 +835,8 @@
   --color-edge: #1c1c1c14;        /* sand-border-tertiary-translucent */
 
   --color-ink: #1c1c1c;
-  --color-ink-secondary: #1c1c1cad;
-  --color-ink-tertiary: #1c1c1ca6;
+  --color-ink-secondary: #1c1c1cbf;
+  --color-ink-tertiary: #1c1c1cb8;
 
   --color-accent: #126fd4;
   --color-accent-border: #1680f3; /* sand-bg-accent-primary, the switch blue */
@@ -844,7 +844,7 @@
   --color-unread: #0b6dd3;        /* sand-text-accent-primary, grok's unread dot */
   --color-focus: #858585;
   --color-accent-ink: #ffffff;
-  --color-composer: #ffffff;
+  --color-composer: #f2f2f2;   /* no ring, so the pill takes a tone off the page */
   --color-composer-ring: #1c1c1c1f;
   --color-menu: #ffffff;
   --color-menu-hover: #1c1c1c0f;  /* sand-bg-hover */
@@ -913,8 +913,8 @@
   --color-control: #282828;
   --color-hairline: #f5f5f538;    /* sand-border-primary-translucent */
   --color-ink: #f5f5f5;
-  --color-ink-secondary: #f5f5f5a8;
-  --color-ink-tertiary: #f5f5f58a; /* sand-text-tertiary */
+  --color-ink-secondary: #f5f5f5ba;
+  --color-ink-tertiary: #f5f5f59c; /* sand-text-tertiary */
   --color-accent: #116dd2;        /* sand-bg-accent-primary */
   --color-accent-border: #116dd2; /* the switch blue, as in light */
   --color-accent-text: #4d9bff;   /* sand-text-accent-primary */
@@ -978,15 +978,15 @@
   --color-hairline: #c9d3cc;
 
   --color-ink: #0f1a13;
-  --color-ink-secondary: #3e4a42;
-  --color-ink-tertiary: #4f5c54;
+  --color-ink-secondary: #343e37;
+  --color-ink-tertiary: #424d47;
 
   --color-accent: #1a7a48;
   --color-accent-border: #1f8a52;
   --color-accent-text: #176b3f;
   --color-focus: #878c89;
   --color-accent-ink: #ffffff;
-  --color-composer: #ffffff;
+  --color-composer: #f1f5f2;   /* no ring, so the pill takes a tone off the page */
   --color-composer-ring: #e3e9e4;
   --color-menu: #ffffff;
   --color-menu-hover: color-mix(in srgb, var(--color-raised) 70%, transparent);
@@ -1044,8 +1044,8 @@
   --color-hairline: #1b1613;
 
   --color-ink: #1b1613;
-  --color-ink-secondary: #3a322d;
-  --color-ink-tertiary: #5f5650;
+  --color-ink-secondary: #312a26;
+  --color-ink-tertiary: #504843;
 
   --color-accent: #7f52f0;
   --color-accent-border: #8b5cf6;
@@ -1107,8 +1107,8 @@
   --color-hairline: #3b3048;
 
   --color-ink: #f8efe2;
-  --color-ink-secondary: #c2b3cc;
-  --color-ink-tertiary: #a898b4;
+  --color-ink-secondary: #ccbfd4;
+  --color-ink-tertiary: #b6a8c0;
 
   --color-accent: #ff7f1f;
   --color-accent-border: #ff8f3a;
@@ -1158,7 +1158,7 @@
 }
 /* grok's dark menus edge in ink/10 */
 :root[data-skin="grok-dark"] .popover-surface {
-  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-color: transparent;
 }
 :root:is([data-skin="daylight"], [data-skin="grok"]) .popover-surface {
   box-shadow: 0 10px 20px -3px rgb(28 28 28 / 0.1), 0 4px 6px -4px rgb(28 28 28 / 0.1);
@@ -1285,7 +1285,7 @@
 }
 
 .chat-code-actions > button:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: none;
   outline-offset: 2px;
 }
 
@@ -1391,6 +1391,11 @@ body {
    use utilities for placement and the control scale below for size, rather
    than inventing another button size. */
 @layer components {
+  /* quiet ink reads a step heavier so it never looks faint: secondary at 450, tertiary at 500. in this layer, so an
+     explicit font-* utility still wins */
+  .text-ink-secondary { font-weight: 450; }
+  .text-ink-tertiary { font-weight: 500; }
+
   .ui-button,
   .ui-icon-button {
     display: inline-flex;
@@ -1408,7 +1413,7 @@ body {
     /* 4px + 20px line + 4px + a 1px border each side = 30px, so the 32px
        min-height decides the box and the label sits on its center. */
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--color-hairline);
+    border: 1px solid transparent;
     background: var(--color-control);
     color: var(--color-ink);
   }
@@ -1468,7 +1473,7 @@ body {
     gap: 0.5rem;
     min-height: 1.75rem;
     padding: 0.125rem 0.75rem;
-    border: 1px solid color-mix(in srgb, var(--color-hairline) 40%, transparent);
+    border: 1px solid transparent;
     border-radius: 9999px;
     background: var(--color-panel);
     color: var(--color-ink-secondary);
@@ -1545,7 +1550,7 @@ body {
   /* A secondary action in Midnight and Daylight: a faint ink wash with a hairline of ink. Layered, so a
      call site's own fill (an ink pill, a danger outline) still wins. */
   :root:is([data-skin="midnight"], [data-skin="grok-dark"]) .ui-button {
-    border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+    border-color: transparent;
     background: color-mix(in srgb, var(--color-ink) 4%, transparent);
   }
   :root:is([data-skin="midnight"], [data-skin="grok-dark"]) .ui-button:enabled:is(:hover, :active) {
@@ -1555,7 +1560,7 @@ body {
     border-radius: 9999px;
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-button {
-    border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border-color: transparent;
     background: color-mix(in srgb, var(--color-ink) 6%, transparent);
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-button:enabled:is(:hover, :active) {
@@ -1563,7 +1568,7 @@ body {
   }
   /* A dialog for the first-run surfaces: the menu tone on a hairline of ink, lifted only in Daylight. */
   .ui-modal {
-    border: 0.5px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+    border: 0.5px solid transparent;
     border-radius: 14px;
     background: var(--color-menu);
   }
@@ -1572,7 +1577,7 @@ body {
     background: color-mix(in srgb, var(--color-ink) 10%, transparent);
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-modal {
-    border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border-color: transparent;
     box-shadow: 0 20px 32px -5px rgb(28 28 28 / 0.1), 0 8px 12px -6px rgb(28 28 28 / 0.1);
   }
   :root:is([data-skin="daylight"], [data-skin="grok"]) .ui-modal-divider {
@@ -1607,10 +1612,8 @@ body {
   background: color-mix(in srgb, var(--color-menu) 62%, transparent);
   -webkit-backdrop-filter: blur(28px) saturate(170%);
   backdrop-filter: blur(28px) saturate(170%);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border: 1px solid transparent;
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 16%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, white 4%, transparent),
     0 16px 40px -16px color-mix(in srgb, black 35%, transparent),
     0 2px 8px color-mix(in srgb, black 10%, transparent);
 }
@@ -1648,7 +1651,7 @@ body {
 /* Cards and rails sitting on the glass: a second, thinner pane. */
 .glass-card {
   background: color-mix(in srgb, var(--color-card) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border: 1px solid transparent;
 }
 /* Existing pages dropped onto glass (every Settings page) keep their markup;
    their solid cards turn into the same thinner pane. */
@@ -1696,22 +1699,22 @@ body {
   background: var(--color-app);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 1px solid transparent;
   box-shadow: none;
 }
 :root[data-skin="grok-dark"] [data-settings-look] .glass-surface {
-  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-color: transparent;
 }
 :root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) [data-settings-look] .glass-rail {
   background: transparent;
-  border-right: 0.5px solid var(--settings-edge);
+  border-right: 0.5px solid transparent;
 }
 :root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) [data-settings-look] .glass-surface .bg-card {
   background-color: var(--color-menu);
 }
 :root:is([data-skin="midnight"], [data-skin="daylight"], [data-skin="grok"], [data-skin="grok-dark"]) [data-settings-look] .bg-inset {
   background-color: transparent;
-  border-color: var(--settings-edge);
+  border-color: transparent;
 }
 :root:is([data-skin="midnight"], [data-skin="grok-dark"]) [data-settings-look] > .glass-scrim {
   background: rgb(0 0 0 / 0.7);
@@ -1887,29 +1890,27 @@ body {
   --card-lift: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
 }
 
-/* Keep focus visible after components clear the browser outline. These
-   unlayered rules outrank Tailwind utilities without needing !important. */
-:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 1px; /* grok's ring: 2px solid at 1px out */
+/* The brand draws no lines, so keyboard focus is a tint, never a ring: the focused control darkens (or, on a dark
+   skin, lightens) by a tenth of the ink over its own fill. Unlayered and !important on the line colours, so no
+   outline-*, ring-* or inset-ring-* utility, nor a component's own focus outline, can draw one. Forced colours keep
+   the system ring, which is what those users rely on. */
+@media not (forced-colors: active) {
+  :focus-visible,
+  :focus-visible::before,
+  :focus-visible::after,
+  [class*=":focus-visible]:outline"]:has(:focus-visible),
+  :focus-visible ~ [class*="peer-focus-visible:"] {
+    outline-color: transparent !important;
+    --tw-ring-color: transparent !important;
+    --tw-inset-ring-color: transparent !important;
+  }
+  :focus { --tw-ring-color: transparent !important; --tw-inset-ring-color: transparent !important; }
 }
-/* a control that draws its own ring as a shadow keeps that one ring, not a second outline around it, in the one
-   neutral focus grey whatever colour its utility names */
-:focus-visible:is([class*="focus-visible:ring-"], [class*="focus-visible:inset-ring-"]) {
-  outline: none;
-  --tw-ring-color: var(--color-focus);
-  --tw-inset-ring-color: var(--color-focus);
-}
-/* the ring shows only while someone moves with the keyboard (lib/focus-nav sets the flag on Tab or an arrow key):
-   focus a dialog puts on its first button when it opens, or that a click or Enter leaves behind, draws nothing */
-:root:not([data-focus-nav]) :focus-visible,
-:root:not([data-focus-nav]) [class*=":focus-visible]:outline"]:has(:focus-visible) {
-  outline-color: transparent !important;
-}
-:root:not([data-focus-nav]) :focus-visible:is([class*="focus-visible:ring-"], [class*="focus-visible:inset-ring-"]),
-:root:not([data-focus-nav]) :focus-visible ~ [class*="peer-focus-visible:ring-"] {
-  --tw-ring-color: transparent !important;
-  --tw-inset-ring-color: transparent !important;
+/* the tint shows only while someone moves with the keyboard (lib/focus-nav sets the flag on Tab or an arrow key):
+   focus a dialog puts on its first button when it opens, or that a click or Enter leaves behind, draws nothing.
+   Text fields keep the caret as their only cue. */
+:root[data-focus-nav] :focus-visible:not(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select, [contenteditable="true"], [role="textbox"])) {
+  background-image: linear-gradient(color-mix(in srgb, var(--color-ink) 10%, transparent), color-mix(in srgb, var(--color-ink) 10%, transparent));
 }
 /* A menu row shows keyboard focus as its hover fill. */
 [role="menu"] :is(button, [role^="menuitem"]):focus-visible {
@@ -1929,18 +1930,18 @@ body {
   outline: none;
 }
 
-/* Text fields look like grok's: no fill, one quiet hairline, and nothing
-   changes on hover, focus or active (the caret is the focus cue). A field
-   drawn with a border (its own `border` class, or a bordered wrapper holding
-   it directly, as search pills do) gets exactly this, at rest and focused.
-   Unlayered, so it wins over every bg-*, border-*, focus:* and ring utility.
-   A field reporting an error (aria-invalid) says so in its quiet red line. */
+/* Text fields carry no line: a field drawn with a border (its own `border`
+   class, or a bordered wrapper holding it directly, as search pills do) is a
+   quiet ink-tinted fill instead, and nothing changes on hover, focus or
+   active (the caret is the focus cue). The border keeps its width, transparent,
+   so nothing reflows. Unlayered, so it wins over every bg-*, border-*, focus:*
+   and ring utility. */
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"],
 :is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)),
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)[class~="border"]:is(:hover, :focus, :active),
 :is(div, label, form, span)[class~="border"]:has(> :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]), textarea, select)):is(:hover, :focus-within, :active) {
-  border-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
-  background-color: transparent;
+  border-color: transparent;
+  background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
 }
 :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select):focus {
   --tw-ring-shadow: 0 0 #0000;
@@ -2239,7 +2240,7 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
   background: color-mix(in srgb, var(--color-ink) 5%, transparent);
 }
 .turn-now-toggle:focus-visible {
-  outline: 1.5px solid var(--color-focus);
+  outline: none;
   outline-offset: 1px;
 }
 .turn-now-chevron {
@@ -2256,7 +2257,7 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
   width: min(560px, calc(100% - 44px));
   border-radius: 14px;
   background: var(--color-composer);
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 10%, transparent);
+  box-shadow: none;
   padding: 10px 12px;
   animation: turn-now-in 160ms ease-out both;
 }
@@ -2806,8 +2807,8 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
 @scope ([data-skin="daylight"]) to ([data-skin]) {
   .bg-bubble-user {
     --color-ink: #fcfcfc;
-    --color-ink-secondary: #c4c4c4;
-    --color-ink-tertiary: #aaaaaa;
+    --color-ink-secondary: #cdcdcd;
+    --color-ink-tertiary: #b8b8b8;
     --color-panel: #111111;
     --color-inset: #191919;
     --color-raised: #2f2f2f;
@@ -2828,8 +2829,8 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
 @scope ([data-skin="grok"]) to ([data-skin]) {
   .bg-bubble-user {
     --color-ink: #fcfcfc;
-    --color-ink-secondary: #c4c4c4;
-    --color-ink-tertiary: #aaaaaa;
+    --color-ink-secondary: #cdcdcd;
+    --color-ink-tertiary: #b8b8b8;
     --color-panel: #111111;
     --color-inset: #191919;
     --color-raised: #2f2f2f;
@@ -2852,8 +2853,8 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
 @scope ([data-skin="pop"]) to ([data-skin]) {
   .bg-bubble-user {
     --color-ink: #ffffff;
-    --color-ink-secondary: #e4dad0;
-    --color-ink-tertiary: #bdb1a6;
+    --color-ink-secondary: #e8e0d8;
+    --color-ink-tertiary: #c8bdb4;
     --color-panel: #2a221d;
     --color-inset: #2f2722;
     --color-raised: #3a322d;
@@ -3147,7 +3148,7 @@ button:disabled.bg-danger {
 .menu-surface {
   background: var(--color-menu);
   border-radius: var(--radius-menu);
-  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-ink) 10%, transparent), var(--menu-shadow);
+  box-shadow: var(--menu-shadow);
 }
 .menu-surface:focus-visible {
   outline: none;
@@ -3266,10 +3267,10 @@ button:disabled.bg-danger {
 .bot-identity[data-bot-color="chrome"] { color: var(--identity-chrome); }
 
 .user-bubble-colored {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16);
+  box-shadow: none;
 }
 [data-chat-bubble="simple"].user-bubble-colored {
-  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.16);
+  box-shadow: none;
 }
 .user-bubble-colored .mention-highlight {
   color: inherit;
@@ -3305,7 +3306,6 @@ button:disabled.bg-danger {
   background:
     radial-gradient(55% 110% at 90% 115%, color-mix(in srgb, var(--cloud-night-glow) 20%, transparent), transparent 70%),
     linear-gradient(100deg, var(--cloud-night-from) 0%, var(--cloud-night-mid) 55%, var(--cloud-night-to) 100%);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
 }
 .cloud-night-twinkle { animation: cloud-night-twinkle 9s ease-in-out infinite; }
 .cloud-night-z { transform-box: fill-box; transform-origin: center; animation: cloud-night-z 7s linear infinite; }

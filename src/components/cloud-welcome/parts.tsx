@@ -7,8 +7,8 @@ export const PRIMARY = "ui-button ui-button-primary min-h-9 px-4 text-[14px]";
 export const SECONDARY = "ui-button min-h-9 px-4 text-[14px]";
 export const QUIET = "rounded-md px-2 py-1.5 text-[13px] font-medium text-accent-text transition-colors hover:bg-raised/60 disabled:opacity-50 motion-reduce:transition-none";
 export const CARD = "flex min-w-0 flex-col gap-2 rounded-2xl border p-4 text-left";
-export const CARD_IDLE = "border-hairline/50 bg-card/50";
-export const CARD_PICKED = "border-accent/70 bg-accent/[0.07] shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-accent)_16%,transparent)]";
+export const CARD_IDLE = "border-transparent bg-card/50";
+export const CARD_PICKED = "border-transparent bg-accent/[0.12]";
 
 export function StepHeading({ title, sub, aside, headingRef }: { title: ReactNode; sub: ReactNode; aside?: ReactNode; headingRef?: Ref<HTMLHeadingElement> }) {
   return <header className="flex flex-col gap-1.5">

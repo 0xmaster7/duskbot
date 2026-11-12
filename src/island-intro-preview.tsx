@@ -40,7 +40,7 @@ function Preview() {
         <span data-real-island={prefs.island ? "on" : "off"}>Real island: {prefs.island ? "on" : "off"} · dock: {prefs.dock ? "on" : "off"}{picked ? ` · picked ${picked}` : ""}</span>
         <button className="rounded-lg bg-raised px-3 py-1.5 text-ink" onClick={() => { prefs.island = false; setPicked(null); setRun((now) => now + 1); }}>Replay</button>
       </header>
-      <div className="relative flex overflow-hidden rounded-xl border border-hairline/40 bg-app" style={{ width, height }}>
+      <div className="relative flex overflow-hidden rounded-xl border border-transparent bg-app" style={{ width, height }}>
         <IslandIntro key={run} onDone={(choice) => setPicked(choice)} />
       </div>
     </div>

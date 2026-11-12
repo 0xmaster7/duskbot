@@ -231,7 +231,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
 
       <div className="absolute left-1/2 top-[calc(50%-206px)] -translate-x-1/2" style={{ width: STAGE_W, height: STAGE_H }}>
         <motion.div role="group" aria-label={t("onboarding.notch.stage")} {...fadeIn(120, 10)}
-          className="relative size-full overflow-hidden rounded-[20px] bg-[#161618] shadow-[inset_0_0_0_0.5px_rgb(245_245_245/0.1)]">
+          className="relative size-full overflow-hidden rounded-[20px] bg-[#161618] shadow-none">
           <MenuBar />
 
           {/* the island: true black so it reads as one piece with the camera housing */}
@@ -241,7 +241,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
             style={{ left: MID - PANEL_W / 2, width: PANEL_W, height: PANEL_H, clipPath: clip }}>
             <button ref={islandRef} type="button" aria-expanded={open} aria-label={t("ambient.island")} disabled={!live}
               onClick={() => setOpen((now) => !now)} onMouseLeave={() => { if (open) setOpen(false); }}
-              className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b-[22px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[rgb(245_245_245/0.55)]"
+              className="absolute left-1/2 top-0 -translate-x-1/2 rounded-b-[22px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-transparent"
               style={{ width: SHAPES.peek.w, height: open ? PANEL_H : SHAPES.peek.h }} />
             <AnimatePresence initial={false}>
               {live && !open && (
@@ -361,7 +361,7 @@ export function IslandIntro({ onDone, titleId = "welcome-title" }: { onDone: (ch
   );
 }
 
-const PILL_BASE = "flex h-12 w-full items-center justify-center rounded-full px-5 text-[15px] leading-5 transition-[background-color,transform,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-60 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(245_245_245/0.6)]";
+const PILL_BASE = "flex h-12 w-full items-center justify-center rounded-full px-5 text-[15px] leading-5 transition-[background-color,transform,opacity] duration-150 ease-out active:scale-[0.96] disabled:opacity-60 motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-transparent";
 
 function StatusWord({ status }: { status: Shown }) {
   return (
@@ -418,7 +418,7 @@ function Dock({ shown, reduced, statusOf, focusIndex, absorbed, marks, onPoint, 
             <motion.button type="button" data-dock-bot={bot.id}
               aria-label={`${bot.name()}, ${t(STATUS_WORD[statusOf(index)])}`}
               aria-current={focusIndex === index ? "true" : undefined}
-              className="relative grid size-11 cursor-grab touch-none place-items-center rounded-[14px] active:cursor-grabbing focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[rgb(245_245_245/0.55)]"
+              className="relative grid size-11 cursor-grab touch-none place-items-center rounded-[14px] active:cursor-grabbing focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-transparent"
               initial={false}
               animate={shown ? { opacity: absorbed === index ? 0 : 1, scale: absorbed === index ? 0.6 : 1 } : { opacity: 0, scale: reduced ? 1 : 0.6 }}
               transition={{ opacity: FADE, scale: { ...LIVELY, delay: shown && absorbed === null ? (reduced ? 0 : 0.12 + index * 0.06) : 0 } }}

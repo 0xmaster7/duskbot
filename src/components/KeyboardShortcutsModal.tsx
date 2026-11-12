@@ -16,13 +16,13 @@ function ShortcutRow({ item, isMac }: { item: ShortcutItem; isMac: boolean }) {
   const keys = shortcutKeysForPlatform(item, isMac);
 
   return (
-    <div className="flex min-h-[35px] items-center justify-between gap-4 border-b border-ink/8 py-1.5 last:border-b-0">
+    <div className="flex min-h-[35px] items-center justify-between gap-4 border-b border-transparent py-1.5 last:border-b-0">
       <span className="text-[13px] leading-[18px] text-ink">{item.description}</span>
       <div className="flex shrink-0 items-center gap-1">
         {keys.map((key, index) => (
           <kbd
             key={index}
-            className="inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] bg-menu px-1 font-sans text-[12px] leading-4 text-ink-secondary shadow-[0_0_0_0.5px_var(--color-edge),0_1px_1px_rgb(28_28_28/0.04)]"
+            className="inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] bg-menu px-1 font-sans text-[12px] leading-4 text-ink-secondary shadow-[0_1px_1px_rgb(28_28_28/0.04)]"
           >
             {key}
           </kbd>

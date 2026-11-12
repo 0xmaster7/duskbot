@@ -77,7 +77,7 @@ export function RemoteAgentSettingsPanel({ bot, overlay = false }: {
 
   return (
     <aside className={cn(
-      "absolute inset-0 z-40 flex h-full min-w-0 flex-col border-l border-hairline/40 bg-panel",
+      "absolute inset-0 z-40 flex h-full min-w-0 flex-col border-l border-transparent bg-panel",
       overlay ? "md:left-auto md:w-[400px] md:shadow-2xl" : "md:relative md:z-20 md:w-[400px] md:shrink-0",
     )}>
       <div {...dragProps} className="flex items-center justify-between px-4 py-3">

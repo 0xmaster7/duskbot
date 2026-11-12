@@ -243,7 +243,7 @@ function AddPerson({ team, access, owner, disabled, onAdd }: {
           if (event.key === "Enter" && showing) { event.preventDefault(); add(matches[current]!); }
           if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); }
         }}
-        className="w-full rounded-lg border border-hairline/50 bg-transparent px-3 py-2 text-[14px] text-ink placeholder:text-ink-secondary focus:border-focus focus:outline-none" />
+        className="w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-[14px] text-ink placeholder:text-ink-secondary focus:border-focus focus:outline-none" />
       {open && (
         <ul ref={listRef} id={listId} role="listbox" onMouseDown={(event) => event.preventDefault()}
           className={cn(MENU_SHEET, "absolute inset-x-5 top-full max-h-[min(240px,40vh)] overflow-y-auto")}>

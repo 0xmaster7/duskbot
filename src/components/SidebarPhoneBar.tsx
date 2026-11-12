@@ -30,12 +30,12 @@ export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (q
           triggerClassName="shrink-0 rounded-full"
           triggerTitle={t("sidebar.tools")}
           renderTrigger={({ open }) => (
-            <span className={`relative flex size-11 items-center justify-center rounded-full border border-hairline text-ink ${open ? "bg-raised" : "bg-card"}`}>
+            <span className={`relative flex size-11 items-center justify-center rounded-full border border-transparent text-ink ${open ? "bg-raised" : "bg-card"}`}>
               <LayoutGrid size={19} aria-hidden="true" />
             </span>
           )}
         />
-        <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-hairline bg-card pl-3.5 pr-0.5 text-ink-secondary">
+        <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-transparent bg-card pl-3.5 pr-0.5 text-ink-secondary">
           <Search size={17} aria-hidden="true" className="shrink-0" />
           <input
             value={query}

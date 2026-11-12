@@ -10,7 +10,7 @@
 .omb-scanline { animation: omb-scanline 2.2s cubic-bezier(.45,0,.55,1) infinite alternate; }
 .omb-pulse { animation: omb-pulse 1.6s ease-in-out infinite; }
 .omb-onboarding { color: #f3f4f8; color-scheme: dark; }
-.omb-onboarding :focus-visible { outline: 2px solid #f3f4f8; outline-offset: 3px; }
+.omb-onboarding :focus-visible { outline: none; background-image: linear-gradient(rgb(243 244 248 / 0.14), rgb(243 244 248 / 0.14)); }
 @media (prefers-reduced-motion: reduce) {
   .omb-twinkle, .omb-float, .omb-cloud, .omb-scanline, .omb-pulse { animation: none; }
 }

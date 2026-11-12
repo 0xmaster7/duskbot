@@ -252,7 +252,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
   };
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-hairline/40 bg-inset/40">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-transparent bg-inset/40">
       <div className="relative flex aspect-[4/3] items-center justify-center bg-inset">
         {preview && !error ? (
           <video
@@ -288,7 +288,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
         {!preview && !loading && <Film size={13} className="pointer-events-none absolute left-2 top-2 text-ink-secondary/50" />}
       </div>
       {error && <p role="alert" className="px-3 py-2 text-[11px] text-danger">{error}</p>}
-      <AttachedFileChip file={file} linked={file.linked} message={message} className="max-w-none rounded-none border-0 border-t border-hairline/30 bg-transparent" />
+      <AttachedFileChip file={file} linked={file.linked} message={message} className="max-w-none rounded-none border-0 border-t border-transparent bg-transparent" />
     </div>
   );
 }
@@ -368,7 +368,7 @@ function AudioAttachment({ file, message }: { file: GalleryFile; message: Messag
   };
 
   return (
-    <div className="inline-flex w-72 max-w-full flex-col gap-1.5 rounded-2xl border border-hairline/30 bg-inset/60 px-3 py-2.5 text-left">
+    <div className="inline-flex w-72 max-w-full flex-col gap-1.5 rounded-2xl border border-transparent bg-inset/60 px-3 py-2.5 text-left">
       <div className="flex items-center gap-2">
         {src ? <Music size={14} className="shrink-0 text-accent" aria-hidden="true" />
           : (

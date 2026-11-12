@@ -28,7 +28,7 @@ export function fitScale(width: number, height: number, stageWidth: number, stag
 }
 
 const BUTTON = "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-secondary hover:bg-ink/[0.035] hover:text-ink outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:cursor-default disabled:opacity-45 touch:size-10";
-const GROUP = "flex items-center gap-0.5 rounded-full border-[0.5px] border-ink/10 bg-app p-0.5";
+const GROUP = "flex items-center gap-0.5 rounded-full border-[0.5px] border-transparent bg-app p-0.5";
 
 const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
 const STOP = { onClick: stop, onDoubleClick: stop, onMouseDown: stop, onPointerDown: stop, onPointerUp: stop, onTouchStart: stop, onContextMenu: stop, onKeyDown: stop };

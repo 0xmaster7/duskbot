@@ -607,7 +607,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
     <section
       data-testid="room-setup"
       aria-labelledby="room-setup-title"
-      className="relative z-20 w-full overflow-visible rounded-[14px] border border-ink/12 bg-menu"
+      className="relative z-20 w-full overflow-visible rounded-[14px] border border-transparent bg-menu"
     >
       <div className="px-4 pb-1 pt-3">
         <h1 id="room-setup-title" className="m-0 text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink">{t("room.setup.title", { name: group.name })}</h1>
@@ -659,15 +659,15 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               className={cn(
                 "flex min-h-[60px] w-full cursor-pointer flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "auto"
-                  ? "border-ink/24 bg-ink/4 text-ink"
-                  : "border-ink/12 text-ink hover:bg-ink/4",
+                  ? "border-transparent bg-ink/4 text-ink"
+                  : "border-transparent text-ink hover:bg-ink/4",
               )}
             >
               <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "auto" ? "border-ink bg-ink" : "border-ink/24",
+                    behavior === "auto" ? "border-ink bg-ink" : "border-transparent",
                   )}
                 >
                   {behavior === "auto" && <span className="size-1.5 rounded-full bg-app" />}
@@ -694,8 +694,8 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                 className={cn(
                   "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                   behavior === "lead"
-                    ? "border-ink/24 bg-ink/4 text-ink"
-                    : "border-ink/12 text-ink hover:bg-ink/4",
+                    ? "border-transparent bg-ink/4 text-ink"
+                    : "border-transparent text-ink hover:bg-ink/4",
                 )}
               >
                 <span className="flex w-full items-center justify-between gap-2">
@@ -703,7 +703,7 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                     <span
                       className={cn(
                         "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                        behavior === "lead" ? "border-ink bg-ink" : "border-ink/24",
+                        behavior === "lead" ? "border-ink bg-ink" : "border-transparent",
                       )}
                     >
                       {behavior === "lead" && <span className="size-1.5 rounded-full bg-app" />}
@@ -724,9 +724,9 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
                 <div
                   role="listbox"
                   aria-label={t("room.behavior.chooseLead")}
-                  className={cn("absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-3rem)] overflow-hidden rounded-[12px] border border-ink/12 bg-menu shadow-[0_8px_24px_rgb(0_0_0/0.12)]", leadMotion.className)} {...leadMotion.exitProps}
+                  className={cn("absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-3rem)] overflow-hidden rounded-[12px] border border-transparent bg-menu shadow-[0_8px_24px_rgb(0_0_0/0.12)]", leadMotion.className)} {...leadMotion.exitProps}
                 >
-                  <div className="border-b border-hairline/40 px-3 py-2.5">
+                  <div className="border-b border-transparent px-3 py-2.5">
                     <div className="text-[13px] font-semibold text-ink">{t("room.behavior.chooseLead")}</div>
                     <div className="mt-0.5 text-[12px] text-ink-secondary">{t("room.behavior.chooseLeadDetail")}</div>
                   </div>
@@ -779,15 +779,15 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               className={cn(
                 "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "everyone"
-                  ? "border-ink/24 bg-ink/4 text-ink"
-                  : "border-ink/12 text-ink hover:bg-ink/4",
+                  ? "border-transparent bg-ink/4 text-ink"
+                  : "border-transparent text-ink hover:bg-ink/4",
               )}
             >
               <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "everyone" ? "border-ink bg-ink" : "border-ink/24",
+                    behavior === "everyone" ? "border-ink bg-ink" : "border-transparent",
                   )}
                 >
                   {behavior === "everyone" && <span className="size-1.5 rounded-full bg-app" />}
@@ -809,15 +809,15 @@ function RoomSetup({ group, members }: { group: Group; members: Bot[] }) {
               className={cn(
                 "flex min-h-[60px] w-full flex-col items-start justify-between rounded-[10px] border px-3 py-2.5 text-left transition-[background-color,border-color] duration-[120ms] ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                 behavior === "mentions"
-                  ? "border-ink/24 bg-ink/4 text-ink"
-                  : "border-ink/12 text-ink hover:bg-ink/4",
+                  ? "border-transparent bg-ink/4 text-ink"
+                  : "border-transparent text-ink hover:bg-ink/4",
               )}
             >
               <span className="flex items-center gap-2 text-[13px] leading-[18px]">
                 <span
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border",
-                    behavior === "mentions" ? "border-ink bg-ink" : "border-ink/24",
+                    behavior === "mentions" ? "border-ink bg-ink" : "border-transparent",
                   )}
                 >
                   {behavior === "mentions" && <span className="size-1.5 rounded-full bg-app" />}
@@ -1119,7 +1119,7 @@ export function GroupView({ group: room }: { group: Group }) {
             <div className="flex justify-center">
               <button
                 onClick={showLater}
-                className="rounded-full border border-hairline/40 bg-panel px-3 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink"
+                className="rounded-full border border-transparent bg-panel px-3 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink"
               >
                 {t("chat.showLater", { count: laterCount })}
               </button>

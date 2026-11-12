@@ -109,7 +109,7 @@ export function EffortRow({
               "rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               selection.effort === level
                 ? "border-accent/60 bg-control text-ink"
-                : "border-hairline/40 text-ink-secondary hover:bg-control/60 hover:text-ink",
+                : "border-transparent text-ink-secondary hover:bg-control/60 hover:text-ink",
             )}
           >
             {level === undefined ? t("model.effort.default") : effortLabel(level)}
@@ -190,7 +190,7 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
               onClick={() => choose(option.id)}
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
-                selection.variant === option.id ? "border-accent/60 bg-control text-ink" : "border-hairline/40 text-ink-secondary hover:bg-control/60 hover:text-ink",
+                selection.variant === option.id ? "border-accent/60 bg-control text-ink" : "border-transparent text-ink-secondary hover:bg-control/60 hover:text-ink",
               )}
             >
               {variantLabel(option, instance.driverKind)}
@@ -642,7 +642,7 @@ export function ModelPicker({
   const fullPane = (
     <>
       {fullView && (
-        <div className="shrink-0 border-b-[0.5px] border-ink/10 p-1.5">
+        <div className="shrink-0 border-b-[0.5px] border-transparent p-1.5">
           <button type="button" data-menu-row data-model-back onClick={(event) => backToList(event.detail === 0)} className={cn(MENU_ROW, "text-ink-secondary hover:text-ink")}>
             <ChevronLeft size={16} strokeWidth={MENU_STROKE} className="shrink-0 rtl:-scale-x-100" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate">{t("model.simple.back")}</span>
@@ -658,7 +658,7 @@ export function ModelPicker({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
           {threadId && (
-            <div className="shrink-0 border-b-[0.5px] border-ink/10 px-3.5 py-2">
+            <div className="shrink-0 border-b-[0.5px] border-transparent px-3.5 py-2">
               <div role="group" aria-label={t("model.scope.label")} className="flex gap-1">
                 {(["thread", "bot"] as const).map((value) => (
                   <button key={value} type="button" aria-pressed={scope === value} onClick={() => setScope(value)}
@@ -843,7 +843,7 @@ export function ModelPicker({
                   bot={shown}
                   threadId={threadId}
                   updateBotDefault={Boolean(threadId && scope === "bot")}
-                  className="shrink-0 border-t-[0.5px] border-ink/10 px-3.5 py-[5px]"
+                  className="shrink-0 border-t-[0.5px] border-transparent px-3.5 py-[5px]"
                   label={<span className="text-[13px] leading-[18px] text-ink">{active?.capabilities?.modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</span>}
                 />
               )}
@@ -860,7 +860,7 @@ export function ModelPicker({
                   }
                   disabled={!canOpenCustom}
                   onClick={() => openLocalModels(railInstance)}
-                  className="flex h-10 w-full shrink-0 items-center justify-between gap-2 border-t-[0.5px] border-ink/10 px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] disabled:cursor-not-allowed disabled:text-ink-tertiary disabled:hover:bg-transparent"
+                  className="flex h-10 w-full shrink-0 items-center justify-between gap-2 border-t-[0.5px] border-transparent px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] disabled:cursor-not-allowed disabled:text-ink-tertiary disabled:hover:bg-transparent"
                 >
                   <span>{t("model.useLocal")}</span>
                   <span className="flex items-center gap-2">
@@ -876,7 +876,7 @@ export function ModelPicker({
             <div className="px-3.5 py-5 text-[13px] leading-[18px] text-ink-secondary">{t("model.noProviders")}</div>
           )}
           {!remote && (
-            <div className="flex h-9 shrink-0 items-center gap-1 border-t-[0.5px] border-ink/10 px-1.5">
+            <div className="flex h-9 shrink-0 items-center gap-1 border-t-[0.5px] border-transparent px-1.5">
               <button type="button" onClick={openEngines}
                 className="h-7 min-w-0 flex-1 truncate rounded-md px-2 text-left text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
                 {t("settings.engines.title")}

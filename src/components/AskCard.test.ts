@@ -10,10 +10,10 @@ const classesOf = (html: string, at: RegExp) => (at.exec(html)?.[1] ?? "").split
 const LONG = "Yes, the welcome text too, and the footer text of the pricing page, on branch fix/pricing-page-footer";
 
 describe("AskCard", () => {
-  it("is one raised card in both modes: the composer's surface, grok's 0.5px 12% hairline, rounded 24, 560 wide", () => {
+  it("is one raised card in both modes: the composer's surface with no line round it, rounded 24, 560 wide", () => {
     const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Plan", title: "Choose a plan", explanation: "Why it asks." }));
     const card = classesOf(html, /^<div[^>]*class="([^"]*)"/);
-    expect(card).toEqual(expect.arrayContaining(["bg-composer", "ring-[0.5px]", "ring-(--card-ring)", "rounded-[24px]", "max-w-[560px]", "w-full", "text-start"]));
+    expect(card).toEqual(expect.arrayContaining(["bg-composer", "ring-[0.5px]", "ring-transparent", "rounded-[24px]", "max-w-[560px]", "w-full", "text-start"]));
     expect(html).toContain('role="group"');
     expect(html).toContain('aria-label="Plan"');
     expect(html).toContain("Why it asks.");
@@ -95,7 +95,7 @@ describe("grok's card anatomy", () => {
   it("puts a source titlebar over the title, a 20px tile and a medium 13px name, and keeps the dismiss in it", () => {
     const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Key", title: "API key", explanation: "Why.", source: { icon: "K", label: "Secrets" }, onDismiss: () => {}, dismissLabel: "Not now" }));
     expect(html).toMatch(/min-h-\[52px\][^"]*px-4 py-3\.5/);
-    expect(html).toMatch(/size-5[^"]*rounded-\[6px\][^"]*border-\(--card-fill\)[^"]*bg-\(--card-fill\)/);
+    expect(html).toMatch(/size-5[^"]*rounded-\[6px\][^"]*border-transparent[^"]*bg-\(--card-fill\)/);
     expect(html).toMatch(/text-\[13px\] font-medium leading-\[18px\] text-ink">Secrets</);
     expect(html.indexOf("Secrets")).toBeLessThan(html.indexOf("API key"));
     expect(html.indexOf('aria-label="Not now"')).toBeLessThan(html.indexOf("API key"));
@@ -106,7 +106,7 @@ describe("grok's card anatomy", () => {
     const html = renderToStaticMarkup(createElement(CardSettledRow, { icon: "K", label: "Secrets", summary: "Saved · Stripe key", title: "Stripe key", detail: "Saved securely." }));
     expect(html).toContain('data-ask-card="settled"');
     expect(html).toContain("rounded-[18px]");
-    expect(html).toContain("ring-(--card-ring)");
+    expect(html).toContain("ring-transparent");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toMatch(/text-ink-tertiary">Saved · Stripe key</);
     expect(html).not.toContain("Saved securely.");

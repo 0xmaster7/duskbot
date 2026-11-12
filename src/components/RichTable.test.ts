@@ -67,7 +67,7 @@ describe("a reply's table card", () => {
     // download and expand sit behind grok's Copy options chevron
     expect(html).toContain('aria-label="Copy options"');
     expect(html).not.toContain('aria-label="Sort by Sender"');
-    expect(html).toContain("border-t border-ink/[0.06]");
+    expect(html).toContain("border-t border-transparent");
     expect(html).not.toContain("<footer");
     expect(html).not.toContain(`aria-label="${"Search all rows…"}"`);
     expect(html).toContain('data-fit="true"');

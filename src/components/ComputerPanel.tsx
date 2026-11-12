@@ -1252,7 +1252,7 @@ export function ComputerPanel({
     <>
     <aside
       className={cn(
-        "relative flex h-full shrink-0 flex-col border-l border-hairline/40 bg-panel",
+        "relative flex h-full shrink-0 flex-col border-l border-transparent bg-panel",
         "max-md:absolute max-md:inset-0 max-md:z-40 max-md:w-full!",
       )}
       ref={panelRef}

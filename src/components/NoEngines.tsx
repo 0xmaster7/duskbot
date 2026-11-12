@@ -61,7 +61,7 @@ export function NoEngines() {
           {(() => {
             const { subscription, api, custom } = splitEngineRail(engines);
             const card = (instance: (typeof engines)[number]) => (
-              <div key={instance.instanceId} className="rounded-xl border border-hairline/40 bg-card p-3.5">
+              <div key={instance.instanceId} className="rounded-xl border border-transparent bg-card p-3.5">
                 <div className="flex items-center gap-2 text-[14px] font-medium text-ink">
                   <InstanceProviderMark instance={instance} size={16} />
                   {instance.displayName}
@@ -82,7 +82,7 @@ export function NoEngines() {
                     type="button"
                     data-no-engines-api-keys
                     onClick={() => dispatch(openKeySettings())}
-                    className="flex items-center gap-3 rounded-xl border border-hairline/40 bg-card p-3.5 text-left hover:bg-control/40"
+                    className="flex items-center gap-3 rounded-xl border border-transparent bg-card p-3.5 text-left hover:bg-control/40"
                   >
                     <KeyRound size={16} className="shrink-0 text-ink-secondary" />
                     <span className="min-w-0 flex-1">

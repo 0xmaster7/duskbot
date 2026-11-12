@@ -93,7 +93,7 @@ function IslandPreviews({ size }: { size: Size }) {
   const pill = { width: Math.round(s.pill * k), height: Math.round(s.pillHeight * k) };
   const mark = bot ? <BotAvatar bot={bot} size={tile} animated={false} trackPointer={false} personality={false} /> : <span style={{ width: tile }} />;
   const face = <span aria-hidden className="leading-none" style={{ fontSize: Math.round(tile * 0.9) }}>{emoji}</span>;
-  const frame = "relative h-[84px] overflow-hidden rounded-[10px] border-[0.5px] border-edge bg-inset";
+  const frame = "relative h-[84px] overflow-hidden rounded-[10px] border-[0.5px] border-transparent bg-inset";
   return (
     <div data-ambient-preview="" aria-hidden className="grid grid-cols-2 gap-3 px-2 pt-1 pb-2.5 max-sm:grid-cols-1">
       <figure className="m-0 flex flex-col items-center gap-2">

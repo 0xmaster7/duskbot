@@ -88,7 +88,7 @@ function VaultRow({ tile, title, hint, detail, onClick, disabled, label }: {
 }
 
 function KeyTile() {
-  return <span className="flex size-6 items-center justify-center rounded-md border border-ink/[0.12] bg-app text-ink/[0.68]"><Icon name="key" size={14} /></span>;
+  return <span className="flex size-6 items-center justify-center rounded-md border border-transparent bg-app text-ink/[0.68]"><Icon name="key" size={14} /></span>;
 }
 
 /** A login's site as Grok's rounded tile: the site's own icon once it loads, its first letter on a faint fill until
@@ -99,7 +99,7 @@ function SiteTile({ site }: { site: string }) {
   const [missing, setMissing] = useState<string | null>(null);
   const shown = loaded === site;
   return (
-    <span aria-hidden="true" className={cn("relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md border-[0.5px] border-ink/10 text-[12px] font-medium uppercase text-ink-secondary", !shown && "bg-ink/[0.04]")}>
+    <span aria-hidden="true" className={cn("relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md border-[0.5px] border-transparent text-[12px] font-medium uppercase text-ink-secondary", !shown && "bg-ink/[0.04]")}>
       {!shown && site.replace(/^www\./, "").charAt(0)}
       {icon && missing !== site && (
         <img src={icon} alt="" width={16} height={16} draggable={false} decoding="async" onLoad={() => setLoaded(site)} onError={() => setMissing(site)}
@@ -210,7 +210,7 @@ export function LoginsSettings() {
               </button>
             ))}
           </div>
-          <label className="flex h-8 w-[160px] max-w-full items-center gap-2 rounded-full border border-ink/[0.12] bg-ink/[0.04] ps-[7px] pe-2 text-ink-secondary">
+          <label className="flex h-8 w-[160px] max-w-full items-center gap-2 rounded-full border border-transparent bg-ink/[0.04] ps-[7px] pe-2 text-ink-secondary">
             <Icon name="search" size={14} />
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("settings.vault.search")} placeholder={t("settings.vault.search")}
               className="h-full min-w-0 flex-1 border-0! bg-transparent p-0 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-secondary [&::-webkit-search-cancel-button]:hidden" />
@@ -218,7 +218,7 @@ export function LoginsSettings() {
         </div>
         {state.config?.cloudHome === true && <p className="px-3 text-[12px] leading-4 text-ink-tertiary" data-logins-cloud-own>{t("settings.logins.cloudOwn")}</p>}
         {nothing ? <p data-vault-empty="" className="py-10 text-center text-[13px] leading-[18px] text-ink-secondary">{t("settings.vault.nothing")}</p> : <>
-          <div aria-busy={logins === null || busy} className="flex flex-col rounded-xl border border-ink/[0.12] bg-app p-1.5">
+          <div aria-busy={logins === null || busy} className="flex flex-col rounded-xl border border-transparent bg-app p-1.5">
             {logins === null && !error && <NoteRow>{t("settings.logins.loading")}</NoteRow>}
             {logins !== null && shown.length + shownSecrets.length === 0 && <NoteRow>{words ? t("settings.vault.noMatch") : t("settings.vault.noneHere")}</NoteRow>}
             {!!shown.length && (

@@ -65,7 +65,7 @@ export function InboxQuestionAnswer({ row, question, asker, onAnswer }: {
   });
 
   return (
-    <div data-inbox-answer="question" className="rounded-2xl bg-ink/[0.03] p-2 ring-[0.5px] ring-ink/[0.12]">
+    <div data-inbox-answer="question" className="rounded-2xl bg-ink/[0.03] p-2 ring-[0.5px] ring-transparent">
       {question.options.length > 0 && (
         <div className="flex items-start gap-1">
           <div role="group" aria-label={question.question} className="min-w-0 flex-1 space-y-1.5">
@@ -78,7 +78,7 @@ export function InboxQuestionAnswer({ row, question, asker, onAnswer }: {
                   className={cn("flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
                     on ? "bg-ink/[0.10]" : "bg-ink/[0.045] hover:bg-ink/[0.075]")}>
                   <span aria-hidden="true" className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[5px] border",
-                    on ? "border-ink bg-ink text-app" : "border-ink/35")}>
+                    on ? "border-ink bg-ink text-app" : "border-transparent")}>
                     {on && <Check size={11} strokeWidth={3} />}
                   </span>
                   <span className="min-w-0 flex-1">

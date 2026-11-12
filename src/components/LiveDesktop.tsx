@@ -190,7 +190,7 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
       <input value={text} onChange={(event) => setText(event.target.value)} maxLength={4096}
         autoComplete="off" autoCapitalize="off" spellCheck={false}
         placeholder={t("desktopViewer.text")} aria-label={t("desktopViewer.text")}
-        className={cn("min-w-0 rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-focus", "w-44 max-sm:w-28")} />
+        className={cn("min-w-0 rounded-lg border border-transparent bg-inset px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-focus", "w-44 max-sm:w-28")} />
       <button type="submit" disabled={connection !== "connected" || !text} title={t("desktopViewer.send")} aria-label={t("desktopViewer.send")} className={cn(iconButton, "bg-control text-ink hover:bg-raised-hover")}>
         <Send size={14} aria-hidden="true" />
       </button>
@@ -248,7 +248,7 @@ export function LiveDesktop({ target, threadId, botId, name, poster, expanded, o
       }}
     >
       {expanded && (
-        <header {...dragProps} className={cn("flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline/40 bg-panel px-3 py-2", macInset && "pl-[86px]")}>
+        <header {...dragProps} className={cn("flex shrink-0 flex-wrap items-center gap-2 border-b border-transparent bg-panel px-3 py-2", macInset && "pl-[86px]")}>
           <span className="min-w-0 truncate text-[13px] font-medium text-ink">{label}</span>
           {!viewOnly && pill}
           {viewOnly && onTakeControl && <button type="button" style={noDragStyle} onClick={onTakeControl} disabled={connection !== "connected"} className={cn(iconButton, "ml-auto bg-control text-ink hover:bg-raised-hover")}>{t("computer.takeControl")}</button>}

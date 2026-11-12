@@ -25,7 +25,7 @@ export function WidgetImage({ node, where }: { node: WidgetNode; where: WidgetWh
     borderRadius: edge ? 0 : box.borderRadius ?? (thumb ? 10 : 12),
     ...(edge ? { marginLeft: -edge.left, marginRight: -edge.right, marginTop: -edge.top, width: `calc(100% + ${edge.left + edge.right}px)`, maxWidth: "none" } : {}),
   };
-  const frame = node.frame === true && "bg-inset ring-1 ring-ink/10";
+  const frame = node.frame === true && "bg-inset ring-1 ring-transparent";
   if (!form.imagesAllowed) {
     return (
       <button

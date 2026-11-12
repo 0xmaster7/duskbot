@@ -89,7 +89,7 @@ export function InboxCard({ view }: { view: InboxView }) {
         <button type="button" onClick={openAll} className={cn(ASK_QUIET_BUTTON, "-me-2")}>{t("inbox.card.open")}</button>
       </header>
       {rows.map((row) => (
-        <div key={row.id} className="border-t border-ink/[0.06] first-of-type:border-t-0">
+        <div key={row.id} className="border-t border-transparent first-of-type:border-t-0">
           <InboxRowItem row={row} now={now} onOpen={openRow} onAction={run} inCard />
           {row.id !== view.anchor && <div className="px-4 pb-3 ps-[2.625rem]"><Answers row={row} view={view} /></div>}
         </div>

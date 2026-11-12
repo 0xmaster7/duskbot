@@ -222,7 +222,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
             onChange={(event) => setLabel(event.target.value)}
             placeholder={t("connectors.aliasPlaceholder")}
             aria-label={t("connectors.aliasAriaAnother", { service: connector.label })}
-            className="h-[34px] w-full rounded-lg border border-ink/[0.12] bg-composer px-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink outline-none placeholder:text-ink/[0.56] focus:border-ink"
+            className="h-[34px] w-full rounded-lg border border-transparent bg-composer px-2.5 text-[13px] leading-[18px] tracking-[0.015em] text-ink outline-none placeholder:text-ink/[0.56] focus:border-ink"
           />
         </form>
       ) : errorLine}
@@ -260,7 +260,7 @@ function ConnectorFrame({ state, label, tile, name, title, description, actions,
 }) {
   return (
     <div role="group" aria-label={label} data-tour={state === "pending" ? "connector" : undefined} data-ask-card={state} className="w-full max-w-[560px] rounded-[24px] text-start">
-      <section className="flex flex-col rounded-[24px] bg-composer shadow-[0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_12%,transparent),0_2px_8px_0_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]">
+      <section className="flex flex-col rounded-[24px] bg-composer shadow-[0_2px_8px_0_color-mix(in_srgb,var(--color-ink)_3.5%,transparent)]">
         <div className="flex items-center gap-2.5 p-4">
           {tile}
           <div className="min-w-0 flex-1 py-0.5" title={title}>

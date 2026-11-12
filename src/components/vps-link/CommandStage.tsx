@@ -30,7 +30,7 @@ export function CommandScreen({ view, starting, onRetry, onCopied }: { view: Vps
       <div className={cn(centered, "top-[calc(50%-28px)]")}>
         {view.command && !expired
           ? <CommandPill command={view.command} onCopied={copied} />
-          : <div className="flex h-11 w-full items-center rounded-full border border-ink/10 px-4 text-[13px] leading-[18px] text-ink/56">
+          : <div className="flex h-11 w-full items-center rounded-full border border-transparent px-4 text-[13px] leading-[18px] text-ink/56">
               {expired ? t("vpsLink.command.expired") : t("vpsLink.command.making")}
             </div>}
       </div>

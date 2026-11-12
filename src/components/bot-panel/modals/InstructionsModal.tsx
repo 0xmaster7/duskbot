@@ -90,7 +90,7 @@ export function InstructionsCard({ label, value, disabled, invalid, placeholder,
         className={cn(
           // no fill, and a hairline that stays as it is while you type; the caret shows where
           "flex min-h-[240px] flex-1 flex-col rounded-[12px] border bg-transparent",
-          invalid ? "border-danger/60" : "border-ink/10",
+          invalid ? "border-danger/60" : "border-transparent",
         )}
       >
         <textarea

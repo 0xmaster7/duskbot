@@ -290,7 +290,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         aria-label="Open bot list"
         aria-expanded={drawerOpen}
         onClick={() => setDrawerOpen(true)}
-        className="absolute left-3 top-3 z-30 rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink max-md:top-2.5 max-md:flex max-md:size-10 max-md:items-center max-md:justify-center max-md:rounded-full max-md:border max-md:border-hairline max-md:bg-card max-md:p-0 max-md:text-ink md:hidden"
+        className="absolute left-3 top-3 z-30 rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink max-md:top-2.5 max-md:flex max-md:size-10 max-md:items-center max-md:justify-center max-md:rounded-full max-md:border max-md:border-transparent max-md:bg-card max-md:p-0 max-md:text-ink md:hidden"
       >
         <Menu size={18} className="max-md:hidden" />
         <ChevronLeft size={20} aria-hidden="true" className="hidden max-md:block" />

@@ -134,7 +134,7 @@ function PlaceTile({ place, canPair, onOpen, onMenu }: { place: RailPlace; canPa
     {place.progress !== undefined && <ProgressRing value={place.progress} waiting={place.waiting === true} />}
     {place.attention && <span aria-hidden="true" data-rail-dot className="absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-(--rail-surface) bg-danger" />}
     {place.update && !place.attention && <span aria-hidden="true" data-rail-update className="absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-(--rail-surface) bg-accent" />}
-    {place.server && <span aria-hidden="true" data-rail-server className="absolute -bottom-1 -right-1 grid size-3 place-items-center rounded-full border border-hairline bg-(--rail-surface) text-ink-secondary">
+    {place.server && <span aria-hidden="true" data-rail-server className="absolute -bottom-1 -right-1 grid size-3 place-items-center rounded-full border border-transparent bg-(--rail-surface) text-ink-secondary">
       <Server size={7} strokeWidth={2.25} />
     </span>}
   </button>;
@@ -154,7 +154,7 @@ function RemoveRow({ place, onRemoved }: { place: RailPlace; onRemoved: () => vo
       setAsking(false); setSaid(outcome === "refused" ? "refused" : "failed");
     });
   };
-  return <div data-rail-remove className="flex flex-col gap-1.5 border-t border-hairline/50 px-0.5 pt-1.5">
+  return <div data-rail-remove className="flex flex-col gap-1.5 border-t border-transparent px-0.5 pt-1.5">
     {asking
       ? <div role="alertdialog" aria-label={t("rail.remove")} className="flex flex-col gap-2 px-1.5 pb-1">
         <p className="text-[12px] leading-snug text-ink">{t(place.forget ? "rail.removeServerAsk" : "rail.removeAsk", { name: place.name })}</p>
@@ -180,7 +180,7 @@ function MakeHomeRow({ place, onStarted }: { place: RailPlace; onStarted: () => 
       if (outcome === true) onStarted(); else setSaid(outcome);
     });
   };
-  return <div data-rail-make-home className="flex flex-col gap-0.5 border-t border-hairline/50 px-0.5 pt-1.5">
+  return <div data-rail-make-home className="flex flex-col gap-0.5 border-t border-transparent px-0.5 pt-1.5">
     <button type="button" data-rail-make-home-start className={cn(MENU_ROW, "h-auto min-h-[30px] items-start py-1.5 touch:h-auto")} disabled={busy} aria-busy={busy || undefined} onClick={start}>
       {busy ? <Loader2 size={15} aria-hidden="true" className="mt-0.5 shrink-0 animate-spin motion-reduce:animate-none" /> : <House size={15} aria-hidden="true" className="mt-0.5 shrink-0" />}
       <span className="flex min-w-0 flex-col text-start">
@@ -243,7 +243,7 @@ function MorePlaces({ places, canPair, onOpen, onMenu, onClose }: { places: Rail
     </label>
     <ul className="max-h-72 overflow-y-auto">
       {found.map((place, at) => <li key={place.id}>
-        {startsGroup(found, at) && <div data-rail-group className="mt-1 truncate border-t border-hairline/50 px-2 pt-1.5 text-[12px] text-ink-tertiary">{place.kind === "account" ? "" : place.email ?? ""}</div>}
+        {startsGroup(found, at) && <div data-rail-group className="mt-1 truncate border-t border-transparent px-2 pt-1.5 text-[12px] text-ink-tertiary">{place.kind === "account" ? "" : place.email ?? ""}</div>}
         <button type="button" disabled={!placeActs(place, canPair)} aria-current={place.active ? "page" : undefined} onClick={() => { onOpen(place); onClose(); }}
           onContextMenu={menuOpener(place, (menu) => { onClose(); onMenu(menu); })} className={cn(MENU_ROW, "h-9")}>
           <PlaceMark place={place} size={22} />
@@ -309,7 +309,7 @@ export function PlacesRail({ chrome = false }: { chrome?: boolean }) {
   };
   return <nav ref={navRef} aria-label={t("rail.label")} data-places-rail style={drag}
     className={cn("relative w-9 shrink-0 flex-col items-center", chrome ? "flex h-full" : "hidden md:flex",
-      framed ? "bg-frame [--rail-surface:var(--color-frame)]" : cn("border-r bg-panel [--rail-surface:var(--color-panel)]", "border-r-[0.5px] border-edge"))}>
+      framed ? "bg-frame [--rail-surface:var(--color-frame)]" : cn("border-r bg-panel [--rail-surface:var(--color-panel)]", "border-r-[0.5px] border-transparent"))}>
     <div aria-hidden="true" className={cn(above, "shrink-0")} />
     {/* As wide as the rail, so nothing round a tile is cut off at the sides: a list that scrolls clips its overflow. */}
     <ul className="flex min-h-0 w-full flex-col items-center gap-2 overflow-y-auto py-1" style={noDrag}>
@@ -326,7 +326,7 @@ export function PlacesRail({ chrome = false }: { chrome?: boolean }) {
       </button>}
       {more && <MorePlaces places={state.places} canPair={canPair} onOpen={open} onMenu={openMenu} onClose={() => setMore(false)} />}
       {canAdd && <button type="button" aria-label={t("rail.add")} title={t("rail.add")} aria-haspopup="dialog" data-rail-add onClick={() => { track("rail_add", { step: "opened" }); setAdding(true); }}
-        className="grid size-6 place-items-center rounded-[7px] border border-dashed border-ink/25 text-ink-secondary hover:border-ink/40 hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        className="grid size-6 place-items-center rounded-[7px] border border-dashed border-transparent text-ink-secondary hover:border-transparent hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
         <Plus size={13} aria-hidden="true" />
       </button>}
     </div>

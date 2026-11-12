@@ -34,7 +34,7 @@ export function PlacePicture({ banner, canChange, subtitle }: { banner: BannerSu
   return <div data-place-picture={src ? "set" : "none"}>
     <SettingRow title={t("placeLook.sidebarPicture")} subtitle={subtitle} message={message}>
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {src && <img src={src} alt={t("placeLook.currentImage")} className="h-8 w-14 rounded-md border border-ink/10 object-cover" />}
+        {src && <img src={src} alt={t("placeLook.currentImage")} className="h-8 w-14 rounded-md border border-transparent object-cover" />}
         <button type="button" className="ui-button" disabled={!canChange || busy} onClick={() => input.current?.click()}>
           {busy ? t("placeLook.imageSaving") : t(src ? "placeLook.changeImage" : "placeLook.useImage")}
         </button>

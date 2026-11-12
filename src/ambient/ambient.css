@@ -32,7 +32,7 @@
 :where(.amb-root) :is(button, [role="button"], .amb-row-main, .amb-dock-bot, .amb-island-hit, .amb-shelf-bot, .amb-pill):not(:disabled) { cursor: pointer; }
 :where(.amb-root) button:disabled { cursor: default; }
 :where(.amb-root) .amb-reply-input { cursor: text; }
-:where(.amb-root) :focus-visible { outline: 2px solid var(--amb-focus); outline-offset: 2px; }
+:where(.amb-root) :focus-visible { outline: none; background-image: linear-gradient(color-mix(in srgb, var(--amb-ink) 10%, transparent), color-mix(in srgb, var(--amb-ink) 10%, transparent)); }
 :where(.amb-root) .inline-flex { display: inline-flex; }
 :where(.amb-root) .shrink-0 { flex-shrink: 0; }
 .amb-photo { display: block; object-fit: cover; }
@@ -53,7 +53,7 @@
 .amb-ear-right { background: radial-gradient(circle farthest-side at 100% 100%, transparent 96%, var(--amb-notch) 100%); }
 .amb-island-hit { position: absolute; top: 0; padding: 0; border: 0; background: transparent; border-radius: 0 0 14px 14px; }
 .amb-island-hit:focus { outline: none; }
-.amb-island-hit:focus-visible { box-shadow: inset 0 -2px 0 var(--amb-focus); }
+.amb-island-hit:focus-visible { box-shadow: none; }
 .amb-panel { position: absolute; inset: 0 0 auto 0; }
 .amb-compact { position: absolute; left: 0; display: grid; place-items: center; pointer-events: none; transition: opacity var(--amb-fast) var(--amb-ease-out); }
 /* open, the notch row stays plain black, one piece with the camera housing; the header below says it all */
@@ -103,7 +103,7 @@
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; pointer-events: none;
 }
 /* an ask waiting on the person, under the mascots: whose, what, and its answers */
-.amb-ask { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; border-top: 0.5px solid var(--amb-hair); }
+.amb-ask { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; border-top: 0.5px solid transparent; }
 .amb-ask-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: 0; font-size: 12.5px; line-height: 17px; color: var(--amb-ink); }
 .amb-ask-name { flex-shrink: 0; font-weight: 550; }
 .amb-ask-sent { display: inline-flex; align-items: center; gap: 4px; color: var(--amb-ink-2); }
@@ -190,13 +190,13 @@
   transition: background-color var(--amb-fast) ease, transform var(--amb-fast) var(--amb-ease-out);
 }
 .amb-pill-primary { background: var(--amb-ink); color: var(--amb-panel); }
-.amb-pill-ghost { background: transparent; color: var(--amb-ink-2); box-shadow: inset 0 0 0 1px var(--amb-hair); }
+.amb-pill-ghost { background: color-mix(in srgb, var(--amb-ink) 7%, transparent); color: var(--amb-ink-2); }
 .amb-choices { display: flex; flex-wrap: wrap; gap: 6px; }
 .amb-pill:active, .amb-send:active:enabled, .amb-dock-plus:active, .amb-strip-plus:active { transform: scale(0.96); }
 
 .amb-reply {
   display: flex; align-items: center; gap: 6px; padding: 3px 3px 3px 12px;
-  border-radius: 999px; background: var(--amb-raised); box-shadow: inset 0 0 0 0.5px var(--amb-hair); transition: box-shadow var(--amb-fast) ease;
+  border-radius: 999px; background: var(--amb-raised); transition: box-shadow var(--amb-fast) ease;
 }
 /* focused, the field looks the same: the caret is enough */
 .amb-reply-input { flex: 1; min-width: 0; height: 26px; padding: 0; border: 0; outline: none; background: none; color: var(--amb-ink); font: inherit; font-size: 13px; user-select: text; }
@@ -262,7 +262,7 @@
 /* the one status card beside the column: it glides from bot to bot, its words crossfade */
 .amb-card {
   position: absolute; box-sizing: border-box; overflow: hidden; border-radius: 18px; background: #141414;
-  box-shadow: 0 0 0 0.5px rgb(245 245 245 / 0.12), 0 14px 36px rgb(0 0 0 / 0.38); will-change: transform;
+  box-shadow: 0 14px 36px rgb(0 0 0 / 0.38); will-change: transform;
 }
 .amb-card[inert] { pointer-events: none; }
 .amb-card-inner { position: relative; padding: 2px 0 0; }

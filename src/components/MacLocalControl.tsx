@@ -59,7 +59,7 @@ export function MacLocalControl() {
   if (capabilities.localComputer.available) return null;
 
   return (
-    <section className="mt-4 rounded-[14px] border border-ink/[0.08] bg-menu p-3">
+    <section className="mt-4 rounded-[14px] border border-transparent bg-menu p-3">
       <div className="flex items-start gap-3">
         <Shield size={15} className="mt-0.5 shrink-0 text-ink/[0.56]" />
         <div className="min-w-0 flex-1">

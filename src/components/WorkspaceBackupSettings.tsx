@@ -251,7 +251,7 @@ export function WorkspaceBackupRecovery({ children }: { children: ReactNode }) {
     {error && <button type="button" className={buttonClass} onClick={() => { setRestartRequired(false); setAttempt((value) => value + 1); }}>{t("connectors.action.retry")}</button>}
     {error && <>
       <p className="max-w-lg text-[13px] text-ink-secondary">{t("backup.skipDraftsHint")}</p>
-      <button type="button" className={cn("cursor-pointer rounded-lg border border-hairline/50 bg-control px-3 py-2 text-[13px] font-medium text-ink", GROK_HOVER_TINT)} onClick={continueWithoutDrafts}>{t("backup.skipDrafts")}</button>
+      <button type="button" className={cn("cursor-pointer rounded-lg border border-transparent bg-control px-3 py-2 text-[13px] font-medium text-ink", GROK_HOVER_TINT)} onClick={continueWithoutDrafts}>{t("backup.skipDrafts")}</button>
     </>}
   </main>;
 }

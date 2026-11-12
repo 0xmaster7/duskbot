@@ -326,7 +326,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
           aria-labelledby="skills-library-view-title"
           className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-6"
         >
-          <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-[14px] border border-ink/12 bg-app p-5">
+          <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-[14px] border border-transparent bg-app p-5">
             <div className="flex items-center justify-between gap-3">
               <div id="skills-library-view-title" className="text-[15px] font-medium leading-[22px] text-ink">{viewing.review ? `Review ${viewing.skill.name} before enabling` : viewing.skill.name}</div>
               <button
@@ -343,7 +343,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
             <pre
               tabIndex={0}
               aria-label={`${t("skills.library.view", { skill: viewing.skill.name })}`}
-              className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[10px] border border-ink/10 p-3 font-mono text-[12px] leading-[18px] text-ink"
+              className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[10px] border border-transparent p-3 font-mono text-[12px] leading-[18px] text-ink"
             >
               {viewing.text}
             </pre>

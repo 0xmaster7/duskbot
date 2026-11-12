@@ -23,7 +23,7 @@ export function DigestChip({ message }: { message: Message }) {
     <div className="flex justify-start" data-testid="digest-chip">
       <span
         title={message.text ?? t("chat.digestTitle")}
-        className="ui-chip max-w-[min(520px,100%)] border border-hairline/40 bg-panel text-ink-secondary"
+        className="ui-chip max-w-[min(520px,100%)] border border-transparent bg-panel text-ink-secondary"
       >
         <ClipboardList size={12} />
         <span className="truncate">{label}</span>

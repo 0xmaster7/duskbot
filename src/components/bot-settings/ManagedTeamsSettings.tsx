@@ -16,7 +16,7 @@ export function ManagedTeamsSettings({
   const choices = [...new Set([...teams, ...allowed])].filter(team => team !== ownTeam).sort();
   const changed = JSON.stringify([...selected].sort()) !== JSON.stringify([...allowed].sort());
   return (
-    <section data-managed-teams className="mt-3 flex flex-col gap-1 border-t border-ink/8 pt-3">
+    <section data-managed-teams className="mt-3 flex flex-col gap-1 border-t border-transparent pt-3">
       <h4 className={cn(rowTitleCls, "m-0 font-medium")}>{t("botAccess.teams.title")}</h4>
       <p className={cn(rowHintCls, "m-0")}>{t("botPanel.chiefTeams.hint", { name })}</p>
       <fieldset className="m-0 mt-1.5 flex max-h-52 flex-col overflow-y-auto border-0 p-0 [scrollbar-width:thin]">

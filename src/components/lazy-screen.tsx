@@ -67,7 +67,7 @@ function ScreenUnavailable() {
     <div
       role="alert"
       data-screen-unavailable
-      className="fixed bottom-4 left-1/2 z-[100] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-[14px] bg-menu py-2 pe-2 ps-3.5 text-[13px] leading-[18px] text-ink shadow-[0_8px_24px_rgb(0_0_0/0.12)] outline-[0.5px] outline-offset-[-0.5px] outline-edge [outline-style:solid]"
+      className="fixed bottom-4 left-1/2 z-[100] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-[14px] bg-menu py-2 pe-2 ps-3.5 text-[13px] leading-[18px] text-ink shadow-[0_8px_24px_rgb(0_0_0/0.12)] outline-[0.5px] outline-offset-[-0.5px] outline-transparent [outline-style:solid]"
     >
       <span>{t("screenLoad.failedShort")}</span>
       <button

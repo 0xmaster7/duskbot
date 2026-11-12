@@ -1,6 +1,6 @@
 /** Grok's menu: the elevated tone, 6px inside, 32px rows 2px apart, separators of 12% ink 4px off their rows, the popover
  * lift (styles/overlays.css). Grok's light skins draw no rim, only the shadow; the dark ones keep the half-pixel edge. */
-export const MENU_SHEET = "popover-surface flex flex-col gap-0.5 rounded-[var(--radius-menu)] border-[0.5px] border-[var(--color-edge)] bg-menu p-1.5 shadow-(--shadow-popover) [:root[data-skin=grok]_&]:border-0 [:root[data-skin=daylight]_&]:border-0";
+export const MENU_SHEET = "popover-surface flex flex-col gap-0.5 rounded-[var(--radius-menu)] border-[0.5px] border-transparent bg-menu p-1.5 shadow-(--shadow-popover) [:root[data-skin=grok]_&]:border-0 [:root[data-skin=daylight]_&]:border-0";
 
 export const MENU_ITEM = "flex min-h-8 w-full shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] px-2 py-1.5 text-left text-[14px] leading-5 tracking-[0.01em] focus-visible:bg-menu-hover active:bg-menu-active touch:min-h-10";
 

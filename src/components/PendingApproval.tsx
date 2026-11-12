@@ -231,7 +231,7 @@ export const PendingApprovalPanel = memo(function PendingApprovalPanel({
           <div id={detailsId} hidden={!open} className="space-y-2">
             {hidden && (
               <pre tabIndex={0} aria-label={t("approval.aria.reviewDetails")}
-                className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-(--card-code-edge) bg-(--card-code-fill) px-3 py-2 font-mono text-[13px] leading-[18px] text-ink">
+                className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-transparent bg-(--card-code-fill) px-3 py-2 font-mono text-[13px] leading-[18px] text-ink">
                 {hidden}
               </pre>
             )}

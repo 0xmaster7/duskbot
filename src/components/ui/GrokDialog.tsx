@@ -12,12 +12,12 @@ const sizeMd = "h-8 px-3 text-[14px] leading-5 tracking-[0.01em]";
 const sizeRow = "h-[30px] px-3 text-[13px] leading-[18px] tracking-[0.195px]";
 const sizeSm = "h-6 px-2 text-[12px] leading-4 tracking-[0.01em]";
 const primaryTone = "bg-ink text-app enabled:hover:bg-[color-mix(in_srgb,var(--color-ink)_88.5%,var(--color-menu))] disabled:bg-ink/15 disabled:text-ink/30";
-const secondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
+const secondaryTone = "bg-ink/6 text-ink shadow-none enabled:hover:bg-ink/10 disabled:text-ink/30";
 
 /** Grok's kit danger: #e72e3b (sand-bg-danger, brighter than the danger text) under a 0.5px white/15 inset, #c82532 on hover. */
-const dangerTone = "bg-danger text-danger-ink shadow-[inset_0_0_0_0.5px_rgb(255_255_255/0.15)] enabled:hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,black)] in-data-[skin=grok]:bg-[#e72e3b] in-data-[skin=grok]:enabled:hover:bg-[#c82532] disabled:opacity-50";
+const dangerTone = "bg-danger text-danger-ink shadow-none enabled:hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,black)] in-data-[skin=grok]:bg-[#e72e3b] in-data-[skin=grok]:enabled:hover:bg-[#c82532] disabled:opacity-50";
 /** A kit dialog's secondary (a confirm's Cancel): the same ink/6 fill on a firmer 0.5px ink/15 inset. */
-const kitSecondaryTone = "bg-ink/6 text-ink shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_15%,transparent)] enabled:hover:bg-ink/10 disabled:text-ink/30";
+const kitSecondaryTone = "bg-ink/6 text-ink shadow-none enabled:hover:bg-ink/10 disabled:text-ink/30";
 
 export const dialogPrimaryCls = cn(buttonBase, sizeLg, primaryTone);
 /** Grok's 32px kit buttons: a confirm's Cancel and Delete, a pane's Save. */
@@ -31,18 +31,18 @@ export const smallButtonCls = cn(buttonBase, sizeSm, secondaryTone);
 export const rowTitleCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
 export const rowHintCls = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink/68";
 export const footnoteCls = "m-0 pl-2 text-[12px] leading-4 tracking-[0.01em] text-ink/56";
-export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-ink/8 [outline-style:solid]";
+export const listCardCls = "flex flex-col rounded-[14px] bg-menu py-2 outline-1 -outline-offset-1 outline-transparent [outline-style:solid]";
 /** A text field: Grok's 32px box at 10px corners, borderless like the composer, a soft ink/4 fill that deepens to ink/7
  * on focus (with the caret, the focus cue), no ring. */
-export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-ink/10 bg-transparent px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
+export const textFieldCls = "block h-8 w-full min-w-0 rounded-[10px] border border-transparent bg-transparent px-[9px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none placeholder:text-ink/40 disabled:opacity-50";
 /** The same field grown into a few lines. */
-export const textAreaCls = "block w-full resize-none rounded-[10px] border border-ink/10 bg-transparent px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/40 disabled:opacity-50";
+export const textAreaCls = "block w-full resize-none rounded-[10px] border border-transparent bg-transparent px-[9px] py-[7px] text-[13px] leading-[18px] tracking-[0.195px] text-ink outline-none [scrollbar-width:thin] placeholder:text-ink/40 disabled:opacity-50";
 /** A field's label, 4px over it; an "(Optional)" beside it reads ink/40. */
 export const fieldLabelCls = "text-[11px] leading-4 tracking-[0.01em] text-ink/68";
 
 /** Grok's form dialog (New login), for a dialog that does not use GrokDialog itself: a white sheet on a 1px ink/12
  * edge at 14px corners, a 14/20 600 title beside a 24px close, a 16px-wide body and a borderless footer. */
-export const formSheetCls = "relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-[14px] border border-ink/12 bg-menu text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!";
+export const formSheetCls = "relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-[14px] border border-transparent bg-menu text-[13px] font-[425] leading-[18px] text-ink outline-none focus-visible:outline-none!";
 export const formHeaderCls = "flex shrink-0 items-start gap-2 py-3 pl-4 pr-3";
 export const formTitleCls = "m-0 min-w-0 flex-1 truncate text-[14px] font-semibold leading-5 tracking-[0.01em] text-ink";
 export const formCloseCls = "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-ink/68 transition-[color,background-color] duration-[120ms] ease-[ease] hover:bg-ink/6 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";

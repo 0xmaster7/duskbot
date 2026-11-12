@@ -3,11 +3,11 @@ import { cn } from "@/lib/cn";
 import { useOptimisticSwitch } from "./ui/optimistic-switch";
 
 /** The panel's card: white, 12px corners on a half-pixel edge, 4px in, its rows drawing their own hover pill. */
-export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-edge bg-composer p-1";
+export const SIMPLE_CARD = "flex flex-col rounded-[12px] border-[0.5px] border-transparent bg-composer p-1";
 /** Grok's buttons inside a settings row: a 30px pill on the faint fill and a half-pixel inset edge, the danger one red. */
 export const SIMPLE_BUTTONS = cn(
   "[&_.ui-button]:h-[30px] [&_.ui-button]:gap-1 [&_.ui-button]:rounded-full [&_.ui-button]:border-0 [&_.ui-button]:px-3 [&_.ui-button]:py-1.5 [&_.ui-button]:text-[13px] [&_.ui-button]:leading-[18px] [&_.ui-button]:tracking-[0.015em] [&_.ui-button]:font-normal [&_.ui-button]:whitespace-nowrap [&_.ui-button]:transition-[background-color,color] [&_.ui-button]:duration-[120ms] [&_.ui-button]:ease-[ease-out]",
-  "[&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:bg-ink/[0.06] [&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:text-ink [&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] [&_.ui-button:not(.ui-button-primary,.ui-button-danger):enabled:hover]:bg-ink/10",
+  "[&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:bg-ink/[0.06] [&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:text-ink [&_.ui-button:not(.ui-button-primary,.ui-button-danger)]:shadow-none [&_.ui-button:not(.ui-button-primary,.ui-button-danger):enabled:hover]:bg-ink/10",
   "[&_.ui-button:not(.ui-button-primary,.ui-button-danger):disabled]:bg-ink/[0.04] [&_.ui-button:not(.ui-button-primary,.ui-button-danger):disabled]:text-ink/30 [&_.ui-button:disabled]:opacity-100 [&_.ui-button:disabled]:cursor-default",
   "[&_.ui-button-primary]:bg-ink [&_.ui-button-primary]:text-app [&_.ui-button-primary:enabled:hover]:bg-ink/85",
   "[&_.ui-button-danger]:bg-[#e72e3b] [&_.ui-button-danger]:text-white [&_.ui-button-danger:enabled:hover]:bg-[#c82532]",
@@ -33,7 +33,7 @@ export function Switch({
       className={cn(
         "group/switch relative cursor-pointer h-6 w-11 shrink-0 rounded-full transition-colors enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none",
         "in-data-[settings-look=simple]:h-5 in-data-[settings-look=simple]:w-8 in-data-[settings-look=simple]:transition-[background-color] in-data-[settings-look=simple]:duration-[120ms] in-data-[settings-look=simple]:ease-[ease] in-data-[settings-look=simple]:enabled:hover:brightness-100",
-        "in-data-[settings-look=simple]:shadow-[inset_0_0_0_0.5px_color-mix(in_srgb,var(--color-ink)_6%,transparent)] in-data-[settings-look=simple]:outline-none in-data-[settings-look=simple]:focus-visible:outline-2 in-data-[settings-look=simple]:focus-visible:outline-offset-1 in-data-[settings-look=simple]:focus-visible:outline-focus",
+        "in-data-[settings-look=simple]:shadow-none in-data-[settings-look=simple]:outline-none in-data-[settings-look=simple]:focus-visible:outline-2 in-data-[settings-look=simple]:focus-visible:outline-offset-1 in-data-[settings-look=simple]:focus-visible:outline-focus",
         checked
           ? "bg-accent in-data-[settings-look=simple]:bg-(--settings-switch-on) in-data-[settings-look=simple]:enabled:hover:bg-accent"
           : "bg-control in-data-[settings-look=simple]:bg-(--settings-switch-off) in-data-[settings-look=simple]:enabled:hover:bg-(--settings-switch-off-hover)",
@@ -67,7 +67,7 @@ export function Card({
     <div data-card="" className="rounded-xl bg-card p-4 max-md:rounded-2xl in-data-[settings-look=simple]:flex in-data-[settings-look=simple]:flex-col in-data-[settings-look=simple]:gap-2.5 in-data-[settings-look=simple]:rounded-none in-data-[settings-look=simple]:bg-transparent in-data-[settings-look=simple]:p-0">
       {title && <div className="text-[16px] font-semibold text-ink in-data-[settings-look=simple]:px-3 in-data-[settings-look=simple]:text-[13px] in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:font-normal in-data-[settings-look=simple]:tracking-[0.015em] in-data-[settings-look=simple]:text-ink-secondary">{title}</div>}
       {(subtitle || children) && (
-        <div className={cn(title && (subtitle ? "mt-0.5" : "mt-4"), "in-data-[settings-look=simple]:mt-0", "in-data-[settings-look=simple]:rounded-[12px] in-data-[settings-look=simple]:border-[0.5px] in-data-[settings-look=simple]:border-edge in-data-[settings-look=simple]:bg-composer in-data-[settings-look=simple]:px-3 in-data-[settings-look=simple]:py-2.5")}>
+        <div className={cn(title && (subtitle ? "mt-0.5" : "mt-4"), "in-data-[settings-look=simple]:mt-0", "in-data-[settings-look=simple]:rounded-[12px] in-data-[settings-look=simple]:border-[0.5px] in-data-[settings-look=simple]:border-transparent in-data-[settings-look=simple]:bg-composer in-data-[settings-look=simple]:px-3 in-data-[settings-look=simple]:py-2.5")}>
           {subtitle && <div className="text-[13px] leading-relaxed text-ink-secondary in-data-[settings-look=simple]:leading-[18px] in-data-[settings-look=simple]:tracking-[-0.08px]">{subtitle}</div>}
           {children && <div className={subtitle ? "mt-4 in-data-[settings-look=simple]:mt-3" : undefined}>{children}</div>}
         </div>

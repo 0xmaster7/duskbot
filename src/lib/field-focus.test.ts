@@ -45,12 +45,12 @@ describe("text field focus", () => {
     expect(css).toMatch(/:is\(input(?::not\([^)]*\))?, textarea, select\):focus-visible\s*\{\s*outline:\s*none;/);
   });
 
-  it("draws a bordered field like grok's, no fill and one quiet hairline, above every utility", () => {
+  it("draws a bordered field as a quiet tinted fill with no line, above every utility", () => {
     const rules = [...unlayered(css).matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, selector]) => selector.includes('[class~="border"]'));
     expect(rules.length).toBeGreaterThan(0);
     const [, selector, declarations] = rules[0]!;
-    expect(declarations).toMatch(/border-color:\s*color-mix\(in srgb, var\(--color-ink\) 10%, transparent\)/);
-    expect(declarations).toMatch(/background-color:\s*transparent/);
+    expect(declarations).toMatch(/border-color:\s*transparent/);
+    expect(declarations).toMatch(/background-color:\s*color-mix\(in srgb, var\(--color-ink\) 5%, transparent\)/);
     expect(selector).toMatch(/:has\(> :is\(input/);
   });
 

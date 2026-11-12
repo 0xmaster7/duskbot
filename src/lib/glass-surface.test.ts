@@ -23,8 +23,8 @@ describe("glass surface", () => {
     expect(surface).toContain("color-mix(in srgb, var(--color-menu) 62%, transparent)");
     expect(surface).toContain("backdrop-filter: blur(28px) saturate(170%)");
     expect(surface).toContain("-webkit-backdrop-filter: blur(28px) saturate(170%)");
-    expect(surface).toContain("var(--color-ink) 10%");
-    expect(surface).toMatch(/inset 0 1px 0/);
+    expect(surface).toContain("border: 1px solid transparent");
+    expect(surface).not.toMatch(/inset/);
     expect(rule(".glass-card")).toContain("var(--color-card) 60%");
     const scrim = rule(".glass-scrim");
     expect(scrim).toContain("background: color-mix(in srgb, black 28%, transparent)");

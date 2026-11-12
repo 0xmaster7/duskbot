@@ -121,7 +121,7 @@ export function WherePage({ bot, derived }: { bot: Bot; derived: Derived }) {
   return (
     <>
       <Card>
-        <div role="radiogroup" aria-label={t("computer.simple.whereWorks", { name: bot.name })} className="flex flex-col divide-y divide-ink/[0.05]">
+        <div role="radiogroup" aria-label={t("computer.simple.whereWorks", { name: bot.name })} className="flex flex-col divide-y divide-transparent">
           {options.map((option) => (
             <RadioRow
               key={option.value}

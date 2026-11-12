@@ -135,7 +135,7 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
         ))}
       </div>}
       {settled && answer && (
-        <div data-setup-answer="" className="mx-1 mb-1.5 mt-1 border-t border-ink/[0.08] pt-2.5">
+        <div data-setup-answer="" className="mx-1 mb-1.5 mt-1 border-t border-transparent pt-2.5">
           <div className="text-[12px] leading-4 text-ink-secondary">{t("chat.setupCard.answer")}</div>
           <div dir="auto" className="mt-0.5 break-words text-[14px] leading-5 text-ink">{answer.text}</div>
         </div>

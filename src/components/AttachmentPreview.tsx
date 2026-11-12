@@ -355,7 +355,7 @@ export function OutsideWorkspaceFile({ filePath }: { filePath: string }) {
   );
 }
 
-const VIEWER_BUTTON = "flex size-8 items-center justify-center rounded-full border border-[rgb(245_245_245/0.06)] bg-[rgb(245_245_245/0.04)] text-[rgb(245_245_245/0.66)] transition-colors duration-[120ms] ease-out hover:bg-[rgb(245_245_245/0.1)] hover:text-[rgb(245_245_245/0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+const VIEWER_BUTTON = "flex size-8 items-center justify-center rounded-full border border-transparent bg-[rgb(245_245_245/0.04)] text-[rgb(245_245_245/0.66)] transition-colors duration-[120ms] ease-out hover:bg-[rgb(245_245_245/0.1)] hover:text-[rgb(245_245_245/0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 const ZOOMED = 2.5;
 
 /** grok's media viewer: the whole window fading in, the image rising into place, a caption and a filmstrip under it. */
@@ -505,7 +505,7 @@ export function AttachmentPreviewDialog({
           <div className="flex flex-col items-center gap-3 text-[rgb(245_245_245/0.66)]" role="alert">
             <ImageOff size={28} />
             <span className="text-[13px]">{t("attach.imageUnavailable")}</span>
-            <button type="button" onClick={retry} className="flex h-7 items-center gap-1.5 rounded-full border border-[rgb(245_245_245/0.1)] bg-[rgb(245_245_245/0.06)] px-3 text-[12px] text-[rgb(245_245_245/0.9)] hover:bg-[rgb(245_245_245/0.12)]">
+            <button type="button" onClick={retry} className="flex h-7 items-center gap-1.5 rounded-full border border-transparent bg-[rgb(245_245_245/0.06)] px-3 text-[12px] text-[rgb(245_245_245/0.9)] hover:bg-[rgb(245_245_245/0.12)]">
               <RotateCcw size={13} /> {t("chat.retry")}
             </button>
           </div>
@@ -566,7 +566,7 @@ export function AttachmentPreviewDialog({
                 aria-current={itemIndex === index || undefined}
                 className={cn(
                   "size-12 shrink-0 overflow-hidden rounded-[8px] transition-opacity duration-150 ease-[ease] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
-                  itemIndex === index ? "border-2 border-[rgb(245_245_245)] p-0.5" : "border border-[rgb(245_245_245/0.1)] opacity-50 hover:opacity-80",
+                  itemIndex === index ? "border-2 border-[rgb(245_245_245)] p-0.5" : "border border-transparent opacity-50 hover:opacity-80",
                 )}
               >
                 <img src={item.src} alt="" className={cn("size-full object-cover", itemIndex === index ? "rounded-[4px]" : "rounded-[7.5px]")} />
@@ -616,7 +616,7 @@ export function AttachmentThumbnail({
     <span
       style={{ aspectRatio: String(box.ratio), ...style }}
       data-reserved={box.known ? "size" : "default"}
-      className={cn("group/image relative block min-w-0 overflow-hidden rounded-xl border border-hairline/40 bg-inset", className)}
+      className={cn("group/image relative block min-w-0 overflow-hidden rounded-xl border border-transparent bg-inset", className)}
     >
       {state === "loading" && <ImageLoading name={image.name} className="absolute inset-0 bg-raised/65" />}
       {state === "failed" ? (
@@ -819,19 +819,19 @@ export function MarkdownImagePreview({
     <>
       <span ref={containerRef} data-markdown-image={box.known ? "size" : "default"} className="my-2 block max-w-full" style={{ width: box.width }}>
         {external && !externalAllowed ? (
-          <span style={frame} className="flex flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-hairline/40 bg-inset px-4 text-center text-[12px] text-ink-secondary">
+          <span style={frame} className="flex flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-transparent bg-inset px-4 text-center text-[12px] text-ink-secondary">
             <ImageOff size={20} />
             <span>{t("attach.externalHidden")}</span>
-            <button type="button" className="rounded-md border border-hairline/50 bg-panel px-2.5 py-1 text-ink hover:bg-raised" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setApprovedExternalSource(src); }}>{t("attach.loadImage")}</button>
+            <button type="button" className="rounded-md border border-transparent bg-panel px-2.5 py-1 text-ink hover:bg-raised" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setApprovedExternalSource(src); }}>{t("attach.loadImage")}</button>
           </span>
         ) : filePath && (!threadId || !messageId || localSourceOffset === null) ? (
-          <span style={frame} className="flex items-center justify-center gap-2 rounded-xl border border-hairline/40 bg-inset text-[12px] text-ink-secondary" role="alert">
+          <span style={frame} className="flex items-center justify-center gap-2 rounded-xl border border-transparent bg-inset text-[12px] text-ink-secondary" role="alert">
             <ImageOff size={17} /> {t("attach.oldImage")}
           </span>
         ) : visibleSource ? (
           <AttachmentThumbnail key={image.src} image={image} onPreview={() => setOpen(true)} style={frame} fit="contain" className="w-full" label={t("attach.openFullScreen")} eager explainRefusal={localMessageImage} />
         ) : (
-          <ImageLoading name={name} style={frame} className="w-full rounded-xl border border-hairline/40 bg-inset" />
+          <ImageLoading name={name} style={frame} className="w-full rounded-xl border border-transparent bg-inset" />
         )}
         {openUrl && (
           <a href={openUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-[11px] text-accent hover:underline">
@@ -915,7 +915,7 @@ export function AttachedFileChip({ file, message, linked = false, compact = fals
   if (card && message && (file.private || linked)) return <FileCard file={file} message={message} save={save} preview={preview} retryable={retryable} className={className} />;
   if (!message || (!file.private && !linked)) {
     return (
-      <div title={t("attach.legacyFile", { name: file.name })} className={cn("flex max-w-[280px] items-center gap-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset/70 px-2.5 py-2 text-[12px] text-ink-secondary", className)}>
+      <div title={t("attach.legacyFile", { name: file.name })} className={cn("flex max-w-[280px] items-center gap-2 overflow-hidden rounded-lg border border-transparent bg-inset/70 px-2.5 py-2 text-[12px] text-ink-secondary", className)}>
         <FileText size={14} className="shrink-0" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate text-ink">{file.name}</span>
         <span className="text-[11px]">{t("attach.unavailable")}</span>
@@ -925,7 +925,7 @@ export function AttachedFileChip({ file, message, linked = false, compact = fals
   return (
     <div
       title={save.state === "saved" && save.savedTo ? t("attach.savedTo", { path: save.savedTo }) : file.name}
-      className={cn("max-w-[280px] overflow-hidden rounded-lg border border-hairline/40 bg-inset/70 text-[12px] text-ink-secondary", className)}
+      className={cn("max-w-[280px] overflow-hidden rounded-lg border border-transparent bg-inset/70 text-[12px] text-ink-secondary", className)}
     >
       <div className="flex items-center pe-1">
         <button
@@ -952,7 +952,7 @@ export function AttachedFileChip({ file, message, linked = false, compact = fals
         <div
           role={failed ? "alert" : "status"}
           className={cn(
-            "border-t border-hairline/30 px-2.5 py-1.5 text-[11px]",
+            "border-t border-transparent px-2.5 py-1.5 text-[11px]",
             failed ? "text-danger" : save.state === "saved" ? "text-success" : "text-ink-secondary",
           )}
         >

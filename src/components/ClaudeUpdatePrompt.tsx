@@ -46,7 +46,7 @@ export function ClaudeUpdatePrompt({
     <button
       type="button"
       onClick={onRetry}
-      className="flex items-center gap-1.5 rounded-full border border-hairline/40 px-2.5 py-1 text-[13px] text-ink hover:bg-raised-hover"
+      className="flex items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1 text-[13px] text-ink hover:bg-raised-hover"
     >
       <RefreshCw size={12} aria-hidden="true" /> {t("chat.retry")}
     </button>
@@ -68,7 +68,7 @@ export function ClaudeUpdatePrompt({
             <button
               type="button"
               onClick={() => setPhase({ kind: "manual" })}
-              className="rounded-full border border-hairline/40 px-3 py-1 text-[13px] text-ink-secondary hover:bg-raised-hover hover:text-ink"
+              className="rounded-full border border-transparent px-3 py-1 text-[13px] text-ink-secondary hover:bg-raised-hover hover:text-ink"
             >
               {t("chat.claudeUpdate.myself")}
             </button>
@@ -110,7 +110,7 @@ export function ClaudeUpdatePrompt({
               <button
                 type="button"
                 onClick={update}
-                className="rounded-full border border-hairline/40 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised-hover hover:text-ink"
+                className="rounded-full border border-transparent px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised-hover hover:text-ink"
               >
                 {t("chat.claudeUpdate.tryAgain")}
               </button>

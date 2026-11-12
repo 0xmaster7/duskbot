@@ -360,7 +360,7 @@ export function VoiceSettings({
             placeholder={configured && !included ? "••••••••  (paste to replace)" : cloudProvider.placeholder}
             aria-label={`${cloudProvider.name} key`}
             autoComplete="off"
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+            className="w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
           />
           <button
             onClick={() => void saveKey()}
@@ -426,7 +426,7 @@ export function VoiceSettings({
             aria-label={t("voice.chatterboxAddress")}
             autoComplete="off"
             spellCheck={false}
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+            className="w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
           />
           <button
             onClick={() => void saveServer()}
@@ -445,7 +445,7 @@ export function VoiceSettings({
           aria-label={t("voice.chatterboxModel")}
           autoComplete="off"
           spellCheck={false}
-          className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+          className="mt-2 w-full rounded-lg border border-transparent bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
         />
         <div className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">
           {t("voice.chatterboxHelp")}{" "}
@@ -537,7 +537,7 @@ export function VoiceSettings({
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between gap-4 border-t border-hairline/40 pt-4">
+      <div className="mt-4 flex items-center justify-between gap-4 border-t border-transparent pt-4">
         <div>
           <div className="text-[13px] font-medium text-ink">{t("voice.readReplies")}</div>
           <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">

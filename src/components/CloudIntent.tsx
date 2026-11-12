@@ -158,7 +158,7 @@ export function CloudIntent() {
 
         <div className="animate-rise mt-8" style={staggerIndex(3)}>
           <div
-            className="relative rounded-2xl bg-composer py-3.5 pl-4 pr-14 shadow-[0_22px_50px_-30px_rgba(0,0,0,0.65)] ring-1 ring-composer-ring"
+            className="relative rounded-2xl bg-composer py-3.5 pl-4 pr-14 shadow-[0_22px_50px_-30px_rgba(0,0,0,0.65)] ring-1 ring-transparent"
             style={{ viewTransitionName: "cloud-intent" }}
           >
             <span ref={token} aria-hidden="true" className="absolute left-4 top-[15px] inline-flex h-[22px] items-center rounded-md bg-accent/[0.14] px-1.5 text-[13px] font-semibold text-accent">
@@ -210,7 +210,7 @@ export function CloudIntent() {
                 onBlur={() => setPeek(null)}
                 className={cn(
                   "animate-rise inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97]",
-                  chosen ? "border-accent/45 bg-accent/10 text-ink" : "border-hairline/50 bg-card/40 text-ink-secondary hover:border-hairline hover:bg-card hover:text-ink",
+                  chosen ? "border-accent/45 bg-accent/10 text-ink" : "border-transparent bg-card/40 text-ink-secondary hover:border-transparent hover:bg-card hover:text-ink",
                 )}
                 style={staggerIndex(4 + index)}
               >
@@ -226,7 +226,7 @@ export function CloudIntent() {
           <button type="button" onClick={skip} className="rounded font-medium text-ink underline decoration-ink-secondary/40 underline-offset-[3px] transition-colors hover:decoration-ink">
             {t("cloudIntent.skip")}
           </button>
-          <kbd className="ml-1.5 rounded border border-hairline/60 px-1 py-px font-sans text-[11px] text-ink-secondary">Esc</kbd>
+          <kbd className="ml-1.5 rounded border border-transparent px-1 py-px font-sans text-[11px] text-ink-secondary">Esc</kbd>
           <br />
           {t("cloudIntent.later")}
         </p>

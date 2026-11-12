@@ -164,7 +164,7 @@ export function UsageAlert({ engine }: { engine: string | undefined }) {
   const line = limitLine(limit, Date.now(), ", ");
   return (
     <button type="button" data-usage-alert aria-label={line} title={line} onClick={() => openBotSettings(dispatch, "model")}
-      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-card">
+      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-transparent bg-card">
       <UsageGlyph limit={limit} />
     </button>
   );

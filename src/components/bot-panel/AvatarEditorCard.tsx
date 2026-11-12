@@ -83,9 +83,9 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
       aria-label={t("botPanel.avatar.edit")}
       data-panel-avatar-editor
       onKeyDown={onKeyDown}
-      className="popover-surface absolute inset-x-[-5px] top-[78px] z-30 overflow-hidden rounded-[16px] border border-ink/[0.08] bg-menu text-left shadow-(--shadow-popover)"
+      className="popover-surface absolute inset-x-[-5px] top-[78px] z-30 overflow-hidden rounded-[16px] border border-transparent bg-menu text-left shadow-(--shadow-popover)"
     >
-      <div ref={tabsRef} role="tablist" aria-label={t("botPanel.avatar.edit")} className="flex items-center gap-0.5 border-b border-ink/[0.08] p-2">
+      <div ref={tabsRef} role="tablist" aria-label={t("botPanel.avatar.edit")} className="flex items-center gap-0.5 border-b border-transparent p-2">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -177,7 +177,7 @@ export function AvatarEditorCard({ bot, onPatch, onClose }: {
                 event.preventDefault();
                 void upload(event.dataTransfer.files?.[0]);
               }}
-              className="flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-ink/[0.12] px-3 py-5 text-center text-[14px] leading-[22px] text-ink-secondary transition-[border-color,color] duration-[120ms] ease-[ease] hover:border-ink/[0.24] hover:text-ink disabled:opacity-50"
+              className="flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-transparent px-3 py-5 text-center text-[14px] leading-[22px] text-ink-secondary transition-[border-color,color] duration-[120ms] ease-[ease] hover:border-transparent hover:text-ink disabled:opacity-50"
             >
               {uploading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
               <span>{t("botPanel.avatar.drop")}</span>

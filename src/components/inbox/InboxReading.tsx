@@ -76,7 +76,7 @@ export function InboxReading({ view, row, now, position, onStep }: {
             renderTrigger={() => <span className={NAV_BUTTON}><MoreHorizontal size={16} aria-hidden="true" /></span>} />
         )}
       </header>
-      <nav aria-label={t("inbox.breadcrumb")} className="flex min-w-0 items-center gap-1 border-b border-hairline/40 px-3.5 pb-2 text-[12px] text-ink-tertiary">
+      <nav aria-label={t("inbox.breadcrumb")} className="flex min-w-0 items-center gap-1 border-b border-transparent px-3.5 pb-2 text-[12px] text-ink-tertiary">
         <button type="button" data-inbox-action="open" onClick={() => openInChat(row)} title={t("inbox.action.openInChat")}
           className="min-w-0 max-w-[45%] shrink truncate rounded hover:text-ink hover:underline">{place}</button>
         <ChevronRight size={12} aria-hidden="true" className="shrink-0 rtl:rotate-180" />

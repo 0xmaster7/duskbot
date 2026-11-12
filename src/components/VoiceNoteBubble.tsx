@@ -131,7 +131,7 @@ export function VoiceNoteBubble({
             giveBackVoice();
           }}
         />
-        <div className="flex h-8 shrink-0 items-center rounded-full bg-ink/[0.08] shadow-[0_0_0_0.5px_rgb(28_28_28/0.06)]">
+        <div className="flex h-8 shrink-0 items-center rounded-full bg-ink/[0.08] shadow-none">
           <button
             type="button"
             onClick={toggle}

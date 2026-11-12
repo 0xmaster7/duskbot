@@ -32,7 +32,7 @@ const MORE_ICON: Record<string, IconName> = { usage: "gauge", activity: "list-ch
 function IconTile({ name }: { name: IconName }) {
   return (
     <span aria-hidden="true" className="relative flex size-10 shrink-0 items-center justify-center">
-      <span className="flex size-9 items-center justify-center rounded-full border-[0.5px] border-edge bg-composer text-ink">
+      <span className="flex size-9 items-center justify-center rounded-full border-[0.5px] border-transparent bg-composer text-ink">
         <Icon name={name} size={16} />
       </span>
     </span>

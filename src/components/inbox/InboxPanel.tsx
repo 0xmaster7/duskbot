@@ -77,14 +77,14 @@ export function InboxPanel() {
           </button>
         )}
       </div>
-      <div className="mx-1.5 mb-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-hairline/40 bg-app/40">
+      <div className="mx-1.5 mb-1.5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-transparent bg-app/40">
         {reading && view ? (
           <InboxReading view={view} row={reading} now={now} position={at >= 0 ? { index: at, count: rows.length } : null} onStep={step} />
         ) : (
           <>
-            <h2 className="border-b border-hairline/40 px-3.5 py-2.5 text-[13px] font-medium text-ink">{t("inbox.panel.title")}</h2>
+            <h2 className="border-b border-transparent px-3.5 py-2.5 text-[13px] font-medium text-ink">{t("inbox.panel.title")}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <label className="m-2.5 flex h-8 items-center gap-2 rounded-lg border border-ink/10 bg-transparent px-2.5 ">
+              <label className="m-2.5 flex h-8 items-center gap-2 rounded-lg border border-transparent bg-transparent px-2.5 ">
                 <Search size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
                 <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("inbox.search")} aria-label={t("inbox.search")}
                   className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-tertiary [&::-webkit-search-cancel-button]:hidden" />
@@ -105,7 +105,7 @@ export function InboxPanel() {
     return createPortal(
       <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onMouseDown={(event) => { if (event.target === event.currentTarget) closeInbox(); }}>
         <section role="dialog" aria-modal="true" aria-label={t("inbox.panel.title")} data-inbox-panel="sheet" onKeyDown={onKeyDown}
-          className="flex max-h-[85dvh] min-h-[50dvh] flex-col overflow-hidden rounded-t-2xl border-t border-hairline/50 bg-panel pb-[env(safe-area-inset-bottom)]">
+          className="flex max-h-[85dvh] min-h-[50dvh] flex-col overflow-hidden rounded-t-2xl border-t border-transparent bg-panel pb-[env(safe-area-inset-bottom)]">
           {body}
         </section>
       </div>,
@@ -114,7 +114,7 @@ export function InboxPanel() {
   }
   return (
     <aside aria-label={t("inbox.panel.title")} data-inbox-panel="side" data-wide={panel.wide ? "" : undefined} onKeyDown={onKeyDown}
-      className={cn("flex h-full max-w-full shrink-0 flex-col border-l border-hairline/40 bg-panel max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-30",
+      className={cn("flex h-full max-w-full shrink-0 flex-col border-l border-transparent bg-panel max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-30",
         panel.wide ? "w-[min(640px,60vw)]" : "w-[380px]")}>
       {body}
     </aside>
