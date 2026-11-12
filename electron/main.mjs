@@ -1300,7 +1300,7 @@ async function startServerPackaged() {
 }
 
 async function startDevServer() {
-  SERVER_PORT = Number(process.env.DUSK_PORT || process.env.DUSK_PORT || 8799);
+  SERVER_PORT = Number(process.env.DUSK_PORT || 8799);
   const root = app.getAppPath();
   devServer = createDevServerChild({
     fork: (entry, args, options) => utilityProcess.fork(entry, args, options),
