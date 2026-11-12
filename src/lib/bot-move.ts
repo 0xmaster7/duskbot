@@ -1,0 +1,152 @@
+import { t } from "@/lib/i18n";
+import { api, type Action, type Bot } from "@/state/store";
+import { moveFrom, readBotLook, EMPTY_LOOK, type BotLook } from "../../shared/bot-move";
+import { GROK_FROM, type MoveFrom } from "../../shared/grok-import";
+import { foundExports, previewGrokMove, runGrokMove, type GrokLook, type GrokPreview, type GrokReport } from "./grok-move";
+
+export const BOTS_LOOK_TIME_BOX_MS = 2_500;
+
+/** What this computer holds: other apps' bots, and what Grok Bot left (exports in Downloads, its roster's names). */
+export interface BotMoveLook {
+  bots: BotLook;
+  grok: GrokLook;
+}
+
+export const NOTHING: BotMoveLook = { bots: EMPTY_LOOK, grok: { files: [], bots: [] } };
+
+/** Settles within `ms`: a slow or failed look reads as nothing found, never as an error in the way. */
+export async function lookForOtherBots(ms = BOTS_LOOK_TIME_BOX_MS): Promise<BotMoveLook> {
+  const signal = AbortSignal.timeout(ms);
+  const [bots, grok] = await Promise.all([
+    api<unknown>("/api/setup-import/bots", { signal, timeoutMs: ms }).then(readBotLook, () => EMPTY_LOOK),
+    api<Partial<GrokLook> | null>("/api/setup-import/grok", { signal, timeoutMs: ms }).then(
+      (look) => ({ files: Array.isArray(look?.files) ? look.files : [], bots: Array.isArray(look?.bots) ? look.bots : [] }),
+      () => ({ files: [], bots: [] }),
+    ),
+  ]);
+  return { bots, grok };
+}
+
+export interface AppMove {
+  app: string;
+  where: string;
+  from: MoveFrom;
+  preview: GrokPreview;
+  channels: string[];
+  /** Files there that could not be read. */
+  unreadable: string[];
+}
+
+export interface BotMovePlan {
+  apps: AppMove[];
+  /** Grok Bot's bots with no export yet: they need its own move, one message per bot. */
+  grokWaiting: string[];
+}
+
+/** Everything that would come over, nothing written. Names are numbered against bots here and each other; a bot moved
+ * before is named as already here. */
+export function planBotMove(look: BotMoveLook, facts: { bots: readonly Pick<Bot, "name" | "installedPackage">[]; servers: ReadonlySet<string>; timeZone: string }): BotMovePlan {
+  const names = new Set(facts.bots.map((bot) => bot.name.trim().toLowerCase()));
+  const servers = new Set(facts.servers);
+  const planned = new Set<string>();
+  const apps: AppMove[] = look.bots.apps.map((found) => {
+    const from = moveFrom(found);
+    return { app: found.app, where: found.where, from, channels: found.channels, unreadable: found.unreadable,
+      preview: previewGrokMove(found.bots, { ...facts, from }, names, servers, planned) };
+  });
+  const exports = foundExports(look.grok.files);
+  if (exports.bots.length) {
+    apps.push({ app: GROK_FROM.name, where: "~/Downloads", from: GROK_FROM, channels: [], unreadable: exports.refused.map((one) => one.file),
+      preview: previewGrokMove(exports.bots, facts, names, servers, planned) });
+  }
+  const exported = new Set(exports.bots.map((bot) => bot.name.toLowerCase()));
+  return { apps: apps.filter((app) => app.preview.plans.length || app.preview.moved.length || app.preview.unreadable.length),
+    grokWaiting: look.grok.bots.filter((name) => !exported.has(name.toLowerCase())) };
+}
+
+export const movable = (plan: BotMovePlan) => plan.apps.reduce((total, app) => total + app.preview.plans.length, 0);
+
+export interface MoveCounts { bots: number; skills: number; routines: number; memories: number }
+
+export function planCounts(app: AppMove): MoveCounts {
+  return app.preview.plans.reduce((sum, plan) => ({
+    bots: sum.bots + 1, skills: sum.skills + plan.skills.length, routines: sum.routines + plan.routines, memories: sum.memories + plan.memories + plan.notes,
+  }), { bots: 0, skills: 0, routines: 0, memories: 0 });
+}
+
+/** One section named after the app for its bots, in place of the one each import made; a failure leaves them where
+ * they landed. */
+async function groupUnder(name: string, bots: GrokReport["bots"], dispatch: (action: Action) => void): Promise<void> {
+  if (!bots.length) return;
+  try {
+    const moved = await api<{ bots?: Bot[] }>("/api/sidebar-sections", { method: "POST", body: JSON.stringify({ name, botIds: bots.map((bot) => bot.id) }) });
+    for (const bot of moved.bots ?? []) dispatch({ type: "botPatched", bot });
+    for (const section of new Set(bots.flatMap((bot) => (bot.section && bot.section !== name ? [bot.section] : [])))) {
+      const left = await api<{ sections: string[] }>(`/api/sidebar-sections?section=${encodeURIComponent(section)}`, { method: "DELETE" });
+      dispatch({ type: "sectionDeleted", section, sections: left.sections });
+    }
+  } catch {
+    // grouping is tidiness only
+  }
+}
+
+export interface AppReport { app: AppMove; report: GrokReport }
+
+/** Moves app by app, bot by bot; one that fails is named and the rest carry on. `onBot` hears each as it starts. Each
+ * app's bots end up together in one sidebar section named after it. */
+export async function runBotMove(plan: BotMovePlan, dispatch: (action: Action) => void, onBot?: (done: number, name: string) => void): Promise<AppReport[]> {
+  const out: AppReport[] = [];
+  let done = 0;
+  for (const app of plan.apps) {
+    if (!app.preview.plans.length) {
+      out.push({ app, report: { bots: [], moved: app.preview.moved, unreadable: app.preview.unreadable, failed: [] } });
+      continue;
+    }
+    const report = await runGrokMove(app.preview, dispatch, (bot) => onBot?.(done++, bot.addedAs));
+    await groupUnder(app.app, report.bots, dispatch);
+    out.push({ app, report });
+  }
+  return out;
+}
+
+const CHANNEL_NAMES: Record<string, string> = {
+  telegram: "Telegram", discord: "Discord", whatsapp: "WhatsApp", slack: "Slack", signal: "Signal", imessage: "iMessage", msteams: "Microsoft Teams",
+  googlechat: "Google Chat", matrix: "Matrix", mattermost: "Mattermost", email: "email", sms: "SMS",
+};
+const channelName = (key: string) => CHANNEL_NAMES[key] ?? key;
+
+const list = (parts: string[]) => new Intl.ListFormat(undefined, { style: "long", type: "conjunction" }).format(parts);
+const count = (n: number, one: string, many: string) => (n === 1 ? t(one as never) : t(many as never, { count: n }));
+
+/** The confirm screen's line for one app: what comes over, in counts. */
+export function countsLine(counts: MoveCounts): string {
+  return list([
+    count(counts.bots, "botMove.botsOne", "botMove.bots"),
+    ...(counts.skills ? [count(counts.skills, "botMove.skillsOne", "botMove.skills")] : []),
+    ...(counts.routines ? [count(counts.routines, "botMove.routinesOne", "botMove.routines")] : []),
+    ...(counts.memories ? [t("botMove.memory")] : []),
+  ]);
+}
+
+/** The done screen: one line for what moved, and one for what was left out (or nothing). */
+export function outcome(reports: readonly AppReport[]): { line: string; leftOut: string | null; moved: number; failed: string[] } {
+  const bots = reports.flatMap((one) => one.report.bots);
+  const failed = reports.flatMap((one) => one.report.failed);
+  const counts = { bots: bots.length, skills: bots.reduce((n, bot) => n + bot.skills, 0), routines: bots.reduce((n, bot) => n + bot.routines, 0), memories: bots.reduce((n, bot) => n + bot.memories + bot.notes, 0) };
+  const already = reports.flatMap((one) => one.report.moved);
+  const line = bots.length ? t("botMove.moved", { list: countsLine(counts) })
+    : already.length && !failed.length ? t("botMove.allHere") : t("botMove.nothingMoved");
+  const apps = list([...new Set(reports.map((one) => one.app.app))]);
+  const channels = [...new Set(reports.flatMap((one) => one.app.channels))];
+  const reconnect = bots.reduce((n, bot) => n + bot.apps, 0);
+  const notes = [
+    channels.length ? t("botMove.leftOut.historyChannels", { apps, channels: list(channels.map(channelName)) }) : t("botMove.leftOut.history", { apps }),
+    ...(reconnect ? [count(reconnect, "botMove.leftOut.appsOne", "botMove.leftOut.apps")] : []),
+    ...(counts.routines ? [t("botMove.leftOut.paused")] : []),
+    ...(bots.some((bot) => bot.skillsOff.length) ? [t("botMove.leftOut.skillsOff", { names: list(bots.flatMap((bot) => bot.skillsOff)) })] : []),
+    ...(already.length && bots.length ? [t("botMove.leftOut.already", { names: list(already) })] : []),
+    ...(failed.length ? [t("botMove.leftOut.failed", { names: list(failed) })] : []),
+    ...reports.flatMap((one) => [...one.report.unreadable, ...one.app.unreadable]).slice(0, 1).map(() => t("botMove.leftOut.unreadable")),
+  ];
+  return { line, leftOut: notes.join(" "), moved: bots.length, failed };
+}
