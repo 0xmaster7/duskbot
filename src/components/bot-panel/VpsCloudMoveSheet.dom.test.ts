@@ -76,7 +76,7 @@ describe("move a VPS's bots to dusk cloud", () => {
     desktop(null);
     await render();
     expect(stage()).toBe("elsewhere");
-    expect(text()).toContain("moves start from your Mac");
+    expect(text()).toContain("Moves start from your Mac");
     expect(button("switch to this Mac")).toBeDefined();
   });
 
@@ -84,9 +84,9 @@ describe("move a VPS's bots to dusk cloud", () => {
     const { vps } = desktop({ stage: "none", cloud: "none" });
     await render();
     expect(stage()).toBe("vps-buy");
-    expect(text()).toContain(`all 3 bots move straight from ${PLACE}`);
-    expect(text()).toContain("from $19/month + tax.");
-    expect(text()).toContain(`after you pay, your bots move from ${PLACE} by themselves.`);
+    expect(text()).toContain(`All 3 bots move straight from ${PLACE}`);
+    expect(text()).toContain("From $19/month + tax.");
+    expect(text()).toContain(`After you pay, your bots move from ${PLACE} by themselves.`);
     button("get dusk cloud")!.click();
     await settle();
     expect(vps.buy).toHaveBeenCalledWith("pro");
@@ -112,14 +112,14 @@ describe("move a VPS's bots to dusk cloud", () => {
     button("get dusk cloud")!.click();
     await settle();
     expect(fixture.dispatch).not.toHaveBeenCalled();
-    expect(document.body.querySelector("[role='alert']")?.textContent).toBe("sign in to dusk cloud on this Mac's own page first, then come back here.");
+    expect(document.body.querySelector("[role='alert']")?.textContent).toBe("Sign in to dusk cloud on this Mac's own page first, then come back here.");
   });
 
   it("with a cloud ready: one tap starts the move", async () => {
     const { vps } = desktop({ stage: "none", cloud: "ready" });
     await render();
     expect(stage()).toBe("vps-ready");
-    expect(text()).toContain("nothing changes on this Mac.");
+    expect(text()).toContain("Nothing changes on this Mac.");
     button("move 3 bots")!.click();
     await settle();
     expect(vps.start).toHaveBeenCalledTimes(1);
@@ -154,7 +154,7 @@ describe("move a VPS's bots to dusk cloud", () => {
     expect(stage()).toBe("vps-fallback");
     expect(text()).toContain("going via this Mac");
     expect(text()).toContain("come back to this Mac first, then move on to dusk cloud by themselves");
-    expect(text()).toContain("the app restarts once on the way.");
+    expect(text()).toContain("The app restarts once on the way.");
   });
 
   it("failed: says why, and try again retries", async () => {
@@ -171,7 +171,7 @@ describe("move a VPS's bots to dusk cloud", () => {
     desktop({ stage: "done", place: PLACE, route: "direct", counts: { bots: 3, chats: 142, routines: 4 }, stays });
     await render();
     expect(text()).toContain("your bots are on dusk cloud");
-    expect(text()).toContain(`moved from ${PLACE}: 3 bots, 142 chats, and 4 routines.`);
+    expect(text()).toContain(`Moved from ${PLACE}: 3 bots, 142 chats, and 4 routines.`);
     expect(document.body.querySelector("[data-vps-move-stays]")?.textContent).toBe(stays);
   });
 });
