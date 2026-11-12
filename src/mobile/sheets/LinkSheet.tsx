@@ -44,7 +44,7 @@ export function LinkSheet({ open, onClose }: SheetPageProps<"link">) {
         });
       }
       if (generation.current !== current) return;
-      window.dispatchEvent(new CustomEvent("omb:pair-link", { detail: text }));
+      window.dispatchEvent(new CustomEvent("dusk:pair-link", { detail: text }));
       onClose();
     } catch (failure) {
       if (generation.current !== current) return;

@@ -30,7 +30,7 @@ if (!REAL_BROWSER) console.log("skipping the Team Cloud sign-in check: it needs 
 /** Without a real browser, an agent-browser stand-in that logs each command with the session it is for, so the browser
  * each turn and each view reaches is visible by name. */
 const stub = REAL_BROWSER ? null : (() => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-team-browser-stub-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-team-browser-stub-"));
   const engine = join(dir, "agent-browser"), log = join(dir, "commands.log");
   writeFileSync(engine, ["#!/bin/sh", `printf '%s %s\\n' "$AGENT_BROWSER_SESSION" "$1" >> '${log}'`,
     `if [ "$1" = session ]; then printf '{"success":true,"data":{"sessions":[]}}\\n'; fi`, "exit 0"].join("\n"), { mode: 0o755 });
@@ -182,15 +182,15 @@ async function browserTurn(token: string, threadId: string, text: string, calls:
 }
 
 it.skipIf(!REAL_BROWSER)("keeps one member's sign-in out of another member's chat and the group chat, and back in her own", async () => {
-  const signIn = [readCookies[0], { server: "browser", name: "agent_browser_eval", input: { script: "document.cookie = 'omb_member=ada; max-age=86400; path=/'; 'cookies:' + document.cookie" } }];
-  expect(await browserTurn(ada, adaThread, "Sign in to the test site.", signIn)).toContain("omb_member=ada");
+  const signIn = [readCookies[0], { server: "browser", name: "agent_browser_eval", input: { script: "document.cookie = 'dusk_member=ada; max-age=86400; path=/'; 'cookies:' + document.cookie" } }];
+  expect(await browserTurn(ada, adaThread, "Sign in to the test site.", signIn)).toContain("dusk_member=ada");
   const cleoSees = await browserTurn(cleo, cleoThread, "What does the test site show you?", readCookies);
   expect(cleoSees, "Cleo's private turn reached the site").toContain("cookies:");
-  expect(cleoSees, "Cleo's private turn saw Ada's sign-in").not.toContain("omb_member=ada");
+  expect(cleoSees, "Cleo's private turn saw Ada's sign-in").not.toContain("dusk_member=ada");
   const roomSees = await browserTurn(admin, roomThread, "What does the test site show the group?", readCookies, roomId);
   expect(roomSees).toContain("cookies:");
-  expect(roomSees, "the group chat's turn saw Ada's private sign-in").not.toContain("omb_member=ada");
-  expect(await browserTurn(ada, adaThread, "Are you still signed in?", readCookies), "Ada's own browser kept her sign-in").toContain("omb_member=ada");
+  expect(roomSees, "the group chat's turn saw Ada's private sign-in").not.toContain("dusk_member=ada");
+  expect(await browserTurn(ada, adaThread, "Are you still signed in?", readCookies), "Ada's own browser kept her sign-in").toContain("dusk_member=ada");
   // Each browser has its own profile on disk, and the team's own is not one of them.
   const kept = JSON.parse(readFileSync(join(team.home, ".duskbot", "browser", "audiences.json"), "utf8")) as { suffixes: string[] };
   expect(kept.suffixes).toEqual(expect.arrayContaining([audienceBrowserSuffix(`room:${roomId}`)]));

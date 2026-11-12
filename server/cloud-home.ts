@@ -1,4 +1,4 @@
-// Dusk Cloud Pro home machine. The server binds 127.0.0.1 behind an edge proxy and every request carries X-Forwarded-*
+// dusk cloud Pro home machine. The server binds 127.0.0.1 behind an edge proxy and every request carries X-Forwarded-*
 // headers, so no network request is ever the loopback owner. The Admin never holds a session: it signs a request with the
 // bootstrap secret (HMAC-SHA256 over method, path and query, timestamp, nonce and body hash). A valid pairing request opens
 // one ordinary pairing window; a valid health request reads the content-free health report (server/cloud-health.ts).
@@ -102,7 +102,7 @@ export { cloudHomeOffersPlace } from "../shared/cloud-home.ts";
 
 /** In the person's words; a turn's error shows 160 characters, so each fits. */
 export function cloudHomePlaceRefusal(place: Surface): string | undefined {
-  if (place === "local") return "This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while Dusk Bot is open on it.";
+  if (place === "local") return "This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while dusk bot is open on it.";
   if (place === "vm") return "Cloud bots can't use a private desktop. Set Works on to Auto, Cloud desktop or Browser.";
   return undefined;
 }
@@ -113,7 +113,7 @@ export function firstCloudTurnPatch(turn: { cloudHome: boolean; recorded: string
   return { onboarding: { firstTurnAt: (turn.now ?? new Date()).toISOString() } };
 }
 
-/** Must match openmaus-cloud's cloudRequestSignature. `target` is the path and query exactly as the Admin sent them. */
+/** Must match dusk-cloud's cloudRequestSignature. `target` is the path and query exactly as the Admin sent them. */
 export function cloudRequestSignature(secret: string, timestamp: string, nonce: string, method: string, target: string, body: Buffer | string): string {
   const bodyHash = createHash("sha256").update(body).digest("base64url");
   return createHmac("sha256", secret).update(`v1\n${timestamp}\n${nonce}\n${method}\n${target}\n${bodyHash}`).digest("base64url");
@@ -196,7 +196,7 @@ export function createCloudPairing(options: {
       if (member) sessions.revokeMember(member.email, member.role);
       const opened = sessions.openPairing({
         scopes: member ? teamRoleScopes(member.role) : ["admin", "client"],
-        label: typeof label === "string" && label.trim() ? label.trim() : "Dusk Cloud",
+        label: typeof label === "string" && label.trim() ? label.trim() : "dusk cloud",
         ttlMs: ttl * 1000,
         browser,
         ...(browser ? { owner: owner as string } : {}),

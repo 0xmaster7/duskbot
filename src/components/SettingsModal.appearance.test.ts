@@ -119,7 +119,7 @@ describe("Settings → General → Appearance", () => {
 
   it("keeps the app language reachable from a paired remote client", () => {
     fixture.section = "general";
-    vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
+    vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const html = render();
     expect(html).toContain('aria-label="Language"');
     expect(html).not.toContain('aria-label="Advanced mode"');
@@ -210,7 +210,7 @@ describe("Settings → General → Appearance", () => {
 
   it("keeps the local look reachable remotely without exposing server settings", () => {
     fixture.section = "looks";
-    vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
+    vi.stubGlobal("window", { duskDesktop: { remoteClient: { active: true } } });
     const html = render();
     expect(html).toContain('aria-label="Theme"');
     expect(html).not.toContain('data-settings-page="updates"');
@@ -221,7 +221,7 @@ describe("Settings → General → Appearance", () => {
     fixture.section = "backups";
     const html = render();
     expect(html).toContain("Export full backup");
-    expect(html).toContain('type="file" accept=".ombbackup"');
+    expect(html).toContain('type="file" accept=".duskbackup"');
   });
 
   it("renders Appearance in Japanese", () => {
@@ -253,28 +253,28 @@ describe("Settings → General → Appearance", () => {
 
   it("offers desktop connections on Computer, open, without exposing the list remotely", () => {
     fixture.section = "desktopWorkspaces";
-    vi.stubGlobal("window", { ogb: { environments: {} } });
+    vi.stubGlobal("window", { duskDesktop: { environments: {} } });
     const local = render();
     expect(local).toContain("Connect by address");
     expect(local).toContain("Your servers");
     fixture.section = "computer";
-    vi.stubGlobal("window", { ogb: { workspaces: {} } });
+    vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
     expect(render()).not.toContain('data-settings-block="desktopWorkspaces"');
   });
 
   it("offers optional Organisation settings only through the local desktop bridge", () => {
     fixture.section = "organization";
-    vi.stubGlobal("window", { ogb: { organization: {} } });
+    vi.stubGlobal("window", { duskDesktop: { organization: {} } });
     expect(render()).toContain('data-panel-page="organization"');
     vi.stubGlobal("window", {});
     expect(render()).not.toContain('data-panel-page="organization"');
-    vi.stubGlobal("window", { ogb: { organization: {}, remoteClient: { active: true } } });
+    vi.stubGlobal("window", { duskDesktop: { organization: {}, remoteClient: { active: true } } });
     expect(render()).not.toContain('data-panel-page="organization"');
   });
 
   it("offers personal Cloud in Usage and Billing, only through the local desktop bridge", () => {
     fixture.section = "cloudAccount";
-    vi.stubGlobal("window", { ogb: { cloudAccount: {} } });
+    vi.stubGlobal("window", { duskDesktop: { cloudAccount: {} } });
     expect(render()).toContain("Free local use");
     vi.stubGlobal("window", {});
     expect(render()).not.toContain('data-settings-block="cloudAccount"');

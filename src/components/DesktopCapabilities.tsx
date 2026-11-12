@@ -8,19 +8,19 @@ type DesktopState = {
 
 const DesktopContext = createContext<DesktopState>({
   capabilities: initialDesktopCapabilities(),
-  ready: typeof window === "undefined" || !window.ogb,
+  ready: typeof window === "undefined" || !window.duskDesktop,
 });
 
 export function DesktopCapabilitiesProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DesktopState>(() => ({
     capabilities: initialDesktopCapabilities(),
-    ready: typeof window === "undefined" || !window.ogb,
+    ready: typeof window === "undefined" || !window.duskDesktop,
   }));
 
   useEffect(() => {
     let alive = true;
     let eventRevision = 0;
-    const unsubscribe = window.ogb?.onCapabilitiesChanged?.((capabilities) => {
+    const unsubscribe = window.duskDesktop?.onCapabilitiesChanged?.((capabilities) => {
       eventRevision += 1;
       if (alive) setState({ capabilities: cacheDesktopCapabilities(capabilities), ready: true });
     });

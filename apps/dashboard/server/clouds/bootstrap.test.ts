@@ -11,7 +11,7 @@ import { CLOUD_HOME_MARKER_FILE, dedicatedUserData, homeEnv, linkKeys, originFor
 
 const cleanup: string[] = [];
 afterEach(() => { for (const dir of cleanup.splice(0)) rmSync(dir, { recursive: true, force: true }); });
-function temporaryDir(): string { const dir = mkdtempSync(join(tmpdir(), "omb-cloud-bootstrap-")); cleanup.push(dir); return dir; }
+function temporaryDir(): string { const dir = mkdtempSync(join(tmpdir(), "dusk-cloud-bootstrap-")); cleanup.push(dir); return dir; }
 const image = `ghcr.io/example/duskbot-cloud-home@sha256:${"a".repeat(64)}`;
 const cloudId = `c${"a".repeat(24)}`;
 const input = { cloudId, adminOrigin: "https://admin.example.test", secret: "S".repeat(43), dashboardUrl: "https://dash.example.test", link: { v: 1 as const, url: "https://dash.example.test", workspaceId: "w1", ...linkKeys(), enrolledAt: 123, claimed: true } };
@@ -54,18 +54,18 @@ systemctl(){ printf 'systemctl %s\n' "$*" >> "$fixture/commands"; }
   runSetup();
   const env = files.get("/root/omb-home.env")!;
   expect(env).toEqual({ mode: 0o600, content: Object.entries(homeEnv({ ...input, secret: value, origin: "https://203-0-113-2.sslip.io" })).map(([k, v]) => `${k}=${v}`).join("\n") + "\n" });
-  expect(files.get(`/srv/omb-data/${CLOUD_HOME.dataName}/dashboard-link.json`)).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
-  expect(files.get(`/srv/omb-data/${CLOUD_HOME_MARKER_FILE}`)).toEqual({ mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) });
+  expect(files.get(`/srv/dusk-data/${CLOUD_HOME.dataName}/dashboard-link.json`)).toEqual({ mode: 0o600, content: JSON.stringify(input.link) });
+  expect(files.get(`/srv/dusk-data/${CLOUD_HOME_MARKER_FILE}`)).toEqual({ mode: 0o600, content: JSON.stringify({ version: 1, machine: cloudId }) });
   expect(files.get("/etc/caddy/Caddyfile")?.content).toBe("203-0-113-2.sslip.io {\n reverse_proxy 127.0.0.1:8080\n}\n");
   const commands = readFileSync(join(dir, "commands"), "utf8").trim().split("\n");
   expect(commands).toEqual([
     "apt-get update", "apt-get install -y ca-certificates curl caddy nodejs", "apt-get install -y docker.io e2fsprogs", "install -d -m 755 /etc/systemd/system/docker.service.d",
     "install -m 700 /dev/stdin /usr/local/sbin/omb-storage", "install -m 644 /dev/stdin /etc/systemd/system/omb-storage.service",
     "install -m 644 /dev/stdin /etc/systemd/system/docker.service.d/omb-storage.conf", "systemctl daemon-reload", "systemctl enable --now omb-storage", "systemctl enable --now docker",
-    `install -d -m 700 /srv/omb-data /srv/omb-data/${CLOUD_HOME.dataName}`,
+    `install -d -m 700 /srv/dusk-data /srv/dusk-data/${CLOUD_HOME.dataName}`,
     `docker run --rm --entrypoint id ${image} -u maus`, `docker run --rm --entrypoint id ${image} -g maus`,
-    "chown -R 1234:5678 /srv/omb-data",
-    `docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/omb-data:/data -p 127.0.0.1:8080:8080 ${image}`,
+    "chown -R 1234:5678 /srv/dusk-data",
+    `docker run -d --name omb-home --restart unless-stopped --env-file /root/omb-home.env -v /srv/dusk-data:/data -p 127.0.0.1:8080:8080 ${image}`,
     "chmod 644 /etc/caddy/Caddyfile", "systemctl enable caddy", "systemctl restart caddy",
   ]);
   expect(script).toContain("set +x\nset -euo pipefail\numask 077");
@@ -120,7 +120,7 @@ resize2fs(){ printf 'resize %s\\n' "$*"; }
 `;
   expect(() => execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toThrow();
   writeFileSync(join(dir, "scsi-0HC_Volume_1"), "fixture device");
-  expect(execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toBe(`mount -o discard,defaults ${dir}/scsi-0HC_Volume_1 /srv/omb-data\nresize ${dir}/scsi-0HC_Volume_1\n`);
+  expect(execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toBe(`mount -o discard,defaults ${dir}/scsi-0HC_Volume_1 /srv/dusk-data\nresize ${dir}/scsi-0HC_Volume_1\n`);
   writeFileSync(join(dir, "scsi-0HC_Volume_2"), "fixture device");
   expect(() => execFileSync("bash", ["-c", mocks + storage], { encoding: "utf8" })).toThrow();
   expect(script).toContain('Requires=omb-storage.service\nAfter=omb-storage.service');

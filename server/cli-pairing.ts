@@ -29,7 +29,7 @@ export function pairingBlock(input: {
     lines.push(qrToString(target));
     lines.push("");
     if (scanInvite) {
-      lines.push(`Scan that in the Dusk Bot app. For a browser instead, open the web`);
+      lines.push(`Scan that in the dusk bot app. For a browser instead, open the web`);
       lines.push(`address above and type the code.`);
     } else if (input.phone === "android") {
       lines.push(`That QR opens the web app. The Android app needs the phone-app link,`);
@@ -37,7 +37,7 @@ export function pairingBlock(input: {
       lines.push(`DUSK_PUBLIC_URL, or open the web address above and type the code.`);
     } else if (input.inviteUrl) {
       lines.push(`Scan that with Camera for the browser, or paste the phone-app link`);
-      lines.push(`above into the Dusk Bot app.`);
+      lines.push(`above into the dusk bot app.`);
     }
   }
   return lines.join("\n");

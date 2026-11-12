@@ -21,13 +21,13 @@ const button = "mt-5 w-full rounded-md bg-accent px-4 py-2 text-[14px] font-medi
 const fieldLabel = "mt-4 block text-[12px] font-medium text-ink-secondary";
 
 /** Only the desktop app pairs from a link at once; a browser asks, so a sent link cannot sign it in unseen. */
-export function pairsAutomatically(initialCode: string | null, desktop = typeof window !== "undefined" && Boolean(window.ogb?.workspaces)): boolean {
+export function pairsAutomatically(initialCode: string | null, desktop = typeof window !== "undefined" && Boolean(window.duskDesktop?.workspaces)): boolean {
   return Boolean(initialCode) && desktop;
 }
 
 export function pairIntro({ mode, sent, email, cloudHome }: { mode: "email" | "code" | null; sent: boolean; email: string; cloudHome: boolean }): string {
   if (mode === "email") return sent ? `We emailed an 8-digit code to ${email}. It works once and expires in ten minutes.` : "Enter your email and we will send you a one-time code.";
-  if (cloudHome) return `To open the Cloud, choose Open the Cloud in the ${productName()} app on your computer (Settings → Dusk Cloud), or Use in your browser on your Plan page. Have a pairing code? Enter it below.`;
+  if (cloudHome) return `To open the Cloud, choose Open the Cloud in the ${productName()} app on your computer (Settings → dusk cloud), or Use in your browser on your Plan page. Have a pairing code? Enter it below.`;
   return "Enter the pairing code shown on the server. Codes work once and expire after five minutes.";
 }
 
@@ -130,7 +130,7 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
           {pairIntro({ mode, sent, email, cloudHome })}
         </p>
         {reasonWorthShowing(reason) && !connected ? <p className="mt-3 text-[13px] text-ink-secondary">{reasonWorthShowing(reason)}</p> : null}
-        {error && cloudHome && initialCode ? <p className="mt-3 text-[13px] text-ink-secondary">This link has expired or was already used. In the {productName()} app on your computer, open Settings → Dusk Cloud and choose Open the Cloud.</p> : null}
+        {error && cloudHome && initialCode ? <p className="mt-3 text-[13px] text-ink-secondary">This link has expired or was already used. In the {productName()} app on your computer, open Settings → dusk cloud and choose Open the Cloud.</p> : null}
         </>}
         {opening ? null : connected ? (
           <p className="mt-4 text-[14px]">

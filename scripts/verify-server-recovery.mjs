@@ -14,7 +14,7 @@ import { pollServerIdentity } from "../electron/server-boot-probe.mjs";
 import { acquireDataDirLease } from "../electron/data-dir-lease.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const flag = "--omb-server-recovery-fixture";
+const flag = "--dusk-server-recovery-fixture";
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check, label) {
   const deadline = Date.now() + 30_000;
@@ -221,7 +221,7 @@ if (process.versions.electron && process.argv.includes(flag)) {
 } else {
   assert.notEqual(process.platform, "win32", "This crash fixture uses POSIX SIGSTOP/SIGKILL");
   // macOS's default temp path leaves no room for the server's Unix sockets.
-  const output = mkdtempSync(join(process.platform === "darwin" ? "/tmp" : tmpdir(), "omb-server-recovery-"));
+  const output = mkdtempSync(join(process.platform === "darwin" ? "/tmp" : tmpdir(), "dusk-server-recovery-"));
   const electron = createRequire(import.meta.url)("electron");
   cpSync(join(root, "dist-server"), join(output, "server"), { recursive: true });
   mkdirSync(join(output, "ui"));

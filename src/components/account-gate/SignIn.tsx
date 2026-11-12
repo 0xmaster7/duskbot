@@ -77,7 +77,7 @@ export function SignIn({ emailStart, emailVerify, browser, cancelEmail, onSigned
       else { setProblem(result.outcome); setTriesLeft(result.outcome === "wrong-code" ? result.triesLeft : null); }
     });
   };
-  return <main className={`${mobile ? "omb-mobile " : ""}flex size-full min-h-0 flex-col items-center overflow-y-auto bg-app px-6 py-8 text-ink`}>
+  return <main className={`${mobile ? "dusk-mobile " : ""}flex size-full min-h-0 flex-col items-center overflow-y-auto bg-app px-6 py-8 text-ink`}>
     <div ref={host} className="my-auto flex w-full max-w-[360px] flex-col gap-4">
       <div className="flex justify-center" aria-hidden="true"><MausAvatar color="green" size={80} state="idle" animated={false} personality={false} /></div>
       <div className="text-center"><h1 className="text-[24px] font-semibold tracking-tight">{t(recover ? "accountGate.cantSignIn" : "accountGate.title")}</h1><p className="mt-2 text-[14px] leading-5 text-ink-secondary">{t(recover ? "accountGate.recoverSub" : "accountGate.sub")}</p></div>

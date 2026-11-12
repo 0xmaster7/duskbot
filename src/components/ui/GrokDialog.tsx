@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { Icon, type IconName } from "../Icon";
 import { ScrimMotion, SheetMotion } from "./SheetMotion";
 
-const buttonBase = "omb-press inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
+const buttonBase = "dusk-press inline-flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[9999px] font-normal outline-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-default";
 const sizeLg = "h-9 px-4 text-[14px] leading-5 tracking-[0.01em]";
 const sizeMd = "h-8 px-3 text-[14px] leading-5 tracking-[0.01em]";
 const sizeRow = "h-[30px] px-3 text-[13px] leading-[18px] tracking-[0.195px]";

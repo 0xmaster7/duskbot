@@ -18,7 +18,7 @@ import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLAUDE = join(SERVER_DIR, "testing", "fake-claude-cli.ts");
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const REMOTE = { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https" };
 const ENDPOINT = "https://fixture.openai.azure.com";
 const SESSIONS = `${ENDPOINT}/openai/v1/live/sessions`;
@@ -36,12 +36,12 @@ afterEach(async () => {
 
 async function boot(env: NodeJS.ProcessEnv, config: Record<string, unknown> = {}) {
   chmodSync(FAKE_CLAUDE, 0o755);
-  const home = mkdtempSync(join(tmpdir(), "omb-live-azure-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-live-azure-"));
   const dataDir = join(home, ".duskbot");
   const fetches = join(home, "fetches.log");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(join(home, "web"));
-  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>Dusk Bot</title>");
+  writeFileSync(join(home, "web", "index.html"), "<!doctype html><title>dusk bot</title>");
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
     instances: {
       ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi"].map((id) => [id, { driver: "not-a-real-driver" }])),
@@ -90,10 +90,10 @@ async function boot(env: NodeJS.ProcessEnv, config: Record<string, unknown> = {}
   };
   /** A pairing the Admin signs, for a Cloud's owner or a team's member. */
   const signedSession = async (claim: Record<string, unknown> = {}): Promise<Headers> => {
-    const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300, ...claim });
+    const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300, ...claim });
     const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
     const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
-      ...REMOTE, "content-type": "application/json", "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+      ...REMOTE, "content-type": "application/json", "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
     }, body });
     const granted = await response.json() as { code: string };
     return redeem(granted.code);

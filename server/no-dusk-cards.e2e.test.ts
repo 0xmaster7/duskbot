@@ -1,15 +1,15 @@
 // Real server, fake engine: a bot at Full access and one at Approve for me (auto) change a profile, a working folder,
-// a teammate's profile, a skill, the team and team memory with no card of Dusk Bot's own. Each change leaves one
+// a teammate's profile, a skill, the team and team memory with no card of dusk bot's own. Each change leaves one
 // applied notice in the conversation, and its Undo puts the change back.
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
-const key = "no-omb-cards-capability";
+const key = "no-dusk-cards-capability";
 let fixture: VerificationServer;
 let child: ChildProcess;
 

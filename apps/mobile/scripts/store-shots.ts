@@ -48,7 +48,7 @@ for (const size of SIZES) {
     await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
     await page.send("Page.enable");
 
-    await open("light", { "omb.mobile.demo": "1", "omb.mobile.introSeen": "1" });
+    await open("light", { "dusk.mobile.demo": "1", "dusk.mobile.introSeen": "1" });
     await page.until(`document.body.textContent.includes("Launch room")`, 30_000);
     await shot("01-your-team");
 
@@ -69,13 +69,13 @@ for (const size of SIZES) {
     await click(page, `document.querySelector("[data-mobile-chat] nav button")`);
     await delay(1000);
 
-    await open("dark", { "omb.mobile.demo": "1", "omb.mobile.introSeen": "1" });
+    await open("dark", { "dusk.mobile.demo": "1", "dusk.mobile.introSeen": "1" });
     await page.until(`document.body.textContent.includes("Launch room")`, 30_000);
     await shot("04-dark");
 
     await page.send("Page.navigate", { url: `${base}/?frame=1&pair=1&scheme=dark` });
     await delay(1500);
-    await page.evaluate(`localStorage.clear(); localStorage.setItem("omb.mobile.introSeen", "1"); location.reload()`);
+    await page.evaluate(`localStorage.clear(); localStorage.setItem("dusk.mobile.introSeen", "1"); location.reload()`);
     await page.until(`document.body.textContent.includes("Scan")`, 20_000);
     await shot("05-pair-with-your-computer");
   } finally {

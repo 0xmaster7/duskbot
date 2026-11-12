@@ -31,7 +31,7 @@ async function boot(home: string): Promise<ChildProcess> {
 }
 
 function freshHome(config: object): { home: string; configFile: string } {
-  const home = mkdtempSync(join(tmpdir(), "omb-vps-mode-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-vps-mode-"));
   homes.push(home);
   mkdirSync(join(home, ".duskbot"), { recursive: true });
   const configFile = join(home, ".duskbot", "config.json");

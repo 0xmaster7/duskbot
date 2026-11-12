@@ -34,10 +34,10 @@ function render(message: Message, state = app()) {
     createElement(PublishedPageCard, { message }), createElement(Panel))));
   return { container, root, panel };
 }
-const desktop = (bridge: Record<string, unknown> = {}) => { (window as { ogb?: unknown }).ogb = { platform: "darwin", ...bridge }; };
+const desktop = (bridge: Record<string, unknown> = {}) => { (window as { duskDesktop?: unknown }).duskDesktop = { platform: "darwin", ...bridge }; };
 const buttons = (container: HTMLElement) => [...container.querySelectorAll("button")];
 
-afterEach(() => { vi.clearAllMocks(); delete (window as { ogb?: unknown }).ogb; });
+afterEach(() => { vi.clearAllMocks(); delete (window as { duskDesktop?: unknown }).duskDesktop; });
 
 describe("a published page's card", () => {
   it("shows the title, the link and the usage; on the web Open and the link open a new tab; and it unpublishes the page", async () => {
@@ -102,7 +102,7 @@ describe("a published page's card", () => {
     desktop({ cloudAccount: {} });
     const { container, root } = render(page({ state: "limit", title: "Bake sale", plan: "free", upgrade: true, usage: { pages: 5, limit: 5 }, message: "server words" }));
     try {
-      expect(container.textContent).toContain("You’ve used your 5 free pages. Dusk Cloud gives you more, and pages without the badge.");
+      expect(container.textContent).toContain("You’ve used your 5 free pages. dusk cloud gives you more, and pages without the badge.");
       expect(container.textContent).toContain("5 of 5 pages");
       container.querySelector("button")!.click();
       expect(dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_pages" });

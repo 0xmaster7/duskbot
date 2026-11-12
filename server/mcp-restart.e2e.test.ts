@@ -6,13 +6,13 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 
 const FAKE_MCP = fileURLToPath(new URL("./testing/fake-mcp-server.ts", import.meta.url));
 
 it("restart keeps the key and replaces the warm process, and so does turning the server off and on in one turn", async () => {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-mcp-restart-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-mcp-restart-"));
   const gate = join(scratch, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate });
   const api = async (method: string, path: string, body?: unknown, token?: string) => {
@@ -61,7 +61,7 @@ it("restart keeps the key and replaces the warm process, and so does turning the
     await setup.done();
     // Saving the key answered the card the setup turn asked with, so that turn goes on once more. It runs now, while nothing
     // else is sent: later it would take the thread or the warm process from a turn this test checks.
-    await expect.poll(() => { try { return JSON.stringify(dump().prompt).includes("Dusk Bot secret update"); } catch { return false; } }, { timeout: 30_000 }).toBe(true);
+    await expect.poll(() => { try { return JSON.stringify(dump().prompt).includes("dusk bot secret update"); } catch { return false; } }, { timeout: 30_000 }).toBe(true);
     await setup.done();
 
     const launched = await turn();

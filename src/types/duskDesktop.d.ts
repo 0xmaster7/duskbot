@@ -113,7 +113,7 @@ const __APP_VERSION__: string;
   }
 
   interface Window {
-    ogb?: {
+    duskDesktop?: {
       platform: NodeJS.Platform;
       /** process.arch of the desktop app, for usage signals */
       arch?: string;
@@ -376,11 +376,11 @@ const __APP_VERSION__: string;
       /** The desktop shell's app-menu Preferences… item was activated; open
        * app Settings. Every server's page in the window receives it, and the
        * bridge is absent in the browser. "cloud" is the
-       * duskbot://cloud link (Settings → Dusk Cloud, opened by the link). */
+       * duskbot://cloud link (Settings → dusk cloud, opened by the link). */
       onOpenAppSettings?(cb: (section?: "organization" | "cloud" | "cloud-settings" | "cloud-add" | "cloud-add-howto") => void): () => void;
       /** Updates the native Dock/taskbar unread indicator. */
       setUnreadCount?(count: number): void;
-      /** Opens a live desktop as a sandboxed window owned by Dusk Bot. */
+      /** Opens a live desktop as a sandboxed window owned by dusk bot. */
       desktopViewer?: {
         open(url: string, title: string, contextId: string): Promise<boolean>;
         /** Closes the live-desktop window, but only when it belongs to this bot. */

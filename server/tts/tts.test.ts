@@ -688,7 +688,7 @@ describe("Chatterbox (local server)", () => {
 });
 
 describe("included voice", () => {
-  const INCLUDED = "omb_voice_included-relay-token";
+  const INCLUDED = "dusk_voice_included-relay-token";
   const relayed = () => seen.filter((request) => request.url.startsWith("/relay/"));
   const direct = () => seen.filter((request) => !request.url.startsWith("/relay/"));
 

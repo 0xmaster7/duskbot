@@ -47,7 +47,7 @@ const posixShell = existsSync("/bin/sh") ? false : "needs /bin/sh";
 
 // The path lives under $HOME, so it can carry whatever a directory name can.
 test("the quoted path survives a shell round-trip", { skip: posixShell }, () => {
-  const workspace = mkdtempSync(join(tmpdir(), "omb-quote-"));
+  const workspace = mkdtempSync(join(tmpdir(), "dusk-quote-"));
   try {
     for (const name of ["plain.deb", "with space.deb", "o'brien.deb", "a;b&c.deb", "$(echo bad).deb"]) {
       const file = join(workspace, name);

@@ -24,7 +24,7 @@ describe("local account service", () => {
   let mailer: ReturnType<typeof memoryMailer>;
   let options: DashboardAppOptions;
   beforeEach(async () => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-auth-test-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-auth-test-"));
     time = Date.now(); mailer = memoryMailer();
     options = { dataDir, publicUrl: "http://127.0.0.1:7480", mailer, staticDir: null, now: () => time };
     app = createDashboardApp(options);

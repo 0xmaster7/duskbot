@@ -63,7 +63,7 @@ describe("transcript pages on bot and room frames", () => {
   const newestPage = Array.from({ length: 50 }, (_, i) => `message ${LONG - 50 + i}`);
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-thread-page-frames-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-thread-page-frames-"));
     const data = join(home, ".duskbot");
     mkdirSync(data, { recursive: true });
     // one deliberately unknown driver: no engine CLI runs, nothing answers
@@ -166,7 +166,7 @@ describe("transcript pages on bot and room frames", () => {
     let imported: any;
     const frames = await framesDuring(async () => {
       const reply = await api("POST", "/api/teams/import?mode=project", {
-        format: "openmaus.team", version: 2, team: { name: "Imported", members: [
+        format: "dusk.team", version: 2, team: { name: "Imported", members: [
           { key: "first", name: "Imported One", appearance: { color: "purple" } },
           { key: "second", name: "Imported Two", appearance: { color: "blue" } },
         ] },

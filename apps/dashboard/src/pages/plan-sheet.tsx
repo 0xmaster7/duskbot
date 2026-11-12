@@ -20,7 +20,7 @@ export const priceText = (monthly: number, interval: BillingInterval, c: Pick<Pl
 /** what a cart charges per period, as one line */
 export const cartText = (cart: { perMonth: number; dueNow: number }, interval: BillingInterval) => (interval === "year" ? `${money(cart.dueNow)}/yr` : `${money(cart.perMonth)}/mo`);
 
-const INTERVAL_KEY = "omb-dash-interval";
+const INTERVAL_KEY = "dusk-dash-interval";
 /** Plus and Pro are shared desktops: only the pool regions can take them. */
 function sharedRegions(catalog: PlanCatalog) {
   return catalog.poolRegions ? catalog.regions.filter((r) => catalog.poolRegions!.includes(r.id)) : catalog.regions;

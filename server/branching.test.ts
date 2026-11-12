@@ -61,7 +61,7 @@ posixOnly("conversation branching e2e (fake ACP fleet)", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-branch-test-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-branch-test-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     writeFileSync(
       join(home, ".duskbot", "config.json"),

@@ -23,7 +23,7 @@ function script(data: string, ...parts: string[]): string {
 }
 
 function setup(options: { boxed?: boolean; data?: string; bots?: Array<{ id: string; name: string; mcpServers?: string[]; toolScope?: unknown }>; checksUrl?: (name: string) => boolean } = {}) {
-  const data = options.data ?? mkdtempSync(join(tmpdir(), "omb-mcp-host-"));
+  const data = options.data ?? mkdtempSync(join(tmpdir(), "dusk-mcp-host-"));
   if (!options.data) dirs.push(data);
   const cfg: AppConfig = {
     mcpServers: {

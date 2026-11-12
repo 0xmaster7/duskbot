@@ -9,12 +9,12 @@ import { KEY_CATALOG, KEY_SECTIONS, keyEntry, keyForInstance, keyMatches, looksL
 const NOT_A_PERSONS_KEY: Record<string, string> = {
   BOX_TOKEN: "retired credential kept in the engine secret denylist",
   DUSK_ANTHROPIC_API_URL: "the address the Anthropic key goes to, set by a hosted install",
-  DUSK_COMPOSIO_BROKER_TOKEN: "Dusk Cloud's connected-apps broker",
-  DUSK_CLOUD_VOICE_TOKEN: "Dusk Cloud's included voice",
-  DUSK_CLOUD_DECIDER_TOKEN: "Dusk Cloud's included decisions",
-  DUSK_CLOUD_AI_TOKEN: "Dusk Cloud's included AI",
-  DUSK_CLOUD_X_TOKEN: "Dusk Cloud's included X research",
-  DUSK_CLOUD_CONNECTED_APPS_GRANT: "Dusk Cloud's connected apps",
+  DUSK_COMPOSIO_BROKER_TOKEN: "dusk cloud's connected-apps broker",
+  DUSK_CLOUD_VOICE_TOKEN: "dusk cloud's included voice",
+  DUSK_CLOUD_DECIDER_TOKEN: "dusk cloud's included decisions",
+  DUSK_CLOUD_AI_TOKEN: "dusk cloud's included AI",
+  DUSK_CLOUD_X_TOKEN: "dusk cloud's included X research",
+  DUSK_CLOUD_CONNECTED_APPS_GRANT: "dusk cloud's connected apps",
   DUSK_BROWSER_CONNECTION: "the app's own browser, not a credential",
   DUSK_USER_DATA: "the app's own data folder, not a credential",
 };

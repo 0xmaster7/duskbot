@@ -1,4 +1,4 @@
-// `pnpm demo`: a separate Dusk Bot seeded with the test bots (scripts/demo/content.mjs), in its own data folder, harness port and UI port.
+// `pnpm demo`: a separate dusk bot seeded with the test bots (scripts/demo/content.mjs), in its own data folder, harness port and UI port.
 // It never reads or writes ~/.duskbot and never talks to the 8799 harness or the 5199 UI.
 //
 //   pnpm demo            start (seeding on first run) and open it in the browser
@@ -88,7 +88,7 @@ async function waitFor(url, label, timeoutMs, child) {
 function childEnv(extra) {
   const env = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (/^(DUSK_|OGB_|DUSK_|FAKE_CLAUDE_|ELECTRON_)/.test(key)) continue;
+    if (/^(DUSK_|DUSK_|DUSK_|FAKE_CLAUDE_|ELECTRON_)/.test(key)) continue;
     env[key] = value;
   }
   return { ...env, ...extra };
@@ -191,7 +191,7 @@ function openBrowser() {
 
 function summary() {
   console.log(`
-Dusk Bot demo is running
+dusk bot demo is running
   open      ${URL_UI}
   harness   ${API} (webhooks on ${PORT + 1})
   data      ${DEMO_DIR}

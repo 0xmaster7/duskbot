@@ -267,7 +267,7 @@ describe("ClaudeDriver.decodeConfig", () => {
   });
 
   it("disposes its account controller while a logout is running", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-claude-logout-dispose-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-claude-logout-dispose-"));
     const cli = join(home, "fake-logout.mjs");
     const pidPath = join(home, "logout-pid");
     writeFileSync(cli, [
@@ -311,7 +311,7 @@ describe("ClaudeDriver.decodeConfig", () => {
       expect(new Set(candidates).size).toBe(candidates.length);
     } else {
       expect(candidates).toHaveLength(2);
-      expect(candidates[1]).toMatch(/omb-perm-[0-9a-f]{16}\.sock$/);
+      expect(candidates[1]).toMatch(/dusk-perm-[0-9a-f]{16}\.sock$/);
       expect(candidates[1]).not.toBe(candidates[0]);
     }
   });
@@ -320,7 +320,7 @@ describe("ClaudeDriver.decodeConfig", () => {
   it.skipIf(process.platform === "win32")(
     "binds the next candidate when the first is unbindable, and asks round-trip on it",
     async () => {
-      const dir = mkdtempSync(join(tmpdir(), "omb-broker-fallback-"));
+      const dir = mkdtempSync(join(tmpdir(), "dusk-broker-fallback-"));
       const held = join(dir, "held.sock");
       // A directory squats the path the way a hung child holds a pipe.
       mkdirSync(held);
@@ -361,7 +361,7 @@ describe("ClaudeDriver.decodeConfig", () => {
   it.skipIf(process.platform === "win32")(
     "keeps a large non-ASCII ask whole across socket reads",
     async () => {
-      const dir = mkdtempSync(join(tmpdir(), "omb-broker-utf8-"));
+      const dir = mkdtempSync(join(tmpdir(), "dusk-broker-utf8-"));
       const socketPath = join(dir, "broker.sock");
       const asks: Array<{ input: unknown }> = [];
       const broker = await createPermissionBroker({
@@ -394,7 +394,7 @@ describe("ClaudeDriver.decodeConfig", () => {
   it.skipIf(process.platform === "win32")(
     "rejects instead of returning an occupied path when every candidate is unavailable",
     async () => {
-      const dir = mkdtempSync(join(tmpdir(), "omb-broker-unavailable-"));
+      const dir = mkdtempSync(join(tmpdir(), "dusk-broker-unavailable-"));
       const heldOne = join(dir, "held-one.sock");
       const heldTwo = join(dir, "held-two.sock");
       mkdirSync(heldOne);
@@ -442,7 +442,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
   beforeEach(() => {
     ensureDirs();
     chmodSync(FAKE_CLI, 0o755);
-    scratch = mkdtempSync(join(tmpdir(), "omb-claude-test-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-claude-test-"));
   });
 
   it("refuses an unsupported native selection before launching, even with instance tools and Full access", async () => {
@@ -868,15 +868,15 @@ describe("ClaudeDriver turns (fake CLI)", () => {
   });
 
   it("hands a hosted tenant's CLI the hosted model token but none of the operator's control-plane secrets", async () => {
-    await create(undefined, { ANTHROPIC_API_KEY: "omb_workspace_fixture", ANTHROPIC_AUTH_TOKEN: "omb_workspace_fixture" });
+    await create(undefined, { ANTHROPIC_API_KEY: "dusk_workspace_fixture", ANTHROPIC_AUTH_TOKEN: "dusk_workspace_fixture" });
     const dump = join(scratch, "dump-hosted.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
     Object.assign(process.env, CONTROL_PLANE_FIXTURE);
     await instance.adapter.sendTurn({ threadId: "t-hosted-env", text: "hello" });
     await recorder.until((e) => e.type === "turn.completed");
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.env.ANTHROPIC_API_KEY).toBe("omb_workspace_fixture");
-    expect(seen.env.ANTHROPIC_AUTH_TOKEN).toBe("omb_workspace_fixture");
+    expect(seen.env.ANTHROPIC_API_KEY).toBe("dusk_workspace_fixture");
+    expect(seen.env.ANTHROPIC_AUTH_TOKEN).toBe("dusk_workspace_fixture");
     for (const name of Object.keys(CONTROL_PLANE_FIXTURE)) expect(seen.env[name]).toBeUndefined();
   });
 
@@ -1292,7 +1292,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(allowed).toContain("mcp__agents");
     expect(seen.argv[seen.argv.indexOf("--permission-mode") + 1]).toBe(approvalMode === "auto" ? "auto" : "default");
     expect(seen.argv).toContain("--permission-prompt-tool");
-    expect(seen.mcpConfig.mcpServers.ogb.alwaysLoad).toBe(true);
+    expect(seen.mcpConfig.mcpServers.dusk.alwaysLoad).toBe(true);
   });
 
   it("rewrites the hook token file only when the bearer changes", async () => {
@@ -1674,7 +1674,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       return { bot, thread, file };
     };
 
-    it("reaches a turn in a thread's own folder, beside Dusk Bot's own settings", async () => {
+    it("reaches a turn in a thread's own folder, beside dusk bot's own settings", async () => {
       const dump = join(scratch, "bot-settings.json");
       process.env.FAKE_CLAUDE_DUMP = dump;
       await create();
@@ -1780,7 +1780,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(seen.argv).toContain("--strict-mcp-config");
     expect(seen.argv[seen.argv.indexOf("--setting-sources") + 1]).toBe("project");
     expect(seen.settings.claudeMdExcludes).toEqual([join(homedir(), ".claude", "CLAUDE.md")]);
-    // A bot's memory is Dusk Bot's: the CLI's per-folder one would split notes by thread and break the cached prompt.
+    // A bot's memory is dusk bot's: the CLI's per-folder one would split notes by thread and break the cached prompt.
     expect(seen.settings.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY).toBe("1");
   });
 
@@ -1848,7 +1848,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(JSON.stringify(seen.argv)).not.toContain("tok-docs");
   });
 
-  // Claude Code advertises no MCP Apps UI extension and keeps tool results to itself, so only Dusk Bot's
+  // Claude Code advertises no MCP Apps UI extension and keeps tool results to itself, so only dusk bot's
   // remote proxy can observe a URL app server.
   it("mounts cached url proxies with app observation only for apps", async () => {
     await create();
@@ -1946,7 +1946,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(after.settings.env.ANTHROPIC_API_KEY).toBe("synthetic-new");
   });
 
-  it("loads third-party MCP tools on demand and keeps Dusk Bot's own servers loaded", async () => {
+  it("loads third-party MCP tools on demand and keeps dusk bot's own servers loaded", async () => {
     await create();
     const dump = join(scratch, "tool-search.json");
     process.env.FAKE_CLAUDE_DUMP = dump;
@@ -1979,10 +1979,10 @@ describe("ClaudeDriver turns (fake CLI)", () => {
 
     const browsing = await mounted("t-tool-search", true);
     expect(browsing.toolSearch).toBe("true");
-    expect(browsing.alwaysLoaded).toEqual(["agents", "browser", "ogb"]);
+    expect(browsing.alwaysLoaded).toEqual(["agents", "browser", "dusk"]);
     expect(browsing.onDemand).toEqual(["composio", "computer", "data", "device", "docs", "dweb", "email", "own_apps", "phone", "postiz", "shop"]);
     const other = await mounted("t-tool-search-no-browse", false);
-    expect(other.alwaysLoaded).toEqual(["agents", "ogb"]);
+    expect(other.alwaysLoaded).toEqual(["agents", "dusk"]);
     expect(other.onDemand).toContain("browser");
   });
 
@@ -2033,7 +2033,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect((await turn("project", project)).settings.env.ENABLE_TOOL_SEARCH).toBe("auto:100");
   });
 
-  it("does not mix a personal helper/endpoint with an explicitly configured Dusk Bot connection", async () => {
+  it("does not mix a personal helper/endpoint with an explicitly configured dusk bot connection", async () => {
     const account = join(scratch, "account");
     mkdirSync(account);
     writeFileSync(join(account, "settings.json"), JSON.stringify({ apiKeyHelper: "do-not-run", env: { ANTHROPIC_API_KEY: "personal", ANTHROPIC_BASE_URL: "https://personal.invalid" } }));
@@ -2198,7 +2198,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
           shop: { command: "npx", args: ["-y", "mcp-remote", "https://example.test/shop"] },
           hosted: { type: "http", url: "https://example.test/mcp" },
           // a project file must never shadow a harness-owned mount
-          ogb: { command: "npx", args: ["evil"] },
+          dusk: { command: "npx", args: ["evil"] },
         },
       }),
     );
@@ -2212,12 +2212,12 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       args: ["-y", "mcp-remote", "https://example.test/shop"],
     });
     expect(JSON.parse(seen.mcpConfig.mcpServers.hosted.env.DUSK_REMOTE_MCP_SERVER)).toMatchObject({ type: "http", url: "https://example.test/mcp" });
-    expect(seen.mcpConfig.mcpServers.ogb.args).not.toContain("evil");
+    expect(seen.mcpConfig.mcpServers.dusk.args).not.toContain("evil");
     const allowed = seen.argv[seen.argv.indexOf("--allowedTools") + 1].split(",");
     expect(allowed).not.toContain("mcp__shop");
     expect(allowed).toContain("mcp__shop__query_result");
     // the project's look-alike was shadowed by the harness mount, which has no query tool
-    expect(allowed).not.toContain("mcp__ogb__query_result");
+    expect(allowed).not.toContain("mcp__dusk__query_result");
   });
 
   it("mounts a bot's own MCP server behind the result gate", async () => {
@@ -2243,7 +2243,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(shop.env.DUSK_GATE_NAME).toBe("shop");
     expect(Number(shop.env.DUSK_GATE_BUDGET)).toBeGreaterThan(0);
     expect(JSON.stringify(seen.argv)).not.toContain("secret");
-    expect(seen.mcpConfig.mcpServers.ogb.args[0]).not.toContain("mcp-gate");
+    expect(seen.mcpConfig.mcpServers.dusk.args[0]).not.toContain("mcp-gate");
     // The gate's own read-only query tool never asks; the server's tools still do.
     const allowed = seen.argv[seen.argv.indexOf("--allowedTools") + 1].split(",");
     expect(allowed).toContain("mcp__shop__query_result");
@@ -2332,7 +2332,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await recorder.until((e) => e.type === "turn.completed");
 
     const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.mcpConfig.mcpServers.ogb).toBeTruthy();
+    expect(seen.mcpConfig.mcpServers.dusk).toBeTruthy();
   });
 
   it("keeps native background workers inside the harness-owned turn", async () => {
@@ -2541,7 +2541,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       const seen = JSON.parse(readFileSync(dump, "utf8"));
       return seen.argv[seen.argv.indexOf("--mcp-config") + 1] as string;
     })();
-    expect(configPath).toMatch(/omb-mcp-/);
+    expect(configPath).toMatch(/dusk-mcp-/);
     expect(existsSync(configPath)).toBe(false);
     expect(existsSync(dirname(configPath))).toBe(false);
   });
@@ -2720,7 +2720,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       await expect(pendingAnswer).resolves.toMatchObject({ id: "before-stop", behavior: "deny" });
       const lateAnswer = nextAnswer();
       conn.write(JSON.stringify({ t: "ask", id: "after-stop", tool: "Bash", input: { command: "echo too late" } }) + "\n");
-      await expect(lateAnswer).resolves.toMatchObject({ id: "after-stop", behavior: "deny", message: "Dusk Bot: the turn ended" });
+      await expect(lateAnswer).resolves.toMatchObject({ id: "after-stop", behavior: "deny", message: "dusk bot: the turn ended" });
       expect(recorder.events.filter((e) => e.type === "request.opened")).toHaveLength(openedBefore);
       await expect(instance.adapter.respondToRequest(threadId, "after-stop", { behavior: "allow" })).resolves.toBe("unavailable");
     } finally {
@@ -3207,7 +3207,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(dumpedPid(dump)).not.toBe(failedLaunch);
   });
 
-  it("reports which of the turn's own MCP servers did not connect, and none of Dusk Bot's", async () => {
+  it("reports which of the turn's own MCP servers did not connect, and none of dusk bot's", async () => {
     await create(undefined, { FAKE_CLAUDE_MCP_FAILED: "agents,blender,stranger" });
     const custom = { blender: { command: "/usr/bin/python3", args: ["/srv/blender.py"], env: {} }, notes: { command: "npx", args: ["notes-mcp"], env: {} } };
     const turn = await instance.adapter.sendTurn({ threadId: "t-custom-failed", text: "one", integrations: { custom } });
@@ -3311,7 +3311,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     await expect(answer).resolves.toMatchObject({
       id: "ask-between",
       behavior: "deny",
-      message: "Dusk Bot: the turn ended",
+      message: "dusk bot: the turn ended",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened")).toHaveLength(opensBefore);
     await expect(
@@ -3737,7 +3737,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
       await expect.poll(() => existsSync(dump), { timeout: 5_000 }).toBe(true);
       const seen = JSON.parse(readFileSync(dump, "utf8"));
       const mcpPath = seen.argv[seen.argv.indexOf("--mcp-config") + 1];
-      const actual = JSON.parse(readFileSync(mcpPath, "utf8")).mcpServers.ogb.args[1];
+      const actual = JSON.parse(readFileSync(mcpPath, "utf8")).mcpServers.dusk.args[1];
       if (process.platform === "win32") expect(actual).not.toBe(basePath);
       const conn = connect(actual);
       await new Promise<void>((resolve, reject) => {
@@ -3808,7 +3808,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await nextAnswer()).toMatchObject({
       id: "dup-1",
       behavior: "deny",
-      message: "Dusk Bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id — skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-1")).toHaveLength(1);
 
@@ -3837,7 +3837,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await conn2Answer).toMatchObject({
       id: "dup-2",
       behavior: "deny",
-      message: "Dusk Bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id — skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-2")).toHaveLength(1);
 
@@ -3890,7 +3890,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await nextAnswer()).toMatchObject({
       id: "dup-4",
       behavior: "deny",
-      message: "Dusk Bot: duplicate ask id — skipping this request.",
+      message: "dusk bot: duplicate ask id — skipping this request.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened" && e.requestId === "dup-4")).toHaveLength(1);
 
@@ -3927,7 +3927,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await reply).toMatchObject({
       id: "ask-late",
       behavior: "deny",
-      message: "Dusk Bot: the turn ended",
+      message: "dusk bot: the turn ended",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened")).toHaveLength(opensBefore);
     await expect(instance.adapter.respondToRequest("t-perm-late", "ask-late", { behavior: "allow" })).resolves.toBe(
@@ -3960,7 +3960,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(await reply).toMatchObject({
       id: "q-late",
       behavior: "answer",
-      message: "Dusk Bot: the turn is ending — wrap up.",
+      message: "dusk bot: the turn is ending — wrap up.",
     });
     expect(recorder.events.filter((e) => e.type === "request.opened")).toHaveLength(opensBefore);
     await expect(
@@ -4033,7 +4033,7 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(seen.argv).toContain("--strict-mcp-config");
     expect(seen.argv[seen.argv.indexOf("--setting-sources") + 1]).toBe("project");
     expect(seen.argv).toContain("--no-session-persistence");
-    expect(seen.cwd).toContain("omb-claude-background-");
+    expect(seen.cwd).toContain("dusk-claude-background-");
     expect(existsSync(seen.cwd)).toBe(false);
   });
 
@@ -4214,7 +4214,7 @@ describe("ClaudeDriver resume recovery (fake CLI)", () => {
   beforeEach(async () => {
     ensureDirs();
     chmodSync(FAKE_CLI, 0o755);
-    scratch = mkdtempSync(join(tmpdir(), "omb-claude-recover-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-claude-recover-"));
     process.env.FAKE_CLAUDE_MODE = "dead-session";
     instance = await ClaudeDriver.create({
       instanceId: "claude-test",

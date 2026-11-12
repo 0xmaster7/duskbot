@@ -1,4 +1,4 @@
-// The bots' browser runs on agent-browser or, with browserEngine.engine set to "chrome", on Dusk Bot's own Chrome
+// The bots' browser runs on agent-browser or, with browserEngine.engine set to "chrome", on dusk bot's own Chrome
 // driver. A session's spec says which: the new engine's names the profile it drives. Everything that reaches a browser
 // goes through the two routers here, which keep the agent-browser engine's API.
 import { existsSync } from "node:fs";
@@ -22,7 +22,7 @@ import { LiveV1 } from "./viewers/live-v1.ts";
 import { StreamV2, type StreamRequest } from "./viewers/stream-v2.ts";
 
 /** A spec's command when the new engine runs the session; its one argument is the profile key. */
-export const CHROME_ENGINE = "omb-cdp";
+export const CHROME_ENGINE = "dusk-cdp";
 
 type Spec = Pick<BrowserSpawnSpec, "command" | "env"> & { args?: readonly string[] };
 
@@ -170,7 +170,7 @@ export class ChromeEngine {
   summary(): { kind: "engine"; version: string; chrome: string } | { kind: "unavailable"; reason: string } {
     const plan = this.launcher.plan();
     if (plan.kind === "legacy") return { kind: "unavailable", reason: `Chrome is needed for the new browser: ${plan.reason}` };
-    return { kind: "engine", version: "omb-cdp", chrome: this.launcher.describe() };
+    return { kind: "engine", version: "dusk-cdp", chrome: this.launcher.describe() };
   }
 
   /** fill_login's reads and typing on the new engine. */

@@ -19,14 +19,14 @@ import { portableWorkspaceConfig, restoredWorkspaceConfig } from "./workspace-ba
 
 const directories: string[] = [];
 afterEach(async () => { for (const directory of directories.splice(0)) await removeTempDir(directory); });
-const directory = () => { const value = mkdtempSync(join(tmpdir(), "omb-cloud-home-")); directories.push(value); return value; };
+const directory = () => { const value = mkdtempSync(join(tmpdir(), "dusk-cloud-home-")); directories.push(value); return value; };
 
-// Shapes exactly as openmaus-cloud's provisioner writes them.
+// Shapes exactly as dusk-cloud's provisioner writes them.
 const secret = "S".repeat(43);
 const machineId = "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93";
 const contract = (extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({
   DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: machineId, DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test",
-  DUSK_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_BOOTSTRAP_SECRET: secret, ...extra,
+  DUSK_PUBLIC_URL: "https://dusk-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_BOOTSTRAP_SECRET: secret, ...extra,
 });
 // A platform gateway's settings, as an Admin from before Cloud Pro dropped
 // included AI wrote them. A Cloud home ignores them.
@@ -39,7 +39,7 @@ it("is off on every ordinary server and desktop", () => {
 
 it("reads the Admin's contract", () => {
   expect(cloudHomeConfiguration(contract())).toEqual({
-    role: "home", team: null, machineId, adminOrigin: "https://cloud.example.test", publicOrigin: "https://omb-u-1a2b3c4d5e6f.fly.dev", bootstrapSecret: secret, warnings: [],
+    role: "home", team: null, machineId, adminOrigin: "https://cloud.example.test", publicOrigin: "https://dusk-u-1a2b3c4d5e6f.fly.dev", bootstrapSecret: secret, warnings: [],
   });
   expect(cloudHomeConfiguration(contract({ DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test/" }))!.adminOrigin).toBe("https://cloud.example.test");
 });
@@ -52,7 +52,7 @@ it.each<[string, NodeJS.ProcessEnv]>([
   ["an http Admin", contract({ DUSK_CLOUD_ADMIN_URL: "http://cloud.example.test" })],
   ["an Admin URL with a path", contract({ DUSK_CLOUD_ADMIN_URL: "https://cloud.example.test/api" })],
   ["an Admin URL with credentials", contract({ DUSK_CLOUD_ADMIN_URL: "https://user:pass@cloud.example.test" })],
-  ["an http public URL", contract({ DUSK_PUBLIC_URL: "http://omb-u-1a2b3c4d5e6f.fly.dev" })],
+  ["an http public URL", contract({ DUSK_PUBLIC_URL: "http://dusk-u-1a2b3c4d5e6f.fly.dev" })],
   ["a machine id with a slash", contract({ DUSK_CLOUD_MACHINE_ID: "home/../x" })],
   ["a short secret", contract({ DUSK_CLOUD_BOOTSTRAP_SECRET: "S".repeat(42) })],
   ["a secret with padding", contract({ DUSK_CLOUD_BOOTSTRAP_SECRET: `${"S".repeat(42)}=` })],
@@ -75,7 +75,7 @@ it("offers the built-in browser and cloud computers, never this computer or a Lo
 
 it("refuses the places it never offers with what is true there, not a setup step", () => {
   const local = cloudHomePlaceRefusal("local")!, vm = cloudHomePlaceRefusal("vm")!;
-  expect(local).toBe("This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while Dusk Bot is open on it.");
+  expect(local).toBe("This computer isn't a place in the Cloud. Set Works on to Auto, Cloud desktop or Browser; your own computer is reached while dusk bot is open on it.");
   expect(vm).toBe("Cloud bots can't use a private desktop. Set Works on to Auto, Cloud desktop or Browser.");
   for (const text of [local, vm]) {
     expect(text).not.toMatch(/configure|Computer panel|install|set (?:it|one) up/i);
@@ -91,7 +91,7 @@ function fixture() {
   const sessions = new SessionRegistry({ file: join(root, "sessions.json"), now: () => now });
   const pairing = createCloudPairing({ secret, sessions, now: () => now });
   let counter = 0;
-  const sign = (body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 }), options: { key?: string; at?: number; nonce?: string } = {}) => {
+  const sign = (body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 }), options: { key?: string; at?: number; nonce?: string } = {}) => {
     const timestamp = String(Math.floor((options.at ?? now) / 1000)), nonce = options.nonce ?? `nonce-${String(++counter).padStart(12, "0")}`;
     return { timestamp, nonce, signature: `v1=${cloudPairingSignature(options.key ?? secret, timestamp, nonce, body)}`, body: Buffer.from(body) };
   };
@@ -106,10 +106,10 @@ it("opens one ordinary pairing window for a correctly signed request", () => {
   expect(granted.status).toBe(200);
   expect(Object.keys(granted.body).sort()).toEqual(["code", "credential", "expiresAt"]);
   expect(granted.body.code).toMatch(/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
-  expect(granted.body.credential).toMatch(/^omb_pair_[A-Za-z0-9_-]{43}$/);
+  expect(granted.body.credential).toMatch(/^dusk_pair_[A-Za-z0-9_-]{43}$/);
   expect(granted.body.expiresAt).toBe(f.now() + 300_000);
   const paired = f.exchange(granted.body.code as string);
-  expect(paired).toMatchObject({ ok: true, session: { label: "Dusk Bot app (Cloud)", scopes: ["admin", "client"] } });
+  expect(paired).toMatchObject({ ok: true, session: { label: "dusk bot app (Cloud)", scopes: ["admin", "client"] } });
 });
 
 it("matches the Admin's signature byte for byte", () => {
@@ -120,7 +120,7 @@ it("matches the Admin's signature byte for byte", () => {
 });
 
 it("signs a health read over its method, path and query, byte for byte as the Admin does", () => {
-  // Same vector in openmaus-cloud tests/cloud-health.test.ts:
+  // Same vector in dusk-cloud tests/cloud-health.test.ts:
   // printf 'v1\n1800000000\nnonce-fixture-0001\nGET\n/api/cloud/health?after=0\n<b64url sha256 of the empty body>' | openssl dgst -sha256 -hmac k -binary | base64url
   expect(cloudRequestSignature("k", "1800000000", "nonce-fixture-0001", "GET", "/api/cloud/health?after=0", "")).toBe("qX07j43XUqYYi8T3l9T8WnC-hWLZSYuuvmRguJpbJKc");
   expect(cloudRequestSignature("k", "1800000000", "nonce-fixture-0001", "GET", "/api/cloud/health?after=1", "")).not.toBe("qX07j43XUqYYi8T3l9T8WnC-hWLZSYuuvmRguJpbJKc");
@@ -131,7 +131,7 @@ it("refuses a wrong key, a tampered request or a malformed signature, and counts
   const good = f.sign();
   const variants = [
     f.sign(undefined, { key: "W".repeat(43) }),
-    { ...good, body: Buffer.from(JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 600 })) },
+    { ...good, body: Buffer.from(JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 600 })) },
     { ...good, nonce: "nonce-tampered-000" },
     { ...good, timestamp: String(Number(good.timestamp) + 1) },
     { ...good, signature: good.signature.slice(3) },
@@ -184,7 +184,7 @@ it("keeps every window single use and short lived, capping what the Admin asks f
   expect(f.exchange(long.body.code as string).ok).toBe(false);
   const plain = f.mint(f.sign("{}"));
   expect(plain.body.expiresAt).toBe(f.now() + 300_000);
-  expect(f.exchange(plain.body.code as string)).toMatchObject({ ok: true, session: { label: "Dusk Cloud" } });
+  expect(f.exchange(plain.body.code as string)).toMatchObject({ ok: true, session: { label: "dusk cloud" } });
 });
 
 it("opens a browser sign-in only a browser redeems, by credential alone, for at most two minutes", () => {
@@ -193,7 +193,7 @@ it("opens a browser sign-in only a browser redeems, by credential alone, for at 
   expect(f.mint(f.sign(JSON.stringify({ purpose: "browser", owner: "ada.o'neil+cloud@example-mail.test" }))).status).toBe(200);
   expect(granted.status).toBe(200);
   expect(Object.keys(granted.body).sort()).toEqual(["credential", "expiresAt", "purpose"]);
-  expect(granted.body).toMatchObject({ credential: expect.stringMatching(/^omb_pair_[A-Za-z0-9_-]{43}$/), expiresAt: f.now() + 120_000, purpose: "browser" });
+  expect(granted.body).toMatchObject({ credential: expect.stringMatching(/^dusk_pair_[A-Za-z0-9_-]{43}$/), expiresAt: f.now() + 120_000, purpose: "browser" });
   const credential = granted.body.credential as string;
   expect(f.sessions.previewBrowserSignIn(credential)).toEqual({ owner: "ada@example.test", expiresAt: f.now() + 120_000 });
   expect(f.exchange(credential).ok).toBe(false);
@@ -235,7 +235,7 @@ it("treats a request the edge forwards as remote, whatever Host it claims", () =
     { host: "home-7f3k2.fly.dev", "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https" },
     { host: "localhost:8799", "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https" },
   ]) {
-    const result = resolveRequestAuth(request(headers), { sessions, cookieName: "omb_session_x", streamPath: "/api/events", url });
+    const result = resolveRequestAuth(request(headers), { sessions, cookieName: "dusk_session_x", streamPath: "/api/events", url });
     expect(result.auth).toBeNull();
     expect(result.status).toBe(403);
   }
@@ -322,16 +322,16 @@ it("lets only the tunnel name the client on an own server, and only Fly's proxy 
   const config = cloudHomeConfiguration(contract())!;
   const own = cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin" }, "/data").edge;
   expect(own).toMatchObject({ DUSK_CLOUD_EDGE_CLIENT_IP_HEADER: "Cf-Connecting-IP", DUSK_CLOUD_EDGE_TRUSTED_PROXIES: "127.0.0.1/32 ::1/128" });
-  const fly = cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", FLY_APP_NAME: "omb-u-1a2b3c4d5e6f" }, "/data").edge;
+  const fly = cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", FLY_APP_NAME: "dusk-u-1a2b3c4d5e6f" }, "/data").edge;
   expect(fly).toMatchObject({ DUSK_CLOUD_EDGE_CLIENT_IP_HEADER: "Fly-Client-IP", DUSK_CLOUD_EDGE_TRUSTED_PROXIES: "private_ranges" });
   expect(edgeClientAddress({ FLY_APP_NAME: " " })).toEqual(edgeClientAddress({}));
   // Both values are written into the edge's config as they are, so neither may come from anywhere but here.
-  for (const env of [{}, { FLY_APP_NAME: "omb-u-1a2b3c4d5e6f" }, { DUSK_CLOUD_EDGE_CLIENT_IP_HEADER: "X-Real-IP", DUSK_CLOUD_EDGE_TRUSTED_PROXIES: "0.0.0.0/0" }]) {
+  for (const env of [{}, { FLY_APP_NAME: "dusk-u-1a2b3c4d5e6f" }, { DUSK_CLOUD_EDGE_CLIENT_IP_HEADER: "X-Real-IP", DUSK_CLOUD_EDGE_TRUSTED_PROXIES: "0.0.0.0/0" }]) {
     const edge = cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", ...env }, "/data").edge;
     expect(edge.DUSK_CLOUD_EDGE_CLIENT_IP_HEADER).toMatch(/^(?:Fly-Client-IP|Cf-Connecting-IP)$/);
     expect(edge.DUSK_CLOUD_EDGE_TRUSTED_PROXIES).toMatch(/^(?:private_ranges|127\.0\.0\.1\/32 ::1\/128)$/);
   }
-  expect(cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", FLY_APP_NAME: "omb-u-1a2b3c4d5e6f" }, "/data").server).not.toHaveProperty("DUSK_CLOUD_EDGE_CLIENT_IP_HEADER");
+  expect(cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", FLY_APP_NAME: "dusk-u-1a2b3c4d5e6f" }, "/data").server).not.toHaveProperty("DUSK_CLOUD_EDGE_CLIENT_IP_HEADER");
 });
 
 it("never names the public host twice in the edge's host matcher, which Caddy refuses", () => {
@@ -342,12 +342,12 @@ it("never names the public host twice in the edge's host matcher, which Caddy re
 });
 
 it("gives the edge only its routing name and the server the contract, never a secret", () => {
-  const relay = { DUSK_CLOUD_VOICE_TOKEN: `omb_voice_${"v".repeat(43)}`, DUSK_CLOUD_DECIDER_TOKEN: `omb_decide_${"d".repeat(43)}`,
-    DUSK_CLOUD_AI_TOKEN: `omb_ai_${"a".repeat(43)}` };
+  const relay = { DUSK_CLOUD_VOICE_TOKEN: `dusk_voice_${"v".repeat(43)}`, DUSK_CLOUD_DECIDER_TOKEN: `dusk_decide_${"d".repeat(43)}`,
+    DUSK_CLOUD_AI_TOKEN: `dusk_ai_${"a".repeat(43)}` };
   const config = cloudHomeConfiguration(contract())!;
   const { server, edge, secrets } = cloudHomeChildEnvironments(config, { ...contract(), ...relay, PATH: "/usr/bin" }, "/data");
   expect(server).toMatchObject({ HOME: "/data", DUSK_DATA_DIR: "/data/.duskbot", NODE_COMPILE_CACHE: "/data/.duskbot/cache/node-compile", DUSK_PORT: "8799", DUSK_WEBHOOK_PORT: "8800",
-    DUSK_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", DUSK_WEBHOOK_PUBLIC_URL: "https://omb-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_SECRETS_FD: "3" });
+    DUSK_PUBLIC_URL: "https://dusk-u-1a2b3c4d5e6f.fly.dev", DUSK_WEBHOOK_PUBLIC_URL: "https://dusk-u-1a2b3c4d5e6f.fly.dev", DUSK_CLOUD_SECRETS_FD: "3" });
   // The bot box switch reaches the server; an unknown name does not.
   expect(cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", DUSK_BOT_BOX: "0", DUSK_SOMETHING_ELSE: "x" }, "/data").server).toMatchObject({ DUSK_BOT_BOX: "0" });
   expect(cloudHomeChildEnvironments(config, { ...contract(), PATH: "/usr/bin", DUSK_SOMETHING_ELSE: "x" }, "/data").server).not.toHaveProperty("DUSK_SOMETHING_ELSE");
@@ -482,7 +482,7 @@ it("records the first finished bot turn once, on a Cloud home only, and a moved 
 
 // The launcher only runs on Linux (the image); Windows passes descriptors differently.
 it.skipIf(process.platform === "win32")("hands the server its secrets over a pipe it reads once: never its environment, never a grandchild's", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-cloud-secrets-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-cloud-secrets-"));
   try {
     const script = join(dir, "server.mjs");
     const out = join(dir, "out.json");
@@ -500,14 +500,14 @@ const child = spawnSync(process.execPath, ["-e", "process.stdout.write(JSON.stri
 writeFileSync(${JSON.stringify(out)}, JSON.stringify({ secrets, env: process.env, own: parentEnviron(process.pid), child: child.stdout }));
 `);
     const env: NodeJS.ProcessEnv = { PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), DUSK_CLOUD_SECRETS_FD: "3", VISIBLE_PROBE: "visible" };
-    const child = spawnWithSecrets(process.execPath, [script], env, { DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: "box_omb_probe-token" });
+    const child = spawnWithSecrets(process.execPath, [script], env, { DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: "box_dusk_probe-token" });
     await new Promise((resolve) => child.once("exit", resolve));
     const seen = JSON.parse(readFileSync(out, "utf8"));
-    expect(seen.secrets).toEqual({ DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: "box_omb_probe-token" });
+    expect(seen.secrets).toEqual({ DUSK_CLOUD_BOOTSTRAP_SECRET: secret, DUSK_CLOUD_VOICE_TOKEN: "box_dusk_probe-token" });
     if (process.platform !== "win32") expect(seen.own).toContain("VISIBLE_PROBE=visible");
     for (const where of [seen.own, JSON.stringify(seen.env), seen.child]) {
       expect(where).not.toContain(secret);
-      expect(where).not.toContain("box_omb_probe-token");
+      expect(where).not.toContain("box_dusk_probe-token");
     }
     expect(seen.child).not.toContain("DUSK_CLOUD_SECRETS_FD");
   } finally {
@@ -577,7 +577,7 @@ it("a Team Cloud's pairing binds the Admin's member claim to the session it open
   const pairing = createCloudPairing({ secret, sessions, team: { id: "team-1", name: "Acme" }, now: () => now });
   let counter = 0;
   const mint = (claims: Record<string, unknown>) => {
-    const body = JSON.stringify({ label: "Dusk Bot app (Team Cloud)", ttlSeconds: 300, ...claims });
+    const body = JSON.stringify({ label: "dusk bot app (Team Cloud)", ttlSeconds: 300, ...claims });
     const timestamp = String(Math.floor(now / 1000)), nonce = `nonce-${String(++counter).padStart(12, "0")}`;
     return pairing.handle({ timestamp, nonce, signature: `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`, body: Buffer.from(body), source: "203.0.113.9" });
   };
@@ -616,7 +616,7 @@ it("a Team Cloud pairing at a new role ends that person's sessions, phones and w
   const pairing = createCloudPairing({ secret, sessions, team: { id: "team-1", name: "Acme" }, now: () => now });
   let counter = 0;
   const mint = (email: string, role: string) => {
-    const body = JSON.stringify({ label: "Dusk Bot app (Team Cloud)", ttlSeconds: 300, member: { email, role } });
+    const body = JSON.stringify({ label: "dusk bot app (Team Cloud)", ttlSeconds: 300, member: { email, role } });
     const timestamp = String(Math.floor(now / 1000)), nonce = `nonce-${String(++counter).padStart(12, "0")}`;
     return pairing.handle({ timestamp, nonce, signature: `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`, body: Buffer.from(body), source: "203.0.113.9" });
   };

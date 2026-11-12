@@ -38,7 +38,7 @@ const taskTitle = async (botId: string, threadId: string): Promise<string | unde
 };
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-regenerate-title-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-regenerate-title-"));
   const data = join(home, ".duskbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });

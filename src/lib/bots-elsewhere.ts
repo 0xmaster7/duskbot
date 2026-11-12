@@ -54,7 +54,7 @@ export function dismissKey(screen: ElsewhereScreen): string {
   return screen.kind === "bots-on" ? `place:${screen.place.id}` : `setup:${screen.setup.kind}:${screen.setup.name}`;
 }
 
-const DISMISSED = "omb-elsewhere-dismissed";
+const DISMISSED = "dusk-elsewhere-dismissed";
 export function dismissedPlaces(): string[] {
   try {
     const kept: unknown = JSON.parse(localStorage.getItem(DISMISSED) ?? "[]");
@@ -65,13 +65,13 @@ export function dismissPlace(key: string): void {
   try { localStorage.setItem(DISMISSED, JSON.stringify([...dismissedPlaces().filter((entry) => entry !== key), key].slice(-20))); } catch { /* storage full or off */ }
 }
 
-/** The dev button's stand-in: a fresh install whose account already set up Dusk Bot on a VPS. */
+/** The dev button's stand-in: a fresh install whose account already set up dusk bot on a VPS. */
 export const SIMULATED_FRESH_INSTALL: ElsewhereView = { places: [], known: { kind: "server", name: "My VPS" } };
 
-/** Dev builds, or any build with localStorage "omb-dev-tools" set to "1". */
+/** Dev builds, or any build with localStorage "dusk-dev-tools" set to "1". */
 export function devToolsShown(): boolean {
   if (import.meta.env.DEV) return true;
-  try { return localStorage.getItem("omb-dev-tools") === "1"; } catch { return false; }
+  try { return localStorage.getItem("dusk-dev-tools") === "1"; } catch { return false; }
 }
 
 let simulating = false;

@@ -17,7 +17,7 @@ const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 async function fixture(run: EmailHostDeps["run"] = {}, bot: EmailBot | null = { id: "b1", name: "Ada", color: "blue" }, connected = true) {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-mail-host-")); dirs.push(dataDir);
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-mail-host-")); dirs.push(dataDir);
   const service = createEmailService({ dataDir, publicOnly: false, guard: openGuard, discover: { fetchText: async () => null, mx: async () => [], srv: async () => [] }, test: { mailbox: (async () => ({ messages: 1 })) as never, sending: (async () => {}) as never } });
   if (connected) await service.connect({ address: "me@shop.example", password: PASSWORD });
   const marked: string[] = [];
@@ -36,7 +36,7 @@ const ALL_READS = {
 
 describe("a turn's Email tools", () => {
   it("saved attachments go with their conversation, and with their bot", async () => {
-    const dataDir = mkdtempSync(join(tmpdir(), "omb-mail-host-")); dirs.push(dataDir);
+    const dataDir = mkdtempSync(join(tmpdir(), "dusk-mail-host-")); dirs.push(dataDir);
     const service = createEmailService({ dataDir, publicOnly: false, guard: openGuard });
     let change: (event: { type: string; threadId?: string; botId?: string }) => void = () => {};
     createEmailHost({ service, dataDir, bot: () => null, inRoom: () => false, appendMessage: () => {}, markOutside: () => {}, onChange: (listener) => { change = listener; } });

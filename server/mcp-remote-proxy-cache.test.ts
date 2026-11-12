@@ -17,7 +17,7 @@ afterEach(async () => { for (const close of cleanup.splice(0).reverse()) await c
 const tool = (name: string) => ({ name, inputSchema: { type: "object" } });
 
 async function fixture() {
-  const directory = mkdtempSync(join(tmpdir(), "omb-remote-cache-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-remote-cache-"));
   cleanup.push(() => removeTempDir(directory));
   let blocked = false, release = () => {};
   let gate = Promise.resolve();

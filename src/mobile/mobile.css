@@ -1,6 +1,6 @@
-/* the phone app's own layer over the shared app styles; every rule is scoped under .omb-mobile */
+/* the phone app's own layer over the shared app styles; every rule is scoped under .dusk-mobile */
 
-.omb-mobile {
+.dusk-mobile {
   --m-ease-out: cubic-bezier(.22, 1, .36, 1);
   --m-ease-release: cubic-bezier(.28, 1.4, .36, 1);
   --m-fast: .16s;
@@ -19,73 +19,73 @@
 }
 
 /* the shared root pads for safe areas and the keyboard; inside the phone shell each layer pads itself */
-#root:has(> .omb-mobile) { padding: 0; }
+#root:has(> .dusk-mobile) { padding: 0; }
 
-.omb-mobile .mobile-press {
+.dusk-mobile .mobile-press {
   transition: scale .2s var(--m-ease-release), background-color .15s ease, opacity .15s ease;
 }
-.omb-mobile .mobile-press:active:not(:disabled) {
+.dusk-mobile .mobile-press:active:not(:disabled) {
   scale: .96;
   transition-duration: .16s, .15s, .15s;
   transition-timing-function: var(--m-ease-out), ease, ease;
 }
 /* the shared phone layout dims every pressed control; the shell's own controls scale instead */
-.omb-mobile .mobile-press:active { opacity: 1; }
+.dusk-mobile .mobile-press:active { opacity: 1; }
 
-.omb-mobile .mobile-float {
+.dusk-mobile .mobile-float {
   box-shadow: 0 4px 14px -2px rgb(28 28 28 / .10), 0 1px 3px rgb(28 28 28 / .06);
 }
-[data-skin="grok-dark"] .omb-mobile .mobile-float,
-.omb-mobile[data-scheme="dark"] .mobile-float {
+[data-skin="grok-dark"] .dusk-mobile .mobile-float,
+.dusk-mobile[data-scheme="dark"] .mobile-float {
   box-shadow: 0 4px 14px -2px rgb(0 0 0 / .5);
 }
 
-.omb-mobile .mobile-page { box-shadow: -12px 0 32px rgb(10 10 12 / .10); }
+.dusk-mobile .mobile-page { box-shadow: -12px 0 32px rgb(10 10 12 / .10); }
 
-.omb-mobile :focus-visible {
+.dusk-mobile :focus-visible {
   outline: none;
 }
-.omb-mobile .mobile-row:focus-visible { outline-offset: -2px; border-radius: 16px; }
+.dusk-mobile .mobile-row:focus-visible { outline-offset: -2px; border-radius: 16px; }
 
 /* rows press like a list cell: a quick tint, no travel (high frequency) */
-.omb-mobile .mobile-row { transition: background-color .15s ease; }
-.omb-mobile .mobile-row:active { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.dusk-mobile .mobile-row { transition: background-color .15s ease; }
+.dusk-mobile .mobile-row:active { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
 
 /* the keyboard: during its slide the transcript and composer ride it on the compositor; once it settles the layout
    takes the space and the transform returns to zero in the same frame (src/mobile/keyboard.ts) */
-.omb-mobile [data-mobile-chat] .glass-scroller,
-.omb-mobile [data-mobile-chat] [data-grok-inset] {
+.dusk-mobile [data-mobile-chat] .glass-scroller,
+.dusk-mobile [data-mobile-chat] [data-grok-inset] {
   transform: translate3d(0, calc(-1 * var(--m-kb-shift)), 0);
 }
-.omb-mobile[data-kb-moving] [data-mobile-chat] .glass-scroller,
-.omb-mobile[data-kb-moving] [data-mobile-chat] [data-grok-inset] {
+.dusk-mobile[data-kb-moving] [data-mobile-chat] .glass-scroller,
+.dusk-mobile[data-kb-moving] [data-mobile-chat] [data-grok-inset] {
   transition: transform var(--m-kb-dur) var(--m-kb-ease);
   will-change: transform;
 }
-.omb-mobile [data-mobile-chat] { padding-bottom: max(var(--m-safe-bottom), var(--m-kb)); }
+.dusk-mobile [data-mobile-chat] { padding-bottom: max(var(--m-safe-bottom), var(--m-kb)); }
 
 /* the shared chat header row keeps its height as the spacer under the shell's floating nav */
-.omb-mobile [data-mobile-chat] :is([data-chathead-row], [data-roomhead-row]) { visibility: hidden; }
-.omb-mobile [data-mobile-chat] main { padding-top: var(--m-safe-top); }
+.dusk-mobile [data-mobile-chat] :is([data-chathead-row], [data-roomhead-row]) { visibility: hidden; }
+.dusk-mobile [data-mobile-chat] main { padding-top: var(--m-safe-top); }
 
 @media (prefers-reduced-motion: reduce) {
-  .omb-mobile .mobile-press, .omb-mobile .mobile-press:active { scale: 1; }
-  .omb-mobile[data-kb-moving] [data-mobile-chat] .glass-scroller,
-  .omb-mobile[data-kb-moving] [data-mobile-chat] [data-grok-inset] { transition-duration: .01s; }
+  .dusk-mobile .mobile-press, .dusk-mobile .mobile-press:active { scale: 1; }
+  .dusk-mobile[data-kb-moving] [data-mobile-chat] .glass-scroller,
+  .dusk-mobile[data-kb-moving] [data-mobile-chat] [data-grok-inset] { transition-duration: .01s; }
 }
 
 /* the web phone preview draws a status bar and home indicator around an iframe, which reports no safe areas */
-[data-phone-frame] .omb-mobile { --m-safe-top: 54px; --m-safe-bottom: 34px; }
+[data-phone-frame] .dusk-mobile { --m-safe-top: 54px; --m-safe-bottom: 34px; }
 
 /* a tapped row keeps its pressed look until the chat it opened has slid in */
-.omb-mobile .mobile-row[data-opening] { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
-.omb-mobile .mobile-press[data-opening] { scale: .96; }
+.dusk-mobile .mobile-row[data-opening] { background-color: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.dusk-mobile .mobile-press[data-opening] { scale: .96; }
 
 /* the native camera draws behind the webview */
 html.mobile-scanning,
 html.mobile-scanning body,
 html.mobile-scanning #root,
-html.mobile-scanning .omb-mobile,
+html.mobile-scanning .dusk-mobile,
 html.mobile-scanning [data-scan-clear] { background: transparent !important; }
 html.mobile-scanning [data-scan-hide] { visibility: hidden; }
 
@@ -93,8 +93,8 @@ html.mobile-scanning [data-scan-hide] { visibility: hidden; }
 html[data-mobile-app], html[data-mobile-app] body { overflow: hidden; overscroll-behavior: none; }
 
 /* touch targets the shared desktop components draw smaller than a thumb needs: at least 44px inside the phone shell */
-.omb-mobile [data-mobile-chat] [data-grok-inset] button:not([role="menuitem"]),
-.omb-mobile .side-panel [data-panel-head] button,
-.omb-mobile .side-panel > div > div > button[aria-label],
-.omb-mobile .side-panel [data-panel-share],
-.omb-mobile [data-mobile-chat] form button { min-width: 44px; min-height: 44px; }
+.dusk-mobile [data-mobile-chat] [data-grok-inset] button:not([role="menuitem"]),
+.dusk-mobile .side-panel [data-panel-head] button,
+.dusk-mobile .side-panel > div > div > button[aria-label],
+.dusk-mobile .side-panel [data-panel-share],
+.dusk-mobile [data-mobile-chat] form button { min-width: 44px; min-height: 44px; }

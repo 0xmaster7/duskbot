@@ -52,7 +52,7 @@ export function createAlerts(options: AlertsOptions) {
     for (const address of to) await options.mailer.send({ to: address, subject, text, html }).catch(() => console.warn("alerts: an admin email failed"));
   }
   function signup(email: string, method: string) {
-    if (kinds.has("signup")) void send(`New signup: ${email}`, [`${email} made a Dusk Bot account (${method}).`]);
+    if (kinds.has("signup")) void send(`New signup: ${email}`, [`${email} made a dusk bot account (${method}).`]);
   }
   function paid(accountId: string, email: string | null, amountCents: number) {
     if (!kinds.has("paid")) return;
@@ -87,7 +87,7 @@ export function createAlerts(options: AlertsOptions) {
       for (const visit of visits) channels.set(visit.channel, (channels.get(visit.channel) ?? 0) + 1);
       const top = [...channels].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([channel, count]) => `${channel} ${count}`).join(", ");
       const totals = options.totals(from, today);
-      await send(`Dusk Bot yesterday: ${visitors} visitors, ${totals.signups} signups`, [
+      await send(`dusk bot yesterday: ${visitors} visitors, ${totals.signups} signups`, [
         `Visitors: ${visitors}${top ? ` (${top})` : ""}.`, `Signups: ${totals.signups}. Accounts in all: ${totals.accounts}.`,
         `Paid: ${totals.paid}.`, ...(totals.waitlist === null ? [] : [`Waitlist joins: ${totals.waitlist}.`])]);
     }

@@ -85,13 +85,13 @@ const DESKTOP_PROBE = `version="$("$1" --version)"
 
 export function vpsDesktopProbeArgs(container: string): string[] {
   const args = cuaExecArgs([], { container });
-  return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "omb-desktop-probe", CUA_EXECUTABLE, `cua-driver ${CUA_DRIVER_VERSION}`, CUA_SOCKET];
+  return [...args.slice(0, -1), "sh", "-ec", DESKTOP_PROBE, "dusk-desktop-probe", CUA_EXECUTABLE, `cua-driver ${CUA_DRIVER_VERSION}`, CUA_SOCKET];
 }
 
 export function vpsDesktopWaitProbeArgs(container: string, waitMs: number): string[] {
   if (!Number.isFinite(waitMs) || waitMs <= 0) throw new Error("invalid VPS desktop wait");
   const args = vpsDesktopProbeArgs(container);
-  args[args.indexOf("-ec") + 1] = `timeout "$4" sh -ec 'until "$1" status --socket "$3" >/dev/null 2>&1; do sleep 0.05; done' omb-desktop-wait "$1" "$2" "$3"
+  args[args.indexOf("-ec") + 1] = `timeout "$4" sh -ec 'until "$1" status --socket "$3" >/dev/null 2>&1; do sleep 0.05; done' dusk-desktop-wait "$1" "$2" "$3"
 ${DESKTOP_PROBE}`;
   return [...args, (Math.max(100, Math.floor(waitMs / 100) * 100) / 1000).toFixed(1)];
 }
@@ -441,16 +441,16 @@ function statusProblem(status: VpsComputerStatus, desktopVersion?: string): stri
   }
   if (!status.image) {
     return status.desktop === "cua"
-      ? `Prepare the pinned Dusk Bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
+      ? `Prepare the pinned dusk bot Cua image on the VPS (Driver ${CUA_DRIVER_VERSION})`
       : `Prepare the Dusk bot desktop image on the VPS (${BOT_DESKTOP_IMAGE})`;
   }
-  if (status.container === "missing") return "No Dusk Bot container exists for this bot on the VPS";
-  if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted Dusk Bot image";
-  if (!status.managed) return "The VPS container name is occupied by a container Dusk Bot did not create";
+  if (status.container === "missing") return "No dusk bot container exists for this bot on the VPS";
+  if (!status.imageMatches) return "The VPS container uses an incompatible or untrusted dusk bot image";
+  if (!status.managed) return "The VPS container name is occupied by a container dusk bot did not create";
   if (status.network === "unsafe") return "The VPS container uses an unapproved network or publishes ports; refusing to use it";
   if (status.mounts === "unsafe") return "The VPS container has host mounts; refusing to use it";
   if (status.security === "unsafe") return "The VPS container has unsupported privilege, isolation, or automatic-removal settings";
-  if (status.container === "stopped") return "The Dusk Bot VPS container is stopped";
+  if (status.container === "stopped") return "The dusk bot VPS container is stopped";
   if (status.desktop_error) return `The VPS Cua desktop failed to start: ${status.desktop_error}`;
   if (!status.desktopReady) return "The VPS container started, but Cua Driver is not ready yet";
   return null;
@@ -1078,7 +1078,7 @@ export async function vpsComputerAction(
         if (before.container === "missing") return before;
         if (!before.managed) {
           throw Object.assign(
-            new Error("The VPS container name is occupied by a container Dusk Bot did not create — remove it on the VPS yourself"),
+            new Error("The VPS container name is occupied by a container dusk bot did not create — remove it on the VPS yourself"),
             { status: 409 },
           );
         }

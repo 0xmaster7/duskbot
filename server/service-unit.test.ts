@@ -19,12 +19,12 @@ const spec: ServiceSpec = {
 describe("service units", () => {
   it("runs the same serve command, with strip-types only for a checkout", () => {
     expect(serviceCommand(spec)).toEqual(["/usr/bin/node", "/usr/lib/node_modules/duskbot/cli.js", "serve", ...spec.serveArgs]);
-    expect(serviceCommand({ ...spec, script: "/srv/Dusk Bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
+    expect(serviceCommand({ ...spec, script: "/srv/dusk bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
   });
 
   it("renders a systemd unit that restarts, runs as the user, and grants low ports only for --domain", () => {
     const unit = systemdUnit(spec);
-    expect(unit).toContain("Description=Dusk Bot (agentada)");
+    expect(unit).toContain("Description=dusk bot (agentada)");
     expect(unit).toContain("User=maus");
     expect(unit).toContain("Environment=DUSK_DATA_DIR=/home/maus/.duskbot");
     expect(unit).toContain("ExecStart=/usr/bin/node /usr/lib/node_modules/duskbot/cli.js serve --port 8799 --data-dir /home/maus/.duskbot --domain maus.example.com --no-pair");
@@ -63,7 +63,7 @@ describe("service units", () => {
     const out = "/Users/maus/Library/Application Support/duskbot-sentinel";
     const sentinel = { node: "/usr/bin/node", script: "/usr/lib/node_modules/duskbot/cli.js", dataDir: "/Users/maus/.duskbot", home: "/Users/maus", out };
     expect(sentinelCommand(sentinel)).toEqual(["/usr/bin/node", "/usr/lib/node_modules/duskbot/cli.js", "sentinel", "--once", "--data-dir", "/Users/maus/.duskbot", "--out", out]);
-    expect(sentinelCommand({ ...sentinel, script: "/srv/Dusk Bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
+    expect(sentinelCommand({ ...sentinel, script: "/srv/dusk bot/server/duskbot.ts" })[1]).toBe("--experimental-strip-types");
     const plist = sentinelLaunchdPlist(sentinel);
     expect(plist).toContain("<string>bot.dusk.sentinel</string>");
     expect(plist).toContain("<key>StartInterval</key>\n\t<integer>120</integer>");
@@ -96,17 +96,17 @@ describe("service units", () => {
 
   it("finds the CLI the installed desktop app ships, and runs it as Node", () => {
     const app = "/Applications/Dusk Bot.app/Contents";
-    const present = new Set([`${app}/MacOS/Dusk Bot`, `${app}/Resources/server/duskbot.js`]);
-    expect(shippedSentinelCli("darwin", "/Users/maus", (path) => present.has(path))).toEqual({ node: `${app}/MacOS/Dusk Bot`, script: `${app}/Resources/server/duskbot.js` });
+    const present = new Set([`${app}/MacOS/dusk bot`, `${app}/Resources/server/duskbot.js`]);
+    expect(shippedSentinelCli("darwin", "/Users/maus", (path) => present.has(path))).toEqual({ node: `${app}/MacOS/dusk bot`, script: `${app}/Resources/server/duskbot.js` });
     const user = "/Users/maus/Applications/Dusk Bot.app/Contents";
     expect(shippedSentinelCli("darwin", "/Users/maus", (path) => path.startsWith(user))?.script).toBe(`${user}/Resources/server/duskbot.js`);
     expect(shippedSentinelCli("linux", "/home/maus", (path) => path.startsWith("/opt/Dusk Bot/"))).toEqual({ node: "/opt/Dusk Bot/duskbot", script: "/opt/Dusk Bot/resources/server/duskbot.js" });
     // an app with its script missing, or one released before Sentinel, is no CLI for it
-    expect(shippedSentinelCli("darwin", "/Users/maus", (path) => path.endsWith("MacOS/Dusk Bot"))).toBeNull();
+    expect(shippedSentinelCli("darwin", "/Users/maus", (path) => path.endsWith("MacOS/dusk bot"))).toBeNull();
     expect(shippedSentinelCli("darwin", "/Users/maus", (path) => present.has(path), () => false)).toBeNull();
     expect(shippedSentinelCli("win32", "C:\\Users\\maus", () => true)).toBeNull();
 
-    const spec = { node: `${app}/MacOS/Dusk Bot`, script: `${app}/Resources/server/duskbot.js`, dataDir: "/Users/maus/.duskbot", home: "/Users/maus", out: "/tmp/s", electronRunAsNode: true };
+    const spec = { node: `${app}/MacOS/dusk bot`, script: `${app}/Resources/server/duskbot.js`, dataDir: "/Users/maus/.duskbot", home: "/Users/maus", out: "/tmp/s", electronRunAsNode: true };
     expect(sentinelLaunchdPlist(spec)).toContain("<key>ELECTRON_RUN_AS_NODE</key>\n\t\t<string>1</string>");
     expect(sentinelSystemdService(spec)).toContain("Environment=ELECTRON_RUN_AS_NODE=1");
     expect(sentinelLaunchdPlist({ ...spec, electronRunAsNode: false })).not.toContain("ELECTRON_RUN_AS_NODE");

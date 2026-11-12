@@ -35,7 +35,7 @@ import { CloudWelcome, sentHere } from "./CloudWelcome";
 import { CLOUD_SETUP_MOVE_SKIPPED, CLOUD_WELCOME_DONE, CLOUD_WELCOME_SHOWN as SHOWN, welcomeStepHint } from "@/lib/cloud-setup";
 import { resetCloudWelcome, useCloudWelcome } from "@/lib/cloud-welcome";
 
-const CLOUD = { name: "Studio Cloud", origin: "https://omb-u-1a2b3c4d5e6f.fly.dev" };
+const CLOUD = { name: "Studio Cloud", origin: "https://dusk-u-1a2b3c4d5e6f.fly.dev" };
 const quiet: CloudSendNotice = { ready: true, bots: [], updatedBots: [], skills: 0, logins: 0, onePassword: false, settings: 0, signature: "", dismissed: false, running: false, last: null, whole: null };
 const claude = { instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude", access: "subscription", authentication: { method: "paste-code" }, snapshot: { state: "available", authenticated: false }, models: { default: "", options: [] } };
 const codex = { ...claude, instanceId: "codex", driverKind: "codex", displayName: "Codex" };
@@ -80,11 +80,11 @@ beforeEach(() => {
     if (patch.onboarding) return { ...fixture.state.config, onboarding: { ...fixture.state.config.onboarding, ...patch.onboarding } };
     throw new Error(`unexpected ${path}`);
   });
-  window.ogb = {
+  window.duskDesktop = {
     platform: "darwin", cloudPlan: { state: vi.fn() },
     cloudSendPage: { notice: vi.fn().mockResolvedValue(quiet), dismiss: vi.fn(), onNotice: vi.fn(() => () => {}) },
     workspaces: { state: vi.fn().mockResolvedValue({ local: false, name: "Studio Cloud", origin: CLOUD.origin }), menu: vi.fn() },
-  } as unknown as typeof window.ogb;
+  } as unknown as typeof window.duskDesktop;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -92,7 +92,7 @@ beforeEach(() => {
 afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
-  delete window.ogb;
+  delete window.duskDesktop;
   vi.unstubAllGlobals();
 });
 
@@ -117,7 +117,7 @@ describe("CloudWelcome", () => {
 
   it("in an older app that still copies by hand, says to update it to bring the bots here by itself", async () => {
     fixture.state.bots = [fixture.state.bots[0]];
-    window.ogb = { ...window.ogb!, cloudMove: {} } as unknown as typeof window.ogb;
+    window.duskDesktop = { ...window.duskDesktop!, cloudMove: {} } as unknown as typeof window.duskDesktop;
     render();
     await vi.waitFor(() => expect(host.querySelector("[data-bring-update]")?.textContent).toBe("Update Dusk to bring your bots here by itself."));
     expect([...host.querySelectorAll("button")].some((node) => node.textContent?.startsWith("Copy"))).toBe(false);
@@ -148,7 +148,7 @@ describe("CloudWelcome", () => {
   });
 
   it("outside the desktop app, tells the same from the bots and rooms the Cloud shows", () => {
-    delete window.ogb;
+    delete window.duskDesktop;
     fixture.state = { ...fixture.state, bots: [...fixture.state.bots, { id: "b3", threadId: "t3", name: "Rex" }] };
     render();
     expect(text()).toContain("Your bots are already here");
@@ -167,7 +167,7 @@ describe("CloudWelcome", () => {
   });
 
   it("in a desktop app connected to another server as its client, offers no copy from here either", () => {
-    window.ogb = { ...window.ogb!, remoteClient: { active: true } } as unknown as typeof window.ogb;
+    window.duskDesktop = { ...window.duskDesktop!, remoteClient: { active: true } } as unknown as typeof window.duskDesktop;
     fixture.state.bots = [fixture.state.bots[0]];
     render();
     expect(text()).toContain("Open the desktop app to bring your bots from your computer.");
@@ -175,7 +175,7 @@ describe("CloudWelcome", () => {
   });
 
   it("outside the desktop app, starts fresh and says where the copy is", () => {
-    delete window.ogb;
+    delete window.duskDesktop;
     fixture.state.bots = [fixture.state.bots[0]];
     render();
     expect(text()).toContain("Welcome to My Cloud");
@@ -259,13 +259,13 @@ describe("CloudWelcome", () => {
   it("from a browser, or on a Team Cloud, the folders card says the desktop app shares folders through Files", async () => {
     fixture.state.config.onboarding = { ...EMPTY_ONBOARDING, hintsSeen: [welcomeStepHint("bring"), welcomeStepHint("engine")] };
     const desktopText = "Bots on Studio Cloud can read folders you share from your computer, even when it's off. Share them from the desktop app, under Files.";
-    delete (window.ogb as Record<string, unknown>).cloudPlan;
+    delete (window.duskDesktop as Record<string, unknown>).cloudPlan;
     render();
     await vi.waitFor(() => expect(text()).toContain("Welcome to Studio Cloud"));
     expect(host.querySelector('[data-welcome-files="folders"]')?.textContent).toContain(desktopText);
     flushSync(() => root.unmount());
     root = createRoot(host);
-    (window.ogb as Record<string, unknown>).cloudPlan = { state: vi.fn() };
+    (window.duskDesktop as Record<string, unknown>).cloudPlan = { state: vi.fn() };
     fixture.state.config.team = { id: "t-acme", name: "Acme" };
     render();
     await vi.waitFor(() => expect(text()).toContain("Welcome to Studio Cloud"));
@@ -309,7 +309,7 @@ describe("CloudWelcome", () => {
     const withSend = (value: CloudSendNotice | null) => {
       const page = { notice: vi.fn().mockResolvedValue(value), dismiss: vi.fn(),
         onNotice: vi.fn((listener: (next: CloudSendNotice) => void) => { pushNotice = listener; return () => {}; }) };
-      window.ogb = { ...window.ogb!, cloudSendPage: page } as unknown as typeof window.ogb;
+      window.duskDesktop = { ...window.duskDesktop!, cloudSendPage: page } as unknown as typeof window.duskDesktop;
       return page;
     };
     const rail = () => host.querySelector('[data-welcome-rail="bring"]')!;

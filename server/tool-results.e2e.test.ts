@@ -3,7 +3,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 it("bounds a real roster, retrieves its tail, isolates owners and expires stopped capabilities", async () => {
@@ -11,7 +11,7 @@ it("bounds a real roster, retrieves its tail, isolates owners and expires stoppe
   const proxies: ChildProcess[] = [];
   const evidence: unknown[] = [];
   const cli = async (...args: string[]) => {
-    const result = await runControlOmb(args, { env: { DUSK_URL: fixture.info.url } }) as any;
+    const result = await runControlDusk(args, { env: { DUSK_URL: fixture.info.url } }) as any;
     evidence.push({ args: args.map(arg => arg.length > 200 ? `${arg.slice(0, 200)}…` : arg), result });
     return result;
   };

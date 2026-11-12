@@ -56,7 +56,8 @@ export function parseToolScope(value: unknown): ParsedToolScope {
     if (!Array.isArray(list) || list.length > MAX_SELECTORS) return invalid;
     // Array.from exposes holes as undefined instead of silently skipping them.
     if (!Array.from(list).every((entry: unknown) => typeof entry === "string" && selectorIdentity(entry))) return invalid;
-    scope[key] = [...new Set(list as string[])];
+    // a selector saved for the built-in server before the rename (ogb, once omb) names it as dusk now
+    scope[key] = [...new Set((list as string[]).map((entry) => entry.replace(/^mcp:(?:ogb|omb):/, "mcp:dusk:")))];
   }
   return { ok: true, scope };
 }

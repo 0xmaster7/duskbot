@@ -76,7 +76,7 @@ export interface TranscriptShelf {
   write(put: ReadonlyArray<CachedTranscript & { bytes: number }>, remove: readonly string[]): Promise<void>;
 }
 
-const DB = "omb-transcripts";
+const DB = "dusk-transcripts";
 const STORE = "threads";
 
 /** One shelf per workspace connection on a device that holds several (the phone app); `null` is the page's own

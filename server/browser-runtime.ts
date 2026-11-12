@@ -28,7 +28,7 @@ const BROWSER_RESTART_TOOL_SPEC = {
 };
 export const BROWSER_UPLOAD_TOOL = "agent_browser_upload";
 export const BROWSER_HOVER_TOOL = "agent_browser_hover";
-/** agent-browser 0.37.0 offers upload and hover only in its 156-tool "all" profile, so Dusk Bot runs these two through the daemon's relay. */
+/** agent-browser 0.37.0 offers upload and hover only in its 156-tool "all" profile, so dusk bot runs these two through the daemon's relay. */
 const RELAYED_TOOL_SPECS = [
   {
     name: BROWSER_UPLOAD_TOOL,
@@ -293,7 +293,7 @@ class BrowserClient {
 export type ApplyViewport = (spec: BrowserSpawnSpec, size: PageSize) => Promise<unknown>;
 
 type LaunchSpec = { command: string; env?: Record<string, string | undefined> };
-/** The browser the engine starts, prepared by Dusk Bot. */
+/** The browser the engine starts, prepared by dusk bot. */
 export interface BrowserLaunch {
   /** Before the engine may start the browser; rejects with a message for the bot while it cannot start yet. */
   ready(spec: LaunchSpec): Promise<void>;
@@ -505,7 +505,7 @@ export class BrowserRuntime {
     const toolName = toolNameOf(params);
     const gate = this.gate(session);
     if (gate.uncertain) {
-      if (method === "tools/list") return withOmbTools(this.toolLists.get(session) ?? { tools: [] });
+      if (method === "tools/list") return withDuskTools(this.toolLists.get(session) ?? { tools: [] });
       if (gate.owner !== null) throw new Error(BROWSER_CONTROL_REFUSAL);
       const lostCall = gate.lostCall;
       if (lostCall === null) return stuckBrowserToolError();
@@ -539,7 +539,7 @@ export class BrowserRuntime {
         const pageUrl = () => entry.client.rpc("tools/call", { name: "agent_browser_get_url", arguments: {} }, Math.max(1, Math.min(followUpMs(), 5_000)))
           .then((result) => firstText(result).trim(), (error: unknown) => { if (error instanceof TransportError) throw error; return ""; });
         if (toolName === "agent_browser_eval" && await this.holds.refuses(session, pageUrl)) return { isError: true, content: [{ type: "text", text: SECRET_ON_PAGE }] };
-        // Launch and session parameters Dusk Bot owns never reach the engine from a call.
+        // Launch and session parameters dusk bot owns never reach the engine from a call.
         const request = method === "tools/call" ? this.pageSizes.callArguments(session, stripHarnessOwnedArguments(params)) : params;
         const args = (request as { arguments?: unknown } | null)?.arguments;
         const call: StepCall | null = this.steps && method === "tools/call" && toolName !== undefined ? {
@@ -588,7 +588,7 @@ export class BrowserRuntime {
         phases.engineMs = performance.now() - engineStarted;
         beforeDispatch?.();
         if (method === "tools/list") {
-          const tools = withOmbTools(slimBrowserToolList(result));
+          const tools = withDuskTools(slimBrowserToolList(result));
           this.toolLists.set(session, tools);
           return tools;
         }
@@ -978,7 +978,7 @@ export class BrowserRuntime {
     gate.closing = true;
     this.changed(gate);
     try {
-      if (!await closeBrowser()) throw new Error("The browser could not be closed. Ask the person to press Restart in the Browser panel of Dusk Bot on their computer, or to restart Dusk Bot.");
+      if (!await closeBrowser()) throw new Error("The browser could not be closed. Ask the person to press Restart in the Browser panel of dusk bot on their computer, or to restart dusk bot.");
       this.steps?.forget(session);
       this.launch?.stopped(session);
       await this.clients.get(session)?.client.stop();
@@ -1055,7 +1055,7 @@ function asToolResult(result: unknown): ToolResult {
   return { content, ...(record?.isError === true ? { isError: true } : {}) };
 }
 
-function withOmbTools(result: unknown): unknown {
+function withDuskTools(result: unknown): unknown {
   if (!result || typeof result !== "object" || !Array.isArray((result as { tools?: unknown }).tools)) return result;
   const own = [...RELAYED_TOOL_SPECS, AGENT_BROWSER_BATCH_SPEC, BROWSER_RESTART_TOOL_SPEC];
   const tools = ((result as { tools: unknown[] }).tools).filter((tool) => !own.some((spec) => spec.name === (tool as { name?: unknown } | null)?.name));

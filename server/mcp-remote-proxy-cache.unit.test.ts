@@ -17,7 +17,7 @@ const request = (cache: RemoteMcpMetadataCache, method: string, params: unknown 
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; };
 
 async function fixture() {
-  const directory = mkdtempSync(join(tmpdir(), "omb-mcp-metadata-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-mcp-metadata-"));
   homes.push(directory);
   const file = join(directory, `${remoteMcpCacheKey(spec, {})}.json`);
   const upstream = { initialize: vi.fn(async () => initialize), request: vi.fn(async (_method: string, _params: unknown): Promise<unknown> => listed("old")) };
@@ -120,7 +120,7 @@ describe("remote MCP disk metadata", () => {
   });
 
   it.each([
-    ["/tmp/omb-remote-cache-fixture", "/tmp/omb-test-home-fixture"],
+    ["/tmp/dusk-remote-cache-fixture", "/tmp/dusk-test-home-fixture"],
     ["/tmp/custom-cache", "/tmp/engine-home"],
     ["/data/remote-mcp-cache", "/data/person-home"],
     ["/data/remote-mcp-cache", "/data/engine-homes-other/member-a"],

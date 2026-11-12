@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 export type ThemePref = "dark" | "light" | "system";
-const KEY = "omb-dash-theme";
+const KEY = "dusk-dash-theme";
 const listeners = new Set<() => void>();
 const light = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: light)") : null;
 

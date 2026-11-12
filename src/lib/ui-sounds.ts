@@ -17,7 +17,7 @@ export type UiSoundName = keyof typeof UI_SOUNDS;
 
 export const UI_SOUND_NAMES = Object.keys(UI_SOUNDS) as UiSoundName[];
 export const DEFAULT_UI_SOUND: UiSoundName = "open-blip";
-export const UI_SOUND_KEY = "omb-notification-sound";
+export const UI_SOUND_KEY = "dusk-notification-sound";
 
 let audio: HTMLAudioElement | null = null;
 

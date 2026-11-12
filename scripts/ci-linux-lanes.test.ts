@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function scratch() {
-  const directory = mkdtempSync(join(tmpdir(), "omb-ci-lanes-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-ci-lanes-"));
   temporaryDirectories.push(directory);
   return directory;
 }

@@ -19,7 +19,7 @@ export const KEY_SECTIONS: ReadonlyArray<{ id: KeySectionId; titleKey: LocaleKey
 
 export type TestableProvider = "anthropic" | "openai" | "openrouter" | "openaiCompat" | "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "treg";
 
-export type DesktopSlot = Parameters<NonNullable<NonNullable<Window["ogb"]>["setCredential"]>>[0];
+export type DesktopSlot = Parameters<NonNullable<NonNullable<Window["duskDesktop"]>["setCredential"]>>[0];
 
 export interface SavedState { configured: boolean; last4?: string; included?: boolean }
 

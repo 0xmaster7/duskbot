@@ -72,7 +72,7 @@ describe.skipIf(process.platform === "win32")("Grok Build sign-in with a device 
 
   beforeEach(() => {
     chmodSync(FAKE_GROK, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-grok-device-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-grok-device-"));
     instances = [];
   });
   afterEach(async () => {
@@ -203,7 +203,7 @@ describe.skipIf(process.platform === "win32")("Grok Build sign-in with a device 
     const instance = await grok("approve");
     const start = await instance.startAuthentication!();
     expect((await instance.getAuthentication!(start.flowId!)).phase).toBe("waiting");
-    writeFileSync(join(home, ".omb-fake-grok-approved"), "approve fixture only\n");
+    writeFileSync(join(home, ".dusk-fake-grok-approved"), "approve fixture only\n");
     await expect.poll(async () => (await instance.getAuthentication!(start.flowId!)).phase, { timeout: 5_000 }).toBe("succeeded");
   });
 });

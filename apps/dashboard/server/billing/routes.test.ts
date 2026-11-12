@@ -30,7 +30,7 @@ async function listen(server: Server) {
   return `http://127.0.0.1:${address.port}`;
 }
 function dataDirectory() {
-  const dir = mkdtempSync(join(tmpdir(), "omb-billing-routes-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-billing-routes-"));
   cleanup.push(() => rmSync(dir, { recursive: true, force: true })); return dir;
 }
 async function fixture() {
@@ -52,7 +52,7 @@ async function fixture() {
     const start = await answer<{ attempt: string }>("/v1/auth/start", { email });
     const res = await page("/v1/auth/verify", { attempt: start.attempt, code: mailer.outbox.findLast(item => item.to === email && /\b\d{8}\b/.test(item.text))?.text.match(/\b\d{8}\b/)?.[0] }); expect(res.status).toBe(200);
     const { account, csrfToken } = await read<{ account: { id: string; email: string }; csrfToken: string }>(res);
-    const cookie = res.headers.getSetCookie().find(value => value.startsWith("omb_dash="))!.split(";")[0];
+    const cookie = res.headers.getSetCookie().find(value => value.startsWith("dusk_dash="))!.split(";")[0];
     csrf.set(cookie, csrfToken);
     return { cookie, account, csrfToken };
   }
@@ -104,7 +104,7 @@ it("separates cookie and app credentials and preserves billing origin and CORS b
     const response = await fetch(`${f.origin}/api/cloud/desktop/license`, { headers: { cookie: owner.cookie, ...(token ? { authorization: `Bearer ${token}` } : {}) } });
     expect(response.status).toBe(401); expect(await response.json()).toEqual({ error: "invalid_token" });
   }
-  for (const cookie of [undefined, `omb_dash=${grant.accessToken}`, `omb_dash=${grant.accessToken.slice(4)}`]) {
+  for (const cookie of [undefined, `dusk_dash=${grant.accessToken}`, `dusk_dash=${grant.accessToken.slice(4)}`]) {
     const response = await fetch(`${f.origin}/v1/billing/overview`, { headers: { authorization: `Bearer ${grant.accessToken}`, ...(cookie ? { cookie } : {}) } });
     expect(response.status).toBe(401); expect(await response.json()).toMatchObject({ code: "signed_out" });
   }
@@ -152,7 +152,7 @@ it("runs the dashboard billing lifecycle over HTTP, including signed workspace r
   expect(link.workspaceId).toBe(cloud.workspaceId); expect(bootstrap.files[0].mode).toBe(0o600);
   const raw = JSON.stringify({ v: 1, seq: 1, at: f.now(), workspace: { name: "Paid fixture", kind: "vps", version: "1.0.0", platform: "linux" } });
   const signature = sign(null, Buffer.from(signedPayload("POST", "/v1/report", f.now(), createHash("sha256").update(raw).digest("hex"))), createPrivateKey({ key: Buffer.from(link.privateKey, "base64"), format: "der", type: "pkcs8" })).toString("base64");
-  const report = await fetch(`${f.origin}/v1/report`, { method: "POST", headers: { "content-type": "application/json", "x-omb-workspace": link.workspaceId, "x-omb-time": String(f.now()), "x-omb-signature": signature }, body: raw }); expect(report.status).toBe(200);
+  const report = await fetch(`${f.origin}/v1/report`, { method: "POST", headers: { "content-type": "application/json", "x-dusk-workspace": link.workspaceId, "x-dusk-time": String(f.now()), "x-dusk-signature": signature }, body: raw }); expect(report.status).toBe(200);
   cloud = (await f.answer<{ cloud: CloudDesktopView }>(`/v1/clouds/${cloud.id}`, undefined, cookie)).cloud; expect(cloud.lastReportAt).toBe(f.now());
   expect(await f.answer(`/v1/clouds/${cloud.id}`, { name: "Paid Cloud", color: "blue", ignored: true }, cookie, "PATCH")).toMatchObject({ cloud: { name: "Paid Cloud", color: "blue" } });
   expect(await f.answer(`/v1/clouds/${cloud.id}/power`, { action: "off" }, cookie)).toMatchObject({ cloud: { status: "stopped" } });
@@ -271,7 +271,7 @@ it("keeps billing off outside loopback, checks startup configuration, and never 
   const noClouds = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "fake" } })); cleanup.push(() => noClouds.close());
   const checkout = await noClouds.service.checkout({ id: "a", email: "a@example.test" }, { kind: "cart", cart: { ...BILLING_CONFIG.bundles[1].cart, interval: "month" } });
   for (const delivery of noClouds.fake!.complete([...noClouds.fake!.sessions.keys()][0])) noClouds.service.handleWebhook(delivery.headers, delivery.body);
-  await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "Dusk Cloud is not configured." });
+  await noClouds.clouds.reconcile(); expect(noClouds.clouds.get(checkout.cloudId!)!).toMatchObject({ status: "provisioning", error: "dusk cloud is not configured." });
 });
 
 it("never mounts fake completion at a public origin even when fake mode is explicitly configured", async () => {
@@ -287,7 +287,7 @@ it("refuses deletion with both billing blockers before changing the account or b
   const before = f.saved(), clouds = readFileSync(join(f.dir, "clouds.json"), "utf8");
   const response = await f.page("/v1/account/delete", { email: owner.account.email }, owner.cookie);
   expect(response.status).toBe(409);
-  expect(await response.json()).toEqual({ error: "Cancel your plan and Dusk Cloud before deleting your account.", code: "billing_active", blockers: [
+  expect(await response.json()).toEqual({ error: "Cancel your plan and dusk cloud before deleting your account.", code: "billing_active", blockers: [
     { kind: "subscription", id: before.subscriptions[0].id, label: BILLING_CONFIG.bundles.find(b => b.id === "starter")!.label, status: "active" },
     { kind: "cloud_desktop", id: checkout.cloudId, label: "My desktop", status: "running" },
   ] });

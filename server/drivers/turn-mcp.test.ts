@@ -24,7 +24,7 @@ const turn = (extra: Partial<SendTurnInput> = {}): SendTurnInput => ({
   ...extra,
 } as SendTurnInput);
 
-describe("Dusk Bot's own MCP servers for an engine that reaches servers by URL", () => {
+describe("dusk bot's own MCP servers for an engine that reaches servers by URL", () => {
   it("turns each own proxy into this server's endpoint with the same capability, and leaves the person's servers as they are", () => {
     const servers = acpMcpServers(turn(), { http: true });
     expect(servers.map((server) => [server.name, "url" in server ? server.url : server.command])).toEqual([
@@ -60,7 +60,7 @@ describe("Dusk Bot's own MCP servers for an engine that reaches servers by URL",
 describe("a bot's own VPS computer bridge", () => {
   const computer = {
     command: process.execPath,
-    args: [SPAWNED_PROXIES.vpsContainerMcp, "fixture-vps", "omb-bot-fixture"],
+    args: [SPAWNED_PROXIES.vpsContainerMcp, "fixture-vps", "dusk-bot-fixture"],
     env: { ELECTRON_RUN_AS_NODE: "1", DUSK_CONTROL_URL: HARNESS, DUSK_CONTROL_TOKEN: "turn-control-capability" },
   };
   const input = (toolScope?: SendTurnInput["toolScope"]): SendTurnInput => turn({

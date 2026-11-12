@@ -77,12 +77,12 @@ Generate the Xcode project with `xcodegen generate --spec ios/project.yml`.
 Create a fresh simulator, then run:
 
 ```sh
-xcodebuild -project ios/OpenMausCompanion.xcodeproj \
-  -scheme OpenMausCompanion \
+xcodebuild -project ios/DuskCompanion.xcodeproj \
+  -scheme DuskCompanion \
   -destination 'platform=iOS Simulator,id=YOUR_DISPOSABLE_SIMULATOR_ID' \
   -resultBundlePath /tmp/mobile-images.xcresult \
   -parallel-testing-enabled NO \
-  -only-testing:OpenMausCompanionUITests/GeneratedImageUITests \
+  -only-testing:DuskCompanionUITests/GeneratedImageUITests \
   CODE_SIGNING_ALLOWED=NO test
 ```
 

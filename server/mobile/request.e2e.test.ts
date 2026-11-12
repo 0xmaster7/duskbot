@@ -1,7 +1,7 @@
 import { basename } from "node:path";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { launchVerificationServer } from "../../scripts/control-omb.ts";
+import { launchVerificationServer } from "../../scripts/control-dusk.ts";
 import type { MobilePairingResponse, MobileRedeemResponse } from "../../shared/mobile-link.ts";
 import { sessionCookieName } from "../request-auth.ts";
 
@@ -27,10 +27,10 @@ it("serves a redeemed phone's JSON, upload, download and SSE with bearer-only CO
 
     for (const [path, method] of [["/api/bots", "GET"], ["/api/attachments", "POST"], ["/api/events", "GET"]]) {
       const preflight = await fetch(`${base}${path}`, { method: "OPTIONS", headers: { origin,
-        "access-control-request-method": method, "access-control-request-headers": "authorization, content-type, last-event-id, x-omb-background" } });
+        "access-control-request-method": method, "access-control-request-headers": "authorization, content-type, last-event-id, x-dusk-background" } });
       expect(preflight.status).toBe(204);
       checkCors(preflight);
-      expect(preflight.headers.get("access-control-allow-headers")).toBe("Authorization, Content-Type, Last-Event-ID, X-Omb-Background");
+      expect(preflight.headers.get("access-control-allow-headers")).toBe("Authorization, Content-Type, Last-Event-ID, X-Dusk-Background");
     }
     const bots = await fetch(`${base}/api/bots`, { headers });
     expect(bots.status).toBe(200);

@@ -15,7 +15,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const PERSONAL = "My Cloud is personal: only your own devices can connect.";
 const secret = randomBytes(32).toString("base64url");
 let home = "", dataDir = "", base = "", port = 0, log = "";
@@ -39,11 +39,11 @@ async function api(method: string, path: string, options: { body?: unknown; toke
   return { status: response.status, body: await response.json().catch(() => null) as any };
 }
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   return (await api("POST", "/api/auth/pair", { body: { code: granted.code } })).body.token;
@@ -100,7 +100,7 @@ async function boot(asCloud: boolean) {
 async function shutdown() { if (child) await waitForExit(child, { signal: "SIGTERM" }); child = undefined; }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-personal-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-personal-"));
   dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(project(), { recursive: true });

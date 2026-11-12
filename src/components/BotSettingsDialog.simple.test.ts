@@ -272,7 +272,7 @@ beforeEach(() => {
   fixture.places = {
     cloud: [true, true, "Cloud desktop"], vm: [true, true, "Private desktop"], local: [true, true, "Your screen"], browser: [true, true, "Web pages only"],
   };
-  (window as unknown as { ogb?: unknown }).ogb = undefined;
+  (window as unknown as { duskDesktop?: unknown }).duskDesktop = undefined;
 });
 
 describe("the bot panel in Simple mode", () => {
@@ -978,7 +978,7 @@ describe("the drill-in pages", () => {
 
   it("keeps the bot's own private folder, or a folder chosen with the native picker, saved through the bot route", async () => {
     const pickFolder = vi.fn(() => Promise.resolve("/Users/omkar/Projects/site"));
-    (window as unknown as { ogb: unknown }).ogb = { pickFolder };
+    (window as unknown as { duskDesktop: unknown }).duskDesktop = { pickFolder };
     const rendered = body("folder");
     expect(find(rendered, "data-panel-choice", "private").props.checked).toBe(true);
     expect(find(rendered, "data-panel-choice", "pick").props.checked).toBe(false);

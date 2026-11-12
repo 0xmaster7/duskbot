@@ -35,7 +35,7 @@ Launch the headless chat UI with a slow fake engine, as in
 
 ```sh
 FAKE_CLAUDE_SLOW_FINISH_GATE=/tmp/widget-gate \
-  node --experimental-strip-types scripts/control-omb.ts ui launch --mode slow
+  node --experimental-strip-types scripts/control-dusk.ts ui launch --mode slow
 ```
 
 Send Pepper a message so a turn is open, read that turn's `DUSK_COMMS_TOKEN`
@@ -46,12 +46,12 @@ file to let the turn finish, then:
 
 ```sh
 H=/tmp/duskbot-verify-data-XXXXXX/ui.json
-pnpm control:omb ui snapshot --ui $H
-pnpm control:omb ui click --ui $H --name "Create routine"
-pnpm control:omb ui wait-settle --ui $H --timeout 60
-pnpm control:omb ui click --ui $H --name "Details"
-pnpm control:omb ui screenshot --ui $H --out .omb-scratch/verify-evidence/widgets.png
-pnpm control:omb ui console --ui $H
+pnpm control:dusk ui snapshot --ui $H
+pnpm control:dusk ui click --ui $H --name "Create routine"
+pnpm control:dusk ui wait-settle --ui $H --timeout 60
+pnpm control:dusk ui click --ui $H --name "Details"
+pnpm control:dusk ui screenshot --ui $H --out .dusk-scratch/verify-evidence/widgets.png
+pnpm control:dusk ui console --ui $H
 ```
 
 Expected: the snapshot holds a `Pull requests` list with three rows and the

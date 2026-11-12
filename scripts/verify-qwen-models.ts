@@ -1,14 +1,14 @@
-// Offline end-to-end Qwen selection, using the standard isolated Dusk Bot launcher.
+// Offline end-to-end Qwen selection, using the standard isolated dusk bot launcher.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { launchVerificationServer, runControlOmb } from "./control-omb.ts";
+import { launchVerificationServer, runControlDusk } from "./control-dusk.ts";
 import { readQwenModelCatalog } from "../server/drivers/acp/qwen.ts";
 
 const fixture = await launchVerificationServer();
 const { url, dataDir } = fixture.info;
-const control = (args: string[]) => runControlOmb([...args, "--url", url]);
+const control = (args: string[]) => runControlDusk([...args, "--url", url]);
 const evidence: unknown[] = [];
 try {
   mkdirSync(join(dataDir, ".qwen"));
@@ -63,7 +63,7 @@ await import(${JSON.stringify(fake)});
     evidence.push({ name, model, wait, messages, calls, rpc });
   }
   // Qwen acknowledges a live load without replacing its MCP configuration, so
-  // a changed bearer would need a fresh child. Dusk Bot keeps the agents bearer
+  // a changed bearer would need a fresh child. dusk bot keeps the agents bearer
   // while the grants are unchanged, so one child and its live session serve
   // every turn. Real proxy calls prove authentication on each turn, and the
   // bearer is refused once each turn settles.

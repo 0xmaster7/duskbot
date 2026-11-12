@@ -56,7 +56,7 @@ export function createBrowserLoops(deps: { stop(stop: BrowserStop): void }) {
   const halt = (threadId: string, blocker: BrowserBlocker, cause: string): Result => {
     threads.delete(threadId);
     deps.stop({ threadId, blocker, cause });
-    return { isError: true, content: [{ type: "text", text: `Dusk Bot stopped this run: ${cause}. Do not try again; the person decides what happens next.` }] };
+    return { isError: true, content: [{ type: "text", text: `dusk bot stopped this run: ${cause}. Do not try again; the person decides what happens next.` }] };
   };
 
   return {
@@ -88,7 +88,7 @@ export function createBrowserLoops(deps: { stop(stop: BrowserStop): void }) {
       const kind = terminalKind(text);
       if (!kind || !state.site || told) return result;
       state.final.set(state.site, kind);
-      return { ...result, content: [...(result.content ?? []), { type: "text", text: `Dusk Bot note: on ${state.site}, ${NOTE[kind]}. That is final: do not retry it, a variation of it, or this site in this turn. Tell the person what happened and what they can do.` }] };
+      return { ...result, content: [...(result.content ?? []), { type: "text", text: `dusk bot note: on ${state.site}, ${NOTE[kind]}. That is final: do not retry it, a variation of it, or this site in this turn. Tell the person what happened and what they can do.` }] };
     },
 
     /** A turn's end forgets what its calls saw. */

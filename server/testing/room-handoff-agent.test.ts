@@ -6,7 +6,7 @@ import { removeTempDir } from "./cleanup.ts";
 import { ownTurnText, runRoomHandoffAgent } from "./room-handoff-agent.ts";
 
 async function withMcp(script: string, test: (run: () => Promise<string>, dir: string) => Promise<void>) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-handoff-process-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-handoff-process-"));
   const config = join(dir, "mcp.json");
   const prompt = join(dir, "system.txt");
   const plan = join(dir, "plan.json");

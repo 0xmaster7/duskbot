@@ -24,7 +24,7 @@ const ENGINE = `process.env.FAKE_CLAUDE_ROOM_PLAN = process.env.FAKE_CLAUDE_FIXT
 const SECRET = "Zebrafinch42";
 const SHARED = "Okapi77";
 const PASSWORD = "correct horse battery staple";
-const clockDir = mkdtempSync(join(tmpdir(), "omb-wait-clock-"));
+const clockDir = mkdtempSync(join(tmpdir(), "dusk-wait-clock-"));
 const CLOCK = join(clockDir, "offset");
 writeFileSync(CLOCK, "0");
 
@@ -183,9 +183,9 @@ it("the Owner's export carries the team's chats and nothing of a member's alone,
   expect(made.status, JSON.stringify(made.body)).toBe(200);
   const download = await fetch(`${team.base}/api/workspace-backup/download/${made.body.id}`, { headers: { ...fx.edge, authorization: `Bearer ${ada}` } });
   expect(download.status).toBe(200);
-  const unpack = mkdtempSync(join(tmpdir(), "omb-team-export-"));
+  const unpack = mkdtempSync(join(tmpdir(), "dusk-team-export-"));
   try {
-    const archive = join(unpack, "export.ombbackup");
+    const archive = join(unpack, "export.duskbackup");
     writeFileSync(archive, Buffer.from(await download.arrayBuffer()));
     const staged = await stageWorkspaceBackup(unpack, archive, { password: PASSWORD, currentAppVersion: made.body.summary.appVersion });
     const { data } = stagedWorkspaceData(unpack, staged.id);

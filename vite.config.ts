@@ -119,10 +119,10 @@ export default defineConfig({
     proxy: {
       "/api": {
         ws: true,
-        target: `http://127.0.0.1:${process.env.DUSK_PORT || process.env.OGB_PORT || 8799}`,
+        target: `http://127.0.0.1:${process.env.DUSK_PORT || process.env.DUSK_PORT || 8799}`,
       },
       "/.well-known/duskbot/environment": {
-        target: `http://127.0.0.1:${process.env.DUSK_PORT || process.env.OGB_PORT || 8799}`,
+        target: `http://127.0.0.1:${process.env.DUSK_PORT || process.env.DUSK_PORT || 8799}`,
       },
     },
   },

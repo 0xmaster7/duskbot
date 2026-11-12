@@ -4,4 +4,4 @@ import { createContext } from "react";
 export const ActiveConnection = createContext<string | null>(null);
 
 /** where a connection's unsent messages wait (src/mobile/outbox.ts) */
-export const outboxKey = (connection: string) => `omb.mobile.outbox.${connection}`;
+export const outboxKey = (connection: string) => `dusk.mobile.outbox.${connection}`;

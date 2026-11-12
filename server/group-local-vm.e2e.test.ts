@@ -66,7 +66,7 @@ const roomOutcome = (groupId: string) => until(() => readHandoffs(join(fixtureHo
   Boolean);
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-group-vm-"));
+  fixtureHome = mkdtempSync(join(tmpdir(), "dusk-group-vm-"));
   stateFile = join(fixtureHome, "vm.json");
   dumpFile = join(fixtureHome, "dump.json");
   finishFile = join(fixtureHome, "finish");
@@ -536,7 +536,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       expect(available.options.map((option: any) => option.surface)).toEqual(["cloud", "vm", "local", "browser"]);
       expect(before.mcpConfig.mcpServers.agents.env.DUSK_CLOUD_HOME).toBe("0");
       expect(before.systemPrompt).not.toContain(cloudHomePrompt());
-      expect(before.systemPrompt).not.toContain("You run on the user's Dusk Cloud");
+      expect(before.systemPrompt).not.toContain("You run on the user's dusk cloud");
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "vm", available: true }));
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "cloud", ready: false, canCreate: true }));
       expect(await (await call("POST", { surface: "auto" })).json()).toMatchObject({ status: "pending", surface: "vm" });
@@ -750,7 +750,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
 
   it.skipIf(process.platform === "linux")("carries the recorded macOS permission failure into the failed turn", async () => {
     const { bots, group } = await room();
-    const reason = "embedded host failed: Screen Recording required; grant access in System Settings and restart Dusk Bot";
+    const reason = "embedded host failed: Screen Recording required; grant access in System Settings and restart dusk bot";
     mkdirSync(dirname(cuaDescriptor), { recursive: true });
     writeFileSync(cuaDescriptor, JSON.stringify({ mode: "unavailable", reason }), { mode: 0o600 });
     await appHandsItOver();
@@ -759,7 +759,7 @@ describe("Group Local VM ownership on the real isolated server", () => {
       await send(group.id);
       const state = await until(() => api("GET", "/api/bots?messages=30"),
         value => JSON.stringify(value).includes(reason));
-      if (process.platform === "darwin") expect(JSON.stringify(state)).toContain("Relaunch Dusk Bot after granting the missing macOS permission");
+      if (process.platform === "darwin") expect(JSON.stringify(state)).toContain("Relaunch dusk bot after granting the missing macOS permission");
       await idle(bots[0].id);
       expect(existsSync(dumpFile)).toBe(false);
     } finally {

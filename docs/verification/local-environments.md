@@ -91,14 +91,14 @@ Simulate an environment on a drive that is gone, without a real drive:
 Make the **active** environment unbootable:
 
 1. Quit the app. Create an unwritable parent, e.g.
-   `sudo mkdir /opt/omb-locked && sudo chmod 500 /opt/omb-locked`, set the
-   active entry's `dataDir` to `/opt/omb-locked/env` and `activeId` to that
+   `sudo mkdir /opt/dusk-locked && sudo chmod 500 /opt/dusk-locked`, set the
+   active entry's `dataDir` to `/opt/dusk-locked/env` and `activeId` to that
    entry's id.
 2. Launch. Expect the boot to fail across the port schedule (a child that
    cannot create its data dir exits quickly; a hung child burns the full
    probe timeout per attempt), then:
    - the installation comes up on This computer with normal data,
-   - a dialog titled **"The environment was unhealthy"** says Dusk Bot
+   - a dialog titled **"The environment was unhealthy"** says dusk bot
      "came up on this computer's default data folder instead" and to choose
      the environment again once it is available,
    - `environments.json` shows `activeId` reset to `"local"`, and the entry

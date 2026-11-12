@@ -17,7 +17,7 @@ export function WorkspaceBackupRestartNotice({ onRetry }: { onRetry?: () => void
   const [restarting, setRestarting] = useState(false);
   const [error, setError] = useState(false);
   const lock = useRef(false);
-  const relaunch = typeof window !== "undefined" && !window.ogb?.remoteClient?.active ? window.ogb?.relaunch : undefined;
+  const relaunch = typeof window !== "undefined" && !window.duskDesktop?.remoteClient?.active ? window.duskDesktop?.relaunch : undefined;
   const restart = async () => {
     if (!relaunch || lock.current || restarting) return;
     lock.current = true; setRestarting(true); setError(false);
@@ -170,7 +170,7 @@ export function WorkspaceBackupSettings() {
           {/* the native picker, drawn as the row's pill */}
           <label className={cn("ui-button cursor-pointer", disabled && "pointer-events-none opacity-45")}>
             {t("settings.s2.backup.chooseFile")}
-            <input type="file" accept=".ombbackup" disabled={disabled} className="sr-only"
+            <input type="file" accept=".duskbackup,.ombbackup" disabled={disabled} className="sr-only"
               onChange={(event) => { setFile(event.target.files?.[0] ?? null); setUploadedId(null); setPreview(null); setConfirmation(""); setImportPassword(""); setError(null); }} />
           </label>
         </ItemRow>

@@ -12,7 +12,7 @@ let started = false;
 const listeners = new Set<(state: RailState) => void>();
 
 function bridge() {
-  const workspaces = typeof window === "undefined" || window.ogb?.remoteClient?.active ? undefined : window.ogb?.workspaces;
+  const workspaces = typeof window === "undefined" || window.duskDesktop?.remoteClient?.active ? undefined : window.duskDesktop?.workspaces;
   return workspaces?.places ? workspaces : undefined;
 }
 

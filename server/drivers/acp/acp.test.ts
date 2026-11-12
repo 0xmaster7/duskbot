@@ -268,7 +268,7 @@ describe("ACP turns (fake CLI)", () => {
     delete process.env.AGY_ACP_DEFAULT_MODEL;
     ensureDirs();
     chmodSync(FAKE_CLI, 0o755);
-    scratch = mkdtempSync(join(tmpdir(), "omb-acp-test-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-acp-test-"));
   });
 
   afterEach(async () => {
@@ -316,7 +316,7 @@ describe("ACP turns (fake CLI)", () => {
     delete process.env.FAKE_ACP_UPDATES_FILE;
     delete process.env.DUSK_ACP_PLAN_LINES;
     delete process.env.FAKE_ACP_DUMP_PROMPT;
-    delete process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS;
+    delete process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS;
     delete process.env.DUSK_ACP_QUIET_NOTICE_MS;
     delete process.env.DUSK_ACP_QUIET_TICK_MS;
     delete process.env.FAKE_ACP_QUIET_MS;
@@ -490,7 +490,7 @@ describe("ACP turns (fake CLI)", () => {
       .toBe("Standing rules.\n\nMemory: likes quiet hours.\n\nfirst");
     expect(await send("second", "Memory: likes quiet hours.")).toBe("second");
     expect(await send("third", "Memory: moved to Toronto."))
-      .toBe("Context from Dusk Bot updated since this conversation started; it replaces any earlier copy:\n\nMemory: moved to Toronto.\n\nthird");
+      .toBe("Context from dusk bot updated since this conversation started; it replaces any earlier copy:\n\nMemory: moved to Toronto.\n\nthird");
     expect(await send("fourth", "")).toContain("have been cleared");
     expect(await send("fifth", "")).toBe("fifth");
   });
@@ -1187,7 +1187,7 @@ describe("ACP turns (fake CLI)", () => {
     });
   });
 
-  it("hands an agent that reaches MCP servers by URL Dusk Bot's own servers as endpoints of this server, no proxy process", async () => {
+  it("hands an agent that reaches MCP servers by URL dusk bot's own servers as endpoints of this server, no proxy process", async () => {
     await create(createAcpDriver({ ...SELECT_MODEL_SUPPORT, driverKind: "httpMcpTest", selectModel: undefined, ownMcpOverHttp: true }));
     const dump = join(scratch, "own-http.json");
     process.env.FAKE_ACP_DUMP = dump;
@@ -1362,7 +1362,7 @@ describe("ACP turns (fake CLI)", () => {
   it.each([
     ["advertises no remote transport", undefined],
     ["advertises http and sse", "http,sse"],
-  ])("mounts every url server as Dusk Bot's connector for an agent that %s", async (_name, transports) => {
+  ])("mounts every url server as dusk bot's connector for an agent that %s", async (_name, transports) => {
     if (transports) process.env.FAKE_ACP_MCP_TRANSPORTS = transports;
     try {
       await create();
@@ -1385,7 +1385,7 @@ describe("ACP turns (fake CLI)", () => {
   });
 
   // The fake agent connects each mounted server with grok 1.0.25's handshake, which a strict server refuses.
-  it("lists a strict url server's tools through Dusk Bot's connector, even for an agent that speaks http", async () => {
+  it("lists a strict url server's tools through dusk bot's connector, even for an agent that speaks http", async () => {
     const strict = await startFakeHttpMcp({ strictInitialize: "http-400", strictSchema: "2025-11-25",
       tools: [{ name: "report", inputSchema: { type: "object" } }, { name: "campaigns", inputSchema: { type: "object" } }],
       requireHeader: { name: "Authorization", value: "Bearer tok-voluum" } });
@@ -1398,7 +1398,7 @@ describe("ACP turns (fake CLI)", () => {
       expect(await recorder.until((event) => event.type === "turn.completed")).toMatchObject({ ok: true });
       const text = recorder.events.find((event) => event.type === "item.completed" && (event as { itemType?: string }).itemType === "assistant_text");
       expect((text as { text?: string } | undefined)?.text).toBe("voluum: report,campaigns");
-      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "Dusk Bot tool proxy", version: "1" } }]);
+      expect(strict.initializes).toEqual([{ protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dusk bot tool proxy", version: "1" } }]);
     } finally {
       delete process.env.FAKE_ACP_MCP_TRANSPORTS;
       await strict.close();
@@ -2086,7 +2086,7 @@ describe("ACP turns (fake CLI)", () => {
   });
 
   it("does not expire an agent while a person is answering an approval", async () => {
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
     await create(GrokAgentDriver, "permission");
     await instance.adapter.sendTurn({ threadId: "t-idle-approval", text: "go", approvalMode: "ask" });
     const opened = await recorder.until(e => e.type === "request.opened");
@@ -2099,7 +2099,7 @@ describe("ACP turns (fake CLI)", () => {
   });
 
   it.each([GrokAgentDriver, QwenAgentDriver])("does not expire $driverKind while a tool it started is still running", async (driver) => {
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
     process.env.FAKE_ACP_TOOL_MS = "600";
     await create(driver, "slow-tool");
     await instance.adapter.sendTurn({ threadId: "t-slow-tool", text: "go" });
@@ -2140,7 +2140,7 @@ describe("ACP turns (fake CLI)", () => {
   });
 
   it.each([GrokAgentDriver, QwenAgentDriver])("still fails $driverKind when it goes silent once its tool has finished", async (driver) => {
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
     await create(driver, "stall-after-tool");
     await instance.adapter.sendTurn({ threadId: "t-stall-tool", text: "go" });
     expect(await recorder.until(e => e.type === "turn.completed")).toMatchObject({ ok: false, stopReason: "rpc_error" });
@@ -2182,7 +2182,7 @@ describe("ACP turns (fake CLI)", () => {
     vi.spyOn(quietStatus, "sampleProcessTree").mockResolvedValue({ cpuMs: 0, connections: 1 });
     process.env.QWEN_HOME = scratch;
     // Margins wide enough for a slow Windows runner: the log must be read well inside the idle guard.
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "1500";
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "1500";
     process.env.DUSK_ACP_QUIET_NOTICE_MS = "150";
     process.env.DUSK_ACP_QUIET_TICK_MS = "50";
     process.env.FAKE_ACP_QUIET_MS = "3500";
@@ -2256,7 +2256,7 @@ describe("ACP turns (fake CLI)", () => {
   });
 
   it("an agent that goes silent mid-answer is failed and closed by the prompt idle guard", async () => {
-    process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
+    process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "150";
     await create(GrokAgentDriver, "stall-after-text");
     await instance.adapter.sendTurn({ threadId: "t-stall", text: "go" });
 
@@ -2266,7 +2266,7 @@ describe("ACP turns (fake CLI)", () => {
     expect(err?.message).toMatch(/no tool running/i);
     // Plain words for the person: no setting names.
     expect(err?.message).toMatch(/Send the message again to retry\.$/);
-    expect(err?.message).not.toContain("OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS");
+    expect(err?.message).not.toContain("DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS");
     expect(err).toMatchObject({ stalled: true });
     expect(recorder.events.some((e) => e.type === "content.delta")).toBe(true);
     expect(instance.adapter.hasSession("t-stall")).toBe(false);
@@ -2644,7 +2644,7 @@ describe("ACP turns (fake CLI)", () => {
     });
 
     it("acknowledges before a prompt timeout and never offers startup recovery afterward", async () => {
-      process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "100";
+      process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "100";
       await create(GrokAgentDriver, "stall-after-text");
       const ack = await instance.adapter.sendTurn({ threadId: "startup-prompt", text: "go", startupRecovery: true });
       expect(recorder.events.some((event) => event.type === "turn.completed")).toBe(false);
@@ -3082,7 +3082,7 @@ describe("ACP turns (fake CLI)", () => {
         return kill(child, timeout);
       });
       if (reason === "prompt stall") {
-        process.env.OPENMAUS_ACP_PROMPT_IDLE_TIMEOUT_MS = "100";
+        process.env.DUSK_ACP_PROMPT_IDLE_TIMEOUT_MS = "100";
         process.env.FAKE_ACP_MODE = "stall-after-text";
       }
       instance = await QwenAgentDriver.create({
@@ -3225,7 +3225,7 @@ describe("ACP snapshot", () => {
   });
 
   it("kimi checks KIMI_CODE_HOME before the child HOME", async () => {
-    const scratch = mkdtempSync(join(tmpdir(), "omb-kimi-auth-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-kimi-auth-"));
     const kimiHome = join(scratch, "custom-kimi-home");
     const childHome = join(scratch, "child-home");
     mkdirSync(join(childHome, ".kimi-code", "credentials"), { recursive: true });
@@ -3250,7 +3250,7 @@ describe("ACP snapshot", () => {
   });
 
   it("droid resolves the signed-in CLI before falling back to FACTORY_API_KEY", async () => {
-    const scratch = mkdtempSync(join(tmpdir(), "omb-droid-auth-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-droid-auth-"));
     const overrideHome = join(scratch, "custom-home");
     const childHome = join(scratch, "child-home");
     mkdirSync(join(childHome, ".factory"), { recursive: true });
@@ -3306,7 +3306,7 @@ describe("ACP snapshot", () => {
   });
 
   it("droid reads custom models, favourites order, and the configured default", async () => {
-    const scratch = mkdtempSync(join(tmpdir(), "omb-droid-models-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-droid-models-"));
     mkdirSync(join(scratch, ".factory"), { recursive: true });
     writeFileSync(
       join(scratch, ".factory", "settings.json"),
@@ -3341,7 +3341,7 @@ describe("ACP snapshot", () => {
   });
 
   it("droid falls back to the built-in catalog when settings.json is unreadable", async () => {
-    const scratch = mkdtempSync(join(tmpdir(), "omb-droid-nosettings-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-droid-nosettings-"));
     mkdirSync(join(scratch, ".factory"), { recursive: true });
     writeFileSync(join(scratch, ".factory", "settings.json"), "{ not json");
 
@@ -3362,7 +3362,7 @@ describe("ACP snapshot", () => {
   });
 
   it("kimi resolves default credentials from the child HOME", async () => {
-    const scratch = mkdtempSync(join(tmpdir(), "omb-kimi-home-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-kimi-home-"));
     const credentialDir = join(scratch, ".kimi-code", "credentials");
     mkdirSync(credentialDir, { recursive: true });
     writeFileSync(join(credentialDir, "kimi-code.json"), "{}");

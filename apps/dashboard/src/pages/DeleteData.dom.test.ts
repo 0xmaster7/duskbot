@@ -46,7 +46,7 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
   const first = await render(createElement(DeleteDataPage, { id: "fx-cloud" }));
   expect(location.hash).toBe("");
   expect(location.pathname + location.search).toBe("/clouds/fx-cloud/delete?fixture=managed");
-  expect(sessionStorage.getItem("omb-dash-delete-token:fx-cloud")).toBe(token);
+  expect(sessionStorage.getItem("dusk-dash-delete-token:fx-cloud")).toBe(token);
   expect([...persisted.values()].some((value) => value.includes(token))).toBe(false);
   expect(first.host.querySelector("h1")?.textContent).toBe("delete the data on Sid's Cloud?");
 
@@ -67,7 +67,7 @@ test("the emailed link: token kept out of the URL, sign in again, confirm shows 
   expect(confirm).toHaveBeenCalledWith("fx-cloud", token);
   const scheduledAt = await confirm.mock.results[0]!.value.then((answer: { deleteScheduledAt: number }) => answer.deleteScheduledAt);
   expect(second.host.querySelector("h1")?.textContent).toBe(`deleting on ${longDate(scheduledAt)}`);
-  expect(sessionStorage.getItem("omb-dash-delete-token:fx-cloud")).toBeNull();
+  expect(sessionStorage.getItem("dusk-dash-delete-token:fx-cloud")).toBeNull();
 
   const cancel = vi.spyOn(api, "cancelDeleteData");
   await act(async () => button(second.host, "cancel deletion")!.click());

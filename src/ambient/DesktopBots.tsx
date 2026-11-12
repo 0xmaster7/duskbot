@@ -65,14 +65,14 @@ export function askReport(bots: readonly Bot[]): { waiting: string[]; settled: s
 
 export function DesktopBots() {
   const { state, dispatch } = useStore();
-  const bridge = typeof window === "undefined" ? undefined : window.ogb?.desktopBots;
+  const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.desktopBots;
   const busy = busyBotNames(state.bots).join("\n");
   useEffect(() => { bridge?.busy(busy ? busy.split("\n") : []); }, [bridge, busy]);
   const latest = useRef(state);
   latest.current = state;
   useEffect(() => bridge?.onStop(({ all }) => { for (const action of stopActions(latest.current, all)) dispatch(action); }), [bridge, dispatch]);
 
-  const notifications = typeof window === "undefined" ? undefined : window.ogb?.desktopNotifications;
+  const notifications = typeof window === "undefined" ? undefined : window.duskDesktop?.desktopNotifications;
   const asks = JSON.stringify(askReport(state.bots));
   useEffect(() => { notifications?.asks?.(JSON.parse(asks)); }, [notifications, asks]);
 

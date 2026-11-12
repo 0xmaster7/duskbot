@@ -19,7 +19,7 @@ afterEach(() => {
   for (const path of scratch.splice(0)) rmSync(path, { recursive: true, force: true });
   if (envBefore === undefined) delete process.env.DUSK_CLOUD_ROLE; else process.env.DUSK_CLOUD_ROLE = envBefore;
 });
-const directory = () => { const path = mkdtempSync(join(tmpdir(), "omb-team-export-")); scratch.push(path); return path; };
+const directory = () => { const path = mkdtempSync(join(tmpdir(), "dusk-team-export-")); scratch.push(path); return path; };
 const json = (path: string, value: unknown) => writeFileSync(path, JSON.stringify(value));
 const file = (path: string, text = "x") => { mkdirSync(join(path, ".."), { recursive: true }); writeFileSync(path, text); };
 

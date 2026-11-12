@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 function tempDir(): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "omb-model-catalog-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "dusk-model-catalog-")));
   dirs.push(dir);
   return dir;
 }

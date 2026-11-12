@@ -50,7 +50,7 @@ export function runAmbientAct(act: AmbientAct, state: AppState, dispatch: Dispat
 
 export function AmbientPublisher() {
   const { state, dispatch } = useStore();
-  const bridge = typeof window === "undefined" ? undefined : window.ogb?.ambient;
+  const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.ambient;
   const [wanted, setWanted] = useState(false);
   const latest = useRef(state);
   latest.current = state;

@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 function withTempDataDir(): string {
-  temp = mkdtempSync(join(tmpdir(), "omb-handoff-"));
+  temp = mkdtempSync(join(tmpdir(), "dusk-handoff-"));
   process.env.DUSK_DATA_DIR = temp;
   return temp;
 }
@@ -48,9 +48,9 @@ describe("writeTurnHandoff", () => {
   });
 
   it("returns null when the handoff cannot be written", () => {
-    process.env.DUSK_DATA_DIR = join(tmpdir(), "omb-handoff-", "does-not-exist", "nested");
+    process.env.DUSK_DATA_DIR = join(tmpdir(), "dusk-handoff-", "does-not-exist", "nested");
     expect(writeTurnHandoff({ threadId: "t", turnId: "u", toolCalls: 0, messages: [] })).not.toBeNull();
-    rmSync(join(tmpdir(), "omb-handoff-"), { recursive: true, force: true });
+    rmSync(join(tmpdir(), "dusk-handoff-"), { recursive: true, force: true });
   });
 });
 

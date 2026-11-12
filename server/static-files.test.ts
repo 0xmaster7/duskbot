@@ -7,7 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { serveStatic, staticEncoding } from "./static-files.ts";
 
-const dir = mkdtempSync(join(tmpdir(), "omb-static-"));
+const dir = mkdtempSync(join(tmpdir(), "dusk-static-"));
 writeFileSync(join(dir, "index.html"), "app");
 writeFileSync(join(dir, "rail.html"), "rail");
 mkdirSync(join(dir, "assets"));

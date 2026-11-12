@@ -2,7 +2,7 @@ import shapes from "./demo-shapes.json";
 
 // A workspace that lives in the page: the same routes and live frames a real one answers with (their shapes are taken
 // from a real server's answers, demo-shapes.json), a small invented team, and replies that say they are pretend. It lets
-// someone see the app before they own a computer running Dusk Bot, and lets a store reviewer use every screen.
+// someone see the app before they own a computer running dusk bot, and lets a store reviewer use every screen.
 
 type Json = Record<string, unknown>;
 type Message = { id: string; at: number; parentId: string | null; role: "user" | "bot"; kind: "text"; text: string; sendId?: string; requestMessageId?: string; requestPending?: boolean; from?: { botId: string; name: string; color: string } };
@@ -46,7 +46,7 @@ const ROOM = { name: "Launch room", members: ["Nova", "Quill", "Rivet"], ago: 12
 
 /** what a bot says back here: in character for a line, then plain about being a demo */
 const REPLIES = [
-  "On it. This is the demo, so I can only pretend: with Dusk Bot on your own computer I would start now and message you when it is done.",
+  "On it. This is the demo, so I can only pretend: with dusk bot on your own computer I would start now and message you when it is done.",
   "Here is how that goes for real: I plan the steps, do the work on your computer, and send you the result. The demo has no computer behind it.",
   "Noted. Link your own computer from Settings and ask me again, and I will pick it up for real.",
 ];

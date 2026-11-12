@@ -11,7 +11,7 @@ const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 const scratch: string[] = [];
 const open: CloudSync[] = [];
 function setup(options: { freeBytes?: number; now?: () => number } = {}) {
-  const home = mkdtempSync(join(tmpdir(), "omb-cloud-sync-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-cloud-sync-"));
   scratch.push(home);
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir);

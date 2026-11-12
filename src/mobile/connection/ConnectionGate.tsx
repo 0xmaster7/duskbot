@@ -37,8 +37,8 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
   const [adding, setAdding] = useState(0);
   useEffect(() => {
     const open = () => setAdding((n) => n + 1);
-    window.addEventListener("omb:link-another", open);
-    return () => window.removeEventListener("omb:link-another", open);
+    window.addEventListener("dusk:link-another", open);
+    return () => window.removeEventListener("dusk:link-another", open);
   }, []);
   // the app never reads the shelf shared by every workspace again; it may still hold an unlinked one's chats
   useEffect(() => { if (platform.native) void forgetTranscriptShelf(null); }, [platform]);
@@ -127,8 +127,8 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
       if (parsed && !("kind" in parsed)) setIncoming({ payload: parsed, sequence: ++sequence.current });
     };
     const stop = platform.onAppUrl?.(receive);
-    window.addEventListener("omb:pair-link", customLink);
-    return () => { stop?.(); window.removeEventListener("omb:pair-link", customLink); };
+    window.addEventListener("dusk:pair-link", customLink);
+    return () => { stop?.(); window.removeEventListener("dusk:pair-link", customLink); };
   }, [platform]);
 
   /** Linked: the app mounts on the new installation straight away, under the success moment, so Home is loaded by the
@@ -155,7 +155,7 @@ export function ConnectionGate({ children, forcePair }: { children: ReactNode; f
     </AnimatePresence>
   );
   const onboarding = state.kind !== "ready" || (forcePair && !entered);
-  if (state.kind === "loading" && !incoming && !forcePair) return <div className="omb-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
+  if (state.kind === "loading" && !incoming && !forcePair) return <div className="dusk-mobile flex size-full items-center justify-center bg-app"><MausAvatar color="green" size={56} state="idle" animated={false} personality={false} /></div>;
   if (state.kind === "offline" && !forcePair) {
     if (!incoming && adding === 0) return <>{success}<Unreachable record={state.record} others={state.others} attempts={state.attempts} trying={state.trying} onRetry={retry} onSwitch={switchTo} onLink={() => setAdding((n) => n + 1)} /></>;
     return <>{success}<Onboarding key={incoming ? `in-${incoming.sequence}` : `add-${adding}`} initial={incoming?.payload} startAtLink onLinked={linked} onCancel={() => { cancel(); setAdding(0); }} /></>;

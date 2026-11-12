@@ -37,8 +37,8 @@ describe("redactSecrets", () => {
             command: "/usr/bin/node",
             args: ["/app/computer-proxy.js"],
             env: [
-              { name: "OGB_BOX_ID", value: "retired-9" },
-              { name: "OGB_BOX_TOKEN", value: "box_live_abcdefghijklmnop" },
+              { name: "DUSK_BOX_ID", value: "retired-9" },
+              { name: "DUSK_BOX_TOKEN", value: "box_live_abcdefghijklmnop" },
             ],
           },
         ],
@@ -51,7 +51,7 @@ describe("redactSecrets", () => {
     expect(out).not.toContain("box_live_abcdefghijklmnop");
     expect(out).toContain("session/new");
     expect(out).toContain("DUSK_COMMS_TOKEN");
-    expect(out).toContain("OGB_BOX_TOKEN");
+    expect(out).toContain("DUSK_BOX_TOKEN");
     expect(out).toContain("bot-123");
     expect(out).toContain("retired-9");
     expect(out).toContain("/app/agents-proxy.js");
@@ -66,7 +66,7 @@ describe("redactSecrets", () => {
           url: "https://app.composio.dev/tool_router/v3/trs_test/mcp",
           headers: { "x-api-key": "ak_live_supersecret" },
         },
-        computer: { env: { ELECTRON_RUN_AS_NODE: "1", OGB_BOX_TOKEN: "box_live_zzz" } },
+        computer: { env: { ELECTRON_RUN_AS_NODE: "1", DUSK_BOX_TOKEN: "box_live_zzz" } },
       },
     };
 
@@ -243,7 +243,7 @@ describe("redactSecretsInText", () => {
 
   it("masks an assignment to any name ending in KEY, whatever the value looks like", () => {
     expect(redactSecretsInText(`OPENAI_API_KEY=sk-${"a".repeat(20)} pnpm test`)).toBe("OPENAI_API_KEY=«redacted 23 chars» pnpm test");
-    expect(redactSecretsInText("X_KEY=value pnpm control:omb doctor")).toBe("X_KEY=«redacted 5 chars» pnpm control:omb doctor");
+    expect(redactSecretsInText("X_KEY=value pnpm control:dusk doctor")).toBe("X_KEY=«redacted 5 chars» pnpm control:dusk doctor");
     expect(redactSecretsInText("export xai-key='abc.def'")).toBe("export xai-key='«redacted 7 chars»'");
   });
 

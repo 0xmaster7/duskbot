@@ -5,8 +5,8 @@ import type { GroupDefaultResponder } from "./store.ts";
 export const GROUP_GOAL_MAX_TURNS = 13;
 export const GROUP_GOAL_WAIT_MAX_MS = Math.max(1_000, Number(process.env.DUSK_GOAL_WAIT_MAX_MS) || 30 * 60_000);
 const GROUP_GOAL_MAX_WAIT_EXHAUSTIONS = 3;
-export const GROUP_GOAL_CONTROL_OPEN = "<openmaus-goal>";
-export const GROUP_GOAL_CONTROL_CLOSE = "</openmaus-goal>";
+export const GROUP_GOAL_CONTROL_OPEN = "<dusk-goal>";
+export const GROUP_GOAL_CONTROL_CLOSE = "</dusk-goal>";
 
 export type GroupGoalDecision =
   | { status: "continue"; next: string; instruction: string; detail?: string }
@@ -34,8 +34,11 @@ export function groupGoalCompletionTurnId(
 const bounded = (value: unknown, max: number): string =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
+/** a coordinator reply saved before the rename still carries the old tag names */
+const currentTags = (text: string): string => text.replaceAll("<openmaus-goal>", GROUP_GOAL_CONTROL_OPEN).replaceAll("</openmaus-goal>", GROUP_GOAL_CONTROL_CLOSE);
+
 function visibleCoordinatorText(text: string): string {
-  let visible = text;
+  let visible = currentTags(text);
   for (;;) {
     const closeAt = visible.indexOf(GROUP_GOAL_CONTROL_CLOSE);
     if (closeAt < 0) break;
@@ -54,6 +57,7 @@ function visibleCoordinatorText(text: string): string {
 
 /** The last complete envelope wins, so a quoted example earlier in the reply cannot steer the run. */
 export function parseGroupGoalDecision(text: string): ParsedGroupGoalDecision {
+  text = currentTags(text);
   const closeAt = text.lastIndexOf(GROUP_GOAL_CONTROL_CLOSE);
   const openAt = closeAt < 0 ? -1 : text.lastIndexOf(GROUP_GOAL_CONTROL_OPEN, closeAt);
   if (openAt < 0 || closeAt < 0) return { visibleText: visibleCoordinatorText(text), decision: null };
@@ -153,7 +157,7 @@ export function groupGoalWorkerInstructions(args: {
     `Your assignment: ${args.assignment}`,
     `This is team turn ${args.turn} of ${args.maxTurns}.`,
     "Do the assigned work now and put concrete results, evidence, or a clear blocker in your reply.",
-    `Address your result to ${args.coordinatorName}. Do not invent a new orchestration protocol or emit an openmaus-goal control envelope.`,
+    `Address your result to ${args.coordinatorName}. Do not invent a new orchestration protocol or emit a dusk-goal control envelope.`,
   ].join("\n");
 }
 

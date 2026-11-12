@@ -7,7 +7,7 @@ import { CLOUD_COLORS, CLOUD_COLOR_HEX, cleanCloudColor, cleanCloudName, cloudLi
   installCloudBuy, lookFile } from "./cloud-buy.mjs";
 import environments from "./environments.cjs";
 
-const origin = "https://omb-u-1a2b3c4d5e6f.fly.dev";
+const origin = "https://dusk-u-1a2b3c4d5e6f.fly.dev";
 
 test("a Cloud's name is up to 28 characters of plain text, and its colour one of six names", () => {
   assert.equal(cleanCloudName("  Studio   cloud "), "Studio cloud");
@@ -177,7 +177,7 @@ test("the page's bridge sends the sheet's words as text only, and exists only on
   const load = ({ remote = false } = {}) => {
     let bridge; const invoked = [];
     vm.runInNewContext(readFileSync(new URL("./preload.cjs", import.meta.url), "utf8"), {
-      process: { platform: "fixture", argv: [`--omb-local-origin=${local}`, "--omb-company-desktop=1"] },
+      process: { platform: "fixture", argv: [`--dusk-local-origin=${local}`, "--dusk-company-desktop=1"] },
       location: { origin: remote ? "https://remote.example.test" : local }, TextEncoder, localStorage: { getItem: () => null },
       require: () => ({ webUtils: {}, contextBridge: { exposeInMainWorld: (_name, value) => { bridge = value; } },
         ipcRenderer: { on() {}, removeListener() {}, send() {}, invoke: (...args) => { invoked.push(args); return Promise.resolve(null); } } }),

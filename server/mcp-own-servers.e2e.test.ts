@@ -4,14 +4,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer } from "../scripts/control-dusk.ts";
 
 const FAKE_MCP = fileURLToPath(new URL("./testing/fake-mcp-server.ts", import.meta.url));
 
 // This fixture runs bots unboxed, as a desktop does, so a server a bot adds stays every bot's; where bots are boxed it is
 // that bot's own (server/host/mcp-servers-host.test.ts).
 it("a bot's server from a conversation folder is kept in its own folder, and a server that doesn't start rides along on no bot's turns", async () => {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-own-mcp-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-own-mcp-"));
   const gate = join(scratch, "finish");
   const fixture = await launchVerificationServer({ FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate });
   const api = async (method: string, path: string, body?: unknown, expected = 200, token?: string) => {

@@ -1,4 +1,4 @@
-import { CSRF_COOKIE, CSRF_HEADER } from "../../../../shared/account-api";
+import { CSRF_HEADER, readCsrfCookie } from "../../../../shared/account-api";
 import { UPSELL_EVENTS, type UpsellStep } from "../../../../shared/cloud-upsell";
 
 type PageEvent = { name: "page_view"; props: { path: string } } | { name: "onboarding_step"; props: { step: string; ms?: number } } | { name: "onboarding_done" }
@@ -10,10 +10,10 @@ const live = () => typeof window !== "undefined" && !(import.meta.env.DEV && new
 
 function sessionId(): string {
   try {
-    const saved = sessionStorage.getItem("omb-dash-visit");
+    const saved = sessionStorage.getItem("dusk-dash-visit");
     if (saved) return saved;
     const fresh = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
-    sessionStorage.setItem("omb-dash-visit", fresh);
+    sessionStorage.setItem("dusk-dash-visit", fresh);
     return fresh;
   } catch { return "unavailable"; }
 }
@@ -26,7 +26,7 @@ function flush() {
   timer = null;
   if (!queue.length) return;
   const events = queue.splice(0, 20);
-  const csrf = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${CSRF_COOKIE}=`))?.slice(CSRF_COOKIE.length + 1) ?? "";
+  const csrf = readCsrfCookie(document.cookie) ?? "";
   const body = { events, session: sessionId(), ...(first ? { referrer: document.referrer || undefined, landing: location.href } : {}) };
   first = false;
   void fetch("/v1/events", { method: "POST", credentials: "same-origin", keepalive: true, headers: { "content-type": "application/json", [CSRF_HEADER]: decodeURIComponent(csrf) }, body: JSON.stringify(body) }).catch(() => {});

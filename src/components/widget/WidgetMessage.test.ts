@@ -84,7 +84,7 @@ beforeEach(() => {
   flushBotPatches.mockImplementation(async () => null);
   openExternal.mockClear();
   vi.stubGlobal("fetch", fetchMock);
-  vi.stubGlobal("ogb", { openExternal });
+  vi.stubGlobal("duskDesktop", { openExternal });
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);

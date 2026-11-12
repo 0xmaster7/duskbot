@@ -135,7 +135,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   const { state, dispatch } = useStore();
   const connectors = useConnectors();
   const remote = useRemoteApps({
-    needsPanel: () => window.ogb?.remoteClient?.active === true,
+    needsPanel: () => window.duskDesktop?.remoteClient?.active === true,
     openPanel: () => go({ kind: "detail", id: MCP_PAGE }),
   });
   const [page, setPage] = useState<ConnectAppsPage>(requested);
@@ -331,7 +331,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
     const vendor = vendorOf(entry);
     if (vendor) return void remote.connect(vendor);
     const ready = composioReady;
-    if (entry.kind === "composio" && !ready && !window.ogb?.remoteClient?.active) connectors.askKey(entry.id);
+    if (entry.kind === "composio" && !ready && !window.duskDesktop?.remoteClient?.active) connectors.askKey(entry.id);
     if (entry.kind !== "composio" || !ready) return go({ kind: "detail", id: entry.id });
     void connectors.connect(entry.id);
   };
@@ -488,7 +488,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
           action: phase?.kind === "connecting" ? { ...connect, busy: true, onCancel: () => connectors.cancel(slug) }
             : phase?.kind === "continue" ? { ...connect, label: t("connectApps.via.openAgain"), pending: true, title: t("connectors.finishSetup"), onClick: () => connectors.resume(slug), onCancel: () => connectors.cancel(slug) }
               : phase?.kind === "unavailable" ? { ...connect, disabled: true, title: phase.reason }
-                : { ...connect, disabled: !composioReady && window.ogb?.remoteClient?.active === true } });
+                : { ...connect, disabled: !composioReady && window.duskDesktop?.remoteClient?.active === true } });
       }
       const model: AppPageModel = {
         entry: detailEntry,
@@ -501,7 +501,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
         categoryLabel: detailEntry.categories[0] ? label(detailEntry.categories[0]) : null,
         usedBy: card && connection(detailEntry.id) === "connected" ? botsUsingService(state.bots, state.instances, card.slug).map((bot) => bot.name) : [],
         ...(detailEntry.kind === "composio" ? { toolkit: snapshotToolkit(detailEntry.id) } : {}),
-        remoteClient: window.ogb?.remoteClient?.active === true,
+        remoteClient: window.duskDesktop?.remoteClient?.active === true,
         onOpenLogins: () => leaveFor(SETTINGS("logins")),
         onOpenKeys: () => leaveFor(openKeySettings("composio")),
         ...(vendor ? { remote: {

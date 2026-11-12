@@ -134,7 +134,7 @@ describe.skipIf(process.platform === "win32")("a bot's old desktop after an app 
   }
 
   beforeAll(() => {
-    home = mkdtempSync(join(tmpdir(), "omb-desktop-updates-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-desktop-updates-"));
     data = join(home, "data");
     stateFile = join(home, "vm.json");
     dumpFile = join(home, "dump.json");

@@ -15,10 +15,12 @@ export const LEGACY = Object.freeze({
   companionDirName: `.${OLD}-companion`,
   protocol: OLD,
   appId: OLD,
-  envPrefixes: ["OMB_", "OPENMAUSBOT_"],
+  envPrefixes: ["OMB_", "OPENMAUSBOT_", "OGB_", "OPENMAUS_"],
   headerPrefix: `x-${OLD}-`,
+  // the short name the product used between its two names: x-omb-* headers, omb_* cookies and tokens, omb-* and omb.* page storage
+  headerPrefixes: [`x-${OLD}-`, "x-omb-", "x-openmaus-"],
   wellKnown: `/.well-known/${OLD}`,
-  storagePrefixes: [`${OLD}.`],
+  storagePrefixes: [`${OLD}.`, "omb-", "omb."],
   // the default bot's old short name: bot pages call window.mausbot and import "mausbot"; rooms stored by: "mausbot"
   short: "mausbot",
   documentsFolder: "MausBot",
@@ -79,6 +81,7 @@ const NEW_ENV = "DUSK_";
 const NEW_HEADER = "x-dusk-";
 const NEW_WELL_KNOWN = "/.well-known/duskbot";
 const NEW_STORAGE = "duskbot.";
+const STORAGE_RENAMES = { [`${OLD}.`]: NEW_STORAGE, "omb-": "dusk-", "omb.": "dusk." };
 const NEW_PROTOCOL = "duskbot";
 
 /** OMB_X and OPENMAUSBOT_X move to DUSK_X (a DUSK_X already set wins). moved, not copied: every list that keeps a
@@ -95,30 +98,40 @@ export function aliasLegacyEnv(env) {
   return env;
 }
 
-/** x-openmausbot-* request headers read as x-dusk-*; a value the client sent under the new name always wins. */
+/** x-openmausbot-* and x-omb-* request headers read as x-dusk-*; a value the client sent under the new name always wins. */
 export function aliasLegacyHeaders(headers) {
   if (!headers || typeof headers !== "object") return headers;
   for (const key of Object.keys(headers)) {
     const lower = key.toLowerCase();
-    if (!lower.startsWith(LEGACY.headerPrefix)) continue;
-    const next = NEW_HEADER + lower.slice(LEGACY.headerPrefix.length);
+    const prefix = LEGACY.headerPrefixes.find((p) => lower.startsWith(p));
+    if (!prefix) continue;
+    const next = NEW_HEADER + lower.slice(prefix.length);
     if (headers[next] === undefined) headers[next] = headers[key];
     delete headers[key];
   }
   return headers;
 }
 
+/** a response header under its new name, or under an old one when the peer predates the rename */
+export function readHeader(headers, name) {
+  const get = (key) => (typeof headers?.get === "function" ? headers.get(key) : headers?.[key]) ?? null;
+  const own = get(name);
+  if (own !== null || !name.startsWith(NEW_HEADER)) return own;
+  for (const prefix of LEGACY.headerPrefixes) { const old = get(prefix + name.slice(NEW_HEADER.length)); if (old !== null) return old; }
+  return null;
+}
+
 /** a header a proxy must strip from untrusted traffic, under either name */
 export const isOwnHeader = (name) => {
   const lower = String(name).toLowerCase();
-  return lower.startsWith(NEW_HEADER) || lower.startsWith(LEGACY.headerPrefix);
+  return lower.startsWith(NEW_HEADER) || LEGACY.headerPrefixes.some((p) => lower.startsWith(p));
 };
 
 /** the same headers again under their old names, for a peer that may predate the rename */
 export function withLegacyHeaders(headers) {
   const out = { ...headers };
   for (const [key, value] of Object.entries(headers ?? {})) {
-    if (key.toLowerCase().startsWith(NEW_HEADER)) out[LEGACY.headerPrefix + key.slice(NEW_HEADER.length)] = value;
+    if (key.toLowerCase().startsWith(NEW_HEADER)) for (const prefix of LEGACY.headerPrefixes.slice(0, 2)) out[prefix + key.slice(NEW_HEADER.length)] = value;
   }
   return out;
 }
@@ -126,6 +139,7 @@ export function withLegacyHeaders(headers) {
 /** /.well-known/openmausbot/... answers as /.well-known/duskbot/... */
 export function fromLegacyPath(pathname) {
   if (typeof pathname !== "string") return pathname;
+  if (pathname === "/.well-known/omb-link" || pathname.startsWith("/.well-known/omb-link/")) return "/.well-known/dusk-link" + pathname.slice("/.well-known/omb-link".length);
   return pathname === LEGACY.wellKnown || pathname.startsWith(`${LEGACY.wellKnown}/`)
     ? NEW_WELL_KNOWN + pathname.slice(LEGACY.wellKnown.length)
     : pathname;
@@ -133,6 +147,7 @@ export function fromLegacyPath(pathname) {
 
 /** the same well-known path under its old name, to ask a server that predates the rename */
 export function toLegacyPath(pathname) {
+  if (typeof pathname === "string" && pathname.startsWith("/.well-known/dusk-link")) return "/.well-known/omb-link" + pathname.slice("/.well-known/dusk-link".length);
   return typeof pathname === "string" && pathname.startsWith(NEW_WELL_KNOWN)
     ? LEGACY.wellKnown + pathname.slice(NEW_WELL_KNOWN.length)
     : pathname;
@@ -157,7 +172,7 @@ export function migrateLegacyStorage(storage) {
       const key = storage.key(i);
       const prefix = key && LEGACY.storagePrefixes.find((p) => key.startsWith(p));
       if (!prefix) continue;
-      const next = NEW_STORAGE + key.slice(prefix.length);
+      const next = STORAGE_RENAMES[prefix] + key.slice(prefix.length);
       if (storage.getItem(next) !== null) continue;
       storage.setItem(next, storage.getItem(key));
       copied++;
@@ -290,6 +305,29 @@ export function carryLegacySafeStorageKey({ name, packaged = true, run = securit
   } catch {
     return "failed";
   }
+}
+
+/** a file format id from before the rename (openmaus.package, openmaus.backup, ...) read as the current one; the document is copied, never changed */
+export function withCurrentFormat(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.format !== "string" || !value.format.startsWith("openmaus.")) return value;
+  return { ...value, format: `dusk.${value.format.slice("openmaus.".length)}` };
+}
+
+/** tokens and cookies minted while the product was called omb start omb_<kind>_; both are read, only dusk_ is minted */
+export const hasTokenPrefix = (value, kind) =>
+  typeof value === "string" && (value.startsWith(`dusk_${kind}_`) || value.startsWith(`omb_${kind}_`));
+
+/** omb_* cookies a browser still holds read as dusk_*; one already sent under the new name wins. */
+export function aliasLegacyCookies(headers) {
+  if (!headers || typeof headers.cookie !== "string" || !headers.cookie.includes("omb_")) return headers;
+  const parts = headers.cookie.split(";").map((part) => part.trim());
+  const names = new Set(parts.map((part) => part.slice(0, part.indexOf("="))));
+  headers.cookie = parts.map((part) => {
+    const name = part.slice(0, part.indexOf("="));
+    if (!name.startsWith("omb_") || names.has(`dusk_${name.slice(4)}`)) return part;
+    return `dusk_${name.slice(4)}${part.slice(name.length)}`;
+  }).join("; ");
+  return headers;
 }
 
 if (typeof process !== "undefined" && process?.env) aliasLegacyEnv(process.env);

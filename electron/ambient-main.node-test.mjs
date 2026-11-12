@@ -48,7 +48,7 @@ function fakes({ prefs = { island: true, dock: true }, activity = null, platform
   return { windows, handlers, listeners, appPage, screen, ambient, opened, revealed, publish, saved: () => saved };
 }
 
-const surface = (windows, name) => windows.find((win) => !win.destroyed && win.options.webPreferences.additionalArguments.includes(`--omb-ambient=${name}`));
+const surface = (windows, name) => windows.find((win) => !win.destroyed && win.options.webPreferences.additionalArguments.includes(`--dusk-ambient=${name}`));
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 test("the island and the dock open as click-through panels on the display, hidden over full-screen apps", async () => {

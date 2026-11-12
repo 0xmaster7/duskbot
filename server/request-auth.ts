@@ -8,6 +8,7 @@ import { BOT_PROFILE_PATCH_FIELDS } from "./bot-profile.ts";
 import type { Scope, SessionRecord, SessionRegistry } from "./sessions.ts";
 import { denyReason as companionDenial, isCompanionNotice } from "../apps/companion/src/routes.ts";
 import { applyMobileCors, isMobileOrigin, takeViewerAccessToken } from "./mobile/request.ts";
+import { hasTokenPrefix } from "../electron/legacy-names.mjs";
 export { answerMobilePreflight } from "./mobile/request.ts";
 
 /** `owner`: the machine's owner. `service`: a shared server where every bot's shell is a loopback caller too,
@@ -78,7 +79,7 @@ function loopbackTrust(input: Parameters<typeof resolveLoopbackTrust>[0]): { tru
   const raw = (input.env ?? process.env).DUSK_LOOPBACK_TRUST;
   const requested = raw?.trim().toLowerCase();
   if (input.cloudHome) {
-    return { trust: "service", reason: "Dusk Cloud home", ...(raw !== undefined && requested !== "service" ? { warning: "DUSK_LOOPBACK_TRUST is ignored on a Dusk Cloud home: a local request is always a service" } : {}) };
+    return { trust: "service", reason: "dusk cloud home", ...(raw !== undefined && requested !== "service" ? { warning: "DUSK_LOOPBACK_TRUST is ignored on a dusk cloud home: a local request is always a service" } : {}) };
   }
   if (input.desktopManaged) {
     return { trust: "owner", reason: "desktop app", ...(raw !== undefined ? { warning: "DUSK_LOOPBACK_TRUST is ignored in the desktop app" } : {}) };
@@ -244,7 +245,7 @@ export function bearerToken(header: string | string[] | undefined): string | und
 
 /** Cookies are scoped by host, not port; the environment id stops a reinstalled server reading its predecessor's cookie. */
 export function sessionCookieName(port: number, environmentId: string): string {
-  return `omb_session_${port}_${environmentId.replace(/[^a-z0-9]/gi, "").slice(0, 12)}`;
+  return `dusk_session_${port}_${environmentId.replace(/[^a-z0-9]/gi, "").slice(0, 12)}`;
 }
 
 export function serializeSessionCookie(
@@ -547,12 +548,12 @@ export function resolveRequestAuth(req: IncomingMessage, options: ResolveOptions
   const accessToken = takeViewerAccessToken(req, options.url);
   if (accessToken === null) return deny(401, "unauthorized: invalid viewer session");
   const bearer = accessToken ?? bearerToken(req.headers.authorization);
-  if (isMobileOrigin(req.headers.origin) && !bearer?.startsWith("omb_sess_")) return deny(403, "forbidden: cross-origin request");
+  if (isMobileOrigin(req.headers.origin) && !hasTokenPrefix(bearer, "sess")) return deny(403, "forbidden: cross-origin request");
   const cookie = parseCookies(headerValue(req.headers.cookie)).get(options.cookieName);
   const ticket = path === options.streamPath ? options.url.searchParams.get("ticket") : null;
   let session: SessionRecord | null = null;
   let via: "bearer" | "cookie" | "ticket" | null = null;
-  if (bearer?.startsWith("omb_sess_")) {
+  if (hasTokenPrefix(bearer, "sess")) {
     session = options.sessions.authenticate(bearer);
     via = "bearer";
   } else if (ticket) {

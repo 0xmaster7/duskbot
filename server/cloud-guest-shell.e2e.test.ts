@@ -19,7 +19,7 @@ import { hostTimeout } from "./testing/host-timeout.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const HOST = "omb-t-0123456789ab.fly.dev";
+const HOST = "dusk-t-0123456789ab.fly.dev";
 const secret = randomBytes(32).toString("base64url");
 const relayToken = `box_omb_${randomBytes(32).toString("base64url")}`;
 let home = "";
@@ -45,11 +45,11 @@ async function api(method: string, path: string, options: { body?: unknown; toke
 
 /** The Admin's signed pairing: it only works when the server got the secret. */
 async function adminPairing(): Promise<string> {
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const response = await fetch(`${base}/api/cloud/pairing`, { method: "POST", headers: {
     host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   }, body });
   const granted = await response.json() as { code: string };
   return (await api("POST", "/api/auth/pair", { body: { code: granted.code } })).body.token;
@@ -77,7 +77,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", fake)).h
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-guest-shell-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-guest-shell-"));
   const dataDir = join(home, ".duskbot");
   mkdirSync(dataDir, { recursive: true });
   const codex = probing("codex", "fake-codex-app-server.ts", `process.env.FAKE_CODEX_DUMP = ${JSON.stringify(join(home, "codex.json"))};
@@ -177,7 +177,7 @@ const say = (token: string, bot: { id: string }, text: string, threadId: string)
   api("POST", `/api/bots/${bot.id}/messages`, { token, body: { text, threadId } });
 
 it("boots with its secrets from the launcher's pipe: the Admin's signed pairing works", () => {
-  expect(owner).toMatch(/^omb_sess_/);
+  expect(owner).toMatch(/^dusk_sess_/);
   expect(log).not.toContain("its secrets came in this process's environment");
 });
 
@@ -244,7 +244,7 @@ it("a guest's Claude turn has no command-running tool and no read outside its fo
   expect(argv()).toContain("--restricted");
   expect(after("--tools")).toBe("Read,Grep,Glob,Edit,Write,WebSearch");
   expect(after("--permission-mode")).toBe("default");
-  const socket = connect(JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.ogb.args.at(-1) as string);
+  const socket = connect(JSON.parse(readFileSync(dump, "utf8")).mcpConfig.mcpServers.dusk.args.at(-1) as string);
   await new Promise<void>((resolve, reject) => { socket.once("connect", resolve); socket.once("error", reject); });
   const requestId = randomUUID();
   socket.write(`${JSON.stringify({ t: "ask", id: requestId, tool: "Write", input: { file_path: "notes.md", content: "hi" } })}\n`);

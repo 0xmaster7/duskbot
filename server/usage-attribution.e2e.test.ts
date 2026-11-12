@@ -71,7 +71,7 @@ posixOnly("usage attribution e2e", () => {
 
   beforeAll(async () => {
     for (const fake of [FAKE_CLAUDE, FAKE_ACP, FAKE_CODEX]) chmodSync(fake, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-attribution-"));
+    home = mkdtempSync(join(tmpdir(), "dusk-attribution-"));
     mkdirSync(join(home, ".duskbot"), { recursive: true });
     finishGate = join(home, "finish-steered-turn.gate");
     codexSteerGate = join(home, "codex-steer-refused.gate");

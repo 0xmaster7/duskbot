@@ -34,7 +34,7 @@ cpSync(join(root, "shared", "bot-desktop.ts"), join(stage, "shared", "bot-deskto
 cpSync(join(root, "apps", "cloud-service", "deploy", "Caddyfile"), join(stage, "cloud", "Caddyfile"));
 cpSync(join(root, "apps", "link-service", "docker-gate.mjs"), join(stage, "link", "docker-gate.mjs"));
 // the data tools' native modules: the bundled server resolves them from <app>/node_modules
-const natives = mkdtempSync(join(tmpdir(), "omb-home-native-"));
+const natives = mkdtempSync(join(tmpdir(), "dusk-home-native-"));
 try {
   const [tree] = await stageDuckdb({ root, stage: natives, targets: [{ platform: "linux", arch: "x64" }] });
   cpSync(join(tree, "node_modules"), join(stage, "node_modules"), { recursive: true });
@@ -46,4 +46,4 @@ execFileSync("tar", [...(gnu ? ["--owner=0", "--group=0", "--numeric-owner"] : [
   { cwd: root, stdio: "inherit", env: { ...process.env, COPYFILE_DISABLE: "1" } });
 rmSync(stage, { recursive: true, force: true });
 const sha256 = createHash("sha256").update(readFileSync(file)).digest("hex");
-console.log(`${file}\nOMB_MANAGED_HOME_PACKAGE_SHA256=${sha256}`);
+console.log(`${file}\nDUSK_MANAGED_HOME_PACKAGE_SHA256=${sha256}`);

@@ -19,7 +19,7 @@ let fcmEnv: NodeJS.ProcessEnv;
 const timestamp = 1_800_000_000_000;
 
 beforeAll(() => {
-  directory = mkdtempSync(join(tmpdir(), "omb-push-"));
+  directory = mkdtempSync(join(tmpdir(), "dusk-push-"));
   const apnsFile = join(directory, "apns.p8");
   const accountFile = join(directory, "account.json");
   writeFileSync(apnsFile, ec.privateKey.export({ format: "pem", type: "pkcs8" }));
@@ -27,7 +27,7 @@ beforeAll(() => {
     project_id: "fixture-project", client_email: "push@fixture.example", token_uri: "https://oauth.example/token",
     private_key: rsa.privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
   }));
-  apnsEnv = { DUSK_APNS_KEY_FILE: apnsFile, DUSK_APNS_KEY_ID: "key-id", DUSK_APNS_TEAM_ID: "team-id", DUSK_APNS_TOPIC: "com.example.omb" };
+  apnsEnv = { DUSK_APNS_KEY_FILE: apnsFile, DUSK_APNS_KEY_ID: "key-id", DUSK_APNS_TEAM_ID: "team-id", DUSK_APNS_TOPIC: "com.example.dusk" };
   fcmEnv = { DUSK_FCM_SERVICE_ACCOUNT_FILE: accountFile, DUSK_FCM_HOST: "https://fcm.example" };
 });
 afterAll(() => { rmSync(directory, { recursive: true, force: true }); });
@@ -107,7 +107,7 @@ describe("APNs push", () => {
     expect(clients).toHaveLength(1);
     const { headers, body } = received[0];
     expect(headers).toMatchObject({
-      ":method": "POST", ":path": "/3/device/fixture-device", "apns-topic": "com.example.omb",
+      ":method": "POST", ":path": "/3/device/fixture-device", "apns-topic": "com.example.dusk",
       "apns-push-type": "alert", "apns-priority": "10", "apns-collapse-id": "thread-1",
     });
     const authorization = String(headers.authorization);
@@ -118,7 +118,7 @@ describe("APNs push", () => {
     expect(received[1].headers.authorization === headers.authorization).toBe(true);
     expect(body.includes("body text")).toBe(false);
     expect(JSON.parse(body)).toEqual({
-      aps: { alert: { title: "Maus", body: "New message" }, sound: "default", "thread-id": "thread-1" }, omb: data,
+      aps: { alert: { title: "Maus", body: "New message" }, sound: "default", "thread-id": "thread-1" }, dusk: data,
     });
   });
 
@@ -149,7 +149,7 @@ describe("APNs push", () => {
     expect(await sender().send(target, { ...message, threadId, groupId: undefined })).toBe("sent");
     expect(received[0].headers["apns-collapse-id"]).toBe("a".repeat(61));
     expect(JSON.parse(received[0].body).aps["thread-id"]).toBe(threadId);
-    expect(JSON.parse(received[0].body).omb).not.toHaveProperty("groupId");
+    expect(JSON.parse(received[0].body).dusk).not.toHaveProperty("groupId");
   });
 
   it("reconnects after goaway", async () => {

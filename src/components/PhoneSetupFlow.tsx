@@ -51,7 +51,7 @@ import {
   type PhonePairingAttemptLock,
   type PhonePairingAttemptQueue,
 } from "../lib/phone-setup";
-import type { CompanionAccountState } from "../types/ogb";
+import type { CompanionAccountState } from "../types/duskDesktop";
 import {
   companionStateRefreshIsCurrent,
   mutateCompanionBridgeState,
@@ -101,7 +101,7 @@ export type CompanionBridge = {
   revoke: (deviceId: string) => Promise<CompanionState>;
 };
 
-type AccountBridge = NonNullable<NonNullable<Window["ogb"]>["companionAccount"]>;
+type AccountBridge = NonNullable<NonNullable<Window["duskDesktop"]>["companionAccount"]>;
 type StateBridge<T> = { state: () => Promise<T> };
 // Functions, not constants: a message resolved at import time would keep the language the app booted in.
 const directPairingUnavailable = () => t("phone.error.directUnavailable");
@@ -122,7 +122,7 @@ export { companionBridge };
 
 export const companionAccountBridge = (): AccountBridge | null =>
   // SAFETY: Electron exposes only these account operations and never sends credentials to the renderer.
-  (globalThis as { ogb?: { companionAccount?: AccountBridge } }).ogb?.companionAccount ?? null;
+  (globalThis as { duskDesktop?: { companionAccount?: AccountBridge } }).duskDesktop?.companionAccount ?? null;
 
 export const loadCompanionBridgeState = async (
   companion: StateBridge<CompanionState> | null,

@@ -40,7 +40,7 @@ const start = async () => {
 
 beforeAll(async () => {
   chmodSync(fake, 0o755);
-  home = mkdtempSync(join(tmpdir(), "omb-codex-review-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-codex-review-"));
   mkdirSync(join(home, ".duskbot"));
   writeFileSync(join(home, ".duskbot", "config.json"), JSON.stringify({ instances: {
     codex: { driver: "codex", environment: {

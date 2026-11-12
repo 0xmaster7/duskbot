@@ -194,7 +194,7 @@
   min-height: 0;
   background-color: inherit;
   animation-duration: 200ms;
-  animation-timing-function: var(--omb-ease-out);
+  animation-timing-function: var(--dusk-ease-out);
 }
 .settings-wipe-layer[data-wipe-out] {
   position: absolute;
@@ -202,11 +202,11 @@
   pointer-events: none;
   animation-fill-mode: forwards;
 }
-.settings-wipe-layer[data-wipe="push"]:not([data-wipe-out]) { z-index: 1; animation-name: omb-wipe-push-in; }
-.settings-wipe-layer[data-wipe="push"][data-wipe-out] { animation-name: omb-wipe-push-out; }
-.settings-wipe-layer[data-wipe="pop"]:not([data-wipe-out]) { animation-name: omb-wipe-pop-in; }
-.settings-wipe-layer[data-wipe="pop"][data-wipe-out] { z-index: 1; animation-name: omb-wipe-pop-out; }
-.settings-wipe-layer[data-wipe="fade"]:not([data-wipe-out]) { animation-name: omb-fade-in; animation-duration: 150ms; }
+.settings-wipe-layer[data-wipe="push"]:not([data-wipe-out]) { z-index: 1; animation-name: dusk-wipe-push-in; }
+.settings-wipe-layer[data-wipe="push"][data-wipe-out] { animation-name: dusk-wipe-push-out; }
+.settings-wipe-layer[data-wipe="pop"]:not([data-wipe-out]) { animation-name: dusk-wipe-pop-in; }
+.settings-wipe-layer[data-wipe="pop"][data-wipe-out] { z-index: 1; animation-name: dusk-wipe-pop-out; }
+.settings-wipe-layer[data-wipe="fade"]:not([data-wipe-out]) { animation-name: dusk-fade-in; animation-duration: 150ms; }
 .settings-wipe-layer[data-wipe="fade"][data-wipe-out] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .settings-wipe-layer:not([data-wipe="fade"]) { animation: none; }
@@ -214,9 +214,9 @@
 }
 /* another pane from the rail: the new pane fades in on a 4px rise (opacity alone with the app's reduced motion; the
    system setting stops every animation) */
-.settings-pane-swap { animation: omb-pane-swap 180ms var(--omb-ease-out) backwards; }
-@keyframes omb-pane-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-:root[data-reduced-motion="true"] .settings-pane-swap { animation-name: omb-fade-in; animation-duration: 150ms; }
+.settings-pane-swap { animation: dusk-pane-swap 180ms var(--dusk-ease-out) backwards; }
+@keyframes dusk-pane-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+:root[data-reduced-motion="true"] .settings-pane-swap { animation-name: dusk-fade-in; animation-duration: 150ms; }
 
 .settings-scroll {
   position: relative;
@@ -509,9 +509,9 @@
 
 /* pills answer a press with bencho's .96; their colour, and the rail and rows, change at once */
 :root .settings-dialog .settings-pane .ui-button {
-  transition: scale 200ms var(--omb-ease-release, ease-out);
+  transition: scale 200ms var(--dusk-ease-release, ease-out);
 }
-:root .settings-dialog .settings-pane .ui-button:enabled:active { scale: 0.96; transition-duration: 160ms; transition-timing-function: var(--omb-ease-out, ease-out); }
+:root .settings-dialog .settings-pane .ui-button:enabled:active { scale: 0.96; transition-duration: 160ms; transition-timing-function: var(--dusk-ease-out, ease-out); }
 .settings-nav-item, .settings-nav-item:active { transition: none; scale: none; }
 @media (prefers-reduced-motion: reduce) {
   :root .settings-dialog .settings-pane .ui-button:enabled:active { scale: none; }

@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { HomeClient } from "./types.ts";
 import { boundedJson } from "./http.ts";
+import { withLegacyHeaders } from "../../../../electron/legacy-names.mjs";
 
 export function signCloudRequest(secret: string, timestamp: string, nonce: string, method: string, target: string, body: string | Buffer): string {
   const hash = createHash("sha256").update(body).digest("base64url");
@@ -17,7 +18,7 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
       if (!/^[A-Za-z0-9_-]{22,128}$/.test(nonce)) throw new Error();
       const response = await fetcher(`${origin}${target}`, {
         method, redirect: "error", signal: AbortSignal.timeout(10_000),
-        headers: { "content-type": "application/json", "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${signCloudRequest(secret, timestamp, nonce, method, target, body)}` },
+        headers: withLegacyHeaders({ "content-type": "application/json", "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${signCloudRequest(secret, timestamp, nonce, method, target, body)}` }),
         ...(method === "POST" ? { body } : {}),
       });
       if (!response.ok) { await response.body?.cancel(); throw new Error(); }

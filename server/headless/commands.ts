@@ -31,17 +31,17 @@ async function doctorOnce(ctx: VerbContext): Promise<VerbOutcome> {
   ]);
   const problems: string[] = [];
   const warnings: string[] = [];
-  const isOmb = isOwnAppId(health.app);
-  if (!isOmb) problems.push(`${client.baseUrl} answered, but it is not Dusk Bot`);
+  const isDusk = isOwnAppId(health.app);
+  if (!isDusk) problems.push(`${client.baseUrl} answered, but it is not dusk bot`);
   const tooOld = Boolean(server) && server!.capabilities?.jobs !== true;
-  if (tooOld) problems.push(`Dusk Bot ${server!.version ?? "(unknown version)"} is too old for the headless commands: it cannot report a conversation's job`);
-  if (isOmb && !availableEngines.length) problems.push("no engine is available: set one up with `duskbot engine set KIND --key-env VAR`");
+  if (tooOld) problems.push(`dusk bot ${server!.version ?? "(unknown version)"} is too old for the headless commands: it cannot report a conversation's job`);
+  if (isDusk && !availableEngines.length) problems.push("no engine is available: set one up with `duskbot engine set KIND --key-env VAR`");
   if (session?.kind === "session" && typeof session.expiresAt === "number" && session.expiresAt - Date.now() < 14 * DAY) {
     warnings.push(`this session expires in ${Math.max(0, Math.floor((session.expiresAt - Date.now()) / DAY))} days: get a new one with duskbot connect`);
   }
   const browser = config?.browserEngine ?? null;
   if (browser && browser.kind !== "engine") warnings.push(`bots have no built-in browser here: ${browser.reason ?? "not installed"}${browser.installable ? " (install it with `duskbot browser install`)" : ""}`);
-  const ok = isOmb && !tooOld && availableEngines.length > 0;
+  const ok = isDusk && !tooOld && availableEngines.length > 0;
   const who = !session ? "unknown" : session.kind === "loopback"
     ? `this computer${session.trust === "service" ? " (as a local service, not the owner)" : " (the owner)"}`
     : `session "${session.label || "unnamed"}" with ${Array.isArray(session.scopes) && session.scopes.includes("admin") ? "full access" : "chat access"}${typeof session.expiresAt === "number" ? `, until ${new Date(session.expiresAt).toISOString().slice(0, 10)}` : ""}`;
@@ -53,9 +53,9 @@ async function doctorOnce(ctx: VerbContext): Promise<VerbOutcome> {
         ...(session.expiresAt !== undefined ? { expiresAt: session.expiresAt } : {}), ...(session.trust ? { trust: session.trust } : {}) } : null,
       browser, problems, warnings,
     },
-    exitCode: ok ? EXIT.done : isOmb && !tooOld ? EXIT.failed : EXIT.unreachable,
+    exitCode: ok ? EXIT.done : isDusk && !tooOld ? EXIT.failed : EXIT.unreachable,
     human: [
-      `${server ? `Dusk Bot ${server.version} ("${server.label}")` : "Dusk Bot"} at ${client.baseUrl}: ${ok ? "ready" : "not ready"}`,
+      `${server ? `dusk bot ${server.version} ("${server.label}")` : "dusk bot"} at ${client.baseUrl}: ${ok ? "ready" : "not ready"}`,
       `You are: ${who}`,
       `Engines available: ${availableEngines.length ? availableEngines.join(", ") : "none"}`,
       ...(browser ? [`Bots' browser: ${browser.kind === "engine" ? `installed${browser.version ? ` (${browser.version})` : ""}` : "not available"}`] : []),

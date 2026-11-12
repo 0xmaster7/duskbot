@@ -36,7 +36,7 @@ glyph correctness requires inspecting the PNGs.
 
 App imports use a fresh temporary HOME and data directory under the output
 directory. Podman alone keeps its existing connection and SSH configuration.
-Each container has a unique `omb-font-fixture-` name. The script resolves the
+Each container has a unique `dusk-font-fixture-` name. The script resolves the
 chosen image to an immutable local ID once, records that ID in the receipt, and
 also removes partially created containers after a failed launch. It removes
 temporary app data and home on normal completion or a caught failure. After a

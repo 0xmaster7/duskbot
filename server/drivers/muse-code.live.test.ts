@@ -14,7 +14,7 @@ const home = userInfo().homedir;
 const cli = process.env.DUSK_MUSE_CLI ?? join(home, ".local", "bin", "muse");
 
 describe.skipIf(!live)("Muse Code (live)", () => {
-  const cwd = mkdtempSync(join(tmpdir(), "omb-muse-live-"));
+  const cwd = mkdtempSync(join(tmpdir(), "dusk-muse-live-"));
   const instances: ProviderInstance[] = [];
   afterAll(async () => {
     await Promise.all(instances.map(instance => instance.dispose()));
@@ -57,11 +57,11 @@ describe.skipIf(!live)("Muse Code (live)", () => {
     expect(session?.sessionId).toBeTruthy();
 
     const asked: RuntimeEvent[] = [];
-    const second = await run(instance, { threadId: "live-1", text: "Run the shell command `echo omb-muse-check` and tell me its output.", cwd, approvalMode: "ask", effort: "low" },
+    const second = await run(instance, { threadId: "live-1", text: "Run the shell command `echo dusk-muse-check` and tell me its output.", cwd, approvalMode: "ask", effort: "low" },
       (event) => { asked.push(event); void instance.adapter.respondToRequest("live-1", event.requestId!, { behavior: "allow" }); });
     expect(second.completed).toMatchObject({ ok: true });
     expect(second.events.some(event => event.type === "item.started" && event.itemType === "tool")).toBe(true);
-    expect(text(second.events)).toContain("omb-muse-check");
+    expect(text(second.events)).toContain("dusk-muse-check");
     console.info(`permission cards: ${asked.length}`);
 
     await instance.dispose(); // an app restart: the old host is gone
@@ -69,7 +69,7 @@ describe.skipIf(!live)("Muse Code (live)", () => {
     const third = await run(restarted, { threadId: "live-1", text: "What exact word did the command print? Answer with just it.", cwd,
       approvalMode: "ask", effort: "low", resumeCursor: session!.sessionId });
     expect(third.completed).toMatchObject({ ok: true });
-    expect(text(third.events)).toContain("omb-muse-check");
+    expect(text(third.events)).toContain("dusk-muse-check");
   }, 300_000);
 
 });

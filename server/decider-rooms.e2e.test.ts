@@ -84,7 +84,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => jev.listen(0, "127.0.0.1", resolve));
   const jevUrl = `http://127.0.0.1:${(jev.address() as AddressInfo).port}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-decider-rooms-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-decider-rooms-"));
   data = join(home, ".duskbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });

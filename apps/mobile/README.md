@@ -1,4 +1,4 @@
-# Dusk Bot mobile
+# dusk bot mobile
 
 The iOS and Android app: Capacitor around the React app, with the phone layer in `src/mobile/`.
 
@@ -39,7 +39,7 @@ xcrun simctl io booted screenshot shot.png
 
 "Try the demo" on the sign-in and pairing screens opens a workspace that lives in the page (`src/mobile/demo/`): a sample
 team, a room, and replies that say they are pretend. It needs no server and no account, and is what a store reviewer
-uses. In the browser preview: `localStorage.setItem("omb.mobile.demo", "1")` and reload.
+uses. In the browser preview: `localStorage.setItem("dusk.mobile.demo", "1")` and reload.
 
 ## Store builds
 

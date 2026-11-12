@@ -8,7 +8,7 @@ import { afterAll, afterEach } from "vitest";
 import { LEGACY } from "../../electron/legacy-names.mjs";
 import { removeTempDir } from "./cleanup.ts";
 
-const home = mkdtempSync(join(tmpdir(), "omb-test-home-"));
+const home = mkdtempSync(join(tmpdir(), "dusk-test-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
 // DUSK_DATA_DIR must never escape the throwaway home the suite deletes.

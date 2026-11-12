@@ -99,7 +99,7 @@ export function CallTargetButton({
   const liveElsewhere = liveRunning && media.botId !== targetId;
   const onCall = useOnCall() === targetId;
   const active = onCall || onLiveCall;
-  const remoteClient = globalThis.window?.ogb?.remoteClient?.active === true;
+  const remoteClient = globalThis.window?.duskDesktop?.remoteClient?.active === true;
   const capabilityHelp = capabilitiesReady
     ? callCapabilityHelp(capabilities, Boolean(speechBridge()?.speechStart), fishListeningReady(state.config))
     : null;

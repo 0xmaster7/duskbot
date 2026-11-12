@@ -118,7 +118,7 @@ async function pairingCode(scopes?: string[]): Promise<{ code: string; credentia
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-remote-test-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-remote-test-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".duskbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
@@ -276,7 +276,7 @@ describe("pairing", () => {
       body: JSON.stringify({ code: opened.code.toLowerCase() }),
     });
     expect(paired.status).toBe(200);
-    expect(paired.body.token).toMatch(/^omb_sess_/);
+    expect(paired.body.token).toMatch(/^dusk_sess_/);
     expect(paired.body.session.label).toBe("Safari on Mac");
     expect(paired.body.environment.label).toBe("cab mini");
     const again = await call("/api/auth/pair", { method: "POST", headers: remote("10.0.0.3"), body: JSON.stringify({ code: opened.code }) });
@@ -288,7 +288,7 @@ describe("pairing", () => {
     expect(me.body).toMatchObject({ kind: "session", via: "bearer", label: "Safari on Mac", scopes: ["admin", "client"] });
 
     const ticket = await call("/api/auth/stream-ticket", { method: "POST", headers: bearer });
-    expect(ticket.body.ticket).toMatch(/^omb_tick_/);
+    expect(ticket.body.ticket).toMatch(/^dusk_tick_/);
     const stream = await openSse(`${BASE}/api/events?ticket=${ticket.body.ticket}`, { host: REMOTE_HOST });
     try {
       const hello = await stream.until((f) => f.kind === "hello", 5_000);
@@ -320,7 +320,7 @@ describe("pairing", () => {
     expect(res.status).toBe(200);
     expect(res.body.token).toBeUndefined();
     const setCookie = header(res.headers, "set-cookie");
-    expect(setCookie).toMatch(new RegExp(`^omb_session_${PORT}_[a-f0-9]{12}=omb_sess_`));
+    expect(setCookie).toMatch(new RegExp(`^dusk_session_${PORT}_[a-f0-9]{12}=dusk_sess_`));
     expect(setCookie).toContain("HttpOnly");
     expect(setCookie).toContain("SameSite=Lax");
     expect(setCookie).toContain("Secure");
@@ -332,7 +332,7 @@ describe("pairing", () => {
     expect(refreshed.split(";")[0]).toBe(cookie);
     expect(refreshed).toMatch(/Max-Age=\d+/);
     expect(refreshed).toContain("HttpOnly");
-    const stranger = await call("/api/bots", { headers: remote("10.0.0.4", { cookie: `${cookie.split("=")[0]}=omb_sess_nope`, origin: `http://${REMOTE_HOST}` }) });
+    const stranger = await call("/api/bots", { headers: remote("10.0.0.4", { cookie: `${cookie.split("=")[0]}=dusk_sess_nope`, origin: `http://${REMOTE_HOST}` }) });
     expect(stranger.status).toBe(401);
     expect(header(stranger.headers, "set-cookie")).toBe("");
     const noOrigin = await call("/api/auth/session", { headers: remote("10.0.0.4", { cookie }) });
@@ -348,7 +348,7 @@ describe("pairing", () => {
 
   it("pairs a native companion app on its own route, with the body shape it sends", async () => {
     const opened = await pairingCode(["client"]);
-    expect(opened.credential).toMatch(/^omb_pair_[A-Za-z0-9_-]{43}$/);
+    expect(opened.credential).toMatch(/^dusk_pair_[A-Za-z0-9_-]{43}$/);
 
     const paired = await call("/api/pair", {
       method: "POST",
@@ -358,7 +358,7 @@ describe("pairing", () => {
     expect(paired.status).toBe(200);
     // Exactly the fields android/core's PairResponseSerializer requires.
     expect(typeof paired.body.token).toBe("string");
-    expect(paired.body.token.startsWith("omb_sess_")).toBe(true);
+    expect(paired.body.token.startsWith("dusk_sess_")).toBe(true);
     expect(paired.body.serverName).toBe(opened.serverName);
     expect(paired.body.device.name).toBe("Pixel 9");
     expect(typeof paired.body.device.id).toBe("string");

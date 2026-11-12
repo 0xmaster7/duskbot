@@ -84,7 +84,7 @@ describe("Slack OAuth subscriptions", () => {
     let deliver: ((link: string) => void) | undefined;
     const unsubscribe = vi.fn();
     vi.stubGlobal("window", Object.assign(new EventTarget(), {
-      ogb: { onSlackOAuth: (cb: (link: string) => void) => { deliver = cb; return unsubscribe; } },
+      duskDesktop: { onSlackOAuth: (cb: (link: string) => void) => { deliver = cb; return unsubscribe; } },
     }));
     vi.mocked(api).mockResolvedValueOnce({ status });
     const receive = vi.fn();

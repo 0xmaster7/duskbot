@@ -258,7 +258,7 @@ test("startup waits only for its selected saved server and refuses an unknown en
 });
 
 test("a damaged saved-links file is kept aside before the first save can write over it", async () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "omb-vps-link-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "dusk-vps-link-"));
   try {
     const file = path.join(dir, "vps-link.json");
     const damaged = '{"v":1,"current":"aaaaaaaaaa","links":[{"id":"aaaaaaaaaa","keyP":"p:k';

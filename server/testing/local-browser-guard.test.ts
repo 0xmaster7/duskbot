@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 
 it("refuses container subprocesses before launching them inside an isolated native-browser fixture", () => {
-  const directory = mkdtempSync(join(tmpdir(), "omb-native-guard-"));
+  const directory = mkdtempSync(join(tmpdir(), "dusk-native-guard-"));
   try {
     const result = spawnSync(process.execPath, ["--import", new URL("./local-browser-guard.mjs", import.meta.url).href,
       "--input-type=module", "-e", `

@@ -13,7 +13,7 @@ import { attachmentsForBox } from "./box-attachments.ts";
 
 const detection = detectBox({ env: { ...process.env, DUSK_BOT_BOX: "1" } });
 const available = detection.box === "bwrap" && detection.tools !== null;
-const root = mkdtempSync(join(tmpdir(), "omb-box-attach-"));
+const root = mkdtempSync(join(tmpdir(), "dusk-box-attach-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const home = join(root, "home"), dataDir = join(home, ".duskbot"), uploads = join(dataDir, "attachments");

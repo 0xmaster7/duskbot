@@ -9,7 +9,7 @@ import { ProviderRegistry } from "./harness/registry.ts";
 import { recordEvents } from "./testing/events.ts";
 import { TRIAL_CREDIT_REFUSED } from "./trial-credit.ts";
 
-const TOKEN = `omb_ai_${"t".repeat(43)}`;
+const TOKEN = `dusk_ai_${"t".repeat(43)}`;
 /** DUSK_CLOUD_AI_URL exactly as the Admin sets it: an OpenAI base URL, its `/v1` included. */
 const RELAY = "https://cloud.example.test/api/cloud/services/ai/v1";
 const credential = { token: TOKEN, api: RELAY, included: true };
@@ -35,7 +35,7 @@ describe("what the credit's engine is made of", () => {
     for (const body of [null, "models", { data: "x" }, { models: [] }]) expect(parseCreditModels(body)).toEqual([]);
   });
 
-  it("is Dusk Bot's own chat engine on the relay, with this machine's token as its own key: never Claude Code, Codex or an Anthropic route", () => {
+  it("is dusk bot's own chat engine on the relay, with this machine's token as its own key: never Claude Code, Codex or an Anthropic route", () => {
     const configs = cloudCreditInstanceConfig(credential, parseCreditModels(MODELS));
     expect(Object.keys(configs)).toEqual([CLOUD_CREDIT_INSTANCE]);
     const entry = configs[CLOUD_CREDIT_INSTANCE]!;
@@ -85,7 +85,7 @@ describe("the credit's engine on a Cloud home", () => {
     providers.push(provider);
     return provider;
   };
-  beforeEach(() => { data = mkdtempSync(join(tmpdir(), "omb-trial-credit-")); });
+  beforeEach(() => { data = mkdtempSync(join(tmpdir(), "dusk-trial-credit-")); });
   afterEach(() => {
     for (const provider of providers.splice(0)) provider.close();
     vi.useRealTimers(); vi.unstubAllGlobals();
@@ -203,7 +203,7 @@ describe("the credit's engine on a Cloud home", () => {
     expect(restarted.status()).toBe("used_up"); expect(fetch).not.toHaveBeenCalled();
     expect(await again.loaded[0]!.instance.snapshot()).toMatchObject({ state: "unavailable" });
     const other = fakeRegistry();
-    const fresh = make({ registry: other.registry, fetch: relay(200, MODELS), credential: { ...credential, token: `omb_ai_${"n".repeat(43)}` } });
+    const fresh = make({ registry: other.registry, fetch: relay(200, MODELS), credential: { ...credential, token: `dusk_ai_${"n".repeat(43)}` } });
     await fresh.start();
     expect(fresh.status()).toBe("active");
   });

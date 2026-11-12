@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 
-import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-dusk.ts";
 import { PHONE_MCP_SERVER } from "../shared/phone-apps.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
 import { waitForExit } from "./testing/cleanup.ts";
@@ -39,7 +39,7 @@ const pair = async (label: string, scopes: string[]) => {
   const opened = await api("POST", "/api/auth/pairing", { label, scopes });
   expect(opened.status).toBe(200);
   const paired = (await api("POST", "/api/auth/pair", { code: opened.body.code })).body as typeof pairing;
-  expect(paired.token).toMatch(/^omb_sess_/u);
+  expect(paired.token).toMatch(/^dusk_sess_/u);
   return paired;
 };
 const rpc = async (token: string, method: string, params: unknown = {}) => {

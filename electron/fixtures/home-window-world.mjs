@@ -2,10 +2,10 @@
 // home-window.node-test.mjs and home-window-states.node-test.mjs.
 import { createHomeWindow } from "../home-window.mjs";
 
-export const CLOUD = "https://omb-t-1.fly.dev";
-export const TEAM = "https://omb-u-acme.fly.dev";
+export const CLOUD = "https://dusk-t-1.fly.dev";
+export const TEAM = "https://dusk-u-acme.fly.dev";
 export const ACME = { id: "team-acme", name: "Acme", role: "member", machine: { status: "ready", origin: TEAM } };
-export const CLIENT = "https://omb-c-a.fly.dev";
+export const CLIENT = "https://dusk-c-a.fly.dev";
 export const CLIENT_A = { id: "c-a", name: "Client A", color: "green", role: "owner", tier: "pro", runsOn: "cloud", status: "ready", origin: CLIENT, teamId: null, primary: false };
 export const LOCAL = "http://127.0.0.1:8799";
 export const ACCOUNT = { id: "acct-1", email: "person@example.test" };
@@ -14,7 +14,7 @@ export const done = (cloud = {}) => ({ v: 1, phase: "done", cloud: { origin: CLO
 export const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
 
 /**
- * The window onto My Cloud with fakes on every side: the journal, this computer's freeze marker, the Dusk Cloud
+ * The window onto My Cloud with fakes on every side: the journal, this computer's freeze marker, the dusk cloud
  * sign-in (its power word, wake, pairing code), My Cloud's answers (`cloud`), the window (where it went), the startup
  * screen and a manual clock.
  */
@@ -88,10 +88,10 @@ export function world({ clean = null, journal = done(), marker = null, state = c
     cookieFetch: async (url, init) => {
       const atClient = String(url).startsWith(CLIENT), atTeam = String(url).startsWith(TEAM), server = atClient ? w.client : atTeam ? w.team : w.cloud;
       const base = atClient ? CLIENT : atTeam ? TEAM : CLOUD;
-      w.fetched.push([String(url).replace(base, atClient ? "client:" : atTeam ? "team:" : ""), init?.headers?.["x-omb-background"] ?? null]);
+      w.fetched.push([String(url).replace(base, atClient ? "client:" : atTeam ? "team:" : ""), init?.headers?.["x-dusk-background"] ?? null]);
       if (server.down) throw new TypeError("fetch failed");
       const route = String(url).replace(base, "");
-      if (route === "/api/health") return new Response("", { status: server.health, headers: server.health === 503 ? { "x-omb-cloud-power": "asleep" } : {} });
+      if (route === "/api/health") return new Response("", { status: server.health, headers: server.health === 503 ? { "x-dusk-cloud-power": "asleep" } : {} });
       if (route === "/api/auth/session") return server.signedIn ? json({ kind: "session", ...(server.expiresAt ? { expiresAt: server.expiresAt } : {}) }) : json({ error: "sign in" }, 401);
       if (route === "/api/auth/pair" && init?.method === "POST") {
         w.redeemed.push([atClient ? "client" : atTeam ? "team" : "cloud", JSON.parse(init.body)]);

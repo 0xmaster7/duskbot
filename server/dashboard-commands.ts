@@ -9,7 +9,7 @@ export function createDashboardCommands(deps: { port: number; collect: ReturnTyp
   const pending = new Map<string, { path: string; method: string }>();
   const owners = new WeakSet<RequestAuth>();
   function authenticate(req: IncomingMessage): RequestAuth | null {
-    const key = req.headers["x-omb-dashboard-command"];
+    const key = req.headers["x-dusk-dashboard-command"];
     const grant = typeof key === "string" ? pending.get(key) : undefined;
     if (!grant || !["127.0.0.1", "::ffff:127.0.0.1", "::1"].includes(req.socket.remoteAddress ?? "") || req.method !== grant.method || req.url !== grant.path) return null;
     pending.delete(key as string);
@@ -55,7 +55,7 @@ export function createDashboardCommands(deps: { port: number; collect: ReturnTyp
     pending.set(nonce, { path, method });
     try {
       const response = await (deps.fetch ?? fetch)(`http://127.0.0.1:${deps.port}${path}`, { method, redirect: "error", signal: AbortSignal.timeout(55_000),
-        headers: { "content-type": "application/json", "x-omb-dashboard-command": nonce }, ...(method === "DELETE" ? {} : { body: JSON.stringify(body) }) });
+        headers: { "content-type": "application/json", "x-dusk-dashboard-command": nonce }, ...(method === "DELETE" ? {} : { body: JSON.stringify(body) }) });
       if (!response.ok) {
         const answer = await response.json().catch(() => ({})) as { error?: unknown };
         const shown = typeof answer.error === "string" && !(command.kind.startsWith("app.") && response.status >= 500);

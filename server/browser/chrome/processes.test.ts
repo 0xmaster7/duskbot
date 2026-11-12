@@ -9,7 +9,7 @@ import { ProcessRegistry, staleSingletonLock, strays, sweep, userDataDirOf, type
 
 const dirs: string[] = [];
 const scratch = () => {
-  const dir = mkdtempSync(join(tmpdir(), "omb-chrome-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-chrome-test-"));
   dirs.push(dir);
   return dir;
 };
@@ -28,7 +28,7 @@ describe("the process sweep", () => {
     expect(userDataDirOf({ args: "/usr/bin/node server.js" })).toBeNull();
   });
 
-  it("kills browsers on Dusk Bot's profiles that no live server registered, and nothing else", () => {
+  it("kills browsers on dusk bot's profiles that no live server registered, and nothing else", () => {
     const root = "/data/browser";
     const processes = [
       chrome(10, "/data/browser/profiles/a"),

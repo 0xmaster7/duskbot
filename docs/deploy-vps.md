@@ -1,12 +1,12 @@
-# Deploy Dusk Bot on a VPS
+# Deploy dusk bot on a VPS
 
-From a blank Linux server to Dusk Bot running on it around the clock, reachable from your laptop, the desktop app and your phone, with your bots working while every laptop is closed. It assumes nothing beyond being able to open a terminal and paste commands. About twenty minutes, most of it waiting.
+From a blank Linux server to dusk bot running on it around the clock, reachable from your laptop, the desktop app and your phone, with your bots working while every laptop is closed. It assumes nothing beyond being able to open a terminal and paste commands. About twenty minutes, most of it waiting.
 
 Three ways to make the server reachable are covered. Pick one; the rest of the guide is the same.
 
 | | You need | Who can reach it | Best for |
 |---|---|---|---|
-| **A. Public address, no domain** (`serve --tunnel`) | a Dusk Bot account (email code) | anyone with a pairing code, over HTTPS | the fastest path; a phone on cellular |
+| **A. Public address, no domain** (`serve --tunnel`) | a dusk bot account (email code) | anyone with a pairing code, over HTTPS | the fastest path; a phone on cellular |
 | **B. Your own domain** (Docker + Caddy) | a domain name, ports 80/443 | anyone with a pairing code, over HTTPS | a permanent address you own |
 | **C. Your Tailscale network** (`serve --tailscale`) | Tailscale on the server and your devices | only your tailnet | the most private; nothing public at all |
 
@@ -78,7 +78,7 @@ npx duskbot login          # once: an emailed code signs this machine in and res
 npx duskbot serve --tunnel # runs the server there and prints the pairing link with a QR code
 ```
 
-`setup` connects an AI provider; it is separate from the Dusk Bot account.
+`setup` connects an AI provider; it is separate from the dusk bot account.
 Use Codex's device-code option over SSH, or enter a hidden API key for a
 chat-only connection. More engines can be added later. See [CLI setup](cli-onboarding.md).
 
@@ -103,7 +103,7 @@ One container for the server plus Caddy for HTTPS at `https://maus.example.com`.
 3. **Get the deploy files and set the name:**
 
    ```sh
-   git clone https://github.com/goatedgrokbotalternative/duskbot && cd Dusk Bot/deploy
+   git clone https://github.com/goatedgrokbotalternative/duskbot && cd dusk bot/deploy
    cp .env.example .env
    nano .env                # DOMAIN=maus.example.com ; ENGINES=@anthropic-ai/claude-code @openai/codex
    ```
@@ -113,8 +113,8 @@ One container for the server plus Caddy for HTTPS at `https://maus.example.com`.
 4. **Start it:**
 
    ```sh
-   docker compose pull omb && docker compose up -d
-   docker compose ps        # omb "healthy", caddy "running"
+   docker compose pull dusk && docker compose up -d
+   docker compose ps        # dusk "healthy", caddy "running"
    ```
 
    Caddy requests the certificate on its own; give it a minute. Then `https://maus.example.com` shows a page asking for a pairing code. That is correct: nothing works until you pair.
@@ -122,7 +122,7 @@ One container for the server plus Caddy for HTTPS at `https://maus.example.com`.
 In this path, every `npx duskbot …` command below is run inside the container instead:
 
 ```sh
-docker compose exec omb node dist-server/duskbot.js pair --label "My MacBook"
+docker compose exec dusk node dist-server/duskbot.js pair --label "My MacBook"
 ```
 
 ## Path C: only your Tailscale network
@@ -162,7 +162,7 @@ gets its own isolated session whose logins persist across restarts.
 
 ## Install and sign the engines in
 
-The npm Dusk Bot package does not install model engine CLIs. For paths A and C,
+The npm dusk bot package does not install model engine CLIs. For paths A and C,
 install the engine you use in the service account, then sign it in. For example,
 from the `maus` shell, for Claude:
 
@@ -175,10 +175,10 @@ claude
 For Codex, use `@openai/codex` as the npm package and run `codex login --device-auth`
 to sign in from a headless server. Complete the CLI's account flow in your browser. Repeat only for the
 engines you use. For path B, run the installed CLI inside the container, for
-example `docker compose exec omb claude`.
+example `docker compose exec dusk claude`.
 
 Engine logins belong to the service user's home (for example `~/.codex` and
-`~/.claude`), separately from Dusk Bot's `~/.duskbot`. Keep that home when
+`~/.claude`), separately from dusk bot's `~/.duskbot`. Keep that home when
 restarting or upgrading. The systemd example below includes `~/.local/bin` in PATH.
 
 ## Pair your first device
@@ -227,7 +227,7 @@ administrator shell, save this as `/etc/systemd/system/duskbot.service`:
 ```ini
 # /etc/systemd/system/duskbot.service
 [Unit]
-Description=Dusk Bot server
+Description=dusk bot server
 After=network-online.target
 
 [Service]
@@ -268,7 +268,7 @@ same release without an npm install prompt or an implicit upgrade.
   Check that installation succeeded before starting. A service restart by itself
   does not update the installed package. For foreground `npx` usage, specify the
   desired release as `npx --yes duskbot@X.Y.Z serve --tunnel`.
-- **Path B:** `cd Dusk Bot/deploy && docker compose pull omb && docker compose up -d`.
+- **Path B:** `cd dusk bot/deploy && docker compose pull dusk && docker compose up -d`.
 
 Routines and queued work survive a restart. A teammate turn running at that moment runs again once at the next start, told to check what it already did, and the bot that asked for it is told. A person's own turn and a running routine are not run again: the conversation says it was interrupted. Update between runs where you can.
 
@@ -295,11 +295,11 @@ any configured home/data-directory overrides, and workspaces outside the app
 directory. These are not included in the command above.
 
 For path B, the whole `/data` volume includes the container's CLI homes. From
-`Dusk Bot/deploy`, stop the app before archiving; `deploy_data` is the default
+`dusk bot/deploy`, stop the app before archiving; `deploy_data` is the default
 volume name, so use your actual volume name if you changed the Compose project:
 
 ```sh
-docker compose stop omb
+docker compose stop dusk
 backup_dir=$(mktemp -d "$PWD/duskbot-backup.XXXXXX")
 docker run --rm -v deploy_data:/data:ro -v "$backup_dir":/b alpine sh -c 'umask 077; tar czf /b/duskbot-data.tgz -C /data .'
 ```
@@ -308,7 +308,7 @@ Each command creates a fresh private folder in the current directory, so it
 cannot overwrite an older archive with more permissive access. Keep the
 archive inside that folder privately on another machine. Restore with the server stopped,
 using the same paths and original ownership. After backup or restore, start the
-service with `sudo systemctl start duskbot`, or `docker compose start omb`.
+service with `sudo systemctl start duskbot`, or `docker compose start dusk`.
 
 ## The rules the setup relies on
 
@@ -336,7 +336,7 @@ Read this before putting anything else in front of the server.
 
 **What does the server think it is?** `https://<address>/.well-known/duskbot/environment` is public and shows its id, label, version and capabilities; `npx duskbot status` prints the same on the server.
 
-**Something else.** `journalctl -u duskbot --since -10m` (or `docker compose logs omb --tail 100`) shows the server's startup lines. Paste them with your question in the community channel.
+**Something else.** `journalctl -u duskbot --since -10m` (or `docker compose logs dusk --tail 100`) shows the server's startup lines. Paste them with your question in the community channel.
 
 ### Ubuntu 24.04 browser sandbox
 

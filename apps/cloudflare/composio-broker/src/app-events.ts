@@ -113,7 +113,7 @@ function boundedData(data: Record<string, unknown>): Record<string, unknown> {
   const encoded = utf8(JSON.stringify(data));
   if (encoded.byteLength <= MAX_EVENT_DATA_BYTES) return data;
   return {
-    omb_truncated: true,
+    dusk_truncated: true,
     original_bytes: encoded.byteLength,
     preview: new TextDecoder().decode(encoded.slice(0, MAX_EVENT_DATA_BYTES)),
   };
@@ -236,9 +236,10 @@ async function wakeCloud(env: Env, owner: Owner, now: number) {
     ).bind(now, owner.id, machineId, now - WAKE_EVERY_MS).run();
     if (!asked.meta.changes) return;
     const timestamp = Math.floor(now / 1000);
+    const signature = await cloudWakeSignature(secret, timestamp, machineId);
     const response = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-omb-wake-timestamp": String(timestamp), "x-omb-wake-signature": await cloudWakeSignature(secret, timestamp, machineId) },
+      headers: { "content-type": "application/json", "x-dusk-wake-timestamp": String(timestamp), "x-dusk-wake-signature": signature, "x-omb-wake-timestamp": String(timestamp), "x-omb-wake-signature": signature },
       body: JSON.stringify({ machineId }),
       signal: AbortSignal.timeout(WAKE_TIMEOUT_MS),
     });
@@ -433,11 +434,11 @@ async function resumeSweptTriggers(env: Env, installationId: string) {
   }
 }
 
-/** GET /v1/events?after=<seq>&wait=<0-25>&limit=<1-50>, with header x-omb-poller. */
+/** GET /v1/events?after=<seq>&wait=<0-25>&limit=<1-50>, with header x-dusk-poller. */
 export async function pollEvents(request: Request, url: URL, installation: EventInstallation, env: Env, ctx: ExecutionContext) {
   if (!(await env.EVENTS_LIMITER.limit({ key: installation.id })).success) return json({ error: "too many event requests" }, 429);
-  const poller = request.headers.get("x-omb-poller") ?? "";
-  if (!POLLER_ID.test(poller)) return json({ error: "x-omb-poller must be the server's stable id: 8-64 letters, digits, - or _" }, 400);
+  const poller = request.headers.get("x-dusk-poller") ?? request.headers.get("x-omb-poller") ?? "";
+  if (!POLLER_ID.test(poller)) return json({ error: "x-dusk-poller must be the server's stable id: 8-64 letters, digits, - or _" }, 400);
   const after = intParam(url, "after", 0, Number.MAX_SAFE_INTEGER);
   const wait = intParam(url, "wait", 0, POLL_MAX_WAIT_S);
   const limit = intParam(url, "limit", POLL_MAX_LIMIT, POLL_MAX_LIMIT);
@@ -483,7 +484,7 @@ export async function queueTestEvent(request: Request, installation: EventInstal
   const eventId = `test_${crypto.randomUUID()}`;
   const body = JSON.stringify({
     id: eventId,
-    type: "omb.test",
+    type: "dusk.test",
     timestamp: new Date(now).toISOString(),
     metadata: { trigger_slug: bound.trigger_slug, trigger_id: triggerId, connected_account_id: bound.connected_account_id, user_id: actingUser(installation) },
     data: boundedData(data),

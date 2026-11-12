@@ -1,11 +1,12 @@
 // Research for bots through treg (treg.to): find an endpoint for a job in treg's catalog, read it, call it. With the
 // person's own treg key the calls go straight to treg, billed to their treg balance, with no limits from this side;
-// otherwise they go through the Dusk Cloud Admin's research relay (its `/research/*` routes under the plan's X relay
+// otherwise they go through the dusk cloud Admin's research relay (its `/research/*` routes under the plan's X relay
 // URL), within the plan's monthly research budget.
 import { createHash, randomUUID } from "node:crypto";
 
 import type { ServiceCredential } from "./included-services.ts";
 import { dollarsText, readCapped, tregAuthHeaders, tregErrorFor, X_MESSAGES, XResearchError } from "./x-research.ts";
+import { readHeader } from "../electron/legacy-names.mjs";
 
 /** A catalog id, or a hub tool's versioned id; never a path or a URL (those would reach a team's own tools). */
 export const RESEARCH_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}(?:@[A-Za-z0-9._-]{1,40})?$/;
@@ -21,8 +22,8 @@ const RESEARCH_INSTEAD = "Tell the person research isn't available here and offe
 
 export const RESEARCH_MESSAGES = {
   unavailable: "Research is temporarily unavailable. Try again shortly.",
-  notOffered: `Dusk Cloud doesn't offer research yet. ${RESEARCH_INSTEAD}`,
-  off: `Research isn't on for this Dusk Cloud plan right now, so research_search and research_call can't be used. ${RESEARCH_INSTEAD}`,
+  notOffered: `dusk cloud doesn't offer research yet. ${RESEARCH_INSTEAD}`,
+  off: `Research isn't on for this dusk cloud plan right now, so research_search and research_call can't be used. ${RESEARCH_INSTEAD}`,
 } as const;
 
 export interface ResearchCallInput {
@@ -279,13 +280,13 @@ export function createResearchClient(credential: ServiceCredential, options: { f
       }
       if (!answer) throw new XResearchError("unavailable", own ? "Couldn't reach treg. Try again in a minute." : RESEARCH_MESSAGES.unavailable);
       const { body, headers } = answer;
-      const costUsd = own ? costOf(headers.get("x-treg-cost-micro"), 1_000_000) : costOf(headers.get("x-omb-research-charged-usd"), 1);
-      const failed = headers.get(own ? "x-treg-upstream-failed" : "x-omb-research-upstream-failed")?.slice(0, 200);
+      const costUsd = own ? costOf(headers.get("x-treg-cost-micro"), 1_000_000) : costOf(readHeader(headers, "x-dusk-research-charged-usd"), 1);
+      const failed = (own ? headers.get("x-treg-upstream-failed") : readHeader(headers, "x-dusk-research-upstream-failed"))?.slice(0, 200);
       const callId = headers.get("x-treg-call-id")?.trim();
       return {
         result: body,
         ...(costUsd === undefined ? {} : { costUsd }),
-        ...(!own && headers.get("x-omb-research-pending") === "true" ? { costPending: true as const } : {}),
+        ...(!own && readHeader(headers, "x-dusk-research-pending") === "true" ? { costPending: true as const } : {}),
         ...(callId ? { callId } : {}),
         ...(failed ? { upstreamFailed: failed } : {}),
       };

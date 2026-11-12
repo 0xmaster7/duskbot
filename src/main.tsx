@@ -41,9 +41,9 @@ const appPage = PAGES_WITHOUT_THE_APP.has(location.pathname) ? null : loadApp();
 
 async function chooseRoot(): Promise<React.ReactNode> {
   productScreen(PAGES_WITHOUT_THE_APP.has(location.pathname) ? location.pathname : "/");
-  const home = window.ogb?.home;
-  if (location.pathname === "/home" && home) return <HomeScreen bridge={home} manage={window.ogb?.cloudPlan?.manage} />;
-  const reconnect = window.ogb?.reconnect;
+  const home = window.duskDesktop?.home;
+  if (location.pathname === "/home" && home) return <HomeScreen bridge={home} manage={window.duskDesktop?.cloudPlan?.manage} />;
+  const reconnect = window.duskDesktop?.reconnect;
   if (location.pathname === "/reconnect" && reconnect) return <ReconnectScreen bridge={reconnect} />;
   if (location.pathname === "/pair") {
     const signIn = takeBrowserSignInFromLocation();
@@ -53,7 +53,7 @@ async function chooseRoot(): Promise<React.ReactNode> {
     }
     return <PairPage initialCode={takePairingCodeFromLocation()} initialEmail={takeInvitedEmailFromLocation()} />;
   }
-  const accountGate = window.ogb?.accountGate;
+  const accountGate = window.duskDesktop?.accountGate;
   if (!PAGES_WITHOUT_THE_APP.has(location.pathname) && accountGate && (await accountGate.state()).blocked) { productScreen("/sign-in"); return <AccountGate bridge={accountGate} />; }
   const session = await readSessionState();
   if (session.kind === "unauthenticated") {

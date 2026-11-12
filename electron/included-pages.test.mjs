@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDesktopIncludedPages } from "./included-pages.mjs";
 
-const access = { url: "https://dusk.bot/api/cloud/pages/token", token: `omb_pd_${"a".repeat(43)}` };
+const access = { url: "https://dusk.bot/api/cloud/pages/token", token: `dusk_pd_${"a".repeat(43)}` };
 const signedIn = (deviceId = "device-1", plan = "free") =>
   ({ status: "connected", deviceId, entitlement: plan === "free" ? { plan: "free", status: "inactive", tier: null } : { plan: "pro", status: "active", tier: plan } });
 

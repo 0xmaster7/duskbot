@@ -13,7 +13,7 @@ const env = { DUSK_ENTITLEMENT_DEV_KEYS: `${dev.publicKey.kid}:${dev.publicKey.x
 const token = (over: { cloud?: string; aud?: Array<"home" | "app">; exp?: number } = {}) =>
   signEntitlement({ aud: over.aud ?? ["home", "app"], cloud: over.cloud ?? MACHINE, acct: "a", tier: "shared_s", features: ["cloud"], iat: NOW, exp: over.exp ?? NOW + 3_600_000 }, dev.signer);
 function home(options: { fromSource?: boolean; required?: boolean; now?: number } = {}) {
-  const dataDir = mkdtempSync(join(tmpdir(), "omb-entitlement-")); dirs.push(dataDir);
+  const dataDir = mkdtempSync(join(tmpdir(), "dusk-entitlement-")); dirs.push(dataDir);
   let at = options.now ?? NOW;
   const made = (dir = dataDir) => createCloudEntitlement({ dataDir: dir, machineId: MACHINE, now: () => at, fromSource: options.fromSource ?? true,
     env: { ...env, ...(options.required ? { DUSK_CLOUD_ENTITLEMENT: "required" } : {}) } });

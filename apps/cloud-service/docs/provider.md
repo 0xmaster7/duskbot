@@ -17,7 +17,7 @@ and checked on live machines, 2026-11-11.
   cannot (`runtime.processesPreserved: false`). `stop` keeps files only. A paused machine cannot be stopped or resized
   without a resume first. Stopped disks are never purged.
 - Create, start, stop, suspend, resume, delete and snapshot saves take an `Idempotency-Key`; a create whose operation
-  failed replays the failure for the same key, so the machine's unique name (`omb-<cloud>-<attempt>-<scope>`) is what
+  failed replays the failure for the same key, so the machine's unique name (`dusk-<cloud>-<attempt>-<scope>`) is what
   keeps a retried create from making a second one. `DELETE` needs `X-Confirm-Delete`.
 - `exec` runs `bash -lc` as the machine user (passwordless sudo), 10 minutes at most; a minutes-long call is dropped by
   the API, so long work runs detached and is polled. Exec is never retried.

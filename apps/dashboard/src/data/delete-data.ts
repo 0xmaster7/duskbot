@@ -8,8 +8,8 @@ export const DELETE_WINDOW_DAYS = 7;
 const HOUR = 3_600_000;
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const PAGE = /^\/clouds\/([^/]+)\/delete\/?$/;
-const RETRY = "omb-dash-delete-retry";
-const tokenKey = (id: string) => `omb-dash-delete-token:${id}`;
+const RETRY = "dusk-dash-delete-retry";
+const tokenKey = (id: string) => `dusk-dash-delete-token:${id}`;
 
 export type DeleteStep = "ask" | "confirm";
 

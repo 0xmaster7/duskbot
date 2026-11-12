@@ -79,7 +79,7 @@ linuxBox("a required box runs engines in their own home", () => {
   afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
   it("HOME is the engine home; the server's HOME, data folder, keys and link files are not there; sign-ins are, settings read-only", () => {
-    const root = mkdtempSync(join(tmpdir(), "omb-required-box-"));
+    const root = mkdtempSync(join(tmpdir(), "dusk-required-box-"));
     dirs.push(root);
     const serverHome = join(root, "home"), data = join(serverHome, ".duskbot");
     const runner = new BoxRunner({

@@ -101,17 +101,17 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const unreadCount =
     state.bots.filter((bot) => !bot.hidden).reduce((sum, bot) => sum + botUnreadCount(bot), 0) +
     state.groups.filter((group) => group.unread).length;
-  const remoteClient = window.ogb?.remoteClient?.active === true;
+  const remoteClient = window.duskDesktop?.remoteClient?.active === true;
   // As Grok Bot: the bot's panel docks beside the sidebar only while the chat keeps its 424px and the panel its 280.
   const botPanelDocks = useMediaQuery(`(min-width: ${BOT_PANEL_DOCKS_AT}px)`, true);
   useEffect(() => {
-    if (!window.ogb?.environments) return;
+    if (!window.duskDesktop?.environments) return;
     const open = () => dispatch({ type: "toggleAppSettings", open: true, section: "desktopWorkspaces" });
     const url = new URL(window.location.href);
     const requestedSettings = url.searchParams.get("desktop-settings");
     const cloud = ["cloud", "cloud-settings", "cloud-add", "cloud-add-howto"].includes(requestedSettings ?? "");
-    if (requestedSettings === "workspaces" || (requestedSettings === "organization" && window.ogb.organization && !remoteClient) ||
-      (cloud && window.ogb.cloudAccount && !remoteClient)) {
+    if (requestedSettings === "workspaces" || (requestedSettings === "organization" && window.duskDesktop.organization && !remoteClient) ||
+      (cloud && window.duskDesktop.cloudAccount && !remoteClient)) {
       url.searchParams.delete("desktop-settings");
       window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
       if (requestedSettings === "organization") dispatch({ type: "toggleAppSettings", open: true, section: "organization" });
@@ -120,7 +120,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch({ type: "openCloudAdd", source: requestedSettings === "cloud-add" ? "app_menu" : "app_howto" });
       else open();
     }
-    return window.ogb.environments.onOpenSettings?.(open);
+    return window.duskDesktop.environments.onOpenSettings?.(open);
   }, [dispatch]);
   useEffect(() => {
     const rest = takePhonePairingRequest(window.location.href);
@@ -216,10 +216,10 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     const opened = state.settingsOpen && !settingsOpened.current;
     settingsOpened.current = state.settingsOpen;
     const grow = BOT_PANEL_DOCKS_AT - window.innerWidth;
-    if (opened && grow > 0) void window.ogb?.windowControls?.resizeWidthBy?.(grow).catch(() => {});
+    if (opened && grow > 0) void window.duskDesktop?.windowControls?.resizeWidthBy?.(grow).catch(() => {});
   }, [state.settingsOpen]);
   useEffect(() => {
-    if (window.ogb?.setUnreadCount) window.ogb.setUnreadCount(unreadCount);
+    if (window.duskDesktop?.setUnreadCount) window.duskDesktop.setUnreadCount(unreadCount);
     else showBrowserUnread(unreadCount);
   }, [unreadCount]);
 
@@ -235,17 +235,17 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   }, [state.selectedId, bot?.threadId, group?.threadId, state.activeView, state.pluginsOpen, state.settingsOpen]);
 
   useEffect(() => {
-    return window.ogb?.onOpenAppSettings?.(section => dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.ogb?.cloudAccount && !remoteClient
+    return window.duskDesktop?.onOpenAppSettings?.(section => dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.duskDesktop?.cloudAccount && !remoteClient
       ? { type: "openCloudAdd", source: section === "cloud-add" ? "app_menu" : "app_howto" }
-      : section === "cloud" && window.ogb?.cloudAccount && !remoteClient
+      : section === "cloud" && window.duskDesktop?.cloudAccount && !remoteClient
         ? CLOUD_LINK_SETTINGS
-        : section === "cloud-settings" && (window.ogb?.cloudAccount || window.ogb?.cloudPlan) && !remoteClient
+        : section === "cloud-settings" && (window.duskDesktop?.cloudAccount || window.duskDesktop?.cloudPlan) && !remoteClient
           ? { type: "toggleAppSettings", open: true, section: "cloudAccount" }
-          : { type: "toggleAppSettings", open: true, ...(section === "organization" && window.ogb?.organization && !remoteClient ? { section } : {}) }));
+          : { type: "toggleAppSettings", open: true, ...(section === "organization" && window.duskDesktop?.organization && !remoteClient ? { section } : {}) }));
   }, [dispatch]);
 
   useEffect(() => {
-    return window.ogb?.desktopViewer?.onState((viewer) => {
+    return window.duskDesktop?.desktopViewer?.onState((viewer) => {
       if (viewer.open || !viewer.contextId) return;
       const botId = viewer.contextId;
       void fetch(`/api/bots/${botId}/computer/control`, {
@@ -366,7 +366,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       </div>
       {/* Last child on purpose: Blink resolves -webkit-app-region in DOM order, so no-drag buttons must follow every drag region. */}
       <WindowCaptionButtons
-        visible={capabilities.windowChrome === "win-caption" && Boolean(window.ogb?.windowControls)}
+        visible={capabilities.windowChrome === "win-caption" && Boolean(window.duskDesktop?.windowControls)}
       />
     </div>
   );

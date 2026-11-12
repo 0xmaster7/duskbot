@@ -34,7 +34,7 @@ node -e 'const m=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
 if [ "${DRY_RUN:-}" = 1 ]; then echo "dry run: verified $TAG (run $run); nothing uploaded"; exit 0; fi
 
 gh repo view "$DOWNLOADS" --json visibility --jq .visibility | grep -qx PUBLIC || { echo "$DOWNLOADS must exist and be public" >&2; exit 1; }
-gh release view "$TAG" --repo "$DOWNLOADS" >/dev/null 2>&1 || gh release create "$TAG" --repo "$DOWNLOADS" --title "Dusk Bot $VERSION" --notes "Dusk Bot $VERSION. Download from https://dusk.bot/download"
+gh release view "$TAG" --repo "$DOWNLOADS" >/dev/null 2>&1 || gh release create "$TAG" --repo "$DOWNLOADS" --title "dusk bot $VERSION" --notes "dusk bot $VERSION. Download from https://dusk.bot/download"
 gh release upload "$TAG" --repo "$DOWNLOADS" --clobber "$work"/assets/DuskBot* "$work/site/SHA256SUMS"
 gh release edit "$TAG" --repo "$DOWNLOADS" --latest
 

@@ -30,7 +30,7 @@ import { turnStdioMcpServers } from "./turn-mcp.ts";
 
 const DRIVER_KIND = "museCode";
 const PROVIDER_ID = "meta";
-const CLIENT_INFO = { name: "duskbot", title: "Dusk Bot", version: "1" };
+const CLIENT_INFO = { name: "duskbot", title: "dusk bot", version: "1" };
 const MUSE_CONTEXT_WINDOW = 1_048_576;
 const RE_ANCHOR_TURNS = 8;
 const STARTUP_TIMEOUT_MS = 30_000;
@@ -330,7 +330,7 @@ export const MuseCodeDriver: ProviderDriver<MuseConfig> = {
     };
 
     const refreshModels = async () => {
-      const cwd = mkdtempSync(join(tmpdir(), "omb-muse-models-"));
+      const cwd = mkdtempSync(join(tmpdir(), "dusk-muse-models-"));
       let host: Host | undefined;
       try {
         host = await startHost(["serve", "--disable-shell", "--disable-write", "--no-session-log"], cwd, "models", false, "duskbot");
@@ -571,7 +571,7 @@ export const MuseCodeDriver: ProviderDriver<MuseConfig> = {
       attach(state, host);
       if (servers.length && !host.grantedMcp) {
         emit({ type: "runtime.notice", threadId: state.threadId, turnId,
-          message: "This Muse Code cannot take Dusk Bot's tools (browser, teammates, apps). Update Muse Code to use them." });
+          message: "This Muse Code cannot take dusk bot's tools (browser, teammates, apps). Update Muse Code to use them." });
       }
       const config = servers.length && host.grantedMcp ? { config: { mcpServers } } : {};
       const resumeId = cursor ?? state.sessionId;

@@ -124,13 +124,13 @@ export function AccountRows() {
             {who}
           </button>
           <div className="flex shrink-0 items-center gap-1.5">
-            {window.ogb?.accounts && accounts.noRail && <button type="button" data-settings-open="add-account" className="ui-button" onClick={() => setAdding(true)}>{t("settings.grok.account.add")}</button>}
+            {window.duskDesktop?.accounts && accounts.noRail && <button type="button" data-settings-open="add-account" className="ui-button" onClick={() => setAdding(true)}>{t("settings.grok.account.add")}</button>}
             {accounts.openSheet && <button type="button" data-settings-open="account" className="ui-button" onClick={() => accounts.openSheet?.()}>{t("settings.rows.account")}</button>}
             <button type="button" data-settings-open="sign-out" className="ui-button" onClick={() => accounts.signOut(active.id)}>{t("settings.grok.account.signOut")}</button>
           </div>
         </div>
       )}
-      {!active && window.ogb?.accounts && <NavRow data-settings-open="add-account" title={t("settings.grok.account.add")} onClick={() => setAdding(true)} />}
+      {!active && window.duskDesktop?.accounts && <NavRow data-settings-open="add-account" title={t("settings.grok.account.add")} onClick={() => setAdding(true)} />}
       {editing && (
         <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
           <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>

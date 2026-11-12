@@ -42,7 +42,7 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
   const close = useDialogKeys(sheet, onClose);
   const server = useOtherServerName(true);
   const [copied, setCopied] = useState(false);
-  const lines = aboutVersionLines({ app: window.ogb?.app, bundle: appVersion(), platform: platformLabel(window.ogb?.platform), server });
+  const lines = aboutVersionLines({ app: window.duskDesktop?.app, bundle: appVersion(), platform: platformLabel(window.duskDesktop?.platform), server });
   const [version, connected] = lines;
   const copy = () => void copyText([productName(), ...lines].join("\n")).then((result) => setCopied(result === "copied"));
 

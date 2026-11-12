@@ -12,7 +12,7 @@ const browserPolicy = path.join(root, "build", "linux-dusk-browser.apparmor");
 const temporaryDirectories = [];
 
 function fixture() {
-  const appRoot = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "omb-deb-upgrade-"));
+  const appRoot = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "dusk-deb-upgrade-"));
   temporaryDirectories.push(appRoot);
   const resources = path.join(appRoot, "resources");
   const cuaRoot = path.join(resources, "cua-linux-x64");
@@ -131,7 +131,7 @@ describe.skipIf(process.platform !== "linux")("Linux DEB upgrade hook", () => {
 
   it("refuses to follow a replaced package directory symlink", () => {
     const { appRoot, resources } = fixture();
-    const external = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "omb-deb-external-"));
+    const external = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "dusk-deb-external-"));
     temporaryDirectories.push(external);
     fs.chmodSync(external, 0o777);
     fs.rmSync(resources, { recursive: true });

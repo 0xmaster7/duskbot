@@ -12,7 +12,7 @@ describe("duskbot service", () => {
   const err: string[] = [];
   const io = { log: (l: string) => out.push(l), error: (l: string) => err.push(l) };
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "omb-service-"));
+    dir = mkdtempSync(join(tmpdir(), "dusk-service-"));
     out.length = 0;
     err.length = 0;
   });
@@ -77,7 +77,7 @@ describe("duskbot service", () => {
 
     // Windows gets a schtasks line, with the platform's own folder as --out
     expect(runServiceCommand({ ...base, sentinelOut: undefined, platform: "win32", dataDir: "C:\\Users\\maus\\.duskbot", home: "C:\\Users\\maus", env: {} }, io)).toBe(1);
-    expect(err.join("\n")).toContain('schtasks /Create /SC MINUTE /MO 2 /TN "Dusk Bot Sentinel" /TR "\\"/usr/bin/node\\" \\"/usr/lib/node_modules/duskbot/cli.js\\" \\"sentinel\\"');
+    expect(err.join("\n")).toContain('schtasks /Create /SC MINUTE /MO 2 /TN "dusk bot Sentinel" /TR "\\"/usr/bin/node\\" \\"/usr/lib/node_modules/duskbot/cli.js\\" \\"sentinel\\"');
     expect(err.join("\n")).toContain("\\\"--out\\\" \\\"C:\\Users\\maus\\AppData\\Local\\duskbot-sentinel\\\"");
   });
 
@@ -100,10 +100,10 @@ describe("duskbot service", () => {
   it("--sentinel prefers the installed app's own CLI over a checkout, which an update or Node upgrade would strand", () => {
     const sentinelOut = join(dir, "sentinel-state");
     const app = "/Applications/Dusk Bot.app/Contents";
-    const checkout = { action: "install" as const, dataDir: join(dir, "data"), port: 8799, sentinel: true, sentinelOut, script: "/src/Dusk Bot/server/duskbot.ts", node: "/home/maus/.nvm/versions/node/v24.0.0/bin/node", platform: "darwin" as const, home: "/Users/maus" };
+    const checkout = { action: "install" as const, dataDir: join(dir, "data"), port: 8799, sentinel: true, sentinelOut, script: "/src/dusk bot/server/duskbot.ts", node: "/home/maus/.nvm/versions/node/v24.0.0/bin/node", platform: "darwin" as const, home: "/Users/maus" };
     expect(runServiceCommand({ ...checkout, exists: (path) => path.startsWith(app), hasSentinel: () => true }, io)).toBe(0);
     const plist = readFileSync(join(sentinelOut, "bot.dusk.sentinel.plist"), "utf8");
-    expect(plist).toContain(`<string>${app}/MacOS/Dusk Bot</string>`);
+    expect(plist).toContain(`<string>${app}/MacOS/dusk bot</string>`);
     expect(plist).toContain(`<string>${app}/Resources/server/duskbot.js</string>`);
     expect(plist).toContain("<key>ELECTRON_RUN_AS_NODE</key>");
     expect(plist).not.toContain("duskbot.ts");

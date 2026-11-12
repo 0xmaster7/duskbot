@@ -128,7 +128,7 @@ describe("planning across bots and rooms", () => {
 describe("applied to a live store", () => {
   /** This computer's copy as a backup stages it: rosters, its message database and its uploads. */
   function staged(bots: unknown[], groups: unknown[], threads: Record<string, Message[]>, files: Record<string, string> = {}) {
-    const data = mkdtempSync(join(tmpdir(), "omb-staged-chats-"));
+    const data = mkdtempSync(join(tmpdir(), "dusk-staged-chats-"));
     writeFileSync(join(data, "bots.json"), JSON.stringify(bots));
     writeFileSync(join(data, "groups.json"), JSON.stringify(groups));
     const db = new DatabaseSync(join(data, "messages.db"));

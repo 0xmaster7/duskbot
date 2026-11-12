@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks(); setLocale("en"); storage = new Map(); f.dispatch = vi.fn();
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) });
   vi.stubGlobal("sessionStorage", { getItem: () => null, setItem: () => {} });
-  vi.stubGlobal("window", { ogb: {} });
+  vi.stubGlobal("window", { duskDesktop: {} });
   f.state = { hydrated: true, bots: bots(1), groups: [], routines: [], config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01", version: 1, hintsSeen: [] } } };
   vi.mocked(api).mockImplementation(async (_path, init) => {
     f.state.config.onboarding.hintsSeen = JSON.parse(String((init as RequestInit).body)).onboarding.hintsSeen;
@@ -41,10 +41,10 @@ beforeEach(() => {
   });
 });
 
-describe("the sidebar Dusk Cloud card", () => {
+describe("the sidebar dusk cloud card", () => {
   it("says the plain 24/7 line, with no nap in it", async () => {
     const html = await launch();
-    expect(html).toContain("Dusk Cloud keeps your bots working 24/7, even when your Mac is off.");
+    expect(html).toContain("dusk cloud keeps your bots working 24/7, even when your Mac is off.");
     expect(html).not.toMatch(/\bnap/i);
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
   });
@@ -54,7 +54,7 @@ describe("the sidebar Dusk Cloud card", () => {
     const html = await launch();
     expect(html).toContain("data-invested");
     expect(html).toContain("good crew of bots");
-    expect(html).toContain("Dusk Cloud keeps them working 24/7, even when your Mac is off.");
+    expect(html).toContain("dusk cloud keeps them working 24/7, even when your Mac is off.");
     expect(track).toHaveBeenCalledWith("upsell_shown", { source: "app_invested" });
     expect(track).not.toHaveBeenCalledWith("upsell_shown", { source: "app_sidebar" });
     expect(f.state.config.onboarding.hintsSeen).toContain("cloud-invested-v1");
@@ -69,7 +69,7 @@ describe("the sidebar Dusk Cloud card", () => {
     expect(await launch()).toContain("routines are doing real work");
   });
 
-  it("Get Dusk Cloud opens Add a Cloud as app_invested; closing snoozes the card like any other", async () => {
+  it("Get dusk cloud opens Add a Cloud as app_invested; closing snoozes the card like any other", async () => {
     f.state.bots = bots(3);
     await launch();
     f.index = 0; f.ref = 0;
@@ -82,7 +82,7 @@ describe("the sidebar Dusk Cloud card", () => {
     expect(track).toHaveBeenCalledWith("upsell_click", { source: "app_invested" });
     buttons.find(button => button.props["aria-label"] === "Hide for a few days").props.onClick();
     expect(track).toHaveBeenCalledWith("upsell_dismiss", { source: "app_invested" });
-    expect(storage.has("omb-cloud-sidebar-card-until")).toBe(true);
+    expect(storage.has("dusk-cloud-sidebar-card-until")).toBe(true);
   });
 
   it("waits below every threshold", async () => {

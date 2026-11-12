@@ -27,7 +27,7 @@ describe("admin panel api", () => {
   const csrf = new Map<string, string>();
 
   beforeEach(async () => {
-    dataDir = mkdtempSync(join(tmpdir(), "omb-admin-test-"));
+    dataDir = mkdtempSync(join(tmpdir(), "dusk-admin-test-"));
     time = Date.parse("2026-11-12T12:00:00Z");
     mailer = memoryMailer();
     sink = memorySink(() => time);
@@ -126,7 +126,7 @@ describe("admin panel api", () => {
       app.close();
       await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
       rmSync(dataDir, { recursive: true, force: true });
-      dataDir = mkdtempSync(join(tmpdir(), "omb-admin-test-"));
+      dataDir = mkdtempSync(join(tmpdir(), "dusk-admin-test-"));
       app = createDashboardApp({ dataDir, publicUrl: origin, mailer, staticDir: null, now: () => time, admin: { emails: [], env: {} } });
       server = createServer(app.handle);
       await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));

@@ -32,7 +32,7 @@ function ConnectAiLink() {
  * see a team's private chats is said in the chat itself, by the team's own page.) Or, for as long as the clean workspace
  * runs (clean-workspace.mjs), that the person's bots are safe in their Cloud; Sign in stays in the You menu. */
 export function HomeLine() {
-  const bridge = !window.ogb?.remoteClient?.active ? window.ogb?.workspaces : undefined;
+  const bridge = !window.duskDesktop?.remoteClient?.active ? window.duskDesktop?.workspaces : undefined;
   const [line, setLine] = useState<Line | null>(null);
   useEffect(() => {
     if (!bridge?.line) return;

@@ -1,4 +1,4 @@
-// Dusk Cloud's night card, cut like a linocut: the three bots ride a cloud under the moon while this computer's
+// dusk cloud's night card, cut like a linocut: the three bots ride a cloud under the moon while this computer's
 // laptop sleeps on the hill.
 import { lazy, Suspense, useRef, type ComponentType, type ReactNode } from "react";
 import { cn } from "@/lib/cn";

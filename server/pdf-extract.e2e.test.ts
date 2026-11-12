@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { callHelperTool } from "./drivers/agents-helper-tools.ts";
 import { createHarnessClient } from "./drivers/agents-client.ts";
 import { pdfFixture } from "./testing/pdf-fixture.ts";
@@ -13,7 +13,7 @@ import { freePortBlock } from "./testing/ports.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 it("extracts an uploaded multi-page PDF through the supported bot tool and isolates other conversations", async () => {
-  const home = mkdtempSync(join(tmpdir(), "omb-pdf-http-"));
+  const home = mkdtempSync(join(tmpdir(), "dusk-pdf-http-"));
   mkdirSync(join(home, "tmp"));
   const port = await freePortBlock([0, 1]);
   const base = `http://127.0.0.1:${port}`;

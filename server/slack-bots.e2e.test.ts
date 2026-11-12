@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync }
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { runControlOmb } from "../scripts/control-omb.ts";
+import { runControlDusk } from "../scripts/control-dusk.ts";
 import { startFakeSlack, type FakeSlack } from "./testing/fake-slack.ts";
 import { launchRestartableServer, type RestartableServer } from "./testing/restartable-server.ts";
 
@@ -42,7 +42,7 @@ describe("Slack bots on a fixture server", () => {
 
   beforeAll(async () => {
     fake = await startFakeSlack();
-    scratch = join(process.env.TMPDIR ?? "/tmp", `omb-slack-e2e-${process.pid}-${Date.now()}`);
+    scratch = join(process.env.TMPDIR ?? "/tmp", `dusk-slack-e2e-${process.pid}-${Date.now()}`);
     mkdirSync(scratch, { recursive: true });
     env("DUSK_SLACK_API_URL", fake.url);
     env("DUSK_SAVED_SECRETS_KEY_FILE", join(scratch, "keys", "saved-secrets.key"));
@@ -71,7 +71,7 @@ describe("Slack bots on a fixture server", () => {
   });
 
   it("provisions an app from the bot, installs it through OAuth and brings it online with the app-level token", async () => {
-    botId = ((await runControlOmb(["new-bot", "--name", "Nova", "--url", server.url])) as { bot: { id: string } }).bot.id;
+    botId = ((await runControlDusk(["new-bot", "--name", "Nova", "--url", server.url])) as { bot: { id: string } }).bot.id;
     expect(await api("GET", `/api/slack/bots/${botId}`)).toMatchObject({ state: "not_linked" });
     const provisioned = await api("POST", `/api/slack/bots/${botId}/provision`);
     expect(provisioned.status.state).toBe("provisioned");

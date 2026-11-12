@@ -21,12 +21,12 @@ export const isInvested = (state: Parameters<typeof investedFacts>[0]) => invest
 const stored = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch {} };
 
-export const SIDEBAR_CARD_KEY = "omb-cloud-sidebar-card-until";
+export const SIDEBAR_CARD_KEY = "dusk-cloud-sidebar-card-until";
 export const sidebarCardSnoozed = (now = Date.now()) => snoozed(stored(SIDEBAR_CARD_KEY), now);
 export const snoozeSidebarCard = (now = Date.now()) => store(SIDEBAR_CARD_KEY, String(snoozeUntil(now)));
 
 /** the 24/7 pitch, inline in a routine's form or after one is made: one cooldown, so it is never said twice in a row */
-export const ALWAYS_ON_KEY = "omb-routine-cloud-upsell-at";
+export const ALWAYS_ON_KEY = "dusk-routine-cloud-upsell-at";
 export const ALWAYS_ON_COOLDOWN = 30 * 86_400_000;
 export function alwaysOnCooling(now = Date.now()): boolean {
   const last = Number(stored(ALWAYS_ON_KEY)) || 0;

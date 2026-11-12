@@ -21,8 +21,8 @@ test("the packaged server forks the bootstrap with a compile cache under userDat
 });
 
 test("a server tree without the bootstrap forks index.js with no cache, as before", () => {
-  const resourcesPath = path.join("/opt", "Dusk Bot", "resources");
-  assert.deepEqual(serverChildLaunch({ resourcesPath, userData: "/home/someone/.config/Dusk Bot", env: {}, exists: () => false }), {
+  const resourcesPath = path.join("/opt", "dusk bot", "resources");
+  assert.deepEqual(serverChildLaunch({ resourcesPath, userData: "/home/someone/.config/dusk bot", env: {}, exists: () => false }), {
     entry: path.join(resourcesPath, "server", "index.js"),
     compileCacheDir: null,
   });
@@ -32,7 +32,7 @@ test("no cache where the app's path changes every launch: AppImage and App Trans
   // Node keys cache entries by full path, so these would never hit and would add an entry every launch.
   const appImage = serverChildLaunch({
     resourcesPath: "/tmp/.mount_OpenMaXk3f9a/resources",
-    userData: "/home/someone/.config/Dusk Bot",
+    userData: "/home/someone/.config/dusk bot",
     env: { APPIMAGE: "/home/someone/Dusk Bot.AppImage" },
     exists: () => true,
   });
@@ -68,7 +68,7 @@ test("every server child of one launch gets that launch's id, never one from the
 
 // A staged copy of the bootstrap beside a stand-in index.js that reports what the server would see.
 function stage(t, indexSource = REPORTING_INDEX) {
-  const dir = mkdtempSync(path.join(tmpdir(), "omb-server-entry-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "dusk-server-entry-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(path.join(dir, "server"));
   copyFileSync(bootstrapSource, path.join(dir, "server", "desktop-entry.mjs"));

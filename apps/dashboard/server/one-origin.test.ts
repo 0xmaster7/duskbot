@@ -15,8 +15,8 @@ describe("one origin: dashboard, admin and site", () => {
   const siteHits: string[] = [];
 
   beforeEach(async () => {
-    dataDir = mkdtempSync("/private/tmp/omb-one-origin-");
-    staticDir = mkdtempSync("/private/tmp/omb-one-origin-static-");
+    dataDir = mkdtempSync("/private/tmp/dusk-one-origin-");
+    staticDir = mkdtempSync("/private/tmp/dusk-one-origin-static-");
     writeFileSync(`${staticDir}/index.html`, "<!doctype html><title>page shell</title>");
     mkdirSync(`${staticDir}/assets/admin`, { recursive: true });
     writeFileSync(`${staticDir}/assets/main.js`, "main");

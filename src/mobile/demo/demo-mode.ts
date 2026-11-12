@@ -4,7 +4,7 @@ import type { MobilePlatform } from "../platform";
 
 /** The connection id the app runs under while it shows the built-in demo workspace. */
 export const DEMO_CONNECTION = "demo";
-const DEMO_KEY = "omb.mobile.demo";
+const DEMO_KEY = "dusk.mobile.demo";
 
 type Prefs = Pick<MobilePlatform, "prefs">;
 

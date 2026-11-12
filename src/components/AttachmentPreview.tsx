@@ -314,9 +314,9 @@ export function MessageFolderFiles({ folderPath, listing, message }: {
 }
 
 const REVEALABLE_PATH = /^(?:\/(?!\/)|[a-zA-Z]:[\\/])/;
-function revealBridge(): NonNullable<Window["ogb"]>["revealInFolder"] {
-  const ogb = typeof window === "undefined" ? undefined : window.ogb;
-  return ogb?.remoteClient?.active ? undefined : ogb?.revealInFolder;
+function revealBridge(): NonNullable<Window["duskDesktop"]>["revealInFolder"] {
+  const duskDesktop = typeof window === "undefined" ? undefined : window.duskDesktop;
+  return duskDesktop?.remoteClient?.active ? undefined : duskDesktop?.revealInFolder;
 }
 
 export function OutsideWorkspaceFile({ filePath }: { filePath: string }) {

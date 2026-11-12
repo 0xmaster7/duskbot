@@ -48,7 +48,7 @@ const fixture = (displayName: string, environment: Record<string, string>) => ({
 });
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-room-holds-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-room-holds-"));
   data = join(home, ".duskbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });

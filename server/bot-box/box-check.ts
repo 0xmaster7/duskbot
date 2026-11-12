@@ -16,7 +16,7 @@ export const CHECK_DENY_ENV: ReadonlySet<string> = new Set(["COMPOSIO_API_KEY", 
 export async function boxCheckMain(argv: readonly string[], env: Record<string, string | undefined> = process.env): Promise<number> {
   const mutate = new Set<BoxMutation>();
   let publicTarget: string | null | undefined;
-  let root = env.DUSK_DATA_DIR ? join(env.DUSK_DATA_DIR, "box") : join(tmpdir(), "omb-box-check");
+  let root = env.DUSK_DATA_DIR ? join(env.DUSK_DATA_DIR, "box") : join(tmpdir(), "dusk-box-check");
   for (const arg of argv) {
     const [name, value = ""] = arg.split("=", 2) as [string, string?];
     if (name === "--mutate") for (const item of value.split(",").filter(Boolean)) {

@@ -13,7 +13,7 @@ import { syncSignIns } from "./sign-ins.ts";
 
 const detection = detectBox({ env: { ...process.env, DUSK_BOT_BOX: "1" } });
 const available = detection.box === "bwrap" && detection.tools !== null;
-const root = mkdtempSync(join(tmpdir(), "omb-engine-box-"));
+const root = mkdtempSync(join(tmpdir(), "dusk-engine-box-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const serverHome = join(root, "home"), dataDir = join(serverHome, ".duskbot");

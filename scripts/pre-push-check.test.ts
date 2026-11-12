@@ -46,7 +46,7 @@ describe("the hook in a checkout without dependencies", () => {
   afterAll(async () => { for (const dir of dirs) await removeTempDir(dir); });
 
   function checkout() {
-    const dir = mkdtempSync(join(tmpdir(), "omb-pre-push-hook-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-pre-push-hook-"));
     dirs.push(dir);
     const repo = (...args: string[]) => execFileSync("git", args, { cwd: dir, stdio: "ignore" });
     repo("init", "-q");

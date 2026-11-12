@@ -17,7 +17,7 @@ import { cloudAsleep, markCloudAwake, resetCloudPowerForTests } from "../../src/
 import { openLiveEvents, type LiveEventSourceLike, type LiveFrame } from "../../src/lib/live-events.ts";
 
 const SERVER_DIR = fileURLToPath(new URL("../../server/", import.meta.url));
-const HOST = "omb-t-7c6b5a4d3e2f.fly.dev";
+const HOST = "dusk-t-7c6b5a4d3e2f.fly.dev";
 const MACHINE = "5c9e3d2f-0b8a-4f7e-9d6c-2b3c4d5e6f70";
 const EDGE = { host: HOST, "x-forwarded-for": "203.0.113.9", "x-forwarded-proto": "https", origin: `https://${HOST}` };
 const secret = randomBytes(32).toString("base64url");
@@ -44,8 +44,8 @@ async function admin(method: "GET" | "POST", path: string, body = "") {
     body: method === "POST" ? body : undefined,
     headers: {
       ...EDGE, ...(method === "POST" ? { "content-type": "application/json" } : {}),
-      "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce,
-      "x-omb-cloud-signature": `v1=${cloudRequestSignature(secret, timestamp, nonce, method, path, body)}`,
+      "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce,
+      "x-dusk-cloud-signature": `v1=${cloudRequestSignature(secret, timestamp, nonce, method, path, body)}`,
     },
   });
   return { status: response.status, body: await response.json().catch(() => null) as any };
@@ -88,7 +88,7 @@ function browserEventSource(url: string) {
 beforeAll(async () => {
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-sleep-wake-"));
+  home = mkdtempSync(join(tmpdir(), "dusk-cloud-sleep-wake-"));
   writeFileSync(join(home, "config.json"), JSON.stringify({
     instances: { claude: { driver: "claudeAgent", displayName: "Fixture", config: { cli: join(SERVER_DIR, "testing", "fake-claude-cli.ts") } } },
   }));
@@ -114,11 +114,11 @@ beforeAll(async () => {
     if (Date.now() > deadline) throw new Error(`the server did not start:\n${log}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  const body = JSON.stringify({ label: "Dusk Bot app (Cloud)", ttlSeconds: 300 });
+  const body = JSON.stringify({ label: "dusk bot app (Cloud)", ttlSeconds: 300 });
   const timestamp = String(Math.floor(Date.now() / 1000)), nonce = randomBytes(16).toString("base64url");
   const granted = await (await realFetch(`${base}/api/cloud/pairing`, { method: "POST", body, headers: {
     ...EDGE, "content-type": "application/json",
-    "x-omb-cloud-timestamp": timestamp, "x-omb-cloud-nonce": nonce, "x-omb-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
+    "x-dusk-cloud-timestamp": timestamp, "x-dusk-cloud-nonce": nonce, "x-dusk-cloud-signature": `v1=${cloudPairingSignature(secret, timestamp, nonce, body)}`,
   } })).json() as { code: string };
   token = (await api("POST", "/api/auth/pair", { code: granted.code })).body.token;
 }, hostTimeout(60_000));

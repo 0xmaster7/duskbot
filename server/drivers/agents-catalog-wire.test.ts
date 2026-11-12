@@ -99,7 +99,7 @@ const RPC_PREFIX = '{"jsonrpc":"2.0","id":1,"result":';
 
 /** One tools/list `result` from a fresh proxy, sliced out of the raw stdout line, never re-serialized. */
 async function toolsListWire(entry: string, env: Record<string, string>): Promise<string> {
-  // A developer shell or a Dusk Bot turn can carry DUSK_* switches; the profile must be the only source.
+  // A developer shell or a dusk bot turn can carry DUSK_* switches; the profile must be the only source.
   const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("DUSK_")));
   const child = spawn(process.execPath, [entry], {
     env: { ...inherited, DUSK_HARNESS_URL: "http://127.0.0.1:9", DUSK_BOT_ID: "bot-golden", DUSK_THREAD_ID: "thread-golden", DUSK_COMMS_TOKEN: "unused", DUSK_TURN_DEPTH: "0", ...env },
@@ -345,7 +345,7 @@ describe("agents proxy tools/list from the packaged bundle", () => {
 
   it("serves the same bytes with no source tree beside it", async () => {
       // Same esbuild options as scripts/bundle-server.mjs: the proxy runs as its own process from one inlined file.
-    directory = realpathSync(mkdtempSync(join(tmpdir(), "omb-agents-proxy-bundle-")));
+    directory = realpathSync(mkdtempSync(join(tmpdir(), "dusk-agents-proxy-bundle-")));
     await build({
       entryPoints: [PROXY_SOURCE],
       bundle: true,

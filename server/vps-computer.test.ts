@@ -230,7 +230,7 @@ function fixture({
       if (args.includes("tail")) {
         return { stdout: "X display :1 did not become ready within 45 seconds\n", stderr: "" };
       }
-      if (args.includes("omb-desktop-probe")) {
+      if (args.includes("dusk-desktop-probe")) {
         if (desktopProbeFails) throw new Error("driver unavailable");
         return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
       }
@@ -239,10 +239,10 @@ function fixture({
         return { stdout: `cua-driver ${CUA_DRIVER_VERSION}\n`, stderr: "" };
       }
       if (args.includes("status")) return { stdout: "running\n", stderr: "" };
-      if ((args.includes("omb-desktop-probe") || args.includes("health_report"))) {
+      if ((args.includes("dusk-desktop-probe") || args.includes("health_report"))) {
         return { stdout: JSON.stringify({ schema_version: "1", overall: "ok", checks: [] }), stderr: "" };
       }
-      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) return { stdout: "{}\n", stderr: "" };
+      if ((args.includes("dusk-desktop-probe") || args.includes("get_desktop_state"))) return { stdout: "{}\n", stderr: "" };
       return { stdout: "{}\n", stderr: "" };
     }
     if (command === "pull") return { stdout: "pulled\n", stderr: "" };
@@ -347,7 +347,7 @@ describe("VPS computer", () => {
     const probes = fake.calls.filter(
       ({ args }) =>
         args[2] === "exec" &&
-        args.includes("omb-desktop-probe"),
+        args.includes("dusk-desktop-probe"),
     );
     expect(probes).toHaveLength(1);
     expect(probes.every(({ args }) => args.includes(CONTAINER_ID))).toBe(true);
@@ -359,7 +359,7 @@ describe("VPS computer", () => {
   });
 
   it.skipIf(process.platform === "win32")("runs every readiness check in one exec and stops at a failed check", () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-desktop-probe-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-desktop-probe-"));
     const driver = join(dir, "driver");
     const log = join(dir, "calls");
     const args = vpsDesktopProbeArgs(CONTAINER_ID);
@@ -374,7 +374,7 @@ case "$1 $2" in
   *) exit 2 ;;
 esac
 `, { mode: 0o700 });
-    const run = (fail: string) => execFileSync("sh", ["-ec", script, "omb-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock"], {
+    const run = (fail: string) => execFileSync("sh", ["-ec", script, "dusk-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock"], {
       encoding: "utf8", env: { PATH: process.env.PATH, PROBE_LOG: log, PROBE_FAIL: fail }, stdio: ["ignore", "pipe", "pipe"],
     });
     try {
@@ -387,7 +387,7 @@ esac
       }
       const waitArgs = vpsDesktopWaitProbeArgs(CONTAINER_ID, 1_000);
       const waitScript = waitArgs[waitArgs.indexOf("-ec") + 1]!;
-      const runWait = (fail: string) => execFileSync("sh", ["-ec", waitScript, "omb-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock", waitArgs.at(-1)!], {
+      const runWait = (fail: string) => execFileSync("sh", ["-ec", waitScript, "dusk-desktop-probe", driver, `cua-driver ${CUA_DRIVER_VERSION}`, "/run/fixture.sock", waitArgs.at(-1)!], {
         encoding: "utf8", env: { PATH: process.env.PATH, PROBE_LOG: log, PROBE_FAIL: fail }, stdio: ["ignore", "pipe", "pipe"],
       });
       writeFileSync(log, "");
@@ -665,7 +665,7 @@ esac
     const fake = fixture();
     expect((await vpsComputerAction("provision", CONFIG, BOT_ID, fake.runner)).ready).toBe(true);
     expect(fake.calls.filter(({ args }) => args[2] === "image")).toHaveLength(1);
-    expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
+    expect(fake.calls.filter(({ args }) => (args.includes("dusk-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
   });
 
   it("shares a slow provision instead of rejecting its second caller after five seconds", async () => {
@@ -687,7 +687,7 @@ esac
       const results = await Promise.all([first, second]);
       expect(results[0]).toEqual(results[1]);
       expect(fake.calls.filter(({ args }) => args[2] === "run")).toHaveLength(1);
-      expect(fake.calls.filter(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
+      expect(fake.calls.filter(({ args }) => (args.includes("dusk-desktop-probe") || args.includes("get_desktop_state")))).toHaveLength(1);
     } finally {
       release();
       await Promise.allSettled([first, second]);
@@ -797,7 +797,7 @@ esac
     const fake = fixture();
     const frame = await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
     expect(frame).toEqual({ png: screenshot.toString("base64"), format: "png" });
-    expect(fake.calls.some(({ args }) => (args.includes("omb-desktop-probe") || args.includes("get_desktop_state")))).toBe(true);
+    expect(fake.calls.some(({ args }) => (args.includes("dusk-desktop-probe") || args.includes("get_desktop_state")))).toBe(true);
     const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     expect(transfer.slice(2)).toEqual([
       "exec", "-u", "cua", "-e", "HOME=/home/cua", CONTAINER_ID,
@@ -819,7 +819,7 @@ esac
     const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     // The exact in-container script with only the local Pillow interpreter and a disposable image swapped in; no Docker or SSH.
     const script = transfer[transfer.indexOf("-c") + 1].replace("/opt/venv/bin/python", "python3");
-    const scratch = mkdtempSync(join(tmpdir(), "omb-vps-preview-image-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-vps-preview-image-"));
     try {
       for (const [width, height, expected] of [[2560, 1600, [1280, 800]], [1600, 2560, [800, 1280]], [320, 200, [320, 200]]] as const) {
         const original = execFileSync("python3", ["-I", "-c", `from PIL import Image; import sys; Image.effect_noise((${width}, ${height}), 64).convert("RGBA").save(sys.stdout.buffer, format="PNG")`], { maxBuffer: 32 * 1024 * 1024 });
@@ -852,7 +852,7 @@ esac
     await vpsComputerScreenshot(CONFIG, BOT_ID, fake.runner);
     const transfer = fake.calls.find(({ args }) => args.includes("duskbot-preview"))!.args;
     const originalScript = transfer[transfer.indexOf("-c") + 1];
-    const scratch = mkdtempSync(join(tmpdir(), "omb-vps-preview-fallback-"));
+    const scratch = mkdtempSync(join(tmpdir(), "dusk-vps-preview-fallback-"));
     try {
       const path = join(scratch, "preview.png");
       writeFileSync(path, screenshot);
@@ -1058,7 +1058,7 @@ esac
     const probing = new Promise<void>((resolve) => { entered = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state")) && ++probes === 1) { entered(); await gate; }
+      if ((args.includes("dusk-desktop-probe") || args.includes("get_desktop_state")) && ++probes === 1) { entered(); await gate; }
       return fake.runner(args, options);
     });
     const stale = vpsComputerStatus(cfg, BOT_ID);
@@ -1088,7 +1088,7 @@ esac
     const diagnosing = new Promise<void>((resolve) => { enteredPoll = resolve; });
     let probes = 0;
     mockTransport(async (args, options) => {
-      if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
+      if ((args.includes("dusk-desktop-probe") || args.includes("get_desktop_state"))) {
         if (++probes === 1) { enteredReady(); await readyGate; }
         else if (probes === 2) throw new Error("desktop is still starting");
       }
@@ -1195,7 +1195,7 @@ esac
     expect(rebuilt.ready).toBe(true);
   });
 
-  it("never removes a container Dusk Bot did not create", async () => {
+  it("never removes a container dusk bot did not create", async () => {
     const unowned = fixture({ managed: false });
     await expect(vpsComputerAction("remove", CONFIG, BOT_ID, unowned.runner)).rejects.toThrow(/did not create/);
     expect(unowned.calls.some(({ args }) => args[2] === "rm")).toBe(false);
@@ -1225,7 +1225,7 @@ esac
     try {
       const fake = fixture({ running: false });
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args.includes("omb-desktop-probe")) await new Promise(resolve => setTimeout(resolve, 2_000));
+        if (args.includes("dusk-desktop-probe")) await new Promise(resolve => setTimeout(resolve, 2_000));
         return fake.runner(args, options);
       };
       const startedAt = Date.now();
@@ -1251,7 +1251,7 @@ esac
       const fake = fixture({ running: false });
       let waits = 0;
       const runner: VpsCommandRunner = async (args, options) => {
-        if (args.includes("omb-desktop-probe")) {
+        if (args.includes("dusk-desktop-probe")) {
           waits++;
           await new Promise(resolve => setTimeout(resolve, 3_000));
           fake.state.running = false;
@@ -1261,7 +1261,7 @@ esac
       };
       const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner);
       await vi.advanceTimersByTimeAsync(3_000);
-      expect(await pending).toMatchObject({ ready: false, desktopReady: false, container: "stopped", problem: "The Dusk Bot VPS container is stopped" });
+      expect(await pending).toMatchObject({ ready: false, desktopReady: false, container: "stopped", problem: "The dusk bot VPS container is stopped" });
       expect(waits).toBe(1);
     } finally { vi.useRealTimers(); }
   });
@@ -1276,7 +1276,7 @@ esac
       const fake = fixture({ running: false });
       const runner: VpsCommandRunner = async (args, options) => {
         const result = await fake.runner(args, options);
-        return args.includes("omb-desktop-probe") ? { stdout: JSON.stringify(report), stderr: "" } : result;
+        return args.includes("dusk-desktop-probe") ? { stdout: JSON.stringify(report), stderr: "" } : result;
       };
       const pending = vpsComputerAction("provision", CONFIG, BOT_ID, runner);
       await vi.advanceTimersByTimeAsync(60_000);
@@ -1290,7 +1290,7 @@ esac
     fake.state.startedAt = new Date(++fixtureBootMs).toISOString();
     const before = fake.calls.length;
     expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner, { fresh: true })).ready).toBe(true);
-    expect(fake.calls.slice(before).filter(({ args }) => args.includes("omb-desktop-probe"))).toHaveLength(1);
+    expect(fake.calls.slice(before).filter(({ args }) => args.includes("dusk-desktop-probe"))).toHaveLength(1);
   });
 
   it("keeps wait probe values out of the script and validates its wait", () => {
@@ -1313,7 +1313,7 @@ esac
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       const fake = fixture();
-      const probes = () => fake.calls.filter(({ args }) => args.includes("omb-desktop-probe")).length;
+      const probes = () => fake.calls.filter(({ args }) => args.includes("dusk-desktop-probe")).length;
       expect((await vpsComputerStatus(CONFIG, BOT_ID, fake.runner)).ready).toBe(true);
       expect(probes()).toBe(1);
       const status = await vpsComputerStatus(CONFIG, BOT_ID, fake.runner);
@@ -1333,7 +1333,7 @@ esac
       const fake = fixture({ container: false });
       const desktopTimeouts: number[] = [];
       const runner: VpsCommandRunner = async (args, options) => {
-        if ((args.includes("omb-desktop-probe") || args.includes("get_desktop_state"))) {
+        if ((args.includes("dusk-desktop-probe") || args.includes("get_desktop_state"))) {
           const timeoutMs = options?.timeoutMs ?? 120_000;
           desktopTimeouts.push(timeoutMs);
           await new Promise((resolve) => setTimeout(resolve, timeoutMs + 6_000));

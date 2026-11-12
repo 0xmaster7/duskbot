@@ -104,7 +104,7 @@ meet another file's. Four files share the runner's CPU, so test and hook
 timeouts double there, as on Windows (`server/testing/host-timeout.ts`).
 
 **Which files run where.** Linux runs every file. Most e2e files drive
-Dusk Bot's own logic through a real server and fake engines, which is the same on
+dusk bot's own logic through a real server and fake engines, which is the same on
 every OS, and they were 70% of a Windows shard's time, so only Linux runs
 them: the Windows and macOS shards set `DUSK_VITEST_E2E=host`, and
 `vite.config.ts` then leaves out every e2e file not listed in
@@ -225,7 +225,7 @@ PR's running checks.
 
 ## Browser driver (S4)
 
-`browser driver S4 (<os>)` runs the omb-cdp conformance suites
+`browser driver S4 (<os>)` runs the dusk-cdp conformance suites
 (`server/browser/cdp/s4-*.e2e.test.ts`) against real Chrome: snapshots across
 out-of-process frames and closed shadow roots, every action, dialogs,
 downloads, popups and tabs, both evaluation worlds, waiting, the calibrated
@@ -405,7 +405,7 @@ default branch):
 The same rule through the API, keeping the ruleset's existing check:
 
 ```sh
-gh api -X PUT repos/<org>/Dusk Bot/rulesets/<main-ci-gate id> --input - <<'JSON'
+gh api -X PUT repos/<org>/dusk bot/rulesets/<main-ci-gate id> --input - <<'JSON'
 {"rules": [
   {"type": "required_status_checks", "parameters": {"required_status_checks": [{"context": "CI", "integration_id": 15368}],
     "strict_required_status_checks_policy": false, "do_not_enforce_on_create": false}},

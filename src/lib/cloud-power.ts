@@ -1,3 +1,4 @@
+import { readHeader, withLegacyHeaders } from "../../electron/legacy-names.mjs";
 // A Cloud home on a plan that sleeps tells its pages it is going to sleep (a `power` frame on the event stream, or an
 // "asleep" answer). From then on the page sends nothing in the background: any request reaching the Cloud would wake it.
 // The next thing the person does (a key press or a click; never the window regaining focus, which is no intent) wakes it
@@ -6,8 +7,10 @@
 
 /** Background requests (polls nobody asked for just now) carry this header, so the home doesn't count them as someone
  * using it (server/cloud-power.ts `countsAsActivity`). */
-export const BACKGROUND_HEADER = "x-omb-background";
-export const CLOUD_POWER_HEADER = "x-omb-cloud-power";
+export const BACKGROUND_HEADER = "x-dusk-background";
+/** the same hint under every name a Cloud home may still know it by */
+export const BACKGROUND_HEADERS: Record<string, string> = withLegacyHeaders({ [BACKGROUND_HEADER]: "1" });
+export const CLOUD_POWER_HEADER = "x-dusk-cloud-power";
 const WAKE_PATH = "/api/cloud/wake";
 export type PageWakeIntent = "type" | "click";
 
@@ -128,12 +131,12 @@ export function pageShown(signal?: AbortSignal): Promise<void> {
 
 /** The Cloud's edge answers this way while it starts a stopped machine: the request never reached the home. */
 export function wakingAnswer(response: Pick<Response, "status" | "headers">): boolean {
-  return response.status === 503 && (response.headers.get(CLOUD_POWER_HEADER) === "waking" || response.headers.has("retry-after"));
+  return response.status === 503 && (readHeader(response.headers, CLOUD_POWER_HEADER) === "waking" || response.headers.has("retry-after"));
 }
 
 /** An "asleep" answer from the home (held polls and refused background requests carry it). */
 export function asleepAnswer(response: Pick<Response, "status" | "headers">): boolean {
-  return response.status === 503 && response.headers.get(CLOUD_POWER_HEADER) === "asleep";
+  return response.status === 503 && readHeader(response.headers, CLOUD_POWER_HEADER) === "asleep";
 }
 
 /** The event stream's frame for it. */

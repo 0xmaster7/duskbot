@@ -40,7 +40,7 @@ function desktop({ account = { status: "connected", clouds: [HOME] } as CloudAcc
       setKeepHere: vi.fn(async (on: boolean) => (kept = { ...kept, on })),
     },
   };
-  (window as unknown as { ogb: unknown }).ogb = bridges;
+  (window as unknown as { duskDesktop: unknown }).duskDesktop = bridges;
   return bridges;
 }
 
@@ -63,7 +63,7 @@ afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
   document.body.innerHTML = "";
-  delete (window as unknown as { ogb?: unknown }).ogb;
+  delete (window as unknown as { duskDesktop?: unknown }).duskDesktop;
   vi.unstubAllGlobals();
 });
 

@@ -34,7 +34,7 @@ export function settings(env = process.env) {
     tlsDays: number(env.DUSK_UPTIME_TLS_DAYS, 14),
     state: env.DUSK_UPTIME_STATE || "/var/lib/dusk-uptime",
     to: (env.DUSK_ALERT_TO || "").split(",").map(item => item.trim()).filter(item => /^[^\s@]+@[^\s@]+$/.test(item)),
-    from: env.DUSK_ALERT_FROM || "Dusk Bot uptime <alerts@dusk.bot>",
+    from: env.DUSK_ALERT_FROM || "dusk bot uptime <alerts@dusk.bot>",
     brevo: env.DUSK_BREVO_API_KEY || null,
     resend: env.DUSK_RESEND_API_KEY || null,
   };

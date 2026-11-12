@@ -131,7 +131,7 @@ describe("Codex generateMemoryText (fake CLI)", () => {
 
   beforeEach(() => {
     chmodSync(FAKE_CLI, 0o755);
-    scratch = mkdtempSync(join(tmpdir(), "omb-codex-bg-test-"));
+    scratch = mkdtempSync(join(tmpdir(), "dusk-codex-bg-test-"));
     log = join(scratch, "exec.jsonl");
     mkdirSync(join(scratch, ".codex"), { recursive: true });
   });
@@ -168,7 +168,7 @@ describe("Codex generateMemoryText (fake CLI)", () => {
     const folder = call!.argv[call!.argv.indexOf("--cd") + 1]!;
     expect(realpathSync.native(dirname(folder))).toBe(realpathSync.native(dirname(call!.cwd)));
     expect(basename(folder)).toBe(basename(call!.cwd));
-    expect(basename(folder)).toMatch(/^omb-codex-background-/);
+    expect(basename(folder)).toMatch(/^dusk-codex-background-/);
     expect(call!.cwd).not.toBe(scratch);
     expect(existsSync(call!.cwd)).toBe(false);
     expect(call!.env.CODEX_HOME).toBe(join(scratch, ".codex"));
@@ -188,7 +188,7 @@ describe("Codex generateMemoryText (fake CLI)", () => {
     await codex.generateMemoryText!("hello");
     const [call] = calls();
     expect(call!.argv[call!.argv.indexOf("--model") + 1]).toBe("gpt-6-luna");
-    expect(call!.argv).toContain('model_provider="openmaus_company"');
+    expect(call!.argv).toContain('model_provider="dusk_company"');
     expect(call!.env.DUSK_COMPANY_API_KEY).toBe("synthetic-company-fixture");
     await codex.dispose();
     const keyless = await create({ DUSK_COMPANY_API_KEY: "" }, true);

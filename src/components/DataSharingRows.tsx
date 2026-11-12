@@ -12,7 +12,7 @@ export function DataSharingRows() {
   const [choice, setChoice] = useState<Choice | null>(null);
   const [errors, setErrors] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
-  const bridge = typeof window === "undefined" ? undefined : window.ogb?.desktopErrorReports;
+  const bridge = typeof window === "undefined" ? undefined : window.duskDesktop?.desktopErrorReports;
   useEffect(() => {
     let live = true;
     api<Choice>("/api/dashboard/usage-signals").then((answer) => { if (live) setChoice(answer); }, () => { if (live) setFailed(true); });
@@ -25,7 +25,7 @@ export function DataSharingRows() {
       setFailed(false);
       if (next.enabled !== undefined) {
         setUsageAnalytics(next.enabled);
-        void window.ogb?.desktopAnalytics?.set?.(next.enabled);
+        void window.duskDesktop?.desktopAnalytics?.set?.(next.enabled);
       }
     } catch { setFailed(true); }
   };

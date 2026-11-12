@@ -10,7 +10,7 @@ reruns and recovery. It
 builds macOS (arm64 + x64, signed, notarized, stapled), Windows, and Ubuntu
 from a single pinned commit, verifies every artifact the way a user would
 receive it, and assembles the canonical draft in
-[Dusk Bot releases](https://github.com/goatedgrokbotalternative/duskbot/releases).
+[dusk bot releases](https://github.com/goatedgrokbotalternative/duskbot/releases).
 Tick **publish** to publish the release immediately, or leave it unticked to
 review the draft first.
 
@@ -71,7 +71,7 @@ must fail the build, not ship an installer that downloads them on first use.
 
 ## One-time setup: release secrets
 
-Set these in **Dusk Bot → Settings → Secrets and variables → Actions**.
+Set these in **dusk bot → Settings → Secrets and variables → Actions**.
 
 The **Prepare next release** workflow also needs
 **Settings → Actions → General → Workflow permissions → Allow GitHub Actions

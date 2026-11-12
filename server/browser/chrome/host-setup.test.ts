@@ -28,7 +28,7 @@ describe("host setup", () => {
   });
 
   it.skipIf(process.platform === "win32")("asks the browser's own loader which libraries are missing, in the environment the browser launched with", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "omb-host-setup-test-"));
+    const dir = mkdtempSync(join(tmpdir(), "dusk-host-setup-test-"));
     folders.push(dir);
     const chrome = join(dir, "chrome");
     writeFileSync(chrome, `#!/bin/sh\nprintf '%s' "$HOME" > '${dir}/home'\necho "chrome: error while loading shared libraries: libnss3.so: cannot open shared object file" >&2\nexit 127\n`, { mode: 0o755 });

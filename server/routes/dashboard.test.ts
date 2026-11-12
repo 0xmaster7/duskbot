@@ -125,7 +125,7 @@ describe("dashboard command routes", () => {
     const seen: Array<{ path: string; method: string; body: unknown }> = [];
     let nonce = "";
     const server = createServer(async (req, res) => {
-      nonce = String(req.headers["x-omb-dashboard-command"]);
+      nonce = String(req.headers["x-dusk-dashboard-command"]);
       const auth = commands.authenticate(req); expect(auth && commands.owns(auth)).toBe(true);
       expect(commands.authenticate(req)).toBeNull();
       seen.push({ path: req.url!, method: req.method!, body: req.method === "DELETE" ? null : await readBody(req) });

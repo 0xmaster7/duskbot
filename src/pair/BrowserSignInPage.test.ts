@@ -13,6 +13,6 @@ it("says whose Cloud a browser sign-in is for, with one Continue and no second s
   expect(html.match(/<button/g)).toHaveLength(1);
   expect(html).toContain(">Continue</button>");
   expect(html).not.toContain(credential);
-  expect(html).not.toContain("omb_pair_");
+  expect(html).not.toContain("dusk_pair_");
   expect(html).not.toMatch(/<input|<form|role="alert"/);
 });

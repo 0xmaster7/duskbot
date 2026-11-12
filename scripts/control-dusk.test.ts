@@ -5,12 +5,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 
-import { verificationServerArgs, verificationServerEnvironment } from "./control-omb.ts";
+import { verificationServerArgs, verificationServerEnvironment } from "./control-dusk.ts";
 
-const childEnv = (parentEnv: NodeJS.ProcessEnv) => verificationServerEnvironment(parentEnv, join(tmpdir(), "omb-fixture-env"), 9100);
+const childEnv = (parentEnv: NodeJS.ProcessEnv) => verificationServerEnvironment(parentEnv, join(tmpdir(), "dusk-fixture-env"), 9100);
 
 it("keeps the home and every login folder beside the data folder only for its explicit switch, so a workspace backup can run", () => {
-  const dir = join(tmpdir(), "omb-fixture-env");
+  const dir = join(tmpdir(), "dusk-fixture-env");
   const outside = childEnv({ DUSK_VERIFY_HOME_OUTSIDE: "1" });
   for (const key of ["HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "APPDATA", "LOCALAPPDATA", "HERMES_HOME"]) expect(outside[key]!.startsWith(`${dir}-home`), key).toBe(true);
   expect(outside.DUSK_DATA_DIR).toBe(dir);
@@ -78,10 +78,10 @@ describe("the fixture's Live call environment", () => {
 
 describe("the fixture's X research relay", () => {
   it("passes a loopback relay stub and its token through, the token only with the stub", () => {
-    expect(childEnv({ DUSK_CLOUD_X_URL: " http://127.0.0.1:4200/api/cloud/services/x ", DUSK_CLOUD_X_TOKEN: "omb_x_fixture" }))
-      .toMatchObject({ DUSK_CLOUD_X_URL: "http://127.0.0.1:4200/api/cloud/services/x", DUSK_CLOUD_X_TOKEN: "omb_x_fixture" });
+    expect(childEnv({ DUSK_CLOUD_X_URL: " http://127.0.0.1:4200/api/cloud/services/x ", DUSK_CLOUD_X_TOKEN: "dusk_x_fixture" }))
+      .toMatchObject({ DUSK_CLOUD_X_URL: "http://127.0.0.1:4200/api/cloud/services/x", DUSK_CLOUD_X_TOKEN: "dusk_x_fixture" });
     for (const url of ["https://dusk.bot/api/cloud/services/x", "http://localhost:4200/api/cloud/services/x", "http://192.0.2.1:4200", "http://127.0.0.1:4200/../x?y", ""]) {
-      const env = childEnv({ DUSK_CLOUD_X_URL: url, DUSK_CLOUD_X_TOKEN: "omb_x_real" });
+      const env = childEnv({ DUSK_CLOUD_X_URL: url, DUSK_CLOUD_X_TOKEN: "dusk_x_real" });
       expect(env, url).not.toHaveProperty("DUSK_CLOUD_X_URL");
       expect(env, url).not.toHaveProperty("DUSK_CLOUD_X_TOKEN");
     }

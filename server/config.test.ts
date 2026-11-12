@@ -1289,7 +1289,7 @@ describe("saving OpenCode provider keys", () => {
     expect(mergeOpenCodeProviderKeys({}, { ANTHROPIC_API_KEY: "sk-ant" })).toEqual({ ok: true, keys: { ANTHROPIC_API_KEY: "sk-ant" } });
   });
 
-  it("refuses names OpenCode does not read or that OpenMaus keeps, with the fix", () => {
+  it("refuses names OpenCode does not read or that dusk bot keeps, with the fix", () => {
     const refused = (name: string) => {
       const result = mergeOpenCodeProviderKeys(saved, { [name]: "a-key" });
       expect(result.ok, name).toBe(false);
@@ -1301,7 +1301,7 @@ describe("saving OpenCode provider keys", () => {
     expect(refused("OPENCODE_API_KEY")).toContain("OpenCode API key box");
     for (const name of ["OPENCODE_SERVER_KEY", "DUSK_LICENSE_KEY", "BOX_TOKEN", "COMPOSIO_API_KEY",
       "OPENAI_COMPAT_API_KEY", "XAI_API_KEY", "MISTRAL_API_KEY", "CURSOR_API_KEY", "FACTORY_API_KEY"]) {
-      expect(refused(name)).toBe(`OpenMaus keeps ${name} for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.`);
+      expect(refused(name)).toBe(`dusk bot keeps ${name} for itself, so OpenCode can't be given it here. Put this key in opencode.json instead.`);
     }
   });
 
@@ -1552,9 +1552,9 @@ describe("credential env preference", () => {
   it("never takes Cloud Pro's included tokens for the person's own keys, in config or an engine's environment", () => {
     const included = {
       DUSK_CLOUD_VOICE_URL: "https://cloud.example.test/api/cloud/services/voice/v1",
-      DUSK_CLOUD_VOICE_TOKEN: "omb_voice_included-relay-token",
+      DUSK_CLOUD_VOICE_TOKEN: "dusk_voice_included-relay-token",
       DUSK_CLOUD_DECIDER_URL: "https://cloud.example.test/api/cloud/services/decider",
-      DUSK_CLOUD_DECIDER_TOKEN: "omb_decide_included-relay-token",
+      DUSK_CLOUD_DECIDER_TOKEN: "dusk_decide_included-relay-token",
     };
     for (const [name, value] of Object.entries(included)) vi.stubEnv(name, value);
     try {
@@ -1998,7 +1998,7 @@ describe("customMcpServers", () => {
   it("skips reserved names — a custom entry can never shadow a built-in", () => {
     const out = customMcpServers(
       cfg({
-        ogb: { command: "evil" },
+        dusk: { command: "evil" },
         computer: { command: "evil" },
         agents: { command: "evil" },
         fine: { command: "ok" },

@@ -11,7 +11,7 @@ import { launchCloudSendFixture, type CloudSendDesk, type CloudSendFixture } fro
 import { hostTimeout } from "./testing/host-timeout.ts";
 
 const TOKEN = `ops_fake-two-desks-${randomBytes(8).toString("hex")}`;
-const GATES = mkdtempSync(join(tmpdir(), "omb-two-desks-"));
+const GATES = mkdtempSync(join(tmpdir(), "dusk-two-desks-"));
 const HOLD = join(GATES, "hold"), RELEASE = join(GATES, "release");
 /** Either computer's turns that start while HOLD exists run until RELEASE does. */
 const HOLD_TURNS = `if ((await import("node:fs")).existsSync(${JSON.stringify(HOLD)})) { process.env.FAKE_CLAUDE_MODE = "hang"; process.env.FAKE_CLAUDE_RELEASE = ${JSON.stringify(RELEASE)}; }`;

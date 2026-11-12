@@ -32,7 +32,7 @@ afterEach(async () => {
 });
 
 async function open(driver: ReturnType<typeof createOpenCodeDriver>, instanceId: string, environment: (scratch: string) => Record<string, string>) {
-  const scratch = mkdtempSync(join(tmpdir(), "omb-opencode-cloud-"));
+  const scratch = mkdtempSync(join(tmpdir(), "dusk-opencode-cloud-"));
   const instance = await driver.create({
     instanceId, displayName: instanceId, enabled: true,
     config: { cli: FAKE_CLI, fullAuto: false, workspace: scratch },
@@ -88,7 +88,7 @@ describe("the keys saved for OpenCode inside the Cloud bot box", () => {
     await (await open(createOpenCodeDriver(async () => ({ default: "", options: [] })), "opencodeGo", () => ({
       NANO_GPT_API_KEY: "nano-secret", OPENCODE_API_KEY: "go-secret",
     }))).run("t-raw");
-    const broker = { port: 18080, mintForProcess: () => ({ token: "omb_t0_token" }), revoke: () => {} };
+    const broker = { port: 18080, mintForProcess: () => ({ token: "dusk_t0_token" }), revoke: () => {} };
     const brokered = new BoxRunner({ bwrap: "/usr/bin/bwrap", bridge: { socat: null, bridgeScript: "/app/box-bridge.js", node: "/usr/bin/node" }, setup, denyEnv: BOX_DENY_ENV, broker })
       .wrap(requests.at(-1)!);
     expect(brokered.env).toMatchObject({ OPENCODE_API_KEY: "go-secret", NANO_GPT_API_KEY: "nano-secret" });

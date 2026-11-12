@@ -12,7 +12,7 @@ import { hostTimeout } from "./testing/host-timeout.ts";
 import { TRIAL_CREDIT_OWN_AI, TRIAL_KEY_HELD } from "./trial-credit.ts";
 
 const RELAY_PATH = "/api/cloud/services/ai";
-const CREDIT_TOKEN = `omb_ai_${randomBytes(32).toString("base64url")}`;
+const CREDIT_TOKEN = `dusk_ai_${randomBytes(32).toString("base64url")}`;
 const OPENROUTER_KEY = `sk-or-v1-fake${randomBytes(16).toString("hex")}`;
 const USED_UP = { error: { code: "trial_credit_used_up", type: "insufficient_quota", message: "Your Claude credit is used up.", param: null } };
 const completions: string[] = [];

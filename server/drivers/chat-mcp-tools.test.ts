@@ -38,7 +38,7 @@ const controllers: AbortController[] = [];
 const schema = { type: "object", properties: { value: { type: "string" } }, required: ["value"], additionalProperties: false };
 
 function fixture(body = "", toolSchema: Record<string, unknown> = schema) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-chat-mcp-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-chat-mcp-"));
   dirs.push(dir);
   const script = join(dir, "fake-mcp.mjs");
   const receipt = join(dir, "receipt.json");
@@ -59,7 +59,7 @@ function fixture(body = "", toolSchema: Record<string, unknown> = schema) {
         const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);
         const message = JSON.parse(line);
         calls.push(message);
-        writeFileSync(receipt, JSON.stringify({pid:process.pid,path:process.env.PATH,omb:Object.fromEntries(Object.entries(process.env).filter(([name]) => name.startsWith("DUSK_"))),calls}));
+        writeFileSync(receipt, JSON.stringify({pid:process.pid,path:process.env.PATH,dusk:Object.fromEntries(Object.entries(process.env).filter(([name]) => name.startsWith("DUSK_"))),calls}));
         ${body}
         if (message.method === "initialize") reply(message, {protocolVersion:"2024-11-05",capabilities:{tools:{}}});
         else if (message.method === "tools/list") reply(message, {tools:[{name:"write",description:"Fixture write",inputSchema:schema}]});
@@ -73,7 +73,7 @@ function fixture(body = "", toolSchema: Record<string, unknown> = schema) {
   const server: { command: string; args: string[]; env: Record<string, string> } = { command: script, args: [], env: { RECEIPT: receipt } };
   return {
     dir, receipt, controller, server,
-    read: () => JSON.parse(readFileSync(receipt, "utf8")) as { pid: number; path: string; omb: Record<string, string>; calls: Array<{ method: string; params?: { name?: string; arguments?: unknown } }> },
+    read: () => JSON.parse(readFileSync(receipt, "utf8")) as { pid: number; path: string; dusk: Record<string, string>; calls: Array<{ method: string; params?: { name?: string; arguments?: unknown } }> },
     async mount(computerUse = false, localComputer = false, toolScope?: ToolScope, resultFolder?: string, serverName = "audit", scrub?: (text: string) => string) {
       const session = await mountChatTools(localComputer ? { localComputer: server } : { custom: { [serverName]: server } }, controller.signal, computerUse, toolScope,
         undefined, undefined, resultFolder, scrub);
@@ -240,7 +240,7 @@ describe("Chat MCP session", () => {
       sessions.push(session);
       const [definition] = session.definitions;
       expect(schemaBytes(definition!.function.parameters)).toBeLessThanOrEqual(12_000);
-      expect(definition!.function.description).toContain("Dusk Bot shortened this tool's parameters to fit Kimi's size limit");
+      expect(definition!.function.description).toContain("dusk bot shortened this tool's parameters to fit Kimi's size limit");
       expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^chat-mcp: audit: kept only the top-level fields of tool "write"'s parameters/));
       expect(() => session.validate("audit_write", { field_000: { label: 5 } })).toThrow("input schema");
       expect(() => session.validate("audit_write", { field_000: { label: "five" } })).not.toThrow();
@@ -271,7 +271,7 @@ describe("Chat MCP session", () => {
     const f = fixture();
     f.server.env = { ...f.server.env, DUSK_COMMS_TOKEN: "turn-capability" };
     await f.mount();
-    const seen = f.read().omb;
+    const seen = f.read().dusk;
     expect(seen).toMatchObject({ DUSK_CLOUDFLARED_PATH: "/usr/local/bin/cloudflared", DUSK_COMMS_TOKEN: "turn-capability" });
     for (const name of secrets) expect(seen).not.toHaveProperty(name);
   });
@@ -450,7 +450,7 @@ describe("Chat MCP session", () => {
   describe("a result over 50KB with a working folder", () => {
     const big = "line of a big kDrive file as base64 text ".repeat(5000);
     const bigFixture = () => fixture(`if (message.method === "tools/call") { reply(message,{content:[{type:"text",text:${JSON.stringify(big)}}]}); continue; }`);
-    const workFolder = () => { const dir = mkdtempSync(join(tmpdir(), "omb-chat-mcp-work-")); dirs.push(dir); return dir; };
+    const workFolder = () => { const dir = mkdtempSync(join(tmpdir(), "dusk-chat-mcp-work-")); dirs.push(dir); return dir; };
 
     it("is saved whole to a file there, and the model gets its start and the path", async () => {
       const f = bigFixture();
@@ -656,7 +656,7 @@ describe("Chat MCP shutdown verdict", () => {
 const grantFor = (server: string, tool: string) => expect.stringMatching(new RegExp(`^\\["${server}","[0-9a-f]{64}","${tool}"\\]$`));
 
 describe("Chat MCP approvals by server", () => {
-  it("asks nothing for Dusk Bot's agents server, and grants no session-wide allow on the person's computer", async () => {
+  it("asks nothing for dusk bot's agents server, and grants no session-wide allow on the person's computer", async () => {
     const agents = fixture(); const audit = fixture(); const computer = fixture();
     const session = await mountChatTools({
       agents: agents.server, custom: { audit: audit.server },

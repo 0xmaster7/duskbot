@@ -66,11 +66,11 @@ Delta replay cadence, identical on both sides: `FAKE_CLAUDE_STREAM_CADENCE`
 Injection point: the fake claude CLI's turn output — the real driver
 (server/drivers/claude.ts stream_event → content.delta) forwards it, the
 server broadcasts {kind:"runtime"} frames, and the renderer store records
-arrival (src/lib/voice-latency-probe.ts, enabled only by `?ombVoiceProbe=1`
+arrival (src/lib/voice-latency-probe.ts, enabled only by `?duskVoiceProbe=1`
 on the preview page).
 
 Reply routing is by prompt marker, not ordered slots: the harness POSTs
-`omb voice probe <id>` as the user text and the fake CLI answers with that
+`dusk voice probe <id>` as the user text and the fake CLI answers with that
 marker's corpus reply (`FAKE_CLAUDE_MARKER_REPLIES`). The driver legitimately
 replays a user message over several CLI launches; marker routing makes every
 replay answer the same reply, so rows align regardless of replay count. A

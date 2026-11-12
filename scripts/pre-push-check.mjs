@@ -40,7 +40,7 @@ const git = (...args) => execFileSync("git", args, { encoding: "utf8", stdio: ["
 /** Vitest's own verdict from its report, since a dependency out of step fails before any test runs. A guard reads the
  * whole tree, so a failure that names none of the push's files is main's own, and that is CI's to report. */
 function runGuards(guards, files, timeout) {
-  const dir = mkdtempSync(join(tmpdir(), "omb-pre-push-"));
+  const dir = mkdtempSync(join(tmpdir(), "dusk-pre-push-"));
   const report = join(dir, "report.json");
   try {
     const run = spawnSync("node_modules/.bin/vitest", ["run", ...guards, "--reporter=default", "--reporter=json", `--outputFile.json=${report}`], { encoding: "utf8", timeout, maxBuffer: 16 * 1024 * 1024 });

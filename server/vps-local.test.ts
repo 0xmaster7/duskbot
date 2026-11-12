@@ -15,7 +15,7 @@ afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("a server on its own linked VPS", () => {
   it("knows it is one from the link agent's tunnel file, on Linux only, and the env can say either way", () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-vps-local-"));
+    const home = mkdtempSync(join(tmpdir(), "dusk-vps-local-"));
     try {
       expect(detectThisServerVps({}, "linux", home)).toBe(false);
       mkdirSync(join(home, ".config", "duskbot-link"), { recursive: true });

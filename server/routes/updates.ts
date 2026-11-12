@@ -33,7 +33,7 @@ export function createCloudUpdateRoute(deps: { secret: string; state: () => Upda
     if (!updates) { json(res, 404, { error: "not_found" }); return true; }
     if (method !== "GET") { json(res, 405, { error: "method_not_allowed" }); return true; }
     const header = (name: string) => { const value = req.headers[name]; return typeof value === "string" ? value : undefined; };
-    const verdict = reads.verify({ timestamp: header("x-omb-cloud-timestamp"), nonce: header("x-omb-cloud-nonce"), signature: header("x-omb-cloud-signature"), method, target: `${path}${url.search}`, body: "" });
+    const verdict = reads.verify({ timestamp: header("x-dusk-cloud-timestamp"), nonce: header("x-dusk-cloud-nonce"), signature: header("x-dusk-cloud-signature"), method, target: `${path}${url.search}`, body: "" });
     if (!verdict.ok) { json(res, verdict.status, { error: verdict.error }); return true; }
     json(res, 200, updates.report());
     return true;
