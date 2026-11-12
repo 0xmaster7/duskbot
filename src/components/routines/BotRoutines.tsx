@@ -225,7 +225,7 @@ function AutomationDetail({ id, bot, automation, routine, actions, onEdit }: {
         {automation.kind === "schedule" && <Fact term={t("routines.inline.resultsTo")}>{upperFirst(resultsTo)}</Fact>}
         {routine && forecast?.warnings && (
           <Fact term={t("routines.cost.term")}>
-            <span data-routine-forecast="">{forecastLine(forecast)}</span>
+            <span data-routine-forecast="">{upperFirst(forecastLine(forecast))}</span>
             {forecast.warnings.map((warning) => <span key={warning} className="block text-[12px] leading-4 text-warning">{t(warning === "frequent" ? "routines.cost.frequent" : "routines.cost.costly")}</span>)}
           </Fact>
         )}
